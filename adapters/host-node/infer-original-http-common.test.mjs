@@ -50,6 +50,11 @@ test('selected structured SDK settles the original verified Raw through Common a
 test('registered SDK rejects a separate equal profile before Entry and transport',
   {timeout:15000}, t => originalHttpSettlement(t, 'registered', {foreignRegisteredProfile:true}));
 
+for (const [name,flag] of [['false',false],['missing',undefined]]) {
+  test('Common refuses a saved callback answer with '+name+' completion',
+    {timeout:15000}, t => originalHttpSettlement(t,'registered',{overrideCompletion:()=>flag}));
+}
+
 test('selected structured SDK retains the original unknown when Raw cannot be confirmed',
   {timeout:15000}, t => originalHttpSettlement(t, true, {refuseRaw: true}));
 
@@ -105,7 +110,8 @@ test('selected structured SDK keeps a truncated provider response unknown',
   {timeout:15000}, t => originalHttpSettlement(t, true, {loseResponse:true}));
 
 async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseResponse=false,
-  status=200, contentType='application/json', outcome, wire=responseWire, usage=[3,2], foreignRegisteredProfile=false} = {}) {
+  status=200, contentType='application/json', outcome, wire=responseWire, usage=[3,2],
+  foreignRegisteredProfile=false, overrideCompletion} = {}) {
     const calls=[],sockets=new Set();
     const server=createServer(async(request,response)=>{
       let body='';
@@ -143,6 +149,7 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
         maxBorrowedBackingBytes:131072,maxReads:64}});
     const refusal = new Error('FixtureRawConfirmationUnavailable');
     const f=await originalSdkCommonFixture(t,moon,{physical:{endpoint,fetch},structuredSdk,foreignRegisteredProfile,
+      overrideCompletion,
       beforeOriginalRead({read}) {
         if (refuseRaw && read === 2) throw refusal;
       }});
@@ -162,9 +169,10 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       operation:f.operation,plan:f.plan,store:f.store,storeAuthorityCid:f.storeAuthorityCid,
       durableCalls:true,captureOnly:true});
     capture.configureModelJournal({observe:f.opened.observe,entry:f.opened.entry});
-    if (refuseRaw || loseResponse) {
+    if (refuseRaw || loseResponse || overrideCompletion!==undefined) {
       await assert.rejects(f.operation.run(), {code:'MoonBitHostFailure'});
       if (refuseRaw) assert.equal(f.ports[0].rawFailure(),refusal);
+      if (overrideCompletion!==undefined) assert.equal(f.ports[0].rawFailure()?.code,'MoonBitHostFailure');
       assert.equal(f.originalReads(),2);
       assert.equal(calls.length,1);
       assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown');

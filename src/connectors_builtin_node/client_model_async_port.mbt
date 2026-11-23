@@ -300,6 +300,7 @@ pub fn client_program_model_structured_request_plan(
     String?,
     String?,
     String?,
+    Bool?,
   )?,
 ) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
   @model.bound_structured_model_async_request_plan(
@@ -312,8 +313,18 @@ pub fn client_program_model_structured_request_plan(
     start,
     (call, receipt, bytes) => {
       read_answer(call, receipt, bytes).map(answer => {
-        let (text, finish, input_tokens, output_tokens, model, request_id, reason) = answer
-        let answer : Result[String, @model.ModelProviderFailure] = match (finish, text) {
+        let (
+          text,
+          finish,
+          input_tokens,
+          output_tokens,
+          model,
+          request_id,
+          reason,
+          complete,
+        ) = answer
+        let answer : Result[String, @model.ModelProviderFailure] = match
+          (finish, text) {
           ("stop", Some(body)) => Ok(body)
           ("length", _) => Err(Truncated)
           ("refusal", _) => Err(Refusal)
@@ -335,7 +346,7 @@ pub fn client_program_model_structured_request_plan(
             response_profile_cid: Some(
               @check_environment.model_response_profile_identity(profile),
             ),
-            response_complete: Some(answer is Ok(_)),
+            response_complete: complete,
             raw_response_artifact_cid: None,
             provider_metadata: None,
             observed_at: "",

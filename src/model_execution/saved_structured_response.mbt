@@ -108,7 +108,8 @@ pub fn model_physical_saved_structured_response(
     ),
     observed_at,
   }
-  if !valid_reported_model_observation_fields(profile, observation) {
+  if !valid_reported_model_observation_fields(profile, observation) ||
+    (decoded.answer is Ok(_) && observation.response_complete != Some(true)) {
     return Err(OutputIdentity)
   }
   let result = decoded.answer.map(body => {

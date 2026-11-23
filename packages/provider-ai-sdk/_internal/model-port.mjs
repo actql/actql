@@ -205,7 +205,8 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     const reportedText = value => typeof value === 'string' && value.length > 0 && value.length <= 256
       ? value : undefined;
     return runtimeTupleFromFields([text, finish, usage?.inputTokens, usage?.outputTokens,
-      reportedText(report?.model), reportedText(report?.requestId), reportedText(report?.finishReason)]);
+      reportedText(report?.model), reportedText(report?.requestId), reportedText(report?.finishReason),
+      text !== undefined]);
   } : undefined;
   const pollResponse = () => {
     // Only the unused SDK projection is dropped. Saved/raw observations and
