@@ -11141,7 +11141,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0a1ce17c467141884de62ef53ce5852dd39f29f38e69d36da3372031ad23767a",
+      "sha256": "821886867adf9cfe01b7c2927c601a7b289610efedf50e0015ccaeca2505542e",
       "role": "physical-io",
       "owner": "Named describe exchange and historical evidence reprojection; MoonBit keeps incomplete Catalog semantics and original scope",
       "exports": [
@@ -11321,7 +11321,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mts",
                 "anchor": "describeSalesforceResources"
               },
               {
@@ -11331,7 +11331,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mts",
                 "anchor": "expectedObservationCid"
               },
               {
@@ -11341,7 +11341,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mts",
                 "anchor": "describeBodyBase64"
               },
               {
@@ -11351,7 +11351,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mts",
                 "anchor": "authorizationForDescribe"
               },
               {
@@ -11361,7 +11361,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mts",
                 "anchor": "ForeignSalesforceNamedEvidence"
               },
               {
@@ -11371,7 +11371,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mts",
                 "anchor": "salesforceCatalogCancel"
               },
               {
@@ -11381,7 +11381,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mts",
                 "anchor": "maxRetainedBytes"
               },
               {
@@ -11391,7 +11391,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-named-describe.mts",
                 "anchor": "NAMED_EVIDENCE_VERSION"
               },
               {
