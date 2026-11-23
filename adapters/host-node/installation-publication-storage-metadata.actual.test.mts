@@ -2,7 +2,8 @@
 // no authenticated installation metadata publication or cold adoption is claimed.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {open, readFile, writeFile} from 'node:fs/promises';
+import fs, {readFile, writeFile} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import test from 'node:test';
@@ -17,8 +18,8 @@ import type {TestContext} from 'node:test';
 import type {FileHandle} from 'node:fs/promises';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 
-type FaultableHandle = Pick<FileHandle, 'fd' | 'stat' | 'read'> & {close(...args: unknown[]): Promise<unknown>};
 type Cleanup = Readonly<{status(): Readonly<{pending: boolean}>; retry(): Promise<unknown>}>;
+type OpenTail = Parameters<typeof fs.open> extends [unknown, ...infer Tail] ? Tail : never;
 type Options = Readonly<{
   missingKey?: boolean; bounds?: Parameters<typeof createInstallationPublicationStorageMetadata>[2];
   assertCurrent?: () => SynchronousRuntimeData;
@@ -41,11 +42,14 @@ async function fixture(t: TestContext, options: Options = {}) {
     privateEvidenceKey: options.missingKey ? undefined : key,
     capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
     maxContractNodes: 256, maxContractDepth: 32}, control);
+  let readCleanup: (() => Promise<void>) | undefined;
   t.after(async () => {
+    await readCleanup?.();
     if (!store.status().closed) assert.equal(await store.close(), true);
     key.fill(0);
   });
   return {store, key, scratch, contractPath: join(directory, 'store.json'),
+    beforeClose(cleanup: () => Promise<void>) { readCleanup = cleanup; },
     metadata: createInstallationPublicationStorageMetadata(moon, store,
       options.bounds ?? bounds, options.assertCurrent ?? (() => {}))};
 }
@@ -116,12 +120,22 @@ test('original Host current refusal after awaited Store observation leaves Commo
   f.scratch.passed();
 });
 
-test('same Store closing during the original after-await fence cannot issue the Common binding', async t => {
-  let checks = 0, close: Promise<boolean> | undefined;
-  const f = await fixture(t, {assertCurrent() { if (++checks === 2) close = f.store.close(); }});
-  await assert.rejects(f.metadata.observe(), {code: 'PublicationStoreClosed'});
-  assert.equal(await close, true);
-  assert.equal(f.metadata.forget(), true);
+test('same Store closed before the after-await fence cannot issue the Common binding', async t => {
+  const f = await fixture(t);
+  const closedAfterObservation = {
+    status: f.store.status,
+    originalInstallationPublicationStorageBindingEvidence:
+      f.store.originalInstallationPublicationStorageBindingEvidence,
+    async observeOriginalInstallationPublicationStorageBinding() {
+      const original = await f.store.observeOriginalInstallationPublicationStorageBinding();
+      assert.equal(await f.store.close(), true);
+      return original;
+    },
+  };
+  const view = createInstallationPublicationStorageMetadata(moon, closedAfterObservation, bounds, () => {});
+  await assert.rejects(view.observe(), {code: 'PublicationStoreClosed'});
+  assert.throws(() => view.binding(), {code: 'InstallationPublicationStorageUnobserved'});
+  assert.equal(view.forget(), true);
   f.scratch.passed();
 });
 
@@ -172,31 +186,40 @@ test('one original asynchronous observation stays pending without a second read 
 for (const outcome of ['false', 'reject']) {
   test(`${outcome} original Store FD close retains the same cleanup through the Common caller`, async t => {
     const f = await fixture(t);
-    const probe = await open(f.contractPath, 'r');
-    const prototype = Object.getPrototypeOf(probe), stat = prototype.stat;
-    await probe.close();
-    let original: FaultableHandle | undefined, nativeClose: FaultableHandle['close'] | undefined,
-      cleanup: Cleanup | undefined, blocked = true, reads = 0;
+    const open = fs.open;
+    let original: FileHandle | undefined, cleanup: Cleanup | undefined, blocked = true, reads = 0;
     const failure = Object.freeze(new Error('OriginalInstallationStoreCloseRefused'));
-    prototype.stat = function(this: FaultableHandle, ...args: unknown[]) {
-      if (original === undefined && new Error().stack!.split('\n')[2]?.includes('readBounded')) {
-        original = this; nativeClose = this.close;
-        const read = this.read;
-        this.read = function(...input: unknown[]) { reads++; return Reflect.apply(read, this, input); };
-        this.close = function(...input: unknown[]) {
-          if (blocked) return outcome === 'false' ? Promise.resolve(false) : Promise.reject(failure);
-          return Reflect.apply(nativeClose!, this, input);
-        };
+    fs.open = async function(this: typeof fs, path: Parameters<typeof fs.open>[0], ...args: OpenTail) {
+      if (path === f.contractPath) {
+        assert.equal(original, undefined, 'a pending observation cannot open a replacement FD');
       }
-      return Reflect.apply(stat, this, args);
+      const handle: FileHandle = await Reflect.apply(open, this, [path, ...args]);
+      if (path !== f.contractPath) return handle;
+      original = handle;
+      const read = handle.read, close = handle.close;
+      handle.read = function(...input: unknown[]) { reads++; return Reflect.apply(read, this, input); };
+      handle.close = function(...input: unknown[]) {
+        if (blocked) return outcome === 'false' ? Promise.resolve(false) : Promise.reject(failure);
+        return Reflect.apply(close, this, input);
+      };
+      return handle;
     };
-    t.after(async () => {
-      prototype.stat = stat; blocked = false;
+    syncBuiltinESMExports();
+    const restoreOpen = () => { fs.open = open; syncBuiltinESMExports(); };
+    f.beforeClose(async () => {
+      restoreOpen(); blocked = false;
       if (cleanup?.status().pending) await cleanup!.retry();
       assert(original === undefined || original!.fd === -1);
     });
     await assert.rejects(f.metadata.observe(), error => {
-      cleanup = (error as {cleanupHandle?: Cleanup}).cleanupHandle;
+      const observed = error as {code?: string; cause?: unknown; cleanupError?: unknown; cleanupHandle?: Cleanup};
+      cleanup = observed.cleanupHandle;
+      if (outcome === 'reject') {
+        assert.equal(observed.cause, failure);
+        assert.equal(observed.cleanupError, failure);
+      } else {
+        assert.equal(observed.code, 'PublicationMetadataReaderCleanupPending');
+      }
       return cleanup?.status().pending === true;
     });
     assert(original!.fd >= 0);
@@ -209,7 +232,7 @@ for (const outcome of ['false', 'reject']) {
     blocked = false; await cleanup!.retry();
     assert.equal(original!.fd, -1);
     assert.equal(reads, readCount, 'cleanup retries close only, not the contract read');
-    prototype.stat = stat;
+    restoreOpen();
     await f.metadata.observe();
     assert.equal(await f.store.close(), true); assert.equal(f.metadata.forget(), true);
     f.scratch.passed();
