@@ -59,7 +59,7 @@ export type GitHubReadCommon = Parameters<typeof import('../host/installed-githu
   clientProgramRowSourceCapture(run: unknown): unknown;
   clientProgramRowSourceCaptureSource(capture: unknown): unknown;
   clientProgramIdentifyCapturedSourceRelation(source: unknown): unknown;
-  clientProgramCapturedSourceRowCount(relation: unknown): bigint;
+  clientProgramCapturedSourceRowCount(relation: unknown): number;
   clientProgramRowSourceCloseAccounted(run: unknown): unknown;
 }>;
 const commonMoon = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href) as GitHubReadCommon;
