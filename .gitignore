@@ -2864,3 +2864,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/test/user-list-read.fixture.d.mts
 /adapters/connectors/notion/test/user-list-read.test.mjs
 /adapters/connectors/notion/test/user-list-read.test.d.mts
+/adapters/connectors/notion/test/database-row-reader.fixture.mjs
+/adapters/connectors/notion/test/database-row-reader.fixture.d.mts
+/adapters/connectors/notion/test/database-row-reader.test.mjs
+/adapters/connectors/notion/test/database-row-reader.test.d.mts
+/adapters/connectors/notion/test/read-snapshot-inventory.test.mjs
+/adapters/connectors/notion/test/read-snapshot-inventory.test.d.mts

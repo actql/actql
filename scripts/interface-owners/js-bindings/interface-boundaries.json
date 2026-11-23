@@ -182454,7 +182454,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/database-row-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/database-row-reader.test.mts",
                 "anchor": "ordinary original database RowRun captures exact typed rows"
               }
             ]

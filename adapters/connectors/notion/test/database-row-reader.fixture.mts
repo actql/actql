@@ -4,8 +4,6 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson,createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {createInstalledRowSource,installRowSourceAuthorization,openRowSourceCredentialSite,
@@ -14,17 +12,45 @@ import {createNotionDatabaseReaderFactory} from '../host/database-reader.mjs';
 import {NOTION_DATA_SOURCE_READ_OPERATION} from '../site/data-source-read.mjs';
 import {userListFixture} from './user-list-read.fixture.mjs';
 
-const repo=new URL('../../../../',import.meta.url),pending=new Set();
-const metadata=[16384,1024,20,8,8,128,128],readLimits=[...metadata,256,16,4096,16,100000];
+import type {TestContext} from 'node:test';
+import type {CatalogDeclaredSource,CommonCatalogBindings,NotionDeclarationBounds,NotionMetadataBounds} from './catalog-bindings.fixture.mjs';
+import type {MetadataFixtureBindings} from './installation-metadata-discovery.fixture.mjs';
+
+type SourceOptions = Parameters<typeof createInstalledRowSource>[0];
+type Source = Awaited<ReturnType<typeof createInstalledRowSource>>;
+type ContractRegistry = Parameters<Source['prepare']>[0]['registry'];
+type FactoryInput = Parameters<typeof createNotionDatabaseReaderFactory>[0];
+type OpenSiteOptions = Parameters<typeof openRowSourceCredentialSite>[0];
+type RunSite = Extract<Awaited<ReturnType<typeof openRowSourceCredentialSite>>, {issueReadGrant:(...args:never[])=>unknown}>;
+type Provider = MetadataFixtureBindings & FactoryInput['moon'];
+type Common = SourceOptions['moon'] & CommonCatalogBindings & {
+  clientPrepareInstalledSequenceContracts(registry:string,values:string,fragment:string,ordered:string):unknown;
+  clientProgramRowSourceProviderCapacity(retained:bigint,execution:bigint):unknown;
+  clientProgramPrepareSingleCapturedLocalInstalledLedger(program:unknown,capacity:unknown,transfer:bigint,execution:bigint,
+    contracts:unknown,values:string,fragment:string,ordered:string):unknown;
+  clientProgramExportSourceCapture(source:unknown,requirement:unknown,binding:string):unknown;
+  clientProgramSourceCaptureExportRows(exported:unknown):string[];
+  clientProgramMultiCapturedLedgerUsage(ledger:unknown):readonly unknown[];
+};
+type SourceSnapshotEntry = Readonly<{source_ref:string; source_view_contract_cid:string;carrier_schema_contract_cid:string}>;
+type SourceCheckEnvironment = Readonly<{evidence_bundle_cid:string;schema_snapshots:readonly SourceSnapshotEntry[]}>;
+
+const common:Common=await import(new URL(
+  '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
+const provider:Provider=await import(new URL(
+  '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
+
+const repo=new URL('../../../../',import.meta.url),pending=new Set<object>();
+const metadata:NotionMetadataBounds=[16384,1024,20,8,8,128,128],readLimits:NotionDeclarationBounds=[...metadata,256,16,4096,16,100000];
 export const databaseReaderLimits=Object.freeze({maxResponseBytes:16384,maxTotalResponseBytes:131072,
   maxRequestBytes:1024,maxTargetBytes:1024,maxPages:4,pageSize:10,maxTotalRows:8,maxNodes:1024,maxDepth:20,
   maxDataSources:8,maxProperties:8,maxIdentityBytes:128,maxNameBytes:128,maxCursorBytes:128,
   maxRowNodes:1024,maxRowDepth:20,maxRowTextBytes:8192,maxColumns:16,maxRowWork:1000000,maxPageWork:1000000,
   maxRowsWireBytes:16384,maxRowsWireNodes:2048,maxRowsWireDepth:20,maxPropertyPages:4,maxPropertyItems:128,
   maxPropertyBytes:65536,maxPropertyNodes:4096,maxPropertyTextBytes:32768,maxPropertyWork:1000000});
-const savedLimits=[65536,8192,32],hash=wire=>'sha256:'+createHash('sha256').update(wire).digest('hex');
+const savedLimits=[65536,8192,32] as const,hash=(wire:string|Uint8Array)=>'sha256:'+createHash('sha256').update(wire).digest('hex');
 const stamp='2026-10-18T00:00:00.000Z';
-function queryPage(id,cursor){
+function queryPage(id:string,cursor:string|null){
   return JSON.stringify({object:'list',type:'page_or_data_source',page_or_data_source:{},results:[{
     object:'page',id,url:'https://notion.example/'+id,created_time:stamp,last_edited_time:stamp,
     created_by:{object:'user',id:'U1'},last_edited_by:{object:'user',id:'U2'},
@@ -33,7 +59,7 @@ function queryPage(id,cursor){
       amount:{id:'n',type:'number',number:'EXACT'},enabled:{id:'b',type:'checkbox',checkbox:true},
     }}],has_more:cursor!==null,next_cursor:cursor}).replace('"EXACT"','9007199254740993.25');
 }
-function propertyPage(text,cursor){return{object:'list',type:'property_item',results:[{
+function propertyPage(text:string,cursor:string|null){return{object:'list',type:'property_item',results:[{
   object:'property_item',id:'t%3Ax',type:'rich_text',rich_text:{type:'text',text:{content:text},plain_text:text}}],
   has_more:cursor!==null,next_cursor:cursor,property_item:{id:'t%3Ax',type:'rich_text',rich_text:{},
     next_url:cursor===null?null:'https://foreign.example/not-followed'}};}
@@ -51,10 +77,10 @@ export function databaseSnapshot(){
       enabled:{id:'b',name:'enabled',type:'checkbox',checkbox:{}}}})),...metadata));
   const properties=checked(provider.notionBindSelectedReadContracts(selection,source,...readLimits));
   const contracts=checked(provider.notionSourceSystemReadContracts(properties,...readLimits));
-  return checked(provider.notionCaptureDatabaseReadSnapshot(selection,source,contracts,...savedLimits));
+  return checked(provider.notionCaptureDatabaseReadSnapshot(selection,source,contracts,...savedLimits)) as object;
 }
 
-export async function databaseRowReaderFixture(t,{currentAccountFile=false}={}){
+export async function databaseRowReaderFixture(t:TestContext,{currentAccountFile=false}={}){
   const f=await userListFixture(t,{accounted:false}),snapshot=databaseSnapshot();
   f.state.pages=[queryPage('page1','query cursor'),propertyPage('a','property cursor'),propertyPage('b',null),
     queryPage('page2',null),propertyPage('c','property cursor'),propertyPage('d',null)];
@@ -63,18 +89,18 @@ export async function databaseRowReaderFixture(t,{currentAccountFile=false}={}){
     entry_id:'database',outcome:'allow',principal:{all:true},connection:{any_of:[connection]},
     resource:{any_of:[resource]},operation:{any_of:['read']},exclusions:[]}]});
   const accountPath=join(f.root,'database-account.json');await writeFile(accountPath,accountWire,{mode:0o600});
-  let authorization;
+  let authorization:OpenSiteOptions['authorization'] & SourceOptions['authorization'];
   if(currentAccountFile){
     const context=Object.freeze({principal:'operator',contextCid:hash('original-database-account-context')});
-    const gate=await createLocalAuthorizationGate({accountConfig:accountPath,principal:'operator',context}),issued=new WeakSet();
-    authorization=Object.freeze({...gate,context,issued:decision=>issued.has(decision),authorize:async(...args)=>{
+    const gate=await createLocalAuthorizationGate({accountConfig:accountPath,principal:'operator',context}),issued=new WeakSet<object>();
+    authorization=Object.freeze({...gate,context,issued:(decision:unknown)=>issued.has(decision as object),authorize:async(...args:Parameters<typeof gate.authorize>)=>{
       const decision=await gate.authorize(...args);issued.add(decision);return decision;
     }});
   }else authorization=await installRowSourceAuthorization({root:f.root,principalId:'operator',connectorRegistration:'notion',
     accountConfiguration:accountWire});
-  const specification=checked(provider.notionDatabaseReadSnapshotRelationSpecification(snapshot,resource,...savedLimits));
+  const specification=checked(provider.notionDatabaseReadSnapshotRelationSpecification(snapshot,resource,...savedLimits)) as string;
   const declaration=checked(common.clientProgramRowSourceRestoreRelationDeclaration('workspace','notion','notion/0.1',specification,undefined));
-  const declared=JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
+  const declared=JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)) as CatalogDeclaredSource & SourceOptions['declared'];
   const environment=rowSourceCheckEnvironment(await readFile(new URL('spec/local-check-environment.json',repo),'utf8'),declared);
   const runtimeBundleCid=hash(await readFile(new URL('_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',repo)));
   const site=await openRowSourceCredentialSite({profile:{credentialPrivateKeyPath:join(f.root,'credential-authority.key'),
@@ -82,7 +108,7 @@ export async function databaseRowReaderFixture(t,{currentAccountFile=false}={}){
     resourceOrigin:f.scope.resourceOrigin,namespaceId:'original-database',environment:'fixture',siteKey:'database-site',siteGeneration:1},
     principalId:'operator',authorization,connection,connectorRegistration:'notion',connectorRevision:'notion/0.1',
     runtimeBundleCid,commonMoon:common,ca:f.options.credential.ca,resolveSecret:f.options.credential.resolveSecret,
-    admitsApprovalTarget:()=>false});
+    admitsApprovalTarget:()=>false}) as RunSite;
   t.after(()=>site.close());
   const capacity=common.clientProgramRowSourceProviderCapacity(1048576n,1048576n);assert.ok(capacity);
   const factory=createNotionDatabaseReaderFactory({moon:provider,snapshot,site,capacity,resource,
@@ -90,14 +116,15 @@ export async function databaseRowReaderFixture(t,{currentAccountFile=false}={}){
   const source=await createInstalledRowSource({moon:common,declaration,declared,environmentWire:environment.wire,
     connectorId:'workspace',connectorRegistration:'notion',connectorRevision:'notion/0.1',site,authorization,
     readOperation:NOTION_DATA_SOURCE_READ_OPERATION,
-    physicalTarget:(resource,fields)=>Object.freeze({resource,fields:Object.freeze([...fields]),snapshotCid:
+    physicalTarget:(resource:string,fields:readonly string[])=>Object.freeze({resource,fields:Object.freeze([...fields]),snapshotCid:
       checked(provider.notionDatabaseReadSnapshotSourceCid(snapshot))}),
     bindingCid:hash('original-database-test-binding'),
     limits:{maxPages:databaseReaderLimits.maxPages,maxPageBytes:16384,maxPageRows:10,maxCaptureRows:8},
     providerReader:factory});
   t.after(()=>source.close());
   const prepare=async()=>{
-    const env=JSON.parse(source.environmentWire),view=env.schema_snapshots.find(x=>x.source_ref===source.sourceReadAccesses[0].sourceRef);
+    const env=JSON.parse(source.environmentWire) as SourceCheckEnvironment,
+      view=env.schema_snapshots.find(x=>x.source_ref===source.sourceReadAccesses[0].sourceRef)!;
     const check=common.clientProgramCheckEnvironment(source.environmentWire,env.evidence_bundle_cid,false,false,true,false,false,false,false);assert.ok(check);
     const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'notion.tasks',sourceRef:view.source_ref,
       sourceViewContractCid:view.source_view_contract_cid,schemaContractCid:view.carrier_schema_contract_cid}]});
@@ -110,14 +137,14 @@ export async function databaseRowReaderFixture(t,{currentAccountFile=false}={}){
     const values=JSON.stringify(aoa.execution_contracts['REL.values']),
       fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
       ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
-    const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
+    const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered)) as ContractRegistry;
     const input={preparedProgram,registry:contracts,values,fragment,ordered};
     const preparedSource=await source.prepare(input),plan=source.ledgerCapacity(preparedSource);
     const ledger=common.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,plan.capacity,
       plan.transferBytes,plan.executionBytes,input.registry,input.values,input.fragment,input.ordered);assert.ok(ledger);
     return{...input,preparedSource,ledger};
   };
-  const retain=async(value,ledger)=>{
+  const retain=async(value:unknown,ledger:unknown)=>{
     pending.add({value,ledger,source,snapshot,f});
     await writeFile(join(f.root,'database-row-custody.json'),JSON.stringify({cleanupConfirmed:false,
       sourceCid:checked(provider.notionDatabaseReadSnapshotSourceCid(snapshot)),

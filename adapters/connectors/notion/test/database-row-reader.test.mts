@@ -2,15 +2,26 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {writeFile} from 'node:fs/promises';
 import {checked} from '../../../host-common/runtime-result.mjs';
-import {ledgerUsageHasPendingResources} from '../../../host-common/runtime-core.mjs';
 import {createNotionDatabaseReaderFactory} from '../host/database-reader.mjs';
 import {databaseRowReaderFixture,databaseReaderLimits,databaseSnapshot} from './database-row-reader.fixture.mjs';
+
+import type {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
+import type {ledgerUsageHasPendingResources as hasPendingResources} from '../../../host-common/ledger-usage.mjs';
+
+type CaptureRow = Readonly<{id:string;title:string;amount:string;resource:string;version:string}>;
+type CaptureFailure = AcquisitionOpenError & {recovery?: {
+  close():unknown;cleanup():unknown;cleanupPending():boolean;
+}};
+const {ledgerUsageHasPendingResources}:{ledgerUsageHasPendingResources:typeof hasPendingResources}=
+  await import(new URL('../../../host-common/runtime-core.mjs',import.meta.url).href);
 
 test('ordinary original database RowRun captures exact typed rows with separately issued property uses',async t=>{
   const f=await databaseRowReaderFixture(t),preparation=await f.prepare();
   const opened=await f.source.openCapture(preparation);await f.retain(opened,preparation.ledger);
-  const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'database-row-fixture'));
-  const rows=f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse);
+  // This prepared Query selects the requirement-carrying RowRun result.
+  const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),
+    (opened as typeof opened & {requirement:unknown}).requirement,'database-row-fixture'));
+  const rows=f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse as (row:string)=>CaptureRow);
   assert.deepEqual(rows.map(({id,title,amount})=>({id,title,amount})),[
     {id:'page1',title:'ab',amount:'9007199254740993.25'},
     {id:'page2',title:'cd',amount:'9007199254740993.25'}]);
@@ -31,11 +42,11 @@ test('ordinary original database RowRun captures exact typed rows with separatel
 test('ordinary database lost property reply retains the original RowRun and Unknown without resend',async t=>{
   const f=await databaseRowReaderFixture(t),preparation=await f.prepare();
   f.state.beforeResponse=request=>{if(request.method==='GET')request.socket.destroy();};
-  let original;
-  await assert.rejects(f.source.openCapture(preparation),error=>{original=error;return error.outcome==='unknown'&&error.recovery?.cleanupPending()===true;});
-  await f.retain(original.recovery,preparation.ledger);
+  let original:CaptureFailure|undefined;
+  await assert.rejects(f.source.openCapture(preparation),(error:CaptureFailure)=>{original=error;return error.outcome==='unknown'&&error.recovery?.cleanupPending()===true;});
+  await f.retain(original!.recovery!,preparation.ledger);
   const held=f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger);
-  await original.recovery.close();assert.equal(await original.recovery.cleanup(),false);
+  await original!.recovery!.close();assert.equal(await original!.recovery!.cleanup(),false);
   assert.deepEqual(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger),held);
   assert.equal(f.state.requests.length,2);assert.equal(f.state.resolutions,2);
   assert.equal(f.site.credential.journal.recover().filter(x=>x.outcome==='unknown').length,1);
@@ -57,11 +68,11 @@ test('ordinary database current Account replacement after query refuses dependen
     assert.equal(request.method,'POST');
     await writeFile(f.accountPath,f.accountWire.replace('"outcome":"allow"','"outcome":"deny"'),{mode:0o600});
   };
-  let original;
-  await assert.rejects(f.source.openCapture(p),error=>{original=error;return error.recovery?.cleanupPending()===true;});
-  await f.retain(original.recovery,p.ledger);
+  let original:CaptureFailure|undefined;
+  await assert.rejects(f.source.openCapture(p),(error:CaptureFailure)=>{original=error;return error.recovery?.cleanupPending()===true;});
+  await f.retain(original!.recovery!,p.ledger);
   assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);
   assert.equal(f.site.credential.journal.recover().length,1);
-  await original.recovery.close();assert.equal(await original.recovery.cleanup(),false);
+  await original!.recovery!.close();assert.equal(await original!.recovery!.cleanup(),false);
   assert.equal(f.state.requests.length,1);
 });
