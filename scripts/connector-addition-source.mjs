@@ -5,6 +5,26 @@ import {copyFileSync, lstatSync, mkdirSync, readFileSync, readdirSync} from 'nod
 import {dirname, join} from 'node:path';
 import {createHash} from 'node:crypto';
 
+// Repository-local includes of the SQLite and Host bootstrap stubs, including
+// the platform arms of the allocator source that bootstrap includes directly.
+export const connectorAdditionNativeSourcePaths = Object.freeze([
+  'packages/python-local-runtime/native/pre-root/owned_capacity.c',
+  'packages/python-local-runtime/native/pre-root/owned_capacity.h',
+  'packages/python-local-runtime/native/pre-root/owned_domain_borrow.h',
+  'packages/python-local-runtime/native/pre-root/owned_domain_borrow.inc',
+  'packages/python-local-runtime/native/pre-root/owned_domain_growth.inc',
+  'packages/python-local-runtime/native/pre-root/owned_inventory.inc',
+  'packages/python-local-runtime/native/pre-root/owned_linux_x64_bundle_profile.h',
+  'packages/python-local-runtime/native/pre-root/owned_linux_x64_process_profile.h',
+  'packages/python-local-runtime/native/pre-root/owned_region.h',
+  'packages/python-local-runtime/native/pre-root/owned_region.inc',
+  'packages/python-local-runtime/native/pre-root/owned_rust_heap.inc',
+  'packages/python-local-runtime/native/pre-root/owned_thread.h',
+  'packages/python-local-runtime/native/pre-root/owned_thread.inc',
+  'packages/python-local-runtime/native/sqlite-component/api.h',
+  'packages/python-local-runtime/native/sqlite-component/component.h',
+]);
+
 const originalPaths = Object.freeze([
   'src/connectors_builtin/local_carrier_dispatch.mbt',
   'src/connectors_builtin_node/local_carrier_bridge.mbt',
@@ -20,7 +40,7 @@ export function copyConnectorAdditionHostSource(root, destination) {
   const nodeSources = readdirSync(join(root,nodePackage)).filter(name =>
     name.endsWith('.mbt') && !/_(?:wb)?test\.mbt$/u.test(name) &&
     name !== 'bridge.generated.mbt').sort().map(name => nodePackage+'/'+name);
-  const paths = [...new Set([...originalPaths,...nodeSources,
+  const paths = [...new Set([...originalPaths, ...connectorAdditionNativeSourcePaths, ...nodeSources,
     nodePackage+'/client-program-dependencies.json',
     nodePackage+'/client-execution-dependencies.json'])];
   const inputs = paths.map(path => {
