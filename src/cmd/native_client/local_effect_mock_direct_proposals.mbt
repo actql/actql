@@ -179,7 +179,9 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
         captured_import is None else {
         stop("LocalOriginalEffectInvocationUnavailable")
       }
-      construction.fund_mock_values_result_metadata(1, report)
+      construction
+      .prepare_body_result(native_mock_values_invocation_metadata_capacity())
+      .native_effect_proposal_with_cause(report)
       @run_host.issue_source_free_captured_client_effect_local_invocation(
         prepared, inputs, 0, 16384, 1024, 20,
       )
@@ -342,7 +344,9 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
         })
         .native_effect_proposal_with_cause(report)
       } else {
-        construction.fund_mock_values_result_metadata(5, report)
+        construction
+        .prepare_body_result(native_mock_values_artifact_metadata_capacity())
+        .native_effect_proposal_with_cause(report)
         let name = @execution.managed_result_occurrence_name(
           @strategy.captured_any_result_borrow_occurrence(
             @strategy.captured_effect_local_result_borrow(result),
@@ -484,21 +488,20 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
 }
 
 ///|
-// The Common issuer returns these protocol owners beside the same capture.
-// Keep that bound on the existing operation through the manifest and review.
-fn LocalNativeMockEffectImportConstruction::fund_mock_values_result_metadata(
-  self : Self,
-  copies : Int,
-  report : (LocalNativeMockEffectProposalIssue) -> Unit,
-) -> Unit raise ClientStop {
-  self
-  .prepare_body_result(
-    @run_host.client_protocol_metadata_construction_bytes(16384, 1024L, copies~).bind(value => {
-        @execution.execution_capacity(value.0, value.0)
-      },
-    ),
+// These returned owners remain on the capture through Manifest and review.
+// Plan and runtime use the same quotes.
+fn native_mock_values_invocation_metadata_capacity() -> @execution.ExecutionCapacity? {
+  @run_host.client_protocol_metadata_construction_bytes(16384, 1024L).bind(value => {
+    @execution.execution_capacity(value.0, value.0)
+  })
+}
+
+///|
+fn native_mock_values_artifact_metadata_capacity() -> @execution.ExecutionCapacity? {
+  @run_host.client_protocol_metadata_construction_bytes(16384, 1024L, copies=5).bind(value => {
+      @execution.execution_capacity(value.0, value.0)
+    },
   )
-  .native_effect_proposal_with_cause(report)
 }
 
 ///|

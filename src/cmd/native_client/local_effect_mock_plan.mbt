@@ -211,6 +211,7 @@ fn native_mock_effect_operations(
   wire : @execution.RowWireLimits,
   record_bytes : Int,
   capture_recipes : Array[Array[@execution.ExecutionCapacity]],
+  values_create~ : Bool,
 ) -> Array[@local_values.ClientInstalledEffectOperationDemand] raise ClientStop {
   let installations = mock.write_installations.unwrap_or_else(() => {
     stop("LocalOriginalEffectImplementationUnavailable")
@@ -220,7 +221,11 @@ fn native_mock_effect_operations(
   )
   let selected = []
   let policy = @run_host.client_standard_effect_computation_limits()
-  let imports = native_mock_effect_import_construction(prepared, wire)
+  let imports = native_mock_effect_import_construction(
+    prepared,
+    wire,
+    values_create~,
+  )
   for index in 0..<@syntax.effect_header_count(headers) {
     let header = @syntax.effect_header_at(headers, index).unwrap()
     let stage = @syntax.effect_header_stage(header)
@@ -519,7 +524,12 @@ fn native_mock_effect_source_plan(
   ],
 ) -> @local_values.ClientInstalledEffectManagedPlan raise ClientStop {
   let operations = native_mock_effect_operations(
-    prepared, mock, wire, record_bytes, capture_recipes,
+    prepared,
+    mock,
+    wire,
+    record_bytes,
+    capture_recipes,
+    values_create=first.is_mock_values_create(),
   )
   let assets = @run_host.client_local_product_assets()
   let sources = first._retained_sources
@@ -730,6 +740,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
 fn native_mock_effect_import_construction(
   prepared : @run_host.PreparedClientEffectComputation,
   wire : @execution.RowWireLimits,
+  values_create? : Bool = false,
 ) -> (@execution.ExecutionCapacity, @execution.ExecutionCapacity) raise ClientStop {
   let empty = @execution.execution_capacity(0L, 0L).unwrap()
   let candidate = @run_host.prepared_client_effect_computation_candidate(
@@ -758,11 +769,11 @@ fn native_mock_effect_import_construction(
     prepared, 1000000,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
   let units = @run_host.client_direct_acquisition_occurrence_count(direct).to_int64()
-  if model is None && units == 0L {
+  if model is None && units == 0L && !values_create {
     return (empty, empty)
   }
   // The Model import route retains its existing composed reader admission.
-  if units < 1L || (model is Some(_) && units > 2L) {
+  if model is Some(_) && (units == 0L || units > 2L) {
     stop("LocalOriginalEffectCapacityUnavailable")
   }
   let mut results = 0L
@@ -903,15 +914,29 @@ fn native_mock_effect_import_construction(
     workspace,
     1L,
   ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-  (
-    // Direct starts with the existing warm recipe and grows on actual bodies.
-    if model is Some(_) {
-      initial
-    } else {
-      empty
-    },
-    @execution.execution_capacity(max_r, max_e).unwrap_or_else(() => {
+  let maximum = @execution.execution_capacity(max_r, max_e).unwrap_or_else(() => {
+    stop("LocalOriginalEffectCapacityUnavailable")
+  })
+  let maximum = if values_create {
+    // Source-free CREATE retains the original Invocation and every exported
+    // Result's metadata together. Dependency bodies, snapshots and review
+    // still use the shared direct capture geometry above.
+    guard native_mock_values_invocation_metadata_capacity() is Some(invocation) &&
+      native_mock_values_artifact_metadata_capacity() is Some(artifact) &&
+      @execution.checked_preparation_add_product(
+        @execution.execution_capacity_retained_bytes(invocation),
+        @execution.execution_capacity_retained_bytes(artifact),
+        results,
+      )
+      is Some(retained) &&
+      @execution.execution_capacity(retained, retained) is Some(metadata) &&
+      @execution.add_execution_capacity(maximum, metadata) is Some(maximum) else {
       stop("LocalOriginalEffectCapacityUnavailable")
-    }),
-  )
+    }
+    maximum
+  } else {
+    maximum
+  }
+  // Direct starts with the existing warm recipe and grows on actual bodies.
+  (if model is Some(_) { initial } else { empty }, maximum)
 }

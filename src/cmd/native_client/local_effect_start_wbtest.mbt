@@ -110,6 +110,50 @@ test "Native Mock CREATE issues original evidence from its installed Result poli
   assert_true(first.is_mock_values_create())
   let compilation = first.allowed.compilation
   let prepared = @run_host.client_effect_compilation_owner(compilation)
+  let limits = local_project_mock_file_limits()
+  let wire : @execution.RowWireLimits = {
+    max_columns: 100,
+    max_order_work: limits.max_work,
+    max_bytes: limits.page.max_bytes,
+    max_nodes: limits.page.max_nodes,
+    max_depth: limits.page.max_depth,
+  }
+  let (initial, maximum) = native_mock_effect_import_construction(
+    prepared,
+    wire,
+    values_create=first.is_mock_values_create(),
+  )
+  assert_eq(@execution.execution_capacity_retained_bytes(initial), 0L)
+  // One Invocation uses 393216 bytes. The exported Result's five protocol
+  // bodies use 1441792 more while the Invocation is still held.
+  let required = 1835008L
+  assert_true(@execution.execution_capacity_retained_bytes(maximum) >= required)
+  assert_true(
+    @execution.execution_capacity_execution_bytes(maximum) >= required,
+  )
+  let invocation = native_mock_values_invocation_metadata_capacity().unwrap()
+  let artifact = native_mock_values_artifact_metadata_capacity().unwrap()
+  let together = @execution.add_execution_capacity(invocation, artifact).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(together), required)
+  let extent = capacity => {
+    @local_values.prepare_installed_effect_operation_extent(
+      "native.mock.file.capture", capacity, 0L, false,
+    ).unwrap()
+  }
+  assert_true(
+    @local_values.prepare_installed_effect_staged_extent(
+      extent(together),
+      extent(maximum),
+    )
+    is Ok(_),
+  )
+  assert_true(
+    @local_values.prepare_installed_effect_staged_extent(
+      extent(together),
+      extent(@execution.execution_capacity(required - 1L, required).unwrap()),
+    )
+    is Err(Unsupported),
+  )
   assert_true(
     @run_host.prepared_client_effect_publication_data_policy_cid(prepared)
     is None,
