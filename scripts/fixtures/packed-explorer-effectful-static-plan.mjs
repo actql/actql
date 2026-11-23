@@ -228,8 +228,9 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       const section = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
       ui.lastAction = 'wait computation component';
       await section.getByRole('heading', {name: 'Computation component', exact: true}).waitFor();
-      ui.lastAction = 'verify original declared Effects in List';
-      await section.getByRole('button', {name: 'List', exact: true}).click();
+      ui.lastAction = 'verify original declared Effects in Graph metadata';
+      assert.equal(await section.getByRole('navigation', {name: 'Plan presentation'}).count(), 0);
+      await section.getByText('Original Plan metadata', {exact: true}).click();
       const text = await section.getByRole('region', {name: 'Declared Effects', exact: true}).innerText();
       for (const expected of ['unit source', 'save', 'update', mapping.mappingRef, mapping.mappingCid,
         direct.check_environment_cid, direct.parameter_values_cid,
@@ -238,7 +239,10 @@ await test('ordinary installed Local Explorer shows checked update declarations 
         'Gate: unknown.', 'Approval: unknown.', 'Sealed Preview: unavailable.']) assert(text.includes(expected), expected);
       assert(text.includes('Required approval does not imply a human-only reviewer.'));
       assert(text.includes('Contract minimum is not current permission.'));
-      assert.equal(await section.getByRole('table', {name: 'Original logical occurrences'}).locator('tbody tr').count(), 1);
+      const nodes = section.locator('.react-flow__node');
+      await nodes.first().waitFor();
+      assert.deepEqual(await nodes.evaluateAll(cards => cards.map(card => card.getAttribute('data-id'))),
+        direct.computation.plan_view.logical_map.steps.map(step => step.step_id));
       const openRun = page.getByRole('button', {name: 'Open Run', exact: true});
       await openRun.click();
       assert.equal(await page.locator('textarea[name="ref"]').inputValue(), '');
@@ -263,9 +267,12 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       assert.doesNotMatch(JSON.stringify(explained), /must-remain-unknown/u);
       await page.getByRole('region', {name: 'Original story', exact: true}).waitFor();
       const heading = await page.getByRole('heading', {level: 1}).textContent();
-      assert.match(heading, /Declare an update to Name/u);
+      assert.match(heading, /Plan to update Test_Record__c in crm-main/u);
       assert.doesNotMatch(heading, /connector:\/\/|\baql_|Predicate form not projected/u);
       const effectCard = page.locator('.story-card').filter({hasText: 'Declared changes'});
+      await effectCard.locator('summary').first().click();
+      await effectCard.getByText('Original Effect declarations', {exact: true}).click();
+      assert.match(await effectCard.innerText(), /Fields: Name/u);
       assert.match(await effectCard.innerText(), /connector:\/\/crm-main\/Test_Record__c/u);
       assert.match(await effectCard.innerText(), /Current decision unknown/u);
       assert.deepEqual(browserPaths, ['/api/session', '/api/read/launch', '/api/read/plan', '/api/read/static-explanation']);

@@ -105,11 +105,21 @@ try {
       const url = new URL(request.url());
       if (url.pathname.startsWith('/api/')) requests.push(url.pathname);
     });
-    const foreign = [];
-    await page.route('**/*', route => {
-      if (new URL(route.request().url()).origin === gateway.origin) return route.continue();
-      foreign.push('foreign origin refused');
-      return route.abort();
+    const foreign = [], explanations = new Map();
+    await page.route('**/*', async route => {
+      const {origin, pathname} = new URL(route.request().url());
+      if (origin !== gateway.origin) {
+        foreign.push('foreign origin refused');
+        return route.abort();
+      }
+      if (pathname === '/api/read/static-explanation' || pathname === '/api/read/run-explanation-context') {
+        // Chromium may dispose the network body after adopting the view.
+        // Capture the one original loopback response before delivering it.
+        const response = await route.fetch({maxRetries: 0, maxRedirects: 0});
+        explanations.set(pathname, await response.json());
+        return route.fulfill({response});
+      }
+      return route.continue();
     });
     try {
       await page.goto(gateway.origin, {waitUntil: 'networkidle'});
@@ -131,7 +141,7 @@ try {
         await page.getByRole('button', {name: 'Explain', exact: true}).click();
         const checkedResponse = await checked;
         assert.equal(checkedResponse.status(), 200);
-        const {data: beforeRun} = await checkedResponse.json();
+        const {data: beforeRun} = explanations.get('/api/read/static-explanation');
         assert.deepEqual(beforeRun.context.filter(item => item.origin.kind === 'source').map(item =>
           [item.origin.source_view.connector, item.origin.source_view.resource]), [
           ['salesforce', 'Opportunity'], ['drive', 'files'], ['drive', 'contents']]);
@@ -141,141 +151,93 @@ try {
         assert.equal(await staticSteps.locator('details.story-card[open]').count(), 1);
         assert.match(await staticSteps.innerText(), /Planned/u);
         const heading = page.getByRole('heading', {level: 1});
-        const summary = await heading.innerText();
-        for (const proof of ['Opportunity', 'files', 'contents', 'deal-review.v1', 'updates', 'StageName', 'NextStep']) {
-          assert(summary.includes(proof), proof);
-        }
-        assert.match(summary, /StageName and NextStep on Opportunity in salesforce/u);
-        assert.doesNotMatch(summary, /connector:\/\/|\baql_|Predicate form not projected/u);
-        const computation = await page.locator('.story-computation').innerText();
-        const checkedJoins = beforeRun.story.occurrences.flatMap(({explanation})=>
-          explanation.meaning.kind === 'join' ? [explanation.meaning] : []);
-        assert.equal(checkedJoins.length, 3);
-        assert(checkedJoins.some(join=>join.keys.some(key=>key.left === 'name' && key.right === 'name')));
-        assert.match(computation, /3 checked joins, including a join on name/u);
-        assert.match(computation, /Filter rows|Keep rows where/u);
-        assert.doesNotMatch(computation, /\baql_|Predicate form not projected/u);
-        const titles = await staticSteps.locator('summary > strong').allTextContents();
-        assert(titles.includes('Input · Opportunity') && titles.includes('Input · files'));
-        assert(titles.every(title=>!title.includes('aql_capture_0')));
-        const inputTitle = page.locator('summary > strong').filter({hasText: /^Input · Opportunity$/u});
-        await inputTitle.click();
-        const original = staticSteps.locator('details.story-card[open]').filter({has: inputTitle});
-        await original.getByText('Original step and ports', {exact: true}).click();
-        await original.getByText('aql_capture_0', {exact: true}).waitFor();
-        await inputTitle.click();
-        await page.screenshot({path: join(evidence, 'installed-deal-review-before-run.png')});
-        await page.getByRole('button', {name: /Graph/}).click();
-        const graph = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
-        const cards = graph.locator('.react-flow__node');
-        const rendered = ids => cards.evaluateAll((nodes, selected) => {
-          const panel = nodes[0]?.closest('.actql-explorer-flow')?.getBoundingClientRect();
-          if (!panel) return [];
-          return nodes.filter(node=>{
-            const box = node.getBoundingClientRect();
-            return selected.includes(node.getAttribute('data-id')) && box.width >= 230 &&
-              box.left >= panel.left && box.right <= panel.right &&
-              box.top >= panel.top && box.bottom <= Math.min(panel.bottom, window.innerHeight);
-          }).map(node=>node.getAttribute('data-id'));
-        }, ids);
-        await graph.locator('.react-flow__node:has([data-selected="true"])').waitFor();
-        await page.waitForFunction(() => {
-          const viewport = document.querySelector('.react-flow__viewport');
-          return viewport && new DOMMatrixReadOnly(getComputedStyle(viewport).transform).a >= 0.89;
+        const checkedJoins = beforeRun.story.occurrences.filter(step => step.explanation.meaning.kind === 'join');
+        assert(checkedJoins.some(({explanation}) =>
+          explanation.meaning.keys.some(key => key.left === 'name' && key.right === 'name')));
+        assert.deepEqual(beforeRun.story.narrative.clauses.find(clause => clause.kind === 'join').step_ids,
+          checkedJoins.map(step => step.stepId));
+        const readOpportunity = staticSteps.locator('details.story-card').filter({
+          has: page.locator('summary > strong').filter({hasText: /Read Opportunity|Opportunity を読む/u}),
         });
-        const {nodes, edges} = beforeRun.plan;
-        assert.deepEqual((await cards.evaluateAll(items=>items.map(item=>item.getAttribute('data-id')))).sort(),
-          nodes.map(node=>node.id).sort());
-        assert.deepEqual((await graph.locator('.react-flow__edge').evaluateAll(items=>
-          items.map(item=>item.getAttribute('data-testid')))).sort(), edges.map(edge=>`rf__edge-${edge.id}`).sort());
-        const visible = new Set(await rendered(nodes.map(node=>node.id)));
-        await page.screenshot({path: join(evidence, 'installed-deal-review-graph.png')});
-        const visibleInputs = beforeRun.context.flatMap(({origin})=>origin.kind === 'source'
-          ? origin.consuming_ports.filter(port=>visible.has(port.step_id)).map(port=>({...port,
-            resource: origin.source_view.resource, connector: origin.source_view.connector, locator: origin.stage_input}))
-          : []);
-        const visibleInputNames = [...new Set(visibleInputs.map(input=>input.resource))];
-        assert(visibleInputNames.length >= 2, `Visible checked inputs: ${visibleInputNames.join(', ')}`);
-        const visibleJoins = nodes.filter(node=>node.operator === 'join' && visible.has(node.id));
-        assert(visibleJoins.length > 0, 'A checked Join should be readable in the opening Graph');
-        await graph.getByText('Declared inputs', {exact: true}).waitFor();
-        const groupedInputs = await graph.locator('.actql-explorer-node[data-unlinked-input=true]').evaluateAll(items=>
-          items.map(node=>({id: node.closest('.react-flow__node').getAttribute('data-id'),
-            text: node.textContent, top: node.getBoundingClientRect().top,
-            bottom: node.getBoundingClientRect().bottom})));
-        assert.equal(groupedInputs.length, 2);
-        assert(groupedInputs.some(node=>node.text.includes('Opportunity')));
-        assert(groupedInputs.some(node=>node.text.includes('files')));
-        assert(groupedInputs.every(node=>visible.has(node.id) && node.text.includes('Downstream link not projected') &&
-          !edges.some(edge=>edge.sourceStepId === node.id || edge.targetStepId === node.id)));
-        assert(Math.abs(groupedInputs[0].top - groupedInputs[1].top) < 2);
-        for (const join of visibleJoins) {
-          const rect = await graph.locator(`.react-flow__node[data-id="${join.id}"]`).boundingBox();
-          assert(groupedInputs.every(input=>input.bottom < rect.y));
+        const opportunity = beforeRun.context.find(({origin}) =>
+          origin.kind === 'source' && origin.source_view.resource === 'Opportunity').origin;
+        const links = beforeRun.plan.stageResultLinks;
+        assert.equal(links.length, 2);
+        const originalLink = links.find(link =>
+          opportunity.consuming_ports.some(port => port.step_id === link.producer.step_id));
+        assert(originalLink);
+        for (const proof of ['Opportunity', 'files', 'contents', 'deal-review.v1', 'updates', 'review.value.changed']) {
+          assert((await heading.innerText()).includes(proof), proof);
         }
-        for (const input of visibleInputs) {
-          const port = nodes.find(node=>node.id === input.step_id).ports.find(port=>port.port_id === input.port_id);
-          assert.equal(port.role, 'input');
-          assert.deepEqual(port.source, input.locator);
-          const card = graph.locator(`.react-flow__node[data-id="${input.step_id}"]`);
-          assert((await card.textContent()).includes(input.resource), `Missing label on ${input.resource}'s original node`);
-        }
-        const connections = edges.filter(edge=>visible.has(edge.sourceStepId) && visible.has(edge.targetStepId));
-        function visibleRoute(start, finish) {
-          const queue = [{step: start, route: []}], visited = new Set([start]);
-          for (const {step, route} of queue) {
-            if (step === finish) return route;
-            for (const edge of connections.filter(edge=>edge.sourceStepId === step)) {
-              if (visited.has(edge.targetStepId)) continue;
-              visited.add(edge.targetStepId);
-              queue.push({step: edge.targetStepId, route: [...route, edge]});
-            }
+        assert.doesNotMatch(await heading.innerText(), /connector:\/\/|\baql_|review\.outcome|\[redacted/u);
+        const filter = staticSteps.locator('details.story-card').filter({hasText: /review\.outcome/u});
+        await filter.locator('summary').first().click();
+        assert.match(await filter.locator('.occurrence-origin').innerText(), /review\.value\.changed/u);
+        assert.match(await filter.locator('.occurrence-origin').innerText(), /\[redacted string\]/u);
+        await filter.locator('summary').first().click();
+        const write = staticSteps.locator('details.story-card').filter({hasText: 'Declared changes'});
+        await write.locator('summary').first().click();
+        await write.getByText('Original Effect declarations', {exact: true}).click();
+        assert.match(await write.innerText(), /Fields: StageName, NextStep|Fields: NextStep, StageName/u);
+        await write.locator('summary').first().click();
+        const expectedColumns = readOpportunity.getByRole('table', {name: 'Expected columns'});
+        assert.deepEqual(await expectedColumns.getByRole('columnheader').allTextContents(),
+          ['NextStep', 'StageName', 'id', 'name']);
+        const origin = readOpportunity.locator('.occurrence-origin details');
+        await origin.getByText('Original step and ports', {exact: true}).click();
+        assert((await origin.innerText()).includes(originalLink.producer.step_id));
+        await origin.getByText('Original step and ports', {exact: true}).click();
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.screenshot({path: join(evidence, 'installed-deal-review-before-run.png')});
+        const graph = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
+        const readGraph = async narrow => {
+          await readOpportunity.locator('summary').first().click();
+          await page.getByRole('button', {name: /Graph/}).click();
+          assert.equal(await graph.getByRole('navigation', {name: 'Plan presentation'}).count(), 0);
+          for (const link of links) {
+            const path = graph.getByTestId('rf__edge-' + link.consumer.port_id).locator('.react-flow__edge-path');
+            await path.waitFor({state: 'attached'});
+            assert(await path.evaluate(line => line.getTotalLength() > 0));
           }
-        }
-        const visibleConvergence = visibleJoins.map(join=>visibleInputs.flatMap(input=>{
-          const route = visibleRoute(input.step_id, join.id);
-          return route?.length ? [{resource: input.resource, connector: input.connector,
-            originalInputPort: input.port_id, route}] : [];
-        })).find(routes=>new Set(routes.map(route=>route.resource)).size >= 2);
-        // An original Stage input can bind a Join directly, without a
-        // projected producer Step. Do not require or draw a synthetic edge.
-        const shownDirectInputs = visibleInputs.filter(input=>visibleJoins.some(join=>join.id === input.step_id));
-        const drawnJoinEdges = visibleConvergence ? visibleConvergence.flatMap(origin=>origin.route) :
-          connections.filter(edge=>visibleJoins.some(join=>join.id === edge.targetStepId) &&
-            shownDirectInputs.some(input=>input.step_id === edge.sourceStepId || input.step_id === edge.targetStepId));
-        assert(visibleConvergence || shownDirectInputs.length > 0 && drawnJoinEdges.length > 0,
-          'Check two connected Source paths, or a direct original Join input beside a drawn Join dependency');
-        for (const edge of drawnJoinEdges) {
-          const path = graph.getByTestId(`rf__edge-${edge.id}`).locator('.react-flow__edge-path');
-          assert(await path.evaluate(path=>path.getTotalLength() > 0));
-          const from = nodes.find(node=>node.id === edge.sourceStepId).ports.find(port=>port.port_id === edge.sourcePortId);
-          const to = nodes.find(node=>node.id === edge.targetStepId).ports.find(port=>port.port_id === edge.targetPortId);
-          assert.equal(from.role, 'output');
-          assert.equal(to.role, 'input');
-          assert.deepEqual(to.source, {kind: 'logical_output', step_id: edge.sourceStepId, output_port_id: edge.sourcePortId});
-        }
-        const graphText = (await cards.allTextContents()).join('\n');
-        assert.match(graphText, /Join · /u);
-        assert.doesNotMatch(graphText, /\baql_|connector:\/\//u);
+          const selected = graph.locator('.react-flow__node.selected[data-id="' + originalLink.producer.step_id + '"]');
+          await selected.waitFor({state: 'attached'});
+          await page.evaluate(() => window.scrollTo(0, 0));
+          if (narrow) {
+            await page.waitForFunction(({stepId, targetPort}) => {
+              const node = document.querySelector('.react-flow__node[data-id="' + stepId + '"]');
+              const path = document.querySelector('.react-flow__edge[data-id="' + targetPort + '"] .react-flow__edge-path');
+              if (!node || !path) return false;
+              const card = node.getBoundingClientRect(), edge = path.getBoundingClientRect();
+              return card.x >= 0 && card.right <= innerWidth && card.y >= 0 && card.bottom <= innerHeight &&
+                edge.x < innerWidth && edge.right >= 0 && edge.y >= 0 && edge.y + 14 < innerHeight;
+            }, {stepId: originalLink.producer.step_id, targetPort: originalLink.consumer.port_id});
+          }
+          assert.match(await page.getByRole('region', {name: 'Selected Step', exact: true}).innerText(), /Opportunity/u);
+        };
+        await readGraph(false);
+        await page.screenshot({path: join(evidence, 'installed-deal-review-graph.png')});
         await page.getByRole('button', {name: 'Steps', exact: true}).click();
         await page.setViewportSize({width: 390, height: 844});
-        assert.equal(await heading.innerText(), summary);
-        assert.equal(await page.locator('.story-computation').innerText(), computation);
-        assert((await heading.boundingBox()).height < 230);
         assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
+        await page.getByRole('button', {name: /Hide query/}).click();
+        assert((await heading.boundingBox()).height < 192);
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow.png')});
+        await readGraph(true);
+        await page.getByRole('button', {name: 'Steps', exact: true}).click();
+        await page.getByRole('button', {name: /Show query/}).click();
         await page.getByLabel('Query options').click();
         await page.locator('.query-options label').filter({hasText: /^Language/u}).locator('select').selectOption('ja');
         await page.getByLabel('Query options').click();
         await page.getByRole('button', {name: 'Explain', exact: true}).click();
-        await page.locator('.story-computation').filter({hasText: /3回の結合（name で結合する箇所を含む）/u}).waitFor();
+        await heading.filter({hasText: /review\.value\.changed などの条件で絞り込む/u}).waitFor();
+        await page.getByRole('button', {name: /Hide query/}).click();
         assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow-ja.png')});
+        await readGraph(true);
         assert.deepEqual(requests, ['/api/session', '/api/read/launch', '/api/read/static-explanation',
           '/api/read/static-explanation']);
-        receipt = {browserRequests: requests, checkedSources: 3, visibleInputNames, visibleJoins: visibleJoins.length,
-          originalGraphNodes: nodes.length, originalGraphEdges: edges.length, visibleConvergence,
-          shownDirectInputs, drawnJoinEdges, groupedInputs, computation};
+        receipt = {browserRequests: requests, checkedSources: 3, checkedJoinSteps: checkedJoins.length,
+          originalGraphNodes: beforeRun.plan.nodes.length, originalStageResultLinks: links};
       } else {
         await page.getByLabel('Query options').click();
         await page.getByLabel('Open query file').setInputFiles(join(project, 'churn-risk.aql'));
@@ -290,7 +252,7 @@ try {
           const response = await reply;
           assert.equal(response.status(), 200);
           if (verifyOriginalBody) {
-            const {data} = await response.json();
+            const {data} = explanations.get('/api/read/run-explanation-context');
             assert.deepEqual(data.runRef, original.ref);
             assert.equal(data.plan.compiledPlanCid, plan.compiled_plan_cid);
             assert.equal(data.plan.logicalMapCid, plan.logical_map.self_cid);
