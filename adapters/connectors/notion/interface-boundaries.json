@@ -512,7 +512,7 @@
                 "anchor": "test \"Notion copied pagination control cannot upgrade an incomplete original\""
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion query and property operations retain typed rows and original response charges across both cursors"
               },
               {
@@ -831,35 +831,35 @@
                 "anchor": "test \"Notion row aggregate canonical text budget counts Decimal coefficient rather than input punctuation\""
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion dependent reply loss remains the original credential Unknown and retained child, without resend"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion aggregate page node cap applies to all complete rows together"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion incomplete first page refuses before dependent I/O or row delivery and retains original charges"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion incomplete final page cannot complete after an earlier valid original page"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion explicit complete statuses preserve exact Decimal and original page custody"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion lazy property grant follows the original pending request without early authorization"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion lazy property selection refuses query and foreign original grants without fallback"
               },
               {
-                "path": "adapters/connectors/notion/test/data-source-read.test.mjs",
+                "path": "adapters/connectors/notion/test/data-source-read.test.mts",
                 "anchor": "actual Notion current denial or stop after the awaited property selection sends no dependent request"
               },
               {
@@ -1220,7 +1220,7 @@
                 "anchor": "reply remains the original Credential journal's Unknown and is never resent."
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion full Source metadata omission refuses before property I/O without publishing rows"
               },
               {
@@ -1308,23 +1308,23 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion discovery passes the same original declaration and schema into typed query and property reads"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion discovery current refusal and reply loss retain original custody without resend"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion discovery aggregate exhaustion retains the offending original body and charge"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion discovery retains full Source metadata through the same original typed property row"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion full Source metadata omission refuses before property I/O without publishing rows"
               },
               {
@@ -1332,15 +1332,15 @@
                 "anchor": "### Original schema occurrence and delayed authorization"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion declaration source identity retains original UTF8 and never grants equal-data substitution"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion schema authorization receives only the original observed Common selection and exact path"
               },
               {
-                "path": "adapters/connectors/notion/test/database-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/database-discovery.test.mts",
                 "anchor": "actual Notion current and stop after awaited schema issuer retain the same database charge without schema I/O"
               },
               {

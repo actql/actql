@@ -1,22 +1,35 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
-import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {createNotionDatabaseDiscovery,NOTION_DATABASE_RETRIEVE_OPERATION as databaseOperation,
   NOTION_DATA_SOURCE_RETRIEVE_OPERATION as sourceOperation} from '../site/database-discovery.mjs';
 import {createNotionDataSourceReader,NOTION_DATA_SOURCE_READ_OPERATION as queryOperation} from '../site/data-source-read.mjs';
 import {NOTION_PROPERTY_READ_OPERATION as propertyOperation} from '../site/property-item-read.mjs';
 import {propertyReadFixture,propertyItemPage} from './property-item-read.fixture.mjs';
+import type {NotionFixtureCause,NotionPropertyFixtureBindings} from './property-item-read.fixture.mjs';
+import type {NotionMetadataBounds,NotionDeclarationBounds} from './catalog-bindings.fixture.mjs';
+import type {NotionDatabaseDiscoveryFailure} from '../site/database-discovery.mjs';
+import type {NotionDataSourceReadFailure} from '../site/data-source-read.mjs';
+import type {TestContext} from 'node:test';
 
-const metadata=[16384,1024,20,8,8,128,128];
-const declarationBounds=[...metadata,256,16,4096,16,100000];
+type DiscoveryOptions = Parameters<typeof createNotionDatabaseDiscovery>[0];
+type SchemaSelection = Parameters<NonNullable<DiscoveryOptions['sourceAuthorizationFor']>>[0];
+type Failure = (NotionDatabaseDiscoveryFailure|NotionDataSourceReadFailure) & {cause:NotionFixtureCause};
+type DiscoveryBindings = NotionPropertyFixtureBindings & Required<NonNullable<DiscoveryOptions['moon']>> & {
+  notionReadDatabaseDeclarationSourceBytes(declaration:unknown):number;
+};
+const provider:DiscoveryBindings=await import(new URL(
+  '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
+
+const metadata:NotionMetadataBounds=[16384,1024,20,8,8,128,128];
+const declarationBounds:NotionDeclarationBounds=[...metadata,256,16,4096,16,100000];
 const limits={maxResponseBytes:16384,maxTotalResponseBytes:32768,maxTargetBytes:1024,
   maxNodes:1024,maxDepth:20,maxDataSources:8,maxProperties:8,maxIdentityBytes:128,maxNameBytes:128,
   maxContractNodes:256,maxContractDepth:16,maxContractTextBytes:4096,maxColumns:16,maxWork:100000,
   maxWireBytes:8192,maxWireNodes:256,maxWireDepth:16};
 const definition={id:'t%3Ax',name:'text',type:'rich_text',rich_text:{}};
-const database=ids=>({object:'database',id:'db',data_sources:ids.map(id=>({id,name:'same name'}))});
+const database=(ids:readonly string[])=>({object:'database',id:'db',data_sources:ids.map(id=>({id,name:'same name'}))});
 const schema=()=>({object:'data_source',id:'s',parent:{type:'database_id',database_id:'db'},properties:{text:definition}});
 
 test('actual Notion declaration source identity retains original UTF8 and never grants equal-data substitution',()=>{
@@ -34,16 +47,16 @@ test('actual Notion declaration source identity retains original UTF8 and never 
   assert.equal(provider.notionReadSourceSelectionId(selected),'s');
 });
 
-async function fixture(t,{decl={id:'db',read_contracts:{'t%3Ax':[{column:'text',projection:'value',
-  contract:{type:'string',nullable:false,enum:['ab']}}]}},ids=['s']}={}){
+async function fixture(t:TestContext,{decl={id:'db',read_contracts:{'t%3Ax':[{column:'text',projection:'value',
+  contract:{type:'string',nullable:false,enum:['ab']}}]}},ids=['s']}:Readonly<{decl?:unknown;ids?:readonly string[]}>={}){
   const f=await propertyReadFixture(t,{additionalOperations:[databaseOperation,sourceOperation,queryOperation]});
   f.state.respond=request=>request.url==='/v1/databases/db'?database(ids):schema();
   const declaration=checked(provider.notionReadDatabaseDeclaration(Buffer.from(JSON.stringify(decl)),...declarationBounds));
   const options={moon:provider,declaration,initialAuthorization:f.authorize(databaseOperation,'initial-database'),
     sourceAuthorization:f.authorize(sourceOperation,'initial-source'),credential:f.options.credential,
     authorizationFor:({operation,index})=>f.authorize(operation,`discovery-${index}`),current:f.current,
-    chargeResponse:f.options.chargeResponse,consumeObservation:f.options.consumeObservation,limits};
-  return{...f,declaration,discoveryOptions:options,discover:changes=>createNotionDatabaseDiscovery({...options,...changes})};
+    chargeResponse:f.options.chargeResponse,consumeObservation:f.options.consumeObservation,limits} satisfies DiscoveryOptions;
+  return{...f,declaration,discoveryOptions:options,discover:(changes?:Partial<DiscoveryOptions>)=>createNotionDatabaseDiscovery({...options,...changes})};
 }
 
 test('actual Notion discovery passes the same original declaration and schema into typed query and property reads',async t=>{
@@ -58,7 +71,7 @@ test('actual Notion discovery passes the same original declaration and schema in
     results:[{object:'page',id:'page',parent:{type:'data_source_id',data_source_id:'s'},
       properties:{text:{...definition,rich_text:[],has_more:true}}}],has_more:false,next_cursor:null}:
     propertyItemPage(properties++===0?['a']:['b'],properties===1?'next':null);
-  const rows=[],l={...limits,maxPages:8,pageSize:10,maxTotalRows:100,maxRequestBytes:1024,
+  const rows:unknown[]=[],l={...limits,maxPages:8,pageSize:10,maxTotalRows:100,maxRequestBytes:1024,
     maxCursorBytes:128,maxRowNodes:128,maxRowDepth:16,maxRowTextBytes:4096,maxRowWork:100000,maxPageWork:100000,
     maxRowsWireBytes:8192,maxRowsWireNodes:256,maxRowsWireDepth:16,maxPropertyPages:8,maxPropertyItems:128,
     maxPropertyBytes:65536,maxPropertyNodes:4096,maxPropertyTextBytes:32768,maxPropertyWork:1000000};
@@ -84,12 +97,12 @@ test('actual Notion discovery rejects empty or ambiguous inventories and selects
 test('actual Notion discovery retains both response charges when schema or declared type refuses',async t=>{
   for(const kind of ['foreign','missing-contract']){
     const f=await fixture(t,kind==='missing-contract'?{decl:'db'}:{}),respond=f.state.respond;
-    f.state.respond=request=>request.url==='/v1/databases/db'?respond(request):kind==='foreign'?{...schema(),id:'foreign'}:
+    f.state.respond=request=>request.url==='/v1/databases/db'?(respond as (request:Parameters<NonNullable<typeof respond>>[0])=>unknown)(request):kind==='foreign'?{...schema(),id:'foreign'}:
       {...schema(),properties:{amount:{id:'n',name:'amount',type:'number',number:{format:'number'}}}};
-    const reader=f.discover();let failure;
-    await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
-    assert.equal(f.state.requests.length,2);assert.equal(failure.observations.length,2);
-    assert.deepEqual(failure.responseCharges,f.state.charges);assert.equal(reader.observe().cleanupConfirmed,false);
+    const reader=f.discover();let failure:Failure|undefined;
+    await assert.rejects(reader.read(),(error:Failure)=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
+    assert.equal(f.state.requests.length,2);assert.equal(failure!.observations.length,2);
+    assert.deepEqual(failure!.responseCharges,f.state.charges);assert.equal(reader.observe().cleanupConfirmed,false);
     await assert.rejects(reader.read(),{code:'NotionDiscoveryAlreadyStarted'});assert.equal(f.state.requests.length,2);
   }
 });
@@ -99,7 +112,7 @@ test('actual Notion discovery requires separate original operation grants before
   assert.throws(()=>f.discover({sourceAuthorization:f.discoveryOptions.initialAuthorization}),{code:'ForeignNotionDiscoveryAuthorization'});
   assert.equal(f.state.requests.length,0);
   const reader=f.discover({authorizationFor:({index})=>f.authorize(databaseOperation,`retarget-${index}`)});
-  await assert.rejects(reader.read(),error=>error.cause.code==='ForeignNotionDiscoveryAuthorization');
+  await assert.rejects(reader.read(),(error:Failure)=>error.cause.code==='ForeignNotionDiscoveryAuthorization');
   assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);
 });
 
@@ -107,9 +120,9 @@ test('actual Notion discovery current refusal and reply loss retain original cus
   const stale=await fixture(t);stale.state.resolved=()=>stale.writeAccount('deny');
   await assert.rejects(stale.discover().read(),{code:'NotionDatabaseDiscoveryFailed'});assert.equal(stale.state.requests.length,0);
   const lost=await fixture(t);lost.state.beforeResponse=request=>{if(request.url==='/v1/data_sources/s')request.socket.destroy();};
-  const reader=lost.discover();let failure;
-  await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
-  assert.equal(lost.state.requests.length,2);assert.equal(failure.observations.length,1);assert.equal(failure.responseCharges.length,1);
+  const reader=lost.discover();let failure:Failure|undefined;
+  await assert.rejects(reader.read(),(error:Failure)=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
+  assert.equal(lost.state.requests.length,2);assert.equal(failure!.observations.length,1);assert.equal(failure!.responseCharges.length,1);
   assert.equal(lost.journal.recover().filter(x=>x.outcome==='unknown').length,1);
   await assert.rejects(reader.read(),{code:'NotionDiscoveryAlreadyStarted'});assert.equal(lost.state.requests.length,2);
   assert.equal(reader.observe().cleanupConfirmed,false);
@@ -117,9 +130,9 @@ test('actual Notion discovery current refusal and reply loss retain original cus
 
 test('actual Notion discovery aggregate exhaustion retains the offending original body and charge',async t=>{
   const f=await fixture(t);const size=Buffer.byteLength(JSON.stringify(database(['s'])))+Buffer.byteLength(JSON.stringify(schema()));
-  const reader=f.discover({limits:{...limits,maxTotalResponseBytes:size-1}});let failure;
-  await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
-  assert.equal(failure.responseCharges.length,2);assert.equal(failure.observations.length,2);
+  const reader=f.discover({limits:{...limits,maxTotalResponseBytes:size-1}});let failure:Failure|undefined;
+  await assert.rejects(reader.read(),(error:Failure)=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
+  assert.equal(failure!.responseCharges.length,2);assert.equal(failure!.observations.length,2);
   assert.equal(reader.observe().receivedBodyBytes,BigInt(size));assert.equal(reader.observe().cleanupConfirmed,false);
 });
 
@@ -143,7 +156,7 @@ test('actual Notion discovery retains full Source metadata through the same orig
       last_edited_by:{object:'user',id:'editor'},
       properties:{text:{...definition,rich_text:[],has_more:true}}}],has_more:false,next_cursor:null}:
     propertyItemPage(properties++===0?['a']:['b'],properties===1?'next':null);
-  const rows=[],l={...limits,maxPages:8,pageSize:10,maxTotalRows:100,maxRequestBytes:1024,
+  const rows:unknown[]=[],l={...limits,maxPages:8,pageSize:10,maxTotalRows:100,maxRequestBytes:1024,
     maxCursorBytes:128,maxRowNodes:128,maxRowDepth:16,maxRowTextBytes:4096,maxRowWork:100000,maxPageWork:100000,
     maxRowsWireBytes:8192,maxRowsWireNodes:256,maxRowsWireDepth:16,maxPropertyPages:8,maxPropertyItems:128,
     maxPropertyBytes:65536,maxPropertyNodes:4096,maxPropertyTextBytes:32768,maxPropertyWork:1000000};
@@ -177,17 +190,17 @@ test('actual Notion full Source metadata omission refuses before property I/O wi
     credential:f.options.credential,authorizationFor:({operation,ordinal})=>f.authorize(operation,`missing-${ordinal}`),
     current:f.current,chargeResponse:f.options.chargeResponse,consumeObservation:f.options.consumeObservation,
     consumePage:()=>{published++;},limits:l});
-  let failure;
-  await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDataSourceReadFailed';});
+  let failure:Failure|undefined;
+  await assert.rejects(reader.read(),(error:Failure)=>{failure=error;return error.code==='NotionDataSourceReadFailed';});
   assert.equal(published,0);assert.equal(f.state.requests.length,3);
-  assert.equal(failure.observations.length,1);assert.equal(failure.responseCharges.length,1);
+  assert.equal(failure!.observations.length,1);assert.equal(failure!.responseCharges.length,1);
   assert.equal(reader.observe().cleanupConfirmed,false);
   await assert.rejects(reader.read(),{code:'NotionDataSourceReaderAlreadyStarted'});
   assert.equal(f.state.requests.length,3);
 });
 
 test('actual Notion schema authorization receives only the original observed Common selection and exact path',async t=>{
-  const f=await fixture(t);let called=0,request;
+  const f=await fixture(t);let called=0,request:SchemaSelection|undefined;
   const result=await f.discover({sourceAuthorization:undefined,
     authorizationFor:({operation,index})=>{assert.equal(operation,databaseOperation);return f.authorize(operation,`database-${index}`);},
     sourceAuthorizationFor:async original=>{
@@ -199,8 +212,8 @@ test('actual Notion schema authorization receives only the original observed Com
       assert.equal(original.path,'/v1/data_sources/s');assert.equal(original.origin,f.scope.resourceOrigin);assert.equal(original.bodyBytes,0);
       await Promise.resolve();return f.authorize(sourceOperation,'lazy-original-schema');
     }}).read();
-  assert.equal(called,1);assert.equal(result.selection,request.selection);
-  assert.equal(result.database,request.database);
+  assert.equal(called,1);assert.equal(result.selection,request!.selection);
+  assert.equal(result.database,request!.database);
   assert.equal(provider.notionDataSourceReadMatches(result.readContracts,f.declaration,result.source),true);
   assert.equal(f.state.requests.length,2);assert.equal(f.journal.recover().filter(x=>x.outcome==='succeeded').length,2);
   assert.deepEqual(result.responseCharges,f.state.charges);
@@ -211,10 +224,10 @@ test('actual Notion lazy schema grant has no missing wrong-operation or ambiguou
     const f=await fixture(t);let calls=0;
     const reader=f.discover({sourceAuthorization:undefined,sourceAuthorizationFor:()=>{
       calls++;return kind==='missing'?undefined:f.authorize(databaseOperation,'foreign-schema');
-    }});let failure;
-    await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
+    }});let failure:Failure|undefined;
+    await assert.rejects(reader.read(),(error:Failure)=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
     assert.equal(calls,1);assert.equal(f.state.requests.length,1);
-    assert.equal(failure.observations.length,1);assert.equal(failure.responseCharges.length,1);
+    assert.equal(failure!.observations.length,1);assert.equal(failure!.responseCharges.length,1);
     assert.equal(reader.observe().cleanupConfirmed,false);
     await assert.rejects(reader.read(),{code:'NotionDiscoveryAlreadyStarted'});
   }
@@ -234,15 +247,15 @@ test('actual Notion ambiguous database cannot request a lazy schema grant or gue
 
 test('actual Notion current and stop after awaited schema issuer retain the same database charge without schema I/O',async t=>{
   for(const kind of ['current','stop']){
-    const f=await fixture(t);let reader;
+    const f=await fixture(t);let reader:ReturnType<typeof createNotionDatabaseDiscovery>;
     reader=f.discover({sourceAuthorization:undefined,sourceAuthorizationFor:async()=>{
       await Promise.resolve();
       if(kind==='current')await f.writeAccount('deny');else reader.requestStop(new Error('stopped before schema'));
       return f.authorize(sourceOperation,'late-schema');
-    }});let failure;
-    await assert.rejects(reader.read(),error=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
-    assert.equal(f.state.requests.length,1);assert.equal(failure.observations.length,1);
-    assert.deepEqual(failure.responseCharges,f.state.charges);assert.equal(reader.observe().cleanupConfirmed,false);
+    }});let failure:Failure|undefined;
+    await assert.rejects(reader.read(),(error:Failure)=>{failure=error;return error.code==='NotionDatabaseDiscoveryFailed';});
+    assert.equal(f.state.requests.length,1);assert.equal(failure!.observations.length,1);
+    assert.deepEqual(failure!.responseCharges,f.state.charges);assert.equal(reader.observe().cleanupConfirmed,false);
     assert.equal(f.journal.recover().filter(x=>x.outcome==='succeeded').length,1);
   }
 });
