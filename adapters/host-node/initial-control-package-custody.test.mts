@@ -5,13 +5,29 @@ import {mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import test from 'node:test';
+import test, {type TestContext} from 'node:test';
+
+type ImageFact = ReturnType<typeof fact>;
+type Dependency = {name: string; package?: number; local?: boolean};
+type FixturePackage = {name: string; version: string; images: ImageFact[]; dependencies: Dependency[]};
+type FixtureInventory = {
+  images: ImageFact[];
+  packages: FixturePackage[];
+  dependencies: Dependency[];
+  optionalSdk: number | null;
+  optionalSdkCoverage: 'absent' | 'prepared';
+  publicNode: FixturePackage | null;
+  publicNodeCoverage: 'absent' | 'prepared';
+  localPublicModule: string;
+  hostModule: string;
+  hostValidator: string;
+};
 
 const custody = fileURLToPath(new URL('./initial-control-package-custody.cjs', import.meta.url));
-const actual = name => readFileSync(new URL(name, import.meta.url));
-const fact = (path, bytes) => ({path, bytes: bytes.length,
+const actual = (name: string) => readFileSync(new URL(name, import.meta.url));
+const fact = (path: string, bytes: Uint8Array) => ({path, bytes: bytes.length,
   sha256: createHash('sha256').update(bytes).digest('hex')});
-function fixture(t, host = 'globalThis.actualHostImageValue="original";export function assertInitialControlHostPreparation(){};') {
+function fixture(t: TestContext, host = 'globalThis.actualHostImageValue="original";export function assertInitialControlHostPreparation(){};') {
   const directory = mkdtempSync(join(tmpdir(), 'actql-package-image-custody-'));
   t.after(() => rmSync(directory, {recursive: true}));
   const root = join(directory, 'local');
@@ -22,11 +38,12 @@ function fixture(t, host = 'globalThis.actualHostImageValue="original";export fu
   for (const [path, bytes] of Object.entries(sources)) {
     mkdirSync(dirname(join(root, path)), {recursive: true}); writeFileSync(join(root, path), bytes);
   }
-  const inventory = {images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes)),
+  const inventory: FixtureInventory = {images: Object.entries(sources).map(([path, bytes]) => fact(path, bytes)),
     packages: [], dependencies: [], optionalSdk: null, optionalSdkCoverage: 'absent',
     publicNode: null, publicNodeCoverage: 'absent', localPublicModule: 'index.mjs',
     hostModule: 'adapters/host-node/embedded-local.mjs', hostValidator: 'assertInitialControlHostPreparation'};
-  function run(body, before = '', afterCapture = '', tweak, initialize = true, publicEntry) {
+  function run(body: string, before = '', afterCapture = '', tweak?: (selected: FixtureInventory) => void,
+    initialize = true, publicEntry?: string) {
     const selected = structuredClone(inventory); tweak?.(selected);
     const preload = join(directory, 'preload.cjs'), entry = join(directory, 'entry.mjs');
     writeFileSync(preload, [before,
@@ -45,7 +62,7 @@ function fixture(t, host = 'globalThis.actualHostImageValue="original";export fu
   return {directory, root, inventory, sources, run};
 }
 
-function addPublicNode(f, source = 'import{originalLocal}from"@actql/local-node";globalThis.nodePublicInitializations=(globalThis.nodePublicInitializations??0)+1;export const originalNode=originalLocal+"/node";') {
+function addPublicNode(f: ReturnType<typeof fixture>, source = 'import{originalLocal}from"@actql/local-node";globalThis.nodePublicInitializations=(globalThis.nodePublicInitializations??0)+1;export const originalNode=originalLocal+"/node";') {
   const node = join(f.directory, 'node_modules/@actql/node');
   mkdirSync(node, {recursive: true});
   symlinkSync(f.root, join(f.directory, 'node_modules/@actql/local-node'));
@@ -117,7 +134,7 @@ test('package custody loads the same captured Host Source and immutable asset be
 
 test('a mismatched captured package image refuses before Host and entry compilation', t => {
   const f = fixture(t), result = f.run('throw new Error("EntryMustNotRun");', '', '', inventory => {
-    inventory.images.find(item => item.path.endsWith('embedded-local.mjs')).sha256 = '0'.repeat(64);
+    inventory.images.find(item => item.path.endsWith('embedded-local.mjs'))!.sha256 = '0'.repeat(64);
   });
   assert.notEqual(result.status, 0); assert.match(result.stderr, /InitialControlImageChanged/);
   assert.doesNotMatch(result.stderr, /EntryMustNotRun/);
@@ -146,7 +163,7 @@ test('application-time package capture refuses before observing a caller invento
 for (const route of ['local-node', 'node']) test('the actual eager '+route+' preload bounds original Mock input before its explicit Host fixture', t => {
   const f = fixture(t), local = join(f.directory, 'node_modules/@actql/local-node');
   mkdirSync(join(local, 'adapters/host-node'), {recursive: true});
-  const sources = {...f.sources,
+  const sources: Record<string, Buffer> = {...f.sources,
     'adapters/host-node/embedded-local.mjs': Buffer.from(
       'import{createRequire}from"node:module";'+
       'const delivery=createRequire(import.meta.url)("../../selected-infer-startup.cjs");'+

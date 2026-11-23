@@ -2722,7 +2722,7 @@
                 "anchor": "another real preload cannot supply the private wrapper-parent original"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a mismatched captured package image refuses before Host and entry compilation"
               },
               {
@@ -3054,7 +3054,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "preload bounds original Mock input before its explicit Host fixture"
               },
               {
@@ -3842,7 +3842,7 @@
                 "anchor": "another real preload cannot supply the private wrapper-parent original"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a mismatched captured package image refuses before Host and entry compilation"
               },
               {
@@ -4007,7 +4007,7 @@
                 "anchor": "test("
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "preload bounds original Mock input before its explicit Host fixture"
               },
               {

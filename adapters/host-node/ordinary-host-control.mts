@@ -1,7 +1,6 @@
 import {openSync, fstatSync, readSync, closeSync} from 'node:fs';
 import {resolve, relative, isAbsolute} from 'node:path';
 import {fileURLToPath} from 'node:url';
-// @ts-expect-error TS7016: the early package custody bootstrap still has a CommonJS authored entry.
 import packageCustody from './initial-control-package-custody.cjs';
 import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy, snapshotRequestMemory}
   from './installed-host-policy.mjs';

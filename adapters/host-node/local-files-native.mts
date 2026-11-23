@@ -1,7 +1,6 @@
 // Normal shared native image selection for Files and Store-owner custody.
 import {createRequire} from 'node:module';
 import {existsSync} from 'node:fs';
-// @ts-expect-error TS7016: the early package custody bootstrap still has a CommonJS authored entry.
 import packageCustody from './initial-control-package-custody.cjs';
 const require = createRequire(import.meta.url);
 export function localProjectFilesystem(): unknown {

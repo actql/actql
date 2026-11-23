@@ -2894,3 +2894,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/initial-control-image-loader.d.cts
 /adapters/host-node/initial-control-image-loader.test.mjs
 /adapters/host-node/initial-control-image-loader.test.d.mts
+/adapters/host-node/initial-control-package-custody.cjs
+/adapters/host-node/initial-control-package-custody.d.cts
+/adapters/host-node/initial-control-package-custody.test.mjs
+/adapters/host-node/initial-control-package-custody.test.d.mts

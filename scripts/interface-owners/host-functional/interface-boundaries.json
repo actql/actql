@@ -59851,7 +59851,7 @@
                 "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
               },
               {
@@ -59955,7 +59955,7 @@
                 "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
               },
               {
@@ -60197,23 +60197,23 @@
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "preload bounds original Mock input before its explicit Host fixture"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "optional SDK custody follows the actual consumer resolution rather than a nested Local copy"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "failed namespace initialization keeps the same original cause and never recompiles or retries"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "both actual public namespaces compile from captured Sources before entry and remain the same originals"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
               },
               {
@@ -60359,7 +60359,7 @@
                 "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
               },
               {
@@ -60463,7 +60463,7 @@
                 "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
               },
               {
@@ -60705,23 +60705,23 @@
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "preload bounds original Mock input before its explicit Host fixture"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "optional SDK custody follows the actual consumer resolution rather than a nested Local copy"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "failed namespace initialization keeps the same original cause and never recompiles or retries"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "both actual public namespaces compile from captured Sources before entry and remain the same originals"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
               },
               {
@@ -62683,7 +62683,7 @@
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "preload bounds original Mock input before its explicit Host fixture"
               }
             ]
@@ -62923,7 +62923,7 @@
                 "anchor": "snapshot handoff refuses malformed or asynchronous results without observing them"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "preload bounds original Mock input before its explicit Host fixture"
               }
             ]
@@ -62934,7 +62934,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-custody.cjs",
-      "sha256": "41420c57f91f6aac35a2593d16e0bad8efe769668c9f4d09c25c413ca0972202",
+      "sha256": "b3ab0d494a043f4b40875be935ea54eefa607d87d33abd363f5241adfc5c3b49",
       "exports": [
         "commonjs:captureInitialControlPackageCustody",
         "commonjs:captureOrdinaryInitialControlPackageCustody",
@@ -63147,7 +63147,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// Private installed-image custody, not an operational issuer."
               },
               {
@@ -63157,21 +63157,21 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry)"
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "function captureInitialControlPackageCustody(inventory: unknown, localRoot: string, consumerEntry?: unknown,\n  publicPreloadEntry?: unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "function captureDependency(binding, from)"
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "function captureDependency(binding: unknown, from: string)"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a package identity mismatch refuses even when its captured files match the DATA facts"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
               },
               {
@@ -63189,13 +63189,13 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// Held Sources, module/namespace records, loader hooks and caches remain the"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "function initializeHostNamespace()"
               },
               {
@@ -63203,13 +63203,13 @@
                 "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a mismatched captured package image refuses before Host and entry compilation"
               },
               {
@@ -63219,14 +63219,14 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "application-time package capture refuses before observing a caller inventory"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "const groups = [], actualPackages = [], roots = new NativeMap(), mainSources = new NativeMap();"
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "const groups: ImageGroup[] = [], actualPackages: string[] = [], roots = new NativeMap<string, number>()"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -63261,31 +63261,31 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "package custody loads the same captured Host Source and immutable asset before entry"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "selected dependency graph uses the actual resolved original package Sources"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "uncaptured Host dependencies cannot acquire package-image coverage"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "optional SDK custody follows the actual consumer resolution rather than a nested Local copy"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "failed namespace initialization keeps the same original cause and never recompiles or retries"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "both actual public namespaces compile from captured Sources before entry and remain the same originals"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
               },
               {
@@ -63311,7 +63311,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// Private installed-image custody, not an operational issuer."
               },
               {
@@ -63321,21 +63321,21 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "function captureInitialControlPackageCustody(inventory, localRoot, consumerEntry, publicPreloadEntry)"
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "function captureInitialControlPackageCustody(inventory: unknown, localRoot: string, consumerEntry?: unknown,\n  publicPreloadEntry?: unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "function captureDependency(binding, from)"
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "function captureDependency(binding: unknown, from: string)"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a package identity mismatch refuses even when its captured files match the DATA facts"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// The actual startup resolves its optional SDK from that SAME consumer"
               },
               {
@@ -63353,13 +63353,13 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// Held Sources, module/namespace records, loader hooks and caches remain the"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "function initializeHostNamespace()"
               },
               {
@@ -63367,13 +63367,13 @@
                 "anchor": "Synchronization snapshots each selected method and receiver"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
+                "path": "adapters/host-node/initial-control-package-custody.cts",
                 "anchor": "// Compile both actual public ESM namespaces before the Module handoff."
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a mismatched captured package image refuses before Host and entry compilation"
               },
               {
@@ -63383,14 +63383,14 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "application-time package capture refuses before observing a caller inventory"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.cjs",
-                "anchor": "const groups = [], actualPackages = [], roots = new NativeMap(), mainSources = new NativeMap();"
+                "path": "adapters/host-node/initial-control-package-custody.cts",
+                "anchor": "const groups: ImageGroup[] = [], actualPackages: string[] = [], roots = new NativeMap<string, number>()"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -63425,31 +63425,31 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "package custody loads the same captured Host Source and immutable asset before entry"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "selected dependency graph uses the actual resolved original package Sources"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "uncaptured Host dependencies cannot acquire package-image coverage"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "optional SDK custody follows the actual consumer resolution rather than a nested Local copy"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "failed namespace initialization keeps the same original cause and never recompiles or retries"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "both actual public namespaces compile from captured Sources before entry and remain the same originals"
               },
               {
-                "path": "adapters/host-node/initial-control-package-custody.test.mjs",
+                "path": "adapters/host-node/initial-control-package-custody.test.mts",
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
               },
               {
@@ -116872,7 +116872,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-control.mjs",
-      "sha256": "1889bb3607d3a64af122be4180df0ab3cb53cbd45609f5445c02c6a0663184b6",
+      "sha256": "de29f51020f2a3bef3ee930af3dc9f91e55968fb16adb80026caeaebc146cdfb",
       "exports": [
         "assertOrdinaryHostControlCurrent",
         "beginOrdinaryHostControl",
@@ -143663,7 +143663,7 @@
         }
       ],
       "referenceQualification": "Actual source syntax and owner references only; no runtime/platform or whole-distribution acceptance is inferred.",
-      "sha256": "0606cf13d490e863b4d62f0afd2cb2bb56ec1c322b07b4715b749b3c5e696364",
+      "sha256": "6135328bfe3de2a6cd04c88fc51f60f2e2cd931619fcd01eeaee3cabadacc9f6",
       "imports": [
         "../../_build/native/directory-darwin-arm64.node",
         "../../_build/native/directory-darwin-x64.node",
