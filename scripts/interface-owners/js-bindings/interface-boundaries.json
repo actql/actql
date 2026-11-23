@@ -23235,9 +23235,7 @@
           "operations": [
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
             "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
-            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
-            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
-            "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
+            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2"
           ],
           "exports": [],
           "attributes": {
@@ -24014,6 +24012,7 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/inspectAdmission/inspectAdmission",
             "publicationControl/queryTimeControls/queryTimeControls",
             "publicationControl/compiledContent/compiledContent",
             "publicationControl/compiledRunResult/compiledRunResult",
@@ -24046,20 +24045,16 @@
             "publicationControl/init:admitSourceFreeResultPolicy/init:admitSourceFreeResultPolicy",
             "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
             "publicationControl/init:adoptCheckedClientEffectInferRun/init:adoptCheckedClientEffectInferRun",
-            "publicationControl/init:adoptCheckedClientEffectSerializationRun/init:adoptCheckedClientEffectSerializationRun",
             "publicationControl/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
             "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
             "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
             "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
-            "publicationControl/init:bindCheckedClientEffectSerializationCapture/init:bindCheckedClientEffectSerializationCapture",
             "publicationControl/init:bindCheckedClientInferDispatch/init:bindCheckedClientInferDispatch",
             "publicationControl/init:bindCheckedClientInferInvocation/init:bindCheckedClientInferInvocation",
             "publicationControl/init:bindCheckedClientInferModelDispatch/init:bindCheckedClientInferModelDispatch",
             "publicationControl/init:bindCheckedClientInferModelEntryPersistence/init:bindCheckedClientInferModelEntryPersistence",
             "publicationControl/init:bindCheckedClientInferModelScope/init:bindCheckedClientInferModelScope",
             "publicationControl/init:bindCheckedClientInferRun/init:bindCheckedClientInferRun",
-            "publicationControl/init:bindCheckedClientSerializationCapture/init:bindCheckedClientSerializationCapture",
-            "publicationControl/init:bindCheckedClientSerializationInputIdentity/init:bindCheckedClientSerializationInputIdentity",
             "publicationControl/init:bindInferOriginalResultArtifact/init:bindInferOriginalResultArtifact",
             "publicationControl/init:bindInstalledModelRawCapturePolicy/init:bindInstalledModelRawCapturePolicy",
             "publicationControl/init:bindIssuedClientInferInvocation/init:bindIssuedClientInferInvocation",
@@ -24110,17 +24105,10 @@
             "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
             "publicationControl/init:checkedClientInferOriginalResourceOriginField/init:checkedClientInferOriginalResourceOriginField",
             "publicationControl/init:checkedClientRunCapturedContentCandidate/init:checkedClientRunCapturedContentCandidate",
-            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
-            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
-            "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/nodes/nodes",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
             "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
             "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
             "publicationControl/init:compiledRunResultTransformation/init:compiledRunResultTransformation",
-            "publicationControl/init:compiledSerializationGraph/init:compiledSerializationGraph",
-            "publicationControl/init:compiledSerializationPolicy/init:compiledSerializationPolicy",
-            "publicationControl/init:completeCheckedClientContentStep/init:completeCheckedClientContentStep",
-            "publicationControl/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
             "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
             "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
             "publicationControl/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
@@ -24139,7 +24127,6 @@
             "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
             "publicationControl/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
-            "publicationControl/init:inferSerializationGraph/init:inferSerializationGraph",
             "publicationControl/init:inspectInferInvocationEvidence/init:inspectInferInvocationEvidence",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
@@ -24273,7 +24260,6 @@
             "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
-            "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
             "publicationControl/init:recoveredTablePreviewMatchesSource/init:recoveredTablePreviewMatchesSource",
             "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
             "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
@@ -27796,115 +27782,6 @@
         },
         {
           "operations": [
-            "publicationControl/init:checkedClientSerializationInputRows/init:checkedClientSerializationInputRows",
-            "publicationControl/init:prepareCheckedClientEffectContentOriginal/init:prepareCheckedClientEffectContentOriginal"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "publicationControl"
-              },
-              {
-                "path": "docs/design/published-store-target-custody.md",
-                "anchor": "## Local file bytes and publication"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-content-family-source-free.test.mjs",
-                "anchor": "test('early managed Content keeps its same provider and binds physical execution only once'"
-              },
-              {
-                "path": "src/client_local_host/installed_effect_content_wbtest.mbt",
-                "anchor": "test \"Effect Content plan retains and quotes the same original family without physical entry\""
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
             "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost",
             "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
@@ -31218,14 +31095,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:adoptCheckedClientEffectSerializationRun/init:adoptCheckedClientEffectSerializationRun",
-          "parameters": [
-            "allowed",
-            "definition"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
           "parameters": [
             "compiled",
@@ -31267,16 +31136,6 @@
             "checkedEffect",
             "admission",
             "runDefinition"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:bindCheckedClientEffectSerializationCapture/init:bindCheckedClientEffectSerializationCapture",
-          "parameters": [
-            "compiled",
-            "checkedEffect",
-            "captured",
-            "observation"
           ],
           "async": false
         },
@@ -31389,27 +31248,6 @@
             "keyedPlan",
             "keyed",
             "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:bindCheckedClientSerializationCapture/init:bindCheckedClientSerializationCapture",
-          "parameters": [
-            "checkedProgram",
-            "graph",
-            "captured",
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:bindCheckedClientSerializationInputIdentity/init:bindCheckedClientSerializationInputIdentity",
-          "parameters": [
-            "compiled",
-            "input",
-            "receipt",
-            "limits",
-            "captured"
           ],
           "async": false
         },
@@ -32038,36 +31876,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
-          "parameters": [
-            "compiled",
-            "selection"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/nodes/nodes",
-          "parameters": [
-            "node"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientSerializationInputRows/init:checkedClientSerializationInputRows",
-          "parameters": [
-            "compiled",
-            "selection"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
           "parameters": [
             "compiled",
@@ -32168,48 +31976,6 @@
             "compiled",
             "checkedProgram",
             "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:compiledSerializationGraph/init:compiledSerializationGraph",
-          "parameters": [
-            "compiled"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:compiledSerializationPolicy/init:compiledSerializationPolicy",
-          "parameters": [
-            "compiled"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:completeCheckedClientContentStep/init:completeCheckedClientContentStep",
-          "parameters": [
-            "compiled",
-            "definition",
-            "step",
-            "inputEvidence",
-            "candidate",
-            "content",
-            "available",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
-          "parameters": [
-            "compiled",
-            "definition",
-            "input",
-            "inputEvidence",
-            "candidate",
-            "content",
-            "available",
-            "limits"
           ],
           "async": false
         },
@@ -32458,13 +32224,6 @@
           "name": "publicationControl/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
           "parameters": [
             "capturedRun"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:inferSerializationGraph/init:inferSerializationGraph",
-          "parameters": [
-            "inferGraph"
           ],
           "async": false
         },
@@ -33659,21 +33418,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareCheckedClientEffectContentOriginal/init:prepareCheckedClientEffectContentOriginal",
-          "parameters": [
-            "prepared",
-            "compiled",
-            "compilation",
-            "definition",
-            "graph",
-            "bodies",
-            "workspace",
-            "physical",
-            "retain"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
           "parameters": [
             "prepared",
@@ -34627,25 +34371,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
-          "parameters": [
-            "parent",
-            "input",
-            "compiled",
-            "selection",
-            "fields",
-            "output"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview",
           "parameters": [
             "preview",
@@ -34731,20 +34456,6 @@
           "name": "publicationControl/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile/init:readInstalledModelResponseProfile",
           "parameters": [
             "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "expectedGenerationCid",
-            "evidence",
-            "candidate",
-            "content"
           ],
           "async": false
         },
@@ -35575,6 +35286,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/inspectAdmission/inspectAdmission",
+          "parameters": [
+            "admission"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/inspectEffectSource/inspectEffectSource",
           "parameters": [
             "source"
@@ -35698,7 +35416,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4b40a8cc270a66d5293396ca82ee245af54dafd34bfc46cd2cf30f13261ccee4"
+      "sha256": "8d47c14514f6786ba47310869be5d717a8556245af903882ccecef00143cc1e3"
     },
     {
       "module": "adapters/host-common/runtime-query-time-control.mjs",
@@ -36073,7 +35791,20 @@
             "createContentPublicationControls/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings/init:checkedClientSerializationRecoveryBindings",
             "createContentPublicationControls/init:exportCheckedClientContentGenerationOutput/init:exportCheckedClientContentGenerationOutput",
             "createContentPublicationControls/init:issueCheckedClientSerializationInvocation/init:issueCheckedClientSerializationInvocation",
-            "createContentPublicationControls/init:prepareCheckedClientRetainedContentOutput/init:prepareCheckedClientRetainedContentOutput"
+            "createContentPublicationControls/init:prepareCheckedClientRetainedContentOutput/init:prepareCheckedClientRetainedContentOutput",
+            "createContentPublicationControls/init:adoptCheckedClientEffectSerializationRun/init:adoptCheckedClientEffectSerializationRun",
+            "createContentPublicationControls/init:bindCheckedClientEffectSerializationCapture/init:bindCheckedClientEffectSerializationCapture",
+            "createContentPublicationControls/init:bindCheckedClientSerializationCapture/init:bindCheckedClientSerializationCapture",
+            "createContentPublicationControls/init:bindCheckedClientSerializationInputIdentity/init:bindCheckedClientSerializationInputIdentity",
+            "createContentPublicationControls/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+            "createContentPublicationControls/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+            "createContentPublicationControls/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/nodes/nodes",
+            "createContentPublicationControls/init:compiledSerializationGraph/init:compiledSerializationGraph",
+            "createContentPublicationControls/init:compiledSerializationPolicy/init:compiledSerializationPolicy",
+            "createContentPublicationControls/init:completeCheckedClientContentStep/init:completeCheckedClientContentStep",
+            "createContentPublicationControls/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
+            "createContentPublicationControls/init:inferSerializationGraph/init:inferSerializationGraph",
+            "createContentPublicationControls/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration"
           ],
           "exports": [
             "createContentPublicationControls"
@@ -36083,6 +35814,10 @@
               {
                 "path": "adapters/host-common/runtime-content-publication-control.mts",
                 "anchor": "export function createContentPublicationControls("
+              },
+              {
+                "path": "adapters/host-common/runtime-content-publication-control.mts",
+                "anchor": "adoptCheckedClientEffectSerializationRun(allowed: unknown, definition: unknown)"
               }
             ],
             "inputsOutputs": [
@@ -36099,6 +35834,10 @@
               {
                 "path": "adapters/host-common/runtime-content-publication-control.mts",
                 "anchor": "const completion = serializationGenerationTokens.get(generation as object);"
+              },
+              {
+                "path": "adapters/host-common/runtime-content-publication-control.mts",
+                "anchor": "issuanceLimits(limits, 'Content input Artifact');"
               }
             ],
             "ownership": [
@@ -36109,6 +35848,10 @@
               {
                 "path": "adapters/host-common/runtime-core.mjs",
                 "anchor": "const serializationGenerationTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-content-publication-control.mts",
+                "anchor": "serializationPlanTokens.set(selected, graph);"
               }
             ],
             "synchronization": [
@@ -36148,6 +35891,400 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "createContentPublicationControls/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+            "createContentPublicationControls/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
+              },
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const inspectAcquiredEffectEvidence = (issued, publicationRetention, limits, deferCatalogs = false) => {"
+              },
+              {
+                "path": "adapters/host-common/deferred-catalog-control.test.mjs",
+                "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createContentPublicationControls/init:checkedClientSerializationInputRows/init:checkedClientSerializationInputRows",
+            "createContentPublicationControls/init:prepareCheckedClientEffectContentOriginal/init:prepareCheckedClientEffectContentOriginal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "publicationControl"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Local file bytes and publication"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-family-source-free.test.mjs",
+                "anchor": "test('early managed Content keeps its same provider and binds physical execution only once'"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_content_wbtest.mbt",
+                "anchor": "test \"Effect Content plan retains and quotes the same original family without physical entry\""
+              }
+            ]
+          }
         }
       ],
       "exports": [
@@ -36165,7 +36302,51 @@
             "token",
             "inspectEvidence",
             "inspect",
-            "captureContractLimits"
+            "captureContractLimits",
+            "serializationPlanTokens",
+            "serializationInputEvidenceTokens",
+            "inspectAdmission",
+            "evidenceToken",
+            "issuanceLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:adoptCheckedClientEffectSerializationRun/init:adoptCheckedClientEffectSerializationRun",
+          "parameters": [
+            "allowed",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientEffectSerializationCapture/init:bindCheckedClientEffectSerializationCapture",
+          "parameters": [
+            "compiled",
+            "checkedEffect",
+            "captured",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationCapture/init:bindCheckedClientSerializationCapture",
+          "parameters": [
+            "checkedProgram",
+            "graph",
+            "captured",
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:bindCheckedClientSerializationInputIdentity/init:bindCheckedClientSerializationInputIdentity",
+          "parameters": [
+            "compiled",
+            "input",
+            "receipt",
+            "limits",
+            "captured"
           ],
           "async": false
         },
@@ -36227,10 +36408,40 @@
           "async": false
         },
         {
+          "name": "createContentPublicationControls/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+          "parameters": [
+            "compiled",
+            "selection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:checkedClientSerializationGenerationLimits/init:checkedClientSerializationGenerationLimits/nodes/nodes",
+          "parameters": [
+            "node"
+          ],
+          "async": false
+        },
+        {
           "name": "createContentPublicationControls/init:checkedClientSerializationGenerationOutput/init:checkedClientSerializationGenerationOutput",
           "parameters": [
             "compiled",
             "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:checkedClientSerializationInputRows/init:checkedClientSerializationInputRows",
+          "parameters": [
+            "compiled",
+            "selection"
           ],
           "async": false
         },
@@ -36251,12 +36462,61 @@
           "async": false
         },
         {
+          "name": "createContentPublicationControls/init:compiledSerializationGraph/init:compiledSerializationGraph",
+          "parameters": [
+            "compiled"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:compiledSerializationPolicy/init:compiledSerializationPolicy",
+          "parameters": [
+            "compiled"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:completeCheckedClientContentStep/init:completeCheckedClientContentStep",
+          "parameters": [
+            "compiled",
+            "definition",
+            "step",
+            "inputEvidence",
+            "candidate",
+            "content",
+            "available",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:completeCheckedClientSerializationGeneration/init:completeCheckedClientSerializationGeneration",
+          "parameters": [
+            "compiled",
+            "definition",
+            "input",
+            "inputEvidence",
+            "candidate",
+            "content",
+            "available",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "createContentPublicationControls/init:exportCheckedClientContentGenerationOutput/init:exportCheckedClientContentGenerationOutput",
           "parameters": [
             "compiled",
             "definition",
             "generation",
             "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:inferSerializationGraph/init:inferSerializationGraph",
+          "parameters": [
+            "inferGraph"
           ],
           "async": false
         },
@@ -36271,6 +36531,21 @@
           "async": false
         },
         {
+          "name": "createContentPublicationControls/init:prepareCheckedClientEffectContentOriginal/init:prepareCheckedClientEffectContentOriginal",
+          "parameters": [
+            "prepared",
+            "compiled",
+            "compilation",
+            "definition",
+            "graph",
+            "bodies",
+            "workspace",
+            "physical",
+            "retain"
+          ],
+          "async": false
+        },
+        {
           "name": "createContentPublicationControls/init:prepareCheckedClientRetainedContentOutput/init:prepareCheckedClientRetainedContentOutput",
           "parameters": [
             "compiled",
@@ -36281,14 +36556,49 @@
             "available"
           ],
           "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+          "parameters": [
+            "parent",
+            "input",
+            "compiled",
+            "selection",
+            "fields",
+            "output"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentPublicationControls/init:readmitCheckedClientSerializationGeneration/init:readmitCheckedClientSerializationGeneration",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "expectedGenerationCid",
+            "evidence",
+            "candidate",
+            "content"
+          ],
+          "async": false
         }
       ],
       "imports": [
-        "./compiler-binding.generated.mjs"
+        "./compiler-binding.generated.mjs",
+        "./result-output-limits.mjs",
+        "./runtime-result.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "752e051f97a517fcea031fae1537685dc312ca9c4857df8d0e3da6e0ee2a6b99"
+      "sha256": "b2d252c16769e1810d7f2462dc9732282c921f88649fe249eb1e30fa3a33da80"
     },
     {
       "module": "adapters/host-common/runtime-publication-contract-control.mjs",
