@@ -7,7 +7,8 @@ import {readFile} from 'node:fs/promises';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {readSourceProfileJson, captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
-import {readSnowflakeSqlApi, SNOWFLAKE_SQL_READ_OPERATION} from '../site/snowflake-sql-read.mjs';
+import {prepareSnowflakeManagedRead, SNOWFLAKE_SQL_READ_OPERATION} from '../site/snowflake-sql-read.mjs';
+import {installedJsonSourceReaderLimitNames} from '../../../host-node/installed-credential-source-reader.mjs';
 import {checkSnowflakeKeyPairProfile, openSnowflakeKeyPairMaterial} from '../site/snowflake-key-pair.mjs';
 
 export const INSTALLED_SNOWFLAKE_SOURCE_VERSION = 'actql-installed-snowflake-source/0.1';
@@ -128,7 +129,7 @@ export async function loadInstalledSnowflakeSource(profile, {root, principalId, 
     limits.maxNameUnits, limits.maxDescriptionBytes, limits.maxNodes, limits.maxDepth);
   const declarationLimits = moon.clientProgramSnowflakeDeclarationLimits(limits.maxDeclarationBytes,
     limits.maxDeclarationNodes, limits.maxDepth, 1, limits.maxColumns);
-  const {description, declaration, declared} = construction.prepareNativeDeclaration(Object.freeze({
+  const {description, declared} = construction.prepareNativeDeclaration(Object.freeze({
     capacity: () => moon.clientProgramSnowflakeReadDeclarationConstructionCapacity(
       bodies.map(body => body.bytes), bodies.reduce((sum, body) => sum + body.encoded.length, 0),
       installed.database.length + installed.schema.length + installed.table.length,
@@ -154,10 +155,30 @@ export async function loadInstalledSnowflakeSource(profile, {root, principalId, 
     Array.isArray(binding.fields) && new Set(binding.fields).size === binding.fields.length &&
     binding.fields.every(field => allFields.includes(field)) &&
     canonical(binding) === canonical(target(resource, binding.fields));
+  const readerLimits = Object.freeze({maxResponseBytes: limits.maxBytes,
+    maxTotalResponseBytes: limits.maxRequests * limits.maxBytes,
+    maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
+    maxRows: limits.maxRows, maxTotalRows: limits.maxTotalRows,
+    maxPages: limits.maxRequests, pageSize: limits.maxRows,
+    maxCursorBytes: limits.maxHandleUnits, maxIdentityBytes: limits.maxBytes,
+    maxTargetBytes: limits.maxRequestBytes,
+    maxValueNodes: limits.maxNodes, maxValueTextBytes: limits.maxBytes,
+    maxRowsWireBytes: limits.maxBytes, maxRowsWireNodes: limits.maxNodes,
+    maxRowsWireDepth: limits.maxDepth, maxSecretBytes: limits.maxSecretBytes});
+  const capacity = moon.clientProgramSnowflakeManagedReadCapacity(
+    installedJsonSourceReaderLimitNames.map(name => readerLimits[name]),
+    allFields.length, limits.maxSecretBytes, responseLimits, descriptionLimits,
+    limits.maxRequestBytes, limits.maxContractPairs);
+  const sequence = Object.freeze({operation: SNOWFLAKE_SQL_READ_OPERATION,
+    maxUses: limits.maxRequests, children: Object.freeze([])});
+  const implementation = construction.sourceReaderImplementation({limits: readerLimits,
+    columnCount: allFields.length, readSequenceConstruction: Object.freeze({capacity,
+      originalLimits: limits, sequence, maxRequestBytes: limits.maxRequestBytes})});
   const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes(siteProfile.caPath);
-  const {authorization, site} = await construction.openRowSite({
+  const {authorization} = await construction.openRowSite({
     profile: Object.freeze({...siteProfile, resourceOrigin: siteProfile.apiOrigin}),
     accountConfiguration: installed.accountConfigurationWire, connection, ca, admitsApprovalTarget,
+    runAcquisitionLimits: implementation.runAcquisitionLimits,
     ...(siteProfile.keyPair === undefined ? {} : {prepareSecretMaterial: () =>
       openSnowflakeKeyPairMaterial(siteProfile.keyPair, {maxSecretBytes: limits.maxSecretBytes, resolveMaterial: resolveSecret})}),
     responseHeaders: installation?.responseHeaders ?? ['content-encoding'],
@@ -166,32 +187,23 @@ export async function loadInstalledSnowflakeSource(profile, {root, principalId, 
       if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
       return secret;
     })});
-  {
-    const preparedReads = new WeakMap();
-    return await construction.createRowSource({
-      readOperation: SNOWFLAKE_SQL_READ_OPERATION, physicalTarget: target,
-      bindingCid: cid({version: 'actql-installed-snowflake-binding/0.1',
-        contextCid: authorization.context.contextCid, runtimeBundleCid,
-        metadataCid: cid(metadata), site: siteProfile}),
-      limits: {maxPages: limits.maxRequests, maxPageBytes: limits.maxBytes,
-        maxPageRows: limits.maxRows, maxCaptureRows: limits.maxTotalRows},
-      prepareAcquisition: options => {
-        const prepared = checked(moon.clientProgramSnowflakePrepareRead(description,
-          options.declaration, options.requirement, options.queryContract, options.evidenceContract,
-          descriptionLimits, declarationLimits));
-        const acquisition = moon.clientProgramSnowflakeReadAcquisition(prepared);
-        preparedReads.set(acquisition, prepared);
-        return acquisition;
-      },
-      readPages: async options => {
-        const prepared = preparedReads.get(options.rowRun?.acquisition);
-        if (prepared === undefined) fail('ForeignSnowflakeReadPreparation');
-        // The standard Host passes the original nominal acquisition/run/frame.
-        // No replacement reservation, Run or transport permission is issued.
-        await readSnowflakeSqlApi({...options, moon, prepared, limits,
-          warehouse: siteProfile.warehouse, role: siteProfile.role,
-          authenticationType: siteProfile.authenticationType,
-          credential: site.credential, callResource: site.callResource});
-      }});
-  }
+  const providerReader = construction.createSourceReader({implementation,
+    prepareReadSequence(input) {
+      if (input.resource !== installed.resource || input.responseBorrow === undefined ||
+          input.originalAuthorization === undefined || typeof input.preparedRead !== 'string') {
+        fail('ForeignSnowflakeReadPreparation');
+      }
+      return prepareSnowflakeManagedRead({moon, description, descriptionLimits,
+        input, limits, warehouse: siteProfile.warehouse, role: siteProfile.role,
+        authenticationType: siteProfile.authenticationType, responseBound: responseLimits});
+    }});
+  return await construction.createRowSource({
+    readOperation: SNOWFLAKE_SQL_READ_OPERATION, physicalTarget: target, providerReader,
+    bindingCid: cid({version: 'actql-installed-snowflake-binding/0.1',
+      contextCid: authorization.context.contextCid, runtimeBundleCid,
+      metadataCid: cid(metadata), site: siteProfile}),
+    prepareRead: ({nonce}) => nonce,
+    limits: {maxPages: limits.maxRequests, maxPageBytes: limits.maxBytes,
+      maxPageRows: limits.maxRows, maxCaptureRows: limits.maxTotalRows},
+  });
 }

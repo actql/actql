@@ -83,7 +83,11 @@ test('undefined refusal-recording fault remains distinct from the real gzip fail
 test('an injected cleanup refusal cannot replace an original undefined rejection', async t => {
   for (const secondary of [undefined, Object.freeze(new Error('OriginalCleanupPending'))]) {
     const f = await snowflakeFixture(t);
-    const moon = {...f.moon, clientProgramSnowflakeRetireReadBorrow() { throw secondary; }};
+    let first = true;
+    const moon = {...f.moon, clientProgramSnowflakeRetireManagedRead(read) {
+      if (first) {first = false; throw secondary;}
+      return f.moon.clientProgramSnowflakeRetireManagedRead(read);
+    }};
     f.state.onRequest = () => ({status: 202, body: pending('original-pending')});
     f.state.beforeCurrent = async () => { if (f.state.requests.length) throw undefined; };
     await assert.rejects(f.read({moon}), error => {
@@ -106,6 +110,6 @@ test('successful undefined current callbacks remain valid and finish original ca
   const f = await snowflakeFixture(t);
   f.state.beforeCurrent = async () => {};
   const result = await f.read();
-  assert.equal(result.rows, 2n); assert.equal(f.state.requests.length, 1);
+  assert.equal(result.rowCount, 2); assert.equal(f.state.requests.length, 1);
   assert.equal(f.row.captureRows().length, 2);
 });
