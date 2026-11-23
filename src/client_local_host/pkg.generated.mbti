@@ -231,6 +231,8 @@ pub fn bind_installed_source_read_effect_program(ClientInstalledSourceRead, @run
 
 pub fn bind_installed_source_read_program(ClientInstalledSourceRead, @run_publication_host.PreparedClientProgram) -> Result[Unit, ClientInstalledSourceReadIssue]
 
+pub fn bind_program_model_publication_invocation(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, @run_publication.RunEvidenceValue, @run_publication.PublicationContract, Array[String], String) -> Result[Unit, ClientClosedValuesPreparationIssue]
+
 pub fn[I] bind_request_computation_policy_subject(ClientRequestPreparation[I], I, @program_check.CheckEnvironment, Int, String?) -> Result[Unit, ClientRequestTerminalIssue]
 
 pub fn borrow_installed_effect_dispatch_preparation(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity) -> Result[@physical_resources.PreparationBodyBorrow[ClientInstalledEffectManagedPlan]?, ClientInstalledManagedRunIssue]
@@ -527,7 +529,7 @@ pub fn execute_installed_whole_source_values_guarded(ClientInstalledManagedRun, 
 
 pub fn execute_retained_effect_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], @physical_strategy_host.CapturedEffectRunDAG, Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
-pub fn execute_source_free_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, () -> Bool, require_live? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
+pub fn execute_source_free_local_tasks_guarded(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int, () -> Bool, require_live? : (() -> Bool)?, drive_task? : ((Int, @driver.LocalManagedDispatchOperations[Int]) -> Result[Unit, LocalValuesExecutionIssue])?, cleanup_ready? : (() -> Bool)?) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
 pub fn execute_source_free_values(@connectors_builtin.ConfiguredComputeHost[@physical_strategy_host.RunIssue], Int, Int) -> Result[LocalValuesExecution, LocalValuesExecutionFailure]
 
@@ -1577,6 +1579,8 @@ pub fn retire_installed_source_read(ClientInstalledSourceRead) -> Result[Unit, C
 
 pub fn retire_installed_whole_source_ports(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Bool
 
+pub fn retire_program_model_publication_invocation(ClientInstalledManagedRun, @run_publication.PublicationContract) -> Bool
+
 pub fn retry_local_values_execution_failure_cleanup(LocalValuesExecutionFailure) -> Bool
 
 pub fn return_installed_logical_observation(ClientLogicalObservation) -> Result[Bool, ClientLogicalObservationIssue]
@@ -1971,6 +1975,7 @@ pub(all) enum ClientInstalledManagedRunIssue {
 type ClientInstalledManagedSerializationPreparation
 
 type ClientInstalledManagedSourceFreePreparation
+pub fn ClientInstalledManagedSourceFreePreparation::model_local_requirements(Self, @run_publication_host.PreparedClientProgram) -> ClientLocalRequirements?
 
 type ClientInstalledSequenceContracts
 

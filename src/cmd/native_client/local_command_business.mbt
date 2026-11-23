@@ -64,8 +64,9 @@ priv struct LocalCommandBusinessOriginal {
   mut file_capacity : @local_values.ClientInstalledWholeSourceCapacity?
   mut request_retiring : Bool
   mut operation : @local_host.NativeLocalStoreOperation?
-  model_work : Array[@local_host.NativeClientMockModelWork]
+  mut model_work : Array[@local_host.NativeClientMockModelWork]
   mut effect_model : LocalNativeMockEffectPlan?
+  mut model_run : LocalCommandModelRun?
   saved_effect_rows : Array[LocalNativeSavedEffectFileRow]
   mut saved_effect_files : LocalNativeSavedEffectFileWork?
   mut values_work : @local_host.NativeClientValuesWork?

@@ -18,6 +18,29 @@ fn normalize_native_status_arguments(
 }
 
 ///|
+fn local_status_uses_reference_files(
+  child : @argparse.Matches,
+) -> Bool raise ClientStop {
+  optional(child, "run") is None &&
+  optional(child, "run-id") is None &&
+  optional(child, "ref-file") is Some(_) &&
+  optional(child, "submission-ref-file") is Some(_)
+}
+
+///|
+fn local_command_status_selected(
+  matches : @argparse.Matches,
+) -> Bool raise ClientStop {
+  guard matches.subcommand is Some(("status", child)) else { return false }
+  local_status_uses_reference_files(child) ||
+  (
+    (optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)) &&
+    optional(child, "ref-file") is None &&
+    optional(child, "submission-ref-file") is None
+  )
+}
+
+///|
 // Saved Owner observation only. A status query never prepares, starts, reads
 // payload bytes, grants access or reconstructs missing legacy state.
 fn local_saved_run_status(
@@ -89,10 +112,42 @@ fn local_saved_run_status(
         selected.state(),
       )
     }
-    None => {
-      if capture is Some(_) {
-        stop("LocalOriginalStatusReferenceSupplierUnavailable")
+    None if capture is Some(original) => {
+      if !current() {
+        stop("LocalOriginalRunAuthorizationDenied")
       }
+      let submission = @local_host.admit_native_client_submission_reference(
+        text_file(input_root, required(child, "submission-ref-file"), 4096L),
+      ).unwrap_or_else(() => stop("InvalidSubmissionRef"))
+      let selected = match
+        local_host_result(
+          original.lookup_submitted_run_original_by_reference_in_original_read(
+            settings.principal,
+            settings.connection,
+            scope,
+            submission,
+          ),
+        ) {
+        Ok(value) => value
+        Err(issue) => stop(local_saved_state_issue(issue))
+      }
+      let reference = local_original_run_reference(selected.definition(), scope)
+      ignore(local_require_same_run_reference(input_root, child, reference))
+      let state = match
+        local_host_result(
+          original.lookup_submitted_run_state_for_original_in_original_read(
+            settings.principal,
+            settings.connection,
+            selected,
+            @env.now().to_double(),
+          ),
+        ) {
+        Ok(value) => value
+        Err(issue) => stop(local_saved_state_issue(issue))
+      }
+      (reference, selected.reference(), state)
+    }
+    None => {
       let selected = local_original_run_selection(
         host, input_root, child, scope, current,
       )
