@@ -2739,7 +2739,7 @@ jobs:
         run: |
           output="$RUNNER_TEMP/native-cli-linux-local"
           node scripts/package-release.mjs prepare "$output/node-release" release/0.0.2/node-cohort.json
-          node scripts/test-native-cli-release-install.mjs "$output/release" "$output/node-release" --shared-clients
+          node scripts/test-native-cli-release-install.mjs "$output/release" "$output/node-release" --verified-remote-http
       - name: Retain exact component and Local artifact receipts
         id: local_evidence
         if: always()

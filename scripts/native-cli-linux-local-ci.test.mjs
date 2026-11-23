@@ -11,6 +11,7 @@ import {parse} from 'yaml';
 import {gateJobs} from './ci-targets.mjs';
 import {classifyJob} from './local-checks-policy.mjs';
 import {nativeInstalledIngressSelection} from './test-native-cli-source-free-install.mjs';
+import {nativeCliReleaseInstallSelection} from './release-native-install.mjs';
 import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -73,7 +74,7 @@ test('manual shared Remote qualification selects only the existing Linux produce
   assert.match(prep.run, /test "\$\(uname -m\)" = x86_64/u);
   assert.match(prep.run, /--source "\$\(git rev-parse HEAD\)" --target linux-x64/u);
   assert.match(consumer.run,
-    /node scripts\/test-native-cli-release-install\.mjs "\$output\/release" "\$output\/node-release" --shared-clients/u);
+    /node scripts\/test-native-cli-release-install\.mjs "\$output\/release" "\$output\/node-release" --verified-remote-http/u);
   assert(consumer.run.includes('release/0.0.2/node-cohort.json'));
   for (const step of [prep, consumer]) {
     assert.equal(evaluate(step.if), true);
@@ -84,6 +85,19 @@ test('manual shared Remote qualification selects only the existing Linux produce
   const port = 'node() { printf "%s\\n" "$@"; }\n' +
     'git() { printf "commit\\n"; }\nrealpath() { printf "%s\\n" "$1"; }\n';
   const temp = '/tmp/with spaces';
+  const install = spawnSync('bash', ['-eo', 'pipefail', '-c', port + consumer.run], {
+    encoding: 'utf8', timeout: 5000, env: {...process.env, RUNNER_TEMP: temp},
+  });
+  assert.equal(install.status, 0, install.stderr);
+  const invocations = install.stdout.trimEnd().split('\n');
+  const selection = invocations.indexOf('scripts/test-native-cli-release-install.mjs');
+  assert(selection > 0);
+  assert.deepEqual(nativeCliReleaseInstallSelection(invocations.slice(selection + 1)), {
+    cliDirectory: temp + '/native-cli-linux-local/release',
+    sdkDirectory: temp + '/native-cli-linux-local/node-release',
+    sharedClients: true,
+    verifiedRemoteHttp: true,
+  });
   for (const selected of ['false', 'true']) {
     const child = spawnSync('bash', ['-eo', 'pipefail', '-c', port + produce.run], {
       encoding: 'utf8', timeout: 5000,
