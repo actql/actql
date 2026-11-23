@@ -87265,7 +87265,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "be978392877d6599eafcb683af51654956e9866ab141cc7f6f63fd11e5f510af",
+      "sha256": "5ac76edf94e8889e4096bb90da000d5214992b0e04d4e375a4d88655ef796678",
       "exports": [],
       "operations": [
         {

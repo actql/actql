@@ -441,8 +441,13 @@ fn store_wal_physical_case(
     )
   } else if open_probe == 0 {
     store_wal_original_work(host, sqlite, root + "/store", normal_probe)
-  } else if open_probe == 6 {
-    journal_existing_original_work(host, sqlite, root + "/store")
+  } else if open_probe == 6 || open_probe == 7 {
+    journal_existing_original_work(
+      host,
+      sqlite,
+      root + "/store",
+      fail_commit_return=open_probe == 7,
+    )
   } else {
     store_failed_open_original_work(host, sqlite, root + "/store", open_probe)
   }
@@ -766,6 +771,13 @@ fn journal_existing_route(
         return 12
       }
       receiver.cleanup = tag == 4
+      if receiver.return_ack_pending {
+        if !receiver.cleanup {
+          return 12
+        }
+        // The same receiver already observed the physical SQL scope leave.
+        receiver.return_ack_pending = false
+      }
       receiver.active = true
       0
     }
@@ -791,6 +803,12 @@ fn journal_existing_route(
         return 15
       }
       receiver.sql = false
+      if receiver.fail_normal_return && !receiver.cleanup {
+        receiver.fail_normal_return = false
+        receiver.active = false
+        receiver.return_ack_pending = true
+        return 33
+      }
       0
     }
     3 => {
@@ -809,6 +827,7 @@ fn journal_existing_original_work(
   host : InstalledArenaHost,
   sqlite : InstalledArenaSqliteLibrary,
   path : String,
+  fail_commit_return? : Bool = false,
 ) -> Bool raise {
   let library = sqlite.library.unwrap()
   host
@@ -869,14 +888,42 @@ fn journal_existing_original_work(
   )
   assert_eq(receiver.sql_entries, 2)
   assert_false(receiver.sql)
-  original
-  .leave_store()
-  .retained_execution_value("already-open Journal stage 11")
+  if fail_commit_return {
+    database.transaction_step(@sqlite.BeginImmediate).unwrap()
+    assert_eq(
+      database
+      .compare_exchange("original", "key", 0L, b"commit-confirmed")
+      .unwrap(),
+      1L,
+    )
+    receiver.fail_normal_return = true
+    guard database.transaction_step(@sqlite.Commit) is Err(failure) else {
+      fail("expected refusal after the original SQLite COMMIT")
+    }
+    assert_true(failure.step is @sqlite.Commit)
+    assert_true(failure.reply is @sqlite.SqlConfirmed)
+    assert_true(failure.issue is @sqlite.OperationRoutingAfter(None, 33))
+    assert_eq(receiver.sql_entries, 5)
+    assert_true(receiver.return_ack_pending)
+    assert_eq(original.primary_code(), 33)
+  } else {
+    original
+    .leave_store()
+    .retained_execution_value("already-open Journal stage 11")
+  }
   assert_false(store_wal_matches_original_receiver(database, receiver))
   let entries = receiver.sql_entries
   assert_true(
     database.read("original", "key") is Err(@sqlite.OperationRoutingBefore(_)),
   )
+  if fail_commit_return {
+    assert_true(original.enter_store() is Err(_))
+    guard database.transaction_step(@sqlite.BeginImmediate) is Err(refused) else {
+      fail("expected the original operation to block another transaction")
+    }
+    assert_true(refused.reply is @sqlite.SqlNotIssued)
+    assert_true(refused.issue is @sqlite.OperationRoutingBefore(_))
+  }
   assert_eq(receiver.sql_entries, entries)
   // A returned Read flight does not retire the still-open original Database.
   assert_true(original.close_checked() is Err(_))
@@ -900,10 +947,22 @@ fn journal_existing_original_work(
   assert_true(
     database.close_checked() is Err(@sqlite.OperationRoutingBefore(_)),
   )
-  original.primary_code() == 0 && original.cleanup_code() == 0
+  if fail_commit_return {
+    assert_false(receiver.return_ack_pending)
+    // Once cleanup is selected, this Read cannot admit even a verifier. The
+    // independent durability observation opens the file outside this process.
+    assert_true(host.enter_domain_read(sqlite.domain) is Err(_))
+  }
+  original.primary_code() == (if fail_commit_return { 33 } else { 0 }) &&
+  original.cleanup_code() == 0
 }
 
 ///|
 test "already-open Journal binds once and routes each SQL call through its original coordinator" {
   store_wal_physical_case(false, open_probe=6)
+}
+
+///|
+test "SQLite confirms COMMIT even when the original SQL scope return refuses" {
+  store_wal_physical_case(false, open_probe=7)
 }
