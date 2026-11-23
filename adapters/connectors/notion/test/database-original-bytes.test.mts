@@ -4,6 +4,8 @@ import test from 'node:test';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {metadataDiscoveryFixture} from './installation-metadata-discovery.fixture.mjs';
 
+import type {NotionMetadataBounds} from './catalog-bindings.fixture.mjs';
+
 const databaseWire=' \r\n{"extra":{"number":9007199254740993.25,"escaped":"\\u0061","unicode":"é😀"},'+
   '"object":"database","id":"db","data_sources":[{"name":"tasks","id":"s"}]}\n';
 const sourceWire='\r\n{"extra":9007199254740993.25,"properties":{"text":{"id":"t","name":"text",'+
@@ -11,9 +13,9 @@ const sourceWire='\r\n{"extra":9007199254740993.25,"properties":{"text":{"id":"t
   '"id":"s","object":"data_source"} \n';
 const declarationWire=' \r\n{"id":"db","read_contracts":{"t":[{"column":"text","projection":"value",'+
   '"contract":{"type":"string","nullable":false}}]}}\n';
-const limits=[16384,1024,20,8,8,128,128];
+const limits:NotionMetadataBounds=[16384,1024,20,8,8,128,128];
 
-function exactResponses(f){
+function exactResponses(f:Awaited<ReturnType<typeof metadataDiscoveryFixture>>){
   f.state.reply=(request,response)=>response.writeHead(200,{'content-type':'application/json'}).
     end(request.url==='/v1/databases/db'?databaseWire:sourceWire);
 }
@@ -44,7 +46,7 @@ test('actual metadata originals survive output exhaustion and caller-copy mutati
     const reader=x.reader(),result=await reader.read(),p=x.provider;
     for(const [fn,original,wire] of [[p.notionDatabaseOriginalJson,result.database,databaseWire],
       [p.notionDataSourceOriginalJson,result.source,sourceWire],
-      [p.notionDatabaseReadDeclarationOriginalJson,result.declaration,declarationWire]]){
+      [p.notionDatabaseReadDeclarationOriginalJson,result.declaration,declarationWire]] as const){
       for(const bound of [-1,Buffer.byteLength(wire)-1])assert.throws(()=>checked(fn(original,bound)));
       assert.equal(checked(fn(original,Buffer.byteLength(wire))),wire);
     }

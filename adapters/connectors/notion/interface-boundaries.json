@@ -2528,7 +2528,7 @@
                 "anchor": "if(selected!==undefined)fail('NotionMetadataSourceAlreadySelected');"
               },
               {
-                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mts",
                 "anchor": "test('metadata targets reject foreign originals receiver path purpose and selection substitutions'"
               }
             ],
@@ -2568,15 +2568,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mts",
                 "anchor": "test('metadata targets preserve original declaration then exact selected occurrence and request encoding'"
               },
               {
-                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mts",
                 "anchor": "test('metadata target bounds and captured provider receiver cannot be replaced by later getters'"
               },
               {
-                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mjs",
+                "path": "adapters/connectors/notion/test/database-metadata-targets.test.mts",
                 "anchor": "test('actual Host metadata discovery selects the same target only after the original database response'"
               }
             ]

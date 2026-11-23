@@ -1,18 +1,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {prepareNotionDatabaseMetadataTargets} from '../host/database-metadata-targets.mjs';
 import {NOTION_DATABASE_RETRIEVE_OPERATION as databaseOperation,NOTION_DATA_SOURCE_RETRIEVE_OPERATION as sourceOperation}
   from '../site/database-discovery.mjs';
 import {metadataDiscoveryFixture} from './installation-metadata-discovery.fixture.mjs';
 
-const metadata=[16384,1024,20,8,8,128,128],bounds=[...metadata,256,16,4096,16,100000];
+import type {NotionMetadataBounds,NotionDeclarationBounds} from './catalog-bindings.fixture.mjs';
+import type {MetadataFixtureBindings} from './installation-metadata-discovery.fixture.mjs';
+
+const provider:MetadataFixtureBindings=await import(new URL(
+  '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
+
+const metadata:NotionMetadataBounds=[16384,1024,20,8,8,128,128],bounds:NotionDeclarationBounds=[...metadata,256,16,4096,16,100000];
 const origin='https://notion.test';
 function originals(id='db',sourceId='s'){
   const declaration=checked(provider.notionReadDatabaseDeclaration(Buffer.from(JSON.stringify(id)),...bounds));
   const database=checked(provider.notionProjectDatabase(Buffer.from(JSON.stringify({object:'database',id,data_sources:[{id:sourceId,name:'tasks'}]})),...metadata));
-  const selection=checked(provider.notionSelectReadSource(declaration,database,bounds.at(-1)));
+  const selection=checked(provider.notionSelectReadSource(declaration,database,bounds.at(-1)!));
   const selected={selection,declaration,database,operation:sourceOperation,origin,method:'GET',
     path:'/v1/data_sources/'+encodeURIComponent(sourceId),bodyBytes:0};
   const options={moon:provider,declaration,origin,resource:'tasks',maxTargetBytes:1024,maxResourceBytes:128};
@@ -49,8 +54,8 @@ test('metadata targets reject foreign originals receiver path purpose and select
 
 test('metadata target bounds and captured provider receiver cannot be replaced by later getters',()=>{
   const f=originals();let calls=0;
-  const moon=Object.fromEntries(['notionReadDatabaseId','notionReadSourceSelectionMatches','notionReadSourceSelectionId'].map(name=>
-    [name,function(...args){assert.equal(this,moon);calls++;return Reflect.apply(provider[name],provider,args);} ]));
+  const moon=Object.fromEntries((['notionReadDatabaseId','notionReadSourceSelectionMatches','notionReadSourceSelectionId'] as const).map(name=>
+    [name,function(this:unknown,...args:unknown[]){assert.equal(this,moon);calls++;return Reflect.apply(provider[name],provider,args);} ]));
   const targets=prepareNotionDatabaseMetadataTargets({...f.options,moon});
   for(const name of Object.keys(moon))Object.defineProperty(moon,name,{get(){assert.fail('provider getter reread');}});
   targets.selectSource(f.selected);targets.targetAuthority.project(f.selection,f.declaration);assert(calls>=4);

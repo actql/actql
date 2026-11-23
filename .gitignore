@@ -2842,3 +2842,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/test/data-source-read.test.d.mts
 /adapters/connectors/notion/test/database-discovery.test.mjs
 /adapters/connectors/notion/test/database-discovery.test.d.mts
+/adapters/connectors/notion/test/installation-metadata-discovery.fixture.mjs
+/adapters/connectors/notion/test/installation-metadata-discovery.fixture.d.mts
+/adapters/connectors/notion/test/database-metadata-targets.test.mjs
+/adapters/connectors/notion/test/database-metadata-targets.test.d.mts
+/adapters/connectors/notion/test/database-original-bytes.test.mjs
+/adapters/connectors/notion/test/database-original-bytes.test.d.mts
