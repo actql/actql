@@ -3,7 +3,7 @@
 // manufactured here. The actual installed Host owns those responsibilities.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {generateKeyPairSync} from 'node:crypto';
+import {createHash, generateKeyPairSync, verify} from 'node:crypto';
 import {mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
@@ -12,7 +12,7 @@ import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {metadataBody, readLimits, resultBody} from './snowflake-response.fixture.mjs';
 import configuration from './snowflake-public-alias.fixture.json' with {type: 'json'};
 
-export async function publicSnowflakePackageFixture(t, entrance, node, httpHost) {
+export async function publicSnowflakePackageFixture(t, entrance, node, httpHost, {keyPair = false} = {}) {
   assert(['Local', 'HTTPS'].includes(entrance));
   assert.equal(typeof node.open, 'function');
   assert.equal(typeof node.connect, 'function');
@@ -72,11 +72,15 @@ export async function publicSnowflakePackageFixture(t, entrance, node, httpHost)
   const siteKeys = generateKeyPairSync('ed25519');
   const credentialPrivateKeyPath = join(root, 'installed-credential.key');
   await writeFile(credentialPrivateKeyPath, siteKeys.privateKey.export({type: 'pkcs8', format: 'pem'}), {mode: 0o600});
+  const pair = keyPair ? generateKeyPairSync('rsa', {modulusLength: 2048}) : undefined;
+  let originalToken;
   const site = {version: 'actql-installed-snowflake-site/0.1', apiOrigin,
-    warehouse: 'ANALYTICS', role: 'READER', authenticationType: 'OAUTH',
+    warehouse: 'ANALYTICS', role: 'READER', authenticationType: keyPair ? 'KEYPAIR_JWT' : 'OAUTH',
     credentialAuthorityId: 'installed-fixture', credentialKeyId: 'key', credentialPrivateKeyPath,
     environment: 'test', journalRoot: join(root, 'installed-journal'), namespaceId: 'installed-fixture',
-    siteGeneration: 1, siteKey: 'installed-site', tokenEnvironment: 'ACTQL_SNOWFLAKE_TEST_TOKEN',
+    siteGeneration: 1, siteKey: 'installed-site',
+    ...(keyPair ? {keyPair: {accountIdentifier: 'testorg-testaccount', user: 'operator',
+      privateKeyEnvironment: 'ACTQL_SNOWFLAKE_TEST_KEY'}} : {tokenEnvironment: 'ACTQL_SNOWFLAKE_TEST_TOKEN'}),
     caPath: join(root, 'server.crt')};
   const siteProfilePath = join(root, 'installed-site.json');
   await writeFile(siteProfilePath, JSON.stringify(site));
@@ -89,11 +93,17 @@ export async function publicSnowflakePackageFixture(t, entrance, node, httpHost)
     connectorId: 'snowflake', resource: 'usage_30d', database: 'PRODUCT', schema: 'USAGE', table: 'USAGE_30D',
     metadataPath, siteProfilePath, accountConfigurationWire: configuration.sourceAccountWire,
     limits: {...readLimits, maxRows: 3, maxTotalRows: 3, maxDescriptionBytes: 4096,
-      maxDeclarationBytes: 200000, maxDeclarationNodes: 20000},
+      maxDeclarationBytes: 200000, maxDeclarationNodes: 20000,
+      ...(keyPair ? {maxSecretBytes: 4096} : {})},
     queryAliases: [configuration.alias]}));
   const keys = generateKeyPairSync('ed25519'), principal = userInfo().username, observations = [];
   const installation = {sourceProfilePath, retainedRelationOutput: true,
-    resolveSourceSecret: async () => { state.resolutions++; return state.secret; },
+    resolveSourceSecret: async context => {
+      state.resolutions++;
+      if (!keyPair) return state.secret;
+      assert.equal(context.materialEnvironment, 'ACTQL_SNOWFLAKE_TEST_KEY');
+      return pair.privateKey.export({type: 'pkcs8', format: 'pem'});
+    },
     authorization: {accountConfiguration: configuration.hostAccountWire,
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
       reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: principal,
@@ -123,5 +133,22 @@ export async function publicSnowflakePackageFixture(t, entrance, node, httpHost)
     });
     throw error;
   }
-  return {root, client, state, observations, installation};
+  return {root, client, state, observations, installation,
+    ...(keyPair ? {assertOriginalCredential(entry) {
+      assert.equal(entry.headers['x-snowflake-authorization-token-type'], 'KEYPAIR_JWT');
+      assert.match(entry.headers.authorization, /^Bearer /u);
+      const token = entry.headers.authorization.slice(7);
+      const parts = token.split('.');
+      assert.equal(parts.length, 3);
+      assert(verify('RSA-SHA256', Buffer.from(parts.slice(0, 2).join('.')),
+        pair.publicKey, Buffer.from(parts[2], 'base64url')));
+      const claims = JSON.parse(Buffer.from(parts[1], 'base64url'));
+      const fingerprint = createHash('sha256').update(pair.publicKey.export(
+        {type: 'spki', format: 'der'})).digest('base64');
+      assert.equal(claims.sub, 'TESTORG-TESTACCOUNT.OPERATOR');
+      assert.equal(claims.iss, `${claims.sub}.SHA256:${fingerprint}`);
+      assert.equal(claims.exp - claims.iat, 3540);
+      if (originalToken === undefined) originalToken = token;
+      assert.equal(token, originalToken);
+    }} : {})};
 }

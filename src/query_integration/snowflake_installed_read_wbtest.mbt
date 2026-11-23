@@ -25,17 +25,52 @@ fn snowflake_host_borrow(
   stopped : Ref[Bool],
   checks : Ref[Int],
 ) -> @snowflake_read.Read {
-  let read = @snowflake_read.borrow_accounted_read(
-    prepared,
+  let borrow = @row_host.borrow_row_run_responses(
     run,
+    @snowflake_read.prepared_read_acquisition(prepared),
+  ).unwrap()
+  let active = Ref(None)
+  let retired = Ref(false)
+  @row_host.bind_row_run_response_borrow_cleanup(borrow, () => {
+    if retired.val {
+      return true
+    }
+    checks.val += 1
+    if stopped.val &&
+      active.val is Some(read) &&
+      @snowflake_read.retire_managed_read(read) {
+      retired.val = true
+      active.val = None
+    }
+    retired.val
+  }).unwrap()
+  let read = @snowflake_read.adopt_managed_read(
+    snowflake_read_description(),
+    borrow,
     snowflake_read_limits(),
+    snowflake_description_limits(),
     10,
   ).unwrap()
-  @snowflake_read.bind_borrowed_read_transport(read, () => {
-    checks.val += 1
-    stopped.val
-  }).unwrap()
+  active.val = Some(read)
   read
+}
+
+///|
+fn snowflake_accept_host_response(
+  run : @row_host.RowRun,
+  statement : @snowflake_read.StatementRead,
+  request : @snowflake_read.StatementRequest,
+  body : Bytes,
+) -> Unit raise {
+  let charge = @row_host.charge_row_run_page(run, body).unwrap()
+  let response = @snowflake_read.adopt_statement_response(
+    statement, request, 200, charge,
+  ).unwrap()
+  @snowflake_read.accept_charged_statement_response(statement, response, body).unwrap()
+  assert_true(
+    @snowflake_read.adopt_statement_response(statement, request, 200, charge)
+    is Err(@snowflake_read.WrongResponse),
+  )
 }
 
 ///|
@@ -61,7 +96,7 @@ test "Snowflake installed response borrows the same run but cannot finish captur
   let request = snowflake_next(statement)
   @snowflake_read.attempt_statement_request(statement, request).unwrap()
   let body = snowflake_result_body(snowflake_two_rows())
-  @snowflake_read.accept_statement_response(statement, request, 200, body, body).unwrap()
+  snowflake_accept_host_response(run, statement, request, body)
   assert_true(@snowflake_read.statement_read_complete(statement))
   assert_true(
     @snowflake_read.finish_result_read(read) is Err(@snowflake_read.BorrowedRun),
@@ -90,8 +125,8 @@ test "Snowflake installed response borrows the same run but cannot finish captur
     @resources.ledger_usage(ledger).transferred_bytes,
     body.length().to_int64(),
   )
-  @snowflake_read.retire_borrowed_read(read).unwrap()
-  assert_eq(checks.val, 1)
+  assert_true(@snowflake_read.retire_managed_read(read))
+  assert_eq(checks.val, 0)
   assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
   // Exactly one Common finish and capture remains with the original Host.
   @row_host.finish_row_run(run).unwrap()
@@ -113,48 +148,33 @@ test "Snowflake installed response refuses foreign and repeated original run bor
   let (prepared, run, ledger) = snowflake_host_run("snowflake-host-nominal")
   let independent = snowflake_read_preparation().unwrap()
   assert_true(
-    @snowflake_read.borrow_accounted_read(
-      independent,
+    @row_host.borrow_row_run_responses(
       run,
-      snowflake_read_limits(),
-      10,
+      @snowflake_read.prepared_read_acquisition(independent),
     )
-    is Err(@snowflake_read.Host(@row_host.ForeignDeclaration)),
+    is Err(@row_host.ForeignDeclaration),
   )
   assert_eq(@resources.ledger_usage(ledger).transferred_bytes, 0L)
-  let read = @snowflake_read.borrow_accounted_read(
-    prepared,
-    run,
-    snowflake_read_limits(),
-    10,
-  ).unwrap()
+  let acquisition = @snowflake_read.prepared_read_acquisition(prepared)
+  let borrow = @row_host.borrow_row_run_responses(run, acquisition).unwrap()
   assert_true(
-    @snowflake_read.borrow_accounted_read(
-      prepared,
-      run,
+    @row_host.borrow_row_run_responses(run, acquisition)
+    is Err(@row_host.InvalidState),
+  )
+  assert_true(
+    @snowflake_read.adopt_managed_read(
+      snowflake_read_description(),
+      borrow,
       snowflake_read_limits(),
+      snowflake_description_limits(),
       10,
     )
-    is Err(@snowflake_read.Host(@row_host.InvalidState)),
+    is Err(@snowflake_read.BorrowedRun),
   )
-  assert_true(
-    @snowflake_read.prepare_statement_read(
-      read, "12345678-1234-1234-1234-123456789abc", "ANALYTICS", "READER", 60, 8,
-      4096,
-    )
-    is Err(@snowflake_read.Closed),
-  )
-  // No physical protocol can start before its cleanup observation is bound.
-  @snowflake_read.retire_borrowed_read(read).unwrap()
   snowflake_host_closed(run, ledger)
   assert_true(
-    @snowflake_read.borrow_accounted_read(
-      prepared,
-      run,
-      snowflake_read_limits(),
-      10,
-    )
-    is Err(@snowflake_read.Host(@row_host.InvalidState)),
+    @row_host.borrow_row_run_responses(run, acquisition)
+    is Err(@row_host.InvalidState),
   )
 }
 
@@ -170,11 +190,7 @@ test "Snowflake installed failed physical cleanup keeps the same original root a
   let post = snowflake_next(statement)
   @snowflake_read.attempt_statement_request(statement, post).unwrap()
   let body = snowflake_result_body(snowflake_two_rows())
-  @snowflake_read.accept_statement_response(statement, post, 200, body, body).unwrap()
-  assert_true(
-    @snowflake_read.retire_borrowed_read(read)
-    is Err(@snowflake_read.TransportUnsettled),
-  )
+  snowflake_accept_host_response(run, statement, post, body)
   assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
   assert_true(
     @row_host.close_accounted_row_run(run) is Err(@row_host.Evidence(_)),
@@ -188,7 +204,7 @@ test "Snowflake installed failed physical cleanup keeps the same original root a
   stopped.val = true
   snowflake_host_closed(run, ledger)
   let observed = checks.val
-  @snowflake_read.retire_borrowed_read(read).unwrap()
+  assert_true(@snowflake_read.retire_managed_read(read))
   snowflake_host_closed(run, ledger)
   assert_eq(checks.val, observed)
 }
@@ -205,10 +221,6 @@ test "Snowflake installed lost response keeps its original identity through pare
   assert_true(
     @snowflake_read.mark_statement_response_unknown(statement, post)
     is Err(@snowflake_read.TransportUnknown),
-  )
-  assert_true(
-    @snowflake_read.retire_borrowed_read(read)
-    is Err(@snowflake_read.TransportUnsettled),
   )
   assert_true(@row_host.close_accounted_row_run(run) is Err(_))
   assert_true(@resources.ledger_usage(ledger).reserved_execution_bytes > 0L)
@@ -240,13 +252,8 @@ test "Snowflake installed response rejects unaccounted and pre-begin runs withou
   ).unwrap()
   @row_host.begin_row_run(unaccounted, 4096, 2, 2).unwrap()
   assert_true(
-    @snowflake_read.borrow_accounted_read(
-      prepared,
-      unaccounted,
-      snowflake_read_limits(),
-      10,
-    )
-    is Err(@snowflake_read.Host(@row_host.InvalidState)),
+    @row_host.borrow_row_run_responses(unaccounted, acquisition)
+    is Err(@row_host.InvalidState),
   )
   @row_host.close_row_run(unaccounted)
   let ledger = snowflake_read_ledger(prepared, 8192L)
@@ -259,13 +266,8 @@ test "Snowflake installed response rejects unaccounted and pre-begin runs withou
     4096L,
   ).unwrap()
   assert_true(
-    @snowflake_read.borrow_accounted_read(
-      prepared,
-      pending,
-      snowflake_read_limits(),
-      10,
-    )
-    is Err(@snowflake_read.Host(@row_host.InvalidState)),
+    @row_host.borrow_row_run_responses(pending, acquisition)
+    is Err(@row_host.InvalidState),
   )
   snowflake_host_closed(pending, ledger)
 }
@@ -273,30 +275,18 @@ test "Snowflake installed response rejects unaccounted and pre-begin runs withou
 ///|
 test "Snowflake installed physical observer is bound once to the original response borrower" {
   let (prepared, run, ledger) = snowflake_host_run("snowflake-host-observer")
-  let read = @snowflake_read.borrow_accounted_read(
-    prepared,
-    run,
-    snowflake_read_limits(),
-    10,
-  ).unwrap()
   let first = Ref(0)
-  let second = Ref(0)
-  @snowflake_read.bind_borrowed_read_transport(read, () => {
-    first.val += 1
-    true
-  }).unwrap()
+  let read = snowflake_host_borrow(prepared, run, Ref(true), first)
   assert_true(
-    @snowflake_read.bind_borrowed_read_transport(read, () => {
-      second.val += 1
-      true
-    })
-    is Err(@snowflake_read.BorrowedRun),
+    @row_host.borrow_row_run_responses(
+      run,
+      @snowflake_read.prepared_read_acquisition(prepared),
+    )
+    is Err(@row_host.InvalidState),
   )
   assert_eq(first.val, 0)
-  assert_eq(second.val, 0)
   snowflake_host_closed(run, ledger)
   assert_eq(first.val, 1)
-  assert_eq(second.val, 0)
   assert_true(
     @snowflake_read.prepare_statement_read(
       read, "12345678-1234-1234-1234-123456789abc", "ANALYTICS", "READER", 60, 8,
