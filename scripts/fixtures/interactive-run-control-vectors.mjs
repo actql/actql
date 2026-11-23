@@ -45,6 +45,19 @@ export const operationKey = {version: 'actql-logical-step-key/0.1',
 // This oracle never calls a product sealer/compiler or observes a Host result.
 const digest = body => `sha256:${createHash('sha256').update(canonicalText(body)).digest('hex')}`;
 const sealed = body => ({...body, self_cid: digest(body)});
+export const resumeOperationRef = {run_ref: ref, operation_id: command.operation_id,
+  command_cid: digest(command), accepted_from_revision: command.expected_control_revision};
+const resumeReceipt = sealed({version: 'actql-control-operation-receipt/0.1',
+  operation_ref: resumeOperationRef, outcome: 'accepted',
+  observed_state: {...manual, resume_origin: {...manual.resume_origin, command_cid: resumeOperationRef.command_cid}}});
+export function acceptedResumeLookup(manualCommandCid = resumeOperationRef.command_cid) {
+  const receipt = manualCommandCid === resumeOperationRef.command_cid ? resumeReceipt
+    : sealed({version: resumeReceipt.version, operation_ref: resumeOperationRef, outcome: 'accepted',
+      observed_state: {...manual, resume_origin: {...manual.resume_origin, command_cid: manualCommandCid}}});
+  return {state: 'found', receipt: structuredClone(receipt),
+    observation: {original_receipt_cid: receipt.self_cid, operation_ref: structuredClone(resumeOperationRef),
+      outcome: 'accepted', observed_at: time}};
+}
 export const planBody = {version: 'actql-compiled-plan/0.1', compiler_version: '0.1',
   aoa_ir_version: '0.1', executable_plan_cid: cid('2'),
   program_definition_cid: cid('3'), program_semantics_cid: cid('4'),

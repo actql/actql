@@ -1951,6 +1951,7 @@ pub fn client_program_current_run_view(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  debug_park_wire : String,
 ) -> Result[String, @publication.RunControlReadIssue] {
   @publication.project_current_interactive_run_view(
     run,
@@ -1963,6 +1964,64 @@ pub fn client_program_current_run_view(
     max_nodes,
     max_depth,
     static_plan_installed=true,
+    debug_park_wire~,
+  )
+}
+
+///|
+#export_name("clientProgramLocalDebugResumeReceiptConstructionBytes")
+pub fn client_program_local_debug_resume_receipt_construction_bytes(
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  issuing : Bool,
+) -> Int64 {
+  guard @publication.run_evidence_admission_construction_inventory(
+      max_bytes, max_nodes, max_depth,
+    )
+    is Some(codec) else {
+    return 0L
+  }
+  // The command decode, park/boundary admission, two preimage hashes and
+  // receipt seal execute synchronously in sequence. One complete constructor
+  // peak plus held canonical views covers the overlap. The copy allowance
+  // also covers the SQL/JS trees, intermediate text and read response.
+  let held = if issuing { 3L } else { 0L }
+  @execution.preparation_representation_cost({
+    record_headers: codec.record_headers +
+    held * codec.retained.record_headers +
+    4L * max_nodes.to_int64() +
+    64L,
+    reference_slots: codec.reference_slots +
+    held * codec.retained.reference_slots +
+    8L * max_nodes.to_int64() +
+    80L,
+    scalar_words: codec.scalar_words +
+    held * codec.retained.scalar_words +
+    4L * max_nodes.to_int64() +
+    64L,
+    owned_utf16_units: codec.owned_utf16_units +
+    held * codec.retained_utf16_units +
+    16L * max_bytes.to_int64(),
+    owned_wire_bytes: codec.owned_wire_bytes + 6L * max_bytes.to_int64(),
+  }).unwrap_or(0L)
+}
+
+///|
+#export_name("clientProgramIssueLocalDebugResumeReceipt")
+pub fn client_program_issue_local_debug_resume_receipt(
+  run : @publication.PublicationContract,
+  command : @publication.RunEvidenceValue,
+  park_wire : String,
+  accepted_revision : Int,
+  accepted_at : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.RunEvidenceValue, @publication.RunControlReadIssue] {
+  @publication.issue_local_debug_resume_receipt(
+    run, command, park_wire, accepted_revision, accepted_at, max_bytes, max_nodes,
+    max_depth,
   )
 }
 

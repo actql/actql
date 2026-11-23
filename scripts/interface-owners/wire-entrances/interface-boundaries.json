@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "6279a3d26f4e3a3e0a32a704e71e9a40c07148d8b16dec1a71f36649c6f151d2",
+      "sha256": "a204e026d94fe2caf4916d0cc2e38a7fbb00d57fdad59f16421bf0cf7768a878",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
@@ -398,7 +398,7 @@
     {
       "module": "packages/client-wire/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "98b5995bdb2cd071c2e0872e00b78af3ee80bbb14995561d13d9d2a4f638168d",
+      "sha256": "30de04c66186714864365f3b49a737b475ee4cda5f80ca2639acaf88b7193f4e",
       "exports": [
         "*:./interactive-control.generated.js",
         "ClientHostOperation",
@@ -461,6 +461,7 @@
         "prepareClientHostRequest",
         "resourceLimits",
         "resultDescriptionLimits",
+        "resumeControlOperationRef",
         "runStateProtocol",
         "sameSubmissionRef",
         "snapshotCheckRequest",
@@ -477,6 +478,7 @@
         "validClientBody",
         "validClientConnection",
         "validClientProfile",
+        "validControlOperationLookup",
         "validDeliveryAttemptLookup",
         "validHeldRequest",
         "validNamedSubmissionAttempt",
@@ -532,6 +534,13 @@
             "retainSnapshot?: boolean"
           ],
           "result": "Readonly<{body: unknown; connection: WireConnection}> | undefined"
+        },
+        {
+          "name": "resumeControlOperationRef",
+          "parameters": [
+            "command: WireControlCommand"
+          ],
+          "result": "WireControlOperationRef"
         },
         {
           "name": "sameSubmissionRef",
@@ -648,6 +657,14 @@
             "selected: WireConnection"
           ],
           "result": "value is WireClientProfile"
+        },
+        {
+          "name": "validControlOperationLookup",
+          "parameters": [
+            "value: unknown",
+            "operationRef: WireControlOperationRef"
+          ],
+          "result": "value is WireControlOperationLookup"
         },
         {
           "name": "validDeliveryAttemptLookup",
@@ -5529,13 +5546,85 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "resumeControlOperationRef",
+            "validControlOperationLookup"
+          ],
+          "exports": [
+            "resumeControlOperationRef",
+            "validControlOperationLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "async lookupControlOperation(operationRef,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "export function validControlOperationLookup(value, operationRef)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "origin.command_cid === operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "await contentCid(receipt) !== receiptCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "requestLifetime.beforeReply();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "fail('InvalidClientHostControlOperationLookup');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "withinResultDescriptionLimits(lookup, input)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"lookup-control-operation\": ["
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-plan-sdk.test.mjs",
+                "anchor": "test('SDK lookup consumes the original control receipt through Local Host ingress'"
+              }
+            ]
+          }
         }
       ]
     },
     {
       "module": "packages/client-wire/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "31703993ce9dcde7cf03533e5cebc210f13c6dd6bcf3360372c57bc1f1118786",
+      "sha256": "67b831828210e79895b206d2f354e8c343df25db7ea8ebc446eb520fd1d379ac",
       "exports": [
         "*:./interactive-control.generated.js",
         "checkOutcomeProtocol",
@@ -5550,6 +5639,7 @@
         "prepareClientHostRequest",
         "resourceLimits",
         "resultDescriptionLimits",
+        "resumeControlOperationRef",
         "runStateProtocol",
         "sameSubmissionRef",
         "snapshotCheckRequest",
@@ -5566,6 +5656,7 @@
         "validClientBody",
         "validClientConnection",
         "validClientProfile",
+        "validControlOperationLookup",
         "validDeliveryAttemptLookup",
         "validHeldRequest",
         "validNamedSubmissionAttempt",
@@ -5619,6 +5710,13 @@
             "operation",
             "original",
             "retainSnapshot"
+          ],
+          "async": false
+        },
+        {
+          "name": "resumeControlOperationRef/resumeControlOperationRef",
+          "parameters": [
+            "command"
           ],
           "async": false
         },
@@ -5806,6 +5904,14 @@
           "parameters": [
             "value",
             "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "validControlOperationLookup",
+          "parameters": [
+            "value",
+            "operationRef"
           ],
           "async": false
         },
@@ -11840,6 +11946,78 @@
               {
                 "path": "packages/client-wire/named-submission.typecheck.mts",
                 "anchor": "const retained: WireNamedSubmissionAttempt = value;"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "resumeControlOperationRef/resumeControlOperationRef",
+            "validControlOperationLookup"
+          ],
+          "exports": [
+            "resumeControlOperationRef",
+            "validControlOperationLookup"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "async lookupControlOperation(operationRef,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "export function validControlOperationLookup(value, operationRef)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "origin.command_cid === operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "await contentCid(receipt) !== receiptCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "requestLifetime.beforeReply();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "fail('InvalidClientHostControlOperationLookup');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "withinResultDescriptionLimits(lookup, input)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"lookup-control-operation\": ["
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-plan-sdk.test.mjs",
+                "anchor": "test('SDK lookup consumes the original control receipt through Local Host ingress'"
               }
             ]
           }

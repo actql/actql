@@ -540,6 +540,21 @@ test "presence output stream retains exact bytes and reloads through the existin
     max_nodes: 64,
     max_depth: 8,
   }
+  let measured = measure_completed_relation_sample_schema(
+    reloaded,
+    sample_limits,
+    _ => true,
+  ).unwrap()
+  assert_eq(measured.max_fields, 2)
+  assert_true(measured.max_bytes < sample_limits.max_bytes)
+  assert_true(
+    measure_completed_relation_sample_schema(
+      reloaded,
+      { ..sample_limits, max_bytes: measured.max_bytes - 1, },
+      _ => true,
+    )
+    is Err(Schema(Encoding(@encode.OutputLimit))),
+  )
   // The independent prefix fixtures hash the explicit schema and three typed
   // rows, including a present value, present NULL and a conditional omission.
   for
@@ -555,7 +570,7 @@ test "presence output stream retains exact bytes and reloads through the existin
     let (document, items, total) = encode_completed_relation_sample_prefix(
       reloaded,
       rows,
-      sample_limits,
+      measured,
       bytes,
       128,
       12,

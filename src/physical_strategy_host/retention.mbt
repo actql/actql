@@ -970,12 +970,20 @@ pub fn captured_output_pin_materialized(
 /// End one consumer's custody exactly once. The original physical-release
 /// predicate still decides when its allocation may leave the ledger.
 pub fn release_captured_output_pin(pin : CapturedOutputPin) -> Bool {
+  if !drop_captured_output_pin(pin) {
+    return false
+  }
+  collect_captured_retention(pin.run)
+  true
+}
+
+///|
+fn drop_captured_output_pin(pin : CapturedOutputPin) -> Bool {
   if !pin.live {
     return false
   }
   pin.live = false
   pin.run.lifetimes[pin.task].pins -= 1
-  collect_captured_retention(pin.run)
   true
 }
 

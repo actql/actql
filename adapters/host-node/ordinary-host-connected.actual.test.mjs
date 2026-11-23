@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtemp, readFile, writeFile, rename, stat} from 'node:fs/promises';
+import {mkdtemp, readFile, writeFile, rename, rm, stat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
@@ -29,6 +29,35 @@ test('ordinary actual Host SELECT all close reopen and independent instances wit
     a = await connectEmbeddedLocal({mode: 'local', owner: 'local', installation: {directory: join(directory, 'a')}});
     assert.deepEqual(await a.sql('SELECT 4 AS id').all(), [{id: 4}]);
   } finally {try {await a?.close();} finally {try {await b?.close();} finally {process.chdir(cwd);}}}
+});
+
+test('ordinary actual Host reports unobserved control history on an attached Run', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-ordinary-control-lookup-'));
+  t.after(() => rm(directory, {recursive: true, force: true}));
+  const cwd = process.cwd();
+  let client;
+  process.chdir(directory);
+  try {
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local',
+      installation: {directory: join(directory, 'host')}});
+    const run = await client.startSource('SELECT 1 AS id', {format: 'aql'});
+    const before = await run.wait();
+    const attached = await client.attach(run.ref);
+    const operation = {run_ref: attached.ref, operation_id: 'unobserved-operation',
+      command_cid: 'sha256:' + '7'.repeat(64), accepted_from_revision: before.revision};
+    assert.deepEqual(await attached.lookupControlOperation(operation), {
+      state: 'unknown', reason: 'control_operation_unobserved',
+    });
+    await assert.rejects(attached.lookupControlOperation(operation, {maxNodes: 1}),
+      {code: 'RunControlReadLimit'});
+    const after = await attached.status();
+    assert.equal(after.run_id, before.run_id);
+    assert.equal(after.status, 'succeeded');
+    assert.equal(after.revision, before.revision);
+    assert.deepEqual(after.control, before.control);
+  } finally {
+    try {await client?.close();} finally {process.chdir(cwd);}
+  }
 });
 
 async function accountFixture() {

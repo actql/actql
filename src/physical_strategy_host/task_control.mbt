@@ -36,7 +36,8 @@ pub(all) enum CapturedTaskControlIssue {
 // Only the SAME installed hook retains this state, never an exported alias.
 // The original tuple/subject/context are borrowed admitted Owner DATA. They
 // cannot be replaced by another task's strategy generation or cancellation
-// counter. No command log, operation id, timer, Sample or scheduler is stored.
+// counter. Only scalar commit coordinates are retained per task. No command
+// log, operation id, timer, Sample payload or scheduler is stored.
 priv struct CapturedTaskControl {
   ledger : @resources.Ledger
   reservation : @resources.CapacityReservation
@@ -44,8 +45,8 @@ priv struct CapturedTaskControl {
   mut revision : Int
   mut phase : CapturedTaskControlPhase
   mut remaining : Int
-  // Companion scalar for hooks.committed, written only by that same slot.
-  mut committed_attempt_sequence : Int
+  // Two scalar words per original task: generation, then consumed attempt.
+  mut sample_commits : FixedArray[Int]?
   mut sample_start_revision : Int
   mut changing : Bool
   mut cleanup_issue : @resources.LedgerIssue?
@@ -66,21 +67,29 @@ priv struct CapturedTaskControlBinding {
 // The existing hook setup separately retains the original readiness iterators.
 let captured_task_control_bytes : Int64 = @execution.preparation_representation_cost({
     record_headers: 4L + 2L + 2L + 2L + 1L + 3L,
-    // Control ledger/token/binding/phase/cleanup5; binding tuple/subject/context3;
+    // Control ledger/token/binding/phase/commits/cleanup6; binding tuple/subject/context3;
     // retained Some2; snapshot2; refusal2; cleanup1; carrier1.
-    reference_slots: 5L + 3L + 2L + 2L + 2L + 1L + 1L,
-    // Revision/remaining/committed sequence/start revision/fence5;
+    reference_slots: 6L + 3L + 2L + 2L + 2L + 1L + 1L,
+    // Revision/remaining/start revision/fence4;
     // binding/control tags2; OLD+NEW phase tags/payload4; snapshot2;
     // refusal3; cleanup1; other result tags3.
-    scalar_words: 5L + 2L + 4L + 2L + 3L + 1L + 3L,
+    scalar_words: 4L + 2L + 4L + 2L + 3L + 1L + 3L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
 ).unwrap()
 
 ///|
-pub fn captured_task_control_construction_bytes() -> Int64 {
-  captured_task_control_bytes
+pub fn captured_task_control_construction_bytes(tasks : Int) -> Int64 {
+  // Fixed array header and length, its Some, and the two scalars per task.
+  captured_task_control_bytes +
+  @execution.preparation_representation_cost({
+    record_headers: 2L,
+    reference_slots: 1L,
+    scalar_words: 2L + 2L * tasks.to_int64(),
+    owned_utf16_units: 0L,
+    owned_wire_bytes: 0L,
+  }).unwrap()
 }
 
 ///|
@@ -183,13 +192,13 @@ pub fn prepare_captured_task_control(
   hooks.admitting_control = true
   let generation = run.generation
   let tasks = run.done.length()
-  // Prepay each boundary check and one update per original task. Control is
-  // admitted only before any task is committed, with no captured prefix.
-  if tasks > 2147483647 / 2 {
+  // The original boundary check and update plus the two initial scalar
+  // writes and two commit writes. No later observation mutates these slots.
+  if tasks > 2147483647 / 6 {
     hooks.admitting_control = false
     return Err(Resource(@resources.PlanningLimit))
   }
-  let admitted = @resources.charge_planning(run.ledger, tasks * 2)
+  let admitted = @resources.charge_planning(run.ledger, tasks * 6)
   if admitted is Err(issue) {
     hooks.admitting_control = false
     refresh_captured_task_boundary_cleanup(run)
@@ -202,12 +211,9 @@ pub fn prepare_captured_task_control(
       return Err(BoundaryUnavailable(task))
     }
   }
+  let bytes = captured_task_control_construction_bytes(tasks)
   let reservation = match
-    @resources.reserve_capacity(
-      run.ledger,
-      captured_task_control_bytes,
-      captured_task_control_bytes,
-    ) {
+    @resources.reserve_capacity(run.ledger, bytes, bytes) {
     Err(issue) => {
       hooks.admitting_control = false
       refresh_captured_task_boundary_cleanup(run)
@@ -222,7 +228,7 @@ pub fn prepare_captured_task_control(
     revision: 0,
     phase: Paused,
     remaining: tasks,
-    committed_attempt_sequence: 0,
+    sample_commits: Some(FixedArray::make(2 * tasks, 0)),
     sample_start_revision: 0,
     changing: false,
     cleanup_issue: None,
@@ -262,6 +268,37 @@ pub fn captured_task_control_state(
     return Err(InProgress)
   }
   Ok((control.revision, control.phase))
+}
+
+///|
+/// Observe the last original task commit while the same controller is paused.
+pub fn captured_task_control_paused_task(
+  run : CapturedDAG,
+  hooks : CapturedTaskBoundaryHooks,
+) -> Result[(Int, Int, Int?, Int), CapturedTaskControlIssue] {
+  match captured_task_control_state(run, hooks) {
+    Err(issue) => Err(issue)
+    Ok((revision, Paused)) => {
+      guard revision >= 2 &&
+        hooks.committed is Some(original) &&
+        original.generation == run.generation &&
+        original.strategy_revision == run.revisions &&
+        original.task >= captured_compute_first_task(run) &&
+        original.task < run.done.length() &&
+        run.done[original.task] else {
+        return Err(InvalidTransition)
+      }
+      Ok(
+        (
+          revision,
+          original.task,
+          next_captured_task_ungated(run),
+          original.generation,
+        ),
+      )
+    }
+    Ok(_) => Err(InvalidTransition)
+  }
 }
 
 ///|
@@ -343,12 +380,13 @@ pub fn command_captured_task_control(
     _ => return Err(InvalidTransition)
   }
   let generation = run.generation
+  let bytes = captured_task_control_construction_bytes(run.done.length())
   control.changing = true
   let checked = @resources.grow_capacity_reservation(
     control.ledger,
     control.reservation,
-    captured_task_control_bytes,
-    captured_task_control_bytes,
+    bytes,
+    bytes,
   )
   control.changing = false
   if run.stopped || hooks.closing {
@@ -401,18 +439,24 @@ fn commit_captured_task_control(
   if !captured_control_owner_matches(run, hooks) || control.binding is None {
     return
   }
-  // Keep only the started ordinal after a Relation commit. The selected
-  // reader separately verifies cell availability and the original projection
-  // retained by the full managed completion receipt.
-  let relation = match run.outputs[task] {
-    Some(Materialized(output)) => @execution.completed_has_cell_access(output)
-    Some(Managed(_)) => true
-    _ => false
-  }
-  control.committed_attempt_sequence = if relation {
-    @resources.completed_output_attempt_sequence(run.ledger, reservation)
-  } else {
-    0
+  if control.sample_start_revision > 0 &&
+    control.sample_commits is Some(commits) {
+    let relation = match run.outputs[task] {
+      Some(Materialized(output)) => @execution.completed_has_cell_access(output)
+      Some(Managed(_)) => true
+      _ => false
+    }
+    if relation {
+      let attempt = @resources.completed_output_attempt_sequence(
+        run.ledger,
+        reservation,
+      )
+      if attempt > 0 {
+        // commit_task_output already excluded a second commit of this slot.
+        commits[2 * task] = run.generation
+        commits[2 * task + 1] = attempt
+      }
+    }
   }
   control.remaining -= 1
   if control.remaining == 0 {
@@ -439,7 +483,7 @@ fn retire_captured_task_control(hooks : CapturedTaskBoundaryHooks) -> Unit {
   hooks.admitting_control = true
   hooks.control = None
   control.binding = None
-  control.committed_attempt_sequence = 0
+  control.sample_commits = None
   control.sample_start_revision = 0
   control.phase = Retired // Scalar tombstone, never a Run outcome.
   match @resources.settle_capacity(control.ledger, control.reservation) {

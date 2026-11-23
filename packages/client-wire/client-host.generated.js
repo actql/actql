@@ -21642,6 +21642,22 @@ const operationKeys = {
     "cancelId",
     "expectedRevision"
   ],
+  "resume-run": [
+    "connection",
+    "ref",
+    "command",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
+  "lookup-control-operation": [
+    "connection",
+    "ref",
+    "operationRef",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
+  ],
   "reconcile": [
     "connection",
     "ref"
@@ -21752,6 +21768,13 @@ const optionalRequestFields = {
       "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])",
       "minLength": 1,
       "maxLength": 256
+    }
+  },
+  "run-sample": {
+    "nextRevision": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 2147483647
     }
   },
   "submit": {

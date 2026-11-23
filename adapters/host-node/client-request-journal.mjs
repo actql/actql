@@ -120,6 +120,100 @@ function inspectRelationSampleStartStorage(database) {
   return row !== undefined;
 }
 
+// One entry gate and first resume per original Run, under the same revision
+// and physical-start transaction as the existing cancellation fence.
+const debugEntryTable = `CREATE TABLE client_debug_entry_parks (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  submitted_intent_cid TEXT NOT NULL,
+  parked_revision INTEGER NOT NULL CHECK (parked_revision BETWEEN 1 AND 2147483645),
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  paused_at INTEGER NOT NULL CHECK (paused_at >= 0 AND paused_at < expires_at),
+  resume_wire TEXT,
+  receipt_wire TEXT CHECK (receipt_wire IS NULL OR
+    (resume_wire IS NOT NULL AND length(CAST(receipt_wire AS BLOB)) BETWEEN 1 AND 4096)),
+  receipt_cid TEXT CHECK (length(CAST(receipt_cid AS BLOB)) = 71),
+  resume_revision INTEGER,
+  resume_accepted_at INTEGER,
+  CHECK ((resume_wire IS NULL) = (resume_accepted_at IS NULL)),
+  CHECK ((receipt_wire IS NULL) = (receipt_cid IS NULL)),
+  CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
+  CHECK ((resume_wire IS NULL AND resume_revision IS NULL) OR
+    (resume_wire IS NOT NULL AND resume_revision IS NOT NULL AND resume_revision = parked_revision + 1))
+) STRICT`;
+const debugTaskPauseTable = `CREATE TABLE client_debug_task_pauses (
+  run_definition_cid TEXT NOT NULL REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
+  control_revision INTEGER NOT NULL CHECK (control_revision BETWEEN 2 AND 2147483646 AND control_revision % 2 = 0),
+  step_id TEXT NOT NULL,
+  next_step_id TEXT CHECK (next_step_id IS NULL OR length(CAST(next_step_id AS BLOB)) = 71),
+  committed_generation INTEGER NOT NULL CHECK (committed_generation BETWEEN 1 AND 2147483647),
+  paused_revision INTEGER NOT NULL CHECK (paused_revision BETWEEN 1 AND 2147483646),
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  paused_at INTEGER NOT NULL CHECK (paused_at >= 0 AND paused_at < expires_at),
+  journal_ordinal INTEGER NOT NULL UNIQUE CHECK (journal_ordinal > 0),
+  operation_id TEXT,
+  resume_wire TEXT,
+  receipt_wire TEXT CHECK (receipt_wire IS NULL OR
+    (resume_wire IS NOT NULL AND length(CAST(receipt_wire AS BLOB)) BETWEEN 1 AND 4096)),
+  receipt_cid TEXT CHECK (length(CAST(receipt_cid AS BLOB)) = 71),
+  resume_accepted_at INTEGER,
+  CHECK ((resume_wire IS NULL) = (resume_accepted_at IS NULL)),
+  CHECK ((receipt_wire IS NULL) = (receipt_cid IS NULL)),
+  CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
+  CHECK ((resume_wire IS NULL) = (operation_id IS NULL)),
+  PRIMARY KEY (run_definition_cid, control_revision),
+  UNIQUE (run_definition_cid, operation_id)
+) STRICT`;
+const debugCommandLimits = Object.freeze({maxWireBytes: 4096, maxNodes: 64, maxDepth: 8});
+const debugReceiptLimits = Object.freeze({maxWireBytes: 4096, maxNodes: 64, maxDepth: 8});
+const debugReceiptColumns = `CASE WHEN length(CAST(p.receipt_wire AS BLOB)) = ? AND p.receipt_cid = ?
+  THEN p.receipt_wire END AS receipt_wire, length(CAST(p.receipt_wire AS BLOB)) AS receipt_bytes,
+  CASE WHEN length(CAST(p.receipt_cid AS BLOB)) = 71 THEN p.receipt_cid
+    WHEN p.receipt_cid IS NOT NULL THEN '' END AS receipt_cid,
+  length(CAST(r.run_definition_wire AS BLOB)) AS definition_bytes,
+  CASE WHEN length(CAST(r.run_definition_wire AS BLOB)) = ?
+    THEN r.run_definition_wire END AS run_definition_wire`;
+const validCommittedGeneration = value => Number.isInteger(value) && value >= 1 && value <= 2147483647;
+
+function validDebugPauseTime(row) {
+  return Number.isSafeInteger(row.paused_at) && row.paused_at >= 0 &&
+    Number.isSafeInteger(row.expires_at) && row.paused_at < row.expires_at;
+}
+
+function validDebugResumeTime(row) {
+  const acceptedAt = row.resume_accepted_at;
+  return row.resume_wire === null ? acceptedAt === null :
+    Number.isSafeInteger(acceptedAt) && acceptedAt >= row.paused_at && acceptedAt < row.expires_at;
+}
+
+function requireDebugEntryAuthority(current) {
+  const outcome = current();
+  if (typeof outcome?.then === 'function') void Promise.resolve(outcome).catch(() => {});
+  if (outcome !== true) fail('ClientRunDebugEntryDenied');
+}
+
+function readDebugEntryCommand(wire, ref, control) {
+  if (typeof wire !== 'string' || wire.length > debugCommandLimits.maxWireBytes ||
+      Buffer.byteLength(wire) > debugCommandLimits.maxWireBytes) fail('ClientRunDebugEntryInvalidCommand');
+  let command;
+  try {
+    command = JSON.parse(control.admitRunEvidence('control_command', wire, debugCommandLimits).wire);
+  } catch (cause) {fail('ClientRunDebugEntryInvalidCommand', cause);}
+  if (command.run_ref.namespaceId !== ref.namespaceId ||
+      command.run_ref.authorityScopeCid !== ref.authorityScopeCid ||
+      command.run_ref.runDefinitionCid !== ref.runDefinitionCid) fail('ClientRunDebugEntryForeignCommand');
+  if (command.operation !== 'resume' || !text(command.operation_id) ||
+      !['step', 'terminal'].includes(command.interval.until) || command.interval.guards !== null) {
+    fail('ClientRunDebugEntryUnsupportedCommand');
+  }
+  return command;
+}
+
+function readDebugEntryResume(entry, ref, control) {
+  const command = readDebugEntryCommand(entry.resume_wire, ref, control);
+  if (command.expected_control_revision !== entry.parked_revision) fail('ClientRunDebugEntryCorrupt');
+  return command;
+}
+
 const cid = value => typeof value === 'string' &&
   /^sha256:[0-9a-f]{64}$/u.test(value);
 const text = value => typeof value === 'string' &&
@@ -2599,6 +2693,13 @@ export function openClientRequestJournal(directory, {
   // and exact keys as the retained reads, including restart and epoch inputs.
   function sampleOriginalStoredBytes(namespaceId, fields, definition) {
     sampleOriginalExtent ??= database.prepare(`SELECT
+      i.phase AS phase,
+      COALESCE(length(CAST(r.run_definition_wire AS BLOB)), 0) +
+      COALESCE(length(CAST(r.run_admission_evidence_json AS BLOB)), 0) +
+      COALESCE(length(CAST(r.result_names_json AS BLOB)), 0) +
+      COALESCE(length(CAST(i.intent_wire AS BLOB)), 0) +
+      COALESCE(length(CAST(i.epoch_wire AS BLOB)), 0) +
+      COALESCE(length(CAST(s.link_wire AS BLOB)), 0) AS original_bytes,
       ${[
         ['r', selectColumns.split(',').map(field => field.trim())],
         ['i', ['submission_id', 'authority_scope_cid', 'nonce', 'epoch_wire',
@@ -2617,7 +2718,9 @@ export function openClientRequestJournal(directory, {
     if (row === undefined) fail('ClientRunSampleStartOriginalUnavailable');
     if (!Number.isSafeInteger(row.stored_bytes) || row.stored_bytes < 1 ||
         row.stored_bytes > 2147483519) fail('ClientRunSampleOriginalCapacity');
-    return row.stored_bytes;
+    if (!Number.isSafeInteger(row.original_bytes) || row.original_bytes < 0 ||
+        row.original_bytes > row.stored_bytes) fail('ClientRunSampleOriginalCapacity');
+    return row;
   }
   const intentUsage = database.prepare(`SELECT retained_count AS n,retained_bytes AS bytes,revision
     FROM client_submitted_intent_usage WHERE singleton=1`);
@@ -2922,6 +3025,229 @@ export function openClientRequestJournal(directory, {
       run_definition_cid = ? AND dispatch_reserved = 1 AND
       pre_dispatch_failure_confirmed = 0 AND physical_start_reserved = 0 AND
       cancellation_requested = 0`);
+
+  let debugEntrySchema, readDebugEntry;
+  const hasDebugEntryStorage = () => {
+    debugEntrySchema ??= database.prepare(`SELECT substr(sql, 1, ?) AS sql FROM sqlite_master
+      WHERE type = 'table' AND name = 'client_debug_entry_parks'`);
+    const row = debugEntrySchema.get(debugEntryTable.length + 1);
+    if (row !== undefined && row.sql !== debugEntryTable) fail('UnknownClientRequestJournalFormat');
+    return row !== undefined;
+  };
+  const selectDebugEntry = `SELECT ${debugReceiptColumns}, p.submitted_intent_cid, p.parked_revision, p.expires_at, p.paused_at,
+    p.resume_revision, p.resume_accepted_at, CASE WHEN length(CAST(p.resume_wire AS BLOB)) <= ?
+      THEN p.resume_wire END AS resume_wire
+    FROM client_debug_entry_parks p JOIN client_requests r USING (run_definition_cid)
+    WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?`;
+  const checkedDebugEntry = entry => {
+    if (entry !== undefined && (!cid(entry.submitted_intent_cid) ||
+        !validDebugPauseTime(entry) || !validDebugResumeTime(entry) ||
+        !Number.isInteger(entry.parked_revision) || entry.parked_revision < 1 || entry.parked_revision > 2147483645 ||
+        (entry.resume_wire === null) !== (entry.resume_revision === null) ||
+        entry.resume_revision !== null && entry.resume_revision !== entry.parked_revision + 1)) {
+      fail('ClientRunDebugEntryCorrupt');
+    }
+    return entry;
+  };
+  const debugEntry = (ref, receiptBytes = 0, receiptCid = null, definitionBytes = 0) => {
+    if (!hasDebugEntryStorage()) return undefined;
+    readDebugEntry ??= database.prepare(selectDebugEntry);
+    return checkedDebugEntry(readDebugEntry.get(receiptBytes, receiptCid, definitionBytes, debugCommandLimits.maxWireBytes,
+      ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid));
+  };
+  const debugEntryTransaction = action => transact('debug_entry', 'ClientRunDebugEntryUnknown',
+    error => typeof error?.code === 'string' && (error.code.startsWith('ClientRunDebugEntry') ||
+      error.code === 'ControlRevisionExhausted' || error.code === 'UnknownClientRequestJournalFormat'), action);
+  const validDebugEntryRef = ref => text(ref?.namespaceId) && cid(ref?.authorityScopeCid) && cid(ref?.runDefinitionCid);
+  const advanceDebugRevision = (ref, revision, started = 0) => {
+    const advanced = database.prepare(`UPDATE client_requests SET revision = revision + 1
+      WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?
+      AND revision = ? AND dispatch_reserved = 1 AND physical_start_reserved = ?
+      AND pre_dispatch_failure_confirmed = 0 AND cancellation_requested = 0
+      AND physical_close_confirmed = 0 AND observed_terminal_outcome IS NULL`)
+      .run(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, revision, started);
+    if (advanced.changes !== 1) fail('ClientRunDebugEntryRevisionConflict');
+  };
+  const debugEntryResult = (entry, command, revision = entry.resume_revision,
+    acceptedAt = entry.resume_accepted_at) => Object.freeze(command === undefined
+    ? {kind: 'parked', revision: entry.parked_revision, expiresAt: entry.expires_at, pausedAt: entry.paused_at}
+    : {kind: 'resume_accepted', revision, commandCid: command.self_cid,
+      until: command.interval.until, acceptedAt});
+
+  let liveDebugEntry, liveDebugTask;
+  let debugTaskPauseSchema, latestDebugTaskPause, debugTaskPauseByOperation;
+  const hasDebugTaskPauseStorage = () => {
+    debugTaskPauseSchema ??= database.prepare(`SELECT substr(sql, 1, ?) AS sql FROM sqlite_schema
+      WHERE type = 'table' AND name = 'client_debug_task_pauses'`);
+    const row = debugTaskPauseSchema.get(debugTaskPauseTable.length + 1);
+    if (row !== undefined && row.sql !== debugTaskPauseTable) fail('UnknownClientRequestJournalFormat');
+    return row !== undefined;
+  };
+  // A task with missing or foreign start evidence stays a selected row so
+  // validation rejects it instead of falling through to the entry history.
+  const selectDebugTaskPause = `SELECT ${debugReceiptColumns}, p.control_revision, p.step_id,
+    CASE WHEN p.next_step_id IS NULL OR length(CAST(p.next_step_id AS BLOB)) = 71
+      THEN p.next_step_id ELSE '' END AS next_step_id,
+    p.committed_generation, p.paused_revision, s.start_revision,
+    p.expires_at, p.paused_at, p.operation_id, p.resume_accepted_at,
+    CASE WHEN length(CAST(p.resume_wire AS BLOB)) <= ? THEN p.resume_wire END AS resume_wire
+    FROM client_debug_task_pauses p JOIN client_requests r USING (run_definition_cid)
+      LEFT JOIN client_debug_entry_parks e ON e.run_definition_cid = r.run_definition_cid
+      LEFT JOIN client_relation_sample_starts s ON s.run_definition_cid = r.run_definition_cid
+        AND s.namespace_id = r.namespace_id AND s.authority_scope_cid = r.authority_scope_cid
+        AND s.submitted_intent_cid = e.submitted_intent_cid AND s.start_revision = e.resume_revision + 1
+    WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?`;
+  const checkedDebugTaskPause = pause => {
+    if (pause !== undefined && (!Number.isInteger(pause.control_revision) ||
+        pause.control_revision < 2 || pause.control_revision > 2147483646 || pause.control_revision % 2 !== 0 ||
+        !cid(pause.step_id) || (pause.next_step_id !== null && !cid(pause.next_step_id)) ||
+        !validCommittedGeneration(pause.committed_generation) ||
+        !Number.isInteger(pause.paused_revision) ||
+        !Number.isInteger(pause.start_revision) || pause.start_revision < 1 ||
+        pause.paused_revision <= pause.start_revision || pause.paused_revision > 2147483646 ||
+        !validDebugPauseTime(pause) || !validDebugResumeTime(pause) ||
+        (pause.resume_wire === null) !== (pause.operation_id === null) ||
+        (pause.operation_id !== null && !text(pause.operation_id)))) {
+      fail('ClientRunDebugEntryCorrupt');
+    }
+    return pause;
+  };
+  const readDebugTaskPause = (ref, operationId) => {
+    if (!hasDebugTaskPauseStorage()) return undefined;
+    if (operationId === undefined) {
+      latestDebugTaskPause ??= database.prepare(selectDebugTaskPause + ' ORDER BY p.control_revision DESC LIMIT 1');
+      return checkedDebugTaskPause(latestDebugTaskPause.get(0, null, 0, debugCommandLimits.maxWireBytes,
+        ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid));
+    }
+    debugTaskPauseByOperation ??= database.prepare(selectDebugTaskPause + ' AND p.operation_id = ?');
+    return checkedDebugTaskPause(debugTaskPauseByOperation.get(0, null, 0, debugCommandLimits.maxWireBytes,
+      ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, operationId));
+  };
+  let readDebugResumeOriginal;
+  const debugResumeOriginal = (ref, operationId, receiptBytes = 0, receiptCid = null, definitionBytes = 0) => {
+    // The table formats are immutable after creation. Once installed, use
+    // one SQLite statement snapshot for the indexed task and entry arms.
+    if (!hasDebugTaskPauseStorage()) return debugEntry(ref, receiptBytes, receiptCid, definitionBytes);
+    if (!hasDebugEntryStorage()) fail('ClientRunDebugEntryCorrupt');
+    readDebugResumeOriginal ??= database.prepare(`
+      WITH task AS (${selectDebugTaskPause} AND p.operation_id = ?)
+      SELECT 'task' AS resume_source, receipt_wire, receipt_bytes, receipt_cid, definition_bytes, run_definition_wire,
+        control_revision, step_id, next_step_id, committed_generation, paused_revision,
+        start_revision, expires_at, paused_at, operation_id, resume_accepted_at, resume_wire,
+        NULL AS submitted_intent_cid, NULL AS parked_revision, NULL AS resume_revision
+      FROM task
+      UNION ALL
+      SELECT 'entry', receipt_wire, receipt_bytes, receipt_cid, definition_bytes, run_definition_wire,
+        NULL, NULL, NULL, NULL, NULL, NULL, expires_at, paused_at, NULL, resume_accepted_at, resume_wire,
+        submitted_intent_cid, parked_revision, resume_revision
+      FROM (${selectDebugEntry}) WHERE NOT EXISTS (SELECT 1 FROM task)`);
+    const original = readDebugResumeOriginal.get(receiptBytes, receiptCid, definitionBytes, debugCommandLimits.maxWireBytes,
+      ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid, operationId,
+      receiptBytes, receiptCid, definitionBytes, debugCommandLimits.maxWireBytes, ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+    return original?.resume_source === 'task' ? checkedDebugTaskPause(original) : checkedDebugEntry(original);
+  };
+  const readDebugTaskCommand = (pause, ref, publicationControl) => {
+    const command = readDebugEntryCommand(pause.resume_wire, ref, publicationControl);
+    if (command.operation_id !== pause.operation_id ||
+        command.expected_control_revision !== pause.paused_revision) fail('ClientRunDebugEntryCorrupt');
+    return command;
+  };
+  const liveDebugTaskRun = (ref, startRevision, publicationControl) => {
+    const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+    const entry = debugEntry(ref);
+    if (row?.physical_start_reserved !== 1 || row.cancellation_requested !== 0 ||
+        row.physical_close_confirmed !== 0 || row.observed_terminal_outcome !== null ||
+        entry?.resume_wire == null || entry.resume_revision + 1 !== startRevision ||
+        !inspectRelationSampleStartStorage(database)) fail('ClientRunDebugEntryOriginalUnavailable');
+    const sample = database.prepare(`SELECT start_revision, submitted_intent_cid FROM client_relation_sample_starts
+      WHERE namespace_id = ? AND authority_scope_cid = ? AND run_definition_cid = ?`)
+      .get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+    if (sample?.start_revision !== startRevision || sample.submitted_intent_cid !== entry.submitted_intent_cid) {
+      fail('ClientRunDebugEntryOriginalUnavailable');
+    }
+    return {row, entry, entryCommand: readDebugEntryResume(entry, ref, publicationControl)};
+  };
+  const debugTaskPauseResult = pause => Object.freeze({kind: 'parked', revision: pause.paused_revision,
+    controlRevision: pause.control_revision, stepId: pause.step_id, nextStepId: pause.next_step_id, expiresAt: pause.expires_at,
+    pausedAt: pause.paused_at, committedGeneration: pause.committed_generation});
+  const debugTaskResumeResult = (pause, command, acceptedAt = pause.resume_accepted_at) => Object.freeze({kind: 'resume_accepted',
+    revision: pause.paused_revision + 1, controlRevision: pause.control_revision, stepId: pause.step_id,
+    nextStepId: pause.next_step_id,
+    commandCid: command.self_cid, until: command.interval.until, committedGeneration: pause.committed_generation,
+    acceptedAt});
+
+  const reserveDebugReceipt = (reserve, current, control, limits, issuing) => {
+    const reserved = reserve(control.localDebugResumeReceiptConstructionBytes(limits, issuing));
+    if (typeof reserved?.then === 'function') {
+      void Promise.resolve(reserved).catch(() => {});
+      fail('ClientRunDebugEntryInvalidSelection');
+    }
+    requireDebugEntryAuthority(current);
+  };
+  const prepareDebugReceiptIssue = (selection, ref, commandWire, current, control) => {
+    if (selection === undefined) return undefined;
+    const {runDefinition, logicalMapCid, reserve} = selection;
+    if (runDefinition?.identity !== ref.runDefinitionCid || !cid(logicalMapCid) ||
+        typeof reserve !== 'function') fail('ClientRunDebugEntryInvalidSelection');
+    if (typeof commandWire !== 'string' || commandWire.length > debugCommandLimits.maxWireBytes ||
+        Buffer.byteLength(commandWire) > debugCommandLimits.maxWireBytes) fail('ClientRunDebugEntryInvalidCommand');
+    // The receipt reuses the admitted command's RunRef and operation ID. Its
+    // fixed replacement fields and additional preimages need at most 1024
+    // further UTF-8 bytes, besides the original Run ID carried in the receipt.
+    const runId = control.runDefinitionRunId(runDefinition);
+    const limits = {...debugReceiptLimits, maxWireBytes: Math.min(debugReceiptLimits.maxWireBytes,
+      Buffer.byteLength(commandWire) + 1024 + 6 * runId.length)};
+    reserveDebugReceipt(reserve, current, control, limits, true);
+    return {runDefinition, logicalMapCid, limits};
+  };
+  const issueDebugReceipt = (selection, ref, original, commandWire, acceptedAt, control, later) => {
+    if (selection === undefined) return undefined;
+    const revision = later ? original.paused_revision : original.parked_revision;
+    try {
+      const parkWire = JSON.stringify({
+        kind: later ? 'logical_step' : 'entry', run_ref: ref, revision,
+        logical_map_cid: selection.logicalMapCid, ttl_policy: 'original_debug_entry_deadline',
+        paused_at: new Date(original.paused_at).toISOString(),
+        expires_at: new Date(original.expires_at).toISOString(),
+        ...(later ? {start_revision: original.start_revision, control_revision: original.control_revision,
+          committed_generation: original.committed_generation, completed_step_id: original.step_id,
+          next_step_id: original.next_step_id} : {}),
+      });
+      const evidence = control.admitRunEvidence('control_command', commandWire, debugCommandLimits);
+      return control.issueLocalDebugResumeReceipt(selection.runDefinition, evidence, parkWire,
+        revision + 1, new Date(acceptedAt).toISOString(), selection.limits);
+    } catch (cause) {fail('ClientRunDebugEntryReceiptRejected', cause);}
+  };
+  const readDebugReceipt = (original, summary, command, limits, definitionLimits, control) => {
+    if (typeof original.receipt_wire !== 'string' || typeof original.run_definition_wire !== 'string') {
+      fail('ClientRunDebugEntryCorrupt');
+    }
+    let receipt, runId;
+    try {
+      const run = control.admit('run_definition', original.run_definition_wire, definitionLimits);
+      if (run.identity !== command.run_ref.runDefinitionCid || run.wire !== original.run_definition_wire) {
+        fail('ClientRunDebugEntryCorrupt');
+      }
+      runId = control.runDefinitionRunId(run);
+      const admitted = control.admitRunEvidence('control_operation_receipt', original.receipt_wire, limits);
+      if (admitted.identity !== original.receipt_cid) fail('ClientRunDebugEntryCorrupt');
+      receipt = JSON.parse(admitted.wire);
+    } catch (cause) {fail('ClientRunDebugEntryCorrupt', cause);}
+    const operation = receipt.operation_ref, state = receipt.observed_state;
+    if (receipt.outcome !== 'accepted' || operation.operation_id !== command.operation_id ||
+        operation.command_cid !== command.self_cid ||
+        operation.accepted_from_revision !== command.expected_control_revision ||
+        operation.run_ref.namespaceId !== command.run_ref.namespaceId ||
+        operation.run_ref.authorityScopeCid !== command.run_ref.authorityScopeCid ||
+        operation.run_ref.runDefinitionCid !== command.run_ref.runDefinitionCid ||
+        state.run_id !== runId || state.status !== 'resuming' || state.resume_origin.kind !== 'manual' ||
+        state.resume_origin.command_cid !== command.self_cid ||
+        state.control_revision !== summary.revision ||
+        state.updated_at !== new Date(summary.acceptedAt).toISOString()) {
+      fail('ClientRunDebugEntryCorrupt');
+    }
+    return receipt;
+  };
 
   const validCancellationRef = ref => text(ref?.namespaceId) &&
     cid(ref?.authorityScopeCid) && cid(ref?.runDefinitionCid) &&
@@ -4122,19 +4448,24 @@ export function openClientRequestJournal(directory, {
         fail('InvalidClientRequestJournalControl');
       }
       const fields = checkedIdentity(identity, requestControl);
-      let sampleDefinitionCid, sampleStoredBytes;
+      let sampleDefinitionCid, sampleStoredBytes, sampleInitialExtent;
+      function reserveSampleOriginalExtent(bytes) {
+        const reserved = sampleStoredBytes === undefined ? reserveSampleRead(bytes) :
+          reserveSampleRead(bytes, sampleStoredBytes);
+        if (reserved !== undefined) {
+          if (typeof reserved?.then === 'function') void Promise.resolve(reserved).catch(() => {});
+          fail('InvalidClientRunSampleReadReservation');
+        }
+        sampleStoredBytes = bytes;
+      }
       if (sampleRunRef !== undefined) {
         sampleDefinitionCid = sampleRunRef?.runDefinitionCid;
         if (sampleRunRef?.namespaceId !== namespaceId ||
             sampleRunRef?.authorityScopeCid !== fields.authorityScopeCid || !cid(sampleDefinitionCid)) {
           fail('ClientRunSampleStartOriginalUnavailable');
         }
-        sampleStoredBytes = sampleOriginalStoredBytes(namespaceId, fields, sampleDefinitionCid);
-        const reserved = reserveSampleRead(sampleStoredBytes);
-        if (reserved !== undefined) {
-          if (typeof reserved?.then === 'function') void Promise.resolve(reserved).catch(() => {});
-          fail('InvalidClientRunSampleReadReservation');
-        }
+        sampleInitialExtent = sampleOriginalStoredBytes(namespaceId, fields, sampleDefinitionCid);
+        reserveSampleOriginalExtent(sampleInitialExtent.stored_bytes);
       }
       const requestOriginal = Object.freeze({identity, fields});
       let previousRunRow, previousRunFacts, previousIntent;
@@ -4144,9 +4475,12 @@ export function openClientRequestJournal(directory, {
           // Repeat inside the actual retained read transaction, including
           // every freshness probe. A resize callback can observe the Journal
           // but cannot admit a larger original than the funded extent.
-          if (sampleDefinitionCid !== undefined &&
-              sampleOriginalStoredBytes(namespaceId, fields, sampleDefinitionCid) > sampleStoredBytes) {
-            fail('ClientRunSampleOriginalCapacity');
+          if (sampleDefinitionCid !== undefined) {
+            const extent = sampleOriginalStoredBytes(namespaceId, fields, sampleDefinitionCid);
+            if (extent.stored_bytes > sampleStoredBytes ||
+                extent.original_bytes !== sampleInitialExtent.original_bytes) {
+              fail('ClientRunSampleOriginalCapacity');
+            }
           }
           assertSubmissionCustody();
           assertIntentCustody();
@@ -4264,6 +4598,19 @@ export function openClientRequestJournal(directory, {
               matchesStart: checked.matchesStart,
               matchesAdoption: checked.matchesAdoption,
               visitAdoption: checked.visitAdoption,
+              reserveCurrentRow() {
+                // Inspect can publish a larger observation key while the
+                // original entry waits. Submission can also become ready.
+                // Fund the larger row before the start transaction, which
+                // rechecks the exact extent and authenticates the originals.
+                const next = sampleOriginalStoredBytes(namespaceId, fields, sampleDefinitionCid);
+                if ((next.phase === 'ready' ||
+                    sampleInitialExtent.phase === 'preparing' && next.phase === 'preparing') &&
+                    next.original_bytes === sampleInitialExtent.original_bytes &&
+                    next.stored_bytes > sampleStoredBytes) {
+                  reserveSampleOriginalExtent(next.stored_bytes);
+                }
+              },
               currentRow() {
                 // The caller already owns the start transaction. Keep the
                 // measured read, authenticated epoch and bound intent together.
@@ -4271,7 +4618,8 @@ export function openClientRequestJournal(directory, {
                 return previousRunRow;
               },
             });
-            return Object.freeze({profile: checked.profile, startTicket, withAdoption: checked.withAdoption});
+            return Object.freeze({profile: checked.profile, startTicket, withAdoption: checked.withAdoption,
+              logicalMapCid: checked.logicalMapCid});
           } finally {
             checking = false;
           }
@@ -4492,18 +4840,348 @@ export function openClientRequestJournal(directory, {
     // The exact durable claim precedes the call that can start physical
     // Compute. A missing claim is safe to resume; a claim or legacy unknown
     // is never evidence that Compute did not run.
+    // The selected owner enters this gate before handing work to the Driver.
+    // Historical and ordinary Runs keep their existing physical-start path.
+    parkDebugEntry(identity, {ref, expectedRevision, expiresAt, current}, requestControl, publicationControl) {
+      ensureOpen();
+      if (!validDebugEntryRef(ref) || !Number.isInteger(expectedRevision) || expectedRevision < 0 ||
+          !Number.isSafeInteger(expiresAt) || expiresAt <= 0 || typeof current !== 'function') {
+        fail('ClientRunDebugEntryInvalidSelection');
+      }
+      requireDebugEntryAuthority(current);
+      const fields = checkedIdentity(identity, requestControl);
+      const original = journal.originalSubmittedIntent(identity, {namespaceId: ref.namespaceId},
+        requestControl, publicationControl);
+      if (original === undefined || requestControl.clientSubmittedIntentRequestsDebug(original.intent) !== true ||
+          fields.authorityScopeCid !== ref.authorityScopeCid) fail('ClientRunDebugEntryOriginalUnavailable');
+      const intent = requestControl.clientSubmittedIntentCid(original.intent);
+      original.assertCurrent();
+      return debugEntryTransaction(() => {
+        const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
+        const definition = row === undefined ? undefined :
+          retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
+        if (definition === undefined || row.caller_request_id !== fields.requestId ||
+            JSON.parse(row.run_admission_evidence_json)?.submittedIntentCid !== intent) {
+          fail('ClientRunDebugEntryOriginalUnavailable');
+        }
+        const validUntil = Math.min(Date.parse(row.lookup_expires_at), Date.parse(JSON.parse(definition.wire).valid_until));
+        if (!Number.isSafeInteger(validUntil) || expiresAt > validUntil) fail('ClientRunDebugEntryInvalidSelection');
+        const entry = debugEntry(ref);
+        if (entry !== undefined) {
+          if (entry.parked_revision !== expectedRevision + 1 || entry.submitted_intent_cid !== intent ||
+              entry.expires_at !== expiresAt || row.revision !== entry.parked_revision ||
+              entry.resume_wire !== null || row.dispatch_reserved !== 1 || row.physical_start_reserved !== 0 ||
+              row.pre_dispatch_failure_confirmed !== 0 || row.cancellation_requested !== 0 ||
+              row.physical_close_confirmed !== 0 || row.observed_terminal_outcome !== null) {
+            fail('ClientRunDebugEntryRevisionConflict');
+          }
+          const observedAt = epochClock().observed_at;
+          requireDebugEntryAuthority(current);
+          return observedAt >= expiresAt ? Object.freeze({kind: 'expired'}) : debugEntryResult(entry);
+        }
+        if (expectedRevision >= 2147483645) fail('ControlRevisionExhausted');
+        const pausedAt = epochClock().observed_at;
+        if (pausedAt >= expiresAt) {
+          requireDebugEntryAuthority(current);
+          return Object.freeze({kind: 'expired'});
+        }
+        if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(debugEntryTable)) {
+          fail('ClientRunDebugEntryOriginalUnavailable');
+        }
+        advanceDebugRevision(ref, expectedRevision);
+        if (!hasDebugEntryStorage()) database.exec(debugEntryTable);
+        database.prepare(`INSERT INTO client_debug_entry_parks
+          (run_definition_cid, submitted_intent_cid, parked_revision, expires_at, paused_at) VALUES (?, ?, ?, ?, ?)`)
+          .run(ref.runDefinitionCid, intent, expectedRevision + 1, expiresAt, pausedAt);
+        requireDebugEntryAuthority(current);
+        return Object.freeze({kind: 'parked', revision: expectedRevision + 1, expiresAt, pausedAt});
+      });
+    },
+    acceptDebugEntryResume(ref, {commandWire, current, capture, receiptOriginal}, publicationControl) {
+      ensureOpen();
+      if (!validDebugEntryRef(ref) || typeof current !== 'function' ||
+          (capture !== undefined && typeof capture !== 'function')) fail('ClientRunDebugEntryInvalidSelection');
+      requireDebugEntryAuthority(current);
+      const receiptSelection = prepareDebugReceiptIssue(receiptOriginal, ref, commandWire, current, publicationControl);
+      const command = readDebugEntryCommand(commandWire, ref, publicationControl);
+      let handoff;
+      const result = debugEntryTransaction(() => {
+        const entry = debugEntry(ref);
+        if (entry === undefined || command.expected_control_revision !== entry.parked_revision) {
+          fail('ClientRunDebugEntryRevisionConflict');
+        }
+        if (entry.resume_wire !== null) {
+          if (entry.resume_wire !== commandWire) fail('ClientRunDebugEntryResumeConflict');
+          requireDebugEntryAuthority(current);
+          return debugEntryResult(entry, command);
+        }
+        const acceptedAt = epochClock().observed_at;
+        if (acceptedAt >= entry.expires_at) {
+          requireDebugEntryAuthority(current);
+          return Object.freeze({kind: 'expired'});
+        }
+        const receipt = issueDebugReceipt(receiptSelection, ref, entry, commandWire, acceptedAt, publicationControl, false);
+        if (receiptSelection !== undefined) requireDebugEntryAuthority(current);
+        advanceDebugRevision(ref, entry.parked_revision);
+        const revision = entry.parked_revision + 1;
+        if (database.prepare(`UPDATE client_debug_entry_parks SET resume_wire = ?, resume_revision = ?, resume_accepted_at = ?,
+          receipt_wire = ?, receipt_cid = ? WHERE run_definition_cid = ? AND resume_wire IS NULL AND parked_revision = ?`)
+          .run(commandWire, revision, acceptedAt, receipt?.wire ?? null, receipt?.identity ?? null,
+            ref.runDefinitionCid, entry.parked_revision).changes !== 1) {
+          fail('ClientRunDebugEntryResumeConflict');
+        }
+        requireDebugEntryAuthority(current);
+        handoff = debugEntryResult(entry, command, revision, acceptedAt);
+        return handoff;
+      });
+      if (handoff !== undefined) capture?.(handoff);
+      return result;
+    },
+    // Retained acceptance history. The Run owner separately supplies its
+    // current phase and any physical completion of the accepted command.
+    lookupDebugEntry(ref, {current}, publicationControl) {
+      ensureOpen();
+      if (!validDebugEntryRef(ref) || typeof current !== 'function') fail('ClientRunDebugEntryInvalidSelection');
+      requireDebugEntryAuthority(current);
+      return debugEntryTransaction(() => {
+        const entry = debugEntry(ref);
+        const command = entry?.resume_wire == null ? undefined :
+          readDebugEntryResume(entry, ref, publicationControl);
+        const expired = entry !== undefined && command === undefined && epochClock().observed_at >= entry.expires_at;
+        requireDebugEntryAuthority(current);
+        if (entry === undefined) return Object.freeze({kind: 'unobserved'});
+        if (expired) return Object.freeze({kind: 'expired'});
+        return debugEntryResult(entry, command);
+      });
+    },
+    // The existing Driver owns the live boundary and its cancellation signal.
+    // Only a consecutive committed Step can extend this Run's durable history.
+    parkDebugTask(ref, {startRevision, expectedRevision, controlRevision, stepId, nextStepId, committedGeneration, expiresAt, current},
+      publicationControl) {
+      ensureOpen();
+      if (!validDebugEntryRef(ref) || !Number.isInteger(startRevision) || startRevision < 1 ||
+          !Number.isInteger(expectedRevision) || expectedRevision < startRevision ||
+          !Number.isInteger(controlRevision) || controlRevision < 2 || controlRevision > 2147483646 ||
+          controlRevision % 2 !== 0 || !cid(stepId) || (nextStepId !== null && !cid(nextStepId)) ||
+          !validCommittedGeneration(committedGeneration) ||
+          (expiresAt !== undefined && (!Number.isSafeInteger(expiresAt) || expiresAt <= 0)) ||
+          typeof current !== 'function') {
+        fail('ClientRunDebugEntryInvalidSelection');
+      }
+      requireDebugEntryAuthority(current);
+      return debugEntryTransaction(() => {
+        const {row, entry, entryCommand} = liveDebugTaskRun(ref, startRevision, publicationControl);
+        const deadline = expiresAt ?? entry.expires_at;
+        const previous = readDebugTaskPause(ref);
+        if (previous?.control_revision === controlRevision) {
+          if (previous.paused_revision !== expectedRevision + 1 || previous.step_id !== stepId || previous.next_step_id !== nextStepId ||
+              previous.committed_generation !== committedGeneration || previous.expires_at !== deadline || previous.resume_wire !== null ||
+              row.revision !== previous.paused_revision) fail('ClientRunDebugEntryRevisionConflict');
+          const observedAt = epochClock().observed_at;
+          requireDebugEntryAuthority(current);
+          return observedAt >= deadline ? Object.freeze({kind: 'expired'}) : debugTaskPauseResult(previous);
+        }
+        if ((previous === undefined
+          ? controlRevision !== 2 || expectedRevision !== startRevision || entryCommand.interval.until !== 'step'
+          : controlRevision !== previous.control_revision + 2 || previous.resume_wire === null ||
+            committedGeneration <= previous.committed_generation || expectedRevision !== previous.paused_revision + 1 ||
+            readDebugTaskCommand(previous, ref, publicationControl).interval.until !== 'step') ||
+            row.revision !== expectedRevision) fail('ClientRunDebugEntryRevisionConflict');
+        if (expectedRevision >= 2147483646) fail('ControlRevisionExhausted');
+        const definition = retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
+        const validUntil = Math.min(Date.parse(row.lookup_expires_at), Date.parse(JSON.parse(definition.wire).valid_until));
+        if (!Number.isSafeInteger(validUntil) || deadline > validUntil) fail('ClientRunDebugEntryInvalidSelection');
+        const pausedAt = epochClock().observed_at;
+        if (pausedAt >= deadline) {
+          requireDebugEntryAuthority(current);
+          return Object.freeze({kind: 'expired'});
+        }
+        if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(debugTaskPauseTable)) {
+          fail('ClientRunDebugEntryOriginalUnavailable');
+        }
+        if (!hasDebugTaskPauseStorage()) database.exec(debugTaskPauseTable);
+        const {ordinal} = database.prepare('SELECT COALESCE(MAX(journal_ordinal), 0) AS ordinal FROM client_debug_task_pauses').get();
+        if (!Number.isSafeInteger(ordinal) || ordinal >= maxRecords) fail('ClientRunDebugEntryCapacity');
+        advanceDebugRevision(ref, expectedRevision, 1);
+        const revision = expectedRevision + 1;
+        database.prepare(`INSERT INTO client_debug_task_pauses
+          (run_definition_cid, control_revision, step_id, next_step_id, committed_generation,
+            paused_revision, expires_at, paused_at, journal_ordinal)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).run(ref.runDefinitionCid, controlRevision, stepId, nextStepId,
+            committedGeneration, revision, deadline, pausedAt, ordinal + 1);
+        requireDebugEntryAuthority(current);
+        return debugTaskPauseResult({paused_revision: revision, control_revision: controlRevision,
+          step_id: stepId, next_step_id: nextStepId, expires_at: deadline, paused_at: pausedAt, committed_generation: committedGeneration});
+      });
+    },
+    acceptDebugTaskResume(ref, {commandWire, startRevision, stepId, nextStepId, committedGeneration, current, capture,
+      receiptOriginal}, publicationControl) {
+      ensureOpen();
+      if (!validDebugEntryRef(ref) || !Number.isInteger(startRevision) || startRevision < 1 ||
+          !cid(stepId) || (nextStepId !== null && !cid(nextStepId)) || !validCommittedGeneration(committedGeneration) ||
+          typeof current !== 'function' || typeof capture !== 'function') fail('ClientRunDebugEntryInvalidSelection');
+      requireDebugEntryAuthority(current);
+      const receiptSelection = prepareDebugReceiptIssue(receiptOriginal, ref, commandWire, current, publicationControl);
+      const command = readDebugEntryCommand(commandWire, ref, publicationControl);
+      let handoff;
+      const result = debugEntryTransaction(() => {
+        // Existing acceptance remains lookup history, even if the live Driver
+        // has moved or the original COMMIT reply was lost.
+        const retained = readDebugTaskPause(ref, command.operation_id);
+        if (retained !== undefined) {
+          if (retained.start_revision !== startRevision || retained.committed_generation !== committedGeneration ||
+              retained.step_id !== stepId || retained.next_step_id !== nextStepId) {
+            fail('ClientRunDebugEntryOriginalUnavailable');
+          }
+          if (retained.resume_wire !== commandWire) fail('ClientRunDebugEntryResumeConflict');
+          readDebugTaskCommand(retained, ref, publicationControl);
+          requireDebugEntryAuthority(current);
+          return debugTaskResumeResult(retained, command);
+        }
+        const {entry, entryCommand} = liveDebugTaskRun(ref, startRevision, publicationControl);
+        if (entryCommand.operation_id === command.operation_id) fail('ClientRunDebugEntryResumeConflict');
+        const pause = readDebugTaskPause(ref);
+        if (pause === undefined || pause.resume_wire !== null || pause.committed_generation !== committedGeneration ||
+            pause.step_id !== stepId || pause.next_step_id !== nextStepId ||
+            pause.paused_revision !== command.expected_control_revision) {
+          fail('ClientRunDebugEntryRevisionConflict');
+        }
+        const acceptedAt = epochClock().observed_at;
+        if (acceptedAt >= pause.expires_at) {
+          requireDebugEntryAuthority(current);
+          return Object.freeze({kind: 'expired'});
+        }
+        if (receiptSelection !== undefined && pause.expires_at !== entry.expires_at) fail('ClientRunDebugEntryReceiptRejected');
+        const receipt = issueDebugReceipt(receiptSelection, ref, pause, commandWire, acceptedAt, publicationControl, true);
+        if (receiptSelection !== undefined) requireDebugEntryAuthority(current);
+        advanceDebugRevision(ref, pause.paused_revision, 1);
+        if (database.prepare(`UPDATE client_debug_task_pauses SET resume_wire = ?, operation_id = ?, resume_accepted_at = ?,
+          receipt_wire = ?, receipt_cid = ? WHERE run_definition_cid = ? AND control_revision = ? AND resume_wire IS NULL`)
+          .run(commandWire, command.operation_id, acceptedAt, receipt?.wire ?? null, receipt?.identity ?? null,
+            ref.runDefinitionCid, pause.control_revision).changes !== 1) {
+          fail('ClientRunDebugEntryResumeConflict');
+        }
+        requireDebugEntryAuthority(current);
+        handoff = debugTaskResumeResult(pause, command, acceptedAt);
+        return handoff;
+      });
+      if (handoff !== undefined) capture(handoff);
+      return result;
+    },
+    // Only the exact still-unconsumed park can back an actionable live view.
+    // Select scalars without opening the stored command or changing the clock.
+    debugPauseCurrent(ref, {parked, startRevision, current, requireEntryDeadline = false}) {
+      ensureOpen();
+      requireDebugEntryAuthority(current);
+      const later = parked.controlRevision !== undefined;
+      const observedAt = epochClock(undefined, false).observed_at;
+      ensureOpen();
+      requireDebugEntryAuthority(current);
+      if (database.isTransaction ||
+          !(later ? hasDebugTaskPauseStorage() : hasDebugEntryStorage())) return false;
+      const select = table => `SELECT 1 AS current
+        FROM ${table} p JOIN client_requests r USING (run_definition_cid)
+        JOIN client_submission_epoch_authority e ON e.singleton = 1
+        WHERE r.namespace_id = ? AND r.authority_scope_cid = ? AND r.run_definition_cid = ?
+        AND r.revision = ? AND r.dispatch_reserved = 1 AND r.physical_start_reserved = ?
+        AND r.pre_dispatch_failure_confirmed = 0 AND r.cancellation_requested = 0
+        AND r.physical_close_confirmed = 0 AND r.observed_terminal_outcome IS NULL
+        AND p.paused_at = ? AND p.expires_at = ? AND p.expires_at > max(?, e.observed_at)
+        AND p.resume_wire IS NULL`;
+      const args = [ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid,
+        parked.revision, later ? 1 : 0, parked.pausedAt, parked.expiresAt, observedAt];
+      let selected;
+      if (!later) {
+        liveDebugEntry ??= database.prepare(select('client_debug_entry_parks') +
+          ' AND p.parked_revision = r.revision');
+        selected = liveDebugEntry.get(...args);
+      } else {
+        liveDebugTask ??= database.prepare(select('client_debug_task_pauses') + `
+          AND p.paused_revision = r.revision AND p.control_revision = ? AND p.step_id = ?
+          AND p.next_step_id IS ? AND p.committed_generation = ?
+          AND p.operation_id IS NULL AND EXISTS (SELECT 1
+            FROM client_relation_sample_starts s JOIN client_debug_entry_parks entry USING (run_definition_cid)
+            WHERE s.run_definition_cid = r.run_definition_cid AND s.namespace_id = r.namespace_id
+            AND s.authority_scope_cid = r.authority_scope_cid AND s.start_revision = ?
+            AND s.submitted_intent_cid = entry.submitted_intent_cid
+            AND s.start_revision = entry.resume_revision + 1
+            AND (? = 0 OR p.expires_at = entry.expires_at))`);
+        selected = liveDebugTask.get(...args, parked.controlRevision, parked.stepId, parked.nextStepId,
+          parked.committedGeneration, startRevision, requireEntryDeadline ? 1 : 0);
+      }
+      requireDebugEntryAuthority(current);
+      return selected?.current === 1;
+    },
+    lookupDebugResume(ref, {operationId, commandCid, acceptedFromRevision, current, reserve, reserveConstruction},
+      publicationControl) {
+      ensureOpen();
+      if (!validDebugEntryRef(ref) || !text(operationId) || !cid(commandCid) ||
+          !Number.isInteger(acceptedFromRevision) || acceptedFromRevision < 0 ||
+          acceptedFromRevision > 2147483647 || typeof current !== 'function' ||
+          reserve !== undefined && typeof reserve !== 'function' ||
+          reserveConstruction !== undefined && (typeof reserveConstruction !== 'function' || reserve === undefined)) {
+        fail('ClientRunDebugEntryInvalidSelection');
+      }
+      requireDebugEntryAuthority(current);
+      // First select the existing bounded command and scalar receipt extent.
+      const commandBytes = 1024 + 2 * debugCommandLimits.maxWireBytes;
+      if (reserve !== undefined) {
+        reserve(commandBytes);
+        requireDebugEntryAuthority(current);
+      }
+      // A reentrant read on this connection cannot disclose its uncommitted
+      // write. A separate WAL writer does not prevent this committed read.
+      if (database.isTransaction) fail('ClientRunDebugEntryLookupUnavailable');
+      const original = debugResumeOriginal(ref, operationId);
+      const later = original?.resume_source === 'task';
+      const command = later ? readDebugTaskCommand(original, ref, publicationControl)
+        : original?.resume_wire == null ? undefined : readDebugEntryResume(original, ref, publicationControl);
+      requireDebugEntryAuthority(current);
+      if (command === undefined || command.operation_id !== operationId ||
+          command.self_cid !== commandCid || command.expected_control_revision !== acceptedFromRevision) {
+        return Object.freeze({kind: 'unobserved'});
+      }
+      const summary = later ? debugTaskResumeResult(original, command) : debugEntryResult(original, command);
+      if (reserveConstruction === undefined || original.receipt_cid === null && original.receipt_bytes === null) return summary;
+      const {receipt_bytes: bytes, receipt_cid: identity, definition_bytes: definitionBytes} = original;
+      if (!cid(identity) || !Number.isSafeInteger(bytes) || bytes < 1 ||
+          bytes > debugReceiptLimits.maxWireBytes || !Number.isSafeInteger(definitionBytes) ||
+          definitionBytes < 1 || definitionBytes > maxRunDefinitionWireBytes) fail('ClientRunDebugEntryCorrupt');
+      const limits = {...debugReceiptLimits, maxWireBytes: bytes};
+      const definitionLimits = {...debugReceiptLimits, maxWireBytes: definitionBytes};
+      // Both original wires and their admitted evidence can coexist. Reserve
+      // their cumulative quote before reopening either on the same Read.
+      reserveDebugReceipt(reserveConstruction, current, publicationControl, limits, false);
+      reserveDebugReceipt(reserveConstruction, current, publicationControl, definitionLimits, false);
+      if (database.isTransaction) fail('ClientRunDebugEntryLookupUnavailable');
+      const retained = debugResumeOriginal(ref, operationId, bytes, identity, definitionBytes);
+      if (retained === undefined || Object.keys(original).some(key =>
+        key !== 'receipt_wire' && key !== 'run_definition_wire' && retained[key] !== original[key])) {
+        fail('ClientRunDebugEntryCorrupt');
+      }
+      requireDebugEntryAuthority(current);
+      const receipt = readDebugReceipt(retained, summary, command, limits, definitionLimits, publicationControl);
+      requireDebugEntryAuthority(current);
+      return Object.freeze({...summary, receipt});
+    },
     reservePhysicalStart(identity, {namespaceId, ref, currentAuthorization,
-      captureSourceOperation, localExecutionOwner, captureSampleStart},
+      captureSourceOperation, localExecutionOwner, captureSampleStart, debugResume},
       requestControl, publicationControl) {
       ensureOpen();
       if (!text(namespaceId) || !text(ref?.namespaceId) ||
           !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid) ||
           typeof currentAuthorization !== 'boolean' ||
+          debugResume !== undefined && (!cid(debugResume?.commandCid) || typeof debugResume.current !== 'function' ||
+            typeof debugResume.capture !== 'function') ||
           typeof requestControl?.clientRunPhysicalStartWithCancellationAction !==
             'function') {
         fail('InvalidClientRunPhysicalStart');
       }
       const fields = checkedIdentity(identity, requestControl);
+      const debugReceiver = debugResume?.capture;
+      const debugCommandCid = debugResume?.commandCid;
+      const debugCurrent = debugResume?.current;
+      let debugStart;
       let sourceOriginal, captureOriginal, captureReceiver;
       let sampleCapture, sampleAdoption, sampleProgram, sampleCompiled, sampleClaim;
       if (captureSampleStart !== undefined) {
@@ -4576,6 +5254,7 @@ export function openClientRequestJournal(directory, {
           localOwnerProgram = program; localOwnerCompiled = compiled;
         } catch (cause) {fail('ForeignClientLocalExecutionOwner', cause);}
       }
+      if (debugResume !== undefined) sampleClaim?.reserveCurrentRow();
       const started = transact('physical_start', 'ClientRunPhysicalStartUnknown',
         error => typeof error?.code === 'string' &&
           (error.code.startsWith('ClientRun') ||
@@ -4607,6 +5286,20 @@ export function openClientRequestJournal(directory, {
             action === 5 ? 'ClientRunPhysicalStartDenied' :
             'ClientRequestJournalCorrupt');
         }
+        const physicalStartRevision = row.revision + 1;
+        const parked = debugEntry(ref);
+        if (parked !== undefined) {
+          if (debugResume === undefined) return false;
+          requireDebugEntryAuthority(debugCurrent);
+          if (epochClock().observed_at >= parked.expires_at ||
+              parked.resume_wire === null || row.revision !== parked.resume_revision) return false;
+          const command = readDebugEntryResume(parked, ref, publicationControl);
+          if (command.self_cid !== debugCommandCid) fail('ClientRunDebugEntryForeignCommand');
+          debugStart = Object.freeze({commandCid: command.self_cid, until: command.interval.until,
+            acceptedRevision: parked.resume_revision, physicalStartRevision});
+        } else if (debugResume !== undefined) {
+          fail('ClientRunDebugEntryOriginalUnavailable');
+        }
         let sampleRevision;
         if (sampleClaim !== undefined) {
           if (requestControl.clientProgramMatchesRequestIdentity(sampleProgram, identity) !== true) {
@@ -4626,7 +5319,7 @@ export function openClientRequestJournal(directory, {
           }
           // This transaction still owns the same row and the fixed UPDATE
           // increments its revision once. Hand over the winning value only.
-          sampleRevision = row.revision + 1;
+          sampleRevision = physicalStartRevision;
         }
         if (localOwnerProgram !== undefined) {
           publicationControl.checkClientCompiledRunOwner(localOwnerCompiled, localOwnerProgram);
@@ -4657,10 +5350,11 @@ export function openClientRequestJournal(directory, {
             .run(row.run_definition_cid, row.namespace_id, row.authority_scope_cid, sampleClaim.intentCid,
               sampleClaim.controlAdmissionCid, sampleClaim.resolvedProfileCid, sampleRevision);
         }
+        if (debugStart !== undefined) requireDebugEntryAuthority(debugCurrent);
         return sampleRevision ?? true;
       });
-      // No lookup/recovery API exposes these handoffs. A lost COMMIT reply
-      // throws before either receiver can receive its original.
+      // A retained command can be looked up after a lost reply, but only
+      // the acknowledged physical-start claim delivers its Driver handoff.
       if (started === false) return false;
       if (sourceOriginal !== undefined) {
         Reflect.apply(captureOriginal, captureReceiver, [sourceOperations.issue(sourceOriginal)]);
@@ -4677,6 +5371,7 @@ export function openClientRequestJournal(directory, {
         Reflect.apply(sampleAdoption, captureSampleStart,
           [sampleStorage().writer(ownedRef, original, publicationControl)]);
       }
+      if (debugReceiver !== undefined) debugReceiver(debugStart);
       return true;
     },
     // Private same-operation reconciliation. A missing durable row does not
@@ -4691,7 +5386,46 @@ export function openClientRequestJournal(directory, {
       if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
         fail('ClientRelationSampleInvalidOriginal');
       }
-      return sampleStorage().readRetained(ref, selected, publicationControl, custody);
+      const debug = custody.debugPause;
+      if (debug === undefined) return sampleStorage().readRetained(ref, selected, publicationControl, custody);
+
+      // The installed controller supplies its checked original Next and
+      // parked tuple. The Sample reader never acquires or resumes a task.
+      const {parked, startRevision, producer} = debug;
+      const {current, reserve} = custody;
+      requireDebugEntryAuthority(current);
+      if (parked?.kind !== 'parked' || !Object.isFrozen(parked) || !Object.isFrozen(selected) ||
+          !Number.isInteger(parked.controlRevision) || parked.controlRevision < 2 ||
+          !validCommittedGeneration(parked.committedGeneration) || !validCommittedGeneration(startRevision) ||
+          !cid(parked.nextStepId) || parked.nextStepId !== selected.nextStepId ||
+          !Object.isFrozen(producer) || !cid(producer?.stepId) || producer.stepId !== selected.stepId ||
+          producer.outputPortId !== selected.outputPortId || producer.carrierContractCid !== selected.carrierContractCid ||
+          !validCommittedGeneration(producer.generation) || !validCommittedGeneration(producer.attemptSequence)) {
+        fail('ClientRunDebugEntryInvalidSelection');
+      }
+      // Fund the extra scalar pause query and the read controls on the
+      // caller's same Read. Check again if funding reenters the owner.
+      if (typeof reserve !== 'function') fail('ClientRelationSampleCapacity');
+      const quote = reserve(1024);
+      if (quote !== undefined) {
+        if (typeof quote?.then === 'function') void Promise.resolve(quote).catch(() => {});
+        fail('ClientRelationSampleCapacity');
+      }
+      const requirePause = () => {
+        if (!journal.debugPauseCurrent(ref, {parked, startRevision, current})) {
+          fail('ClientRunDebugEntryRevisionConflict');
+        }
+      };
+      requirePause();
+      const original = sampleStorage().readRetained(ref, selected, publicationControl, {current,
+        reserve(bytes) {
+          const result = reserve(bytes);
+          requirePause();
+          return result;
+        },
+      }, {startRevision, generation: String(producer.generation), attemptSequence: String(producer.attemptSequence)});
+      requirePause();
+      return original;
     },
     // Host retention of the same original Sample, independent of public
     // disclosure and the receipt used to reconcile an uncertain adoption.

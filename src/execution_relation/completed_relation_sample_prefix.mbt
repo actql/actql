@@ -96,6 +96,83 @@ fn emit_relation_sample_value(
 }
 
 ///|
+// Checked object and enumeration frames yield one sibling per level. The
+// ordered schema writer adds no unordered key entries. Bound the active
+// stack independently of the total number of fields or schema wire bytes.
+fn relation_sample_schema_measurement_frames(depth : Int) -> Int? {
+  if depth < 1 || depth > (2147483647 - 32) / 12 {
+    None
+  } else {
+    Some(12 * depth + 32)
+  }
+}
+
+///|
+/// Cost of measuring the original schema before constructing the prefix.
+/// Neither the measured Schema identity nor any row data is allocated here.
+pub fn completed_relation_sample_schema_measurement_bytes(
+  depth : Int,
+) -> Int64? {
+  guard relation_sample_schema_measurement_frames(depth) is Some(frames) &&
+    @encode.measuring_writer_construction_extent(0, depth) is Some(writer) &&
+    @contract.checked_emission_construction_extent(frames) is Some(emitter) else {
+    return None
+  }
+  let codec = relation_schema_measurement_control_extent()
+  let operation = @encode.measurement_operation_construction_extent()
+  preparation_representation_cost({
+    record_headers: writer.record_headers +
+    emitter.record_headers +
+    codec.collections.record_headers +
+    operation.collections.record_headers +
+    27L,
+    reference_slots: writer.reference_slots +
+    emitter.reference_slots +
+    codec.collections.reference_slots +
+    operation.collections.reference_slots +
+    53L,
+    scalar_words: writer.scalar_words +
+    emitter.scalar_words +
+    codec.collections.scalar_words +
+    operation.collections.scalar_words +
+    41L,
+    owned_utf16_units: operation.owned_utf16_units,
+    owned_wire_bytes: 0L,
+  })
+}
+
+///|
+/// Measure exactly the checked schema of the live completed output. The
+/// selected validation ceilings and schema bytes remain the original ones.
+pub fn measure_completed_relation_sample_schema(
+  output : CompletedOutput,
+  limits : RelationSchemaIdentityLimits,
+  work : (Int) -> Bool,
+) -> Result[RelationSchemaIdentityLimits, RelationSamplePrefixIssue] {
+  guard completed_output_available(output) && output.table is Some(_) else {
+    return Err(Unavailable)
+  }
+  guard relation_sample_schema_measurement_frames(limits.max_depth)
+    is Some(frames) else {
+    return Err(InvalidLimits)
+  }
+  let schema = completed_output_relation_schema(output)
+  measure_relation_schema_identity_with_frames(
+    schema,
+    limits,
+    frames,
+    work=Some(work),
+  )
+  .map_err(issue => RelationSamplePrefixIssue::Schema(issue))
+  .map(geometry => {
+    max_fields: @schema.field_count(schema),
+    max_bytes: geometry.0,
+    max_nodes: geometry.1,
+    max_depth: geometry.2,
+  })
+}
+
+///|
 /// Project a bounded prefix in the admitted material's stored row and column
 /// order. The caller funds schema, writer, document and their coexistence
 /// before entry and retains the original output pin through consumption.
@@ -125,8 +202,8 @@ pub fn encode_completed_relation_sample_prefix(
     names.length() == @schema.field_count(schema) else {
     return Err(InvalidLayout)
   }
-  let schema_identity = match
-    identify_relation_schema(schema, schema_limits, work=Some(work)) {
+  let schema_cid = match
+    identify_relation_sample_schema_cid(schema, schema_limits, work) {
     Ok(value) => value
     Err(issue) => return Err(Schema(issue))
   }
@@ -227,7 +304,7 @@ pub fn encode_completed_relation_sample_prefix(
     }
     @encode.end_array(writer)
     @encode.ordered_key(writer, "schema_cid")
-    @encode.string_value(writer, relation_schema_cid(schema_identity))
+    @encode.string_value(writer, schema_cid)
     @encode.ordered_key(writer, "version")
     @encode.string_value(writer, "actql-sample-relation/0.1")
     @encode.end_object(writer)

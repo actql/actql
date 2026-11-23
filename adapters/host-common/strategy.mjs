@@ -402,7 +402,7 @@ export async function runInstalledStrategy({
   setup,
   runtime: {core, contributions, sitePolicy, observeFailure,
     authorization = missingAuthorizationGate()},
-  control: {signal, observeCompletion, observeTaskStart, taskObservation, relationSample} = {},
+  control: {signal, observeCompletion, observeTaskStart, taskObservation, relationSample, taskControl} = {},
   publication: {beforeCompute} = {},
   cleanup: {retainPreflightCleanup, preparationHolder} = {},
 }) {
@@ -414,6 +414,10 @@ export async function runInstalledStrategy({
   }
   if (observeTaskStart !== undefined && typeof observeTaskStart !== 'function') {
     throw new StrategyHostError('InvalidTaskStartObserver');
+  }
+  if (taskControl !== undefined && (typeof taskControl?.phase !== 'function' ||
+      typeof taskControl?.waitForResume !== 'function' || signal === undefined)) {
+    throw new StrategyHostError('InvalidInstalledTaskController');
   }
   if (authorization === null || typeof authorization !== 'object' ||
       typeof authorization.authorize !== 'function' ||
@@ -697,14 +701,28 @@ export async function runInstalledStrategy({
     return source === undefined || typeof source.withRows !== 'function' ? undefined
       : Object.freeze({completed: source.completed, material: source.material, withRows: source.withRows});
   };
+  // The original controller owns phase and wakes its own paused Driver on
+  // a command. Re-read the actual phase after the wake before selecting work.
+  const awaitRunnable = taskControl === undefined ? undefined : async () => {
+    signal.throwIfAborted();
+    let phase = taskControl.phase(setup);
+    if (phase === 'paused') {
+      await taskControl.waitForResume(setup, signal);
+      signal.throwIfAborted();
+      phase = taskControl.phase(setup);
+    }
+    if (phase !== 'runnable') throw new StrategyHostError('InstalledTaskControllerNotRunnable');
+  };
   let firstTask = 1;
   try {
     const count = core.count(setup);
+    if (awaitRunnable !== undefined && !core.finished(setup)) await awaitRunnable();
     if (core.nextTask?.(setup) === 0) firstTask = 0;
     // Captured Acquisition starts at task one; a checked source-free root
     // starts at task zero and uses the same managed task lifecycle.
     for (let step = firstTask; step < count; step++) {
       signal?.throwIfAborted();
+      if (awaitRunnable !== undefined && step !== firstTask && !core.finished(setup)) await awaitRunnable();
       for (const entry of installed.values()) {
         signal?.throwIfAborted();
         await entry.beforeNext?.(managedPhysicalSource);

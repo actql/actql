@@ -1,4 +1,5 @@
-import type {WireSampleSelector} from './interactive-control.generated.js';
+import type {WireSampleSelector, WireControlCommand, WireControlOperationRef, WireControlOperationLookup}
+  from './interactive-control.generated.js';
 export * from './interactive-control.generated.js';
 import type {WireStaticExplanationView} from './interactive-control.generated.js';
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
@@ -135,6 +136,9 @@ export type WireClientBodyByOperation = Readonly<{
   'run-explanation': WireClientBodyByOperation['inspect-run'];
   'run-explanation-context': WireClientBodyByOperation['inspect-run'];
   'run-sample': WireClientBodyByOperation['inspect-run'] & Readonly<{selector: WireSampleSelector}>;
+  'lookup-control-operation': WireClientBodyByOperation['inspect-run'] &
+    Readonly<{operationRef: WireControlOperationRef}>;
+  'resume-run': WireClientBodyByOperation['inspect-run'] & Readonly<{command: WireControlCommand}>;
   'inspect-run': WireRefBody & Readonly<{
     maxWireBytes: number;
     maxNodes: number;
@@ -299,6 +303,9 @@ export declare function validCancellationAttempt(value: unknown, expected: WireC
 export declare function validCancellationRef(value: unknown): value is WireCancellationRef;
 export declare function validCancellation(value: unknown,
   expected?: WireCancellationRef): value is WireCancellation;
+export declare function resumeControlOperationRef(command: WireControlCommand): WireControlOperationRef;
+export declare function validControlOperationLookup(value: unknown,
+  operationRef: WireControlOperationRef): value is WireControlOperationLookup;
 export declare function validCancellationLookup(value: unknown,
   expected: WireCancellationRef): value is WireCancellationLookup;
 

@@ -1,8 +1,9 @@
 // Read the original compiler evidence of an admitted Run. Authorization is
 // current; the stored map never creates an inspection or control permission.
-import {validClientBody, snapshotClientRequest, validWireRunPlanViewShape, validWireRunSampleShape,
-  withinResultDescriptionLimits} from
+import {resumeControlOperationRef, validClientBody, snapshotClientRequest, validWireRunPlanViewShape, validWireRunSampleShape,
+  validControlOperationLookup, withinResultDescriptionLimits} from
   '../../packages/client-wire/index.mjs';
+import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 const failure = code => Object.assign(new Error(code), {code});
 export function installClientRunPlan({authorize, lookupOriginal, control}) {
   if (typeof authorize !== 'function' || typeof lookupOriginal !== 'function' ||
@@ -44,7 +45,7 @@ export function installClientRunPlan({authorize, lookupOriginal, control}) {
 
 // Use the canonical Stored Plan to match the requested Step and exact
 // compiler port. An input can reuse an actual upstream output association.
-function samplePortSelection(map, selector) {
+function samplePortSelection(map, selector, next) {
   const target = selector.step;
   const steps = map.steps.filter(step => target.by === 'id' ? step.step_id === target.step_id
     : target.by === 'operator' ? step.operator === target.operator : step.names.includes(target.name));
@@ -56,7 +57,9 @@ function samplePortSelection(map, selector) {
   const [port] = ports;
   if (port.carrier !== 'relation') return {reason: 'not_supported'};
   if (port.role === 'output') return {step, port, producerStep: step, producerPort: port};
-  if (port.source.kind !== 'logical_output') return {reason: 'not_retained'};
+  if (port.source.kind !== 'logical_output') {
+    return next && port.source.kind === 'stage_input' ? {step, port} : {reason: 'not_retained'};
+  }
   const producerStep = map.steps.find(candidate => candidate.step_id === port.source.step_id);
   const producerPort = producerStep?.ports.find(candidate => candidate.role === 'output' &&
     candidate.port_id === port.source.output_port_id);
@@ -66,7 +69,7 @@ function samplePortSelection(map, selector) {
 }
 
 export function installClientRunSample({authorize, probeOriginal, lookupOriginal,
-  readRetained, readWorkspace, control}) {
+  readRetained, readNextRetained, observeNext, readWorkspace, control}) {
   if (![authorize, probeOriginal, lookupOriginal, readRetained, readWorkspace?.begin,
     readWorkspace?.metadata, readWorkspace?.close, control?.admit, control?.readStoredRunPlanOriginal]
     .every(method => typeof method === 'function')) {
@@ -75,7 +78,7 @@ export function installClientRunSample({authorize, probeOriginal, lookupOriginal
   const forbidden = Object.freeze({state: 'forbidden'});
   const unavailable = reason => Object.freeze({state: 'unavailable', reason});
   async function readOwned(request, consume) {
-    const {ref, selector} = request;
+    const {ref, selector, nextRevision} = request;
     const current = () => {
       request.signal?.throwIfAborted();
       const permission = authorize(request);
@@ -84,6 +87,16 @@ export function installClientRunSample({authorize, probeOriginal, lookupOriginal
     };
     const reply = async answer => await consume(current() ? answer : forbidden);
     if (!current()) return await consume(forbidden);
+    const next = nextRevision !== undefined;
+    if (next) {
+      if (typeof readNextRetained !== 'function' || typeof observeNext !== 'function') {
+        return await reply(unavailable('not_supported'));
+      }
+      if (!Number.isInteger(nextRevision) || nextRevision < 1 || nextRevision > 2147483647 ||
+          selector.role !== 'input' || selector.step.by !== 'id' || selector.input_port_id === undefined) {
+        throw failure('InvalidRunSampleRequest');
+      }
+    }
     // Scalar probe and fixed selection/reply controls on this same Read.
     // The Journal charges variable Sample material from its actual extent.
     readWorkspace.metadata(request, 1024);
@@ -111,17 +124,37 @@ export function installClientRunSample({authorize, probeOriginal, lookupOriginal
     const planWire = control.readStoredRunPlanOriginal(saved, definition, original.programDefinitionCid, request);
     if (planWire !== saved.planViewWire) throw failure('ForeignClientRunSampleOutput');
     const map = JSON.parse(planWire).logical_map;
-    const selected = samplePortSelection(map, selector);
+    const selected = samplePortSelection(map, selector, next);
     if (selected.reason !== undefined) return await reply(unavailable(selected.reason));
-    const {step, port, producerStep, producerPort} = selected;
+    const {step, port} = selected;
+    let {producerStep, producerPort} = selected;
+    const reserve = bytes => {readWorkspace.metadata(request, bytes);};
+    const scope = {compiledPlanCid: map.compiled_plan_cid, logicalMapCid: map.self_cid, maxBytes: request.maxWireBytes};
     let stored;
     try {
-      stored = readRetained(ref, {compiledPlanCid: map.compiled_plan_cid, logicalMapCid: map.self_cid,
-        stepId: producerStep.step_id, outputPortId: producerPort.port_id,
-        carrierContractCid: producerPort.carrier_contract_cid, maxBytes: request.maxWireBytes},
-      {current, reserve: bytes => {readWorkspace.metadata(request, bytes);}});
+      if (next) {
+        stored = readNextRetained(request, Object.freeze({...scope, revision: nextRevision, nextStepId: step.step_id,
+          inputOrdinal: port.port_ordinal, maxWork: request.maxNodes}), current, reserve, producer => {
+          // A checked Stage input can have an upstream task even though its
+          // public locator records only the receiving Stage/input. Validate
+          // the live producer's output against this same retained Map.
+          const originalStep = map.steps.find(item => item.step_id === producer.stepId);
+          const originalPort = originalStep?.ports.find(item => item.role === 'output' && item.port_id === producer.outputPortId);
+          if (originalPort?.carrier !== port.carrier ||
+              originalPort.carrier_contract_cid !== producer.carrierContractCid ||
+              producer.carrierContractCid !== port.carrier_contract_cid ||
+              (producerPort !== undefined && (producerStep !== originalStep || producerPort !== originalPort))) return false;
+          producerStep = originalStep;
+          producerPort = originalPort;
+          return true;
+        });
+      } else {
+        stored = readRetained(ref, {...scope, stepId: producerStep.step_id, outputPortId: producerPort.port_id,
+          carrierContractCid: producerPort.carrier_contract_cid}, {current, reserve});
+      }
     } catch (error) {
-      if (error?.code === 'ClientRelationSampleDenied') return await consume(forbidden);
+      if (error?.code === 'ClientRelationSampleDenied' ||
+          next && error?.code === 'ClientRunDebugEntryDenied') return await consume(forbidden);
       if (error?.code === 'ClientRelationSampleCapacity') return await reply(unavailable('capacity'));
       if (error?.code === 'ClientRelationSampleReadUnknown' && error.outcome === 'unknown') {
         return await reply(Object.freeze({state: 'unknown', reason: 'sample_read_unknown'}));
@@ -137,7 +170,23 @@ export function installClientRunSample({authorize, probeOriginal, lookupOriginal
         retained.programDefinitionCid !== original.programDefinitionCid ||
         retained.compiledPlanWire !== original.compiledPlanWire ||
         retained.planViewWire !== original.planViewWire) throw failure('ForeignClientRunSampleOutput');
-    if (stored.kind === 'expired') return await reply(Object.freeze({state: 'expired'}));
+    const disclose = !next ? reply : answer => {
+      if (!current()) return consume(forbidden);
+      let pause;
+      try {pause = observeNext(request, current);}
+      catch (error) {
+        if (error?.code === 'ClientRunDebugEntryDenied') return consume(forbidden);
+        throw error;
+      }
+      if (pause?.revision !== nextRevision || pause.nextStepId !== step.step_id) {
+        if (!current()) return consume(forbidden);
+        throw failure('ClientRunDebugEntryRevisionConflict');
+      }
+      // observeNext rechecks the same current Account through the durable
+      // read. Enter the original sink without an intervening suspension.
+      return consume(answer);
+    };
+    if (stored.kind === 'expired') return await disclose(Object.freeze({state: 'expired'}));
     if (stored.kind !== 'available') return await reply(unavailable(
       stored.kind === 'ambiguous' ? 'selection_required' : 'not_retained',
     ));
@@ -153,7 +202,7 @@ export function installClientRunSample({authorize, probeOriginal, lookupOriginal
     data: relation};
     if (!withinResultDescriptionLimits(view, request)) return await reply(unavailable('capacity'));
     if (!validWireRunSampleShape(view)) throw failure('InvalidClientHostRunSample');
-    return await reply(view);
+    return await disclose(view);
   }
   return async (request, consume) => {
     if (typeof consume !== 'function') throw new TypeError('InvalidRunSampleConsumer');
@@ -165,5 +214,85 @@ export function installClientRunSample({authorize, probeOriginal, lookupOriginal
       return await readOwned(request, consume);
     } catch (error) {primary = error; throw error;}
     finally {if (opened) readWorkspace.close(request, primary);}
+  };
+}
+
+// Read the exact receipt retained by the accepting Journal, alongside its
+// original acceptance observation, independently of the live Driver.
+export function installClientControlOperationLookup({authorize, lookupOriginal, readWorkspace,
+  authorizeResume, resumeOriginal}) {
+  if (![authorize, lookupOriginal, readWorkspace?.begin, readWorkspace?.metadata, readWorkspace?.construction,
+    readWorkspace?.close]
+    .every(method => typeof method === 'function')) {
+    throw new TypeError('InvalidClientControlOperationLookupInstallation');
+  }
+  if (resumeOriginal !== undefined && [resumeOriginal, authorizeResume, readWorkspace.metadataFinish]
+    .some(method => typeof method !== 'function')) {
+    throw new TypeError('InvalidClientControlOperationResumeInstallation');
+  }
+  const unavailable = Object.freeze({state: 'history_unavailable', reason: 'control_receipt_not_retained'});
+  const unknown = Object.freeze({state: 'unknown', reason: 'control_operation_unobserved'});
+  const acceptanceUnknown = Object.freeze({state: 'unknown', reason: 'control_acceptance_unknown'});
+  return async (request, consume) => {
+    const resuming = request.command !== undefined;
+    if (resuming && resumeOriginal === undefined) throw failure('ClientOperationUnavailable');
+    const authorizeCurrent = () => {
+      request.signal?.throwIfAborted();
+      const allowed = authorize(request);
+      if (typeof allowed?.then === 'function') void Promise.resolve(allowed).catch(() => {});
+      if (allowed !== true || !resuming) return allowed === true;
+      const canResume = authorizeResume(request);
+      if (typeof canResume?.then === 'function') void Promise.resolve(canResume).catch(() => {});
+      return canResume === true;
+    };
+    request.signal?.throwIfAborted();
+    let primary;
+    readWorkspace.begin(request);
+    try {
+      const operationRef = resuming ? resumeControlOperationRef(request.command) : request.operationRef;
+      if (!authorizeCurrent()) throw failure('RunObservationAccessDenied');
+      const scope = {
+        principalId: request.principalId, connection: request.connection, authorize: authorizeCurrent,
+      };
+      const reserveConstruction = peak => readWorkspace.construction(request, peak);
+      let ambiguous = false;
+      if (resuming) {
+        readWorkspace.metadata(request, 4096);
+        if (!authorizeCurrent()) throw failure('RunObservationAccessDenied');
+        try {
+          const wire = canonicalJson(request.command);
+          if (Buffer.byteLength(wire, 'utf8') > 4096) throw failure('ClientRunDebugEntryInvalidCommand');
+          const accepted = resumeOriginal(request.ref, {...scope, reserve: reserveConstruction}, wire);
+          if (accepted?.kind === 'expired') throw failure('ClientRunDebugEntryExpired');
+          if (accepted?.kind !== 'resume_accepted' || accepted.commandCid !== operationRef.command_cid ||
+              accepted.revision !== operationRef.accepted_from_revision + 1) {
+            throw failure('InvalidClientHostControlOperationLookup');
+          }
+        } catch (error) {
+          if (error?.outcome !== 'unknown' && error?.code !== 'ClientRunDebugEntryReconciliationRequired') throw error;
+          ambiguous = true;
+        }
+        // Command wire and issuance scratch have ended. The same Read funds
+        // any new committed observation before its original egress.
+        readWorkspace.metadataFinish(request);
+      }
+      const evidence = ambiguous ? undefined : lookupOriginal(operationRef, {...scope,
+        reserve: bytes => readWorkspace.metadata(request, bytes), reserveConstruction,
+      });
+      const receipt = evidence?.receipt;
+      if (resuming && !ambiguous && receipt === undefined) throw failure('InvalidClientHostControlOperationLookup');
+      const answer = receipt === undefined ? (ambiguous ? acceptanceUnknown :
+        evidence.kind === 'resume_accepted' ? unavailable : unknown) :
+        {state: 'found', receipt, observation: {original_receipt_cid: receipt.self_cid,
+          operation_ref: {...receipt.operation_ref, run_ref: {...receipt.operation_ref.run_ref}},
+          outcome: receipt.outcome, observed_at: receipt.observed_state.updated_at}};
+      if (!validControlOperationLookup(answer, operationRef)) throw failure('InvalidClientHostControlOperationLookup');
+      if (!withinResultDescriptionLimits(answer, request)) throw failure('RunControlReadLimit');
+      if (!authorizeCurrent()) throw failure('RunObservationAccessDenied');
+      return await consume(answer);
+    } catch (error) {
+      primary = error?.code === 'ClientRunDebugEntryDenied' ? failure('RunObservationAccessDenied') : error;
+      throw primary;
+    } finally {readWorkspace.close(request, primary);}
   };
 }

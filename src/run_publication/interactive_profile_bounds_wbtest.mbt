@@ -32,13 +32,15 @@ test "unattended Sample start respects the complete effective execution interval
   let guard_wire =
     #|{"estimated_cost_ceiling":{"currency":"USD","amount_micro":"1","scope_cids":["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],"tariff_revision_cid":"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","valid_until":"2098-01-01T00:00:00.000Z"}}
   for
-    (until, breakpoints, guards, stop, unattended) in [
-      ("terminal", no_breakpoints, "null", false, true),
-      ("terminal", no_breakpoints, "null", true, false),
-      ("step", no_breakpoints, "null", false, false),
-      ("breakpoint", no_breakpoints, "null", false, false),
-      ("terminal", breakpoint, "null", false, false),
-      ("terminal", no_breakpoints, guard_wire, false, false),
+    (until, breakpoints, guards, stop, unattended, entry) in [
+      ("terminal", no_breakpoints, "null", false, true, false),
+      ("terminal", no_breakpoints, "null", true, false, true),
+      ("step", no_breakpoints, "null", false, false, false),
+      ("breakpoint", no_breakpoints, "null", false, false, false),
+      ("terminal", breakpoint, "null", false, false, false),
+      ("terminal", no_breakpoints, guard_wire, false, false, false),
+      ("terminal", breakpoint, "null", true, false, false),
+      ("terminal", no_breakpoints, guard_wire, true, false, false),
     ] {
     let body = "{\"version\":\"actql-control-profile/0.1\",\"retain\":{},\"execution\":{\"stop_on_entry\":" +
       stop.to_string() +
@@ -56,5 +58,6 @@ test "unattended Sample start respects the complete effective execution interval
       interactive_profile_allows_unattended_terminal(profile),
       unattended,
     )
+    assert_eq(interactive_profile_requires_entry_stop(profile), entry)
   }
 }

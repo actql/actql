@@ -17,7 +17,8 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validSubmissionAttempt, validNamedSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape,
-  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireRunSampleShape, validWireStaticExplanationViewShape} from '../../packages/client-wire/index.mjs';
+  validWireRunPlanViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape, validWireRunSampleShape, validWireStaticExplanationViewShape,
+  resumeControlOperationRef, validControlOperationLookup, withinResultDescriptionLimits} from '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
 
@@ -137,13 +138,14 @@ function responseCode(error) {
       error?.code === 'ResourcePeekDenied' ||
       /^ACTQL_E_(ACCOUNT_[A-Z_]+|DELEGATION_[A-Z_]+)$/u
         .test(error?.code ?? '')) return 403;
-  if (error?.code === 'CheckpointReviewUnavailable') return 410;
+  if (error?.code === 'CheckpointReviewUnavailable' || error?.code === 'ClientRunDebugEntryExpired') return 410;
   if (error?.code === 'WaitAborted' || error?.code === 'WaitTimeout') return 408;
   if (error?.code === 'ClientRequestNotFound' ||
       error?.code === 'ResourceConnectionNotFound') return 404;
   if (error?.code === 'ResourceCatalogUnavailable') return 503;
   if (error?.code === 'HeldRequestEvidenceUnavailable') return 503;
-  if (error?.code === 'RunExplanationReadLimit' || error?.code === 'StaticExplanationReadLimit') return 413;
+  if (error?.code === 'RunExplanationReadLimit' || error?.code === 'StaticExplanationReadLimit' ||
+      error?.code === 'RunControlReadLimit') return 413;
   if (error?.code === 'RunExplanationReadCapacity' ||
       error?.code === 'RunExplanationReadUnavailable' ||
       error?.code === 'RunExplanationReadCapacityUnavailable' ||
@@ -154,7 +156,9 @@ function responseCode(error) {
   if (error?.code === 'ClientRequestIntentConflict' ||
       error?.code === 'ClientSubmittedIntentConflict' ||
       error?.code === 'ClientCancellationIntentConflict' ||
-      error?.code === 'ClientCancellationRevisionConflict') return 409;
+      error?.code === 'ClientCancellationRevisionConflict' ||
+      error?.code === 'ClientRunDebugEntryRevisionConflict' ||
+      error?.code === 'ClientRunDebugEntryResumeConflict') return 409;
   if (error?.code === 'ResultUnavailable') return 410;
   if (error?.code === 'ResultDescriptionUnavailable') return 410;
   if (error?.code === 'ResultDescriptionTooLarge') return 413;
@@ -162,6 +166,7 @@ function responseCode(error) {
       error?.code === 'ClientOwnerObservationLimit' ||
       error?.code === 'ClientParametersTooLarge') return 413;
   if (error?.code === 'InvalidClientRequest' ||
+      error?.code === 'ClientRunDebugEntryInvalidCommand' ||
       error?.code === 'ClientSubmissionReferenceRequired' ||
       error?.code === 'InvalidClientCancellationOperation' ||
       error?.code === 'InvalidClientCancellationLookup' ||
@@ -248,7 +253,7 @@ export function createClientHttpHandler({
   negotiate, submit, submitIntent, submitNamedIntent, lookupSubmission, attach, lookupRequest, observeRun, observeOwners, wait, cancel, lookupCancellation,
   reconcile, deliveryAttempt, prepareSubmit, checkpoints, checkpointReview,
   resolve, cancelRequest, resources, inspectResource, peekResource,
-  check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext, runSample,
+  check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext, runSample, lookupControlOperation, resumeRun,
   maxRequestBytes = 65536, observe, loopbackHttp = false,
   prepareRequest,
 }) {
@@ -453,26 +458,38 @@ export function createClientHttpHandler({
           sendJson(view);
         } finally { observer.release(); }
       } else if (operation === 'run-explanation' || operation === 'run-explanation-context' ||
-            operation === 'static-explanation' || operation === 'run-sample') {
+            operation === 'static-explanation' || operation === 'run-sample' ||
+            operation === 'lookup-control-operation' || operation === 'resume-run' || operation === 'inspect-run') {
         const staticRead = operation === 'static-explanation';
         const contextRead = operation === 'run-explanation-context';
         const sampleRead = operation === 'run-sample';
-        const reader = sampleRead ? runSample
-          : staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
+        const resuming = operation === 'resume-run';
+        const controlLookup = resuming || operation === 'lookup-control-operation';
+        const inspectRead = operation === 'inspect-run';
+        const reader = resuming ? resumeRun : controlLookup ? lookupControlOperation : sampleRead ? runSample
+          : inspectRead ? inspectRun : staticRead ? staticEffectExplanation : contextRead ? runExplanationContext : runExplanation;
         const validateRun = contextRead ? validWireRunExplanationContextViewShape : validWireRunExplanationViewShape;
         const observer = observationAttempt(response);
         try {
           await invoke(reader, observer.signal, undefined, async view => {
-            if (sampleRead) {
+            if (controlLookup) {
+              if (!withinResultDescriptionLimits(view, body) || !validControlOperationLookup(view, resuming ? resumeControlOperationRef(body.command) : body.operationRef)) {
+                invalid('InvalidClientHostControlOperationLookup');
+              }
+            } else if (sampleRead) {
               if (!validWireRunSampleShape(view) || view.state === 'available' &&
                   Object.keys(ref).some(key => view.source.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunSample');
+            } else if (inspectRead) {
+              if (!validWireRunViewShape(view) ||
+                  Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunView');
             } else if (staticRead) {
               if (!validWireStaticExplanationViewShape(view)) invalid('InvalidClientHostStaticExplanationView');
             } else if (!validateRun(view) ||
                 Object.keys(ref).some(key => view.run_ref[key] !== ref[key])) invalid('InvalidClientHostRunExplanationView');
             const wire = JSON.stringify(view);
             if (wire.length > body.maxWireBytes || Buffer.byteLength(wire) > body.maxWireBytes) {
-              invalid(sampleRead ? 'RunSampleReadLimit' : staticRead ? 'StaticExplanationReadLimit' : 'RunExplanationReadLimit');
+              invalid(controlLookup ? 'RunControlReadLimit' : sampleRead ? 'RunSampleReadLimit'
+                : inspectRead ? 'InvalidClientHostRunView' : staticRead ? 'StaticExplanationReadLimit' : 'RunExplanationReadLimit');
             }
             const bytes = Buffer.from(wire);
             requestLifetime.beforeReply();
@@ -511,13 +528,6 @@ export function createClientHttpHandler({
               } catch (error) {failed(error);}
             });
           });
-        } finally { observer.release(); }
-      } else if (operation === 'inspect-run') {
-        const observer = observationAttempt(response);
-        try {
-          const view = await invoke(inspectRun, observer.signal);
-          if (!validWireRunViewShape(view)) invalid('InvalidClientHostRunView');
-          sendJson(view);
         } finally { observer.release(); }
       } else if (operation === 'owner-observations') {
         const views = await invoke(observeOwners);

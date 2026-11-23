@@ -623,6 +623,8 @@ pub fn interactive_logical_map_original(RunEvidenceValue) -> @canonical_json.Can
 
 pub fn interactive_profile_allows_unattended_terminal(RunEvidenceValue) -> Bool
 
+pub fn interactive_profile_requires_entry_stop(RunEvidenceValue) -> Bool
+
 pub fn interactive_relation_sample_output_limits(InteractiveRelationSampleSelection, String) -> InteractiveRelationSampleLimits?
 
 pub fn interactive_submission_reference_limits() -> (Int, Int, Int)
@@ -696,6 +698,8 @@ pub fn issue_initial_result_retention(String, String, String, String, String, St
 pub fn issue_interactive_relation_sample_admission(PublicationContract, PublicationContract, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, String, String, String, Int, Int, Int) -> Result[(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue), RunEvidenceValueIssue]
 
 pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract, Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
+
+pub fn issue_local_debug_resume_receipt(PublicationContract, RunEvidenceValue, String, Int, String, Int, Int, Int) -> Result[RunEvidenceValue, RunControlReadIssue]
 
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
@@ -991,7 +995,7 @@ pub fn prepared_effect_preview_dispatch_usage(PreparedEffectPreviewDispatch) -> 
 
 pub fn project_committed_result_read(PublicationContract, PublicationContract, String, Array[PublicationContract]) -> Result[CommittedResultRead, DeliveryIssuanceIssue]
 
-pub fn project_current_interactive_run_view(PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, Int, Int, Int, static_plan_installed? : Bool) -> Result[String, RunControlReadIssue]
+pub fn project_current_interactive_run_view(PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, Int, Int, Int, static_plan_installed? : Bool, debug_park_wire? : String) -> Result[String, RunControlReadIssue]
 
 pub fn project_delivery_record(PublicationContract) -> Result[DeliveryRecordProjection, DeliveryIssuanceIssue]
 

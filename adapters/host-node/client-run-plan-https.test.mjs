@@ -10,11 +10,11 @@ import {getCACertificates,setDefaultCACertificates} from 'node:tls';
 import {connect} from '../../packages/sdk/index.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
 import {fixtureCertificates} from '../site-node/https-exchange-fixture.mjs';
-import {ref,cid} from '../../scripts/fixtures/interactive-run-control-vectors.mjs';
+import {ref, cid, acceptedResumeLookup, resumeOperationRef} from '../../scripts/fixtures/interactive-run-control-vectors.mjs';
 import {planOriginal} from './fixtures/original-plan-journal.mjs';
 test('TLS Run.plan preserves the original ref and rejects foreign envelopes without submit',async t=>{
   const root=await mkdtemp(join(tmpdir(),'actql-d-run-plan-tls-'));
-  const trust=getCACertificates('default');let server,client,reads=0,starts=0,foreign=false,complete=false;
+  const trust=getCACertificates('default');let server,client,reads=0,starts=0,lookups=0,foreign=false,complete=false;
   t.after(async()=>{try {
     await client?.close();if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
     if(complete) await rm(root,{recursive:true,force:true});else t.diagnostic(`Failure fixture retained at ${root}`);
@@ -25,6 +25,15 @@ test('TLS Run.plan preserves the original ref and rejects foreign envelopes with
       maxRowRetainedValueBytes:1024,maxRetainedValueBytes:4096,maxRows:10,maxBatchRows:10,maxBatchRetainedValueBytes:2048}};
   server=createServer({key:certificates.key,cert:certificates.cert},createClientHttpHandler({
     authenticate:()=> 'original-caller',authorizeConnection:()=> true,negotiate:()=>profile,
+    prepareRequest: (_operation, body) => ({body, beforeReply() {}, bindRequest() {}, finish() {}}),
+    lookupControlOperation(value, consume) {
+      lookups++;
+      assert.equal(value.principalId, 'original-caller');
+      assert.deepEqual(value.operationRef, resumeOperationRef);
+      const answer = acceptedResumeLookup();
+      if (foreign) answer.observation.original_receipt_cid = cid('0');
+      return consume(answer);
+    },
     attach:value=>({ref:value.ref,durability:'volatile',revision:0}),
     runPlan(value){reads++;assert.deepEqual(value.ref,ref);return {version:'actql-run-plan-view/0.1',
       run_ref:foreign?{...ref,runDefinitionCid:cid('0')}:{...ref},plan_view:JSON.parse(planOriginal.planViewWire)};},
@@ -32,7 +41,9 @@ test('TLS Run.plan preserves the original ref and rejects foreign envelopes with
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
   client=await connect({mode:'remote',token:'fixture-caller',endpoint:`https://127.0.0.1:${server.address().port}/`});
   const run=await client.attach(ref);assert.deepEqual((await run.plan()).run_ref,ref);
+  assert.deepEqual(await run.lookupControlOperation(resumeOperationRef), acceptedResumeLookup());
   // Existing HTTP redaction masks a Host's invalid reply as ClientHostFailure.
   foreign=true;await assert.rejects(run.plan(),{code:'ClientHostFailure'});
-  assert.equal(reads,2);assert.equal(starts,0);complete=true;
+  await assert.rejects(run.lookupControlOperation(resumeOperationRef), {code:'ClientHostFailure'});
+  assert.equal(reads,2);assert.equal(lookups,2);assert.equal(starts,0);complete=true;
 });

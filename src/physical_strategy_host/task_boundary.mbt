@@ -396,6 +396,17 @@ pub fn fork_captured_task_boundary_for_logical_projection(
   run : CapturedDAG,
   source : CapturedTaskBoundary,
 ) -> Result[CapturedTaskBoundary, CapturedTaskBoundaryIssue] {
+  fork_captured_task_boundary(
+    run, source, captured_boundary_logical_projection_bytes,
+  )
+}
+
+///|
+fn fork_captured_task_boundary(
+  run : CapturedDAG,
+  source : CapturedTaskBoundary,
+  bytes : Int64,
+) -> Result[CapturedTaskBoundary, CapturedTaskBoundaryIssue] {
   guard source.original is Some(original) else { return Err(ReadReturned) }
   if original.forking || original.returning != 0 {
     return Err(ReadInProgress)
@@ -413,15 +424,15 @@ pub fn fork_captured_task_boundary_for_logical_projection(
     original.hooks,
     original.record,
     source.phase,
-    captured_boundary_logical_projection_bytes,
+    bytes,
   )
   original.forking = false
   result
 }
 
 ///|
-// Private issuance engine. Only the two closed constructor purposes above
-// choose its recipe; no public numeric capacity request can mint a fork.
+// Private issuance engine. Each caller selects a closed constructor purpose;
+// no public numeric capacity request can mint a fork.
 fn acquire_captured_boundary_read(
   run : CapturedDAG,
   hooks : CapturedTaskBoundaryHooks,
@@ -656,5 +667,368 @@ pub fn release_captured_task_boundary_hooks(
     return Err(SetupInUse)
   }
   run.activation = Unarmed
+  Ok(())
+}
+
+///|
+pub(all) enum CapturedPausedDependencyIssue {
+  Boundary(CapturedTaskBoundaryIssue)
+  InvalidDependency
+  InputWorkLimit
+  DependencyUnavailable(RunIssue)
+  Cell(@execution.RelationPresenceIssue)
+}
+
+///|
+/// Scoped original materialized cell reader for an unfinished dependency.
+/// A retained reader becomes empty when its synchronous visit ends.
+struct CapturedPausedMaterializedDependency {
+  mut original : CapturedPausedDependencyRead?
+}
+
+///|
+priv struct CapturedPausedDependencyRead {
+  loan : CapturedTaskBoundary
+  revision : Int
+  pin : CapturedOutputPin
+}
+
+///|
+fn captured_paused_dependency_current(
+  run : CapturedDAG,
+  boundary : CapturedTaskBoundary,
+  expected_revision : Int,
+) -> Bool {
+  boundary.phase is Settled &&
+  boundary.original is Some(read) &&
+  read.hooks.control is Some(control) &&
+  control.phase is Paused &&
+  !control.changing &&
+  control.revision == expected_revision &&
+  run.running is None &&
+  captured_task_boundary_current(run, boundary)
+}
+
+///|
+fn captured_paused_dependency_pin_current(
+  read : CapturedPausedDependencyRead,
+) -> Bool {
+  let pin = read.pin
+  let run = pin.run
+  pin.live &&
+  captured_paused_dependency_current(run, read.loan, read.revision) &&
+  run.lifetimes[pin.task].live &&
+  run.outputs[pin.task] is Some(Materialized(actual)) &&
+  physical_equal(actual, pin.output)
+}
+
+///|
+fn current_paused_dependency_read(
+  scope : CapturedPausedMaterializedDependency,
+) -> CapturedPausedDependencyRead? {
+  guard scope.original is Some(read) &&
+    captured_paused_dependency_pin_current(read) &&
+    @execution.completed_output_available(read.pin.output) &&
+    captured_paused_dependency_pin_current(read) else {
+    return None
+  }
+  Some(read)
+}
+
+///|
+pub fn captured_paused_materialized_dependency_shape(
+  scope : CapturedPausedMaterializedDependency,
+) -> (Int, Int)? {
+  guard current_paused_dependency_read(scope) is Some(read) else { return None }
+  Some(
+    (
+      @execution.completed_row_count(read.pin.output),
+      @execution.completed_column_count(read.pin.output),
+    ),
+  )
+}
+
+///|
+pub fn read_captured_paused_materialized_dependency_cell(
+  scope : CapturedPausedMaterializedDependency,
+  row : Int,
+  column : Int,
+) -> Result[@execution.Value?, CapturedPausedDependencyIssue] {
+  guard current_paused_dependency_read(scope) is Some(read) else {
+    return Err(Boundary(StaleBoundary))
+  }
+  let output = read.pin.output
+  if row < 0 ||
+    row >= @execution.completed_row_count(output) ||
+    column < 0 ||
+    column >= @execution.completed_column_count(output) {
+    return Err(Cell(InvalidLayout))
+  }
+  let presence = @execution.completed_presence_cell(output, row, column)
+  if !captured_paused_dependency_pin_current(read) {
+    return Err(Boundary(StaleBoundary))
+  }
+  match presence {
+    Ok(Absent) => Ok(None)
+    Ok(Present(value)) => Ok(Some(@execution.capture(value)))
+    Err(InvalidLayout) =>
+      match @execution.completed_cell(output, row, column) {
+        Some(value) => Ok(Some(value))
+        None => Err(Cell(InvalidLayout))
+      }
+    Err(issue) => Err(Cell(issue))
+  }
+}
+
+///|
+/// Resolve an exact checked dependency at the scheduler's current Next task.
+/// A caller looking up a retained Sample must still bind its producer output
+/// and committed generation. This result carries no row or publication grant.
+pub fn captured_paused_next_dependency(
+  run : CapturedDAG,
+  hooks : CapturedTaskBoundaryHooks,
+  revision : Int,
+  committed_generation : Int,
+  edge_index : Int,
+) -> Result[@graph.DataEdge, CapturedPausedDependencyIssue] {
+  guard captured_task_control_paused_task(run, hooks)
+    is Ok((current, _, next, generation)) &&
+    current == revision &&
+    generation == committed_generation else {
+    return Err(Boundary(StaleBoundary))
+  }
+  guard run.graph.data_at(edge_index) is Some(edge) &&
+    next == Some(edge.consumer) &&
+    !task_done(run, edge.consumer) &&
+    task_done(run, edge.producer) else {
+    return Err(InvalidDependency)
+  }
+  paused_dependency_target(run.graph, edge)
+}
+
+///|
+/// Resolve the checked Next edge and that producer's own acknowledged start,
+/// committed generation and consumed attempt. No row or retention is opened.
+pub fn captured_paused_next_sample_dependency(
+  run : CapturedDAG,
+  hooks : CapturedTaskBoundaryHooks,
+  revision : Int,
+  pause_generation : Int,
+  edge_index : Int,
+) -> Result[(@graph.DataEdge, Int, Int, Int), CapturedPausedDependencyIssue] {
+  captured_paused_next_dependency(
+    run, hooks, revision, pause_generation, edge_index,
+  ).bind(edge => paused_sample_dependency_commit(run, edge))
+}
+
+///|
+fn paused_sample_dependency_commit(
+  run : CapturedDAG,
+  edge : @graph.DataEdge,
+) -> Result[(@graph.DataEdge, Int, Int, Int), CapturedPausedDependencyIssue] {
+  match captured_relation_sample_commit(run, edge.producer) {
+    Some((generation, attempt, start)) => Ok((edge, start, generation, attempt))
+    None => Err(DependencyUnavailable(MissingOutput))
+  }
+}
+
+///|
+/// Select the actual edge for one original input ordinal on the scheduled
+/// Next operation. The ordinal is from the checked logical port, regardless
+/// of whether its physical edge was lowered from a Stage or operation input.
+pub fn captured_paused_next_sample_input(
+  run : CapturedDAG,
+  hooks : CapturedTaskBoundaryHooks,
+  revision : Int,
+  pause_generation : Int,
+  input : Int,
+  max_work : Int,
+) -> Result[(@graph.DataEdge, Int, Int, Int), CapturedPausedDependencyIssue] {
+  // Refuse a stale pause before sizing its traversal. This scalar check
+  // does not inspect task readiness or touch an input.
+  guard revision >= 2 &&
+    pause_generation > 0 &&
+    captured_task_control_state(run, hooks) is Ok((current, Paused)) &&
+    current == revision &&
+    run.generation == pause_generation else {
+    return Err(Boundary(StaleBoundary))
+  }
+  if input < 0 {
+    return Err(InvalidDependency)
+  }
+  let graph = run.graph
+  let tasks = graph_task_count(graph).to_int64()
+  let data = graph_data_count(graph).to_int64()
+  let control = graph_control_count(graph).to_int64()
+  // Bound the existing scheduler's worst-case complete readiness scan and
+  // this one additional input-edge scan, before traversing either.
+  let budget = max_work.to_int64()
+  if tasks <= 0 ||
+    budget <= data ||
+    data + control + 1L > (budget - data) / tasks {
+    return Err(InputWorkLimit)
+  }
+  guard captured_task_control_paused_task(run, hooks)
+    is Ok((current, _, Some(next), generation)) &&
+    current == revision &&
+    generation == pause_generation else {
+    return Err(Boundary(StaleBoundary))
+  }
+  guard graph_task_unit_index(graph, next) is Some(stage) &&
+    captured_task_target(run, next) is Some(@pipeline.Step(operation)) &&
+    graph_stage_operation_task(graph, stage, operation) == Some(next) &&
+    @checked.unit_pipeline(graph_program(graph), stage) is Some(pipeline) &&
+    @pipeline.step_at(pipeline, operation) is Some(step) &&
+    @pipeline.input_occurrence_at(step, input) is Some(occurrence) else {
+    return Err(InvalidDependency)
+  }
+  let mut selected = None
+  for edge in graph.data_iter() {
+    if edge.consumer == next &&
+      paused_sample_input_matches(
+        graph,
+        edge,
+        stage,
+        operation,
+        input,
+        occurrence.target,
+      ) {
+      if selected is Some(_) {
+        return Err(InvalidDependency)
+      }
+      selected = Some(edge)
+    }
+  }
+  guard selected is Some(edge) && task_done(run, edge.producer) else {
+    return Err(InvalidDependency)
+  }
+  paused_dependency_target(graph, edge).bind(original => {
+    paused_sample_dependency_commit(run, original)
+  })
+}
+
+///|
+fn paused_sample_input_matches(
+  graph : CheckedDAG,
+  edge : @graph.DataEdge,
+  stage : Int,
+  operation : Int,
+  input : Int,
+  target : @pipeline.Target,
+) -> Bool {
+  let operation_input = edge.operation_input == Some((operation, input))
+  match target {
+    @pipeline.Step(_) =>
+      operation_input &&
+      edge.source_input is None &&
+      edge.target == target &&
+      graph_task_unit_index(graph, edge.producer) == Some(stage)
+    @pipeline.Input(source) =>
+      edge.source_input == Some(source) &&
+      (
+        operation_input ||
+        (edge.operation_input is None && edge.input == source)
+      )
+  }
+}
+
+///|
+fn paused_dependency_target(
+  graph : CheckedDAG,
+  edge : @graph.DataEdge,
+) -> Result[@graph.DataEdge, CapturedPausedDependencyIssue] {
+  if graph.targets_at(edge.producer).bind(value => value) != Some(edge.target) {
+    return Err(DependencyUnavailable(UnsupportedGraph))
+  }
+  Ok(edge)
+}
+
+///|
+/// Visit one exact checked edge from a completed materialized producer to the
+/// scheduler's Next task. The caller must fund any copying on its own existing
+/// owner and encode any retained cells within the synchronous visit.
+/// Scope return clears the reader before releasing the pin.
+pub fn with_captured_paused_materialized_dependency(
+  run : CapturedDAG,
+  source : CapturedTaskBoundary,
+  revision : Int,
+  edge_index : Int,
+  max_pins : Int,
+  visit : (@graph.DataEdge, CapturedPausedMaterializedDependency) -> Unit,
+) -> Result[Unit, CapturedPausedDependencyIssue] {
+  guard captured_paused_dependency_current(run, source, revision) &&
+    source.original is Some(original) else {
+    return Err(Boundary(StaleBoundary))
+  }
+  let edge = match
+    captured_paused_next_dependency(
+      run,
+      original.hooks,
+      revision,
+      captured_task_boundary_generation(source),
+      edge_index,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let loan = match
+    fork_captured_task_boundary(
+      run, source, captured_paused_materialized_dependency_bytes,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Boundary(issue))
+  }
+  let observed = visit_paused_materialized_dependency(
+    run, loan, revision, edge, max_pins, visit,
+  )
+  let returned = return_captured_task_boundary(loan)
+  // A refusal leaves the same fork on the original cleanup list. Preserve
+  // an earlier selection/current failure while its cleanup remains pending.
+  match (observed, returned) {
+    (Err(issue), _) => Err(issue)
+    (_, Err(issue)) => Err(Boundary(issue))
+    (Ok(_), Ok(_)) =>
+      if captured_paused_dependency_current(run, source, revision) {
+        Ok(())
+      } else {
+        Err(Boundary(StaleBoundary))
+      }
+  }
+}
+
+///|
+fn visit_paused_materialized_dependency(
+  run : CapturedDAG,
+  loan : CapturedTaskBoundary,
+  revision : Int,
+  edge : @graph.DataEdge,
+  max_pins : Int,
+  visit : (@graph.DataEdge, CapturedPausedMaterializedDependency) -> Unit,
+) -> Result[Unit, CapturedPausedDependencyIssue] {
+  if !captured_paused_dependency_current(run, loan, revision) {
+    return Err(Boundary(StaleBoundary))
+  }
+  let pin = match
+    pin_captured_task_output(run, edge.producer, edge.target, max_pins) {
+    Ok(value) => value
+    Err(issue) => return Err(DependencyUnavailable(issue))
+  }
+  let read = { loan, revision, pin, }
+  let scope = { original: Some(read), }
+  if current_paused_dependency_read(scope) is Some(_) {
+    visit(edge, scope)
+  }
+  let current = current_paused_dependency_read(scope) is Some(_)
+  scope.original = None
+  // A still-open producer cannot retire on unpin, so an ordinary capture
+  // reads one edge without triggering another whole-graph cleanup pass.
+  if run.lifetimes[pin.task].live {
+    drop_captured_output_pin(pin) |> ignore
+  } else {
+    release_captured_output_pin(pin) |> ignore
+  }
+  if !current || !captured_paused_dependency_current(run, loan, revision) {
+    return Err(Boundary(StaleBoundary))
+  }
   Ok(())
 }

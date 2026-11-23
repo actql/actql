@@ -7,11 +7,11 @@ import {bytesCid, canonicalJson, contentCid} from '../checkpoints.mjs';
 import {captureResponse, freezeInput, structuralKey} from './data.mjs';
 import {ClientError, fail, requestCancellationCause} from './errors.mjs';
 import {createResultFactory} from './result-read.mjs';
-import {ownerObservationLimits, runStateProtocol, snapshotClientRequest, validCancellationAttempt,
+import {ownerObservationLimits, resumeControlOperationRef, runStateProtocol, snapshotClientRequest, validCancellationAttempt,
   validCancellationLookup, validCancellationRef, validClientBody,
   validOperationAttemptRef, validOwnerObservations, validRunState, validRunWaitContract, validWireRunPlanViewShape,
   validWireRunViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape,
-  validWireRunSampleShape, withinResultDescriptionLimits} from '@actql/client-wire';
+  validWireRunSampleShape, validControlOperationLookup, withinResultDescriptionLimits} from '@actql/client-wire';
 
 async function validateExplanationFacts(facts) {
   const {self_cid: observed, ...body} = facts;
@@ -176,6 +176,18 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
       beforeResultRead: transport.sourcePreparation?.beforeResultRead,
       assertResultReadCurrent: transport.sourcePreparation?.assertResultReadCurrent},
     {runRequest, responseValue}, lifecycle, () => handle);
+    async function admitControlOperationReply(response, operationRef, input, signal) {
+      const lookup = captureResponse(await responseValue(response, input.maxWireBytes));
+      if (!withinResultDescriptionLimits(lookup, input) || !validControlOperationLookup(lookup, operationRef)) {
+        fail('InvalidClientHostControlOperationLookup');
+      }
+      if (lookup.state === 'found') {
+        const {self_cid: receiptCid, ...receipt} = lookup.receipt;
+        if (await contentCid(receipt) !== receiptCid) fail('InvalidClientHostControlOperationLookup');
+      }
+      signal?.throwIfAborted();
+      return freezeInput(lookup);
+    }
     const handle = Object.freeze({
       ref, profile: runProfile, result,
       observeOwners: async ({signal,cursors=[],maxEntries=100,maxWireBytes=ownerObservationLimits.maxWireBytes} = {}) => {
@@ -266,8 +278,9 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
         signal?.throwIfAborted();
         return freezeInput(view);
       },
-      async sample(selector, {signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) {
-        const input = freezeInput(snapshotClientRequest({ref, selector, maxWireBytes, maxNodes, maxDepth}));
+      async sample(selector, {signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64, nextRevision} = {}) {
+        const input = freezeInput(snapshotClientRequest({ref, selector, maxWireBytes, maxNodes, maxDepth,
+          ...(nextRevision === undefined ? {} : {nextRevision})}));
         if (!validClientBody('run-sample', {connection: selected.wire, ...input})) {
           fail('InvalidRunSampleRequest');
         }
@@ -282,6 +295,40 @@ export function createExecutionFactory(selected, confirmed, transport, lifecycle
         }
         signal?.throwIfAborted();
         return freezeInput(view);
+      },
+      async prepareResume({operationId, expectedRevision, until}) {
+        if (typeof operationId !== 'string' || !Number.isInteger(expectedRevision) ||
+            (until !== 'step' && until !== 'terminal')) fail('InvalidRunControlCommand');
+        const body = freezeInput({version: 'actql-control-command/0.1', operation: 'resume',
+          run_ref: {...ref}, operation_id: operationId, expected_control_revision: expectedRevision,
+          interval: {until, guards: null}});
+        const command = freezeInput({...body, self_cid: await contentCid(body)});
+        if (!validClientBody('resume-run', {connection: selected.wire, ref, command,
+          maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64})) fail('InvalidRunControlCommand');
+        return command;
+      },
+      async resume(command, {signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) {
+        const input = freezeInput(snapshotClientRequest({ref, command, maxWireBytes, maxNodes, maxDepth}));
+        if (!validClientBody('resume-run', {connection: selected.wire, ...input})) fail('InvalidRunControlCommand');
+        const {self_cid: commandCid, ...commandBody} = input.command;
+        if (await contentCid(commandBody) !== commandCid) fail('InvalidRunControlCommand');
+        signal?.throwIfAborted();
+        const response = await runRequest('resume-run', input, signal);
+        const answer = await admitControlOperationReply(response, resumeControlOperationRef(input.command), input, signal);
+        if (answer.state === 'found' ? answer.receipt.outcome !== 'accepted' ||
+            answer.receipt.observed_state.resume_origin?.kind !== 'manual' :
+            answer.state !== 'unknown' || answer.reason !== 'control_acceptance_unknown') {
+          fail('InvalidClientHostControlOperationLookup');
+        }
+        return answer;
+      },
+      async lookupControlOperation(operationRef, {signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) {
+        const input = freezeInput(snapshotClientRequest({ref, operationRef, maxWireBytes, maxNodes, maxDepth}));
+        if (!validClientBody('lookup-control-operation', {connection: selected.wire, ...input})) {
+          fail('InvalidRunControlOperationRef');
+        }
+        const response = await runRequest('lookup-control-operation', input, signal);
+        return await admitControlOperationReply(response, input.operationRef, input, signal);
       },
       inspect: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {
         const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}));

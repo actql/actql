@@ -2242,7 +2242,9 @@
             "contentGenerationControl/init:prepareRequestOutputDemand/init:prepareRequestOutputDemand/quantities/quantities",
             "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
             "publicationControl/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand/init:prepareRequestSerializationOutputDemand",
-            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan"
+            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan",
+            "publicationControl/init:issueLocalDebugResumeReceipt/init:issueLocalDebugResumeReceipt",
+            "publicationControl/init:localDebugResumeReceiptConstructionBytes/init:localDebugResumeReceiptConstructionBytes"
           ],
           "exports": [
             "contentCaptureControl",
@@ -14606,6 +14608,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueLocalDebugResumeReceipt/init:issueLocalDebugResumeReceipt",
+          "parameters": [
+            "runDefinition",
+            "command",
+            "parkWire",
+            "acceptedRevision",
+            "acceptedAt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
           "parameters": [
             "owner",
@@ -14946,6 +14960,14 @@
           "name": "publicationControl/init:keyedLookupPublicationEvidence/init:keyedLookupPublicationEvidence",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:localDebugResumeReceiptConstructionBytes/init:localDebugResumeReceiptConstructionBytes",
+          "parameters": [
+            "limits",
+            "issuing"
           ],
           "async": false
         },
@@ -16506,7 +16528,8 @@
             "ref",
             "state",
             "snapshotCid",
-            "limits"
+            "limits",
+            "debugParkWire"
           ],
           "async": false
         },
@@ -16867,7 +16890,9 @@
             "executionOwner",
             "definition",
             "setup",
-            "journalBytes"
+            "journalBytes",
+            "debugEntry",
+            "previousJournalBytes"
           ],
           "async": false
         },
@@ -19861,7 +19886,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "bca32a0cafd0916fbd15d61b156801910e748d5f1fedcf9a3fada654edb13d99"
+      "sha256": "0fdadfe5fd209a796f644810181766a2172ba987559e52714c06b9a0e716d580"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -42648,7 +42673,7 @@
           "declaration": "source_free_installed_managed_preparation_owned ( owner : ClientLocalSequenceOwner , installed_contracts : ClientInstalledSequenceContracts , values_body : String , fragment_body : String ? , ordered_body : String ? , mock_model : Bool , model ? : @ publication_host . ClientInferPlanGraph ?"
         }
       ],
-      "sha256": "a65cbbe304cdace87583fa1f6affbcc387c8afd38e92e2e6a247011a93363c0c"
+      "sha256": "0d7e23fc55a2c915cd399ec590809b0316a16b445ab4b0eeb4d6902f41b2536f"
     },
     {
       "module": "src/client_local_host/installed_mock_model_plan.mbt",
@@ -50769,7 +50794,7 @@
     {
       "module": "src/client_local_host/preparation_request_parent.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "2ec7285c0fdc3fe7fbe5a54c8d8949b6f4718345b8ecff999420f14e16a38f7a",
+      "sha256": "517dba9b116ff0fa6dedd57611ebe79f6a472769884d170de0b257709a7a7be9",
       "role": "common-semantics",
       "owner": "Existing client_local_host original preparation driver",
       "exports": [],
@@ -69045,7 +69070,7 @@
         },
         {
           "name": "client_program_check_relation_sample_profile",
-          "declaration": "client_program_check_relation_sample_profile ( owner : @ client_local_host . ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , observation : @ client_local_host . ClientLogicalObservation , original_reference_wire : String , records : @ client_local_host . InstalledRelationSampleProfileEvidence , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ client_local_host . ClientCheckedRelationSampleProfile , String , String , @ publication_host . PreparedClientProgram , @ publication_host . ClientCompiledRun , ) , @ client_local_host . InstalledRelationSampleProfileIssue , ]"
+          "declaration": "client_program_check_relation_sample_profile ( owner : @ client_local_host . ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , observation : @ client_local_host . ClientLogicalObservation , original_reference_wire : String , records : @ client_local_host . InstalledRelationSampleProfileEvidence , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ client_local_host . ClientCheckedRelationSampleProfile , String , String , @ publication_host . PreparedClientProgram , @ publication_host . ClientCompiledRun , String , ) , @ client_local_host . InstalledRelationSampleProfileIssue , ]"
         },
         {
           "name": "client_program_cleanup_local_preparation_admission",
@@ -69145,7 +69170,7 @@
         },
         {
           "name": "client_program_issue_relation_sample_profile",
-          "declaration": "client_program_issue_relation_sample_profile ( owner : @ client_local_host . ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , observation : @ client_local_host . ClientLogicalObservation , original_reference_wire : String , installed_profile_wire : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ client_local_host . ClientCheckedRelationSampleProfile , String , String , @ publication_host . PreparedClientProgram , @ publication_host . ClientCompiledRun , ) , @ client_local_host . InstalledRelationSampleProfileIssue , ]"
+          "declaration": "client_program_issue_relation_sample_profile ( owner : @ client_local_host . ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , observation : @ client_local_host . ClientLogicalObservation , original_reference_wire : String , installed_profile_wire : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ client_local_host . ClientCheckedRelationSampleProfile , String , String , @ publication_host . PreparedClientProgram , @ publication_host . ClientCompiledRun , String , ) , @ client_local_host . InstalledRelationSampleProfileIssue , ]"
         },
         {
           "name": "client_program_logical_observation_cleanup",
@@ -69557,7 +69582,7 @@
         },
         {
           "name": "client_program_reserve_relation_sample_start",
-          "declaration": "client_program_reserve_relation_sample_start ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , journal_bytes : Int , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
+          "declaration": "client_program_reserve_relation_sample_start ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , journal_bytes : Int , debug_entry : Bool , previous_journal_bytes : Int , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
         },
         {
           "name": "client_program_reserve_request_effect_capture_recovery",
@@ -69656,11 +69681,11 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "3e8cf1ce93f5d9dce0534664d3932b8e06d7ecef3b5773a25fe2dd9e27f64bc3"
+      "sha256": "2317c270b94b5ceeef7c36d19411ce89fd551a7bf246c04f8c0c878612673781"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "7fcacb3a9f6b32588dfb6dd9abbd49a6e9daa91f229ff870705acf59167e75d2",
+      "sha256": "43a19913dcea92e16d2920b85397ada552b11c2f70e0df696889c3e24f0d2b92",
       "exports": [],
       "operations": [
         {
@@ -70029,7 +70054,7 @@
         },
         {
           "name": "client_program_current_run_view",
-          "declaration": "client_program_current_run_view ( run : @ publication . PublicationContract , prepared : @ publication . RunEvidenceValue , authorization : @ publication . RunEvidenceValue , run_ref_wire : String , state_wire : String , snapshot_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ publication . RunControlReadIssue ]"
+          "declaration": "client_program_current_run_view ( run : @ publication . PublicationContract , prepared : @ publication . RunEvidenceValue , authorization : @ publication . RunEvidenceValue , run_ref_wire : String , state_wire : String , snapshot_cid : String , max_bytes : Int , max_nodes : Int , max_depth : Int , debug_park_wire : String , ) - > Result [ String , @ publication . RunControlReadIssue ]"
         },
         {
           "name": "client_program_definition_cid",
@@ -70776,6 +70801,10 @@
           "declaration": "client_program_issue_imported_local_effect_table_artifact ( owner : @ publication_host . PreparedClientEffectComputation , inputs : @ strategy . CapturedEffectInputs , member_index : Int , importing : ClientEffectManagedInputImport , definition : @ publication_host . ClientEffectLocalTableDefinition , imported : @ publication_host . ClientEffectImportedEvidence , receipt : @ execution . CompletedRelationExportReceipt , retention : @ publication . PublicationContract , admission : @ publication . RunPublicationAdmission , run_definition : @ publication . PublicationContract , run_invocation : @ publication . PublicationContract , observation : @ publication . RunEvidenceValue , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultArtifact , ClientEffectLocalArtifactBridgeIssue , ]"
         },
         {
+          "name": "client_program_issue_local_debug_resume_receipt",
+          "declaration": "client_program_issue_local_debug_resume_receipt ( run : @ publication . PublicationContract , command : @ publication . RunEvidenceValue , park_wire : String , accepted_revision : Int , accepted_at : String , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication . RunEvidenceValue , @ publication . RunControlReadIssue ]"
+        },
+        {
           "name": "client_program_issue_local_effect_result_definition",
           "declaration": "client_program_issue_local_effect_result_definition ( value : @ publication_host . PreparedClientEffectComputation , unit : Int , result_name : String , max_wire_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ @ publication_host . ClientEffectLocalResultDefinition , @ publication_host . ClientEffectLocalResultDefinitionIssue , ]"
         },
@@ -70886,6 +70915,10 @@
         {
           "name": "client_program_local_aoa_steps",
           "declaration": "client_program_local_aoa_steps ( prepared : @ publication_host . PreparedClientProgram , task : Int , ) - > Result [ String , @ publication_host . ClientTaskAoAStepsIssue ]"
+        },
+        {
+          "name": "client_program_local_debug_resume_receipt_construction_bytes",
+          "declaration": "client_program_local_debug_resume_receipt_construction_bytes ( max_bytes : Int , max_nodes : Int , max_depth : Int , issuing : Bool , ) - > Int64"
         },
         {
           "name": "client_program_local_effect_host_run",
@@ -72578,6 +72611,87 @@
               {
                 "path": "src/client_local_host/installed_effect_native_control_js_wbtest.mbt",
                 "anchor": "test \"native returned DATA keeps same-owner retention after completion and refuses before growth\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_issue_local_debug_resume_receipt",
+            "client_program_local_debug_resume_receipt_construction_bytes"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The installed Local `valuesMaxRows` setting is immutable preparation DATA."
+              },
+              {
+                "path": "src/connectors_builtin_node/client_request_row_limit_wbtest.mbt",
+                "anchor": "test \"selected Request one-row-short ceiling retains"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "test('normal first Request Plan keeps its original typed row refusal"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
+                "anchor": "test \"Request checked Source ARRAY refusal reaches existing public rejection without recheck\""
               }
             ]
           }
@@ -103611,7 +103725,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing client_local_host Request preparation and Resource owners; original READ phase and projection only",
-      "sha256": "c22b6dd4b3bb73570ac1ad1edba9e2bdab9db8b6d56ae5e19077e8817e597b79",
+      "sha256": "feb8b7dfa5b172507a0c3aeede51ce6071f18f984db5385f6e7c8f3a7610f1df",
       "exports": [],
       "operations": [
         {
@@ -103647,6 +103761,10 @@
           "declaration": "client_program_release_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , slot : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reserve_request_result_construction",
+          "declaration": "client_program_reserve_request_result_construction ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , peak : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_result_metadata",
           "declaration": "client_program_reserve_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , bytes : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
@@ -103678,7 +103796,8 @@
             "client_program_begin_request_result_read_wire",
             "client_program_begin_request_result_read_wire_row",
             "client_program_grow_request_result_read_frame",
-            "<module>"
+            "<module>",
+            "client_program_reserve_request_result_construction"
           ],
           "exports": [],
           "attributes": {
@@ -103800,7 +103919,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing client_local_host Request preparation and Resource owners; original READ phase and projection only",
-      "sha256": "d469e8741782b3045351de69ebff5df5b5164d54d65bf0d6767db31388862e02",
+      "sha256": "4165743c6285d71f6901523691bfe1b1d47d29ba749eb172533b3edd179d567b",
       "exports": [],
       "operations": [
         {
@@ -103836,6 +103955,10 @@
           "declaration": "client_program_release_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , slot : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
         {
+          "name": "client_program_reserve_request_result_construction",
+          "declaration": "client_program_reserve_request_result_construction ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , peak : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
+        },
+        {
           "name": "client_program_reserve_request_result_metadata",
           "declaration": "client_program_reserve_request_result_metadata ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , bytes : Int , ) - > Result [ Unit , @ client_local_host . ClientRequestPreparationIssue ]"
         },
@@ -103867,7 +103990,8 @@
             "client_program_begin_request_result_read_wire",
             "client_program_begin_request_result_read_wire_row",
             "client_program_grow_request_result_read_frame",
-            "<module>"
+            "<module>",
+            "client_program_reserve_request_result_construction"
           ],
           "exports": [],
           "attributes": {
@@ -106758,7 +106882,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
-      "sha256": "bce656e809d04034fbf0e3444020011eac493870be7718e80415cbd41d2aa5ba",
+      "sha256": "128caafa2b10db259ee0eba491d5325c678ac6188479b1107889e57f51c76fc5",
       "exports": [],
       "operations": [
         {
@@ -106768,6 +106892,10 @@
         {
           "name": "client_program_account_read_control_bytes",
           "declaration": "client_program_account_read_control_bytes ( ) - > Int64"
+        },
+        {
+          "name": "client_program_advance_relation_sample_debug_entry",
+          "declaration": "client_program_advance_relation_sample_debug_entry ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , account : AuthorizationAccount , principal : String , connection : String , command : String , revision : Int , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
         },
         {
           "name": "client_program_advance_relation_sample_start_control",
@@ -106792,6 +106920,26 @@
         {
           "name": "client_program_prepare_installed_account_read",
           "declaration": "client_program_prepare_installed_account_read ( owner : @ resources . PreparationCapacity [ ClientLocalPreparationInputOriginal , ( ClientLocalPreparationInputOriginal , @ source_publication . PreparedPublishedQueryEnvironment , ) , ] , input : ClientLocalPreparationInputOriginal , ) - > Result [ @ resources . PreparationAccountRead , @ resources . PreparationCapacityIssue , ]"
+        },
+        {
+          "name": "client_program_relation_sample_debug_entry_runnable",
+          "declaration": "client_program_relation_sample_debug_entry_runnable ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , start_revision : Int , ) - > Result [ Bool , @ client_local_host . InstalledRelationSampleStartIssue ]"
+        },
+        {
+          "name": "client_program_relation_sample_debug_next_input",
+          "declaration": "client_program_relation_sample_debug_next_input ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , start_revision : Int , control_revision : Int , pause_generation : Int , next_step_id : String , input : Int , max_work : Int , ) - > Result [ ( String , String , String , Int , Int ) ? , String ]"
+        },
+        {
+          "name": "client_program_relation_sample_debug_resume_allowed",
+          "declaration": "client_program_relation_sample_debug_resume_allowed ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , account : AuthorizationAccount , principal : String , connection : String , ) - > Bool"
+        },
+        {
+          "name": "client_program_relation_sample_debug_task_pause",
+          "declaration": "client_program_relation_sample_debug_task_pause ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , start_revision : Int , ) - > Result [ ( Int , String , String , Int ) , @ client_local_host . InstalledRelationSampleStartIssue , ]"
+        },
+        {
+          "name": "client_program_resume_relation_sample_debug_task",
+          "declaration": "client_program_resume_relation_sample_debug_task ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , owner : @ client_local_host . ClientInstalledManagedRun , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , account : AuthorizationAccount , principal : String , connection : String , start_revision : Int , control_revision : Int , step_id : String , next_step_id : String , committed_generation : Int , step : Bool , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
         },
         {
           "name": "execution_authorization_admit_prepared",
@@ -107042,6 +107190,316 @@
               {
                 "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
                 "anchor": "ordinary Debug does not opt into the unattended Sample starter"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_advance_relation_sample_debug_entry"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn advance_installed_relation_sample_debug_entry("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramAdvanceRelationSampleDebugEntry\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_strategy_host/captured_relation_sample_prefix.mbt",
+                "anchor": "pub fn captured_relation_sample_start_matches_revision("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "installed_relation_sample_profile_current(owner, profile)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "@strategy.captured_relation_sample_start_matches_revision("
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "guard profile.start_mode is PausedEntry"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "if run.stopped || hooks.closing {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "let checked = @resources.grow_capacity_reservation("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/run_publication/interactive_control_binding.mbt",
+                "anchor": "pub fn interactive_profile_requires_entry_stop("
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"acknowledged entry Step pauses before the next original Sample output\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_relation_sample_debug_entry_runnable"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareDebugEntryResume: installNodeRelationSampleDebugEntry(moon,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugEntryRunnable\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn installed_relation_sample_debug_entry_runnable("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.debugControl = debugController;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const ready = checked(runnable.call(moon"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (!current() || live !== original) throw new Error('ClientRunDebugEntryDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.listener = addAbortListener(signal,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "let installed_sample_debug_entry_bytes : Int64"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function closeDebugControl(entry)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('the selected Debug receiver waits on the original setup and detaches on abort or retirement'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_relation_sample_debug_next_input",
+            "client_program_relation_sample_debug_task_pause",
+            "client_program_resume_relation_sample_debug_task"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn resume_installed_relation_sample_debug_task("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugTaskPause\")"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramResumeRelationSampleDebugTask\")"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugNextInput\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "original.generation == run.generation"
+              },
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "generation != committed_generation"
+              },
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "original_next != next_step_id"
+              },
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile.driver_outputs\n    .get(edge.producer)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "installed_debug_task_control(profile, owner, captured, start_revision)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (handoff !== undefined) capture(handoff)"
+              },
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "expected_revision=control_revision"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "original_step != step_id ||"
+              },
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "Err(InputWorkLimit) => return Err(NextInputWorkLimit)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "if run.stopped || hooks.closing {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "let checked = @resources.grow_capacity_reservation("
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile.driver_outputs.get(task)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"acknowledged entry Step pauses before the next original Sample output\""
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "resume_task(revision, step_id, next_step_id, generation + 1)"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "resume_task(revision, step_id, \"\", generation)"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_relation_sample_debug_resume_allowed"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn installed_relation_sample_debug_resume_allowed("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugResumeAllowed\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "physical_equal(profile.captured, captured) &&"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "installed_relation_sample_profile_current(owner, profile) &&"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "resumeAllowed.call(moon, original.profile, original.owner, original.setup,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "outcome === 'account-denied'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "!hostClosing && current()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "let installed_sample_debug_entry_bytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "installed_relation_sample_control_tuple(principal, connection, false)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "let pause_only = @authorization.admit_account_configuration"
               }
             ]
           }

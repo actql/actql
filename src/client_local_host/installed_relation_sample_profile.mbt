@@ -22,6 +22,13 @@ pub(all) enum InstalledRelationSampleProfileIssue {
 }
 
 ///|
+priv enum InstalledRelationSampleStartMode {
+  UnattendedTerminal
+  PausedEntry
+  UnsupportedControl
+}
+
+///|
 /// Borrowed policy facts for this live, checked physical setup. The opaque
 /// original is retained by the existing Run reservation after observation
 /// return. It grants neither capture nor disclosure.
@@ -33,7 +40,7 @@ struct ClientCheckedRelationSampleProfile {
   definition : @publication.PublicationContract
   captured : @strategy.CapturedDAG
   selection : @publication.InteractiveRelationSampleSelection
-  unattended_start : Bool
+  start_mode : InstalledRelationSampleStartMode
   driver_outputs : Map[Int, (String, String, String)]
   control_admission_cid : String
   resolved_profile_cid : String
@@ -573,9 +580,17 @@ fn check_installed_relation_sample_profile_original(
     definition,
     captured,
     selection,
-    unattended_start: @publication.interactive_profile_allows_unattended_terminal(
-      records.effective,
-    ),
+    start_mode: if @publication.interactive_profile_allows_unattended_terminal(
+        records.effective,
+      ) {
+      UnattendedTerminal
+    } else if @publication.interactive_profile_requires_entry_stop(
+        records.effective,
+      ) {
+      PausedEntry
+    } else {
+      UnsupportedControl
+    },
     driver_outputs,
     control_admission_cid: @publication.run_evidence_value_identity(
       records.admission,
@@ -596,12 +611,14 @@ pub fn installed_relation_sample_profile_start_original(
   String,
   @publication_host.PreparedClientProgram,
   @publication_host.ClientCompiledRun,
+  String,
 ) {
   (
     profile.control_admission_cid,
     profile.resolved_profile_cid,
     profile.prepared,
     profile.compiled,
+    profile.logical_map_cid,
   )
 }
 

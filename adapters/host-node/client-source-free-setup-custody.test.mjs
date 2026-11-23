@@ -1,11 +1,15 @@
 import assert from 'node:assert/strict';
+import {getEventListeners} from 'node:events';
 import test from 'node:test';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {installNodeClientDispatchOwner} from './client-dispatch-owner.mjs';
+import {installNodeClientDispatchOwner, installNodeRelationSampleStart,
+  installNodeRelationSampleDebugEntry} from './client-dispatch-owner.mjs';
 import {ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
 import {sourceFreeValuesPlan} from './local-values-plan.mjs';
+import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
+import {CapturedRunPublicationError} from './entry.mjs';
 
 function fixture({reserved = true, failCleanup = false, unresolved = false} = {}) {
   const ref = {runDefinitionCid: 'source-free-setup-custody'};
@@ -116,10 +120,14 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   sampleStartCoreFailure = false, sampleStartCapacityFailure = false,
   sampleStartMissingReady = false, sampleProfileFailure = false,
   missingSampleProfile = false, sampleReadCapacityFailure = false, normalCompute = false,
-  sampleWriterMissing = false, ordinaryDebug = false} = {}) {
+  sampleWriterMissing = false, ordinaryDebug = false, replaceSampleAccountAtAck = false,
+  debugResumeUntil, debugReplyLost = false, jointStart = 'confirmed', debugEntry = false, laterDebugPark = false} = {}) {
   const prepared = {}, request = {}, run = {}, holder = {}, setup = {}, capacity = {}, ledger = {};
   const ref = {runDefinitionCid: 'original-dispatch-custody'};
-  const runDefinition = {wire: 'definition'}, failures = [];
+  const runDefinition = {identity: ref.runDefinitionCid, wire: 'definition'}, failures = [];
+  // SQLite admits its own copy. The checked Core receiver still expects the
+  // original Definition that the compiled plan and setup own.
+  const acceptedDefinition = sampleStart ? {...runDefinition} : runDefinition;
   const calls = {borrowed: 0, returned: 0, opened: 0, closed: 0,
     leaseRetired: 0, sourceRetired: 0, physicalClaims: 0, managedLedger: 0, legacyLedger: 0,
     wholeLedger: 0, captureOpened: 0, sourceClosed: 0, bound: 0, stopped: 0, retention: 0,
@@ -130,7 +138,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   const sourceEvidence = {}, publicationPreparation = run, authoringContextOriginal = {};
   const originalRetention = Object.freeze({wire: 'original-retention'});
   const dataPolicyCid = 'fixture-policy';
-  let ready = cleanupReady, failed, entered, resume;
+  let ready = laterDebugPark || cleanupReady, laterReady = cleanupReady, failed, entered, resume;
   const failure = new Promise(resolve => { failed = resolve; });
   const physicalEntered = new Promise(resolve => { entered = resolve; });
   const physicalBarrier = new Promise(resolve => { resume = resolve; });
@@ -313,18 +321,33 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   const sampleEvents = [];
   const sampleObservation = {}, profile = {}, checkedProfile = {}, startTicket = {};
   const committedPrefix = {}, scopedTicket = {}, originalReceipt = {};
-  let adoptSample;
+  const originalAccount = {};
+  let account = originalAccount, allowsSampleCapture = true;
+  moon.clientProgramAdvanceRelationSampleStartControl = function(
+    actualProfile, owner, actualSetup, actualAccount, principalId, site, acknowledged) {
+    assert.equal(sampleStart, true, 'Only an explicitly selected original profile may enter the controller');
+    assert.equal(this, moon);
+    assert.equal(actualProfile, checkedProfile);
+    assert.equal(owner, run);
+    assert.equal(actualSetup, setup);
+    assert.equal(actualAccount, originalAccount);
+    assert.equal(principalId, 'owner');
+    assert.equal(site, 'installed-fixture-authority');
+    assert.equal(acknowledged, sampleEvents.includes('core'));
+    sampleEvents.push(acknowledged ? 'received' : 'prepared');
+    return ok(undefined);
+  };
   if (sampleStart) {
     moon.strategyHostRun = value => { assert.equal(value, setup); return dag; };
-    control.reserveClientRelationSampleStart = (owner, identity, execution, definition, configured, journalBytes) => {
+    control.reserveClientRelationSampleStart = (owner, identity, execution, definition, configured, journalBytes, debugEntry) => {
       assert.equal(owner, run);
       assert.equal(identity, request);
       assert.equal(execution.program, prepared);
       assert.equal(definition, runDefinition);
       assert.equal(configured, setup);
-      assert.equal(held.prepareSampleStart, undefined, 'The same Run transferred the receiver before funding');
-      assert.equal(held.sampleProfile, undefined);
+      assert.equal(Object.hasOwn(held, 'sampleProfile'), false, 'The original profile is selected once before funding');
       if (journalBytes === undefined) {
+        assert.equal(debugEntry, debugResumeUntil !== undefined);
         sampleEvents.push('reserve');
         if (sampleStartCapacityFailure) throw marker;
       } else {
@@ -355,7 +378,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       assert.equal(execution.program, prepared);
       assert.equal(definition, runDefinition);
       assert.equal(captured, dag);
-      assert.equal(revision, 2);
+      assert.equal(revision, debugResumeUntil === undefined ? 2 : 4);
       sampleEvents.push('core');
       if (sampleStartCoreFailure) throw marker;
     };
@@ -379,8 +402,126 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope',
     now: () => '2026-11-15T00:00:00.000Z',
   }) : undefined;
+  const hostConnection = () => true;
+  const debugEvents = [], debugCid = `sha256:${'3'.repeat(64)}`;
+  const debugWitness = Object.freeze({commandCid: debugCid, acceptedRevision: 3, physicalStartRevision: 4,
+    until: debugResumeUntil});
+  const taskControl = Object.freeze({phase: () => 'runnable', waitForResume: assert.fail});
+  let installedDebug, debugRunnable = true;
+  const atTaskBoundary = Promise.withResolvers();
+  const continueToPark = Promise.withResolvers();
+  const taskParked = Promise.withResolvers();
+  const completedStepId = `sha256:${'6'.repeat(64)}`;
+  const nextStepId = `sha256:${'7'.repeat(64)}`;
+  moon.clientProgramAdvanceRelationSampleDebugEntry = function(actualProfile, owner, actual, admitted,
+    principal, site, command, revision) {
+    assert.equal(this, moon);
+    assert.equal(actualProfile, checkedProfile);
+    assert.equal(owner, run);
+    assert.equal(actual, setup);
+    assert.equal(admitted, originalAccount);
+    assert.equal(principal, 'owner');
+    assert.equal(site, 'installed-fixture-authority');
+    assert.equal(revision, command === 'prepare' ? 0 : 4);
+    if (command !== 'prepare') {
+      assert.equal(sampleEvents.at(-1), 'core', 'Sample acknowledges the winning revision before activation');
+      sampleEvents.push('debug-resume');
+    }
+    debugEvents.push(command);
+    return ok(undefined);
+  };
+  moon.clientProgramRelationSampleDebugEntryRunnable = function(actualProfile, owner, actual, revision) {
+    assert.equal(this, moon);
+    assert.equal(actualProfile, checkedProfile);
+    assert.equal(owner, run);
+    assert.equal(actual, setup);
+    assert.equal(revision, 4);
+    return ok(debugRunnable);
+  };
+  moon.clientProgramRelationSampleDebugTaskPause = (profile, owner, actual, revision) => {
+    assert.equal(laterDebugPark, true);
+    assert.equal(profile, checkedProfile);
+    assert.equal(owner, run);
+    assert.equal(actual, setup);
+    assert.equal(revision, 4);
+    return ok({_0: 2, _1: completedStepId, _2: nextStepId, _3: 7});
+  };
+  moon.clientProgramResumeRelationSampleDebugTask = assert.fail;
+  moon.clientProgramRelationSampleDebugResumeAllowed = () => true;
+  const debugEntryExpiresAt = Date.parse('2026-11-15T00:00:05Z');
+  const debugPausedAt = Date.parse('2026-11-15T00:00:00Z');
+  const entryParked = Promise.withResolvers();
+  const prepareDebug = installNodeRelationSampleDebugEntry(moon, () => account,
+    hostConnection, 'installed-fixture-authority', {
+      journal: {
+        parkDebugTask(original, {startRevision, expectedRevision, controlRevision, stepId, nextStepId: selectedNext, committedGeneration, current}) {
+          assert.equal(laterDebugPark, true);
+          assert.equal(original, ref);
+          assert.equal(startRevision, 4);
+          assert.equal(expectedRevision, 4);
+          assert.equal(controlRevision, 2);
+          assert.equal(stepId, completedStepId);
+          assert.equal(committedGeneration, 7);
+          assert.equal(current(), true);
+          frame = Object.freeze({...frame, revision: 5});
+          debugEvents.push('park-task');
+          taskParked.resolve();
+          assert.equal(selectedNext, nextStepId);
+          return {kind: 'parked', revision: 5, controlRevision, stepId, nextStepId: selectedNext, committedGeneration,
+            expiresAt: debugEntryExpiresAt, pausedAt: debugPausedAt};
+        },
+        acceptDebugTaskResume: assert.fail,
+        debugPauseCurrent(original, {parked, startRevision, current}) {
+          assert.equal(original, ref);
+          assert.equal(parked.revision, parked.stepId === undefined ? 2 : 5);
+          assert.equal(startRevision, parked.stepId === undefined ? 0 : 4);
+          return current();
+        },
+        parkDebugEntry(identity, selection, requestControl, publicationControl) {
+          assert.equal(debugEntry, true); assert.equal(identity, request);
+          assert.equal(selection.ref, ref); assert.equal(selection.expiresAt, debugEntryExpiresAt);
+          assert.equal(selection.expectedRevision, 1); assert.equal(selection.current(), true);
+          assert.equal(requestControl, moon); assert.equal(publicationControl, control);
+          debugEvents.push('park-entry');
+          entryParked.resolve();
+          return {kind: 'parked', revision: 2, expiresAt: debugEntryExpiresAt, pausedAt: debugPausedAt};
+        },
+        acceptDebugEntryResume(original, {commandWire, current, capture, receiptOriginal}, publicationControl) {
+          assert.equal(original, ref); assert.equal(publicationControl, control);
+          assert.equal(commandWire, 'fixture-entry-command');
+          if (current() !== true) throw new Error('FixtureEntryDenied');
+          assert.strictEqual(receiptOriginal.runDefinition, runDefinition);
+          assert.equal(receiptOriginal.logicalMapCid, 'sha256:' + 'a'.repeat(64));
+          receiptOriginal.reserve(64);
+          debugEvents.push('accept-entry');
+          const receipt = {kind: 'resume_accepted', revision: 3, commandCid: debugCid, until: debugResumeUntil};
+          capture(receipt);
+          return receipt;
+        },
+      }, control, now: () => '2026-11-15T00:00:00.000Z',
+    });
+  const prepareSampleStart = installNodeRelationSampleStart(moon, () => account,
+    hostConnection, 'installed-fixture-authority');
   const owner = installNodeClientDispatchOwner({moon,
     control,
+    prepareSampleStart: sampleStartMissingReady ? (...args) => {prepareSampleStart(...args);} : prepareSampleStart,
+    prepareDebugEntryResume(actual, owner, authority, sample, signal, mapCid, definition) {
+      assert.equal(debugResumeUntil !== undefined, true);
+      assert.strictEqual(actual, setup);
+      assert.strictEqual(owner, run);
+      assert.strictEqual(authority.ref, ref);
+      assert.equal(sample, sampleStart ? checkedProfile : undefined);
+      if (sample !== undefined) {
+        assert.equal(mapCid, 'sha256:' + 'a'.repeat(64));
+        installedDebug = prepareDebug(actual, owner, authority, sample, signal, mapCid, definition);
+        return installedDebug;
+      }
+      debugEvents.push('prepare');
+      return {current: () => !sampleStart || account === originalAccount, activate(witness) {
+        assert.strictEqual(witness, debugWitness);
+        debugEvents.push(witness.until);
+      }, taskControl};
+    },
     journal: {
       originalSubmittedIntent(identity, options, originalMoon, originalControl) {
         assert.equal(sampleStart, true, 'Normal dispatch must not open a Sample Journal view');
@@ -400,7 +541,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
           assert.ok(limits.maxWireBytes > 0);
           sampleEvents.push('check-profile');
           if (sampleProfileFailure) throw new Error('ClientRequestSubmittedIntentMismatch');
-          return {profile: checkedProfile, startTicket, withAdoption(prefix, current, consume) {
+          return {profile: checkedProfile, startTicket, logicalMapCid: 'sha256:' + 'a'.repeat(64), withAdoption(prefix, current, consume) {
             assert.equal(prefix, committedPrefix);
             if (current() !== true) throw new Error('FixtureSamplePermissionDenied');
             sampleEvents.push('visit-prefix');
@@ -410,6 +551,15 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       },
       reservePhysicalStart(_request, options) {
         calls.physicalClaims++;
+        if (debugResumeUntil !== undefined) {
+          assert.equal(options.debugResume.commandCid, debugCid);
+          assert.equal(options.debugResume.current(), true);
+          debugEvents.push('claim');
+          if (jointStart === 'unknown') {
+            throw Object.assign(new Error('ClientRunPhysicalStartUnknown'), {code: 'ClientRunPhysicalStartUnknown', outcome: 'unknown'});
+          }
+          if (physicalStart && !debugReplyLost) options.debugResume.capture(debugWitness);
+        } else assert.equal(Object.hasOwn(options, 'debugResume'), false);
         if (sampleStart && !sampleStartMissingReady) {
           const capture = options.captureSampleStart;
           assert.equal(capture.startTicket, startTicket);
@@ -417,7 +567,10 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
           assert.equal(capture.compiled, options.localExecutionOwner.compiled);
           sampleEvents.push('claim');
           if (physicalStart) {
-            capture.captureRevision(2);
+            if (jointStart !== 'sample-missing') {
+              capture.captureRevision(debugResumeUntil === undefined ? 2 : jointStart === 'different' ? 5 : 4);
+            }
+            if (replaceSampleAccountAtAck) account = {};
             if (!sampleWriterMissing) capture.captureAdoption(ticket => {
               assert.equal(ticket, scopedTicket);
               sampleEvents.push('journal-adopted');
@@ -441,13 +594,13 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
       assert.equal(submission.preparedProgram, prepared);
       return lease ? {preparedProgram: prepared, retire() { calls.leaseRetired++; }} : undefined;
     }},
-    store: {confirmCommittedIndex: async () => calls.computed === 1 ? {} : undefined},
-    startRun: async () => ({kind: 'reserved', ref}),
-    hostConnection: () => true,
+    store: {confirmCommittedIndex: async () => !laterDebugPark && calls.computed === 1 ? {} : undefined},
+    startRun: async () => ({kind: 'reserved', ref, revision: 1}),
+    hostConnection,
     authorizeSampleCapture({ref: original, principalId}) {
       assert.equal(original, ref);
       assert.equal(principalId, 'owner');
-      return true;
+      return allowsSampleCapture;
     },
     planFor: () => samplePlan ?? ({kind: source ? 'tasks' : 'values', compiled, runDefinition,
       publicationPreparation, requestIdentity: request, authoringContextOriginal, admission: {}, compiledPlan: {identity: 'fixture-compiled'},
@@ -464,7 +617,12 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
     managedComputeRequired: true, retainedRelationOutput: retained,
     runPublished(actual, _publication, _config, _signal, _before, retain, _taskObservation,
-      _preparationHolder, _beforePublication, sampleDriver) {
+      _preparationHolder, _beforePublication, sampleDriver, driverControl) {
+      if (debugResumeUntil !== undefined) {
+        assert.strictEqual(driverControl, installedDebug?.taskControl ?? taskControl);
+        assert.equal(driverControl.phase(setup), 'runnable');
+        debugEvents.push('compute');
+      } else assert.equal(driverControl, undefined);
       calls.computed++;
       assert.equal(normalCompute, true, 'Refused physical start must not enter Compute');
       assert.equal(actual, setup);
@@ -472,15 +630,35 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
         assert.equal(sampleDriver.owner, run);
         assert.equal(sampleDriver.profile, checkedProfile);
         assert.equal(sampleDriver.current(), true);
-        assert.throws(() => adoptSample(committedPrefix, () => false), /FixtureSamplePermissionDenied/u);
+        allowsSampleCapture = false;
+        assert.throws(() => sampleDriver.adopt(committedPrefix), /ClientRunSampleStartOriginalUnavailable/u);
+        allowsSampleCapture = true;
         assert.equal(sampleDriver.adopt(committedPrefix), undefined);
       } else assert.equal(sampleDriver, undefined);
       const completed = {
         close() {calls.closed++;},
-        cleanup() {return true;},
-        cleanupPending() {return false;},
+        cleanup() {return !laterDebugPark || laterReady;},
+        cleanupPending() {return laterDebugPark && !laterReady;},
       };
+      if (laterDebugPark) {
+        return (async () => {
+          debugRunnable = false;
+          atTaskBoundary.resolve();
+          await continueToPark.promise;
+          assert.equal(driverControl.phase(setup), 'paused');
+          try {await driverControl.waitForResume(setup, _signal);}
+          catch (cause) {
+            retain(completed);
+            throw new CapturedRunPublicationError(cause, completed);
+          }
+          assert.fail('Host shutdown cannot resume another task or publish its Result');
+        })();
+      }
       retain(completed);
+      if (installedDebug !== undefined) {
+        assert.equal(installedDebug.current(), false, 'Publication drops the live Debug aliases');
+        assert.throws(() => driverControl.phase(setup), {message: 'ClientRunDebugEntryOriginalUnavailable'});
+      }
       if (sampleStart) {
         assert.equal(sampleDriver.owner, undefined, 'publication may keep the port but the original is released');
         assert.equal(sampleDriver.current(), false);
@@ -492,27 +670,13 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     now: () => '2026-11-15T00:00:00.000Z',
   });
   const held = {...(managed ? {managedRun: run} : {}),
-    ...(sampleStart && !missingSampleProfile ? {sampleProfile: profile} : {}),
-    ...(sampleStart ? {prepareSampleStart(actual, managedRun, execution, actualRef, actualDefinition, evidence) {
-      assert.equal(actual, setup);
-      assert.equal(managedRun, run);
-      assert.equal(execution.program, prepared);
-      assert.equal(actualRef, ref);
-      assert.equal(actualDefinition, runDefinition);
-      assert.equal(evidence, checkedProfile);
-      sampleEvents.push('prepared');
-      if (sampleStartMissingReady) return undefined;
-      return (revision, adopt) => {
-        assert.equal(revision, 2);
-        assert.throws(() => adopt(committedPrefix, () => true), /ClientRunSampleStartOriginalUnavailable/u);
-        adoptSample = adopt;
-        sampleEvents.push('received');
-      };
-    }} : {}),
+    ...(sampleStart ? {sampleProfile: missingSampleProfile ? undefined : profile} : {}),
+    ...(debugEntry ? {debugEntryExpiresAt} : debugResumeUntil === undefined ? {} : {debugResumeCid: debugCid}),
     ...(source ? {preparedSource, preparedSourceAccess: sourceAccess} : {})};
-  return {owner, moon, calls, marker, failures, failure, ref, stops, physicalEntered, sampleEvents,
-    adoptSample() { return adoptSample(committedPrefix, () => true); },
-    ready() { ready = true; },
+  return {owner, moon, calls, marker, failures, failure, ref, stops, physicalEntered, sampleEvents, debugEvents,
+    entryParked: entryParked.promise, taskParked: taskParked.promise,
+    atTaskBoundary: atTaskBoundary.promise, continueToPark: continueToPark.resolve,
+    ready() { ready = laterReady = true; },
     resume,
     cancel() {
       frame = Object.freeze({...frame, revision: frame.revision + 1, cancellationRequested: true});
@@ -521,7 +685,7 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     start() { return owner.start({preparedProgram: prepared, principalId: 'owner',
       connection: {}, requestId: 'fixture-request',
       ...(ordinaryDebug ? {executionProfile: 'debug'} : {})}, request,
-    {ref, runDefinition, dispatchReserved: false, cancellationRequested: false}, held); }};
+    {ref, runDefinition: acceptedDefinition, dispatchReserved: false, cancellationRequested: false}, held); }};
 }
 
 const sampleProfileCheckEvents = ['reserve', 'observation', 'probe-original', 'reserve-original',
@@ -548,7 +712,6 @@ test('selected dispatch uses only its acknowledged Journal writer during Compute
   const f = originalDispatchFixture({sampleStart: true, physicalStart: true, normalCompute: true});
   assert.equal(await f.start(), 'started');
   await f.physicalEntered;
-  assert.throws(f.adoptSample, /ClientRunSampleStartOriginalUnavailable/u);
   const operation = f.owner.operation(f.ref);
   f.resume();
   await operation;
@@ -557,7 +720,6 @@ test('selected dispatch uses only its acknowledged Journal writer during Compute
   assert.equal(f.calls.returned, 1);
   assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'core', 'received',
     'reservation-observed', 'visit-prefix', 'journal-adopted']);
-  assert.throws(f.adoptSample, /ClientRunSampleStartOriginalUnavailable/u);
 });
 
 test('durable Sample start without its writer closes the original setup before Compute', async () => {
@@ -584,6 +746,19 @@ test('refused Sample handoff after a durable start closes the same setup before 
   assert.equal(f.calls.leaseRetired, 1);
   assert.deepEqual(f.stops, ['failed']);
   assert.equal(f.owner.operation(f.ref), undefined);
+});
+
+test('replacement Account after the Sample start ACK cannot activate the installed controller', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, replaceSampleAccountAtAck: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, 'ClientRunSampleStartAuthorityLost');
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'core']);
+  assert.equal(f.calls.physicalClaims, 1);
+  assert.equal(f.calls.computed, 0);
+  assert.deepEqual(f.stops, ['failed']);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
 });
 
 test('Sample start capacity refusal never calls the preparer or attempts the physical claim', async () => {
@@ -666,6 +841,265 @@ test('a selected Sample without admitted profile evidence refuses without openin
   assert.equal(f.calls.physicalClaims, 0);
   assert.equal(f.calls.returned, 1);
   assert.equal(f.calls.leaseRetired, 1);
+});
+
+test('the Driver receives the exact acknowledged Debug interval and original controller', async () => {
+  for (const until of ['step', 'terminal']) {
+    const f = originalDispatchFixture({debugResumeUntil: until, physicalStart: true, normalCompute: true});
+    assert.equal(await f.start(), 'started');
+    await f.physicalEntered;
+    assert.deepEqual(f.debugEvents, ['prepare', 'claim', until]);
+    const operation = f.owner.operation(f.ref);
+    f.resume();
+    await operation;
+    await f.owner.drain();
+    assert.deepEqual(f.debugEvents, ['prepare', 'claim', until, 'compute']);
+    assert.equal(f.calls.returned, 1);
+  }
+});
+
+test('a physical start without the acknowledged Debug interval cannot activate its controller', async () => {
+  const f = originalDispatchFixture({debugResumeUntil: 'step', physicalStart: true, debugReplyLost: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, 'ClientRunDebugEntryOriginalUnavailable');
+  await f.owner.drain();
+  assert.deepEqual(f.debugEvents, ['prepare', 'claim']);
+  assert.equal(f.calls.computed, 0);
+  assert.equal(f.calls.returned, 1);
+});
+
+test('one acknowledged Debug start gives the original Driver both its controller and its Sample writer', async () => {
+  const f = originalDispatchFixture({debugResumeUntil: 'step', sampleStart: true, physicalStart: true, normalCompute: true});
+  assert.equal(await f.start(), 'started');
+  await f.physicalEntered;
+  assert.deepEqual(f.debugEvents, ['prepare', 'claim', 'step']);
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'claim', 'core', 'debug-resume', 'reservation-observed']);
+  const operation = f.owner.operation(f.ref);
+  f.resume();
+  await operation;
+  await f.owner.drain();
+  assert.deepEqual(f.debugEvents, ['prepare', 'claim', 'step', 'compute']);
+  assert.deepEqual(f.sampleEvents.slice(-2), ['visit-prefix', 'journal-adopted']);
+  assert.equal(f.calls.physicalClaims, 1);
+  assert.equal(f.calls.returned, 1);
+});
+
+test('the live Dispatcher parks the same sampled setup before physical start and admits another authorized client', async () => {
+  for (const cancel of [false, true]) {
+    const f = originalDispatchFixture({debugEntry: true, debugResumeUntil: 'step', sampleStart: true,
+      physicalStart: true, normalCompute: true});
+    const start = f.start();
+    await f.entryParked;
+    assert.equal(f.calls.physicalClaims, 0);
+    assert.equal(f.calls.computed, 0);
+    const client = {principalId: 'owner', connection: {}, authorize: () => true,
+      reserve: peak => assert.equal(peak, 64)};
+    assert.equal(f.owner.observeDebugTask(f.ref, client).revision, 2);
+    assert.equal(f.owner.observeDebugInspect(f.ref, client).logicalMapCid, 'sha256:' + 'a'.repeat(64));
+    assert.equal(f.owner.observeDebugInspect(f.ref, client).startRevision, 0);
+    assert.equal(f.owner.observeDebugTask(f.ref, {...client, authorize: () => false}), undefined);
+    if (cancel) {
+      f.cancel();
+      assert.equal(await start, 'not_started');
+      await f.owner.drain();
+      assert.deepEqual(f.debugEvents, ['prepare', 'park-entry']);
+      assert.equal(f.calls.physicalClaims, 0);
+      assert.equal(f.calls.returned, 1);
+    } else {
+      assert.equal(f.owner.resumeDebugTask(f.ref, client, 'fixture-entry-command').revision, 3);
+      assert.equal(await start, 'started');
+      await f.physicalEntered;
+      assert.deepEqual(f.debugEvents, ['prepare', 'park-entry', 'accept-entry', 'claim', 'step']);
+      const finished = f.owner.operation(f.ref);
+      f.resume();
+      await finished;
+      await f.owner.drain();
+      assert.equal(f.calls.computed, 1);
+      assert.equal(f.calls.returned, 1);
+    }
+  }
+});
+
+test('Host shutdown releases the first Debug waiter before physical start', async () => {
+  for (const resumeBeforeClose of [false, true]) {
+    const f = originalDispatchFixture({debugEntry: true, debugResumeUntil: 'step', sampleStart: true,
+      physicalStart: true, normalCompute: true});
+    const closes = [];
+    const shutdown = installedHostShutdown({dispatchOwner: f.owner, retireTerminalEffects() {
+      closes.push('effects');
+    }, journal: {close() {closes.push('journal');}}, store: {close() {closes.push('store');}}});
+    const start = f.start();
+    await f.entryParked;
+    const client = {principalId: 'owner', connection: {}, authorize: () => true,
+      reserve: peak => assert.equal(peak, 64)};
+    assert.equal(f.owner.observeDebugTask(f.ref, client).revision, 2);
+    let drain;
+    if (resumeBeforeClose) {
+      assert.equal(f.owner.resumeDebugTask(f.ref, client, 'fixture-entry-command').revision, 3);
+      // Enter the existing drain synchronously before the accepted wait resumes.
+      drain = f.owner.drain();
+    }
+    const close = (drain === undefined ? shutdown.close() : drain.then(() => shutdown.close()))
+      .then(() => 'closed');
+    const nextTurn = new Promise(resolve => setImmediate(resolve, 'still waiting'));
+    assert.equal(await Promise.race([close, nextTurn]), 'closed');
+    assert.equal(await start, 'not_started');
+    assert.equal(f.calls.physicalClaims, 0);
+    assert.equal(f.calls.computed, 0);
+    assert.equal(f.calls.preDispatchFailures, 0);
+    assert.deepEqual(f.stops, []);
+    assert.equal(f.calls.returned, 1);
+    assert.equal(f.calls.leaseRetired, 1);
+    assert.deepEqual(closes, ['effects', 'journal', 'store']);
+    assert.deepEqual(f.debugEvents, resumeBeforeClose
+      ? ['prepare', 'park-entry', 'accept-entry'] : ['prepare', 'park-entry']);
+  }
+});
+
+test('Host shutdown joins the original started Step through the later Debug park', async () => {
+  for (const closeBeforePark of [false, true]) {
+    const f = originalDispatchFixture({debugEntry: true, debugResumeUntil: 'step', sampleStart: true,
+      physicalStart: true, normalCompute: true, laterDebugPark: true, cleanupReady: closeBeforePark});
+    const closes = [];
+    const shutdown = installedHostShutdown({dispatchOwner: f.owner, retireTerminalEffects() {},
+      journal: {close() {closes.push('journal');}}, store: {close() {closes.push('store');}}});
+    const start = f.start();
+    await f.entryParked;
+    const client = {principalId: 'owner', connection: {}, authorize: () => true,
+      reserve: peak => assert.equal(peak, 64)};
+    f.owner.resumeDebugTask(f.ref, client, 'fixture-entry-command');
+    assert.equal(await start, 'started');
+    f.resume();
+    const failedEarly = f.failure.then(detail => assert.fail(detail.primaryCode ?? detail.code));
+    await Promise.race([f.atTaskBoundary, failedEarly]);
+    if (!closeBeforePark) {
+      f.continueToPark();
+      await Promise.race([f.taskParked, failedEarly]);
+      assert.equal(f.owner.observeDebugTask(f.ref, client).revision, 5);
+    }
+    const closing = shutdown.close();
+    if (closeBeforePark) {
+      await new Promise(resolve => setImmediate(resolve));
+      f.continueToPark();
+      await closing;
+    } else {
+      await assert.rejects(closing, {code: 'ClientDispatchCleanupPending'});
+      assert.deepEqual(f.stops, [], 'unsettled physical cleanup cannot acknowledge a stop');
+      assert.deepEqual(closes, []);
+      assert.equal(f.calls.returned, 0);
+      f.ready();
+      await shutdown.close();
+    }
+    assert.equal((await f.failure).primaryCode, 'ClientRunDebugEntryHostClosing');
+    assert.deepEqual(f.debugEvents, ['prepare', 'park-entry', 'accept-entry', 'claim', 'step',
+      'compute', 'park-task']);
+    assert.deepEqual(f.stops, [null], 'physical close is independent of the Run outcome');
+    assert.equal(f.calls.computed, 1);
+    assert.equal(f.calls.physicalClaims, 1);
+    assert.equal(f.calls.returned, 1);
+    assert.equal(f.calls.leaseRetired, 1);
+    assert.deepEqual(closes, ['journal', 'store']);
+  }
+});
+
+test('the selected Debug receiver waits on the original setup and detaches on abort or retirement', async () => {
+  for (const abort of [true, false]) {
+    const profile = {}, setup = {}, owner = {}, authority = {principalId: 'original'};
+    const controller = new AbortController();
+    let account = {}, isRunnable = true;
+    const original = account;
+    const prepare = installNodeRelationSampleDebugEntry({
+      clientProgramAdvanceRelationSampleDebugEntry(actualProfile, actualOwner, actualSetup, admitted,
+        principal, site, command, revision) {
+        assert.equal(actualProfile, profile);
+        assert.equal(actualOwner, owner);
+        assert.equal(actualSetup, setup);
+        assert.equal(admitted, original);
+        assert.equal(principal, 'original');
+        assert.equal(site, 'local');
+        assert.equal(revision, command === 'prepare' ? 0 : 2);
+        return {$tag: 1, _0: undefined};
+      },
+      clientProgramRelationSampleDebugEntryRunnable() {return {$tag: 1, _0: isRunnable};},
+      clientProgramRelationSampleDebugTaskPause() {
+        return {$tag: 1, _0: {_0: 2, _1: 'last-original-step', _2: '', _3: 1}};
+      },
+      clientProgramResumeRelationSampleDebugTask: assert.fail,
+      clientProgramRelationSampleDebugResumeAllowed: assert.fail,
+    }, () => account, selected => selected === authority, 'local', {
+      journal: {
+        parkDebugTask(_ref, {startRevision, expectedRevision, controlRevision, stepId, nextStepId: selectedNext, committedGeneration, current}) {
+          assert.equal(startRevision, 2);
+          assert.equal(expectedRevision, 2);
+          assert.equal(current(), true);
+          assert.equal(committedGeneration, 1);
+          assert.equal(selectedNext, null);
+          return {kind: 'parked', revision: 3, controlRevision, stepId, nextStepId: selectedNext, committedGeneration,
+            expiresAt: Date.parse('2026-11-15T00:00:05.000Z'), pausedAt: Date.parse('2026-11-15T00:00:00.000Z')};
+        },
+        acceptDebugTaskResume: assert.fail,
+        debugPauseCurrent(_ref, {parked, startRevision, current}) {
+          assert.equal(startRevision, 2);
+          assert.equal(parked.stepId, 'last-original-step');
+          return current();
+        },
+      },
+      now: () => '2026-11-15T00:00:00.000Z',
+    });
+    const entry = prepare(setup, owner, authority, profile, controller.signal);
+    const {phase, waitForResume} = entry.taskControl;
+    const unavailable = {message: 'ClientRunDebugEntryOriginalUnavailable'};
+    assert.throws(() => phase(setup), unavailable);
+    entry.activate({until: 'step', physicalStartRevision: 2});
+    assert.equal(phase(setup), 'runnable');
+    assert.throws(() => phase({}), unavailable);
+    assert.throws(() => waitForResume(setup, new AbortController().signal), unavailable);
+    isRunnable = false;
+    account = {};
+    assert.throws(() => phase(setup), {message: 'ClientRunDebugEntryDenied'});
+    account = original;
+    assert.equal(phase(setup), 'paused');
+    const wait = waitForResume(setup, controller.signal);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 1);
+    assert.equal(entry.observePause(() => true).completedStepId, 'last-original-step');
+    assert.equal(entry.observePause(() => true).pausedAt, Date.parse('2026-11-15T00:00:00.000Z'));
+    assert.equal(Object.hasOwn(entry.observePause(() => true), 'nextStepId'), false);
+    assert.throws(() => waitForResume(setup, controller.signal), unavailable);
+    if (abort) {
+      const reason = new Error('original AbortSignal');
+      controller.abort(reason);
+      await assert.rejects(wait, error => error === reason);
+    } else {
+      entry.close();
+      await assert.rejects(wait, unavailable);
+    }
+    entry.close();
+    assert.equal(entry.current(), false);
+    assert.equal(getEventListeners(controller.signal, 'abort').length, 0);
+    assert.throws(() => phase(setup), unavailable);
+  }
+});
+
+test('Debug and Sample cannot advance on a missing, foreign or unacknowledged start', async () => {
+  for (const [jointStart, debugReplyLost, code] of [
+    ['different', false, 'ClientRunSampleStartOriginalUnavailable'],
+    ['sample-missing', false, 'ClientRunSampleStartOriginalUnavailable'],
+    ['confirmed', true, 'ClientRunDebugEntryOriginalUnavailable'],
+    ['unknown', false, 'ClientRunPhysicalStartUnknown'],
+  ]) {
+    const f = originalDispatchFixture({debugResumeUntil: 'step', sampleStart: true, physicalStart: true,
+      debugReplyLost, jointStart});
+    assert.equal(await f.start(), 'not_started');
+    assert.equal((await f.failure).code, code);
+    await f.owner.drain();
+    assert.deepEqual(f.debugEvents, ['prepare', 'claim']);
+    assert.deepEqual(f.sampleEvents, jointStart === 'unknown' ? sampleProfileCheckEvents : [...sampleProfileCheckEvents, 'claim']);
+    assert.equal(f.calls.physicalClaims, 1);
+    assert.equal(f.calls.computed, 0);
+    assert.equal(f.calls.returned, 1);
+    assert.equal(f.calls.leaseRetired, 1);
+    assert.deepEqual(f.stops, jointStart === 'unknown' ? [] : ['failed']);
+  }
 });
 
 test('ordinary Debug does not opt into the unattended Sample starter', async () => {

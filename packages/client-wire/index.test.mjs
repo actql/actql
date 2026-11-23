@@ -200,7 +200,7 @@ test('public wire accepts the exact connected request shapes', () => {
     'connect', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission',
     'check', 'plan', 'static-explanation', 'inspect-run', 'run-plan', 'run-explanation',
     'run-explanation-context', 'run-sample', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
-    'lookup-cancellation', 'reconcile', 'read', 'result-describe',
+    'lookup-cancellation', 'lookup-control-operation', 'resume-run', 'reconcile', 'read', 'result-describe',
     'delivery-attempt', 'checkpoints', 'checkpoint-review', 'resolve',
     'cancel-request', 'resources', 'resource-inspect', 'resource-peek',
     'owner-observations',
@@ -220,8 +220,35 @@ test('public wire accepts the exact connected request shapes', () => {
     assert.equal(validClientBody('static-explanation', {...staticPlan, ...change}), false);
   }
   const inspectRun = {connection, ref, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
+  const lookup = {...inspectRun, operationRef: {run_ref: ref, operation_id: 'original-command',
+    command_cid: ref.runDefinitionCid, accepted_from_revision: 1}};
+  assert.equal(validClientBody('lookup-control-operation', lookup), true);
+  for (const change of [{extra: true}, {operation_id: 'x'.repeat(257)},
+    {run_ref: {...ref, namespaceId: 'foreign'}}, {accepted_from_revision: -1}]) {
+    assert.equal(validClientBody('lookup-control-operation',
+      {...lookup, operationRef: {...lookup.operationRef, ...change}}), false);
+  }
+  const resume = {...inspectRun, command: {version: 'actql-control-command/0.1', run_ref: ref,
+    operation: 'resume', expected_control_revision: 1, operation_id: 'original-command',
+    interval: {until: 'step', guards: null}, self_cid: ref.runDefinitionCid}};
+  assert.equal(validClientBody('resume-run', resume), true);
+  for (const change of [{operation: 'pause'}, {operation_id: 'x'.repeat(257)},
+    {run_ref: {...ref, namespaceId: 'foreign'}}, {mode: 'resume'},
+    {expected_control_revision: -1}, {interval: {until: 'breakpoint', guards: null}}]) {
+    assert.equal(validClientBody('resume-run', {...resume, command: {...resume.command, ...change}}), false);
+  }
+  const capturedResume = prepareClientHostRequest('resume-run', resume);
+  resume.command.interval.until = 'terminal';
+  assert.equal(capturedResume.body.command.interval.until, 'step');
+  assert.equal(Object.isFrozen(capturedResume.body.command.run_ref), true);
   const sample = {...inspectRun, selector: {step: {by: 'name', name: 'original'}, role: 'output'}};
   assert.equal(validClientBody('run-sample', sample), true);
+  const nextSample = {...sample, nextRevision: 5, selector: {step: {by: 'id', step_id: ref.runDefinitionCid},
+    role: 'input', input_port_id: ref.runDefinitionCid}};
+  assert.equal(validClientBody('run-sample', nextSample), true);
+  assert.equal(validClientBody('run-sample', {...sample, nextRevision: 5}), false);
+  assert.equal(validClientBody('run-sample', {...nextSample, nextRevision: 0}), false);
+  assert.equal(validClientBody('run-sample', {...nextSample, producerAttempt: 2}), false);
   assert.equal(validClientBody('run-sample', inspectRun), false);
   assert.equal(validClientBody('run-sample', {...sample,
     selector: {...sample.selector, input_port_id: ref.runDefinitionCid}}), false);

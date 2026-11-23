@@ -31,6 +31,7 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
   const beginRow = runtime.clientProgramBeginRequestResultReadWireRow;
   const advanceRow = runtime.clientProgramAdvanceRequestResultReadWireRow;
   const metadata = runtime.clientProgramReserveRequestResultMetadata;
+  const construction = runtime.clientProgramReserveRequestResultConstruction;
   const retainData = runtime.clientProgramRetainRequestResultMetadataData;
   const releaseMetadata = runtime.clientProgramReleaseRequestResultMetadata;
   const finishMetadata = runtime.clientProgramFinishRequestResultMetadata;
@@ -230,6 +231,14 @@ export function createLocalResultReadWorkspace({runtime, requestMemory, assertCu
       assertCurrent();
       checked(Reflect.apply(metadata, runtime,
         [entry.state.parent, request, bytes]));
+      entry.metadataActive = true;
+    },
+    construction(request, peak) {
+      const entry = original(request);
+      if (!entry.active || typeof construction !== 'function' ||
+          !Number.isSafeInteger(peak) || peak < 1 || peak > 2147483647) unavailable();
+      assertCurrent();
+      checked(Reflect.apply(construction, runtime, [entry.state.parent, request, peak]));
       entry.metadataActive = true;
     },
     metadataRetain(request, slot, originalContract, mode) {

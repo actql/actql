@@ -19,7 +19,7 @@ export {snapshotInitialControlHostInput} from './initial-control-host-input.mjs'
 export {readSourceManagedOriginalInput} from './source-managed-original-input.mjs';
 export {snapshotInitialControlHostInput as readInitialControlHostInput}
   from './initial-control-host-input.mjs';
-import {installClientRunPlan, installClientRunSample} from './client-run-plan.mjs';
+import {installClientRunPlan, installClientRunSample, installClientControlOperationLookup} from './client-run-plan.mjs';
 import {installClientRunExplanation} from './client-run-explanation.mjs';
 import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
@@ -158,7 +158,8 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {installHostObservation, observationTraceParent,
   captureManagedRunObservation} from '../host-common/observation.mjs';
-import {installNodeClientDispatchOwner, observeNodeRunCancellation, cancelNodeRunContinuation,
+import {installNodeClientDispatchOwner, installNodeRelationSampleStart, installNodeRelationSampleDebugEntry,
+  observeNodeRunCancellation, cancelNodeRunContinuation,
   observeNodeRestoredModelStop, observeNodeRestoredLocalStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
 import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
@@ -229,6 +230,14 @@ const plus = (date, milliseconds) => new Date(Date.parse(date) +
   milliseconds).toISOString();
 const clientOperationError = (code, cause) => Object.assign(
   new Error(code, cause === undefined ? undefined : {cause}), {code});
+// The installed source-free Debug policy is canonical configuration. Common
+// admits it again alongside the original Run's compiled map and intent.
+const sourceFreeDebugProfile = '{"execution":{"breakpoints":[],"default_until":"terminal","guards":null,' +
+  '"stop_on_entry":true},"retain":{"samples":{"capture_scope":"all_outputs","graph":{"max_edges":0,' +
+  '"max_nodes":0},"max_artifacts":128,"max_bytes":"4096","max_items":50,"required":false,' +
+  '"strategy":"execution_prefix","targets":[],"ttl_seconds":3600,"vectors":{"max_components_per_item":1}}},' +
+  '"self_cid":"sha256:f8cdf1df2fd3f2565070da9f518f15a1dbb7fa58df602c2bdfcfd3638e119438",' +
+  '"version":"actql-control-profile/0.1"}';
 const profiles = createEmbeddedHostRegistry(sameEmbeddedInstallation);
 
 // Only the actual selected startup may retain this original module operation.
@@ -2648,7 +2657,7 @@ async function openInstalledHost(originalInstallation, preparation) {
       hostConnection({principalId: actual, connection, ref})});
   const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate,
     runCurrent: authorizeCurrentLocalRun, staticPlanImmediate: authorizeStaticPlan,
-    sampleCaptureImmediate, sampleReadImmediate} = createLocalReadAuthorizations({
+    sampleCaptureImmediate, sampleReadImmediate, resumeImmediate} = createLocalReadAuthorizations({
     moon, authorization, principalId, namespaceId, authorityScopeCid, observation});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
@@ -4396,6 +4405,12 @@ async function openInstalledHost(originalInstallation, preparation) {
       if (!hostConnection(selected) || authorizeLocalRunImmediate(operation, operation) !== true) return false;
       return hostConnection(selected);
     },
+    prepareSampleStart: installNodeRelationSampleStart(moon,
+      () => observeInstalledAccount(moon, authorization, accountConstruction),
+      hostConnection, authorization?.siteKey ?? 'actql-remote-host'),
+    prepareDebugEntryResume: installNodeRelationSampleDebugEntry(moon,
+      () => observeInstalledAccount(moon, authorization, accountConstruction),
+      hostConnection, authorization?.siteKey ?? 'actql-remote-host', {journal, control, now}),
     authorizeSampleCapture: ({principalId: actual, connection, ref}) => {
       const selected = {principalId: actual, connection, ref};
       const facts = {principalId: actual, indexKey: ref};
@@ -4966,19 +4981,25 @@ async function openInstalledHost(originalInstallation, preparation) {
     if (!hostConnection({principalId: actual, connection})) {
       throw clientOperationError('ClientConnectionDenied');
     }
-    if (Object.hasOwn(submission, 'readOnly') || Object.hasOwn(submission, 'executionProfile')) {
+    const hasExecutionProfile = Object.hasOwn(submission, 'executionProfile');
+    let debug = false;
+    if (Object.hasOwn(submission, 'readOnly') || hasExecutionProfile) {
       const intent = moon.clientSubmittedIntent(canonicalValueJson({kind, input,
         parameters,
         ...(Object.hasOwn(submission, 'readOnly') ? {readOnly: submission.readOnly} : {}),
-        ...(Object.hasOwn(submission, 'executionProfile') ? {executionProfile: submission.executionProfile} : {}),
+        ...(hasExecutionProfile ? {executionProfile: submission.executionProfile} : {}),
         ...(Object.hasOwn(submission, 'stopBefore') ? {stopBefore: submission.stopBefore} : {})},
       {dataKeys: true}), 1048576, 65536, 64);
       if (intent === undefined) throw clientOperationError('ClientProgramInvalidInput');
       prepareSubmit.assertSubmittedIntent(submission.preparedProgram, intent);
+      debug = hasExecutionProfile && moon.clientSubmittedIntentRequestsDebug(intent) === true;
     }
     const {requested, resultNames, acquired, acquisitionCount, keyedAcquisition, effectful} =
       requestOf(submission);
     const selectedModel = inferSelections.get(submission.preparedProgram);
+    if (debug && (acquired || effectful || selectedModel !== undefined)) {
+      throw clientOperationError('ClientProgramUnsupported');
+    }
     if (selectedModel?.egressFailure !== undefined &&
         journal.resolveDefinition(requested, {namespaceId}, moon, control) === undefined) {
       diagnostic('infer_preparation_rejected', {boundary: 'model_admission',
@@ -4989,10 +5010,16 @@ async function openInstalledHost(originalInstallation, preparation) {
       return submitEffect(submission, requested, resultNames);
     }
     const serializationCount = moon.clientProgramSerializationOccurrences(submission.preparedProgram).length;
+    if (debug && serializationCount !== 0) throw clientOperationError('ClientProgramUnsupported');
     // A reserved physical start can only be reconciled from its original
     // durable Run. Do this before rebuilding physical source preparations.
     // INFER continues to its existing saved-capture replay owner below.
     const retainedStart = journal.resolveDefinition(requested, {namespaceId}, moon, control);
+    // A duplicate Debug submission is an observation of the accepted
+    // original. A new request preparation cannot replace its parked owner.
+    if (debug && retainedStart !== undefined) {
+      return {ref: retainedStart.ref, durability: retainedStart.durability, revision: retainedStart.revision};
+    }
     if (retainedStart?.physicalStartReserved === true &&
         retainedStart.runAdmissionEvidence?.modelOriginalRunWire !== undefined) {
       // The durable Model owner reopens its original fixed input. Missing
@@ -5103,6 +5130,16 @@ async function openInstalledHost(originalInstallation, preparation) {
         installedSourceFor(sourceProfile, preparedSource.checkedSource.sourceRef).sourceAccess};
     const accepted = await admitDefinition(submission, requested,
       resultNames, held);
+    if (debug) {
+      if (!accepted.inserted) {
+        return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
+      }
+      // The Journal attests the same accepted Run/lookup lease when it
+      // stores the initial park. Later pauses inherit that exact deadline.
+      held.debugEntryExpiresAt = Math.min(Date.parse(accepted.lookupExpiresAt),
+        Date.parse(JSON.parse(accepted.runDefinition.wire).valid_until));
+      held.sampleProfile = sourceFreeDebugProfile;
+    }
     if (managedRun !== undefined && observation?.canMeasureResources()) {
       try {preparation.bindManagedComputeRunObservation(submission.preparedProgram, accepted.ref);}
       catch {observation.noteLoss();}
@@ -6503,13 +6540,35 @@ async function openInstalledHost(originalInstallation, preparation) {
     probeOriginal: ref => journal.probeRunExplanationOriginal(ref),
     lookupOriginal: (ref, extent) => journal.readRunExplanationOriginal(ref, extent),
     readRetained: (ref, selected, custody) => journal.readRetainedRelationSample(ref, selected, custody, control),
+    readNextRetained: (request, selected, authorize, reserve, bindProducer) => dispatchOwner.readDebugNextSample(
+      request.ref, {principalId: request.principalId, connection: request.connection, authorize},
+      selected, reserve, bindProducer),
+    observeNext: (request, authorize) => dispatchOwner.observeDebugTask(
+      request.ref, {principalId: request.principalId, connection: request.connection, authorize}),
+    readWorkspace: preparation.resultReadWorkspace(moon),
+  });
+  const lookupControlOperation = preparation === undefined ? undefined : installClientControlOperationLookup({
+    authorize: request => hostConnection(request) && authorizeLocalRunImmediate(
+      {principalId: request.principalId, indexKey: request.ref}, undefined) === true && hostConnection(request),
+    authorizeResume: request => hostConnection(request) && resumeImmediate(
+      {principalId: request.principalId, indexKey: request.ref}) === true && hostConnection(request),
+    resumeOriginal: dispatchOwner.resumeDebugTask,
+    lookupOriginal: dispatchOwner.lookupDebugResume,
     readWorkspace: preparation.resultReadWorkspace(moon),
   });
   const inspectRun = installClientRunInspect({
-    authorize: authorizeObservation, observeOwners, control,
+    authorize: (request, operation) => hostConnection(request) && authorizeLocalRun(operation, operation),
+    authorizeCurrent: (request, operation) => hostConnection(request) &&
+      authorizeCurrentLocalRun(operation, operation) === true && hostConnection(request),
+    observeOwners, control,
     lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
+    ...(preparation === undefined ? {} : {
+      observeDebugPause: (request, authorize) => dispatchOwner.observeDebugInspect(
+        request.ref, {principalId: request.principalId, connection: request.connection, authorize}),
+      readWorkspace: preparation.resultReadWorkspace(moon),
+    }),
   });
-  const runReadOperations = new Set(['status', 'wait', 'attach', 'run-plan', 'inspect-run',
+  const runReadOperations = new Set(['status', 'wait', 'attach', 'run-plan',
     'owner-observations', 'lookup-request', 'lookup-submission']);
   const hostOperations = {
     observe: observed,
@@ -6527,9 +6586,10 @@ async function openInstalledHost(originalInstallation, preparation) {
       return authorizeLocalRun({principalId: value.principalId,
         indexKey: value.ref ?? {namespaceId, authorityScopeCid}, purpose: 'inspect'});
     },
-    // Explanation's Account gate runs only after its own fixed read admission,
+    // Inspect and Explanation check the Account on their own selected reads,
     // before even the scalar Journal probe. Other read entry rules stay intact.
-    negotiate, prepareSubmit, check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation, runExplanationContext, runSample, attach,
+    negotiate, prepareSubmit, check, plan, staticEffectExplanation, inspectRun, runPlan, runExplanation,
+    runExplanationContext, runSample, lookupControlOperation, resumeRun: lookupControlOperation, attach,
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},

@@ -3297,6 +3297,7 @@ pub fn client_program_check_relation_sample_profile(
     String,
     @publication_host.PreparedClientProgram,
     @publication_host.ClientCompiledRun,
+    String,
   ),
   @client_local_host.InstalledRelationSampleProfileIssue,
 ] {
@@ -3304,10 +3305,10 @@ pub fn client_program_check_relation_sample_profile(
     owner, request, definition, observation, original_reference_wire, records, max_bytes,
     max_nodes, max_depth,
   ).map(profile => {
-    let (admission, resolved, prepared, compiled) = @client_local_host.installed_relation_sample_profile_start_original(
+    let (admission, resolved, prepared, compiled, map) = @client_local_host.installed_relation_sample_profile_start_original(
       profile,
     )
-    (profile, admission, resolved, prepared, compiled)
+    (profile, admission, resolved, prepared, compiled, map)
   })
 }
 
@@ -3348,6 +3349,7 @@ pub fn client_program_issue_relation_sample_profile(
     String,
     @publication_host.PreparedClientProgram,
     @publication_host.ClientCompiledRun,
+    String,
   ),
   @client_local_host.InstalledRelationSampleProfileIssue,
 ] {
@@ -3355,10 +3357,10 @@ pub fn client_program_issue_relation_sample_profile(
     owner, request, definition, observation, original_reference_wire, installed_profile_wire,
     max_bytes, max_nodes, max_depth,
   ).map(profile => {
-    let (admission, resolved, prepared, compiled) = @client_local_host.installed_relation_sample_profile_start_original(
+    let (admission, resolved, prepared, compiled, map) = @client_local_host.installed_relation_sample_profile_start_original(
       profile,
     )
-    (profile, admission, resolved, prepared, compiled)
+    (profile, admission, resolved, prepared, compiled, map)
   })
 }
 
@@ -3400,6 +3402,8 @@ pub fn client_program_reserve_relation_sample_start(
   definition : @publication.PublicationContract,
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
   journal_bytes : Int,
+  debug_entry : Bool,
+  previous_journal_bytes : Int,
 ) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
   @client_local_host.reserve_installed_relation_sample_start(
     owner,
@@ -3409,6 +3413,8 @@ pub fn client_program_reserve_relation_sample_start(
     definition,
     @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
     journal_bytes~,
+    debug_entry~,
+    previous_journal_bytes~,
   )
 }
 

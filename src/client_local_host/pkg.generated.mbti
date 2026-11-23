@@ -86,6 +86,8 @@ pub fn advance_installed_effect_dependency_capture(ClientInstalledManagedRun, @r
 
 pub fn advance_installed_effect_result_publication(ClientInstalledManagedRun, @run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientRequestIdentity, ClientInstalledEffectManagedPlan, @physical_strategy_host.CapturedEffectRunDAG, @run_publication_host.CapturedClientResultTransformation, Int) -> Result[(Bool, Int), ClientInstalledEffectResultPublicationIssue]
 
+pub fn advance_installed_relation_sample_debug_entry(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String, InstalledRelationSampleEntryCommand) -> Result[Unit, InstalledRelationSampleStartIssue]
+
 pub fn advance_installed_relation_sample_start_control(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String, Bool) -> Result[Unit, InstalledRelationSampleStartIssue]
 
 pub fn advance_program_capture(ClientProgramCapture, Int) -> Result[(Bool, Int), ClientClosedValuesPreparationIssue]
@@ -804,13 +806,21 @@ pub fn installed_record_effect_profile() -> Array[Int]
 
 pub fn installed_relation_sample_adoption_matches_profile(ClientCheckedRelationSampleProfile, String, String, String, String, String, String, Bool) -> Bool
 
+pub fn installed_relation_sample_debug_entry_runnable(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, Int) -> Result[Bool, InstalledRelationSampleStartIssue]
+
+pub fn installed_relation_sample_debug_next_input(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, Int, Int, Int, String, Int, Int) -> Result[(String, String, String, Int, Int)?, InstalledRelationSampleNextInputIssue]
+
+pub fn installed_relation_sample_debug_resume_allowed(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String) -> Bool
+
+pub fn installed_relation_sample_debug_task_pause(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, Int) -> Result[(Int, String, String, Int), InstalledRelationSampleStartIssue]
+
 pub fn installed_relation_sample_driver_cleanup_pending(ClientCheckedRelationSampleProfile) -> Bool
 
 pub fn installed_relation_sample_driver_requirement(ClientCheckedRelationSampleProfile, Int) -> Bool?
 
 pub fn installed_relation_sample_prefix_original(ClientInstalledManagedRun, InstalledRelationSamplePrefix) -> (InstalledRelationSampleRetention, String, String, String, @encode_core.EncodedDocument, Int, Int, Int, Int64, Int)?
 
-pub fn installed_relation_sample_profile_start_original(ClientCheckedRelationSampleProfile) -> (String, String, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun)
+pub fn installed_relation_sample_profile_start_original(ClientCheckedRelationSampleProfile) -> (String, String, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, String)
 
 pub fn installed_relation_sample_retention_for_output(ClientInstalledManagedRun, ClientCheckedRelationSampleProfile, String) -> Result[InstalledRelationSampleRetention?, InstalledRelationSampleProfileIssue]
 
@@ -1500,7 +1510,7 @@ pub fn reserve_installed_effect_dependency_group(ClientInstalledManagedRun, @run
 
 pub fn reserve_installed_effect_model_unit_body(ClientInstalledManagedRun, ClientInstalledEffectManagedPlan, @run_publication_host.ClientRequestIdentity, String, @encode_core.EncodingConstructionGeometry) -> Result[Unit, ClientInstalledManagedRunIssue]
 
-pub fn reserve_installed_relation_sample_start(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, journal_bytes? : Int) -> Result[Unit, InstalledRelationSampleStartIssue]
+pub fn reserve_installed_relation_sample_start(ClientInstalledManagedRun, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @physical_strategy_host.CapturedDAG, journal_bytes? : Int, debug_entry? : Bool, previous_journal_bytes? : Int) -> Result[Unit, InstalledRelationSampleStartIssue]
 
 pub fn[I, S] reserve_installed_source_construction(@physical_resources.PreparationCapacity[I, (S, @client_source_publication.PreparedPublishedQueryEnvironment)], I, @execution_relation.ExecutionCapacity) -> Result[Unit, @physical_resources.PreparationCapacityIssue]
 
@@ -1538,6 +1548,8 @@ pub fn[I] reserve_request_query_time_invocation(ClientRequestPreparation[I], I, 
 
 pub fn[I] reserve_request_result_read(ClientRequestPreparation[I], I, Int, Int, Int, Int, Int) -> Result[Int, ClientRequestPreparationIssue]
 
+pub fn[I] reserve_request_result_read_construction(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
+
 pub fn[I] reserve_request_result_read_metadata(ClientRequestPreparation[I], I, Int) -> Result[Unit, ClientRequestPreparationIssue]
 
 pub fn[I] reserve_request_retained_intent_source(ClientRequestPreparation[I], I) -> Result[@source_value.ParseLimits, ClientRequestPreparationIssue]
@@ -1559,6 +1571,8 @@ pub fn result_read_frame_cost(Int, Int) -> Int64?
 pub fn result_read_row_cost(Int, Int) -> Int64?
 
 pub fn result_read_schema_cost(Int, Int) -> Int64?
+
+pub fn resume_installed_relation_sample_debug_task(ClientCheckedRelationSampleProfile, ClientInstalledManagedRun, @physical_strategy_host.CapturedDAG, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, Int, String, String, Int, Bool) -> Result[Unit, InstalledRelationSampleStartIssue]
 
 pub fn retain_accounted_client_source_capture_input(ClientAccountedSourceCapture, @physical_strategy_host.CapturedDAG, Int) -> Result[Unit, ClientSourceCaptureIssue]
 
@@ -2373,6 +2387,18 @@ pub(all) enum InstalledRelationSampleAdoptionIssue {
   SampleAdoptionEvidence(@run_publication.RunEvidenceValueIssue)
   SampleAdoptionVisitorRefused
 }
+
+pub(all) enum InstalledRelationSampleEntryCommand {
+  PrepareEntry
+  ResumeEntryStep(Int)
+  ResumeEntryTerminal(Int)
+}
+
+pub(all) enum InstalledRelationSampleNextInputIssue {
+  NextInputForeignOriginal
+  NextInputStalePause
+  NextInputWorkLimit
+} derive(Eq, @debug.Debug)
 
 type InstalledRelationSamplePrefix
 

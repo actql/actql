@@ -70,6 +70,8 @@ fn start_relation_schema_output(
   limits : RelationSchemaIdentityLimits,
   measurement_only : Bool,
   work? : ((Int) -> Bool)? = None,
+  max_measurement_frames? : Int = 2147483647,
+  cid_only? : Bool = false,
 ) -> Result[RelationSchemaIdentityPreparation, RelationSchemaIdentityIssue] {
   if limits.max_fields < 0 ||
     limits.max_bytes < 0 ||
@@ -82,7 +84,14 @@ fn start_relation_schema_output(
     return Err(FieldLimit)
   }
   try {
-    let identity_writer = if measurement_only {
+    let identity_writer = if measurement_only && work is Some(spend) {
+      @encode.work_construction_measuring_writer(
+        limits.max_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        spend,
+      )
+    } else if measurement_only {
       @encode.measuring_writer(
         limits.max_bytes,
         limits.max_nodes,
@@ -102,7 +111,7 @@ fn start_relation_schema_output(
         limits.max_depth,
       )
     }
-    let wire_writer = if measurement_only {
+    let wire_writer = if measurement_only || cid_only {
       None
     } else if work is Some(spend) {
       Some(
@@ -119,7 +128,7 @@ fn start_relation_schema_output(
     // At most two pending child continuations per admitted value node, plus
     // fixed emission handles. No object-width-sized stack is constructed.
     let max_frames = Int64::min(
-      2147483647L,
+      max_measurement_frames.to_int64(),
       2L * limits.max_nodes.to_int64() + 8L,
     ).to_int()
     Ok({
@@ -209,7 +218,7 @@ pub fn advance_relation_schema_identity(
         1 =>
           if value.field == value.fields {
             @encode.end_object(writer)
-            if value.measurement_only {
+            if value.wire_writer is None {
               value.phase = 6
             } else if value.pass == 0 {
               value.pass = 1
@@ -274,7 +283,8 @@ pub fn advance_relation_schema_identity(
               @encode.finish_measurement_usage(value.hash_writer.unwrap()),
             )
             return Ok((true, steps))
-          } else if value.names.length() < value.fields {
+          } else if value.wire_writer is Some(_) &&
+            value.names.length() < value.fields {
             let field = @schema.field_at(schema, value.names.length()).unwrap()
             let name = @schema.reference_name_construction_extent(field.name)
             value.name_headers += name.scratch.record_headers
@@ -283,7 +293,10 @@ pub fn advance_relation_schema_identity(
               @schema.field_reference_name_at(schema, value.names.length()).unwrap(),
             )
           } else {
-            let wire = @encode.finish(value.wire_writer.unwrap())
+            let wire = match value.wire_writer {
+              Some(writer) => @encode.finish(writer)
+              None => ""
+            }
             let (hash, bytes, nodes, _) = @encode.finish_hash_metrics(
               value.hash_writer.unwrap(),
             )
@@ -348,6 +361,35 @@ pub fn identify_relation_schema(
 }
 
 ///|
+// Samples need only the same schema preimage hash. A hash-only preparation
+// stays private so callers requiring a schema wire always receive one.
+fn identify_relation_sample_schema_cid(
+  schema : @schema.Schema,
+  limits : RelationSchemaIdentityLimits,
+  work : (Int) -> Bool,
+) -> Result[String, RelationSchemaIdentityIssue] {
+  let value = match
+    start_relation_schema_output(
+      schema,
+      limits,
+      false,
+      work=Some(work),
+      cid_only=true,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  while true {
+    match advance_relation_schema_identity(value, 64) {
+      Ok((true, _)) => break
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  finish_relation_schema_identity(value).map(relation_schema_cid)
+}
+
+///|
 /// Exact complete field-map geometry through the original resumable codec.
 /// Conditional presence wrappers, qualified/Unicode keys and nested contracts
 /// retain their original encoding and limits. No wire, hash or identity is
@@ -356,7 +398,24 @@ pub fn measure_relation_schema_identity(
   schema : @schema.Schema,
   limits : RelationSchemaIdentityLimits,
 ) -> Result[(Int, Int, Int), RelationSchemaIdentityIssue] {
-  let value = match start_relation_schema_output(schema, limits, true) {
+  measure_relation_schema_identity_with_frames(schema, limits, 2147483647)
+}
+
+///|
+fn measure_relation_schema_identity_with_frames(
+  schema : @schema.Schema,
+  limits : RelationSchemaIdentityLimits,
+  frames : Int,
+  work? : ((Int) -> Bool)? = None,
+) -> Result[(Int, Int, Int), RelationSchemaIdentityIssue] {
+  let value = match
+    start_relation_schema_output(
+      schema,
+      limits,
+      true,
+      max_measurement_frames=frames,
+      work~,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

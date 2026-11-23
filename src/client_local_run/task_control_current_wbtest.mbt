@@ -16,7 +16,14 @@ test "Core owner control current admission fences reentry and activation before 
   let (root, frame) = logical_callback_ledger(
     () => if action.val is Some(callback) { callback() },
     initial_window=2L *
-      (base + @strategy.captured_task_control_construction_bytes()) -
+      (
+        base +
+        @strategy.captured_task_control_construction_bytes(
+          @strategy.graph_task_count(
+            @strategy.captured_dag_graph(local_compute_run(witness)),
+          ),
+        )
+      ) -
       1L,
   )
   let host = source_free_shared_host(
@@ -241,8 +248,8 @@ test "Core owner control pause during actual work parks after its output and ter
 ///|
 test "Core owner control prepays one update per original completion or refuses before state construction" {
   // Configuration has its own existing charged work. Measure that unchanged
-  // baseline independently. The three boundary checks plus three commit
-  // updates are a fixed expectation independent of the product quote.
+  // baseline independently. The three original tasks each have a boundary
+  // check, control update, two initial words, and two commit writes.
   let witness_root = capacity_boundary_root(100000L, 100000L)
   let witness = source_free_shared_host(
     plan(
@@ -255,7 +262,7 @@ test "Core owner control prepays one update per original completion or refuses b
   let baseline = @resources.ledger_usage(witness_root).planning_work
   @strategy.stop_captured_dag(local_compute_run(witness))
   @strategy.refresh_captured_retention(local_compute_run(witness))
-  for (work, succeeds) in [(baseline + 5, false), (baseline + 6, true)] {
+  for (work, succeeds) in [(baseline + 17, false), (baseline + 18, true)] {
     let root = @resources.create_ledger({
       planning_work: work,
       attempts: 10,
@@ -279,7 +286,7 @@ test "Core owner control prepays one update per original completion or refuses b
     assert_eq(
       @resources.ledger_usage(root).planning_work,
       if succeeds {
-        baseline + 6
+        baseline + 18
       } else {
         baseline
       },

@@ -130,3 +130,163 @@ pub fn client_program_advance_relation_sample_start_control(
     start_acknowledged,
   )
 }
+
+///|
+#export_name("clientProgramAdvanceRelationSampleDebugEntry")
+pub fn client_program_advance_relation_sample_debug_entry(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  account : AuthorizationAccount,
+  principal : String,
+  connection : String,
+  command : String,
+  revision : Int,
+) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
+  guard account.state is @authorization.Admitted(original) else {
+    return Err(
+      @client_local_host.SampleStartControl(@strategy.AuthorizationMismatch),
+    )
+  }
+  let selected : @client_local_host.InstalledRelationSampleEntryCommand = match
+    command {
+    "prepare" if revision == 0 => PrepareEntry
+    "step" if revision > 0 => ResumeEntryStep(revision)
+    "terminal" if revision > 0 => ResumeEntryTerminal(revision)
+    _ => return Err(@client_local_host.SampleStartRequiresControl)
+  }
+  @client_local_host.advance_installed_relation_sample_debug_entry(
+    profile,
+    owner,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    original,
+    principal,
+    connection,
+    selected,
+  )
+}
+
+///|
+#export_name("clientProgramRelationSampleDebugEntryRunnable")
+pub fn client_program_relation_sample_debug_entry_runnable(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  start_revision : Int,
+) -> Result[Bool, @client_local_host.InstalledRelationSampleStartIssue] {
+  @client_local_host.installed_relation_sample_debug_entry_runnable(
+    profile,
+    owner,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    start_revision,
+  )
+}
+
+///|
+#export_name("clientProgramRelationSampleDebugTaskPause")
+pub fn client_program_relation_sample_debug_task_pause(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  start_revision : Int,
+) -> Result[
+  (Int, String, String, Int),
+  @client_local_host.InstalledRelationSampleStartIssue,
+] {
+  @client_local_host.installed_relation_sample_debug_task_pause(
+    profile,
+    owner,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    start_revision,
+  )
+}
+
+///|
+#export_name("clientProgramRelationSampleDebugNextInput")
+pub fn client_program_relation_sample_debug_next_input(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  start_revision : Int,
+  control_revision : Int,
+  pause_generation : Int,
+  next_step_id : String,
+  input : Int,
+  max_work : Int,
+) -> Result[(String, String, String, Int, Int)?, String] {
+  @client_local_host.installed_relation_sample_debug_next_input(
+    profile,
+    owner,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    start_revision,
+    control_revision,
+    pause_generation,
+    next_step_id,
+    input,
+    max_work,
+  ).map_err(issue => {
+    match issue {
+      @client_local_host.NextInputForeignOriginal => "foreign"
+      @client_local_host.NextInputStalePause => "stale"
+      @client_local_host.NextInputWorkLimit => "capacity"
+    }
+  })
+}
+
+///|
+#export_name("clientProgramRelationSampleDebugResumeAllowed")
+pub fn client_program_relation_sample_debug_resume_allowed(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  account : AuthorizationAccount,
+  principal : String,
+  connection : String,
+) -> Bool {
+  guard account.state is @authorization.Admitted(original) else { return false }
+  @client_local_host.installed_relation_sample_debug_resume_allowed(
+    profile,
+    owner,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    original,
+    principal,
+    connection,
+  )
+}
+
+///|
+#export_name("clientProgramResumeRelationSampleDebugTask")
+pub fn client_program_resume_relation_sample_debug_task(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  owner : @client_local_host.ClientInstalledManagedRun,
+  setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  account : AuthorizationAccount,
+  principal : String,
+  connection : String,
+  start_revision : Int,
+  control_revision : Int,
+  step_id : String,
+  next_step_id : String,
+  committed_generation : Int,
+  step : Bool,
+) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
+  guard account.state is @authorization.Admitted(original) else {
+    return Err(
+      @client_local_host.SampleStartControl(@strategy.AuthorizationMismatch),
+    )
+  }
+  @client_local_host.resume_installed_relation_sample_debug_task(
+    profile,
+    owner,
+    @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    original,
+    principal,
+    connection,
+    start_revision,
+    control_revision,
+    step_id,
+    next_step_id,
+    committed_generation,
+    step,
+  )
+}

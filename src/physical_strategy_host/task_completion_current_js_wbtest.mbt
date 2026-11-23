@@ -38,7 +38,14 @@ extern "js" fn task_completion_fixture_contract(
   #|}
 
 ///|
-fn task_completion_fixture_graph() -> @graph.CheckedDAG {
+let task_completion_fixture_program : String =
+  #|{"version":"actql/0.1","id":"boundary.single-operation","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":false}},"rows":[{"n":1}]},"as":"data"}],"results":{"rows":{"from":"data","fields":["n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+
+///|
+fn task_completion_fixture_graph(
+  program? : String = task_completion_fixture_program,
+  stages? : Int = 1,
+) -> @graph.CheckedDAG raise {
   let wire =
     #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
   let admitted = @environment.read(
@@ -51,8 +58,6 @@ fn task_completion_fixture_graph() -> @graph.CheckedDAG {
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   )
-  let program =
-    #|{"version":"actql/0.1","id":"boundary.single-operation","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":false}},"rows":[{"n":1}]},"as":"data"}],"results":{"rows":{"from":"data","fields":["n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
   let outcome = @checked.check_document(
     program,
     environment,
@@ -66,21 +71,21 @@ fn task_completion_fixture_graph() -> @graph.CheckedDAG {
           max_string_bytes: 4096,
           max_total_string_bytes: 4096,
         },
-        max_stages: 1,
+        max_stages: stages,
       },
       compilation: {
-        work: 100000,
-        artifacts: { bytes: 65536, nodes: 8192, depth: 32, },
+        work: 100000 * stages,
+        artifacts: { bytes: 65536 * stages, nodes: 8192 * stages, depth: 32, },
         structure: {
-          stages: 1,
-          steps: 4,
-          results: 4,
+          stages,
+          steps: 4 * stages,
+          results: 4 * stages,
           parameters: 4,
-          bindings: 128,
-          slots: 128,
-          references: 128,
-          requirements: 128,
-          tokens: 128,
+          bindings: 128 * stages,
+          slots: 128 * stages,
+          references: 128 * stages,
+          requirements: 128 * stages,
+          tokens: 128 * stages,
         },
         traversal: {
           nodes: 8192,
@@ -89,7 +94,7 @@ fn task_completion_fixture_graph() -> @graph.CheckedDAG {
           string_bytes: 8192,
           name_bytes: 8192,
           pointer_units: 8192,
-          comparison_pairs: 8192,
+          comparison_pairs: 8192 * stages,
         },
         values: { nodes: 8192, depth: 32, text_bytes: 65536, },
         policy: { bytes: 65536, nodes: 8192, depth: 32, },
@@ -98,22 +103,33 @@ fn task_completion_fixture_graph() -> @graph.CheckedDAG {
     },
     format=Json,
   )
-  guard outcome is @checked.Checked(checked) else {
-    abort("ExpectedCheckedTaskFixture")
+  let checked = match outcome {
+    @checked.Checked(value) => value
+    @checked.Rejected(issue) =>
+      fail(
+        "Checked task fixture: " +
+        @debug.to_string(@checked.diagnostic_category(issue)) +
+        " " +
+        @checked.diagnostic_location(issue)
+        .map(@checked.diagnostic_location_source_path)
+        .unwrap_or(""),
+      )
+    @checked.NeedsInputs(_) =>
+      fail("Checked task fixture needs an original input")
   }
-  let lowered = @lower.prepare(@checked.unit_pipeline(checked, 0).unwrap(), {
-    max_nodes: 1000,
-    max_references: 1000,
-    max_work: 10000,
-    max_identifier_bytes: 4096,
-  }).unwrap()
-  let owner = @lower.bind_parameters(
-    lowered,
-    None,
-    max_parameters=4,
-    max_name_bytes=4096,
-  ).unwrap()
-  prepare_checked_dag(checked, [owner], 1, 10000, source_free_root=true).unwrap()
+  let owners = Array::makei(stages, stage => {
+    let lowered = @lower.prepare(
+      @checked.unit_pipeline(checked, stage).unwrap(),
+      {
+        max_nodes: 1000,
+        max_references: 1000,
+        max_work: 10000,
+        max_identifier_bytes: 4096,
+      },
+    ).unwrap()
+    @lower.bind_parameters(lowered, None, max_parameters=4, max_name_bytes=4096).unwrap()
+  })
+  prepare_checked_dag(checked, owners, stages, 10000, source_free_root=true).unwrap()
 }
 
 ///|
@@ -121,6 +137,20 @@ fn task_completion_fixture_output(
   load : TaskCompletionFixtureRequire,
   graph : @graph.CheckedDAG,
 ) -> @execution.CompletedOutput raise {
+  let completed = task_completion_fixture_sequence(load, graph, 0, [], [
+    @pipeline.Step(0),
+  ])
+  @execution.completed_output(completed, @pipeline.Step(0)).unwrap()
+}
+
+///|
+fn task_completion_fixture_sequence(
+  load : TaskCompletionFixtureRequire,
+  graph : @graph.CheckedDAG,
+  task : Int,
+  inputs : Array[@execution.ProducerRead],
+  targets : Array[@pipeline.Target],
+) -> @execution.CompletedSequence raise {
   let contract = fn(values) raise {
     let original = @source.parse_json_bytes_preserving(
       @utf8.encode(task_completion_fixture_contract(load, values)),
@@ -133,7 +163,7 @@ fn task_completion_fixture_output(
     contract(true),
     { max_body_bytes: 1000000, max_body_nodes: 100000, max_body_depth: 100, },
   ).unwrap()
-  let owner = graph_task_owner(graph, 0).unwrap()
+  let owner = graph_task_owner(graph, task).unwrap()
   let prepared = @lower.prepare_sequence(owner, {
     max_steps: 4,
     max_rows: 10,
@@ -148,22 +178,36 @@ fn task_completion_fixture_output(
       max_literal_text_bytes: 4096,
     },
   }).unwrap()
-  let target = @lower.node_at(@lower.bound_preparation(owner), 0).unwrap()
-  let sequence = @execution.prepare_generated_sequence(
-    contracts,
-    prepared,
-    [],
-    [@lower.node_id(target)],
-    10000,
-    10000,
-  ).unwrap()
+  let prepared_owner = @lower.bound_preparation(owner)
+  let retained_ids = targets.map(target => {
+    match target {
+      @pipeline.Input(index) => @lower.input_id(prepared_owner, index).unwrap()
+      @pipeline.Step(index) =>
+        @lower.node_id(@lower.node_at(prepared_owner, index).unwrap())
+    }
+  })
+  let sequence = match
+    @execution.prepare_generated_sequence(
+      contracts,
+      prepared,
+      [],
+      retained_ids,
+      10000,
+      10000,
+    ) {
+    Ok(value) => value
+    Err(MissingFragmentContext(step)) =>
+      fail("Fixture sequence requires a Fragment at step " + step.to_string())
+    Err(Wiring(_)) => fail("Fixture sequence refused its retained wiring")
+    Err(_) => fail("Fixture sequence preparation refused")
+  }
   let limits : @execution.ValueLimits = {
     max_nodes: 10000,
     max_text_bytes: 10000,
     max_depth: 100,
     max_work: 100000,
   }
-  let result = @execution.execute_generated_sequence(sequence, [], {
+  @execution.execute_fixed_producer_inputs(sequence, inputs, {
     rows: {
       max_rows: 10,
       metadata_entries: 10000,
@@ -175,7 +219,6 @@ fn task_completion_fixture_output(
     max_work: 100000,
     max_frames: 100,
   }).unwrap()
-  @execution.completed_output(result, @pipeline.Step(0)).unwrap()
 }
 
 ///|
@@ -475,4 +518,301 @@ test "Debug task commit preserves the first identical settlement reentered by th
   assert_eq(@resources.ledger_usage(ledger).live_reservations, 0)
   assert_false(@resources.holding_available(ledger, holding))
   @resources.cleanup_node_managed_run_admission(admission).unwrap()
+}
+
+///|
+test "paused dependency rejects the different raw Input of its computed producer" {
+  let producer_stages =
+    #|{"version":"actql/0.1","id":"boundary.original-dependency","stages":[{"id":"seed","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":false}},"rows":[{"n":0},{"n":2}]},"as":"data"}],"results":{"rows":{"from":"data","fields":["n"]}}},{"id":"mixed","inputs":{"source":{"result":{"stage":"seed","result":"rows"}}},"steps":[{"from":"source","take":{"count":1,"offset":1},"as":"subset"}],"results":{"raw":{"from":"source","fields":["n"]},"computed":{"from":"subset","fields":["n"]}}}
+  let raw_stage =
+    #|,{"id":"raw_reader","inputs":{"source":{"result":{"stage":"mixed","result":"raw"}}},"steps":[{"from":"source","select":["n"],"as":"out"}],"results":{"rows":{"from":"out","fields":["n"]}}}
+  let computed_stage =
+    #|,{"id":"computed_reader","inputs":{"source":{"result":{"stage":"mixed","result":"computed"}}},"steps":[{"from":"source","select":["n"],"as":"out"}],"results":{"rows":{"from":"out","fields":["n"]}}}
+  let computed_result =
+    #|],"results":{"computed":{"from":{"stage":"computed_reader","result":"rows"}}
+  let raw_result =
+    #|,"raw":{"from":{"stage":"raw_reader","result":"rows"}}
+  let mixed_graph = task_completion_fixture_graph(
+    program=producer_stages +
+      raw_stage +
+      computed_stage +
+      computed_result +
+      raw_result +
+      "}}",
+    stages=4,
+  )
+  assert_eq(graph_data_count(mixed_graph), 3)
+  let raw_edge = graph_data_at(mixed_graph, 1).unwrap()
+  let good_edge = graph_data_at(mixed_graph, 2).unwrap()
+  assert_eq(
+    (raw_edge.producer, raw_edge.consumer, raw_edge.input, raw_edge.target),
+    (1, 2, 0, @pipeline.Input(0)),
+  )
+  assert_eq(
+    (good_edge.producer, good_edge.consumer, good_edge.input, good_edge.target),
+    (1, 3, 0, @pipeline.Step(0)),
+  )
+  let load = task_completion_fixture_require(task_completion_fixture_url())
+  let mixed_seed = task_completion_fixture_output(load, mixed_graph)
+  let binding = @execution.bind_completed_input(
+    graph_task_owner(mixed_graph, 1).unwrap(),
+    0,
+    graph_task_owner(mixed_graph, 0).unwrap(),
+    mixed_seed,
+  ).unwrap()
+  let raw_producer = @execution.prepare_producer_read(
+    graph_task_owner(mixed_graph, 1).unwrap(),
+    binding,
+    10000,
+    4096,
+  ).unwrap()
+  let mixed = task_completion_fixture_sequence(
+    load,
+    mixed_graph,
+    1,
+    [raw_producer],
+    [@pipeline.Input(0), @pipeline.Step(0)],
+  )
+  let raw = @execution.completed_output(mixed, @pipeline.Input(0)).unwrap()
+  let computed = @execution.completed_output(mixed, @pipeline.Step(0)).unwrap()
+  assert_eq(@execution.completed_column_name(raw, 0), Some("n"))
+  assert_eq(@execution.completed_column_name(computed, 0), Some("n"))
+  assert_eq(@execution.completed_row_count(raw), 2)
+  assert_eq(@execution.completed_row_count(computed), 1)
+  assert_true(@execution.completed_cell(raw, 0, 0) is Some(Number(0.0)))
+  assert_true(@execution.completed_cell(computed, 0, 0) is Some(Number(2.0)))
+  assert_false(@execution.completed_output_same_occurrence(raw, computed))
+  assert_true(
+    paused_dependency_target(mixed_graph, raw_edge)
+    is Err(DependencyUnavailable(UnsupportedGraph)),
+  )
+  assert_eq(
+    paused_dependency_target(mixed_graph, good_edge).unwrap().target,
+    good_edge.target,
+  )
+  // A separately checked graph has two independent producers for Join and
+  // another unfinished consumer of the earlier output. Both sources have the
+  // same type and value; their own commits still have different coordinates.
+  let joined =
+    #|{"version":"actql/0.1","id":"boundary.join-dependencies","stages":[{"id":"first","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":false}},"rows":[{"n":2}]},"as":"out"}],"results":{"rows":{"from":"out","fields":["n"]}}},{"id":"second","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":false}},"rows":[{"n":2}]},"as":"out"}],"results":{"rows":{"from":"out","fields":["n"]}}},{"id":"joined","inputs":{"a":{"result":{"stage":"first","result":"rows"}},"b":{"result":{"stage":"second","result":"rows"}}},"steps":[{"from":"a","join":{"kind":"inner","with":"b","on":[{"left":"n","right":"n"}],"select":{"n":"left.n"},"max_output_rows":1},"as":"out"}],"results":{"rows":{"from":"out","fields":["n"]}}},{"id":"other","inputs":{"a":{"result":{"stage":"first","result":"rows"}}},"steps":[{"from":"a","select":["n"],"as":"out"}],"results":{"rows":{"from":"out","fields":["n"]}}}],"results":{"joined":{"from":{"stage":"joined","result":"rows"}},"other":{"from":{"stage":"other","result":"rows"}}}}
+  let graph = task_completion_fixture_graph(program=joined, stages=4)
+  let original = task_completion_fixture_original(load, graph, 262144L, () => ())
+  let admission = @resources.prepare_node_managed_run_admission(original, graph).unwrap()
+  let ledger = @resources.start_node_managed_run_admission(admission).unwrap()
+  let run = open_source_free_dag(graph, ledger).unwrap()
+  let hooks = prepare_captured_task_boundary_hooks(
+    run,
+    graph,
+    captured_dag_strategy_revision(run),
+  ).unwrap()
+  let account = @authorization.admit_account_configuration({
+    account_id: "local",
+    entries: [
+      {
+        entry_id: "debug",
+        outcome: Allow,
+        scope: {
+          principal: All,
+          connection: All,
+          resource: All,
+          operation: AnyOf(["pause", "resume"]),
+        },
+        exclusions: [],
+      },
+    ],
+    bootstrap: None,
+  }).unwrap()
+  let subject = "sha256:" + "c".repeat(64)
+  let context = "sha256:" + "d".repeat(64)
+  let pause : @authorization.AccessTuple = {
+    principal: "user",
+    connection: "local",
+    resource: "runs",
+    operation: "pause",
+  }
+  let permit = tuple => {
+    @authorization.bind_dispatch_authorization(
+      account,
+      tuple,
+      Activation,
+      subject,
+      context,
+    ).unwrap()
+  }
+  prepare_captured_task_control(
+    run,
+    hooks,
+    permit(pause),
+    account,
+    pause,
+    subject,
+    context,
+  ).unwrap()
+  let resume_tuple = { ..pause, operation: "resume", }
+  let step = revision => {
+    command_captured_task_control(
+      run,
+      hooks,
+      revision,
+      ResumeStep,
+      permit(resume_tuple),
+      account,
+      resume_tuple,
+      subject,
+      context,
+    ).unwrap()
+  }
+  let commit = (task, output) => {
+    let reservation = @resources.reserve_attempt(ledger, 0L, 64L, 32L).unwrap()
+    let holding = @resources.retain_allocation(ledger, reservation, 64L).unwrap()
+    @resources.consume_reserved_attempt(ledger, reservation).unwrap()
+    commit_materialized_task_output(
+      run,
+      task,
+      output,
+      holding,
+      ForeignCandidate,
+      reservation,
+      64L,
+      0L,
+    ).unwrap()
+  }
+  acknowledge_captured_relation_sample_start(run, hooks, subject, context, 3).unwrap()
+  let unused = @resources.reserve_attempt(ledger, 0L, 0L, 0L).unwrap()
+  @resources.consume_reserved_attempt(ledger, unused).unwrap()
+  @resources.settle_reservation(ledger, unused).unwrap()
+  step(0)
+  let first = task_completion_fixture_output(load, graph)
+  commit(0, first)
+  step(2)
+  let second = task_completion_fixture_sequence(load, graph, 1, [], [
+    @pipeline.Step(0),
+  ])
+  commit(1, @execution.completed_output(second, @pipeline.Step(0)).unwrap())
+  assert_eq(captured_task_control_state(run, hooks), Ok((4, Paused)))
+  let source = read_captured_task_boundary(run, hooks, Settled)
+    .unwrap()
+    .unwrap()
+  let visits = Ref(0)
+  let received = Ref(None)
+  let shape = Ref(None)
+  let saved : Ref[CapturedPausedMaterializedDependency?] = Ref(None)
+  let visit = (_, scope) => {
+    visits.val += 1
+    shape.val = captured_paused_materialized_dependency_shape(scope)
+    received.val = Some(
+      read_captured_paused_materialized_dependency_cell(scope, 0, 0),
+    )
+    saved.val = Some(scope)
+  }
+  let generation = captured_task_boundary_generation(source)
+  assert_eq(
+    captured_task_control_paused_task(run, hooks),
+    Ok((4, 1, Some(2), generation)),
+  )
+  let first_edge = graph_data_at(graph, 0).unwrap()
+  let next_edge = graph_data_at(graph, 1).unwrap()
+  let other_edge = graph_data_at(graph, 2).unwrap()
+  assert_eq((first_edge.producer, first_edge.consumer), (0, 2))
+  assert_eq((next_edge.producer, next_edge.consumer), (1, 2))
+  assert_eq((other_edge.producer, other_edge.consumer), (0, 3))
+  assert_true(!captured_task_completed(run, other_edge.consumer))
+  let (left, left_start, left_generation, left_attempt) = captured_paused_next_sample_dependency(
+    run, hooks, 4, generation, 0,
+  ).unwrap()
+  let (right, right_start, right_generation, right_attempt) = captured_paused_next_sample_dependency(
+    run, hooks, 4, generation, 1,
+  ).unwrap()
+  assert_eq(
+    (left.producer, left_start, left_generation, left_attempt),
+    (0, 3, generation - 1, 2),
+  )
+  assert_eq(
+    (right.producer, right_start, right_generation, right_attempt),
+    (1, 3, generation, 3),
+  )
+  // The two checked logical input ordinals resolve distinct Stage inputs.
+  for index in 0..<2 {
+    let (selected, selected_start, producer_generation, producer_attempt) = captured_paused_next_sample_input(
+      run, hooks, 4, generation, index, 256,
+    ).unwrap()
+    assert_eq((selected.producer, selected.consumer), (index, 2))
+    assert_eq(
+      (selected_start, producer_generation, producer_attempt),
+      (3, generation - 1 + index, 2 + index),
+    )
+  }
+  assert_true(
+    captured_paused_next_sample_input(run, hooks, 4, generation, 2, 256)
+    is Err(InvalidDependency),
+  )
+  assert_true(
+    captured_paused_next_sample_input(run, hooks, 4, generation, 0, 1)
+    is Err(InputWorkLimit),
+  )
+  assert_true(
+    captured_paused_next_sample_dependency(run, hooks, 4, generation, 2)
+    is Err(InvalidDependency),
+  )
+  assert_true(
+    captured_paused_next_sample_dependency(run, hooks, 4, generation - 1, 0)
+    is Err(Boundary(StaleBoundary)),
+  )
+  assert_true(
+    with_captured_paused_materialized_dependency(run, source, 4, 2, 1, visit)
+    is Err(InvalidDependency),
+  )
+  assert_eq(visits.val, 0)
+  let before = @resources.ledger_usage(ledger)
+  // One full original read fork plus the fixed scoped cell reader.
+  let quote = 10L * 16L + 13L * 8L + 19L * 8L + 24L * 16L + 60L * 8L + 32L * 8L
+  let blocker = @resources.reserve_capacity(
+    ledger,
+    @resources.ledger_limits(ledger).retained_bytes -
+    before.held_bytes -
+    before.reserved_retention_bytes -
+    quote +
+    1L,
+    0L,
+  ).unwrap()
+  assert_true(
+    with_captured_paused_materialized_dependency(run, source, 4, 1, 1, visit)
+    is Err(Boundary(Resource(RetentionLimit))),
+  )
+  @resources.settle_capacity(ledger, blocker).unwrap()
+  assert_eq(visits.val, 0)
+  assert_true(
+    with_captured_paused_materialized_dependency(run, source, 3, 1, 1, visit)
+    is Err(Boundary(StaleBoundary)),
+  )
+  with_captured_paused_materialized_dependency(run, source, 4, 1, 1, visit).unwrap()
+  assert_eq(visits.val, 1)
+  assert_eq(shape.val, Some((1, 1)))
+  assert_true(received.val is Some(Ok(Some(Number(2.0)))))
+  assert_eq(
+    captured_paused_materialized_dependency_shape(saved.val.unwrap()),
+    None,
+  )
+  assert_true(
+    read_captured_paused_materialized_dependency_cell(saved.val.unwrap(), 0, 0)
+    is Err(Boundary(StaleBoundary)),
+  )
+  let after = @resources.ledger_usage(ledger)
+  assert_eq(after.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(after.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_eq(after.live_reservations, before.live_reservations)
+  assert_eq(after.attempts, before.attempts)
+  assert_true(next_captured_task(run) is None)
+  return_captured_task_boundary(source).unwrap()
+  step(4)
+  assert_true(
+    captured_paused_next_sample_dependency(run, hooks, 4, generation, 0)
+    is Err(Boundary(StaleBoundary)),
+  )
+  stop_captured_dag(run)
+  close_captured_task_output(run, 1)
+  close_captured_task_output(run, 0)
+  let usage = @resources.ledger_usage(ledger)
+  assert_eq(usage.live_reservations, 0)
+  assert_eq(usage.held_bytes, 0L)
 }

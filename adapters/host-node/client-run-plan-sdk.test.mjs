@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
-import {ref, cid} from '../../scripts/fixtures/interactive-run-control-vectors.mjs';
+import {ref, cid, acceptedResumeLookup, resumeOperationRef}
+  from '../../scripts/fixtures/interactive-run-control-vectors.mjs';
 import {planOriginal} from './fixtures/original-plan-journal.mjs';
 const profile = {version:'actql-client-host/0.1',mode:'local',owner:'local',
   durability:'volatile',scopeRef:'run-plan-fixture',capabilities:[],limits:{
@@ -47,4 +48,40 @@ test('SDK independently refuses a foreign original Run response', async t => {
   }});
   t.after(()=>client.close());const run=await client.attach(ref);
   await assert.rejects(run.plan(),{code:'InvalidClientHostRunPlanView'});
+});
+
+test('SDK lookup consumes the original control receipt through Local Host ingress', async t => {
+  let mode = 'accepted', reads = 0;
+  const port = createNodeInProcessClientHost({authenticate: () => 'caller', authorizeConnection: () => true,
+    negotiate: () => profile, maxRowBytes: 1024, attach: value => ({ref: value.ref, durability: 'volatile', revision: 0}),
+    lookupControlOperation(request, consume) {
+      reads++;
+      assert.equal(request.principalId, 'caller');
+      assert.deepEqual(request.operationRef, resumeOperationRef);
+      assert(Object.isFrozen(request.operationRef.run_ref));
+      const view = mode === 'contradictory' ? acceptedResumeLookup(cid('0')) : acceptedResumeLookup();
+      if (mode === 'advanced') view.observation.outcome = 'completed';
+      if (mode === 'foreign') view.observation.operation_ref = {...view.observation.operation_ref, operation_id: 'another'};
+      if (mode === 'edited') view.receipt.observed_state.run_id = 'changed';
+      return consume(view);
+    }});
+  const client = await connectInProcess({mode: 'local', owner: 'local'}, port);
+  t.after(() => client.close());
+  const run = await client.attach(ref);
+  assert.deepEqual(await run.lookupControlOperation(resumeOperationRef), acceptedResumeLookup());
+  assert.equal(reads, 1);
+  await assert.rejects(run.lookupControlOperation({...resumeOperationRef, run_ref: {...ref, runDefinitionCid: cid('0')}}),
+    {code: 'InvalidRunControlOperationRef'});
+  assert.equal(reads, 1);
+  mode = 'foreign';
+  await assert.rejects(run.lookupControlOperation(resumeOperationRef), {code: 'InvalidClientHostControlOperationLookup'});
+  mode = 'contradictory';
+  await assert.rejects(run.lookupControlOperation(resumeOperationRef), {code: 'InvalidClientHostControlOperationLookup'});
+  mode = 'edited';
+  await assert.rejects(run.lookupControlOperation(resumeOperationRef), {code: 'InvalidClientHostControlOperationLookup'});
+  mode = 'advanced';
+  const advanced = await run.lookupControlOperation(resumeOperationRef);
+  assert.equal(advanced.receipt.outcome, 'accepted');
+  assert.equal(advanced.observation.outcome, 'completed');
+  assert.equal(reads, 5);
 });

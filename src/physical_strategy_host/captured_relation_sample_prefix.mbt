@@ -216,6 +216,23 @@ fn fork_captured_relation_sample(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[CapturedTaskBoundary, CapturedRelationSamplePrefixIssue] {
+  guard max_items > 0 &&
+    max_bytes > 0 &&
+    max_nodes > 0 &&
+    max_depth > 0 &&
+    captured_sample_prefix_bytes(schema, max_bytes, max_nodes, max_depth)
+    is Some(bytes) else {
+    return Err(InvalidLimits)
+  }
+  fork_captured_relation_sample_read(run, source, bytes)
+}
+
+///|
+fn fork_captured_relation_sample_read(
+  run : CapturedDAG,
+  source : CapturedTaskBoundary,
+  bytes : Int64,
+) -> Result[CapturedTaskBoundary, CapturedRelationSamplePrefixIssue] {
   guard source.original is Some(original) else { return Err(StaleOriginal) }
   if original.forking || original.returning != 0 {
     return Err(Boundary(ReadInProgress))
@@ -226,16 +243,10 @@ fn fork_captured_relation_sample(
   if control.sample_start_revision <= 0 {
     return Err(StartUnavailable)
   }
-  if control.committed_attempt_sequence <= 0 {
+  guard captured_relation_sample_commit(run, source.task)
+    is Some((generation, _, _)) &&
+    generation == source.generation else {
     return Err(AttemptUnavailable)
-  }
-  guard max_items > 0 &&
-    max_bytes > 0 &&
-    max_nodes > 0 &&
-    max_depth > 0 &&
-    captured_sample_prefix_bytes(schema, max_bytes, max_nodes, max_depth)
-    is Some(bytes) else {
-    return Err(InvalidLimits)
   }
   original.forking = true
   let result = acquire_captured_boundary_read(
@@ -250,15 +261,58 @@ fn fork_captured_relation_sample(
 }
 
 ///|
+/// Read the scalar commit evidence from this controller's original task slot.
+fn captured_relation_sample_commit(
+  run : CapturedDAG,
+  task : Int,
+) -> (Int, Int, Int)? {
+  guard task >= 0 &&
+    task < run.done.length() &&
+    run.done[task] &&
+    run.activation is Observed(hooks) &&
+    !hooks.closing &&
+    captured_control_owner_matches(run, hooks) &&
+    hooks.control is Some(control) &&
+    control.binding is Some(_) &&
+    control.sample_start_revision > 0 &&
+    control.sample_commits is Some(commits) else {
+    return None
+  }
+  let generation = commits[2 * task]
+  let attempt = commits[2 * task + 1]
+  if generation > 0 && attempt > 0 {
+    Some((generation, attempt, control.sample_start_revision))
+  } else {
+    None
+  }
+}
+
+///|
 /// Private post-commit supplier selection without opening an output or
 /// acquiring Sample authority. Normal tasks have no selected receiver.
 pub fn captured_relation_sample_start_selected(run : CapturedDAG) -> Bool {
-  !run.stopped &&
-  run.activation is Observed(hooks) &&
-  !hooks.closing &&
-  hooks.control is Some(control) &&
-  control.sample_start_revision > 0 &&
-  control.binding is Some(_)
+  captured_relation_sample_start_revision(run) > 0
+}
+
+///|
+/// Check the acknowledged start belonging to this original captured Run.
+pub fn captured_relation_sample_start_matches_revision(
+  run : CapturedDAG,
+  revision : Int,
+) -> Bool {
+  revision > 0 && captured_relation_sample_start_revision(run) == revision
+}
+
+///|
+fn captured_relation_sample_start_revision(run : CapturedDAG) -> Int {
+  guard !run.stopped &&
+    run.activation is Observed(hooks) &&
+    !hooks.closing &&
+    hooks.control is Some(control) &&
+    control.binding is Some(_) else {
+    return 0
+  }
+  control.sample_start_revision
 }
 
 ///|
@@ -299,9 +353,28 @@ pub fn[T] capture_captured_managed_relation_sample_prefix(
     captured_task_boundary_current(run, source) &&
     captured_control_boundary_available(run.graph, task) &&
     captured_task_target(run, task) is Some(target) &&
-    @execution.completed_has_cell_access(original) else {
+    @execution.completed_has_cell_access(original) &&
+    @execution.managed_completed_output_original_occurrence(completed)
+    is Some(occurrence) &&
+    @execution.completed_output_occurrence_matches_original(
+      occurrence, original,
+    ) &&
+    captured_managed_task_output_matches(run, task, target, completed) else {
     return Err(StaleOriginal)
   }
+  if max_items < 1 || max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
+    return Err(InvalidLimits)
+  }
+  let schema = match
+    measure_captured_sample_schema(
+      run, source, original, schema, require_capture_current,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  // Each encoded JSON value occupies at least one byte. Its byte budget is
+  // also a valid upper bound for the prefix writer's live node count.
+  let max_nodes = Int::min(max_nodes, max_bytes)
   let boundary = match
     fork_captured_relation_sample(
       run, source, max_items, schema, max_bytes, max_nodes, max_depth,
@@ -317,6 +390,67 @@ pub fn[T] capture_captured_managed_relation_sample_prefix(
     return_captured_task_boundary(boundary) |> ignore
   }
   result
+}
+
+///|
+fn measure_captured_sample_schema(
+  run : CapturedDAG,
+  source : CapturedTaskBoundary,
+  original : @execution.CompletedOutput,
+  limits : @execution.RelationSchemaIdentityLimits,
+  require_capture_current : () -> Bool,
+) -> Result[
+  @execution.RelationSchemaIdentityLimits,
+  CapturedRelationSamplePrefixIssue,
+] {
+  guard @execution.completed_relation_sample_schema_measurement_bytes(
+      limits.max_depth,
+    )
+    is Some(bytes) &&
+    @execution.checked_preparation_add_product(
+      bytes, captured_boundary_read_bytes, 1L,
+    )
+    is Some(quote) else {
+    return Err(InvalidLimits)
+  }
+  let read = match fork_captured_relation_sample_read(run, source, quote) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let result = if !require_capture_current() {
+    Err(AuthorityLost)
+  } else if !captured_task_boundary_current(run, read) {
+    Err(StaleOriginal)
+  } else {
+    let refused : Ref[@resources.LedgerIssue?] = Ref(None)
+    let measured = @execution.measure_completed_relation_sample_schema(
+      original,
+      limits,
+      units => {
+        match @resources.charge_planning(run.ledger, units) {
+          Err(issue) => {
+            refused.val = Some(issue)
+            false
+          }
+          Ok(_) => captured_task_boundary_current(run, read)
+        }
+      },
+    )
+    match refused.val {
+      Some(issue) => Err(Work(issue))
+      None =>
+        if captured_task_boundary_current(run, read) {
+          measured.map_err(issue => Prefix(issue))
+        } else {
+          Err(StaleOriginal)
+        }
+    }
+  }
+  let returned = return_captured_task_boundary(read)
+  match result {
+    Err(issue) => Err(issue)
+    Ok(value) => returned.map(_ => value).map_err(issue => Boundary(issue))
+  }
 }
 
 ///|
@@ -385,23 +519,13 @@ pub fn captured_managed_relation_sample_prefix_current(
 ) -> (@encode.EncodedDocument, Int, Int, Int, Int64, Int)? {
   guard value.resident is Some(pin) &&
     captured_managed_sample_pin_current(run, value.boundary, pin) &&
-    value.boundary.original is Some(original) &&
-    original.hooks.control is Some(control) &&
-    control.committed_attempt_sequence > 0 &&
-    control.sample_start_revision > 0 &&
+    captured_relation_sample_commit(run, pin.task)
+    is Some((generation, attempt, start)) &&
+    generation == value.boundary.generation &&
     value.payload is Some((document, items, total)) else {
     return None
   }
-  Some(
-    (
-      document,
-      items,
-      total,
-      value.boundary.generation,
-      control.committed_attempt_sequence.to_int64(),
-      control.sample_start_revision,
-    ),
-  )
+  Some((document, items, total, generation, attempt.to_int64(), start))
 }
 
 ///|
@@ -412,12 +536,7 @@ fn captured_relation_sample_prefix_available(
   pin : CapturedOutputPin,
 ) -> Bool {
   value.payload is Some(_) &&
-  captured_task_output_pin_matches_committed_relation(run, value.boundary, pin) &&
-  value.boundary.original is Some(original) &&
-  original.hooks.control is Some(control) &&
-  control.binding is Some(_) &&
-  control.committed_attempt_sequence > 0 &&
-  control.sample_start_revision > 0
+  captured_task_output_pin_matches_committed_relation(run, value.boundary, pin)
 }
 
 ///|
@@ -430,21 +549,13 @@ pub fn captured_relation_sample_prefix_current(
   pin : CapturedOutputPin,
 ) -> (@encode.EncodedDocument, Int, Int, Int, Int64, Int)? {
   guard captured_relation_sample_prefix_available(run, value, pin) &&
-    value.boundary.original is Some(original) &&
-    original.hooks.control is Some(control) &&
+    captured_relation_sample_commit(run, pin.task)
+    is Some((generation, attempt, start)) &&
+    generation == value.boundary.generation &&
     value.payload is Some((document, items, total)) else {
     return None
   }
-  Some(
-    (
-      document,
-      items,
-      total,
-      value.boundary.generation,
-      control.committed_attempt_sequence.to_int64(),
-      control.sample_start_revision,
-    ),
-  )
+  Some((document, items, total, generation, attempt.to_int64(), start))
 }
 
 ///|

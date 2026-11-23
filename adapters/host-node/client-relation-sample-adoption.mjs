@@ -318,7 +318,7 @@ export function clientRelationSampleAdoptionStorage(database, {
       ).join(', ')} ${scope}`);
     return probePayload.get(cutoff, ...args);
   };
-  const readRetained = (ref, selected, control, {current, reserve}) => {
+  const readRetained = (ref, selected, control, {current, reserve}, expectedProducer) => {
     ensureOpen();
     requireAuthority(current);
     const {compiledPlanCid, logicalMapCid, stepId, outputPortId, carrierContractCid, maxBytes} = selected;
@@ -367,6 +367,9 @@ export function clientRelationSampleAdoptionStorage(database, {
       const start = originalStart(ref);
       if (start?.plan_cid !== compiledPlanCid || !Number.isSafeInteger(start.start_revision) ||
           start.start_revision <= 0) fail('ClientRelationSampleOriginalChanged');
+      if (expectedProducer !== undefined && start.start_revision !== expectedProducer.startRevision) {
+        fail('ClientRelationSampleOriginalChanged');
+      }
       if (byPort && resolveReference(ref, outputPortId, control, limits).sampleRefCid !== sampleRefCid) {
         fail('ClientRelationSampleOriginalChanged');
       }
@@ -395,7 +398,10 @@ export function clientRelationSampleAdoptionStorage(database, {
       // Receipt expiry is scoped to the Run and SampleRef. Only the
       // separately verified reference establishes a port association.
       if (expiredAtRead || receiptOriginal.expiresAt <= now()) {
-        return Object.freeze({kind: 'expired', sampleRefCid});
+        // The receipt has no producer generation. It cannot prove that
+        // this expired association belongs to the currently selected Next.
+        return expectedProducer === undefined ? Object.freeze({kind: 'expired', sampleRefCid})
+          : Object.freeze({kind: 'unobserved'});
       }
       const {source, capture, emission, reference} = checkSampleEvidence(control, ref, start, limits, {
         generation: row.source_generation_wire, capture: row.capture_wire, emission: row.emission_wire,
@@ -405,6 +411,10 @@ export function clientRelationSampleAdoptionStorage(database, {
           source.logical_map_cid !== logicalMapCid || source.step_id !== stepId ||
           source.output_port_id !== outputPortId || source.carrier_contract_cid !== carrierContractCid) {
         fail('ClientRelationSampleOriginalChanged');
+      }
+      if (expectedProducer !== undefined && (source.committed_generation !== expectedProducer.generation ||
+          source.producer_occurrence.attempt_sequence !== expectedProducer.attemptSequence)) {
+        return Object.freeze({kind: 'unobserved'});
       }
       checkSamplePrefix(capture, emission, row.relation_wire, extent.relation_wire);
       let relation;
@@ -418,6 +428,7 @@ export function clientRelationSampleAdoptionStorage(database, {
     }, {readOnly: true});
     requireAuthority(current);
     if (observation.kind === 'available' && observation.receipt.expiresAt <= now()) {
+      // This read already verified the live original, including its generation.
       return Object.freeze({kind: 'expired', sampleRefCid});
     }
     return observation;

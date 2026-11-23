@@ -359,9 +359,19 @@ pub fn captured_next_task_has_prepared_input(CapturedDAG, Int) -> Bool
 
 pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relation.CompletedOutput
 
+pub fn captured_paused_materialized_dependency_shape(CapturedPausedMaterializedDependency) -> (Int, Int)?
+
+pub fn captured_paused_next_dependency(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int) -> Result[@physical_strategy.DataEdge, CapturedPausedDependencyIssue]
+
+pub fn captured_paused_next_sample_dependency(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int) -> Result[(@physical_strategy.DataEdge, Int, Int, Int), CapturedPausedDependencyIssue]
+
+pub fn captured_paused_next_sample_input(CapturedDAG, CapturedTaskBoundaryHooks, Int, Int, Int, Int) -> Result[(@physical_strategy.DataEdge, Int, Int, Int), CapturedPausedDependencyIssue]
+
 pub fn captured_pending_task_input_output(CapturedDAG, Int, Int) -> @execution_relation.CompletedOutput?
 
 pub fn captured_relation_sample_prefix_current(CapturedDAG, CapturedRelationSamplePrefix, CapturedOutputPin) -> (@encode_core.EncodedDocument, Int, Int, Int, Int64, Int)?
+
+pub fn captured_relation_sample_start_matches_revision(CapturedDAG, Int) -> Bool
 
 pub fn captured_relation_sample_start_selected(CapturedDAG) -> Bool
 
@@ -451,7 +461,9 @@ pub fn captured_task_boundary_task(CapturedTaskBoundary) -> Int
 
 pub fn captured_task_completed(CapturedDAG, Int) -> Bool
 
-pub fn captured_task_control_construction_bytes() -> Int64
+pub fn captured_task_control_construction_bytes(Int) -> Int64
+
+pub fn captured_task_control_paused_task(CapturedDAG, CapturedTaskBoundaryHooks) -> Result[(Int, Int, Int?, Int), CapturedTaskControlIssue]
 
 pub fn captured_task_control_state(CapturedDAG, CapturedTaskBoundaryHooks) -> Result[(Int, CapturedTaskControlPhase), CapturedTaskControlIssue]
 
@@ -835,6 +847,8 @@ pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonic
 
 pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64, quantity? : String) -> Result[EmpiricalRanking, SearchIssue]
 
+pub fn read_captured_paused_materialized_dependency_cell(CapturedPausedMaterializedDependency, Int, Int) -> Result[@execution_relation.Value?, CapturedPausedDependencyIssue]
+
 pub fn read_captured_task_boundary(CapturedDAG, CapturedTaskBoundaryHooks, CapturedTaskBoundaryPhase) -> Result[CapturedTaskBoundary?, CapturedTaskBoundaryIssue]
 
 pub fn record_host_cleanup_closes_awaited(HostCleanupProgress) -> Bool
@@ -1109,6 +1123,8 @@ pub fn task_offer_matches(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 
 pub fn validate_strategy_policy_request(StrategyChoiceSet, PolicyRequest, Int64) -> Result[Unit, SearchIssue]
 
+pub fn with_captured_paused_materialized_dependency(CapturedDAG, CapturedTaskBoundary, Int, Int, Int, (@physical_strategy.DataEdge, CapturedPausedMaterializedDependency) -> Unit) -> Result[Unit, CapturedPausedDependencyIssue]
+
 // Errors
 
 // Types and methods
@@ -1271,6 +1287,16 @@ pub struct CapturedExecutionRootStatistics {
 }
 
 type CapturedOutputPin
+
+pub(all) enum CapturedPausedDependencyIssue {
+  Boundary(CapturedTaskBoundaryIssue)
+  InvalidDependency
+  InputWorkLimit
+  DependencyUnavailable(RunIssue)
+  Cell(@execution_relation.RelationPresenceIssue)
+}
+
+type CapturedPausedMaterializedDependency
 
 type CapturedRelationSamplePrefix
 

@@ -10,6 +10,47 @@ const sql = Object.freeze([
   compiled_plan_wire TEXT NOT NULL,
   plan_view_wire TEXT NOT NULL
 ) STRICT`,
+  `CREATE TABLE client_debug_task_pauses (
+  run_definition_cid TEXT NOT NULL REFERENCES client_debug_entry_parks(run_definition_cid) ON DELETE CASCADE,
+  control_revision INTEGER NOT NULL CHECK (control_revision BETWEEN 2 AND 2147483646 AND control_revision % 2 = 0),
+  step_id TEXT NOT NULL,
+  next_step_id TEXT CHECK (next_step_id IS NULL OR length(CAST(next_step_id AS BLOB)) = 71),
+  committed_generation INTEGER NOT NULL CHECK (committed_generation BETWEEN 1 AND 2147483647),
+  paused_revision INTEGER NOT NULL CHECK (paused_revision BETWEEN 1 AND 2147483646),
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  paused_at INTEGER NOT NULL CHECK (paused_at >= 0 AND paused_at < expires_at),
+  journal_ordinal INTEGER NOT NULL UNIQUE CHECK (journal_ordinal > 0),
+  operation_id TEXT,
+  resume_wire TEXT,
+  receipt_wire TEXT CHECK (receipt_wire IS NULL OR
+    (resume_wire IS NOT NULL AND length(CAST(receipt_wire AS BLOB)) BETWEEN 1 AND 4096)),
+  receipt_cid TEXT CHECK (length(CAST(receipt_cid AS BLOB)) = 71),
+  resume_accepted_at INTEGER,
+  CHECK ((resume_wire IS NULL) = (resume_accepted_at IS NULL)),
+  CHECK ((receipt_wire IS NULL) = (receipt_cid IS NULL)),
+  CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
+  CHECK ((resume_wire IS NULL) = (operation_id IS NULL)),
+  PRIMARY KEY (run_definition_cid, control_revision),
+  UNIQUE (run_definition_cid, operation_id)
+) STRICT`,
+  `CREATE TABLE client_debug_entry_parks (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  submitted_intent_cid TEXT NOT NULL,
+  parked_revision INTEGER NOT NULL CHECK (parked_revision BETWEEN 1 AND 2147483645),
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  paused_at INTEGER NOT NULL CHECK (paused_at >= 0 AND paused_at < expires_at),
+  resume_wire TEXT,
+  receipt_wire TEXT CHECK (receipt_wire IS NULL OR
+    (resume_wire IS NOT NULL AND length(CAST(receipt_wire AS BLOB)) BETWEEN 1 AND 4096)),
+  receipt_cid TEXT CHECK (length(CAST(receipt_cid AS BLOB)) = 71),
+  resume_revision INTEGER,
+  resume_accepted_at INTEGER,
+  CHECK ((resume_wire IS NULL) = (resume_accepted_at IS NULL)),
+  CHECK ((receipt_wire IS NULL) = (receipt_cid IS NULL)),
+  CHECK (resume_accepted_at >= paused_at AND resume_accepted_at < expires_at),
+  CHECK ((resume_wire IS NULL AND resume_revision IS NULL) OR
+    (resume_wire IS NOT NULL AND resume_revision IS NOT NULL AND resume_revision = parked_revision + 1))
+) STRICT`,
   `CREATE TABLE client_relation_sample_adoptions (
   run_definition_cid TEXT NOT NULL REFERENCES client_relation_sample_starts(run_definition_cid) ON DELETE CASCADE,
   sample_ref_cid TEXT NOT NULL,

@@ -5858,7 +5858,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "aee47980164c0b808078a9b1f487ba9c9ff7c1ce0c80a83238df84a02592ec95",
+      "sha256": "80d8a6a5ffd7a8cbc7710a7448310bea551e1e659afe868226ab023bd3eae4e9",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -6325,6 +6325,14 @@
           "result": "Promise<CancellationLookup>"
         },
         {
+          "name": "Execution/lookupControlOperation",
+          "parameters": [
+            "ref: WireControlOperationRef",
+            "options?: Readonly<{signal?: AbortSignal;\n    maxWireBytes?: number; maxNodes?: number; maxDepth?: number}>"
+          ],
+          "result": "Promise<WireControlOperationLookup>"
+        },
+        {
           "name": "Execution/observeOwners",
           "parameters": [
             "options?: {signal?:AbortSignal;cursors?:readonly OwnerCursor[];\n    maxEntries?:number;maxWireBytes?:number}"
@@ -6337,6 +6345,13 @@
             "options?: {signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number}"
           ],
           "result": "Promise<WireRunPlanView>"
+        },
+        {
+          "name": "Execution/prepareResume",
+          "parameters": [
+            "options: Readonly<{operationId: string; expectedRevision: number;\n    until: 'step' | 'terminal'}>"
+          ],
+          "result": "Promise<WireControlCommand>"
         },
         {
           "name": "Execution/reconcile",
@@ -6353,10 +6368,18 @@
           "result": "Result"
         },
         {
+          "name": "Execution/resume",
+          "parameters": [
+            "command: WireControlCommand",
+            "options?: Readonly<{signal?: AbortSignal;\n    maxWireBytes?: number; maxNodes?: number; maxDepth?: number}>"
+          ],
+          "result": "Promise<WireControlOperationLookup>"
+        },
+        {
           "name": "Execution/sample",
           "parameters": [
             "selector: WireSampleSelector",
-            "options?: Readonly<{signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number}>"
+            "options?: Readonly<{signal?: AbortSignal; maxWireBytes?: number;\n    maxNodes?: number; maxDepth?: number; nextRevision?: number}>"
           ],
           "result": "Promise<WireRunSample>"
         },
@@ -7632,7 +7655,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+                "anchor": "const reserve = bytes => {readWorkspace.metadata(request, bytes);};"
               }
             ],
             "extension": [
@@ -7649,6 +7672,76 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
                 "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "Execution/lookupControlOperation",
+            "Execution/prepareResume",
+            "Execution/resume"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "async lookupControlOperation(operationRef,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "export function validControlOperationLookup(value, operationRef)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "origin.command_cid === operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "await contentCid(receipt) !== receiptCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "requestLifetime.beforeReply();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "fail('InvalidClientHostControlOperationLookup');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "withinResultDescriptionLimits(lookup, input)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"lookup-control-operation\": ["
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-plan-sdk.test.mjs",
+                "anchor": "test('SDK lookup consumes the original control receipt through Local Host ingress'"
               }
             ]
           }
@@ -11891,7 +11984,7 @@
     {
       "module": "packages/sdk/internal/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ca9ad2e3b518ceebf8969d7eda321ddd2549534693253421dacbbfb76c31e075",
+      "sha256": "06d47fa17cd10c3f30b2a5b6121fc4ae4c5c018236208ce290f1fd0e4aa53052",
       "exports": [
         "copyRunObservationFailure",
         "createExecutionFactory",
@@ -12033,13 +12126,45 @@
           "async": true
         },
         {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:lookupControlOperation/init:lookupControlOperation",
+          "parameters": [
+            "operationRef",
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:prepareResume/init:prepareResume",
+          "parameters": [
+            "operationId",
+            "expectedRevision",
+            "until"
+          ],
+          "async": true
+        },
+        {
+          "name": "createExecutionFactory/createExecutionFactory/handle/init:resume/init:resume",
+          "parameters": [
+            "command",
+            "signal",
+            "maxWireBytes",
+            "maxNodes",
+            "maxDepth"
+          ],
+          "async": true
+        },
+        {
           "name": "createExecutionFactory/createExecutionFactory/handle/init:sample/init:sample",
           "parameters": [
             "selector",
             "signal",
             "maxWireBytes",
             "maxNodes",
-            "maxDepth"
+            "maxDepth",
+            "nextRevision"
           ],
           "async": true
         },
@@ -12563,7 +12688,7 @@
               },
               {
                 "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+                "anchor": "const reserve = bytes => {readWorkspace.metadata(request, bytes);};"
               }
             ],
             "extension": [
@@ -12580,6 +12705,76 @@
               {
                 "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
                 "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createExecutionFactory/createExecutionFactory/handle/init:lookupControlOperation/init:lookupControlOperation",
+            "createExecutionFactory/createExecutionFactory/handle/init:prepareResume/init:prepareResume",
+            "createExecutionFactory/createExecutionFactory/handle/init:resume/init:resume"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "async lookupControlOperation(operationRef,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "export function validControlOperationLookup(value, operationRef)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "packages/client-wire/index.mjs",
+                "anchor": "origin.command_cid === operationRef.command_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "await contentCid(receipt) !== receiptCid"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-http.mjs",
+                "anchor": "requestLifetime.beforeReply();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/in-process-client.mjs",
+                "anchor": "fail('InvalidClientHostControlOperationLookup');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "withinResultDescriptionLimits(lookup, input)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"lookup-control-operation\": ["
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-plan-sdk.test.mjs",
+                "anchor": "test('SDK lookup consumes the original control receipt through Local Host ingress'"
               }
             ]
           }

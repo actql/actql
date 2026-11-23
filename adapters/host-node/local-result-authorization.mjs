@@ -115,6 +115,9 @@ export function createLocalReadAuthorizations({moon, authorization,
     runCurrent(facts, operation) {return authorize(facts, operation, 'run', true, true);},
     // Internal installed metadata consumer, never a public permission field.
     runImmediate(facts, operation) {return authorize(facts, operation, 'run', false);},
+    resumeImmediate(facts) {
+      return authorize(facts, undefined, 'run', false, false, 'resume');
+    },
     sampleReadImmediate(facts) {
       return authorize(facts, undefined, 'sample', false, false, 'read');
     },

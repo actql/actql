@@ -448,6 +448,16 @@ pub fn interactive_profile_allows_unattended_terminal(
 }
 
 ///|
+/// The installed first-resume path accepts only the checked entry stop
+/// without a guard or breakpoint that would alter its explicit interval.
+pub fn interactive_profile_requires_entry_stop(
+  profile : RunEvidenceValue,
+) -> Bool {
+  interactive_terminal_execution(profile) is Some(execution) &&
+  @json.object_field(execution, "stop_on_entry") is Some(@json.Bool(true))
+}
+
+///|
 /// Look up the original logical output in the set already checked during
 /// admission. Permission and physical output remain separate.
 pub fn interactive_relation_sample_output_limits(

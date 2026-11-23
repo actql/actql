@@ -9,6 +9,54 @@ test "Relation Sample captures the exact installed Request and committed output"
 }
 
 ///|
+test "acknowledged entry Step pauses before the next original Sample output" {
+  collection_request_publication_case(
+    1,
+    false,
+    simple=true,
+    check_sample_start=true,
+    entry_step=true,
+  )
+}
+
+///|
+fn check_managed_pause_dependency_unavailable(
+  captured : @strategy.CapturedDAG,
+  hooks : @strategy.CapturedTaskBoundaryHooks,
+  revision : Int,
+) -> Unit raise {
+  let boundary = @strategy.read_captured_task_boundary(captured, hooks, Settled)
+    .unwrap()
+    .unwrap()
+  defer @strategy.return_captured_task_boundary(boundary) |> ignore
+  let graph = @strategy.captured_dag_graph(captured)
+  let mut edge_index = -1
+  for index in 0..<@strategy.graph_data_count(graph) {
+    let edge = @strategy.graph_data_at(graph, index).unwrap()
+    if edge.producer == 0 && edge.consumer == 1 {
+      assert_eq(@strategy.captured_task_target(captured, 0), Some(edge.target))
+      edge_index = index
+      break
+    }
+  }
+  assert_true(edge_index >= 0)
+  let visits = Ref(0)
+  assert_true(
+    @strategy.with_captured_paused_materialized_dependency(
+      captured,
+      boundary,
+      revision,
+      edge_index,
+      1,
+      (_, _) => visits.val += 1,
+    )
+    is Err(DependencyUnavailable(UnsupportedGraph)),
+  )
+  assert_eq(visits.val, 0)
+  assert_true(@strategy.next_captured_task(captured) is None)
+}
+
+///|
 fn collection_sample_submission_reference(
   tag_digit : String,
 ) -> @publication_host.ClientSubmissionReferenceRecord {
@@ -35,6 +83,7 @@ fn check_relation_sample_profile_on_collection(
   definition : @publication.PublicationContract,
   ledger : @resources.Ledger,
   original_reference : @publication_host.ClientSubmissionReferenceRecord,
+  entry_step : Bool,
 ) -> ClientCheckedRelationSampleProfile raise {
   let observation = prepare_installed_logical_observation(
     run, prepared, compiled, definition, 65536, 8192, 64,
@@ -49,8 +98,11 @@ fn check_relation_sample_profile_on_collection(
   let seal = fn(name, body) {
     @publication.seal_run_evidence_value(name, body, 65536, 8192, 64).unwrap()
   }
-  let profile_body =
-    #|{"version":"actql-control-profile/0.1","execution":{"stop_on_entry":false,"default_until":"terminal","breakpoints":[],"guards":null},"retain":{"samples":{"strategy":"execution_prefix","capture_scope":"all_outputs","targets":[],"max_items":50,"max_bytes":"512","max_artifacts":1,"ttl_seconds":60,"required":true,"graph":{"max_nodes":0,"max_edges":0},"vectors":{"max_components_per_item":1}}}}
+  let profile_body = "{\"version\":\"actql-control-profile/0.1\",\"execution\":{\"stop_on_entry\":" +
+    entry_step.to_string() +
+    (
+      #|,"default_until":"terminal","breakpoints":[],"guards":null},"retain":{"samples":{"strategy":"execution_prefix","capture_scope":"all_outputs","targets":[],"max_items":50,"max_bytes":"512","max_artifacts":1,"ttl_seconds":60,"required":true,"graph":{"max_nodes":0,"max_edges":0},"vectors":{"max_components_per_item":1}}}}
+    )
   let profile = seal("control_profile", profile_body)
   let plan_cid = @publication.publication_contract_identity(
     @publication_host.client_compiled_run_plan(compiled),
@@ -304,6 +356,13 @@ fn check_relation_sample_profile_on_collection(
       match valid_wire {
         Ok(checked) => {
           assert_eq(checked.resolved_profile_cid, resolved_cid)
+          let (_, _, _, _, original_map_cid) = installed_relation_sample_profile_start_original(
+            checked,
+          )
+          assert_eq(
+            original_map_cid,
+            @publication.run_evidence_value_identity(map),
+          )
           admitted = Some(
             (checked, checked.control_admission_cid, resolved_cid),
           )
@@ -520,6 +579,62 @@ fn check_collection_committed_relation_sample(
     (generation, expected_attempt.to_int64(), 2),
   )
   assert_eq((count, total), (1, 1))
+  if profile.start_mode is PausedEntry && expected_task == 0 {
+    let (pause_revision, committed, next, pause_generation) = @strategy.captured_task_control_paused_task(
+      captured, hooks,
+    ).unwrap()
+    assert_eq(
+      (committed, next, pause_generation),
+      (expected_task, Some(1), actual_generation),
+    )
+    let graph = @strategy.captured_dag_graph(captured)
+    let (edge, start, producer_generation, producer_attempt) = @strategy.captured_paused_next_sample_dependency(
+      captured, hooks, pause_revision, actual_generation, 0,
+    ).unwrap()
+    assert_eq(
+      (start, producer_generation, producer_attempt),
+      (revision, actual_generation, expected_attempt),
+    )
+    assert_eq(edge.target, @strategy.graph_data_at(graph, 0).unwrap().target)
+    assert_eq(
+      (edge.producer, edge.consumer, edge.input),
+      (committed, next.unwrap(), 0),
+    )
+    assert_eq(
+      profile.driver_outputs.get(edge.producer),
+      Some((step_id, port_id, contract)),
+    )
+    let next_id = profile.driver_outputs.get(edge.consumer).unwrap().0
+    let edges = @strategy.graph_data_count(graph) +
+      @strategy.graph_control_count(graph)
+    let work = @strategy.graph_task_count(graph) * (1 + edges) +
+      @strategy.graph_data_count(graph)
+    let select = (selected, port, budget, observed) => {
+      installed_relation_sample_debug_next_input(
+        profile, owner, captured, revision, observed, actual_generation, selected,
+        port, budget,
+      )
+    }
+    assert_eq(
+      select(next_id, 0, work, pause_revision),
+      Ok(
+        Some((step_id, port_id, contract, actual_generation, expected_attempt)),
+      ),
+    )
+    assert_eq(
+      select(next_id, 0, work - 1, pause_revision),
+      Err(NextInputWorkLimit),
+    )
+    assert_eq(
+      select(next_id, 0, work - 1, pause_revision - 1),
+      Err(NextInputStalePause),
+    )
+    assert_eq(
+      select(step_id, 0, work, pause_revision),
+      Err(NextInputStalePause),
+    )
+    assert_eq(select(next_id, 1, work, pause_revision), Ok(None))
+  }
   let expected = @publication.seal_run_evidence_value(
     "logical_port_key",
     "{\"version\":\"actql-logical-port-key/0.1\",\"compiled_plan_cid\":\"" +
@@ -882,6 +997,7 @@ fn collection_request_publication_case(
   giant_elements? : Int? = None,
   diagnostic_failure? : Ref[LocalValuesExecutionIssue?]? = None,
   check_sample_start? : Bool = false,
+  entry_step? : Bool = false,
 ) -> Unit raise {
   let digits : Array[String] = []
   for n in 0..<10 {
@@ -1127,6 +1243,7 @@ fn collection_request_publication_case(
     )
     .unwrap()
     .unwrap()
+  let continue_entry : Ref[(() -> Unit raise)?] = Ref(None)
   let sample_profile = if check_sample_start {
     let captured = run.source_free_captured.unwrap()
     let foreign_definition = @publication.admit_publication_contract(
@@ -1167,15 +1284,60 @@ fn collection_request_publication_case(
     @strategy.stop_captured_dag(foreign_run)
     // The original H/R/W tariff plus the installed Account/tuple frame's
     // independent 24 headers, 56 references and 22 words on both dimensions.
-    let initial_start_bytes = 7456L + 24L * 16L + 56L * 8L + 22L * 8L
+    // The admitted Map handoff borrows six references.
+    let continuation_bytes = 7L * 16L + 18L * 8L + 10L * 8L
+    let initial_start_bytes = 7456L +
+      24L * 16L +
+      (56L + 6L) * 8L +
+      22L * 8L +
+      continuation_bytes
     let journal_bytes = 1024
     let journal_charge = installed_relation_sample_journal_bytes(journal_bytes).unwrap()
     assert_true(journal_charge > journal_bytes.to_int64())
     let original_holder = managed_run_publication_body(run, prepared).unwrap()
+    // The original CID copies add four headers, fourteen references,
+    // four scalars, three UTF-16 CID copies and one SQLite wire copy.
+    // Inspect adds four references and two words. Receipt issuance also
+    // borrows the checked Definition and uses one fixed H1/R5 selection.
+    let debug_wait_bytes = (40L + 4L + 1L) * 16L +
+      (120L + 14L + 4L + 5L) * 8L +
+      (44L + 4L + 8L + 4L + 4L + 2L) * 8L +
+      3L * 71L * 2L +
+      71L
+    let earlier = @resources.preparation_body_borrow_reserved_extents(
+      original_holder,
+    ).unwrap()
+    assert_true(
+      reserve_installed_relation_sample_start(
+        run,
+        prepared,
+        request,
+        compiled,
+        definition,
+        captured,
+        journal_bytes~,
+        previous_journal_bytes=journal_bytes,
+      )
+      is Err(SampleStartCapacity(InvalidExtent)),
+    )
+    assert_eq(
+      @resources.preparation_body_borrow_reserved_extents(original_holder),
+      Ok(earlier),
+    )
+    let ready_bytes = journal_bytes + 37
+    let ready_charge = installed_relation_sample_journal_bytes(ready_bytes).unwrap()
     for
-      (stored, start_bytes) in [
-        (0, initial_start_bytes),
-        (journal_bytes, journal_charge),
+      (stored, previous, debug_entry, start_bytes) in [
+        (
+          0,
+          0,
+          entry_step,
+          initial_start_bytes + (if entry_step { debug_wait_bytes } else { 0L }),
+        ),
+        (journal_bytes, 0, false, journal_charge),
+        (journal_bytes - 1, journal_bytes, false, 0L),
+        (journal_bytes, journal_bytes, false, 0L),
+        (ready_bytes, journal_bytes, false, ready_charge - journal_charge),
       ] {
       let (retained, execution) = @resources.preparation_body_borrow_reserved_extents(
         original_holder,
@@ -1189,7 +1351,7 @@ fn collection_request_publication_case(
       let execution_blocker = limits.execution_bytes -
         used.reserved_execution_bytes -
         start_bytes
-      for retention in [true, false] {
+      for retention in (if start_bytes > 0L { [true, false] } else { [] }) {
         let blocker = @resources.reserve_capacity(
           ledger,
           retention_blocker + (if retention { 1L } else { 0L }),
@@ -1203,6 +1365,8 @@ fn collection_request_publication_case(
           definition,
           captured,
           journal_bytes=stored,
+          previous_journal_bytes=previous,
+          debug_entry~,
         )
         assert_true(
           if retention {
@@ -1229,6 +1393,8 @@ fn collection_request_publication_case(
           definition,
           captured,
           journal_bytes=stored,
+          previous_journal_bytes=previous,
+          debug_entry~,
         )
         is Err(ForeignSampleStart),
       )
@@ -1240,6 +1406,8 @@ fn collection_request_publication_case(
         definition,
         captured,
         journal_bytes=stored,
+        previous_journal_bytes=previous,
+        debug_entry~,
       ).unwrap()
       assert_eq(
         @resources.preparation_body_borrow_reserved_extents(original_holder),
@@ -1255,6 +1423,13 @@ fn collection_request_publication_case(
       definition,
       ledger,
       original_reference.unwrap(),
+      entry_step,
+    )
+    assert_eq(
+      installed_relation_sample_debug_next_input(
+        profile, run, foreign_run, 2, 2, 1, "", 0, 1,
+      ),
+      Err(NextInputForeignOriginal),
     )
     // Exact originals alone cannot substitute for the selected controller.
     assert_true(
@@ -1286,9 +1461,61 @@ fn collection_request_publication_case(
       )
       is Err(SampleStartRequiresControl),
     )
-    advance_installed_relation_sample_start_control(
-      profile, run, captured, account, "sample-fixture", "node", false,
-    ).unwrap()
+    let debug = fn(command) {
+      advance_installed_relation_sample_debug_entry(
+        profile, run, captured, account, "sample-fixture", "node", command,
+      )
+    }
+    assert_eq(
+      installed_relation_sample_debug_resume_allowed(
+        profile, run, captured, account, "sample-fixture", "node",
+      ),
+      entry_step,
+    )
+    let pause_only = @authorization.admit_account_configuration({
+      account_id: "sample-test",
+      entries: [
+        {
+          entry_id: "sample-test-pause",
+          outcome: Allow,
+          scope: {
+            principal: All,
+            connection: All,
+            resource: All,
+            operation: AnyOf(["pause", "read"]),
+          },
+          exclusions: [],
+        },
+      ],
+      bootstrap: None,
+    }).unwrap()
+    assert_false(
+      installed_relation_sample_debug_resume_allowed(
+        profile, run, captured, pause_only, "sample-fixture", "node",
+      ),
+    )
+    if entry_step {
+      assert_true(debug(ResumeEntryStep(2)) is Err(SampleStartRequiresControl))
+      assert_true(
+        advance_installed_relation_sample_start_control(
+          profile, run, captured, account, "sample-fixture", "node", false,
+        )
+        is Err(SampleStartRequiresControl),
+      )
+      debug(PrepareEntry).unwrap()
+      assert_true(@strategy.next_captured_task(captured) is None)
+      assert_true(
+        installed_relation_sample_debug_entry_runnable(
+          profile, run, captured, 2,
+        )
+        is Err(SampleStartRequiresControl),
+      )
+    } else {
+      assert_true(debug(PrepareEntry) is Err(SampleStartRequiresControl))
+      advance_installed_relation_sample_start_control(
+        profile, run, captured, account, "sample-fixture", "node", false,
+      ).unwrap()
+    }
     acknowledge_installed_relation_sample_start(
       run, prepared, request, compiled, definition, captured, 2,
     ).unwrap()
@@ -1298,9 +1525,117 @@ fn collection_request_publication_case(
       )
       is Err(SampleStartControl(@strategy.AlreadyStarted)),
     )
-    advance_installed_relation_sample_start_control(
-      profile, run, captured, account, "sample-fixture", "node", true,
-    ).unwrap()
+    if entry_step {
+      let hooks = @strategy.captured_task_boundary_hooks(captured).unwrap()
+      assert_true(debug(ResumeEntryStep(3)) is Err(SampleStartRequiresControl))
+      assert_eq(
+        @strategy.captured_task_control_state(captured, hooks),
+        Ok((0, Paused)),
+      )
+      assert_true(
+        advance_installed_relation_sample_debug_entry(
+          profile,
+          run,
+          captured,
+          account,
+          "foreign-principal",
+          "node",
+          ResumeEntryStep(2),
+        )
+        is Err(SampleStartControl(@strategy.AuthorizationMismatch)),
+      )
+      assert_true(
+        installed_relation_sample_debug_entry_runnable(
+          profile, run, captured, 3,
+        )
+        is Err(SampleStartRequiresControl),
+      )
+      assert_true(
+        installed_relation_sample_debug_entry_runnable(
+          profile, run, captured, 2,
+        )
+        is Ok(false),
+      )
+      debug(ResumeEntryStep(2)).unwrap()
+      assert_true(
+        installed_relation_sample_debug_entry_runnable(
+          profile, run, captured, 2,
+        )
+        is Ok(true),
+      )
+      assert_eq(
+        @strategy.captured_task_control_state(captured, hooks),
+        Ok((1, Stepping(0))),
+      )
+      assert_true(
+        debug(ResumeEntryTerminal(2))
+        is Err(SampleStartControl(@strategy.StaleRevision)),
+      )
+      let expected_generation = @strategy.captured_dag_generation(captured) + 1
+      continue_entry.val = Some(() => {
+        assert_true(
+          installed_relation_sample_debug_entry_runnable(
+            profile, run, captured, 2,
+          )
+          is Ok(false),
+        )
+        assert_eq(
+          @strategy.captured_task_control_state(captured, hooks),
+          Ok((2, Paused)),
+        )
+        assert_true(@strategy.next_captured_task(captured) is None)
+        let (revision, step_id, next_step_id, generation) = installed_relation_sample_debug_task_pause(
+          profile, run, captured, 2,
+        ).unwrap()
+        assert_eq(revision, 2)
+        assert_eq(generation, expected_generation)
+        assert_eq(step_id, profile.driver_outputs.get(0).unwrap().0)
+        assert_eq(next_step_id, profile.driver_outputs.get(1).unwrap().0)
+        assert_true(step_id != next_step_id)
+        check_managed_pause_dependency_unavailable(captured, hooks, revision)
+        let resume_task = fn(expected, selected, next, committed) {
+          resume_installed_relation_sample_debug_task(
+            profile, run, captured, account, "sample-fixture", "node", 2, expected,
+            selected, next, committed, false,
+          )
+        }
+        assert_true(
+          resume_task(revision - 1, step_id, next_step_id, generation)
+          is Err(SampleStartControl(@strategy.StaleRevision)),
+        )
+        assert_true(
+          resume_task(
+            revision,
+            "sha256:" + "f".repeat(64),
+            next_step_id,
+            generation,
+          )
+          is Err(SampleStartControl(@strategy.StaleRevision)),
+        )
+        assert_true(
+          resume_task(revision, step_id, next_step_id, generation + 1)
+          is Err(SampleStartControl(@strategy.StaleRevision)),
+        )
+        assert_true(
+          resume_task(revision, step_id, step_id, generation)
+          is Err(SampleStartControl(@strategy.StaleRevision)),
+        )
+        assert_true(
+          resume_task(revision, step_id, "", generation)
+          is Err(SampleStartControl(@strategy.StaleRevision)),
+        )
+        assert_true(@strategy.next_captured_task(captured) is None)
+        resume_task(revision, step_id, next_step_id, generation).unwrap()
+        assert_true(
+          resume_task(revision, step_id, next_step_id, generation)
+          is Err(SampleStartControl(@strategy.InvalidTransition)),
+        )
+      })
+    } else {
+      advance_installed_relation_sample_start_control(
+        profile, run, captured, account, "sample-fixture", "node", true,
+      ).unwrap()
+    }
     Some(profile)
   } else {
     None
@@ -1339,6 +1674,11 @@ fn collection_request_publication_case(
         )
         assert_false(sample_ports.contains(port))
         sample_ports.push(port)
+        if continue_entry.val is Some(advance) {
+          assert_eq(expected_task, 0)
+          continue_entry.val = None
+          advance()
+        }
       } catch {
         issue => sample_failure.val = Some(issue)
       } noraise {
@@ -1378,6 +1718,7 @@ fn collection_request_publication_case(
           raise issue
         }
         assert_eq(sample_ports.length(), 2)
+        assert_true(continue_entry.val is None)
       }
       value
     }
@@ -1515,6 +1856,9 @@ fn collection_request_publication_case(
         "request-finalization-budget " +
         @debug.to_string(@resources.ledger_usage(parent.ledger)),
       )
+      if sample_failure.val is Some(issue) {
+        raise issue
+      }
       fail("request-finalization " + family + " cleanup=" + cleaned.to_string())
     }
   }

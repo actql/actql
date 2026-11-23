@@ -2712,7 +2712,7 @@ function publicationControl(moon) {
     prepareCheckedClientRequestAcquiredSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate, modelOccurrence) {
       return prepareAcquiredSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts, modelOccurrence});
     },
-    readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
+    readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits, debugParkWire = '') {
       if (typeof moon.clientProgramCurrentRunView !== 'function') {
         throw Object.assign(new Error('ClientOperationUnavailable'),
           {code: 'ClientOperationUnavailable'});
@@ -2720,8 +2720,20 @@ function publicationControl(moon) {
       return compiledRunResult(moon.clientProgramCurrentRunView(
         token(runDefinition), evidenceToken(prepared), evidenceToken(authorization),
         JSON.stringify(ref), JSON.stringify(state), snapshotCid,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth, debugParkWire),
       'RunHostInspectRejected');
+    },
+    localDebugResumeReceiptConstructionBytes(limits, issuing) {
+      const bytes = Number(moon.clientProgramLocalDebugResumeReceiptConstructionBytes(
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth, issuing));
+      if (!Number.isSafeInteger(bytes) || bytes < 1) throw new TypeError('Invalid Debug resume receipt limits');
+      return bytes;
+    },
+    issueLocalDebugResumeReceipt(runDefinition, command, parkWire, acceptedRevision, acceptedAt, limits) {
+      return inspectEvidence(compiledRunResult(moon.clientProgramIssueLocalDebugResumeReceipt(
+        token(runDefinition), evidenceToken(command), parkWire, acceptedRevision, acceptedAt,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostDebugResumeReceiptRejected'));
     },
     readCheckedClientStaticPlan(checkedProgram, kind, limits) {
       if (!['values', 'tasks', 'effects'].includes(kind) ||
@@ -2762,6 +2774,7 @@ function publicationControl(moon) {
       return Object.freeze({profile,
         controlAdmissionCid: runtimeField(original, 1),
         resolvedProfileCid: runtimeField(original, 2),
+        logicalMapCid: runtimeField(original, 5),
         ...relationSampleJournalScope(moon, visitRelationSampleJournal, run, profile, compiledRunResult),
         matchesStart(program, candidate) {
           return prepared !== undefined && compiled !== undefined && program === prepared &&
@@ -2775,18 +2788,20 @@ function publicationControl(moon) {
         },
       });
     },
-    reserveClientRelationSampleStart(run, request, executionOwner, definition, setup, journalBytes = 0) {
+    reserveClientRelationSampleStart(run, request, executionOwner, definition, setup,
+      journalBytes = 0, debugEntry = false, previousJournalBytes = 0) {
       const compiled = compiledRunTokens.get(executionOwner?.compiled);
       const prepared = executionOwner?.program;
       if (compiled === undefined || prepared === undefined ||
           !Number.isInteger(journalBytes) || journalBytes < 0 || journalBytes > 2147483519 ||
-          typeof reserveRelationSampleStart !== 'function') {
+          !Number.isInteger(previousJournalBytes) || previousJournalBytes < 0 || previousJournalBytes > 2147483519 ||
+          typeof debugEntry !== 'boolean' || typeof reserveRelationSampleStart !== 'function') {
         throw new TypeError('Foreign Client Relation Sample start');
       }
       // The fixed bootstrap calls the original owner positionally. The
       // dynamic argument vector for acknowledgement is allocated after this.
       compiledRunResult(reserveRelationSampleStart.call(moon,
-        run, prepared, request, compiled, token(definition), setup, journalBytes),
+        run, prepared, request, compiled, token(definition), setup, journalBytes, debugEntry, previousJournalBytes),
       'RunHostRelationSampleStartCapacityRejected');
     },
     acknowledgeClientRelationSampleStart(run, request, executionOwner, definition, captured, revision) {

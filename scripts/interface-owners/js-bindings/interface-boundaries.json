@@ -17617,7 +17617,9 @@
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
             "publicationControl/token/token",
-            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan"
+            "publicationControl/init:captureOriginalEffectRunPlan/init:captureOriginalEffectRunPlan",
+            "publicationControl/init:issueLocalDebugResumeReceipt/init:issueLocalDebugResumeReceipt",
+            "publicationControl/init:localDebugResumeReceiptConstructionBytes/init:localDebugResumeReceiptConstructionBytes"
           ],
           "exports": [],
           "attributes": {
@@ -30290,6 +30292,18 @@
           "async": false
         },
         {
+          "name": "publicationControl/init:issueLocalDebugResumeReceipt/init:issueLocalDebugResumeReceipt",
+          "parameters": [
+            "runDefinition",
+            "command",
+            "parkWire",
+            "acceptedRevision",
+            "acceptedAt",
+            "limits"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
           "parameters": [
             "owner",
@@ -30630,6 +30644,14 @@
           "name": "publicationControl/init:keyedLookupPublicationEvidence/init:keyedLookupPublicationEvidence",
           "parameters": [
             "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:localDebugResumeReceiptConstructionBytes/init:localDebugResumeReceiptConstructionBytes",
+          "parameters": [
+            "limits",
+            "issuing"
           ],
           "async": false
         },
@@ -32190,7 +32212,8 @@
             "ref",
             "state",
             "snapshotCid",
-            "limits"
+            "limits",
+            "debugParkWire"
           ],
           "async": false
         },
@@ -32551,7 +32574,9 @@
             "executionOwner",
             "definition",
             "setup",
-            "journalBytes"
+            "journalBytes",
+            "debugEntry",
+            "previousJournalBytes"
           ],
           "async": false
         },
@@ -35545,7 +35570,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "bca32a0cafd0916fbd15d61b156801910e748d5f1fedcf9a3fada654edb13d99"
+      "sha256": "0fdadfe5fd209a796f644810181766a2172ba987559e52714c06b9a0e716d580"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -40311,6 +40336,8 @@
         "cancelNodeRunContinuation",
         "confirmNodeRunCancellation",
         "installNodeClientDispatchOwner",
+        "installNodeRelationSampleDebugEntry",
+        "installNodeRelationSampleStart",
         "observeNodeRestoredLocalStop",
         "observeNodeRestoredModelStop",
         "observeNodeRunCancellation",
@@ -40331,6 +40358,11 @@
             "facts"
           ],
           "async": true
+        },
+        {
+          "name": "DebugPauseHostClosing/constructor:constructor/constructor:constructor",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "installNodeClientDispatchOwner",
@@ -40364,6 +40396,8 @@
             "beforePublication",
             "authorizeLogicalObservation",
             "authorizeSampleCapture",
+            "prepareSampleStart",
+            "prepareDebugEntryResume",
             "managedComputeRequired",
             "retainedRelationOutput",
             "runPublished"
@@ -40421,6 +40455,7 @@
             "accepted",
             "run",
             "execution",
+            "definition",
             "setup",
             "profile"
           ],
@@ -40429,12 +40464,25 @@
         {
           "name": "installNodeClientDispatchOwner/checkSampleProfile/original/init:reserveSampleRead/init:reserveSampleRead",
           "parameters": [
-            "bytes"
+            "bytes",
+            "previousBytes"
           ],
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/controlledDebugTask/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/credentialRefusalPending/credentialRefusalPending",
+          "parameters": [
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/current/current",
           "parameters": [
             "ref"
           ],
@@ -40488,9 +40536,80 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/lookupDebugResume/lookupDebugResume",
+          "parameters": [
+            "ref",
+            "operationId",
+            "commandCid",
+            "acceptedFromRevision",
+            "principalId",
+            "connection",
+            "authorize",
+            "reserve",
+            "reserveConstruction"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/lookupDebugResume/lookupDebugResume/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect",
+          "parameters": [
+            "ref",
+            "actor"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect/observeDebugInspect",
+          "parameters": [
+            "owner",
+            "allowed"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/observeDebugTask/observeDebugTask",
+          "parameters": [
+            "ref",
+            "actor"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/observeDebugTask/observeDebugTask/observeDebugTask",
+          "parameters": [
+            "owner",
+            "allowed"
+          ],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/operation/operation",
           "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/readDebugNextSample/readDebugNextSample",
+          "parameters": [
+            "ref",
+            "actor",
+            "selected",
+            "reserve",
+            "bindProducer"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/readDebugNextSample/readDebugNextSample/readDebugNextSample",
+          "parameters": [
+            "owner",
+            "allowed"
           ],
           "async": false
         },
@@ -40505,6 +40624,23 @@
           "name": "installNodeClientDispatchOwner/resourceUsage/resourceUsage",
           "parameters": [
             "ledger"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/resumeDebugTask/resumeDebugTask",
+          "parameters": [
+            "ref",
+            "actor",
+            "commandWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/resumeDebugTask/resumeDebugTask/resumeDebugTask",
+          "parameters": [
+            "owner",
+            "allowed"
           ],
           "async": false
         },
@@ -40564,7 +40700,19 @@
           "async": false
         },
         {
+          "name": "installNodeClientDispatchOwner/start/start/start/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture",
+          "parameters": [
+            "witness"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture#2",
           "parameters": [
             "scope"
           ],
@@ -40684,14 +40832,14 @@
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#15",
           "parameters": [
-            "source"
+            "operation"
           ],
           "async": false
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#16",
           "parameters": [
-            "value"
+            "source"
           ],
           "async": false
         },
@@ -40704,7 +40852,9 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#18",
-          "parameters": [],
+          "parameters": [
+            "value"
+          ],
           "async": false
         },
         {
@@ -40721,9 +40871,7 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#20",
-          "parameters": [
-            "task"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -40749,6 +40897,13 @@
         },
         {
           "name": "installNodeClientDispatchOwner/start/start/start/start#24",
+          "parameters": [
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/start/start/start/start#25",
           "parameters": [
             "task"
           ],
@@ -40886,6 +41041,198 @@
           "async": false
         },
         {
+          "name": "installNodeRelationSampleDebugEntry",
+          "parameters": [
+            "moon",
+            "observeAccount",
+            "hostConnection",
+            "site",
+            "journal",
+            "control",
+            "now"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry",
+          "parameters": [
+            "setup",
+            "owner",
+            "authority",
+            "profile",
+            "signal",
+            "logicalMapCid",
+            "runDefinition"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/call/call",
+          "parameters": [
+            "original",
+            "command",
+            "revision"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/expireWaiting",
+          "parameters": [
+            "wait"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/holdPause/holdPause",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/holdPause/holdPause/holdPause",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:activate/init:activate",
+          "parameters": [
+            "witness"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:beginDrain/init:beginDrain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause",
+          "parameters": [
+            "authorize",
+            "inspect"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:parkEntry/init:parkEntry",
+          "parameters": [
+            "identity",
+            "expectedRevision",
+            "expiresAt"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample",
+          "parameters": [
+            "selected",
+            "authorize",
+            "reserve",
+            "bindProducer"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask",
+          "parameters": [
+            "commandWire",
+            "authorize",
+            "reserve"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/init:capture/init:capture",
+          "parameters": [
+            "witness"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/init:capture/init:capture#2",
+          "parameters": [
+            "witness"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:waitForResume/init:waitForResume",
+          "parameters": [
+            "actual",
+            "waitSignal"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/phase/phase",
+          "parameters": [
+            "actual"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleStart",
+          "parameters": [
+            "moon",
+            "observeAccount",
+            "hostConnection",
+            "site"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleStart/installNodeRelationSampleStart",
+          "parameters": [
+            "setup",
+            "owner",
+            "profile",
+            "authority"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeRelationSampleStart/installNodeRelationSampleStart/installNodeRelationSampleStart",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "invalidSampleStartReceiver/invalidSampleStartReceiver",
           "parameters": [],
           "async": false
@@ -40936,21 +41283,15 @@
           "async": false
         },
         {
+          "name": "selectedSampleAdoption/init:current/init:current/init:current",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "selectedSampleAdoption/scope/init:adopt/init:adopt",
           "parameters": [
-            "prefix",
-            "authorizeSample"
+            "prefix"
           ],
-          "async": false
-        },
-        {
-          "name": "selectedSampleAdoption/scope/init:adopt/init:adopt/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "selectedSampleAdoption/scope/init:adopt/init:adopt/current/current/current",
-          "parameters": [],
           "async": false
         },
         {
@@ -43129,7 +43470,8 @@
         {
           "operations": [
             "installNodeClientDispatchOwner/start/start/start/published/published#4",
-            "installNodeClientDispatchOwner/start/start/start/start#24"
+            "installNodeClientDispatchOwner/start/start/start/start#24",
+            "installNodeClientDispatchOwner/start/start/start/start#25"
           ],
           "exports": [],
           "attributes": {
@@ -43429,15 +43771,14 @@
             "selectedSampleAdoption/init:adopt/init:adopt",
             "selectedSampleAdoption/init:current/init:current",
             "selectedSampleAdoption/scope/init:adopt/init:adopt",
-            "selectedSampleAdoption/scope/init:adopt/init:adopt/current/current",
-            "selectedSampleAdoption/scope/init:adopt/init:adopt/current/current/current",
             "selectedSampleAdoption/scope/init:adopt/init:adopt/init:adopt",
             "selectedSampleAdoption/scope/init:arm/init:arm",
             "selectedSampleAdoption/scope/init:captureAdoption/init:captureAdoption",
             "selectedSampleAdoption/scope/init:close/init:close",
             "selectedSampleAdoption/scope/init:requireWriter/init:requireWriter",
             "selectedSampleAdoption/selectedSampleAdoption",
-            "selectedSampleAdoption/selectedSampleAdoption#2"
+            "selectedSampleAdoption/selectedSampleAdoption#2",
+            "selectedSampleAdoption/init:current/init:current/init:current"
           ],
           "exports": [],
           "attributes": {
@@ -43506,6 +43847,652 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "DebugPauseHostClosing/constructor:constructor/constructor:constructor",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:beginDrain/init:beginDrain"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "beginDrain() {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "stopWaiting(waiting,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.debugControl?.beginDrain?.();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (entry.physicalStarted && entry.cleanupOwner !== undefined)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (hostClosing) throw new DebugPauseHostClosing();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "!(primary instanceof DebugPauseHostClosing)"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.listener[Symbol.dispose]();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "await settleCleanup(entry);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "else if (entry.physicalStarted) entry.debugControl?.beginDrain?.();"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('Host shutdown joins the original started Step through the later Debug park'"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "detachment alone owns no physical stop acknowledgement"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/controlledDebugTask/allowed/allowed",
+            "installNodeClientDispatchOwner/lookupDebugResume/lookupDebugResume",
+            "installNodeClientDispatchOwner/lookupDebugResume/lookupDebugResume/current/current",
+            "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect",
+            "installNodeClientDispatchOwner/observeDebugInspect/observeDebugInspect/observeDebugInspect",
+            "installNodeClientDispatchOwner/observeDebugTask/observeDebugTask",
+            "installNodeClientDispatchOwner/observeDebugTask/observeDebugTask/observeDebugTask",
+            "installNodeClientDispatchOwner/readDebugNextSample/readDebugNextSample",
+            "installNodeClientDispatchOwner/readDebugNextSample/readDebugNextSample/readDebugNextSample",
+            "installNodeClientDispatchOwner/resumeDebugTask/resumeDebugTask",
+            "installNodeClientDispatchOwner/resumeDebugTask/resumeDebugTask/resumeDebugTask",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/expireWaiting",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/allowed/allowed",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:readNextSample/init:readNextSample/init:readNextSample#2",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/allowed/allowed",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/init:capture/init:capture"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "resumeTask(commandWire, authorize, reserve)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const observeDebugTask ="
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const lookupDebugResume ="
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "Ok((revision, step_id, next_step, committed_generation))"
+              },
+              {
+                "path": "src/physical_strategy_host/task_control.mbt",
+                "anchor": "next_captured_task_ungated(run)"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "attemptSequence: runtimeField(selectedProducer, 4)"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "logicalMapCid: original.logicalMapCid, startRevision: original.startRevision"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.debugControl === original"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (handoff !== undefined) capture(handoff)"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "original.revision = witness.revision;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.unresolved = true;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.listener[Symbol.dispose]();"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "clearTimeout(wait.timer);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "let installed_sample_debug_entry_bytes : Int64"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "{nextStepId: wait.parked.nextStepId}"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('the live Debug waiter wakes on the original Journal ACK and keeps Done and Next distinct'"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "the installed Next receiver reads two original input generations"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "{state: 'unavailable', reason: 'capacity'}"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "the consumed original cannot back Inspect"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/current/current",
+            "installNodeClientDispatchOwner/start/start/start/current/current",
+            "installNodeClientDispatchOwner/start/start/start/init:capture/init:capture#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/strategy.mjs",
+                "anchor": "const awaitRunnable ="
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "let debugController, debugStart, debugResume;"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "acceptedRevision: parked.resume_revision, physicalStartRevision"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const result = debugController.activate(debugStart);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "prepareDebugEntryResume(setup, held.managedRun, authority)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (command.self_cid !== debugCommandCid)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/strategy.mjs",
+                "anchor": "await taskControl.waitForResume(setup, signal);"
+              },
+              {
+                "path": "adapters/host-node/entry.mjs",
+                "anchor": "preparationHolder, beforePublication, relationSample, taskControl,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (debugReceiver !== undefined) debugReceiver(debugStart);"
+              },
+              {
+                "path": "adapters/host-common/strategy.mjs",
+                "anchor": "phase = taskControl.phase(setup);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "throw new Error('ClientRunDebugEntryOriginalUnavailable');"
+              },
+              {
+                "path": "adapters/host-common/strategy.mjs",
+                "anchor": "throw new StrategyHostError('InstalledTaskControllerNotRunnable');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/strategy.mjs",
+                "anchor": "signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const current = () => !entry.abort.signal.aborted && hostConnection(authority) === true"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/strategy.mjs",
+                "anchor": "const awaitRunnable = taskControl === undefined ? undefined : async () => {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "!['step', 'terminal'].includes(debugStart.until)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/strategy-usage.test.mjs",
+                "anchor": "test('a controlled Driver waits at entry and after one Step"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('a lost physical-start ACK never delivers the Debug continuation"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('the Driver receives the exact acknowledged Debug interval"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('one acknowledged Debug start gives the original Driver both its controller and its Sample writer'"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('one physical start commits the original Debug interval and Sample revision, with neither delivered on Unknown'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeRelationSampleDebugEntry",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/call/call",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/current/current",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:activate/init:activate",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:close/init:close",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:waitForResume/init:waitForResume",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/phase/phase"
+          ],
+          "exports": [
+            "installNodeRelationSampleDebugEntry"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareDebugEntryResume: installNodeRelationSampleDebugEntry(moon,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugEntryRunnable\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn installed_relation_sample_debug_entry_runnable("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.debugControl = debugController;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const ready = checked(runnable.call(moon"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (!current() || live !== original) throw new Error('ClientRunDebugEntryDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.listener = addAbortListener(signal,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "let installed_sample_debug_entry_bytes : Int64"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function closeDebugControl(entry)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('the selected Debug receiver waits on the original setup and detaches on abort or retirement'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/holdPause/holdPause",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/holdPause/holdPause/holdPause",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:parkEntry/init:parkEntry",
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:resumeTask/init:resumeTask/init:capture/init:capture#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "parkEntry(identity, expectedRevision, expiresAt)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "acceptDebugEntryResume(ref, {commandWire, current, capture, receiptOriginal}"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "debugResumeCid = await debugController.parkEntry(requested, claim.revision, debugEntryExpiresAt)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.debugControl = debugController;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (handoff !== undefined) capture?.(handoff);"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "physicalStarted = journal.reservePhysicalStart(requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "row.revision !== entry.parked_revision"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.unresolved = true;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.listener[Symbol.dispose]();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "control.reserveClientRelationSampleStart(sampleRun, requested, execution, sampleDefinition, setup, undefined, resumesDebug);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (wait.parked.controlRevision === undefined)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('the installed entry waiter accepts one committed command before the original physical claim'"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('the live Dispatcher parks the same sampled setup before physical start and admits another authorized client'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeRelationSampleDebugEntry/installNodeRelationSampleDebugEntry/init:observePause/init:observePause/allowed/allowed"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "debugPauseCurrent(ref, {parked, startRevision, current, requireEntryDeadline = false})"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "journal.debugPauseCurrent(original.authority.ref, {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "p.paused_revision = r.revision AND p.control_revision = ? AND p.step_id = ?"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "s.authority_scope_cid = r.authority_scope_cid AND s.start_revision = ?"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "AND p.paused_at = ? AND p.expires_at = ?"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "throw reconciliationRequired();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "AND r.pre_dispatch_failure_confirmed = 0 AND r.cancellation_requested = 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "SELECT 1 AS current"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "liveDebugEntry ??= database.prepare"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "a consumed durable pause is no longer actionable"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "durable consumption hides the in-memory pause"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "installNodeRelationSampleStart",
+            "installNodeRelationSampleStart/installNodeRelationSampleStart",
+            "installNodeRelationSampleStart/installNodeRelationSampleStart/installNodeRelationSampleStart"
+          ],
+          "exports": [
+            "installNodeRelationSampleStart"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareSampleStart: installNodeRelationSampleStart(moon,"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramAdvanceRelationSampleStartControl\")"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "sampleReady = prepareSampleStart(setup, sampleRun, checkedProfile, sampleAuthority);"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const result = sampleReady();"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const sampleAuthority = {principalId: actual, connection, ref: accepted.ref};"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "@builtin.configured_host_driver(setup)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (Object.hasOwn(held, 'sampleProfile'))"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.sampleAdoption.requireWriter();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "let pending = true;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const original = observe();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (observe() !== original) throw new Error('ClientRunSampleStartAuthorityLost');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.abort.signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "delete held.sampleProfile;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "control.reserveClientRelationSampleStart(sampleRun, requested, execution, sampleDefinition, setup, undefined, resumesDebug);"
+              },
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "// One installed Account/tuple binding and its synchronous two-phase receiver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (typeof advance !== 'function') return undefined;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('replacement Account after the Sample start ACK cannot activate the installed controller'"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('ordinary Debug does not opt into the unattended Sample starter'"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -43524,12 +44511,13 @@
         "./local-values-plan.mjs",
         "./logical-task-observation.mjs",
         "./ordinary-source-binding.mjs",
+        "node:events",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "dba4ac808863a5395b65a16582c092aea8dbdac0d477851dac63aa5ab089615b",
+      "sha256": "a8864ccc0a5a2dc56dc552bc9e24a76fffbda84e8acc01891f955426a798d34f",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -65786,7 +66774,1595 @@
               },
               {
                 "path": "adapters/host-node/client-run-plan.mjs",
-                "anchor": "reserve: bytes => {readWorkspace.metadata(request, bytes);}"
+                "anchor": "const reserve = bytes => {readWorkspace.metadata(request, bytes);};"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.carrier !== 'relation')"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (port.source.kind !== 'logical_output')"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-run-explanation-sdk.test.mjs",
+                "anchor": "test('Execution.sample uses the original producer port and repeats current egress before returning data'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareSampleStart: installNodeRelationSampleStart(moon,"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramAdvanceRelationSampleStartControl\")"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "sampleReady = prepareSampleStart(setup, sampleRun, checkedProfile, sampleAuthority);"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const result = sampleReady();"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const sampleAuthority = {principalId: actual, connection, ref: accepted.ref};"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "@builtin.configured_host_driver(setup)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (Object.hasOwn(held, 'sampleProfile'))"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.sampleAdoption.requireWriter();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "let pending = true;"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const original = observe();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (observe() !== original) throw new Error('ClientRunSampleStartAuthorityLost');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.abort.signal.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "delete held.sampleProfile;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "control.reserveClientRelationSampleStart(sampleRun, requested, execution, sampleDefinition, setup, undefined, resumesDebug);"
+              },
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "// One installed Account/tuple binding and its synchronous two-phase receiver"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (typeof advance !== 'function') return undefined;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('replacement Account after the Sample start ACK cannot activate the installed controller'"
+              },
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('ordinary Debug does not opt into the unattended Sample starter'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#12"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "prepareDebugEntryResume: installNodeRelationSampleDebugEntry(moon,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_account_construction_bridge.mbt",
+                "anchor": "#export_name(\"clientProgramRelationSampleDebugEntryRunnable\")"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "pub fn installed_relation_sample_debug_entry_runnable("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.debugControl = debugController;"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "const ready = checked(runnable.call(moon"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "if (!current() || live !== original) throw new Error('ClientRunDebugEntryDenied');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "wait.listener = addAbortListener(signal,"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "let installed_sample_debug_entry_bytes : Int64"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function closeDebugControl(entry)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "test('the selected Debug receiver waits on the original setup and detaches on abort or retirement'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "anchor": "openInstalledHost",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "## Responsibility",
+                "path": "docs/development/js-compiler-bindings.md"
+              },
+              {
+                "anchor": "pub fn run_wait_ready(",
+                "path": "src/run_publication/run_wait.mbt"
+              },
+              {
+                "anchor": "### Original short-query continuation",
+                "path": "docs/design/client-submission-identity.md"
+              },
+              {
+                "anchor": "### Project Task Host assembly",
+                "path": "docs/design/model-provider-registration.md"
+              },
+              {
+                "anchor": "export async function loadInstalledProjectModelTasks(moon, project, providers,",
+                "path": "adapters/host-node/installed-project-model-tasks.mjs"
+              },
+              {
+                "anchor": "### Original project profile choice",
+                "path": "docs/design/model-provider-registration.md"
+              },
+              {
+                "anchor": "pub fn select_client_project_profile(",
+                "path": "src/run_publication_host/client_project_profile.mbt"
+              },
+              {
+                "anchor": "Preparation responsibility belongs to the existing Host instance",
+                "path": "docs/design/reference-host.md"
+              },
+              {
+                "anchor": "## Local Run observation authorization",
+                "path": "docs/design/oss-host-authorization.md"
+              },
+              {
+                "anchor": "The final installed Check Environment and query-name publication retain their",
+                "path": "docs/design/reference-host.md"
+              },
+              {
+                "anchor": "The lifetime getter closes over those installed originals in their initialization",
+                "path": "docs/design/reference-host.md"
+              },
+              {
+                "anchor": "A Local status observation retains its journal's nominal admitted Run frame",
+                "path": "docs/design/interactive-run-control.md"
+              },
+              {
+                "anchor": "One original Effect computation retains one existing Journal cancellation",
+                "path": "docs/design/reference-host.md"
+              },
+              {
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "### Original Request domain construction",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Keyed Content on the original Request",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Content original alias retirement",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Original Model input before its component factory",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Adopted Node Model Source and failed setup custody",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Original installed Model read recipe",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Required installed Request preparation",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Installed environment image has one original route",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "## Independently supplied Remote Effects",
+                "path": "docs/design/run-host-prepared-environment.md"
+              },
+              {
+                "anchor": "## Responsibility",
+                "path": "adapters/local-node/declared-project-runtime.md"
+              },
+              {
+                "anchor": "## Responsibility",
+                "path": "adapters/host-node/installed-funded-environment.md"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "openInstalledHost"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run_wait\": {"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const bounds = snapshotLimits(limits, construction !== undefined);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "projectEnvironmentForRuntime(runtime, wire, evidenceCid, environmentBody) {"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "export function selectInstalledProjectProfile(moon,project,requested,maxWork){"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn client_project_profile_matches("
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const environmentSource = preparation.readEnvironmentSource();"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "export function createLocalReadAuthorizations({moon, authorization,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "export function readLocalPreparationContext(originals) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "openInstalledHost"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "packages/sdk/internal/run-observation.mjs",
+                "anchor": "state.run_id !== latestState.runId"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const original = installedProjectOriginalsForRuntime(project, moon);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "if (runtime !== moon) fail('ForeignInstalledProjectRuntime');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_model_task_selection.mbt",
+                "anchor": "pub fn client_project_model_task_selection_for("
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "if(receiver!==view||runtime!==moon)fail('ForeignInstalledProjectProfile');"
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "physical_equal(original, candidate)"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects copied project view receiver and another runtime'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return readInitialControlInstallationAsset(control, originals,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const controlConnection = authorization?.siteKey ?? 'actql-remote-host';"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "run(facts, operation) {return promised(facts, operation, 'run');}"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (context === undefined || context.runtime !== installation.projectRuntime ||"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "context.control !== installation.initialControl ||"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeCancellation = journal.observeRunCancellation(facts.ref, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Within one Local wait invocation, the next poll may borrow the last completed"
+              }
+            ],
+            "ownership": [
+              {
+                "anchor": "openInstalledHost",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "## Ownership",
+                "path": "docs/development/js-compiler-bindings.md"
+              },
+              {
+                "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "assertSubmittedIntent(prepared, intent)",
+                "path": "adapters/host-node/client-program-preparation.mjs"
+              },
+              {
+                "anchor": "const retained = Object.freeze(tasks);",
+                "path": "adapters/host-node/installed-project-model-tasks.mjs"
+              },
+              {
+                "anchor": "projectTasks = undefined;",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "The existing Host shutdown drops project/Task aliases only after its original",
+                "path": "docs/design/model-provider-registration.md"
+              },
+              {
+                "anchor": "original=configuration=selection=project=requested=ports=undefined;",
+                "path": "adapters/host-node/installed-project-profile.mjs"
+              },
+              {
+                "anchor": "selection.configuration = None",
+                "path": "src/run_publication_host/client_project_profile.mbt"
+              },
+              {
+                "anchor": "projectProfile?.retire(projectRuntime);",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "Reference ownership follows the actual Host record and its real children.",
+                "path": "docs/design/reference-host.md"
+              },
+              {
+                "anchor": "standardAccountPreparation = await preparation.prepareStandardAccount(",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "const originalAccountId = identity.state === 'admitted' ? identity.account_id : undefined;",
+                "path": "adapters/host-node/local-result-authorization.mjs"
+              },
+              {
+                "anchor": "preparedSourceEnvironment = Object.freeze({host, moon, environment, publication:sourcePublication,",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "observation; they retain no current Account decision or physical cleanup ACK.",
+                "path": "docs/design/interactive-run-control.md"
+              },
+              {
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "### Original Request domain construction",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Keyed Content on the original Request",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Content original alias retirement",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "The Environment composer retains its same-call body, exact wire and evidence",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Original Model input before its component factory",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Adopted Node Model Source and failed setup custody",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Original installed Model read recipe",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Required installed Request preparation",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "### Installed environment image has one original route",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "        // The one-Unit recovery consumer lowers its checked segments only",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "## Ownership",
+                "path": "adapters/local-node/declared-project-runtime.md"
+              },
+              {
+                "anchor": "## Ownership",
+                "path": "adapters/host-node/installed-funded-environment.md"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "openInstalledHost"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const observeStep = async promise => {"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const call = (name, ...args) => Reflect.apply(callbacks[name], moon, args);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const wire = construction === undefined"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "originalsForRuntime(runtime);"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.mjs",
+                "anchor": "const call=(name,...args)=>Reflect.apply(ports[name],moon,args);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
+              },
+              {
+                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "anchor": "assertCurrent(scope, originals);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "return authorizeLocalRun({principalId: value.principalId,"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "getFundedPreparation: (request, selectedEnvironment, originalVerifier, signal) =>"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const after = observeControl();"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "authorizeCurrentLocalRun(operation, operation) === true && hostConnection(request)"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "observeDebugPause: (request, authorize) => dispatchOwner.observeDebugInspect("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "openInstalledHost"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "return Err(InvalidSince)"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "fail('InstalledModelDefaultsForeignOriginal');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project rejects missing Provider or applicable handling original without invoking it'"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw clientOperationError('InstalledProjectProfileUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs",
+                "anchor": "test('actual profile rejects invalid choices and retains nominal retirement without physical ACK'"
+              },
+              {
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
+                "anchor": "test('prepared Host has no pathname fallback when its original asset is unavailable'"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "if (originalAccountId === undefined || identity.state !== 'admitted' ||"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "throw new TypeError('InstalledRequestPreparationUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "A changed payload without a revision increment cannot reuse the frame"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "graph/text/Calendar checker remains mandatory with its actual flags and law"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "openInstalledHost"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Unknown or pending child cleanup retains responsibility."
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs",
+                "anchor": "test('actual project keeps pending FD cleanup responsibility and refuses malformed UTF8'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Neither its completion nor dropping aliases proves GC, physical"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (adopted) throw cause; // The original opened/failed Host owns cleanup."
+              },
+              {
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs",
+                "anchor": "test('closing during the original read refuses handoff without acknowledging the remaining duty'"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "} finally { gate.close(); }"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "retireSourceAliasPublicationOriginal(original.moon, original.environment, original.publication);"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "facts, and closed journals refuse. These managed references end with the"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "graph/text/Calendar checker remains mandatory with its actual flags and law"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "openInstalledHost"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "src/run_publication/run_wait.mbt",
+                "anchor": "max_nodes : Int"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The initial Local reader selection is explicit:"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Projection overlaps the old Environment, sorted member references/CIDs, hash"
+              },
+              {
+                "path": "adapters/host-node/installed-project-model-tasks.mjs",
+                "anchor": "const tasks = construct(() => jsCapacity(2n), () => []);"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The installation envelope includes the Common selection's four reference"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "it does not add a profile field to the public connection wire."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "requestedProfile.length > 65536"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Resource coverage distinguishes managed work/data limits"
+              },
+              {
+                "path": "adapters/host-node/local-result-authorization.mjs",
+                "anchor": "retained.sinkCallbackCount === sinkCallbackCount) return retained.allowed;"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "for (const unsubscribe of subscriptions.values()) unsubscribe();"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "retirement cuts its private publication association and aliases after the existing"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "state; it does not repeat catalog admission or Account evaluation."
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "The complete original row has already been admitted"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "graph/text/Calendar checker remains mandatory with its actual flags and law"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "openInstalledHost"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "scripts/generate-client-host-wire.mjs",
+                "anchor": "const wait = requestRules.run_wait;"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "src/check_environment/public_model_task_environment.mbt",
+                "anchor": "pub fn project_public_model_task_environment("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "This connection supplies static checked materials."
+              },
+              {
+                "path": "src/run_publication_host/client_project_profile.mbt",
+                "anchor": "pub fn retire_client_project_profile("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "An unavailable"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "Every prepared selected Host defers Publication services, including an ordinary"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Pure checking/static planning and named Result delivery do not borrow this"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "a changed or request-specific Environment receives its own preparation rather"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "scope, rather than resolving runtime or publication names outside that scope."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Run bytes, while a new public observation acquires its own current original."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Keyed Content on the original Request"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Content original alias retirement"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Model input before its component factory"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Adopted Node Model Source and failed setup custody"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original installed Model read recipe"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Required installed Request preparation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Installed environment image has one original route"
+              },
+              {
+                "path": "adapters/local-node/declared-project-runtime.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/installed-funded-environment.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "verification": [
+              {
+                "anchor": "openInstalledHost",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "## Verification",
+                "path": "docs/development/js-compiler-bindings.md"
+              },
+              {
+                "anchor": "actual pinned MoonBit Result",
+                "path": "scripts/js-compiler-binding-runtime.test.mjs"
+              },
+              {
+                "anchor": "test \"Run wait accepts only stable original observations above since\"",
+                "path": "src/run_publication/run_wait_wbtest.mbt"
+              },
+              {
+                "anchor": "test('actual Local wait since observes the same saved Run, times out without revision or work fabrication'",
+                "path": "adapters/host-node/client-run-wait-since.test.mjs"
+              },
+              {
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\"",
+                "path": "src/run_publication_host/client_effect_program_test.mbt"
+              },
+              {
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen",
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs"
+              },
+              {
+                "anchor": "test('actual project rejects copied project and foreign runtime before file acquisition'",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs"
+              },
+              {
+                "anchor": "test('actual retained project detects replacement of the selected installation provider'",
+                "path": "adapters/host-node/installed-project-model-tasks.actual.test.mjs"
+              },
+              {
+                "anchor": "for(const scenario of ['checked','changed-registry','wrong-task','missing-provider'])",
+                "path": "adapters/host-node/project-model-task-host.actual.test.mjs"
+              },
+              {
+                "anchor": "test \"project profile refuses copied selection foreign equal project and changed choice\"",
+                "path": "src/run_publication_host/client_project_profile_wbtest.mbt"
+              },
+              {
+                "anchor": "test('actual absent project profile issues no mock record or answer original'",
+                "path": "adapters/host-node/installed-project-profile.actual.test.mjs"
+              },
+              {
+                "anchor": "for(const scenario of ['explicit-mock','default-mock','early-root-refusal'])",
+                "path": "adapters/host-node/project-profile-host.actual.test.mjs"
+              },
+              {
+                "anchor": "const selected={mode:",
+                "path": "packages/node/project-profile.typecheck.mts"
+              },
+              {
+                "anchor": "test('prepared Host routes the exact original image and original runtime/policies without a pathname read'",
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs"
+              },
+              {
+                "anchor": "test('foreign or copied scope and each changed original refuse before environment selection'",
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs"
+              },
+              {
+                "anchor": "selected ordinary Host cannot borrow Journal coverage for Publication activation",
+                "path": "adapters/host-node/host-deferred-publication-startup.test.mjs"
+              },
+              {
+                "anchor": "test('ordinary Local STORE admits its actual Result purpose without a Mock observation'",
+                "path": "adapters/host-node/local-file-effect-submission-original.test.mjs"
+              },
+              {
+                "anchor": "test('winning ordinary Local definition selects the same actual installation without a Mock Scope'",
+                "path": "adapters/host-node/local-file-effect-submission-original.test.mjs"
+              },
+              {
+                "anchor": "test('actual Account keeps Run-read and named-Result-read distinct and current'",
+                "path": "adapters/host-node/local-run-authorization.test.mjs"
+              },
+              {
+                "anchor": "test('settlement during the asynchronous pending observation is latched'",
+                "path": "adapters/host-node/client-run-wait-notification.test.mjs"
+              },
+              {
+                "anchor": "Local Run observation retries changed control and final publication conflicts",
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs"
+              },
+              {
+                "anchor": "initial Effect observation retains settlement after early acceptance",
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs"
+              },
+              {
+                "anchor": "Effect cancellation probes share one original observer through target and Source work",
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs"
+              },
+              {
+                "anchor": "Effect cancellation probes retain changed missing and failed current observations",
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs"
+              },
+              {
+                "anchor": "Effect cancellation probes retain pending child lifetime and independent target observers",
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs"
+              },
+              {
+                "anchor": "const originalSourceFreeRequest = (preparedProgram, requestId, effectful = false) => {",
+                "path": "adapters/host-node/embedded-local.mjs"
+              },
+              {
+                "anchor": "whole-input Host request and acquisition keep one original identity without a Query substitute",
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs"
+              },
+              {
+                "anchor": "Host Model admission forwards the same original Request artifact",
+                "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs"
+              },
+              {
+                "anchor": "Request Content manager compiles one original graph",
+                "path": "adapters/host-node/request-content-caller.test.mjs"
+              },
+              {
+                "anchor": "Request keyed Content selects then compiles once before completing and adopting its same Host parent",
+                "path": "adapters/host-node/request-keyed-content-caller.test.mjs"
+              },
+              {
+                "anchor": "retired keyed Content does not exhaust the unchanged 4096 live-preparation limit",
+                "path": "adapters/host-node/content-preparation-retirement.test.mjs"
+              },
+              {
+                "anchor": "test('open borrows the one installed AoA projection through the same sequence original'",
+                "path": "adapters/host-node/embedded-managed-compute-projection.test.mjs"
+              },
+              {
+                "anchor": "test('actual Host handoff keeps final flags/checking and avoids reparsing its unchanged composer input'",
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs"
+              },
+              {
+                "anchor": "test('actual Host Task handoff preserves binding failure before parsing its new document'",
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs"
+              },
+              {
+                "anchor": "### Original Model input before its component factory",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "managed acquired Node Model defers input segments",
+                "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs"
+              },
+              {
+                "anchor": "### Adopted Node Model Source and failed setup custody",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "Request-owned plain acquired Model",
+                "path": "adapters/host-node/infer-installed-original-cleanup.test.mjs"
+              },
+              {
+                "anchor": "### Original installed Model read recipe",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "installed read recipe",
+                "path": "adapters/host-node/installed-model-registration.test.mjs"
+              },
+              {
+                "anchor": "### Required installed Request preparation",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "required installed preparation forwards only its same funded callback",
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs"
+              },
+              {
+                "anchor": "### Installed environment image has one original route",
+                "path": "docs/design/local-input-preparation.md"
+              },
+              {
+                "anchor": "installed environment rejects an absent preparation owner",
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs"
+              },
+              {
+                "anchor": "installed Request recipe retains the actual Model ledger floor separately from legacy read allowances",
+                "path": "adapters/host-node/installed-model-registration.test.mjs"
+              },
+              {
+                "anchor": "test('Remote supplied Effect environment retains the original generic selector before publication composition'",
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs"
+              },
+              {
+                "anchor": "test('Remote ordinary materialization retains its original Local selector without an independent Effect'",
+                "path": "adapters/host-node/initial-control-environment-source.test.mjs"
+              },
+              {
+                "anchor": "test('restored Model defers checked segments until its funded original Read without preparing saved input again'",
+                "path": "adapters/host-node/installed-infer-compilation-selection.test.mjs"
+              },
+              {
+                "anchor": "test \"Infer execution owns the suffix across completion and cancellation\"",
+                "path": "src/client_infer_host/compute_boundary_wbtest.mbt"
+              },
+              {
+                "anchor": "## Verification",
+                "path": "adapters/local-node/declared-project-runtime.md"
+              },
+              {
+                "anchor": "## Verification",
+                "path": "adapters/host-node/installed-funded-environment.md"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "test('actual wait borrows one same-Journal frame while fresh SQL and current gates remain live'"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "test('Host first close joins the original pre-dispatch Effect resume Store reader'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('ordinary material inverse receives the same installed text-time and calendar selections'"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mjs",
+                "anchor": "Run Inspect enters its sink under the same synchronous current decision"
+              },
+              {
+                "path": "adapters/host-node/client-run-inspect.test.mjs",
+                "anchor": "Run Inspect sends funded scalars to Common"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "function installClientControlOperationLookup("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const answer = receipt === undefined"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "accepted_from_revision: acceptedFromRevision"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "WITH task AS ("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (database.isTransaction) fail('ClientRunDebugEntryLookupUnavailable');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "RunObservationAccessDenied"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "reserve: bytes => readWorkspace.metadata(request, bytes)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "runExplanationContext, runSample, lookupControlOperation, resumeRun: lookupControlOperation, attach,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "control lookup reads the committed original while another WAL writer holds an update"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#6"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const runSample = preparation"
+              },
+              {
+                "path": "docs/spec/protocols/run.md",
+                "anchor": "Sample contracts MUST preserve typed original source/capture identity"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const runSample = preparation"
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"run-sample\":"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const planWire = control.readStoredRunPlanOriginal("
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "stepId: producerStep.step_id, outputPortId: producerPort.port_id"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.begin(request, control);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (opened) readWorkspace.close(request, primary);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "dispatchOwner.readDebugNextSample("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reply = async answer => await consume(current() ? answer : forbidden);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const forbidden = Object.freeze({state: 'forbidden'});"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "if (stored.kind === 'expired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "request.signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "readWorkspace.metadata(request, 2 * extent.storedBytes);"
+              },
+              {
+                "path": "adapters/host-node/client-run-plan.mjs",
+                "anchor": "const reserve = bytes => {readWorkspace.metadata(request, bytes);};"
               }
             ],
             "extension": [
@@ -66668,6 +69244,20 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#11",
+          "parameters": [
+            "actual",
+            "connection",
+            "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#12",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
           "parameters": [
             "facts"
@@ -66717,11 +69307,7 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#9",
-          "parameters": [
-            "actual",
-            "connection",
-            "ref"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -66750,7 +69336,31 @@
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun",
           "parameters": [
+            "request",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#2",
+          "parameters": [
+            "request",
+            "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#3",
+          "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectRun/inspectRun#4",
+          "parameters": [
+            "request",
+            "authorize"
           ],
           "async": false
         },
@@ -66791,6 +69401,20 @@
             "expectedRevision",
             "actual",
             "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/lookupControlOperation/lookupControlOperation#2",
+          "parameters": [
+            "request"
           ],
           "async": false
         },
@@ -67598,6 +70222,25 @@
             "ref",
             "selected",
             "custody"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#5",
+          "parameters": [
+            "request",
+            "selected",
+            "authorize",
+            "reserve",
+            "bindProducer"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/runSample/runSample#6",
+          "parameters": [
+            "request",
+            "authorize"
           ],
           "async": false
         },
@@ -70110,7 +72753,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "b5a395d74e2470d7e7f5c1d8d5b6c6bf64a4ebab70dc0c04b9d23f2bba7c3355"
+      "sha256": "1d1c0e1263e9b3355cc70b11d6a27cb6556d3ce806f7ca58532559e5ba3763f5"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",

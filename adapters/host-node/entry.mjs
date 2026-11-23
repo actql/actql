@@ -26,7 +26,7 @@ async function runCapturedStrategyTarget({
   setup,
   options,
   composition: {loadRuntime, install},
-  control: {signal, observer, taskObservation, relationSample} = {},
+  control: {signal, observer, taskObservation, relationSample, taskControl} = {},
   results: {publishCheckedResults, publication} = {},
   cleanup: {retainPreflightCleanup, preparationHolder} = {},
 }) {
@@ -72,7 +72,7 @@ async function runCapturedStrategyTarget({
     runtime: {core, contributions: installed,
       sitePolicy: configurations.executionSitePolicy, authorization, observeFailure},
     control: {signal, observeCompletion,
-      observeTaskStart: taskStartObserver(observer), taskObservation, relationSample},
+      observeTaskStart: taskStartObserver(observer), taskObservation, relationSample, taskControl},
     publication: {
       beforeCompute: publication === undefined
         ? undefined
@@ -119,7 +119,7 @@ async function runPublishedCapturedStrategyTarget({
   publication,
   options,
   composition,
-  control: {signal, observer, taskObservation, beforePublication, relationSample},
+  control: {signal, observer, taskObservation, beforePublication, relationSample, taskControl},
   cleanup: {retainExecution, preparationHolder},
 }) {
   if (retainExecution !== undefined && typeof retainExecution !== 'function') {
@@ -134,7 +134,7 @@ async function runPublishedCapturedStrategyTarget({
     setup,
     options,
     composition,
-    control: {signal, observer, taskObservation, relationSample},
+    control: {signal, observer, taskObservation, relationSample, taskControl},
     results: {publishCheckedResults: true, publication},
     // Reuse the installed custody receiver for a setup cleanup owner only.
     // Preflight failure never constructs a Compute or publication result.
@@ -217,9 +217,9 @@ export function createNodeHostEntry(loadRuntime, install) {
       control: {signal, observer}, cleanup}),
     runPublishedCapturedStrategy: (
      setup, publication, options = {}, signal, observer, retainExecution, taskObservation,
-     preparationHolder, beforePublication, relationSample,
+     preparationHolder, beforePublication, relationSample, taskControl,
     ) => runPublishedCapturedStrategyTarget({setup, publication, options,
-      composition, control: {signal, observer, taskObservation, beforePublication, relationSample},
+      composition, control: {signal, observer, taskObservation, beforePublication, relationSample, taskControl},
       cleanup: {retainExecution, preparationHolder}}),
     completeCapturedEffectRun: async options => {
       const moon = await load();

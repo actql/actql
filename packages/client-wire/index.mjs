@@ -1,4 +1,5 @@
-import {validWireSampleSelectorShape} from './interactive-control.generated.js';
+import {validWireSampleSelectorShape, validWireControlCommandShape, validWireControlOperationRefShape,
+  validWireControlOperationLookupShape} from './interactive-control.generated.js';
 export {checkReasonSchemaCid, checkOutcomeSchemaCid, checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
 export {validRunWaitContract} from './client-host.generated.js';
 export * from './interactive-control.generated.js';
@@ -400,7 +401,7 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   body = {...body, connection};
   if (['submit-intent', 'submit-named-intent', 'restart-intent', 'lookup-submission', 'owner-observations',
     'plan', 'static-explanation', 'inspect-run', 'run-plan', 'run-explanation',
-    'run-explanation-context', 'run-sample'].includes(operation)) {
+    'run-explanation-context', 'run-sample', 'lookup-control-operation', 'resume-run'].includes(operation)) {
     try { body = snapshotClientRequest(body); }
     catch { return undefined; }
     if (!validClientBody(operation, body)) return undefined;
@@ -409,9 +410,10 @@ export function prepareClientHostRequest(operation, original, retainSnapshot = f
   // The structural read's original ref cannot change during awaited Host
   // authentication/authorization. This is its already-captured private copy.
   if (operation === 'run-explanation' || operation === 'run-explanation-context') Object.freeze(body.ref);
-  if (operation === 'run-sample') {
+  if (operation === 'run-sample' || operation === 'lookup-control-operation' || operation === 'resume-run') {
     Object.freeze(body.ref);
-    freezeCapturedRequest(body.selector);
+    freezeCapturedRequest(operation === 'run-sample' ? body.selector :
+      operation === 'resume-run' ? body.command : body.operationRef);
   }
   if (retainSnapshot === true) {
     if (!snapshotted) {
@@ -473,9 +475,18 @@ export function validClientBody(operation, body) {
   }
   if (operation === 'lookup-submission') return validSubmissionRef(body.submissionRef);
   if (operation === 'inspect-run' || operation === 'run-plan' ||
-      operation === 'run-explanation' || operation === 'run-explanation-context' || operation === 'run-sample') {
+      operation === 'run-explanation' || operation === 'run-explanation-context' || operation === 'run-sample' ||
+      operation === 'lookup-control-operation' || operation === 'resume-run') {
     return validRunRef(body.ref) &&
-      (operation !== 'run-sample' || validWireSampleSelectorShape(body.selector)) &&
+      (operation !== 'run-sample' || validWireSampleSelectorShape(body.selector) &&
+        (!Object.hasOwn(body, 'nextRevision') || body.selector.role === 'input' &&
+          body.selector.step.by === 'id' && body.selector.input_port_id !== undefined)) &&
+      (operation !== 'lookup-control-operation' || validWireControlOperationRefShape(body.operationRef) &&
+        boundedText(body.operationRef.operation_id) && sameRunRef(body.ref, body.operationRef.run_ref)) &&
+      (operation !== 'resume-run' || validWireControlCommandShape(body.command) &&
+        body.command.operation === 'resume' && boundedText(body.command.operation_id) &&
+        sameRunRef(body.ref, body.command.run_ref) && body.command.interval?.guards === null &&
+        ['step', 'terminal'].includes(body.command.interval.until)) &&
       Number.isSafeInteger(body.maxWireBytes) && body.maxWireBytes >= 1024 && body.maxWireBytes <= 65536 &&
       Number.isSafeInteger(body.maxNodes) && body.maxNodes > 0 && body.maxNodes <= 10000 &&
       Number.isSafeInteger(body.maxDepth) && body.maxDepth > 0 && body.maxDepth <= 64;
@@ -721,6 +732,26 @@ export const validCancellationRef = value => validCancellationRefShape(value) &&
   value.namespaceId.isWellFormed() && value.cancelId.isWellFormed();
 const sameRunRef = (left, right) => ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
   .every(key => left[key] === right[key]);
+const sameControlOperationRef = (left, right) => sameRunRef(left.run_ref, right.run_ref) &&
+  left.operation_id === right.operation_id && left.command_cid === right.command_cid &&
+  left.accepted_from_revision === right.accepted_from_revision;
+
+export const resumeControlOperationRef = command => ({
+  run_ref: command.run_ref, operation_id: command.operation_id, command_cid: command.self_cid,
+  accepted_from_revision: command.expected_control_revision,
+});
+
+export function validControlOperationLookup(value, operationRef) {
+  if (!validWireControlOperationRefShape(operationRef) || !validWireControlOperationLookupShape(value)) return false;
+  if (value.state !== 'found') return true;
+  const {receipt, observation} = value;
+  const origin = receipt.observed_state.resume_origin;
+  return sameControlOperationRef(receipt.operation_ref, operationRef) &&
+    sameControlOperationRef(observation.operation_ref, operationRef) &&
+    observation.original_receipt_cid === receipt.self_cid &&
+    (receipt.outcome !== 'accepted' || origin?.kind !== 'manual' || origin.command_cid === operationRef.command_cid);
+}
+
 const sameCancellationRef = (left, right) => sameRunRef(left, right) &&
   left.cancelId === right.cancelId && left.expectedRevision === right.expectedRevision;
 export const validCancellation = (value, expected) => validCancellationShape(value) &&

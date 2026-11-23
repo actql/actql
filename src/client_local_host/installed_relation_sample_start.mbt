@@ -8,6 +8,13 @@ pub(all) enum InstalledRelationSampleStartIssue {
 }
 
 ///|
+pub(all) enum InstalledRelationSampleEntryCommand {
+  PrepareEntry
+  ResumeEntryStep(Int)
+  ResumeEntryTerminal(Int)
+}
+
+///|
 // The same Request, retained compiler and physical setup must still belong
 // to one installed owner. This check takes no external callbacks.
 fn installed_relation_sample_start_matches(
@@ -54,12 +61,45 @@ fn installed_relation_sample_start_matches(
 // One installed Account/tuple binding and its synchronous two-phase receiver
 // borrow the same setup before and after ACK, including bridge arguments
 // and before/after current observations (H24/R56/W22).
+// The resuming start ticket retains its scalar quote and synchronous resize
+// receiver until the transaction repeats the extent check (H7/R18/W10).
+// The checked Map CID is borrowed through the Core tuple, runtime receiver,
+// Journal reply and dispatch arguments into the suspended controller (R6).
 let installed_relation_sample_start_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 168L,
-    reference_slots: 510L,
-    scalar_words: 212L,
+    record_headers: 175L,
+    reference_slots: 534L,
+    scalar_words: 222L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
+  },
+).unwrap()
+
+///|
+// The live entry keeps the Node controller, scope and functions, Journal
+// handoff, pending wait Promise/listener and its cleanup, bridge arguments
+// and Core phase/action result carriers on the same original reservation.
+// The continued path borrows the checked Step IDs and retains one bounded
+// pause receipt, acknowledgement, and deadline timer alongside the wait.
+// Include the pause time in the row, receipt, current query and observation.
+// The committed generation adds two Core tuples, park and current query
+// arguments, the SQL row, pause and resume projections, and resume bridge input.
+// The accepted time occupies a transaction local, SQL argument and row,
+// and the retained receipt handed off to the Driver.
+// The next Step adds SQL binds/row fields, pause and receipt projections,
+// a Core argument and nullable branches. The resume guard carries the
+// completed Step into the Journal CAS on the same scope. Four CID copies
+// cover UTF-16 selection, SQLite argument/return and Journal handoff.
+// Inspect's scalar probe borrows the bound Map and two revision values
+// before the separate caller-owned projection reservation (R4/W2).
+// Resume receipt issue borrows the existing Run Definition on the controller
+// and uses one fixed issue-selection record (H1/R5). The command Read funds
+// the actual receipt construction.
+let installed_sample_debug_entry_bytes : Int64 = @execution.preparation_representation_cost({
+    record_headers: 45L,
+    reference_slots: 143L,
+    scalar_words: 66L,
+    owned_utf16_units: 3L * 71L,
+    owned_wire_bytes: 71L,
   },
 ).unwrap()
 
@@ -131,6 +171,8 @@ pub fn reserve_installed_relation_sample_start(
   definition : @publication.PublicationContract,
   captured : @strategy.CapturedDAG,
   journal_bytes? : Int = 0,
+  debug_entry? : Bool = false,
+  previous_journal_bytes? : Int = 0,
 ) -> Result[Unit, InstalledRelationSampleStartIssue] {
   if owner.source_free_opening {
     return Err(SampleStartRun(CleanupPending))
@@ -146,12 +188,38 @@ pub fn reserve_installed_relation_sample_start(
     Err(issue) => return Err(SampleStartCapacity(issue))
     Ok(extents) => extents
   }
+  if journal_bytes < 0 ||
+    previous_journal_bytes < 0 ||
+    (journal_bytes == 0 && previous_journal_bytes != 0) ||
+    (
+      journal_bytes > 0 &&
+      previous_journal_bytes != owner.sample_start_journal_bytes
+    ) {
+    return Err(SampleStartCapacity(InvalidExtent))
+  }
   let bytes = if journal_bytes == 0 {
-    installed_relation_sample_start_bytes
+    installed_relation_sample_start_bytes +
+    (if debug_entry { installed_sample_debug_entry_bytes } else { 0L })
   } else {
-    match installed_relation_sample_journal_bytes(journal_bytes) {
-      Some(cost) => cost
-      None => return Err(SampleStartCapacity(InvalidExtent))
+    if debug_entry {
+      return Err(SampleStartCapacity(InvalidExtent))
+    }
+    guard installed_relation_sample_journal_bytes(journal_bytes) is Some(cost) else {
+      return Err(SampleStartCapacity(InvalidExtent))
+    }
+    // The original Journal start ticket holds the earlier quote without a
+    // refund. The larger envelope covers all coexisting old/new row and codec
+    // generations; an exact debit of the difference avoids funding them twice.
+    if owner.sample_start_journal_bytes == 0 {
+      cost
+    } else {
+      guard installed_relation_sample_journal_bytes(
+          owner.sample_start_journal_bytes,
+        )
+        is Some(previous) else {
+        return Err(SampleStartCapacity(InvalidExtent))
+      }
+      Int64::max(0L, cost - previous)
     }
   }
   guard @execution.checked_preparation_add_product(retained, bytes, 1L)
@@ -176,6 +244,10 @@ pub fn reserve_installed_relation_sample_start(
     physical_equal(current, holder) else {
     return Err(ForeignSampleStart)
   }
+  owner.sample_start_journal_bytes = Int::max(
+    owner.sample_start_journal_bytes,
+    journal_bytes,
+  )
   Ok(())
 }
 
@@ -237,25 +309,292 @@ pub fn advance_installed_relation_sample_start_control(
     !installed_relation_sample_profile_current(owner, profile) {
     return Err(ForeignSampleStart)
   }
-  if !profile.unattended_start ||
+  if !(profile.start_mode is UnattendedTerminal) ||
     @strategy.captured_relation_sample_start_selected(captured) !=
     start_acknowledged {
     return Err(SampleStartRequiresControl)
   }
+  advance_installed_relation_sample_control(
+    profile,
+    captured,
+    account,
+    principal,
+    connection,
+    if start_acknowledged {
+      @strategy.ResumeTerminal
+    } else {
+      @strategy.Pause
+    },
+  )
+}
+
+///|
+/// Prepare a stop-on-entry profile, then activate only its exact acknowledged
+/// start. The existing Journal owner supplies the accepted command and revision.
+pub fn advance_installed_relation_sample_debug_entry(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  account : @authorization.AdmittedAccountConfiguration,
+  principal : String,
+  connection : String,
+  command : InstalledRelationSampleEntryCommand,
+) -> Result[Unit, InstalledRelationSampleStartIssue] {
+  if !physical_equal(profile.captured, captured) ||
+    !installed_relation_sample_profile_current(owner, profile) {
+    return Err(ForeignSampleStart)
+  }
+  guard profile.start_mode is PausedEntry else {
+    return Err(SampleStartRequiresControl)
+  }
+  let selected : @strategy.CapturedTaskControlCommand = match command {
+    PrepareEntry => {
+      if @strategy.captured_relation_sample_start_selected(captured) {
+        return Err(SampleStartRequiresControl)
+      }
+      Pause
+    }
+    ResumeEntryStep(revision) | ResumeEntryTerminal(revision) => {
+      if !@strategy.captured_relation_sample_start_matches_revision(
+          captured, revision,
+        ) {
+        return Err(SampleStartRequiresControl)
+      }
+      if command is ResumeEntryStep(_) {
+        ResumeStep
+      } else {
+        ResumeTerminal
+      }
+    }
+  }
+  advance_installed_relation_sample_control(
+    profile, captured, account, principal, connection, selected,
+  )
+}
+
+///|
+/// Read the actual boundary on the same acknowledged installed Debug Run.
+pub fn installed_relation_sample_debug_entry_runnable(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  start_revision : Int,
+) -> Result[Bool, InstalledRelationSampleStartIssue] {
+  let hooks = match
+    installed_debug_task_control(profile, owner, captured, start_revision) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match @strategy.captured_task_control_state(captured, hooks) {
+    Ok((_, Running | Stepping(_))) => Ok(true)
+    Ok((_, Paused)) => Ok(false)
+    Ok(_) => Err(SampleStartControl(@strategy.InvalidTransition))
+    Err(issue) => Err(SampleStartControl(issue))
+  }
+}
+
+///|
+fn installed_debug_task_control(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  start_revision : Int,
+) -> Result[
+  @strategy.CapturedTaskBoundaryHooks,
+  InstalledRelationSampleStartIssue,
+] {
+  guard physical_equal(profile.captured, captured) &&
+    installed_relation_sample_profile_current(owner, profile) else {
+    return Err(ForeignSampleStart)
+  }
+  guard profile.start_mode is PausedEntry &&
+    @strategy.captured_relation_sample_start_matches_revision(
+      captured, start_revision,
+    ) else {
+    return Err(SampleStartRequiresControl)
+  }
+  guard @strategy.captured_task_boundary_hooks(captured) is Some(hooks) else {
+    return Err(SampleStartControl(@strategy.NotPrepared))
+  }
+  Ok(hooks)
+}
+
+///|
+/// Observe a checked Step from this Run's latest actual committed task.
+pub fn installed_relation_sample_debug_task_pause(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  start_revision : Int,
+) -> Result[(Int, String, String, Int), InstalledRelationSampleStartIssue] {
+  let hooks = match
+    installed_debug_task_control(profile, owner, captured, start_revision) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match @strategy.captured_task_control_paused_task(captured, hooks) {
+    Err(issue) => Err(SampleStartControl(issue))
+    Ok((revision, task, next_task, committed_generation)) => {
+      guard profile.driver_outputs.get(task) is Some((step_id, _, _)) else {
+        return Err(SampleStartControl(@strategy.BoundaryUnavailable(task)))
+      }
+      // The completed Step identifies the Sample and the command boundary.
+      // The next Step is a separate view of the scheduler's original choice.
+      let next_step = match next_task {
+        Some(index) =>
+          match profile.driver_outputs.get(index) {
+            Some((step, _, _)) => step
+            None => ""
+          }
+        None => ""
+      }
+      Ok((revision, step_id, next_step, committed_generation))
+    }
+  }
+}
+
+///|
+pub(all) enum InstalledRelationSampleNextInputIssue {
+  NextInputForeignOriginal
+  NextInputStalePause
+  NextInputWorkLimit
+} derive(Eq, Debug)
+
+///|
+/// Bind the selected Next input to an original retained producer on the same
+/// installed Run. The Host's Read owns the lookup and any returned Sample.
+pub fn installed_relation_sample_debug_next_input(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  start_revision : Int,
+  control_revision : Int,
+  pause_generation : Int,
+  next_step_id : String,
+  input : Int,
+  max_work : Int,
+) -> Result[
+  (String, String, String, Int, Int)?,
+  InstalledRelationSampleNextInputIssue,
+] {
+  let hooks = match
+    installed_debug_task_control(profile, owner, captured, start_revision) {
+    Ok(value) => value
+    Err(ForeignSampleStart) => return Err(NextInputForeignOriginal)
+    Err(_) => return Err(NextInputStalePause)
+  }
+  let (edge, start, generation, attempt) = match
+    @strategy.captured_paused_next_sample_input(
+      captured, hooks, control_revision, pause_generation, input, max_work,
+    ) {
+    Ok(value) => value
+    Err(InputWorkLimit) => return Err(NextInputWorkLimit)
+    Err(Boundary(_)) => return Err(NextInputStalePause)
+    Err(_) => return Ok(None)
+  }
+  if start != start_revision {
+    return Err(NextInputStalePause)
+  }
+  guard profile.driver_outputs.get(edge.consumer) is Some((consumer, _, _)) else {
+    return Ok(None)
+  }
+  if consumer != next_step_id {
+    return Err(NextInputStalePause)
+  }
+  Ok(
+    profile.driver_outputs
+    .get(edge.producer)
+    .map(output => {
+      let (producer, port, contract) = output
+      (producer, port, contract, generation, attempt)
+    }),
+  )
+}
+
+///|
+/// Check the installed Account before accepting a durable resume. Physical
+/// activation still binds the same tuple, subject and context at handoff.
+pub fn installed_relation_sample_debug_resume_allowed(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  account : @authorization.AdmittedAccountConfiguration,
+  principal : String,
+  connection : String,
+) -> Bool {
+  physical_equal(profile.captured, captured) &&
+  installed_relation_sample_profile_current(owner, profile) &&
+  profile.start_mode is PausedEntry &&
+  @authorization.evaluate_account(
+    account,
+    installed_relation_sample_control_tuple(principal, connection, false),
+  )
+  is Allow(_)
+}
+
+///|
+/// Consume only the still-current live boundary of an acknowledged command.
+pub fn resume_installed_relation_sample_debug_task(
+  profile : ClientCheckedRelationSampleProfile,
+  owner : ClientInstalledManagedRun,
+  captured : @strategy.CapturedDAG,
+  account : @authorization.AdmittedAccountConfiguration,
+  principal : String,
+  connection : String,
+  start_revision : Int,
+  control_revision : Int,
+  step_id : String,
+  next_step_id : String,
+  committed_generation : Int,
+  step : Bool,
+) -> Result[Unit, InstalledRelationSampleStartIssue] {
+  let boundary = installed_relation_sample_debug_task_pause(
+    profile, owner, captured, start_revision,
+  )
+  match boundary {
+    Err(issue) => return Err(issue)
+    Ok((revision, original_step, original_next, generation)) =>
+      if revision != control_revision ||
+        original_step != step_id ||
+        original_next != next_step_id ||
+        generation != committed_generation {
+        return Err(SampleStartControl(@strategy.StaleRevision))
+      }
+  }
+  advance_installed_relation_sample_control(
+    profile,
+    captured,
+    account,
+    principal,
+    connection,
+    if step {
+      @strategy.ResumeStep
+    } else {
+      @strategy.ResumeTerminal
+    },
+    expected_revision=control_revision,
+  )
+}
+
+///|
+fn advance_installed_relation_sample_control(
+  profile : ClientCheckedRelationSampleProfile,
+  captured : @strategy.CapturedDAG,
+  account : @authorization.AdmittedAccountConfiguration,
+  principal : String,
+  connection : String,
+  command : @strategy.CapturedTaskControlCommand,
+  expected_revision? : Int = 0,
+) -> Result[Unit, InstalledRelationSampleStartIssue] {
   let subject = @publication.publication_contract_identity(profile.definition)
   let context = @publication.run_publication_execution_context(
     @publication_host.client_compiled_run_admission(profile.compiled),
   )
-  let tuple : @authorization.AccessTuple = {
+  let tuple = installed_relation_sample_control_tuple(
     principal,
     connection,
-    resource: "run",
-    operation: if start_acknowledged {
-      "resume"
-    } else {
-      "pause"
-    },
-  }
+    command is Pause,
+  )
   guard @authorization.bind_dispatch_authorization(
       account,
       tuple,
@@ -266,19 +605,12 @@ pub fn advance_installed_relation_sample_start_control(
     is Ok(authorized) else {
     return Err(SampleStartControl(@strategy.AuthorizationMismatch))
   }
-  if start_acknowledged {
+  if !(command is Pause) {
     guard @strategy.captured_task_boundary_hooks(captured) is Some(hooks) else {
       return Err(SampleStartControl(@strategy.NotPrepared))
     }
     return @strategy.command_captured_task_control(
-      captured,
-      hooks,
-      0,
-      ResumeTerminal,
-      authorized,
-      account,
-      tuple,
-      subject,
+      captured, hooks, expected_revision, command, authorized, account, tuple, subject,
       context,
     ).map_err(issue => SampleStartControl(issue))
   }
@@ -294,4 +626,22 @@ pub fn advance_installed_relation_sample_start_control(
   @strategy.prepare_captured_task_control(
     captured, hooks, authorized, account, tuple, subject, context,
   ).map_err(issue => SampleStartControl(issue))
+}
+
+///|
+fn installed_relation_sample_control_tuple(
+  principal : String,
+  connection : String,
+  pause : Bool,
+) -> @authorization.AccessTuple {
+  {
+    principal,
+    connection,
+    resource: "run",
+    operation: if pause {
+      "pause"
+    } else {
+      "resume"
+    },
+  }
 }
