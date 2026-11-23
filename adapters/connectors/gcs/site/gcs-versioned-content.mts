@@ -7,18 +7,58 @@ import {invocationBindingsMatch, invokeScopedCredentialOperation,
 import {ownHttpRequest} from '../../../host-common/http-exchange.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
+type Phase = 'metadata' | 'media';
+type Encoding = 'identity' | 'gzip';
+type Target = Readonly<{bucket: string; objectName: string; prefix: string; generation: string}>;
+type ContentLimits = Readonly<{maxMetadataBytes: number; maxContentBytes: number;
+  maxRequestBytes: number; maxAttempts: number; maxTimeMs: number}>;
+type MetadataProjection = Readonly<{
+  bucket: string; objectName: string; generation: string; metageneration: string;
+  sizeBytes: string; mediaType: string; contentEncoding?: Encoding; crc32c: string; md5?: string;
+}>;
+type Metadata = Omit<MetadataProjection, 'sizeBytes'> & Readonly<{sizeBytes: bigint}>;
+type BodyMetadata = Readonly<{
+  bucket?: unknown; name?: unknown; generation?: unknown; metageneration?: unknown;
+  size?: unknown; contentType?: unknown; contentEncoding?: unknown; crc32c?: unknown; md5Hash?: unknown;
+}>;
+type Runtime = Readonly<{
+  gcsContentMetadataJson(body: Buffer, bucket: string, name: string, generation: string,
+    maxContentBytes: bigint, maxMetadataBytes: number): unknown;
+  gcsContentMetadataFailureCode(issue: unknown): string;
+}>;
+type Response = Awaited<ReturnType<typeof callHttpsCredentialResource>>;
+type Authorization = ReturnType<typeof ownInvocationAuthorization>;
+type Scope = Readonly<{operation?: string; resourceOrigin?: string; siteGeneration?: number}>;
+type VerifiedDigests = Readonly<{contentCid: string; crc32c: string}>;
+type Observation = Readonly<{phase: Phase; useCid: string; receivedBytes: number}>;
+type ContentOptions = Readonly<{
+  moon?: Runtime; target: Target; limits: ContentLimits; initialAuthorization: unknown;
+  credential: unknown; signal?: AbortSignal; callResource?: (...args: never[]) => unknown;
+  authorizationForRequest(request: Readonly<{phase: Phase; target: Target; requestWire: Buffer}>,
+    signal: AbortSignal): unknown;
+  recheckAuthorization(original: Readonly<{target: Target; metadata: Metadata}>, signal: AbortSignal): unknown;
+  chargeBody(body: Buffer, original: Readonly<{phase: Phase; useCid: string}>): unknown;
+  chargeVerification(byteCount: number, signal: AbortSignal): unknown;
+  receiveContent(body: Buffer, original: Readonly<{metadata: Metadata; digests: VerifiedDigests;
+    metadataCharge: unknown; contentCharge: unknown; observations: readonly Observation[]}>,
+    signal: AbortSignal): unknown;
+}>;
+type ContentCallbacks = Pick<ContentOptions, 'authorizationForRequest' | 'recheckAuthorization' |
+  'chargeBody' | 'chargeVerification' | 'receiveContent'> & Readonly<{callResource: unknown}>;
+
 const operation = 'gcs:file:read';
 const origin = 'https://storage.googleapis.com';
 const observedHeaders = Object.freeze(['content-encoding', 'content-range',
   'x-goog-generation', 'x-goog-metageneration']);
-const fail = code => { throw Object.assign(new Error(code), {code}); };
-const count = value => Number.isSafeInteger(value) && value >= 0;
-const token = value => typeof value === 'string' && /^[1-9][0-9]{0,19}$/u.test(value);
-const size = value => typeof value === 'string' && /^(0|[1-9][0-9]{0,19})$/u.test(value);
-const encode = value => encodeURIComponent(value).replace(/[!'()*]/gu,
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
+const count = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+const token = (value: unknown): value is string => typeof value === 'string' && /^[1-9][0-9]{0,19}$/u.test(value);
+const size = (value: unknown): value is string => typeof value === 'string' && /^(0|[1-9][0-9]{0,19})$/u.test(value);
+const encode = (value: string) => encodeURIComponent(value).replace(/[!'()*]/gu,
   char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 
-function physicalRequest(target, phase, metageneration, contentEncoding = 'identity', sizeBytes) {
+function physicalRequest(target: Target, phase: Phase, metageneration?: string,
+  contentEncoding: Encoding = 'identity', sizeBytes?: bigint) {
   return ownHttpRequest({method: 'GET',
     path: `/storage/v1/b/${encode(target.bucket)}/o/${encode(target.objectName)}`,
     query: [['generation', target.generation], ['ifGenerationMatch', target.generation],
@@ -27,18 +67,18 @@ function physicalRequest(target, phase, metageneration, contentEncoding = 'ident
     // selected original metadata fixes this request's exact representation;
     // the existing HTTP adapter returns raw bytes and must not decode them.
     headers: [['accept-encoding', phase === 'media' ? contentEncoding : 'identity'],
-      ...(phase === 'media' && contentEncoding === 'gzip' && sizeBytes > 0n
-        ? [['range', `bytes=0-${sizeBytes - 1n}`]] : [])]});
+      ...(phase === 'media' && contentEncoding === 'gzip' && sizeBytes! > 0n
+        ? [['range', `bytes=0-${sizeBytes! - 1n}`]] : [])]});
 }
 
 // The same immutable operation envelope is observed by the existing keyed
 // request owner and submitted to the credential boundary. No second request
 // encoder or caller-provided URI can disagree with the actual selected read.
-export function gcsMetadataRequestWire(target) {
+export function gcsMetadataRequestWire(target: Target) {
   return Buffer.from(JSON.stringify(physicalRequest(checkedTarget(target), 'metadata')), 'utf8');
 }
 
-function exactText(value, maxBytes, allowEmpty = false) {
+function exactText(value: unknown, maxBytes: number, allowEmpty = false): value is string {
   return typeof value === 'string' && (allowEmpty || value.length > 0) &&
     value.isWellFormed() && !/[\u0000-\u001f\u007f]/u.test(value) &&
     Buffer.byteLength(value) <= maxBytes;
@@ -47,7 +87,7 @@ function exactText(value, maxBytes, allowEmpty = false) {
 // Validate the Host-resolved physical locator before the common request owner
 // observes a send. Encoding alone would permit an out-of-scope object to
 // consume an attempt and leave fictitious transport cleanup responsibility.
-function checkedTarget(target) {
+function checkedTarget(target: Target) {
   if (!target || !exactText(target.bucket, 222) ||
       // JSON object names are opaque Unicode, not HTTP header values or XML
       // names. The physical encoder escapes controls; CR/LF remain forbidden.
@@ -61,16 +101,16 @@ function checkedTarget(target) {
   return Object.freeze({...target});
 }
 
-function authorization(owned, original) {
-  if (!owned.grant || owned.scope.operation !== operation ||
-      owned.scope.resourceOrigin !== origin || !count(owned.scope.siteGeneration) ||
+function authorization(owned: Authorization, original?: unknown) {
+  if (!owned.grant || (owned.scope as Scope).operation !== operation ||
+      (owned.scope as Scope).resourceOrigin !== origin || !count((owned.scope as Scope).siteGeneration) ||
       (original && !invocationBindingsMatch(owned.scope, original))) {
     fail('InvalidGcsContentAuthorization');
   }
   return owned;
 }
 
-function setup(options) {
+function setup(options: ContentOptions) {
   const {moon, limits, initialAuthorization, credential,
     authorizationForRequest, recheckAuthorization, chargeBody, chargeVerification, receiveContent,
     callResource = callHttpsCredentialResource} = options;
@@ -91,12 +131,14 @@ function setup(options) {
     credential, limits, callbacks: {authorizationForRequest,
       recheckAuthorization, chargeBody, chargeVerification, receiveContent, callResource}});
   authorization(context.authorization);
-  return Object.freeze({...context, target, moon});
+  return Object.freeze({...context, target, moon}) as typeof context & Readonly<{
+    target: Target; moon?: Runtime; limits: ContentLimits; callbacks: ContentCallbacks;
+  }>;
 }
 
-function responseHeaders(response, expectedEncoding = 'identity', rangeSize) {
+function responseHeaders(response: Response, expectedEncoding: Encoding = 'identity', rangeSize?: bigint) {
   if (!Array.isArray(response.headers)) fail('InvalidGcsContentResponse');
-  const result = new Map();
+  const result = new Map<string, string>();
   for (const pair of response.headers) {
     if (!Array.isArray(pair) || pair.length !== 2 ||
         !observedHeaders.includes(pair[0]) || typeof pair[1] !== 'string' ||
@@ -118,21 +160,21 @@ function responseHeaders(response, expectedEncoding = 'identity', rangeSize) {
   return result;
 }
 
-function metadata(moon, body, target, limits) {
+function metadata(moon: Runtime | undefined, body: Buffer, target: Target, limits: ContentLimits): Metadata {
   if (moon === undefined) return legacyMetadata(body, target, limits);
-  let projection;
+  let projection: string;
   try {
     projection = checked(moon.gcsContentMetadataJson(body, target.bucket,
-      target.objectName, target.generation, BigInt(limits.maxContentBytes), limits.maxMetadataBytes));
+      target.objectName, target.generation, BigInt(limits.maxContentBytes), limits.maxMetadataBytes)) as string;
   } catch (failure) {
-    if (failure?.code !== 'MoonBitHostFailure') throw failure;
-    const code = moon.gcsContentMetadataFailureCode(failure.cause);
-    throw Object.assign(new Error(code, {cause: failure.cause}), {code});
+    if ((failure as {code?: unknown} | null)?.code !== 'MoonBitHostFailure') throw failure;
+    const code = moon.gcsContentMetadataFailureCode((failure as Error).cause);
+    throw Object.assign(new Error(code, {cause: (failure as Error).cause}), {code});
   }
   // Only parse the Core-issued private projection, never reinterpret the
   // provider bytes or default a missing admission. This view and its String
   // overlap remain part of the original read envelope's managed inventory.
-  const value = JSON.parse(projection);
+  const value = JSON.parse(projection) as MetadataProjection;
   return Object.freeze({...value, sizeBytes: BigInt(value.sizeBytes)});
 }
 
@@ -140,9 +182,9 @@ function metadata(moon, body, target, limits) {
 // ordinary installed provider always supplies its portable Connector module;
 // absence here is not a numeric default or a new normal profile. This legacy
 // interpretation remains an explicit migration boundary, not Core admission.
-function legacyMetadata(body, target, limits) {
-  let value;
-  try { value = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body)); }
+function legacyMetadata(body: Buffer, target: Target, limits: ContentLimits): Metadata {
+  let value: BodyMetadata;
+  try { value = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body)) as BodyMetadata; }
   catch { fail('InvalidGcsContentMetadata'); }
   if (!value || Array.isArray(value) || typeof value !== 'object' ||
       value.bucket !== target.bucket || value.name !== target.objectName ||
@@ -154,12 +196,12 @@ function legacyMetadata(body, target, limits) {
   return Object.freeze({bucket: target.bucket, objectName: target.objectName,
     generation: target.generation, metageneration: value.metageneration,
     sizeBytes: BigInt(value.size), mediaType: value.contentType,
-    ...(value.contentEncoding === 'gzip' ? {contentEncoding: 'gzip'} : {}),
+    ...(value.contentEncoding === 'gzip' ? {contentEncoding: 'gzip' as const} : {}),
     crc32c: legacyDigest(value.crc32c, 4),
     ...(value.md5Hash === undefined ? {} : {md5: legacyDigest(value.md5Hash, 16)})});
 }
 
-function legacyDigest(value, bytes) {
+function legacyDigest(value: unknown, bytes: number) {
   if (typeof value !== 'string' || value.length !== 4 * Math.ceil(bytes / 3)) {
     fail('InvalidGcsContentDigest');
   }
@@ -180,7 +222,8 @@ const crcTable = Uint32Array.from({length: 256}, (_, index) => {
   return crc >>> 0;
 });
 
-async function checkedDigests(body, expected, signal, chargeVerification) {
+async function checkedDigests(body: Buffer, expected: Metadata, signal: AbortSignal,
+  chargeVerification: ContentOptions['chargeVerification']) {
   if (BigInt(body.length) !== expected.sizeBytes) fail('GcsContentSizeMismatch');
   let crc = 0xffffffff;
   const sha = createHash('sha256');
@@ -212,15 +255,16 @@ async function checkedDigests(body, expected, signal, chargeVerification) {
 // issues a ContentRef nor declares Source acquisition complete. receiveContent
 // must transfer the verified bytes into that owner before returning; a Program
 // cannot supply target, credential, authorization or a reference envelope.
-export async function readGcsVersionedContent(options) {
+export async function readGcsVersionedContent(options: ContentOptions) {
   const context = setup(options);
   const {moon, target, limits, callbacks, scope, credential} = context;
   const signal = AbortSignal.any([AbortSignal.timeout(limits.maxTimeMs),
     ...(options.signal === undefined ? [] : [options.signal])]);
-  const observations = [];
-  async function request(phase, maxBytes, metageneration, contentEncoding = 'identity', sizeBytes) {
+  const observations: Observation[] = [];
+  async function request(phase: Phase, maxBytes: number, metageneration?: string,
+    contentEncoding: Encoding = 'identity', sizeBytes?: bigint) {
     signal.throwIfAborted();
-    const rangeSize = phase === 'media' && contentEncoding === 'gzip' && sizeBytes > 0n
+    const rangeSize = phase === 'media' && contentEncoding === 'gzip' && sizeBytes! > 0n
       ? sizeBytes : undefined;
     const selected = physicalRequest(target, phase, metageneration, contentEncoding, sizeBytes);
     const auth = phase === 'metadata' ? context.authorization
@@ -234,7 +278,7 @@ export async function readGcsVersionedContent(options) {
       headers: selected.headers, responseHeaders: observedHeaders,
       maxRequestBytes: limits.maxRequestBytes,
       maxResponseBytes: Math.max(1, maxBytes), signal,
-    });
+    }) as Response;
     if (!Buffer.isBuffer(response.body)) fail('InvalidGcsContentResponse');
     // Account original wire bytes even for a rejected or malformed reply.
     const charge = await callbacks.chargeBody(response.body,

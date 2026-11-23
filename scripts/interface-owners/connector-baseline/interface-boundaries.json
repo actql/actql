@@ -3877,7 +3877,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               }
             ],
@@ -3958,7 +3958,7 @@
                 "anchor": "generateInstallations"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -4003,7 +4003,7 @@
     {
       "module": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5126fe6ee5bf2d10ab0b9822b9a91e7a5b948954f2cb811c2e5be3d0698bff36",
+      "sha256": "632ef11aa8e36399292ad8146422ae82303e066739dd01d66cda22f1cf3454a8",
       "role": "connector-semantics",
       "owner": "Installed GCS Resource/Source wiring; Common acquisition/ReferenceIssuer/authorization remain authoritative",
       "exports": [
@@ -4256,7 +4256,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "Physical GCS observations enter the same"
               },
               {
@@ -4282,7 +4282,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "loadInstalledGcsSource"
               },
               {
@@ -4290,8 +4290,8 @@
                 "anchor": "pub fn gcs_collection_issue_reference"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown, maxWork: number)"
               },
               {
                 "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
@@ -4308,11 +4308,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installedGcsSourceIdentityParts"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installationCid: bindingCid"
               },
               {
@@ -4324,7 +4324,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               },
               {
@@ -4338,7 +4338,7 @@
                 "anchor": "Bound connector construction"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "site.referenceCurrent()"
               },
               {
@@ -4360,7 +4360,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "resourceValid"
               },
               {
@@ -4386,11 +4386,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsKeyedResourceUnavailable"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsCollectionProviderUnavailable"
               },
               {
@@ -4416,7 +4416,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "signal: options.signal"
               },
               {
@@ -4442,11 +4442,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "maxCaptureRows"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const declarationLimits"
               },
               {
@@ -4496,7 +4496,7 @@
                 "anchor": "An explicitly supplied legacy"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -4737,7 +4737,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b1bdace431076d1134fd1c739c3ed64ca9d4140420ac7673a4ae203e35fe0ad2",
+      "sha256": "3669e6b3fb69740755094a45eacbdda6cdfa1831fb45705db1ed7e0df293ad0d",
       "role": "physical-io",
       "owner": "Version-keyed metadata/media sequencing through the original RowRun charge and capture owner",
       "exports": [
@@ -4825,7 +4825,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "has no issuer"
               },
               {
@@ -4839,31 +4839,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "readGcsKeyedContent"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "request.resource = Object.freeze"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "mediaCharge"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "await consumePage"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "GcsKeyedResourceUnavailable"
               },
               {
@@ -4873,13 +4873,13 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "ownInvocationLimits"
               },
               {
@@ -4893,7 +4893,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-keyed-content.mts",
                 "anchor": "existing keyed/capture envelope"
               }
             ],
@@ -4920,7 +4920,7 @@
     {
       "module": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1fd7a85a0b55fcbc54ef81dc9b60c1b16f08ecb65f44be0cdcb40610dfdfc3fc",
+      "sha256": "5d121111272e13300ad5c462946debc3f97d1951cff85506c0f7ddac4d813c02",
       "role": "physical-io",
       "owner": "Exact GCS generation/metageneration bytes and checksums; original capture owns ContentRef issuance",
       "exports": [
@@ -5020,7 +5020,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "issues a ContentRef"
               },
               {
@@ -5034,31 +5034,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "readGcsVersionedContent"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "ifMetagenerationMatch"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "retains every charge ticket"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "authorizationForRequest"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "GcsContentRepresentationUnsupported"
               },
               {
@@ -5068,13 +5068,13 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "AbortSignal.any"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "chargeVerification(chunk.length"
               },
               {
@@ -5088,7 +5088,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-versioned-content.mts",
                 "anchor": "content-range"
               }
             ],

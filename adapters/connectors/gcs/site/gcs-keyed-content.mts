@@ -6,10 +6,27 @@
 import {readGcsVersionedContent, gcsMetadataRequestWire} from './gcs-versioned-content.mjs';
 import {ownInvocationLimits} from '../../../host-common/owned-invocation-context.mjs';
 
-const fail = code => { throw Object.assign(new Error(code), {code}); };
+type ContentOptions = Parameters<typeof readGcsVersionedContent>[0];
+type Locator = Omit<ContentOptions['target'], 'generation'>;
+type KeyedLimits = ContentOptions['limits'] & Readonly<{mediaType?: string}>;
+type ReadRequest = {resource: object; version: string};
+type Captured = Parameters<ContentOptions['receiveContent']>[1];
+type KeyedOptions = Readonly<{
+  moon?: ContentOptions['moon']; requestWire: string; columns?: readonly string[];
+  resolveResource(resource: object, signal?: AbortSignal): Locator | PromiseLike<Locator>;
+  beginRequest(wire: Buffer): unknown; chargePage(body: Buffer): unknown;
+  consumePage(rows: readonly Readonly<Record<string, unknown>>[], original: Readonly<{charge: unknown}>): unknown;
+  captureContent(input: Readonly<{bytes: Buffer; mediaType: string; contentCid: string;
+    metadata: Captured['metadata']; observations: Captured['observations']}>): unknown;
+  chargeVerification: ContentOptions['chargeVerification']; verifyRead(): unknown;
+  credential: unknown; limits: KeyedLimits; signal?: AbortSignal;
+  callResource?: ContentOptions['callResource'];
+}>;
+
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
 export async function readGcsKeyedContent({moon, requestWire, columns, resolveResource,
   beginRequest, chargePage, consumePage, captureContent, chargeVerification, verifyRead,
-  credential, limits, signal, callResource}) {
+  credential, limits, signal, callResource}: KeyedOptions) {
   if (typeof requestWire !== 'string' ||
       [resolveResource, beginRequest, chargePage, consumePage, captureContent,
         chargeVerification, verifyRead].some(callback => typeof callback !== 'function')) {
@@ -25,8 +42,8 @@ export async function readGcsKeyedContent({moon, requestWire, columns, resolveRe
   // Column selection is DATA, not read authority or a reservation.
   const nameSelected = moon !== undefined && (columns === undefined || columns.includes('name'));
   const mediaSelected = moon !== undefined && (columns === undefined || columns.includes('media_type'));
-  let request;
-  try { request = JSON.parse(requestWire); } catch { fail('InvalidGcsKeyedContentRead'); }
+  let request: ReadRequest;
+  try { request = JSON.parse(requestWire) as ReadRequest; } catch { fail('InvalidGcsKeyedContentRead'); }
   if (request === null || typeof request !== 'object' || Array.isArray(request) ||
       Object.keys(request).sort().join(',') !== 'resource,version' ||
       request.resource === null || typeof request.resource !== 'object' ||
@@ -40,7 +57,7 @@ export async function readGcsKeyedContent({moon, requestWire, columns, resolveRe
   // view and its overlap with the physical invocation context before entry.
   // Resolve/request callbacks may await before that context is constructed;
   // neither callback may widen the originally admitted read bounds.
-  limits = ownInvocationLimits(limits);
+  limits = ownInvocationLimits(limits) as KeyedLimits;
   // This resolver belongs to the installed Resource/Catalog observation, not
   // to the Program. It must validate the exact issued reference and scope.
   const locator = await resolveResource(request.resource, signal);
@@ -52,7 +69,7 @@ export async function readGcsKeyedContent({moon, requestWire, columns, resolveRe
   const target = Object.freeze({...locator, generation: request.version});
   const initialAuthorization = await beginRequest(gcsMetadataRequestWire(target));
   signal?.throwIfAborted();
-  let mediaCharge;
+  let mediaCharge: unknown;
   const captured = await readGcsVersionedContent({moon, target, limits, signal,
     credential, callResource, initialAuthorization,
     authorizationForRequest: ({requestWire: wire}) => beginRequest(wire),

@@ -49,7 +49,7 @@
                 "anchor": "pub fn command_target_input_contract"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installationCid: bindingCid"
               },
               {
@@ -199,7 +199,7 @@
                 "anchor": "pub fn gcs_upload_declaration_failure_code"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsCollectionProviderUnavailable"
               },
               {
@@ -233,7 +233,7 @@
                 "anchor": "Declaration construction retains input wire"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const declarationLimits"
               },
               {
@@ -325,8 +325,8 @@
                 "anchor": "pub fn gcs_collection_issue_reference"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown, maxWork: number)"
               },
               {
                 "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
@@ -355,7 +355,7 @@
                 "anchor": "const owner = originals.get(original as CollectionTarget)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "site.referenceCurrent()"
               },
               {
@@ -702,7 +702,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "binding.scope_cid === scopeCid"
               }
             ],
@@ -845,13 +845,13 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -3001,7 +3001,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               }
             ],
@@ -3015,7 +3015,7 @@
                 "anchor": "pub fn object_metadata_page_at"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -4907,7 +4907,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               },
               {
@@ -4973,7 +4973,7 @@
                 "anchor": "A later metadata GET uses original metadata matching"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -6571,7 +6571,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               },
               {
@@ -6589,7 +6589,7 @@
                 "anchor": "Typed ABI projection only"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -7588,7 +7588,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               },
               {
@@ -7654,7 +7654,7 @@
                 "anchor": "A later metadata GET uses original metadata matching"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
