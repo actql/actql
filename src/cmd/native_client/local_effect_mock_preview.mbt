@@ -102,6 +102,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_preview(
         installation.store_authority_cid,
         max_bytes,
         report,
+        values_installation=installation.source_free,
       )
       return
     }

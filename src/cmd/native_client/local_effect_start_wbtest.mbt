@@ -69,11 +69,12 @@ fn native_shared_file_effect_environment(
 ///|
 fn native_shared_file_effect_input(
   project : LocalProjectMockDeclarations,
+  program_file? : String = "multiple-targets.program.json",
 ) -> (@checked.CheckEnvironment, @run_host.ClientSubmittedIntent) raise {
   let environment = native_shared_file_effect_environment(project)
   let document = local_input_text_file(
     project._retained_project.directory,
-    "multiple-targets.program.json",
+    program_file,
     65536L,
   )
   let input : Json = {
@@ -89,6 +90,67 @@ fn native_shared_file_effect_input(
     64,
   ).unwrap()
   (environment, intent)
+}
+
+///|
+test "Native Mock CREATE issues original evidence from its installed Result policy" {
+  let project = native_project_mock_model_fixture(
+    "source-free-create",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  let (environment, intent) = native_shared_file_effect_input(
+    project,
+    program_file="file-create.program.json",
+  )
+  let first = local_effect_prefix_fixture_original(
+    local_prepare_submitted_run_program(intent, environment),
+  )
+  assert_true(first.is_mock_values_create())
+  let compilation = first.allowed.compilation
+  let prepared = @run_host.client_effect_compilation_owner(compilation)
+  assert_true(
+    @run_host.prepared_client_effect_publication_data_policy_cid(prepared)
+    is None,
+  )
+  let originals = @run_host.client_local_product_finite_originals(
+    "/operator/native-create-policy",
+    "/product/sqlite.dylib",
+    "/product/crypto.dylib",
+    "2026-10-10T00:00:00.000Z",
+    @run_host.client_local_product_assets(),
+  ).unwrap()
+  let installation = local_run_installation(
+    @utf8.decode(
+      originals.iter().find_first(pair => pair.0 == "run.json").unwrap().1,
+    ),
+  )
+  let policy = installation.source_free.unwrap()
+  let original = @run_host.issue_client_effect_source_free_invocation_original(
+    compilation, policy.result_policy_cid, 16384, 1024, 20,
+  ).unwrap()
+  let admission = @run_host.client_effect_allowed_run_admission(first.allowed)
+  let evidence = @publication.resolve_run_local_result_evidence_refs(
+    admission,
+    first.definition,
+    @run_host.client_effect_source_free_invocation_original_invocation(original),
+    @run_host.client_effect_source_free_invocation_original_observation(original),
+    installation.retention,
+  ).unwrap()
+  assert_eq(evidence.1, policy.result_policy_cid)
+  let foreign = @run_host.issue_client_effect_source_free_invocation_original(
+    compilation, "sha256:" + "f".repeat(64), 16384, 1024, 20,
+  ).unwrap()
+  assert_true(
+    @publication.resolve_run_local_result_evidence_refs(
+      admission,
+      first.definition,
+      @run_host.client_effect_source_free_invocation_original_invocation(foreign),
+      @run_host.client_effect_source_free_invocation_original_observation(foreign),
+      installation.retention,
+    ) is Err(ForeignRetention),
+  )
 }
 
 ///|

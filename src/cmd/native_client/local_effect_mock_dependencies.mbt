@@ -472,6 +472,7 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
   store_authority : String,
   max_bytes : Int,
   report : (LocalNativeMockEffectProposalIssue) -> Unit,
+  values_installation? : LocalValuesInstallation? = None,
 ) -> Unit raise ClientStop {
   guard state.first._retained_models.is_empty() &&
     state.direct_sources is Some(direct) &&
@@ -519,7 +520,18 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
     Int64::max(construction.workspace, measuring),
   )
   .native_effect_proposal_with_cause(report)
-  let policy_bodies = @run_host.prepared_client_effect_publication_policy_bodies(
+  // Values CREATE has no checked Source policy. Its immutable installation
+  // already owns the one policy body retained at original Run acceptance.
+  let values_policy = if values_scope is Some(_) {
+    guard values_installation is Some(_) else {
+      stop("LocalOriginalEffectDependencyInventoryUnavailable")
+    }
+    values_installation
+  } else {
+    None
+  }
+  let policy_bodies = if values_policy is None {
+    @run_host.prepared_client_effect_publication_policy_bodies(
       prepared,
       max_bytes,
       limits.max_admission_nodes,
@@ -537,8 +549,12 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
       LocalNativeMockEffectProposalIssue::PolicyDependency(issue)
     })
     .native_effect_proposal_with_cause(report)
+  } else {
+    []
+  }
   let mut entries = retention.length().to_int64() +
     policy_bodies.length().to_int64() +
+    (if values_policy is Some(_) { 1L } else { 0L }) +
     2L * direct.identities.length().to_int64() +
     combined
     .map(@run_host.client_effect_combined_source_unit_dependency_body_count)
@@ -653,6 +669,9 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_dependencies(
   }
   for (kind, cid, wire) in policy_bodies {
     append(kind, cid, wire)
+  }
+  if values_policy is Some(values) {
+    append("data_policy", values.result_policy_cid, values.result_policy_wire)
   }
   // The Source relations and schemas are distinct from the completed Result.
   // Borrow the preimages already backed by each original Source identity scan.

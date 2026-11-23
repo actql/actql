@@ -51,11 +51,12 @@ fn NativeLocalHostConnection::select_effect_values_policy_originals(
   request : @host.ClientRequestIdentity,
   definition : @publication.PublicationContract,
   run_file : String,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[
   (String, NativeLocalEffectValuesPolicySelection?),
   NativeClientRunJournalIssue,
 ] {
-  let original = match self.journal.retained_submission(reference) {
+  let original = match self.journal.retained_submission(reference, reads~) {
     Ok(Some(value)) => value
     Ok(None) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
@@ -67,7 +68,7 @@ fn NativeLocalHostConnection::select_effect_values_policy_originals(
       @publication.publication_contract_identity(definition) {
       return Err(ChangedIntent)
     }
-    let record = match self.journal.retained(request) {
+    let record = match self.journal.retained(request, reads~) {
       Ok(Some(value)) => value
       Ok(None) => return Err(CustodyLost)
       Err(issue) => return Err(issue)

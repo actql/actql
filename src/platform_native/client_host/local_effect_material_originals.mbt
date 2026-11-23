@@ -247,6 +247,7 @@ fn NativeLocalHostConnection::accept_submitted_effect_material_with_policy(
       match
         self.select_effect_values_policy_originals(
           reference, request, definition, file,
+          reads=operations.map(value => value.reads),
         ) {
         Ok((wire, selection)) => (Some(wire), selection)
         Err(issue) => return Err(Journal(issue))
@@ -337,6 +338,7 @@ pub fn NativeLocalJournalCapture::accept_submitted_effect_material_original_in_o
     NativeLocalRunPolicyBinding,
     @host.ClientLocalRunPolicyOriginal,
   )? = None,
+  source_free_run_file? : String? = None,
 ) -> Result[
   Result[
     NativeClientSubmittedIntentRecord,
@@ -364,7 +366,7 @@ pub fn NativeLocalJournalCapture::accept_submitted_effect_material_original_in_o
         definition,
         issued,
         now,
-        None,
+        source_free_run_file,
         local_policy,
         capture=Some(self),
         operations=Some(operations),

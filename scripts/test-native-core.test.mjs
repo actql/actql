@@ -1102,6 +1102,7 @@ function fixture(t, {scoped = false, http = false, sourcePeers = false, relation
   // the isolated wrapper checkout.
   for (const path of ['packages/native-cli/lib/project-template.mjs',
     'adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs',
+    'adapters/host-node/fixtures/mock-file-create.fixture.mjs',
     'adapters/host-node/fixtures/mock-nullable-update.fixture.mjs']) {
     const target = join(checkout, path);
     mkdirSync(dirname(target), {recursive: true});

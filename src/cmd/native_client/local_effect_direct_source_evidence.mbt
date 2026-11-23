@@ -406,6 +406,7 @@ fn LocalNativeMockEffectPlan::issue_mock_effect_values_publication(
   self : Self,
   run : @local_values.ClientInstalledManagedRun,
   bound : @run_host.PreparedClientEffectRun,
+  installation : LocalRunInstallation,
 ) -> Result[Unit, LocalNativeMockSourceIdentityIssue] {
   let first = self.first
   let prepared = self._retained_prepared
@@ -414,8 +415,7 @@ fn LocalNativeMockEffectPlan::issue_mock_effect_values_publication(
     self.source_start is Some(_) &&
     self.captured_inputs.is_empty() &&
     self.effect_capture is Some(captured) &&
-    @run_host.prepared_client_effect_publication_data_policy_cid(prepared)
-    is Some(policy) &&
+    installation.source_free is Some(values) &&
     @run_host.client_protocol_metadata_construction_bytes(
       16384,
       1024L,
@@ -438,7 +438,7 @@ fn LocalNativeMockEffectPlan::issue_mock_effect_values_publication(
     let original = direct_source_original(
       @run_host.issue_client_effect_source_free_invocation_original(
         first.allowed.compilation,
-        policy,
+        values.result_policy_cid,
         16384,
         1024,
         20,
