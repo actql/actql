@@ -6353,7 +6353,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "50f53fb347d7e40ae5c4118e0685df548aade62ce970dd90f1295acce92ba655",
+      "sha256": "8fbc9d67717b0aa8dc35fd2764da156b900f7140a9bcd817877e21bc953a990a",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -6367,40 +6367,6 @@
         "retainPinnedEffectDependencyPayloads"
       ],
       "operations": [
-        {
-          "name": "exportPinnedEffectInput",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "exportPinnedEffectLocalResult",
-          "parameters": [
-            "resultIndex",
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "exportPinnedResult/exportPinnedResult",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "exportPinnedResult/exportPinnedResult#2",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "exportPinnedResult/exportPinnedResult#3",
-          "parameters": [],
-          "async": false
-        },
         {
           "name": "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
           "parameters": [
@@ -6694,10 +6660,6 @@
       "contracts": [
         {
           "operations": [
-            "exportPinnedEffectInput",
-            "exportPinnedEffectLocalResult",
-            "exportPinnedResult/exportPinnedResult",
-            "exportPinnedResult/exportPinnedResult#2",
             "prepareDependentEffectSourceSet/orderedUnits/orderedUnits",
             "prepareDependentEffectSourceSet/originalArtifact/originalArtifact",
             "prepareDependentEffectSourceSet/prepareDependentEffectSourceSet",
@@ -7005,302 +6967,6 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
                 "anchor": "test('actual Local STORE cold capture refuses altered original source schema'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "exportPinnedResult/exportPinnedResult#3"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "Assemble existing owned Results, never caller-authored roots"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Original typed projection belongs to the existing Result export"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "commitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "src/run_publication_host/client_effect_original_materials.mbt",
-                "anchor": "pub fn"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Inputs retain the original proposal Plan"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "preparedEffectSourceSets.get(sources)"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Identity follows the exact checked Result occurrence"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "All prepared payloads stay under the existing publication cleanup owner"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Ownership remains with the original export and Effect pins"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "commitPinnedEffectSourceHolding"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Synchronization checks both the original stream and original Effect/export"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "Pending owners escape on error"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Failure retains the existing typed refusal or original callback error"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Cancellation stops publication after the same awaited consumer"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "EffectDependencyEntryLimit"
-              },
-              {
-                "path": "adapters/host-node/effect-input-export.mjs",
-                "anchor": "EffectDependencyBodyByteLimit"
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Resources cover one shared Mapping work/node/text ceiling"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Extension uses the same original Captured/Mapping reader"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/client-dispatch-owner.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "adapters/host-node/acquired-effect-source-binding.test.mjs",
-                "anchor": "test("
-              },
-              {
-                "path": "docs/design/connector-layout.md",
-                "anchor": "## Original Content preparation projection"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "The Host's managed re-admission bridge"
-              },
-              {
-                "path": "src/query_integration/command_key_export_retirement_wbtest.mbt",
-                "anchor": "test \""
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Ordinary member capture"
-              },
-              {
-                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
-                "anchor": "ordinary Source set finishes the original funded whole key before proposing any row"
-              },
-              {
-                "path": "adapters/host-node/command-original-capture-phase.test.mjs",
-                "anchor": "original completed key reaches actual Preview import and retirement revokes its payload proof"
-              },
-              {
-                "path": "docs/design/short-command-input-capture.md",
-                "anchor": "## Original target and key callers"
-              },
-              {
-                "path": "adapters/host-node/effect-command-target-callers.test.mts",
-                "anchor": "original target refusal happens before physical rows"
-              },
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Verification separates actual Result/Captured and typed Notion codec counters"
               }
             ]
           }
@@ -7682,8 +7348,8 @@
         "../host-common/runtime-result.mjs",
         "./effect-command-key.mjs",
         "./effect-source-holdings.mjs",
+        "./effect-source-stream.mjs",
         "node:crypto",
-        "node:timers/promises",
         "node:util"
       ],
       "compilerFields": [],
@@ -9055,6 +8721,167 @@
               {
                 "path": "adapters/host-node/table-durable-capture.test.mjs",
                 "anchor": "semantic Preview in a new process"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/effect-source-stream.mjs",
+      "sha256": "b6b5fed9ac5675c6e92adbc3704de6828446eb17913c01da4cad133610274dd3",
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "exports": [
+        "exportPinnedEffectInput",
+        "exportPinnedEffectLocalResult"
+      ],
+      "operations": [
+        {
+          "name": "exportPinnedEffectInput",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "exportPinnedEffectLocalResult",
+          "parameters": [
+            "resultIndex",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "exportPinnedResult/exportPinnedResult",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "exportPinnedResult/exportPinnedResult#2",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "exportPinnedResult/exportPinnedResult#3",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/runtime-result.mjs",
+        "node:timers/promises",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "exportPinnedEffectInput",
+            "exportPinnedEffectLocalResult",
+            "exportPinnedResult/exportPinnedResult",
+            "exportPinnedResult/exportPinnedResult#2",
+            "exportPinnedResult/exportPinnedResult#3"
+          ],
+          "exports": [
+            "exportPinnedEffectInput",
+            "exportPinnedEffectLocalResult"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "async function exportPinnedResult"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "return exportPinnedResult({...options"
+              },
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "rowCount: moon.clientProgramEffectInputExportRowCount(receipt)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "clientProgramEffectLocalResultExportMatchesReceipt("
+              },
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "if (input === undefined)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "Reflect.apply(originalPorts!.clientProgramEffectOriginalRowRetire"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "await physical.withRows("
+              },
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "await onOriginalRow("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "TypeError('UnavailableEffectOriginalRow')"
+              },
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "Error('EffectInputExportDidNotAdvance')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "moon.clientProgramEffectManagedInputCancel(importing)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "advanceQuantum = 256"
+              },
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "selectedRowLimits!.maxUtf16Units"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-source-stream.mts",
+                "anchor": "await prepareProposal(exportOwner, importing)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-original-row-export.test.mts",
+                "anchor": "original Effect row exporter rechecks current after awaited consumer before publishing bytes"
+              },
+              {
+                "path": "adapters/host-node/effect-original-row-export.test.mts",
+                "anchor": "original Effect row exporter preserves abort and retires without advancing or finalizing"
               }
             ]
           }

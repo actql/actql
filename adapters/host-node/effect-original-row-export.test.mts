@@ -2,12 +2,13 @@
 // Common, vendor I/O, original FD cleanup or installed Source acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {exportPinnedEffectInput, exportPinnedEffectLocalResult} from './effect-input-export.mjs';
+import {exportPinnedEffectInput, exportPinnedEffectLocalResult} from './effect-source-stream.mjs';
 import {runtimePair, runtimeTriple} from '../host-common/compiler-binding.generated.mjs';
 
-const ok = value => ({$tag: 1, _0: value});
+type ExportOptions = Parameters<typeof exportPinnedEffectLocalResult>[0];
+const ok = <Value,>(value: Value) => ({$tag: 1, _0: value});
 function fixture() {
-  const original = {}, exported = {}, calls = [];
+  const original = {}, exported = {}, calls: string[] = [];
   let available = true, next = 0;
   const moon = {
     clientProgramEffectLocalResultAt: () => ({}),
@@ -20,11 +21,11 @@ function fixture() {
       assert.equal(this, moon); calls.push('next');
       return ok(next++ === 0 ? runtimeTriple(0, '[{"id":1}', original) : undefined);
     },
-    clientProgramEffectOriginalRowAvailable(inputs, actualExport, value) {
+    clientProgramEffectOriginalRowAvailable(inputs: unknown, actualExport: unknown, value: unknown) {
       assert.equal(this, moon); assert.equal(actualExport, exported);
       assert.equal(inputs, options.inputs); assert.equal(value, original); return available;
     },
-    clientProgramEffectOriginalRowRetire(value) {
+    clientProgramEffectOriginalRowRetire(value: unknown) {
       assert.equal(this, moon); assert.equal(value, original); calls.push('retire'); available = false;
     },
     clientProgramEffectInputExportFinish() { calls.push('finish'); return ok(runtimePair({}, ']')); },
@@ -37,13 +38,14 @@ function fixture() {
     clientProgramEffectInputExportCancel() { calls.push('cancel'); },
     clientProgramEffectInputExportCancelPreparation() { calls.push('cancel-preparation'); },
   };
-  const options = {moon, execution: {effectPhysicalSource() {}}, inputs: {}, resultIndex: 0, limits: {},
+  // This double implements only the selected Local Result ABI.
+  const options = {moon: moon as unknown as ExportOptions['moon'], execution: {effectPhysicalSource(): undefined {}}, inputs: {}, resultIndex: 0, limits: {},
     originalRowLimits: {maxNodes: 100, maxDepth: 8, maxUtf16Units: 4096}};
   return {moon, original, exported, calls, revoke() { available = false; }, options};
 }
 
 test('original Effect row exporter captures runtime callbacks and delivers its exact export and row once', async () => {
-  const f = fixture(), chunks = [], rows = [];
+  const f = fixture(), chunks: string[] = [], rows: [number, unknown, unknown][] = [];
   const result = await exportPinnedEffectLocalResult({...f.options,
     async onOriginalRow(index, row, exported) {
       rows.push([index, row, exported]);
@@ -77,7 +79,8 @@ test('original Effect row exporter preserves abort and retires without advancing
 
 test('original Effect row exporter refuses incompatible paths and accessor runtime before acquisition', async () => {
   const f = fixture(), options = {...f.options, onOriginalRow() {}, onChunk() {}};
-  await assert.rejects(exportPinnedEffectInput(options), /InvalidEffectInputExport/u);
+  // Exercise the JavaScript caller that selects an incompatible row path.
+  await assert.rejects(exportPinnedEffectInput(options as unknown as Parameters<typeof exportPinnedEffectInput>[0]), /InvalidEffectInputExport/u);
   await assert.rejects(exportPinnedEffectLocalResult({...options, onCanonicalRow() {}}), /InvalidEffectInputExport/u);
   let getters = 0;
   Object.defineProperty(f.moon, 'clientProgramEffectOriginalRowRetire', {get() { getters++; return () => {}; }});
