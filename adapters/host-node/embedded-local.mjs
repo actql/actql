@@ -6543,8 +6543,10 @@ async function openInstalledHost(originalInstallation, preparation) {
     bindOwnedRequest,
     captureResultObservation: observation === undefined ? undefined : ref => {
       if (!observation.canMeasureResources()) return undefined;
-      return captureManagedRunObservation(observation, ref,
-        preparation?.managedComputeUsageReader(ref));
+      // A Saved Result can be read by a Host that never owned its live Run.
+      const readUsage = preparation?.managedComputeUsageReader(ref);
+      if (readUsage === undefined) return undefined;
+      return captureManagedRunObservation(observation, ref, readUsage);
     },
     captureResultOperation: observation === undefined ? undefined
       : () => observation.captureCurrentOperation(),

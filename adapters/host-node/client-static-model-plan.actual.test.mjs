@@ -453,3 +453,46 @@ test('public Effectful Explain projects one checked parameter, field and redacte
   scratch.passed();
   scratch.close();
 });
+test('a cold Saved Result has no live managed resource observation', async t => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-saved-resource-observation-',
+    label: 'cold Saved Result resource observation'});
+  const project = scaffoldProject(join(scratch.path, 'project'), 'deal-review-mock');
+  const cwd = process.cwd();
+  let client, primary;
+  process.chdir(project.directory);
+  try {
+    const open = observation => connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
+      installation: {directory: '.actql-node', observation}});
+    client = await open(undefined);
+    const execution = await client.startSource('SELECT 1 AS answer', {format: 'sql'});
+    assert.equal((await execution.wait()).status, 'succeeded');
+    const ref = structuredClone(execution.ref);
+    await client.close();
+    client = undefined;
+
+    const records = [];
+    const observer = createHostObservationConnection({include: ['compute'],
+      deliver: record => records.push(record)});
+    client = await open(observer);
+    const saved = await client.attach(ref);
+    assert.deepEqual(await saved.result('main').all(), [{answer: 1}]);
+    await client.close();
+    client = undefined;
+    const status = observer.status();
+    assert.equal(status.closed, true);
+    assert.equal(status.dropped, 0);
+    assert.deepEqual(status.loss, {});
+    assert.deepEqual(records, [], 'A cold Result does not create a live managed resource observation');
+  } catch (error) {
+    primary = error;
+    t.diagnostic(JSON.stringify({retainedScratch: scratch.path, code: error?.code}));
+  } finally {
+    try {await client?.close();}
+    catch (error) {primary = primary === undefined ? error :
+      new AggregateError([primary, error], 'Saved Result read and Host cleanup failed');}
+    finally {process.chdir(cwd);}
+  }
+  if (primary !== undefined) throw primary;
+  scratch.passed();
+  scratch.close();
+});
