@@ -817,11 +817,15 @@ pub fn model_original_resource_origin_field(ModelOriginalResourceDocument, Strin
 
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
 
+pub fn model_provider_binding_configuration_cids(RunEvidenceValue) -> (String, String, String)?
+
 pub fn model_raw_capture_policy_originals(BoundModelRawCapturePolicy) -> Array[CapturedEffectDependencyBody]
 
 pub fn model_raw_capture_policy_value(BoundModelRawCapturePolicy) -> RunEvidenceValue
 
 pub fn model_raw_response_matches_selection(BoundModelRawResponse, BoundModelRawCapturePolicy, BoundModelInvocationScope) -> Bool
+
+pub fn model_raw_response_matches_store(BoundModelRawResponse, String) -> Bool
 
 pub fn model_raw_response_profile_cid(BoundModelRawResponse) -> String
 
@@ -1258,6 +1262,8 @@ pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[Public
 pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
+
+pub fn source_free_model_invocation_matches(RunEvidenceValue, RunEvidenceValue, PublicationContract, Array[String], String) -> Bool
 
 pub fn source_unit_metadata_construction_geometry(Array[RunEvidenceValue], Array[RunEvidenceValue], Array[Int], PublicationContract, Int, Int, Int, include_union? : Bool) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], AcquisitionRelationIssue]
 

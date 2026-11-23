@@ -67,7 +67,9 @@ test "backed initialization binds original input before its single start and wai
   retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
   cleanup_backed_initialization_admission(initial).unwrap()
   cleanup_backed_initialization_admission(initial).unwrap()
-  assert_true(initial.input is None && initial.cleaned)
+  assert_true(
+    initial.input is None && initial.cleanup_phase is InputAliasRetired,
+  )
   assert_eq(ledger_usage(parent), before)
 }
 
@@ -88,6 +90,54 @@ test "backed initialization unstarted cleanup never fabricates a Ledger or a zer
   retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
   cleanup_backed_initialization_admission(initial).unwrap()
   assert_eq(ledger_usage(parent), before)
+}
+
+///|
+test "backed initialization cleanup preserves acknowledged transfer uncertainty" {
+  for reported in [false, true] {
+    let (parent, access, projection, input) = backed_original_child_fixture()
+    let before = ledger_usage(parent)
+    let initial = prepare_backed_initialization_admission(projection, input).unwrap()
+    let frame = backed_initialization_original_frame(initial, input).unwrap()
+    let ledger = start_backed_initialization_admission(initial).unwrap()
+    let reservation = reserve_attempt(ledger, 3L, 0L, 0L).unwrap()
+    mark_transfer_uncertain(ledger, reservation, 3L).unwrap()
+    settle_reservation(ledger, reservation).unwrap()
+    let usage = ledger_usage(ledger)
+    assert_eq(usage.uncertain_transfer_bytes, 3L)
+    assert_true(capture_quiescent_ledger_state(ledger) is Ok(_))
+    assert_true(
+      report_backed_initialization_cleanup_usage(initial) is Err(Unavailable),
+    )
+    stop_imported_child_ledger(frame).unwrap()
+    if reported {
+      report_backed_initialization_cleanup_usage(initial).unwrap()
+      report_backed_initialization_cleanup_usage(initial).unwrap()
+    }
+    assert_true(
+      cleanup_backed_initialization_admission(initial) is Err(Unavailable),
+    )
+    // This fixture supplies the nominal owner retirement. The transfer debt
+    // survives independently on the child and on its acknowledged parent.
+    retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
+    let after = ledger_usage(parent)
+    assert_eq(
+      after.uncertain_transfer_bytes,
+      before.uncertain_transfer_bytes + (if reported { 3L } else { 0L }),
+    )
+    if reported {
+      cleanup_backed_initialization_admission(initial).unwrap()
+      cleanup_backed_initialization_admission(initial).unwrap()
+      assert_true(initial.input is None)
+    } else {
+      assert_true(
+        cleanup_backed_initialization_admission(initial) is Err(Unavailable),
+      )
+      assert_true(initial.input is Some(_))
+    }
+    assert_eq(ledger_usage(ledger), usage)
+    assert_eq(ledger_usage(parent), after)
+  }
 }
 
 ///|
@@ -140,6 +190,9 @@ test "backed initialization cleanup refuses live zero-sized identities after phy
     assert_eq(before.reserved_retention_bytes, 0L)
     assert_eq(before.reserved_execution_bytes, 0L)
     stop_imported_child_ledger(frame).unwrap()
+    assert_true(
+      report_backed_initialization_cleanup_usage(initial) is Err(Unavailable),
+    )
     report_imported_child_ledger(frame).unwrap()
     // This nominal fixture stands in for physical retirement only. It does
     // not settle the independent live Core token above or erase its history.
@@ -148,7 +201,7 @@ test "backed initialization cleanup refuses live zero-sized identities after phy
       cleanup_backed_initialization_admission(initial) is Err(Unavailable),
     )
     assert_true(initial.input is Some(_))
-    assert_false(initial.cleaned)
+    assert_false(initial.cleanup_phase is InputAliasRetired)
     assert_eq(ledger_usage(ledger), before)
   }
 }

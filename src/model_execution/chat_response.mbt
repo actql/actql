@@ -82,6 +82,7 @@ fn advance_chat_model_response(
     physical_equal(original, raw) else {
     return @bounded.Failed(RequestIdentity, 1, 1)
   }
+  let provider_refused = raw.status < 200 || raw.status >= 300
   // Keep quantities already read from the admitted original even when a
   // later stop or child work failure prevents shape or answer completion.
   if chat.facts is Some(facts) {
@@ -91,6 +92,20 @@ fn advance_chat_model_response(
     }
   }
   match advance_chat_envelope_decode(chat) {
+    Err(OutputValue) if provider_refused => {
+      // The original complete, saved HTTP refusal is known even if a gateway
+      // used plain text or HTML. It supplied no decodable usage.
+      let unreported = PhysicalUnknown({
+        input_tokens: None,
+        output_tokens: None,
+      })
+      if observe_model_physical_usage(state, call, unreported) is Err(issue) {
+        return @bounded.Failed(issue, 1, 1)
+      }
+      retire_model_raw_usage_child(call) |> ignore
+      state.progress.observing_response = false
+      accept_failed_model_slot(state, ProviderError)
+    }
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(None) => {
       if chat.facts is Some(facts) {
@@ -110,7 +125,7 @@ fn advance_chat_model_response(
         Ok(_) => ()
       }
       retire_model_raw_usage_child(call) |> ignore
-      if raw.status < 200 || raw.status >= 300 {
+      if provider_refused {
         state.progress.observing_response = false
         return accept_failed_model_slot(state, ProviderError)
       }

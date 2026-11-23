@@ -24,7 +24,7 @@ struct actql_native_command_platform_original {
   const void *runtime;
   char manifest[65];
   bool closing;
-  actql_native_command_platform_load loads[2];
+  actql_native_command_platform_load loads[ACTQL_NATIVE_COMMAND_MODEL_HTTP_COMPONENT];
 };
 
 static _Atomic int actql_command_entry_state;
@@ -90,7 +90,7 @@ actql_native_command_platform_load *actql_native_command_platform_begin_load(
     actql_native_observed_component_member *member) {
   if (!entry || entry != actql_native_command_platform_current() || !member ||
       kind < ACTQL_NATIVE_COMMAND_SQLITE_COMPONENT ||
-      kind > ACTQL_NATIVE_COMMAND_CRYPTO_COMPONENT) return NULL;
+      kind > ACTQL_NATIVE_COMMAND_MODEL_HTTP_COMPONENT) return NULL;
   actql_native_command_platform_load *load = &entry->loads[kind - 1];
   if (load->attempted ||
       actql_native_observed_component_member_kind(member) != kind ||
@@ -121,7 +121,8 @@ actql_native_command_platform_load *actql_native_command_platform_begin_load(
 static bool actql_command_original_load(actql_native_command_platform_load *load) {
   /* Compare addresses before dereferencing a caller-provided pointer. */
   return (load == &actql_command_entry.loads[0] ||
-          load == &actql_command_entry.loads[1]) &&
+          load == &actql_command_entry.loads[1] ||
+          load == &actql_command_entry.loads[2]) &&
     actql_command_entry_thread(&actql_command_entry) &&
     load->entry == &actql_command_entry && load->attempted;
 }

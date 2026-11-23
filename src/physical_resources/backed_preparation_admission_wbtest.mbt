@@ -141,7 +141,7 @@ test "backed Request failed constructor retains same input capacity and physical
   report_imported_child_ledger(frame).unwrap()
   retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
   cleanup_backed_preparation_admission(initial).unwrap()
-  assert_true(initial.initial.cleaned)
+  assert_true(initial.initial.cleanup_phase is InputAliasRetired)
   assert_eq(ledger_usage(parent), before)
 }
 

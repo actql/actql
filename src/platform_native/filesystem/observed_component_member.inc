@@ -58,7 +58,9 @@ void *actql_native_filesystem_observed_component_member(
       !actql_native_filesystem_root_read_available(root) ||
       !actql_observed_file_root_matches(root, stat) || length <= 0 ||
       length > 128 || Moonbit_array_length(name) != length ||
-      memchr(name, 0, (size_t)length) || (kind != 1 && kind != 2) ||
+      memchr(name, 0, (size_t)length) ||
+      kind < ACTQL_NATIVE_COMMAND_SQLITE_COMPONENT ||
+      kind > ACTQL_NATIVE_COMMAND_MODEL_HTTP_COMPONENT ||
       !actql_component_hex(source, 40) || !actql_component_hex(manifest, 64) ||
       !actql_component_hex(digest, 64)) return member;
   char text[129]; memcpy(text, name, (size_t)length); text[length] = 0;

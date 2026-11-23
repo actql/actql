@@ -65,6 +65,7 @@ fn read_initial_host_signing_subject_after_header(
   header : Array[String],
   fields : NativeLocalInitialSigningFields,
   signing_original? : NativeLocalInitialSigningOriginal? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[(String, String, String)?, NativeLocalAdoptionIssue] {
   if header.length() != 4 {
     return Ok(None)
@@ -78,6 +79,7 @@ fn read_initial_host_signing_subject_after_header(
       host,
       packet,
       signing_original~,
+      reads~,
     ) {
     Ok(value) if value.length() <= 2048 => value
     _ => return Err(CustodyLost)
