@@ -17,7 +17,28 @@ export const errorGridRows = [{values: [
   {userEnteredValue: {formulaValue: '=1/0'}, effectiveValue: {
     errorValue: {type: 'DIVIDE_BY_ZERO', message: 'Independent formula error'}}},
 ]}];
-export function sheetsRoutes(state) {
+type CellScalar = Readonly<{stringValue?: string; numberValue?: number; boolValue?: boolean;
+  formulaValue?: string; errorValue?: Readonly<{type: string; message: string}>}>;
+type Cell = Readonly<{effectiveValue?: CellScalar; userEnteredValue?: CellScalar}>;
+type Row = Readonly<{values?: readonly Cell[]}>;
+type Range = Readonly<{sheetId?: number; startRowIndex?: number; endRowIndex?: number;
+  startColumnIndex?: number; endColumnIndex?: number}>;
+type Write = Readonly<{range?: Range; fields?: string; rows?: readonly Row[]}>;
+type Metadata = Readonly<{metadataKey?: string; visibility?: string; location?: Readonly<{sheetId?: number}>}>;
+type WriteRequest = Readonly<{
+  requests?: readonly Readonly<{updateCells?: Write; appendCells?: Write & {sheetId?: number};
+    createDeveloperMetadata?: Readonly<{developerMetadata?: Metadata}>}>[];
+}>;
+type ReadRequest = Readonly<{dataFilters: readonly Readonly<{gridRange?: Range}>[]; includeGridData?: boolean}>;
+type FixtureState = {
+  appendSheetId?: number; gridRows?: readonly Row[]; rangeCommand?: boolean | 'clear';
+  cleared: WriteRequest[]; updated: (CellScalar | undefined)[][][];
+  appended: (CellScalar | undefined)[][]; onAppend?: () => unknown;
+};
+type ReadState = Pick<FixtureState, 'appendSheetId' | 'gridRows'> & Partial<Omit<FixtureState, 'appendSheetId' | 'gridRows'>>;
+type Request = Readonly<{body: string}>;
+
+export function sheetsRoutes(state: ReadState) {
   return [
     {method: 'GET', pathname: '/v4/spreadsheets/book', handle() {
       return {body: {spreadsheetId: 'book', sheets: [
@@ -27,8 +48,8 @@ export function sheetsRoutes(state) {
           gridProperties: {rowCount: 100, columnCount: 3}}},
       ]}};
     }},
-    {method: 'POST', pathname: '/v4/spreadsheets/book:getByDataFilter', handle(exchange) {
-      const request = JSON.parse(exchange.body);
+    {method: 'POST', pathname: '/v4/spreadsheets/book:getByDataFilter', handle(exchange: Request) {
+      const request = JSON.parse(exchange.body) as ReadRequest;
       if (JSON.stringify(request) !== JSON.stringify({dataFilters: [{gridRange: {
         sheetId: 0, startRowIndex: 0, endRowIndex: 4,
         startColumnIndex: 0, endColumnIndex: 3}}], includeGridData: true})) {
@@ -50,13 +71,13 @@ export function sheetsRoutes(state) {
           {values: [{effectiveValue: {stringValue: 'e\u0301\r\n=literal'}}]},
         ]}]}]}};
     }},
-    {method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate', handle(exchange) {
-      const body = JSON.parse(exchange.body);
+    {method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate', handle(exchange: Request) {
+      const body = JSON.parse(exchange.body) as WriteRequest;
       const update = body.requests?.[0]?.updateCells;
       if (update !== undefined && state.rangeCommand === 'clear') {
         const range = update.range;
         const metadata = body.requests?.[1]?.createDeveloperMetadata?.developerMetadata;
-        if (body.requests.length !== 2 || update.fields !== 'userEnteredValue' ||
+        if (body.requests!.length !== 2 || update.fields !== 'userEnteredValue' ||
             Object.keys(update).sort().join(',') !== 'fields,range,rows' ||
             range?.sheetId !== 7 || range.startRowIndex !== 2 || range.endRowIndex !== 4 ||
             range.startColumnIndex !== 0 || range.endColumnIndex !== 3 ||
@@ -66,20 +87,20 @@ export function sheetsRoutes(state) {
         }
         // This Google-shaped fixture records the real request as received; it
         // does not derive its expected range/mask from the provider encoder.
-        state.cleared.push(structuredClone(body));
+        state.cleared!.push(structuredClone(body));
         return {body: {spreadsheetId: 'book', replies: [{}, {createDeveloperMetadata: {
-          developerMetadata: {...metadata, metadataId: state.cleared.length}}}]}};
+          developerMetadata: {...metadata, metadataId: state.cleared!.length}}}]}};
       }
       if (update !== undefined && state.rangeCommand) {
         const range = update.range;
-        if (body.requests.length !== 1 || update.fields !== 'userEnteredValue' ||
+        if (body.requests!.length !== 1 || update.fields !== 'userEnteredValue' ||
             range?.sheetId !== 7 || range.startRowIndex !== 2 || range.endRowIndex !== 4 ||
             range.startColumnIndex !== 0 || range.endColumnIndex !== 3 ||
             update.rows?.length !== 2 || update.rows.some(row => row.values?.length !== 3 ||
               row.values.some(cell => cell.userEnteredValue?.formulaValue !== undefined))) {
           return {status: 400, body: {}};
         }
-        state.updated.push(update.rows.map(row => row.values.map(cell => cell.userEnteredValue)));
+        state.updated!.push(update.rows.map(row => row.values!.map(cell => cell.userEnteredValue)));
         return {body: {spreadsheetId: 'book', replies: [{}]}};
       }
       const append = body.requests?.[0]?.appendCells;
@@ -88,10 +109,10 @@ export function sheetsRoutes(state) {
           append.rows[0].values?.some(cell => cell.userEnteredValue?.formulaValue !== undefined)) {
         return {status: 400, body: {}};
       }
-      state.appended.push(append.rows[0].values.map(cell => cell.userEnteredValue));
+      state.appended!.push(append.rows[0].values!.map(cell => cell.userEnteredValue));
       const observed = state.onAppend?.();
       const reply = {body: {spreadsheetId: 'book', replies: [{}]}};
       return observed === undefined ? reply : Promise.resolve(observed).then(() => reply);
     }},
-  ];
+  ] as const;
 }

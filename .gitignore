@@ -2988,3 +2988,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/sheets/test/sheets-owned-baseline.test.d.mts
 /adapters/connectors/sheets/host/installed-sheets.mjs
 /adapters/connectors/sheets/host/installed-sheets.d.mts
+/adapters/connectors/sheets/test/sheets-api.fixture.mjs
+/adapters/connectors/sheets/test/sheets-api.fixture.d.mts
+/adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs
+/adapters/connectors/sheets/test/sheets-grid-pages.actual.test.d.mts
+/adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs
+/adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.d.mts
+/adapters/connectors/sheets/test/sheets-tabs-pages.test.mjs
+/adapters/connectors/sheets/test/sheets-tabs-pages.test.d.mts

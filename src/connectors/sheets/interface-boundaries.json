@@ -1651,7 +1651,7 @@
               "anchor": "same bytes under another permission"
             },
             {
-              "path": "adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mts",
               "anchor": "test('actual Sheets metadata projection preserves original target refusal separately from transport rejection'"
             }
           ]
@@ -3187,7 +3187,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mts",
               "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
             }
           ]
@@ -4828,7 +4828,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mts",
               "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
             }
           ]
@@ -6556,7 +6556,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-grid-pages.actual.test.mts",
               "anchor": "actual Sheets callback codec retains full grid duplicate rows blanks formula result and exact literal text"
             }
           ]
@@ -6671,7 +6671,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mts",
               "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
             }
           ]
@@ -6776,7 +6776,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mts",
               "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
             }
           ]
@@ -6954,7 +6954,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-tabs-pages.actual.test.mts",
               "anchor": "actual Sheets tabs ABI and callbacks retain all typed columns tab identity exact title and nongrid null counts"
             }
           ]

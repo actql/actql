@@ -1,13 +1,20 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareSheetsTabsPages} from '../site/sheets-tabs-pages.mjs';
+type Tabs = Parameters<typeof prepareSheetsTabsPages>[0];
+type Codec = Tabs['moon'];
+type Result = {$tag: number; _0: unknown};
+type FixtureCodec = Omit<Codec,'sheetsProjectTabs'|'sheetsTabsRowsWire'> & {
+  sheetsProjectTabs(...args: Parameters<Codec['sheetsProjectTabs']>): [object, undefined] | Result;
+  sheetsTabsRowsWire(...args: Parameters<Codec['sheetsTabsRowsWire']>): [string, undefined] | Result;
+};
 const limits={maxResponseBytes:8192,maxNodes:512,maxDepth:16,maxRows:4,maxValueNodes:100,maxValueTextBytes:4096,
   maxRowsWireBytes:8192,maxRowsWireNodes:100,maxRowsWireDepth:8};
 const frame={pageIndex:0,rowCount:0};
 
 test('Sheets tab callbacks capture same codec receiver complete columns limits and original body',()=>{
-  const page={},body=Buffer.from('same body'),seen=[];
-  const moon={sheetsTabsColumnNames(){assert.equal(this,moon);return['id','title','index','row_count','column_count'];},
+  const page={},body=Buffer.from('same body'),seen: Parameters<Codec['sheetsProjectTabs']>[]= [];
+  const moon: FixtureCodec={sheetsTabsColumnNames(){assert.equal(this,moon);return['id','title','index','row_count','column_count'];},
     sheetsProjectTabs(...args){assert.equal(this,moon);seen.push(args);return[page,undefined];},
     sheetsTabsRowCount(value){assert.equal(this,moon);assert.equal(value,page);return 1;},
     sheetsTabsRowsWire(value,names,...bounds){assert.equal(this,moon);assert.equal(value,page);
@@ -16,9 +23,9 @@ test('Sheets tab callbacks capture same codec receiver complete columns limits a
   // Explicit Result port below uses the existing runtime's successful Result
   // carrier only; actual compiler Result ABI is checked by the separate case.
   const originalProject=moon.sheetsProjectTabs,originalRows=moon.sheetsTabsRowsWire;
-  const good=value=>({$tag:1,_0:value});
-  moon.sheetsProjectTabs=function(...args){return good(Reflect.apply(originalProject,this,args)[0]);};
-  moon.sheetsTabsRowsWire=function(...args){return good(Reflect.apply(originalRows,this,args)[0]);};
+  const good=(value: unknown)=>({$tag:1,_0:value});
+  moon.sheetsProjectTabs=function(...args){return good((Reflect.apply(originalProject,this,args) as [object, undefined])[0]);};
+  moon.sheetsTabsRowsWire=function(...args){return good((Reflect.apply(originalRows,this,args) as [string, undefined])[0]);};
   const selected={...limits};
   const callbacks=prepareSheetsTabsPages({moon,spreadsheetId:'book',names:['title'],limits:selected},(fn,receiver,args)=>Reflect.apply(fn,receiver,args));
   moon.sheetsProjectTabs=()=>assert.fail('original method is retained');selected.maxRows=1;
@@ -32,11 +39,11 @@ test('Sheets tab callbacks capture same codec receiver complete columns limits a
 test('Sheets tab callbacks refuse invalid selection frames responses and limits before page decode',()=>{
   let decoded=0;
   const moon={sheetsTabsColumnNames:()=>['id'],sheetsProjectTabs(){decoded++;},sheetsTabsRowCount(){},sheetsTabsRowsWire(){}};
-  const make=options=>prepareSheetsTabsPages({moon,spreadsheetId:'book',names:['id'],limits,...options},(fn,receiver,args)=>Reflect.apply(fn,receiver,args));
+  const make=(options?: Partial<Tabs>)=>prepareSheetsTabsPages({moon: moon as unknown as Codec,spreadsheetId:'book',names:['id'],limits,...options},(fn,receiver,args)=>Reflect.apply(fn,receiver,args));
   assert.throws(()=>make({names:['foreign']}),{code:'InvalidSheetsTabsPages'});
   assert.throws(()=>make({limits:{...limits,maxRows:0}}),{code:'InvalidSheetsTabsPages'});
   const p=make();
   assert.throws(()=>p.fetchPage({pageIndex:1,rowCount:0}),{code:'InvalidSheetsTabsFrame'});
-  assert.throws(()=>p.decodePage({accepted:false,statusCode:403},frame),{code:'SheetsTabsReadRejected'});
+  assert.throws(()=>p.decodePage({accepted:false,statusCode:403} as Parameters<typeof p.decodePage>[0],frame),{code:'SheetsTabsReadRejected'});
   assert.equal(decoded,0);
 });
