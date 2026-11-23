@@ -77,16 +77,70 @@ fn local_runtime_original_assets(
 }
 
 ///|
-// Operator-selected Host capacity is checking DATA, not a different runtime.
-// Every other Environment member and policy stays identical to the installed
-// cohort. The existing capacity Owner validates finite quantities and version;
-// this comparison issues no Account/current/Run or physical permission.
-fn local_runtime_capacity_environment_context(wire : String) -> String? {
+priv enum NativeLocalRuntimeModelProjection {
+  PreserveModels
+  RequireEmptyPackagedModels
+  SelectConfiguredModels(String)
+}
+
+///|
+// Checking data added by an explicitly adopted Model installation is separate
+// from the packaged runtime's default declarations. Only that Provider's
+// declarations may be added, and only to an empty packaged inventory.
+// The original checking, Model admission and dispatch owners still validate
+// the complete selected declaration and its installed profile.
+fn local_runtime_model_environment_context(
+  body : @canonical.CanonicalValue,
+  projection : NativeLocalRuntimeModelProjection,
+) -> @canonical.CanonicalValue? {
+  if projection is PreserveModels {
+    return Some(body)
+  }
+  guard @canonical.object_field(body, "model_task_contracts")
+    is Some(@canonical.Array(tasks)) else {
+    return None
+  }
+  match projection {
+    RequireEmptyPackagedModels =>
+      if @canonical.array_count(tasks) != 0 {
+        return None
+      }
+    SelectConfiguredModels(provider) =>
+      for index in 0..<@canonical.array_count(tasks) {
+        guard @canonical.array_at(tasks, index) is Some(task) &&
+          @canonical.object_field(task, "connector_id")
+          is Some(@canonical.String(connector)) &&
+          connector == provider else {
+          return None
+        }
+      }
+    PreserveModels => ()
+  }
+  @canonical.object_without_field(body, "model_task_contracts")
+}
+
+///|
+let local_runtime_environment_max_bytes = 65536
+
+///|
+let local_runtime_environment_max_nodes = 8192
+
+///|
+let local_runtime_environment_max_depth = 64
+
+///|
+// Compare the admitted checking data without replacing the packaged runtime.
+// The established capacity policy and the scoped Model projection are checked
+// separately. The remaining original Environment members stay identical.
+fn local_runtime_capacity_environment_context(
+  wire : String,
+  model? : NativeLocalRuntimeModelProjection = PreserveModels,
+) -> String? {
   let source = match
     @source.parse_json_bytes_preserving(@utf8.encode(wire), {
-      max_input_bytes: 65536,
-      max_nodes: 8192,
-      max_depth: 64,
+      max_input_bytes: local_runtime_environment_max_bytes,
+      max_nodes: local_runtime_environment_max_nodes,
+      max_depth: local_runtime_environment_max_depth,
     }) {
     Ok(value) => value
     Err(_) => return None
@@ -111,6 +165,7 @@ fn local_runtime_capacity_environment_context(wire : String) -> String? {
         max_depth: 64,
       })
       is Ok(_) &&
+      local_runtime_model_environment_context(body, model) is Some(body) &&
       @canonical.object_with_replaced_fields(body, [
         ("host_policy_profile", other_policy),
       ])
@@ -132,6 +187,98 @@ fn local_runtime_capacity_environment_compatible(
     (
       local_runtime_capacity_environment_context(original),
       local_runtime_capacity_environment_context(installed),
+    ) {
+    (Some(original), Some(installed)) => original == installed
+    _ => false
+  }
+}
+
+///|
+// The comparisons are sequential. The first normalized context String
+// overlaps the second parse/writer, while the trees and writer scratch do
+// not escape either side. The original Environment bodies stay borrowed.
+fn fund_local_runtime_configured_environment(
+  original : String,
+  installed : String,
+  operations : NativeClientJournalOperationAccess,
+) -> Bool {
+  let limit = local_runtime_environment_max_bytes
+  let text = Int::max(original.length(), installed.length())
+  if text < 1 || text > limit {
+    return false
+  }
+  let bytes = Int::min(limit, 3 * text)
+  let nodes = Int::min(local_runtime_environment_max_nodes, bytes)
+  let depth = Int::min(local_runtime_environment_max_depth, nodes)
+  guard native_model_http_configuration_parse(
+      bytes,
+      limit,
+      nodes,
+      depth,
+      normalize_keys=true,
+    )
+    is Some(parser) &&
+    @canonical.source_conversion_construction_extent(
+      nodes, nodes, nodes, nodes, depth, text,
+    )
+    is Some(canonical) &&
+    @encode.text_writer_construction_inventory(limit, nodes, depth)
+    is Some(writer) &&
+    @execution.compose_preparation_representation([
+      parser,
+      {
+        record_headers: canonical.retained.record_headers +
+        canonical.scratch.record_headers,
+        reference_slots: canonical.retained.reference_slots +
+        canonical.scratch.reference_slots,
+        scalar_words: canonical.retained.scalar_words +
+        canonical.scratch.scalar_words,
+        owned_utf16_units: canonical.retained_utf16_units +
+        canonical.scratch_utf16_units,
+        owned_wire_bytes: 0L,
+      },
+      {
+        // Three root projections share the existing values and keys.
+        record_headers: writer.record_headers + 64L + 3L * nodes.to_int64(),
+        reference_slots: writer.reference_slots + 96L + 9L * nodes.to_int64(),
+        scalar_words: writer.scalar_words + 64L,
+        owned_utf16_units: writer.owned_utf16_units + 2L * limit.to_int64(),
+        owned_wire_bytes: 3L * text.to_int64() + limit.to_int64(),
+      },
+    ])
+    is Some(working) else {
+    return false
+  }
+  fund_native_model_http_configuration(
+    operations,
+    {
+      record_headers: 0L,
+      reference_slots: 0L,
+      scalar_words: 0L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    },
+    working,
+  )
+  is Ok(_)
+}
+
+///|
+fn local_runtime_configured_model_environment_compatible(
+  original : String,
+  installed : String,
+  provider : String,
+) -> Bool {
+  match
+    (
+      local_runtime_capacity_environment_context(
+        original,
+        model=SelectConfiguredModels(provider),
+      ),
+      local_runtime_capacity_environment_context(
+        installed,
+        model=RequireEmptyPackagedModels,
+      ),
     ) {
     (Some(original), Some(installed)) => original == installed
     _ => false
@@ -337,6 +484,7 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
   run_file : String,
   runtime_file : String,
   access : NativeLocalRuntimeBindingAccess,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   native_timing_begin(16)
   defer native_timing_end(16)
@@ -378,19 +526,34 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
   let pair = if original_wire ==
     @host.client_native_local_runtime_original(manifest) {
     // The unchanged cohort is not a migration; preserve its original path.
-    if (
-        original_assets.environment != assets.environment &&
-        !local_runtime_capacity_environment_compatible(
-          original_assets.environment,
-          assets.environment,
-        )
-      ) ||
-      original_assets.registry != assets.registry ||
+    if original_assets.registry != assets.registry ||
       original_assets.values != assets.values ||
       original_assets.fragment != assets.fragment ||
       original_assets.ordered != assets.ordered ||
       original_assets.result_policy != assets.result_policy {
       return Err(CustodyLost)
+    }
+    if original_assets.environment != assets.environment {
+      let authored = original_assets.environment
+      let installed = assets.environment
+      let compatible = match self.session.settings.model_provider {
+        None =>
+          local_runtime_capacity_environment_compatible(authored, installed)
+        Some(provider) => {
+          guard operations is Some(original) &&
+            fund_local_runtime_configured_environment(
+              authored, installed, original,
+            ) else {
+            return Err(CapacityExceeded)
+          }
+          local_runtime_configured_model_environment_compatible(
+            authored, installed, provider,
+          )
+        }
+      }
+      if !compatible {
+        return Err(CustodyLost)
+      }
     }
     None
   } else {
@@ -445,6 +608,7 @@ fn NativeLocalHostConnection::bind_packaged_runtime_with_access(
 fn NativeLocalHostConnection::runtime_policy_pair(
   self : NativeLocalHostConnection,
   scope : String,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[
   @host.ClientNativeLocalScalarRuntimePair?,
   NativeClientRunJournalIssue,
@@ -452,7 +616,23 @@ fn NativeLocalHostConnection::runtime_policy_pair(
   match self.packaged_runtime {
     None => Ok(None)
     Some(binding) =>
-      if binding.scope == scope && local_runtime_binding_current(self, binding) {
+      if binding.scope != scope {
+        Err(CustodyLost)
+      } else if capture is Some(original) {
+        original
+        .with_current_adoption_material_in_original_read((host, material, _) => {
+          if physical_equal(host, self) &&
+            local_runtime_binding_current_with_access(
+              binding,
+              original.runtime_binding_access(host, material),
+            ) {
+            Ok(binding.pair)
+          } else {
+            Err(CustodyLost)
+          }
+        })
+        .map_err(_ => CustodyLost)
+      } else if local_runtime_binding_current(self, binding) {
         Ok(binding.pair)
       } else {
         Err(CustodyLost)

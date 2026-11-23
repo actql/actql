@@ -121,3 +121,18 @@ test('the Darwin route refuses a foreign actual host before invoking any origina
     execute(...values) {calls.push(values); throw Error('Owner must not be invoked');}}));
   assert.deepEqual(calls, []);
 });
+
+test('Darwin producer passes a selected Model HTTP receipt only to the existing recipe command', () => {
+  const modelHttpPreparation = '/inputs/model-http/preparation.json';
+  const selection = ['--model-http-preparation', modelHttpPreparation];
+  const selected = parseNativeDarwinLocalArguments([...args, ...selection]);
+  assert.equal(selected.modelHttpPreparation, modelHttpPreparation);
+  const baseline = planNativeDarwinLocalProduction(options, context);
+  const model = planNativeDarwinLocalProduction(selected, context);
+  assert.deepEqual(model.commands.filter(step => step.phase !== 'recipe'),
+    baseline.commands.filter(step => step.phase !== 'recipe'));
+  assert.deepEqual(model.commands.find(step => step.phase === 'recipe').args.slice(-2), selection);
+  for (const invalid of ['relative/preparation.json', '/output/new/preparation.json', options.sqliteArchive]) {
+    assert.throws(() => planNativeDarwinLocalProduction({...selected, modelHttpPreparation: invalid}, context));
+  }
+});

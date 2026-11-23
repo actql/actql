@@ -25,6 +25,9 @@ fn local_execute_original_publish_values(
     selection.current(selection.host, settings, selection.environment) else {
     stop("LocalBusinessOriginalUnavailable")
   }
+  if business.model_run is Some(_) {
+    selection.prepare_configured_model_works(business, request, run, store)
+  }
   let installed = run.source_free.unwrap_or_else(() => {
     stop("LocalValuesInstallationRequired")
   })
@@ -48,23 +51,18 @@ fn local_execute_original_publish_values(
     }
   }
   business.publication_publisher = Some(publisher)
-  let results : Array[@local_publication.NativeCapturedResultPublicationContext] = @run_host.client_compiled_run_result_names(
-    compiled,
-  ).map(_ => {
-    retention: run.retention,
-    computation_contract_cid: @publication.publication_contract_identity(
-      @run_host.client_compiled_run_plan(compiled),
-    ),
-    input_relation_cids: [],
-    scope_cid: @publication.publication_contract_identity(definition),
-    effective_data_policy_cid: installed.result_policy_cid,
-    store_authority_cid: run.store_authority_cid,
-    material_generation_cid: publisher
-    .sample_original_generation_cid()
-    .unwrap_or_else(() => stop("LocalGenerationUnavailable")),
-    max_payload_bytes: run.result_payload_bytes,
-  })
-  business.publication_results = Some(results)
+  if business.model_run is None {
+    business.publication_results = Some(
+      local_original_values_result_contexts(
+        compiled,
+        definition,
+        publisher,
+        run,
+        installed.result_policy_cid,
+        [],
+      ),
+    )
+  }
   let authoring = selection.publication_authoring(prepared)
   let now = local_utc_now()
   let intent : @local_publication.NativeRunPublicationIntent = {
@@ -89,7 +87,49 @@ fn local_execute_original_publish_values(
   operation
   .enter_business_from_original_read()
   .unwrap_or_else(() => stop("LocalBusinessScopeUnavailable"))
-  let work = selection.open_values_work(run, compiled, definition, request)
+  let work = selection.open_values_work(
+    run, compiled, definition, request, reference,
+  )
+  let model_leader = if business.model_run is Some(model) {
+    guard business.model_work.get(0) is Some(leader) else {
+      stop("LocalOriginalModelUnavailable")
+    }
+    selection.original.require_model_step(
+      leader.prepare_source_free_model_observation(
+        business.model_work,
+        model.graphs,
+      ),
+    )
+    while !selection.original.require_model_step(leader.advance_observation()) {
+
+    }
+    let inputs = match work.bind_model_publication(leader) {
+      Ok(value) => value
+      Err(issue) => {
+        business.publication_failure = Some(issue)
+        stop("LocalValuesPublicationEvidenceUnavailable")
+      }
+    }
+    business.publication_results = Some(
+      selection.with_model_driver_read(business, () => {
+        local_original_values_result_contexts(
+          compiled,
+          definition,
+          publisher,
+          run,
+          installed.result_policy_cid,
+          inputs,
+        )
+      }),
+    )
+    Some(leader)
+  } else {
+    None
+  }
+  let results = business.publication_results.unwrap_or_else(() => {
+    stop("LocalResultPublicationNotReady")
+  })
+
   let (row_limits, limits) = work
     .publication_limits(payload_limit)
     .unwrap_or_else(() => stop("LocalValuesPublicationLimit"))
@@ -121,8 +161,19 @@ fn local_execute_original_publish_values(
   business._retained_publication_service = Some(service)
   let pending = match
     work.prepare_local_publication(
-      service, results, authoring, intent, occurrence, row_limits, bridge_entries,
-      65536, limits, 65536, 8192, 64,
+      service,
+      results,
+      authoring,
+      intent,
+      occurrence,
+      row_limits,
+      bridge_entries,
+      65536,
+      limits,
+      65536,
+      8192,
+      64,
+      model_leader~,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -136,6 +187,31 @@ fn local_execute_original_publish_values(
     selection, settings, request, reference, business, operation, publisher, pending,
     evidence_entries,
   )
+}
+
+///|
+fn local_original_values_result_contexts(
+  compiled : @run_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  publisher : @local_host.NativeLocalPublisherBinding,
+  run : LocalRunInstallation,
+  policy_cid : String,
+  inputs : Array[String],
+) -> Array[@local_publication.NativeCapturedResultPublicationContext] raise ClientStop {
+  @run_host.client_compiled_run_result_names(compiled).map(_ => {
+    retention: run.retention,
+    computation_contract_cid: @publication.publication_contract_identity(
+      @run_host.client_compiled_run_plan(compiled),
+    ),
+    input_relation_cids: inputs,
+    scope_cid: @publication.publication_contract_identity(definition),
+    effective_data_policy_cid: policy_cid,
+    store_authority_cid: run.store_authority_cid,
+    material_generation_cid: publisher
+    .sample_original_generation_cid()
+    .unwrap_or_else(() => stop("LocalGenerationUnavailable")),
+    max_payload_bytes: run.result_payload_bytes,
+  })
 }
 
 ///|

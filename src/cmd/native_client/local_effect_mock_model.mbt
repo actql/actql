@@ -163,23 +163,11 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
   let (read_retained, read_execution) = state.model_read
     .map(held => (held.retained, held.execution))
     .unwrap_or((read_retained, read_execution))
-  let require_model = (
-    result : Result[Unit, @local_host.NativeClientMockModelIssue],
-  ) => {
-    match result {
-      Ok(_) => ()
-      Err(issue) => {
-        self.original.retain_primary(CommandBusinessModel(issue))
-        stop("LocalOriginalModelExecutionUnavailable")
-      }
-    }
-  }
-  require_model(work.observe_step_in_original_read())
+  self.original.require_model_step(work.observe_step_in_original_read())
   self.original.with_business_request(self.capture, () => {
-    require_model(
+    self.original.require_model_step(
       work.open(
         sequence,
-        sources,
         consumer,
         read_retained,
         read_execution,
@@ -187,6 +175,7 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
         // preimages stay on lookup and are not charged again to Model startup.
         limits.mapping.logical.max_live_value_bytes,
         limits.identity.wire.max_bytes.to_int64(),
+        sources=Some(sources),
         input_body_read=state.model_read.map(held => held.read),
         inputs=provider_inputs,
         prior_input_work=state.model_read
@@ -195,16 +184,46 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
       ),
     )
   })
+  self.drive_original_model(work, store, installation, limits.model.max_work, output => {
+    state.model_output = Some(output)
+  })
+}
+
+///|
+fn[T] LocalCommandPreparationOriginal::require_model_step(
+  self : Self,
+  result : Result[T, @local_host.NativeClientMockModelIssue],
+) -> T raise ClientStop {
+  match result {
+    Ok(value) => value
+    Err(issue) => {
+      self.retain_primary(CommandBusinessModel(issue))
+      stop("LocalOriginalModelExecutionUnavailable")
+    }
+  }
+}
+
+///|
+// Drive the same Work and preserve the ordering of Request execution, durable
+// Entry, the installed provider, and settlement on the original Store.
+fn LocalCommandBusinessPreparation::drive_original_model(
+  self : Self,
+  work : @local_host.NativeClientMockModelWork,
+  store : @local_store.Store,
+  installation : LocalRunInstallation,
+  model_max_work : Int,
+  retain_output : (@execution.CompletedOutput) -> Unit,
+) -> Unit raise ClientStop {
   let mut complete = false
   while !complete {
-    require_model(work.observe_step_in_original_read())
+    self.original.require_model_step(work.observe_step_in_original_read())
     let poll = self.original.with_business_request(self.capture, () => {
       match work.advance() {
         Ok(value) => {
           // Keep the SAME output and original work observation before a
           // return/current presentation can fail. No poll is reissued.
           if value is @infer.Complete(output, ..) {
-            state.model_output = Some(output)
+            retain_output(output)
           }
           value
         }
@@ -217,40 +236,16 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
     if work.needs_entry_persistence() {
       // The actual outer Read/Journal COMMIT precedes the NEXT Model step.
       // A failed/ambiguous original entry is never retried or inferred saved.
-      require_model(work.persist_entry_in_original_read())
+      self.original.require_model_step(work.persist_entry_in_original_read())
     }
     match poll {
-      @infer.Settling(_, ..) => {
-        self.original.with_business_request(self.capture, () => {
-          require_model(
-            work.prepare_settlement_export(
-              @model.model_call_settlement_export_limits(
-                native_mock_effect_record_bytes(installation),
-                limits.model.max_work,
-              ),
-            ),
-          )
-        })
-        let mut exported = false
-        while !exported {
-          exported = self.original.with_business_request(self.capture, () => {
-            match work.advance_settlement_export() {
-              Ok(value) => value
-              Err(issue) => {
-                self.original.retain_primary(CommandBusinessModel(issue))
-                stop("LocalOriginalModelSettlementExportUnavailable")
-              }
-            }
-          })
-        }
-        require_model(work.persist_settlement_evidence_in_original_read(store))
-        require_model(work.commit_settlement_in_original_read())
-        self.original.with_business_request(self.capture, () => {
-          require_model(work.acknowledge_saved_settlement())
-        })
-      }
+      @infer.Settling(_, ..) =>
+        self.settle_original_model_step(
+          work, store, installation, model_max_work,
+        )
       @infer.Complete(_, ..) => complete = true
-      @infer.Continue(..) | @infer.AwaitIo(..) | @infer.Waiting(..) => ()
+      @infer.AwaitIo(..) => self.drive_original_model_io(work, store)
+      @infer.Continue(..) | @infer.Waiting(..) => ()
       @infer.Failed(issue, ..) => {
         self.original.retain_primary(
           CommandBusinessModel(@local_host.Model(issue)),
@@ -260,6 +255,90 @@ fn LocalCommandBusinessPreparation::execute_mock_effect_model(
       @infer.Stopped(..) => stop("LocalOriginalModelExecutionStopped")
     }
   }
+}
+
+///|
+// One durable settlement shared by the standalone Model loop and its
+// configured Local task boundary. The existing Store and Journal ACKs
+// must both precede the next Core step.
+fn LocalCommandBusinessPreparation::settle_original_model_step(
+  self : Self,
+  work : @local_host.NativeClientMockModelWork,
+  store : @local_store.Store,
+  installation : LocalRunInstallation,
+  model_max_work : Int,
+) -> Unit raise ClientStop {
+  self.original.with_business_request(self.capture, () => {
+    self.original.require_model_step(
+      work.prepare_settlement_export(
+        @model.model_call_settlement_export_limits(
+          native_mock_effect_record_bytes(installation),
+          model_max_work,
+        ),
+      ),
+    )
+  })
+  let mut exported = false
+  while !exported {
+    exported = self.original.with_business_request(self.capture, () => {
+      match work.advance_settlement_export() {
+        Ok(value) => value
+        Err(issue) => {
+          self.original.retain_primary(CommandBusinessModel(issue))
+          stop("LocalOriginalModelSettlementExportUnavailable")
+        }
+      }
+    })
+  }
+  self.original.require_model_step(
+    work.persist_settlement_evidence_in_original_read(store),
+  )
+  self.original.require_model_step(work.commit_settlement_in_original_read())
+  self.original.with_business_request(self.capture, () => {
+    self.original.require_model_step(work.acknowledge_saved_settlement())
+  })
+}
+
+///|
+fn LocalCommandBusinessPreparation::drive_original_model_io(
+  self : Self,
+  work : @local_host.NativeClientMockModelWork,
+  store : @local_store.Store,
+  require_call? : Bool = false,
+) -> Unit raise ClientStop {
+  let entered = match work.entered_model_http_call(self.original.runtime) {
+    Ok(value) => value
+    Err(issue) => {
+      self.original.retain_primary(CommandBusinessModel(issue))
+      stop("LocalOriginalModelTransportUnavailable")
+    }
+  }
+  guard entered is Some(call) else {
+    if require_call {
+      stop("LocalOriginalModelTransportUnavailable")
+    }
+    return
+  }
+  match work.drive_http_in_original_read(call) {
+    Ok(false) => return
+    Ok(true) => ()
+    Err(issue) => {
+      self.original.retain_primary(CommandBusinessModel(issue))
+      stop("LocalOriginalModelTransportUnavailable")
+    }
+  }
+  let raw = match work.prepare_http_raw_in_original_read(call, store) {
+    Ok(value) => value
+    Err(issue) => {
+      self.original.retain_primary(CommandBusinessModel(issue))
+      stop("LocalOriginalModelRawUnavailable")
+    }
+  }
+  // The Call already retains this child even after a failed Store scope
+  // return. Neither this step nor later cleanup reacquires it.
+  self.original.require_model_step(
+    work.save_http_raw_in_original_read(call, raw),
+  )
 }
 
 ///|

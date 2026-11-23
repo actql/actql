@@ -59,27 +59,10 @@ pub fn client_model_resolved_configuration_matches(
   api_mode : String,
   endpoint : String,
 ) -> Bool {
-  if @publication.run_evidence_value_name(binding) != "model_provider_binding" ||
-    configuration_wire.length() > 65536 {
-    return false
-  }
-  guard parse_plan_identity_value(
-      @publication.run_evidence_value_json(binding),
-      16384,
-      256,
-      8,
+  guard original_client_model_provider_configuration(
+      binding, provider_id, configuration_wire,
     )
-    is Some(original) &&
-    @canonical.object_field(original, "provider_id")
-    is Some(@canonical.String(original_provider)) &&
-    original_provider == provider_id &&
-    @canonical.object_field(original, "configuration_cid")
-    is Some(@canonical.String(configuration_cid)) &&
-    parse_plan_identity_value(configuration_wire, 65536, 4096, 32)
     is Some(configuration) else {
-    return false
-  }
-  if configuration_cid != "sha256:" + @sha.hex(@utf8.encode(configuration_wire)) {
     return false
   }
   for
@@ -98,6 +81,62 @@ pub fn client_model_resolved_configuration_matches(
     }
   }
   true
+}
+
+///|
+// This borrows checked nonsecret configuration during funded installation.
+// The digest is evaluated before any field can select an installed resource.
+fn original_client_model_provider_configuration(
+  binding : @publication.RunEvidenceValue,
+  provider_id : String,
+  configuration_wire : String,
+) -> @canonical.CanonicalValue? {
+  if @publication.run_evidence_value_name(binding) != "model_provider_binding" ||
+    configuration_wire.length() > 65536 {
+    return None
+  }
+  guard parse_plan_identity_value(
+      @publication.run_evidence_value_json(binding),
+      16384,
+      256,
+      8,
+    )
+    is Some(original) &&
+    @canonical.object_field(original, "provider_id")
+    is Some(@canonical.String(original_provider)) &&
+    original_provider == provider_id &&
+    @canonical.object_field(original, "configuration_cid")
+    is Some(@canonical.String(configuration_cid)) else {
+    return None
+  }
+  let configuration = parse_plan_identity_value(
+    configuration_wire, 65536, 4096, 32,
+  )
+  if configuration is None ||
+    configuration_cid != "sha256:" + @sha.hex(@utf8.encode(configuration_wire)) {
+    return None
+  }
+  configuration
+}
+
+///|
+/// Read a credential reference only from the exact provider configuration
+/// retained by its original binding. The installed Host selects its secret.
+pub fn client_model_original_credential_reference(
+  binding : @publication.RunEvidenceValue,
+  provider_id : String,
+  configuration_wire : String,
+) -> String? {
+  guard original_client_model_provider_configuration(
+      binding, provider_id, configuration_wire,
+    )
+    is Some(configuration) &&
+    @canonical.object_field(configuration, "credential_ref")
+    is Some(@canonical.String(reference)) &&
+    !reference.is_empty() else {
+    return None
+  }
+  Some(reference)
 }
 
 ///|

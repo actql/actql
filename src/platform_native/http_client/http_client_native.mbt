@@ -158,6 +158,17 @@ extern "C" fn create_authenticated_client_ffi(
 ) -> Client = "actql_native_http_create_authenticated_client"
 
 ///|
+#borrow(library, ca_path)
+extern "C" fn create_projected_bearer_client_ffi(
+  library : Library,
+  ca_path : Bytes,
+  ca_path_length : Int,
+  max_response_bytes : Int64,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
+) -> Client = "actql_native_http_create_projected_bearer_client"
+
+///|
 #borrow(client)
 extern "C" fn client_ready_ffi(client : Client) -> Bool = "actql_native_http_client_ready"
 
@@ -207,8 +218,60 @@ extern "C" fn client_request_bearer_file_ffi(
 ) -> Int = "actql_native_http_client_request_bearer_file"
 
 ///|
+#borrow(client, verb, url, headers, body, secret_path)
+extern "C" fn client_start_bearer_post_ffi(
+  client : Client,
+  verb : Bytes,
+  verb_length : Int,
+  url : Bytes,
+  url_length : Int,
+  headers : Bytes,
+  headers_length : Int,
+  body : Bytes,
+  body_length : Int,
+  secret_path : Bytes,
+  secret_path_length : Int,
+  expires_at_milliseconds : Int64,
+) -> Int = "actql_native_http_client_start_bearer_post"
+
+///|
+#borrow(client, url, body, credential)
+extern "C" fn client_start_projected_bearer_post_ffi(
+  client : Client,
+  url : Bytes,
+  url_length : Int,
+  body : Bytes,
+  body_length : Int,
+  credential : @filesystem.PrivateFileProjection,
+  expires_at_milliseconds : Int64,
+) -> Int = "actql_native_http_client_start_projected_bearer_post"
+
+///|
+#borrow(client)
+extern "C" fn client_poll_bearer_post_ffi(
+  client : Client,
+  wait_milliseconds : Int,
+) -> Int = "actql_native_http_client_poll_bearer_post"
+
+///|
+#borrow(client, sizes)
+extern "C" fn client_poll_measured_bearer_post_ffi(
+  client : Client,
+  wait_milliseconds : Int,
+  sizes : FixedArray[Int64],
+) -> Int = "actql_native_http_client_poll_measured_bearer_post"
+
+///|
 #borrow(client)
 extern "C" fn client_status_ffi(client : Client) -> Int = "actql_native_http_client_status"
+
+///|
+/// Compare physical originals before retaining this client in the Runtime.
+#borrow(client, library)
+pub extern "C" fn Client::uses_library(
+  client : Client,
+  library : Library,
+) -> Bool = "actql_native_http_client_uses_library"
 
 ///|
 #borrow(client)
@@ -299,6 +362,35 @@ pub fn load_library_with_custody(
     encoded.length(),
     diagnostic_ceiling.unwrap_or(0),
   )
+  http_library_load_result(library)
+}
+
+///|
+/// Open only the exact member bound to the existing Native command. The
+/// caller holds the Runtime's current Read and retains the returned original.
+pub fn load_command_model_library_with_custody(
+  component : @filesystem.NativeObservedComponentMember,
+  diagnostic_ceiling : Int,
+) -> Result[Library, NativeHttpLibraryLoadError] {
+  if diagnostic_ceiling <= 0 {
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
+  }
+  http_library_load_result(
+    load_command_model_library_with_custody_ffi(component, diagnostic_ceiling),
+  )
+}
+
+///|
+#borrow(component)
+extern "C" fn load_command_model_library_with_custody_ffi(
+  component : @filesystem.NativeObservedComponentMember,
+  diagnostic_ceiling : Int,
+) -> Library = "actql_native_http_load_command_model_library_with_custody"
+
+///|
+fn http_library_load_result(
+  library : Library,
+) -> Result[Library, NativeHttpLibraryLoadError] {
   if library_ready_ffi(library) {
     Ok(library)
   } else {
@@ -337,6 +429,17 @@ fn http_client_create_result_with_custody(
 pub fn Library::version(self : Library) -> String {
   decode_message(library_version_ffi(self))
 }
+
+///|
+/// Feature check on the same current libcurl image, before any Model Entry
+/// or credential acquisition. Physical start repeats the image check.
+pub fn Library::incremental_bearer_post_supported(self : Library) -> Bool {
+  library_has_incremental_post_ffi(self)
+}
+
+///|
+#borrow(library)
+extern "C" fn library_has_incremental_post_ffi(library : Library) -> Bool = "actql_native_http_library_has_incremental_post"
 
 ///|
 pub fn Library::create_client(
@@ -487,6 +590,42 @@ pub fn Library::create_authenticated_client_with_custody(
 }
 
 ///|
+/// Prepare the one-shot POST client on this original Library. Only the
+/// server trust path is needed at construction; start requires a retained
+/// private-file projection.
+pub fn Library::create_projected_bearer_client_with_custody(
+  self : Library,
+  ca_path : String,
+  max_response_bytes : Int64,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpClientCreateError] {
+  if !valid_path(ca_path) ||
+    max_response_bytes < 0L ||
+    max_response_bytes > 2147483647L ||
+    connect_timeout_ms <= 0 ||
+    operation_timeout_ms < connect_timeout_ms {
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
+  }
+  if !library_ready_ffi(self) {
+    return Err(RefusedBeforeAcquisition(Closed))
+  }
+  if !self.incremental_bearer_post_supported() {
+    return Err(RefusedBeforeAcquisition(UnsupportedTarget))
+  }
+  let ca = @utf8.encode(ca_path)
+  let client = create_projected_bearer_client_ffi(
+    self,
+    ca,
+    ca.length(),
+    max_response_bytes,
+    connect_timeout_ms,
+    operation_timeout_ms,
+  )
+  http_client_create_result_with_custody(self, client)
+}
+
+///|
 pub fn Client::post_json(
   self : Client,
   url : String,
@@ -509,6 +648,7 @@ pub fn Client::post_json(
     2 => Err(Cancelled)
     3 => Err(Closed)
     5 => Err(CredentialUnavailable)
+    6 => Err(InvalidRequest)
     _ => Err(Transport(decode_diagnostic(client_error_ffi(self))))
   }
 }
@@ -671,13 +811,137 @@ pub fn Client::request_bearer_file(
       expires_at_milliseconds,
     ) {
     0 => Ok({ status: client_status_ffi(self), body: client_body_ffi(self), })
-    1 => Err(CapacityExceeded)
-    2 => Err(Cancelled)
-    3 => Err(Closed)
-    4 => Err(DeadlineExpired)
-    5 => Err(CredentialUnavailable)
-    6 => Err(InvalidRequest)
-    _ => Err(Transport(decode_diagnostic(client_error_ffi(self))))
+    status => Err(bearer_request_issue(self, status))
+  }
+}
+
+///|
+fn bearer_request_issue(client : Client, status : Int) -> NativeHttpIssue {
+  match status {
+    1 => CapacityExceeded
+    2 => Cancelled
+    3 => Closed
+    4 => DeadlineExpired
+    5 => CredentialUnavailable
+    6 => InvalidRequest
+    7 => UnsupportedTarget
+    _ => Transport(decode_diagnostic(client_error_ffi(client)))
+  }
+}
+
+///|
+/// A dedicated Client admits at most one incremental POST. The original
+/// caller must retain it through every poll and the checked close. This
+/// physical port does not establish Model Entry, Account or egress authority.
+pub fn Client::start_bearer_post(
+  self : Client,
+  url : String,
+  headers : Array[NativeHttpHeader],
+  body : Bytes,
+  secret_path : String,
+  expires_at_milliseconds : Int64,
+) -> Result[Unit, NativeHttpIssue] {
+  if !url.has_prefix("https://") ||
+    url.length() > 8192 ||
+    url.contains("\u{0}") ||
+    !valid_path(secret_path) ||
+    expires_at_milliseconds < 1L {
+    return Err(InvalidRequest)
+  }
+  guard encode_headers(headers) is Some(encoded_headers) else {
+    return Err(InvalidRequest)
+  }
+  let encoded_url = @utf8.encode(url)
+  let encoded_secret_path = @utf8.encode(secret_path)
+  match
+    client_start_bearer_post_ffi(
+      self,
+      b"POST",
+      4,
+      encoded_url,
+      encoded_url.length(),
+      encoded_headers,
+      encoded_headers.length(),
+      body,
+      body.length(),
+      encoded_secret_path,
+      encoded_secret_path.length(),
+      expires_at_milliseconds,
+    ) {
+    0 => Ok(())
+    status => Err(bearer_request_issue(self, status))
+  }
+}
+
+///|
+/// Start one JSON POST using the retained private-file projection. The native
+/// transport checks the file generation and reads it only during this start.
+pub fn Client::start_projected_bearer_post(
+  self : Client,
+  url : String,
+  body : Bytes,
+  credential : @filesystem.PrivateFileProjection,
+  expires_at_milliseconds : Int64,
+) -> Result[Unit, NativeHttpIssue] {
+  if !url.has_prefix("https://") ||
+    url.length() > 8192 ||
+    url.contains("\u{0}") ||
+    expires_at_milliseconds < 1L {
+    return Err(InvalidRequest)
+  }
+  let encoded_url = @utf8.encode(url)
+  match
+    client_start_projected_bearer_post_ffi(
+      self,
+      encoded_url,
+      encoded_url.length(),
+      body,
+      body.length(),
+      credential,
+      expires_at_milliseconds,
+    ) {
+    0 => Ok(())
+    status => Err(bearer_request_issue(self, status))
+  }
+}
+
+///|
+/// A zero wait steps the transport without waiting for socket readiness.
+/// Only the outer physical driver may wait here, for at most 50 ms per poll.
+/// A result is projected once, after the same transfer's actual cleanup.
+pub fn Client::poll_bearer_post(
+  self : Client,
+  wait_milliseconds? : Int = 0,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  self.project_bearer_poll(client_poll_bearer_post_ffi(self, wait_milliseconds))
+}
+
+///|
+/// The original caller supplies two funded slots. A completed observation
+/// writes upload then download bytes. A missing observation leaves both -1.
+pub fn Client::poll_measured_bearer_post(
+  self : Client,
+  sizes : FixedArray[Int64],
+  wait_milliseconds? : Int = 0,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  guard sizes.length() == 2 else { return Err(InvalidRequest) }
+  self.project_bearer_poll(
+    client_poll_measured_bearer_post_ffi(self, wait_milliseconds, sizes),
+  )
+}
+
+///|
+fn Client::project_bearer_poll(
+  self : Client,
+  status : Int,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  match status {
+    0 =>
+      Ok(
+        Some({ status: client_status_ffi(self), body: client_body_ffi(self), }),
+      )
+    8 => Ok(None)
+    status => Err(bearer_request_issue(self, status))
   }
 }
 
@@ -713,6 +977,22 @@ pub fn Library::close_checked(self : Library) -> Result[Unit, NativeHttpIssue] {
     0 => Ok(())
     _ => Err(Transport("original HTTP Library retirement unconfirmed"))
   }
+}
+
+///|
+#borrow(client)
+extern "C" fn stop_http_client_bearer_post_ffi(client : Client) -> Int = "actql_native_http_client_stop_bearer_post"
+
+///|
+/// Cancel and close this original Client in its owning Read cleanup frame.
+/// The transport is discarded without a response poll, even if it was ready.
+pub fn Client::close_bearer_post_in_original_scope(
+  self : Client,
+) -> Result[Unit, NativeHttpIssue] {
+  if stop_http_client_bearer_post_ffi(self) != 0 {
+    return Err(Transport("original HTTP transfer retirement unconfirmed"))
+  }
+  self.close_checked()
 }
 
 ///|

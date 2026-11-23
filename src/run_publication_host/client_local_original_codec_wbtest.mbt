@@ -171,3 +171,55 @@ test "selection codec retains one distinct Host original without widening the te
     is Err(ConfigurationLimit),
   )
 }
+
+///|
+test "configured Model settings retain every original under the shared manifest bound" {
+  let first : ClientLocalOriginalConfigurationFile = {
+    content_cid: local_codec_intent,
+    device: 3UL,
+    inode: 4UL,
+    name: "original.json",
+    size: 5L,
+  }
+  let names = Array::makei(20, index => {
+    "selected-" + index.to_string() + ".json"
+  })
+  let originals = names.map(name => { ..first, name, })
+  // The ordinary codec still refuses the observed twenty-entry input.
+  assert_true(
+    client_local_configuration_selection_body(originals, None)
+    is Err(ConfigurationLimit),
+  )
+  let wire = client_local_configuration_selection_body(
+    originals,
+    None,
+    model_files=11,
+  ).unwrap()
+  let text = @utf8.decode(wire)
+  for name in names {
+    assert_true(text.contains("\"name\":\"" + name + "\""))
+  }
+  originals.push({ ..first, name: "last-model-set-member.json", })
+  assert_true(
+    client_local_configuration_selection_body(originals, None, model_files=11)
+    is Ok(_),
+  )
+  assert_true(
+    client_local_configuration_selection_body(originals, None, model_files=10)
+    is Err(ConfigurationLimit),
+  )
+  originals.push({ ..first, name: "host.json", })
+  assert_true(
+    client_local_configuration_selection_body(originals, None, model_files=11)
+    is Ok(_),
+  )
+  originals.push({ ..first, name: "foreign.json", })
+  assert_true(
+    client_local_configuration_selection_body(originals, None, model_files=11)
+    is Err(ConfigurationLimit),
+  )
+  assert_true(
+    client_local_configuration_selection_body(originals, None, model_files=12)
+    is Err(ConfigurationLimit),
+  )
+}
