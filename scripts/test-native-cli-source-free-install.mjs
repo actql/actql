@@ -100,6 +100,43 @@ export async function observeNativeSourceFreeCommand({args, cwd, cli, environmen
   return record;
 }
 
+export async function observeNativeNamedResults({root, cli}) {
+  const project = join(root, 'named-results');
+  await cli(['init', project], root);
+  const file = 'named-results.aql';
+  const input = join(project, file);
+  const fixture = await readFile(new URL('./fixtures/named-result-publication.json', import.meta.url), 'utf8');
+  const {aql, results} = JSON.parse(fixture);
+  await writeFile(input, aql, {flag: 'wx', mode: 0o600});
+  const run = await cli(['run', file, '--json'], project);
+  const state = JSON.parse(run.stdout);
+  assert.equal(state.version, 'actql-run-state/0.1');
+  assert.equal(state.status, 'succeeded');
+  assert.equal(typeof state.run_id, 'string');
+  assert(state.run_id.length > 0);
+  const names = Object.keys(results).sort();
+  assert.deepEqual(Object.keys(state.result_availability).sort(), names);
+  const pids = new Set([run.sourceFreeWork.pid]);
+  const readResults = async () => {
+    for (const [name, expected] of Object.entries(results)) {
+      const saved = await cli(['result', state.run_id, '--result', name, '--format', 'jsonl'], project);
+      assert(!pids.has(saved.sourceFreeWork.pid), 'Use a fresh Native process for each Result read');
+      pids.add(saved.sourceFreeWork.pid);
+      assert.deepEqual(saved.stdout.trimEnd().split('\n').map(line => JSON.parse(line)), expected);
+    }
+  };
+  await readResults();
+  await unlink(input);
+  const saved = JSON.parse((await cli(['status', state.run_id, '--json'], project)).stdout);
+  assert.equal(saved.run_id, state.run_id);
+  assert.equal(saved.status, 'succeeded');
+  assert.deepEqual(Object.keys(saved.result_availability).sort(), names);
+  await readResults();
+  return {runId: state.run_id, results, submissionCalls: 1, nativeRunAndResultProcesses: pids.size,
+    fixtureSha256: createHash('sha256').update(fixture).digest('hex'),
+    coldSavedWithoutProgram: true};
+}
+
 // Independent scalar, aggregate and window expectations under the ordinary
 // init profile.
 export const nativeDefaultNumericQueries = Object.freeze([
@@ -1089,6 +1126,7 @@ async function observeInstalledSourceFree(input, observationPath) {
     const plainInitialization = await observeTimingEnabledPlainInitialization({root, cli, environment: env});
     assert.equal(env.ACTQL_NATIVE_TIMINGS, undefined);
     assert.equal(JSON.parse(await readFile(join(project, 'actql.config.json'))).profile, undefined);
+    const namedResults = await phase('named-results', () => observeNativeNamedResults({root, cli: sourceFreeCli}));
     const defaultNumeric = await phase('default-numeric', () => observeNativeDefaultNumericQueries({project, cli: sourceFreeCli}));
     const defaultUnionMetadata = await phase('union-metadata', () => observeNativeDefaultUnionMetadata({root, cli: sourceFreeCli}));
     const defaultUnionRows = await phase('union-rows', () => observeNativeUnionRows({root, cli: sourceFreeCli}));
@@ -1170,7 +1208,7 @@ async function observeInstalledSourceFree(input, observationPath) {
       cliPackages: manifest.packages.map(({name, version, sha256}) => ({name, version, sha256})),
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
       mockInitialization, catalogOnlyMockRefusal, plainInitialization, defaultNumeric, defaultUnionMetadata, defaultUnionRows, fileSourceNumeric, fileTaskBoundary,
-      journalExhaustion, numericScale, resourceShapes,
+      namedResults, journalExhaustion, numericScale, resourceShapes,
       sourceFreeWork: records.filter(record => record.sourceFreeWork).map(record => record.sourceFreeWork),
       publicRegistryPublication: 'not-tested', records,
       unverified: ['Mock or live Connector bindings', 'Model inference', 'Effect approval', 'other platforms']};
