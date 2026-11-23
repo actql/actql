@@ -69,6 +69,22 @@ pub fn NativeRunStateCandidate::original_metadata(
 }
 
 ///|
+/// Borrow the Effect Set admitted by this actual Store observation. Other
+/// published Run observations do not supply Effect settlement evidence.
+pub fn NativeRunStateCandidate::original_effectful_outcomes(
+  self : NativeRunStateCandidate,
+) -> @publication.EffectSetApplyReceiptEvidence? {
+  guard !self.released && self.pending is Effectful(original) else {
+    return None
+  }
+  Some(
+    @publication.effectful_final_run_evidence_outcomes(
+      original.evidence.final_evidence,
+    ),
+  )
+}
+
+///|
 /// Existing bounded Core observation loan. Callers must release this candidate
 /// on every outcome. Exposing a Core proof does not issue current read authority.
 pub fn NativeRunStateCandidate::projection_materials(

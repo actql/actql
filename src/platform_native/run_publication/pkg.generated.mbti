@@ -262,6 +262,7 @@ type NativeRunPublicationService
 type NativeRunStateCandidate
 pub fn NativeRunStateCandidate::matches_original_publisher(Self, @publication_store.Store, String, String, String, String, String) -> Bool
 pub fn NativeRunStateCandidate::original_client_request(Self) -> @run_publication_host.ClientRequestIdentity?
+pub fn NativeRunStateCandidate::original_effectful_outcomes(Self) -> @actql/actql/run_publication.EffectSetApplyReceiptEvidence?
 pub fn NativeRunStateCandidate::original_metadata(Self) -> (@actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.PublicationContract)
 pub fn NativeRunStateCandidate::projection_materials(Self) -> Result[(@actql/actql/run_publication.PublicationCommitPreparation, @actql/actql/run_publication.PublicationCommitReadView, String, Int, Int, Int), NativeRunStateCandidateIssue]
 pub fn NativeRunStateCandidate::release(Self) -> Result[Unit, NativeRunStateCandidateIssue]
