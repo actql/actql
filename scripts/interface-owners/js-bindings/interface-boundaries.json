@@ -55447,7 +55447,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "path": "adapters/host-node/client-publication-plan-original.test.mts",
                 "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
               },
               {
@@ -115383,7 +115383,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "path": "adapters/host-node/client-publication-plan-original.test.mts",
                 "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
               },
               {
@@ -118409,7 +118409,7 @@
                 "anchor": "single Source publication selects checked Result policy"
               },
               {
-                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "path": "adapters/host-node/client-publication-plan-original.test.mts",
                 "anchor": "Source dispatch preserves checked same-Run output limits and rejects invalid originals"
               }
             ]
@@ -120339,7 +120339,7 @@
                 "anchor": "one admitted Effect retains its original input retention after the Model clock advances"
               },
               {
-                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "path": "adapters/host-node/client-publication-plan-original.test.mts",
                 "anchor": "publication reads the same original before admission and after its move to the live Run"
               }
             ]
@@ -121835,7 +121835,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "path": "adapters/host-node/client-publication-plan-original.test.mts",
                 "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
               },
               {

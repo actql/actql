@@ -2476,6 +2476,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/local-source-free-plan.d.mts
 /adapters/host-node/local-acquired-task-publication.mjs
 /adapters/host-node/local-acquired-task-publication.d.mts
+/adapters/host-node/client-publication-plan-original.test.mjs
+/adapters/host-node/client-publication-plan-original.test.d.mts
 /adapters/host-node/local-query-invocation.mjs
 /adapters/host-node/local-query-invocation.d.mts
 /adapters/host-node/query-evaluation-clock.mjs
