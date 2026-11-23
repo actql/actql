@@ -13,7 +13,44 @@ import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {installNodeContentRun} from './installed-content-run.mjs';
 import {localOutputLimits} from './local-values-plan.mjs';
 
-const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+type Setup = Parameters<typeof installNodeContentRun>[0];
+type Run = ReturnType<typeof installNodeContentRun>;
+type Invocation = Parameters<Run>[0];
+type Preparation = Parameters<Run['prepareRun']>[0];
+type Store = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type Writer = ReturnType<Store['createPreparedObjectWriter']>;
+type Prepared = Awaited<ReturnType<Writer['seal']>>['prepared'];
+type Execution = Parameters<Invocation['retainExecution']>[0];
+type Control = Setup['core']['contentGenerationControl'];
+type ManagedOriginal = NonNullable<ReturnType<NonNullable<Setup['prepareSerializationManagedRun']>>>;
+type FixtureSetup = Omit<Partial<Setup>, 'moon' | 'core' | 'prepareSerializationManagedRun' | 'assertRunCurrent'> & {
+  moon: Pick<Setup['moon'], 'clientProgramAcquisitionCount' | 'clientProgramInstalledManagedRunAccounting'> & {
+    clientProgramAcquisitionLedger(): unknown;
+  };
+  core: {
+    contentGenerationControl: FixtureControl;
+    publicationControl: Pick<Setup['core']['publicationControl'], 'checkedClientSerializationGenerationLimits' |
+      'checkClientCompiledRunOwner' | 'compiledSerializationPolicy' | 'checkedClientSerializationByteHoldingCid'>;
+  };
+  assertRunCurrent(): void;
+  prepareSerializationManagedRun?: (...args: Parameters<NonNullable<Setup['prepareSerializationManagedRun']>>) =>
+    Omit<ManagedOriginal, 'runtime' | 'prepared' | 'request'>;
+};
+// The original transport fixture stops at commit; it does not construct a
+// generated Result or Component. Its selected callbacks keep their real inputs.
+type FixtureControl = Pick<Control, 'workspaceCapacity' | 'requestPrefixCapacity' | 'prefixCapacity' |
+  'startRequestPrefix' | 'cleanupRequestPrefix' | 'prefixWork' | 'prepare' | 'encoder' |
+  'bindInput' | 'inputRows' | 'inputCancel' | 'inputIdentityStart' | 'inputIdentityFinish' | 'candidate'> & {
+  prefixAdvance(): Pick<ReturnType<Control['prefixAdvance']>, 'work' | 'stopped' | 'output'>;
+  prefixCancel(): void;
+  inputIdentityAdvance(): Pick<ReturnType<Control['inputIdentityAdvance']>, 'work' | 'ready'>;
+  inputIdentityCancel(): void;
+  inputAdvance(): Readonly<{work: number; ready: boolean; piece: string}>;
+  inputFinish(): Readonly<{contentCid: string}>;
+  inspect(): Readonly<{identity: string}>;
+};
+
+const cid = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 test('installed Content cleanup retains a real prepared object until the same release ACK', async t => {
   const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
@@ -28,7 +65,7 @@ test('installed Content cleanup retains a real prepared object until the same re
     maxObjectBytes: localOutputLimits.maxWireBytes,
     maxObjects: 16, maxContractNodes: 256, maxContractDepth: 32},
   createPublicationContractControlFixture());
-  let releaseAllowed = false, actualPrepared, execution;
+  let releaseAllowed = false, actualPrepared: Prepared | undefined, execution: Execution | undefined;
   let starts = 0, seals = 0, releaseCalls = 0, commitCalls = 0, stops = 0, prefixWork = 0n;
   let ledgerPreparations = 0, managedPreparations = 0;
   const request = {}, managed = {value: {}, serialization: {}, closed: false};
@@ -47,7 +84,7 @@ test('installed Content cleanup retains a real prepared object until the same re
     if (actualPrepared?.status().pending) await actualPrepared.release();
     await store.close();
   });
-  const control = {
+  const control: FixtureControl = {
     workspaceCapacity: () => ({retainedBytes: 1n, executionBytes: 1n}),
     prefixCapacity() {assert.fail('Do not rebuild the selected Request provider');},
     requestPrefixCapacity: value => {assert.equal(value, managed.serialization);return {retainedBytes: 1n, executionBytes: 1n};},
@@ -74,9 +111,9 @@ test('installed Content cleanup retains a real prepared object until the same re
     inspect: () => ({identity: cid('independent candidate')}),
   };
   const physical = {...store,
-    createPreparedObjectWriter(maxBytes) {
+    createPreparedObjectWriter(maxBytes: number) {
       const writer = store.createPreparedObjectWriter(maxBytes);
-      return Object.freeze({...writer, async seal(expected) {
+      return Object.freeze({...writer, async seal(expected: string) {
         seals++;
         const sealed = await writer.seal(expected);
         actualPrepared = sealed.prepared;
@@ -84,14 +121,14 @@ test('installed Content cleanup retains a real prepared object until the same re
           ...actualPrepared,
           release() {
             releaseCalls++;
-            return releaseAllowed ? actualPrepared.release() : Promise.resolve(false);
+            return releaseAllowed ? actualPrepared!.release() : Promise.resolve(false);
           },
         })});
       }});
     },
     async commitPhysicalHolding() { commitCalls++; throw originalFailure; },
   };
-  const publications = {
+  const publications: FixtureSetup['core']['publicationControl'] = {
     checkedClientSerializationGenerationLimits(value, graph) {
       assert.equal(value, compiled); assert.deepEqual(graph, {task: 0, step: 1});
       return {maxRows: localOutputLimits.maxRows, maxBytes: localOutputLimits.maxWireBytes};
@@ -127,10 +164,10 @@ test('installed Content cleanup retains a real prepared object until the same re
       return managed;
     },
     preparedRunRequired: true, assertRunCurrent: () => assert.equal(store.status().closed, false),
-  });
+  } satisfies FixtureSetup as unknown as Setup);
   const plan = Object.freeze({kind: 'serialization', compiled,
-    runDefinition: definition, serializationGraph: {task: 0, step: 1}});
-  await assert.rejects(run({preparedProgram, plan, store: physical, principalId: 'fixture',
+    runDefinition: definition, serializationGraph: {task: 0, step: 1}}) as unknown as Preparation['plan'];
+  await assert.rejects(run({preparedProgram, plan, store: physical as Invocation['store'], principalId: 'fixture',
     retainExecution() {assert.fail('Unprepared Run cannot acquire cleanup custody');}}),
   {message: 'InstalledContentRunPreparationUnavailable'});
   assert.equal(ledgerPreparations, 0);
@@ -142,32 +179,32 @@ test('installed Content cleanup retains a real prepared object until the same re
   assert.throws(() => run.prepareRun({preparedProgram, plan: {...plan}, request}),
     {message: 'ForeignInstalledContentRun'});
   await assert.rejects(run({preparedProgram, plan,
-  store: physical, principalId: 'fixture', retainExecution: value => { execution = value; }}),
+  store: physical as Invocation['store'], principalId: 'fixture', retainExecution: value => { execution = value; }}),
   error => error === originalFailure);
   assert.throws(() => run.prepareRun({preparedProgram, plan, request}), {message: 'ForeignInstalledContentRun'});
-  assert.equal(actualPrepared.status().pending, true);
+  assert.equal(actualPrepared!.status().pending, true);
   assert.deepEqual(await readFile(join(scratch.path, 'store', 'objects', contentCid.slice(7))), Buffer.from(bytes));
-  const firstCleanup = await execution.cleanup();
-  assert.equal(actualPrepared.status().pending, true);
+  const firstCleanup = await execution!.cleanup();
+  assert.equal(actualPrepared!.status().pending, true);
   await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
   assert.equal(store.status().closed, false);
-  t.diagnostic(JSON.stringify({firstCleanup, preparedPending: actualPrepared.status().pending,
+  t.diagnostic(JSON.stringify({firstCleanup, preparedPending: actualPrepared!.status().pending,
     storeClosed: store.status().closed, releaseCalls, stops}));
   assert.equal(firstCleanup, false, 'requesting release is not the same as its ACK');
-  assert.equal(execution.cleanupPending(), true);
+  assert.equal(execution!.cleanupPending(), true);
   assert.equal(stops, 0, 'do not settle prefix custody before physical child ACK');
-  assert.equal(await execution.cleanup(), false);
-  assert.equal(actualPrepared.status().pending, true);
+  assert.equal(await execution!.cleanup(), false);
+  assert.equal(actualPrepared!.status().pending, true);
   assert.equal(releaseCalls, 2, 'retry the same original handle, not generation');
   releaseAllowed = true;
-  const first = execution.cleanup();
-  assert.equal(execution.close(), first, 'existing cleanup remains single-flight');
+  const first = execution!.cleanup();
+  assert.equal(execution!.close(), first, 'existing cleanup remains single-flight');
   assert.equal(await first, true);
-  assert.equal(execution.cleanupPending(), false);
-  assert.equal(actualPrepared.status().pending, false);
+  assert.equal(execution!.cleanupPending(), false);
+  assert.equal(actualPrepared!.status().pending, false);
   assert.equal(releaseCalls, 3);
   assert.equal(stops, 1);
-  assert.equal(await execution.cleanup(), true);
+  assert.equal(await execution!.cleanup(), true);
   assert.equal(releaseCalls, 3, 'confirmed cleanup never releases twice');
   assert.equal(starts, 1);
   assert.equal(ledgerPreparations, 0);

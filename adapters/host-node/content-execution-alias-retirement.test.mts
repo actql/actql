@@ -2,32 +2,61 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import type {Node} from 'acorn';
 import {stopGeneratedContentPrefix} from './generated-content-write.mjs';
+
+type InspectNode = Readonly<{type?: string; id?: Readonly<{name?: string}>; init?: Node}>;
+type PhysicalFixture = Readonly<{
+  prepared: Readonly<{status(): Readonly<{pending: boolean}>; release(): unknown}>;
+}>;
+type CleanupFixtureInputs = Readonly<{
+  managed?: object | null;
+  selectedKeyed?: unknown;
+  retained?: Readonly<{holdings: readonly object[]; bindings: readonly object[]}>;
+  physical?: PhysicalFixture;
+  writer?: Readonly<{cancel(): unknown; status(): Readonly<{reservationHeld: boolean}>}>;
+  byteHolding?: Readonly<{holding_cid: string}>;
+  control?: Readonly<{
+    prefixCancel(value: unknown): unknown;
+    inputCancel(value: unknown): unknown;
+    cleanupRequestPrefix?(): boolean;
+    prefixCleanup?(): boolean;
+    prefixWork?(): bigint;
+    prefixAdvance?(): unknown;
+  }>;
+  store?: Readonly<{confirmCommittedIndex(): unknown; retirePhysicalHolding?(): unknown}>;
+  failureCleanup?: unknown;
+}>;
+// This view describes the two functions returned by the sliced test harness.
+type FixtureEndpoints = Readonly<{
+  cleanup(): Promise<boolean>;
+  snapshot(): Readonly<Record<string, unknown>>;
+}>;
 
 // Extract the actual installed execution cleanup, including its original
 // lexical aliases. The explicit ports below are not Store/Resource admission
 // or physical ACK. No product inspection API or replacement cleanup is added.
 function cleanupFixture({managed = {}, selectedKeyed, retained, physical,
-  writer, byteHolding, control, store, failureCleanup} = {}) {
+  writer, byteHolding, control, store, failureCleanup}: CleanupFixtureInputs = {}) {
   const source = readFileSync(new URL('./installed-content-run.mjs', import.meta.url), 'utf8');
-  let selected;
-  const visit = node => {
+  let selected: Node | undefined;
+  const visit = (node: InspectNode | null) => {
     if (node === null || typeof node !== 'object') return;
     if (node.type === 'VariableDeclarator' && node.id?.name === 'cleanup') {
       assert.equal(selected, undefined); selected = node.init;
     }
     for (const value of Object.values(node)) {
       if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value === 'object') visit(value);
+      else if (value && typeof value === 'object') visit(value as InspectNode);
     }
   };
-  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+  visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}) as InspectNode);
   assert(selected);
-  const prefix = {}, input = {}, publication = {}, calls = [];
+  const prefix = {}, input = {}, publication = {}, calls: unknown[] = [];
   let work = 3n;
   const initial = {prefix, input, writer, physical, byteHolding, retained,
     publication, failureCleanup, managed: managed === null ? undefined : managed, selectedKeyed};
-  const ports = {control, store, key: {}, chargeWork(delta) {work += BigInt(delta); return false;},
+  const ports = {control, store, key: {}, chargeWork(delta: number) {work += BigInt(delta); return false;},
     stopGeneratedContentPrefix};
   const actual = Function('initial', 'ports', `
     let ledger;
@@ -40,11 +69,11 @@ function cleanupFixture({managed = {}, selectedKeyed, retained, physical,
     const cleanup=(${source.slice(selected.start, selected.end)});
     return {cleanup, snapshot:()=>({prefix,input,writer,physical,byteHolding,retained,
       publication,failureCleanup,cleaned,retired,retirementSize:retirement.size})};
-  `)(initial, ports);
+  `)(initial, ports) as FixtureEndpoints;
   return {...actual, prefix, input, calls, work: () => work};
 }
 
-const assertCut = snapshot => {
+const assertCut = (snapshot: ReturnType<FixtureEndpoints['snapshot']>) => {
   for (const key of ['prefix', 'input', 'writer', 'physical', 'byteHolding', 'retained', 'publication']) {
     assert.equal(snapshot[key], undefined, key);
   }
@@ -52,9 +81,9 @@ const assertCut = snapshot => {
 };
 
 test('actual Content cleanup cuts acknowledged physical aliases before pending managed prefix settlement', async () => {
-  let f, released = false, ready = false, releases = 0, cancellations = 0, settlements = 0;
+  let f: ReturnType<typeof cleanupFixture>, released = false, ready = false, releases = 0, cancellations = 0, settlements = 0;
   const original = new Error('same original physical release');
-  let refused;
+  let refused: unknown;
   const physical = {prepared: {status: () => ({pending: !released}), async release() {
     releases++; if (refused) throw refused;
   }}};
@@ -81,8 +110,8 @@ test('actual Content cleanup cuts acknowledged physical aliases before pending m
 });
 
 test('actual Content cleanup keeps holding and retirement aliases until original acknowledgements and is single flight before callbacks', async () => {
-  let f, holdingReady = false, retirementReady = false, aborts = 0, creations = 0, settles = 0;
-  let nested;
+  let f: ReturnType<typeof cleanupFixture>, holdingReady = false, retirementReady = false, aborts = 0, creations = 0, settles = 0;
+  let nested: Promise<boolean> | undefined;
   const holding = {async abort() {aborts++; return false;}, status: () => ({
     committed: holdingReady, abandoned: false, preparedPending: !holdingReady, operationPending: false})};
   const retained = {holdings: [holding], bindings: [{holdingCid: 'same-evidence'}]};
@@ -105,7 +134,7 @@ test('actual Content cleanup keeps holding and retirement aliases until original
 });
 
 test('actual legacy Content cleanup keeps the original prefix and work through pending stop', async () => {
-  let f, ready = false, work = 4n;
+  let f: ReturnType<typeof cleanupFixture>, ready = false, work = 4n;
   f = cleanupFixture({managed: null,
     control: {prefixCancel() {}, inputCancel() {}, prefixCleanup: () => ready,
       prefixWork: () => work, prefixAdvance() {work++; return {stopped: true};}},

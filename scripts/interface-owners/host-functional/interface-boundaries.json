@@ -68107,7 +68107,7 @@
                 "anchor": "test('ordinary Content preserves the original preparation failure without a new Ledger attempt'"
               },
               {
-                "path": "adapters/host-node/installed-content-cleanup-ack.test.mjs",
+                "path": "adapters/host-node/installed-content-cleanup-ack.test.mts",
                 "anchor": "test('installed Content cleanup retains a real prepared object until the same release ACK'"
               },
               {
@@ -69363,7 +69363,7 @@
                 "anchor": "test('ordinary Content preserves the original preparation failure without a new Ledger attempt'"
               },
               {
-                "path": "adapters/host-node/installed-content-cleanup-ack.test.mjs",
+                "path": "adapters/host-node/installed-content-cleanup-ack.test.mts",
                 "anchor": "test('installed Content cleanup retains a real prepared object until the same release ACK'"
               },
               {
