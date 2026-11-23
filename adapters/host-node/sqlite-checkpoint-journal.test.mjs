@@ -237,6 +237,51 @@ function counts(path) {
   }
 }
 
+for (const phase of ['before', 'after']) {
+  test(`Checkpoint Journal retries an original lost reply ${phase} physical close`, async t => {
+    const {open} = await workspace(t);
+    const journal = open();
+    const waiting = persist(journal);
+    const originalClose = DatabaseSync.prototype.close;
+    const primary = new Error('OriginalCloseReplyLost');
+    const events = [];
+    let selected;
+    const fault = t.mock.method(DatabaseSync.prototype, 'close', function () {
+      if (this !== selected && (!this.isOpen || this.location() !== journal.path)) {
+        return Reflect.apply(originalClose, this, []);
+      }
+      selected ??= this;
+      const first = events.length === 0;
+      const opened = this.isOpen;
+      if (first && phase === 'before') {
+        events.push([opened, this.isOpen]);
+        throw primary;
+      }
+      const result = Reflect.apply(originalClose, this, []);
+      events.push([opened, this.isOpen]);
+      if (first) throw primary;
+      return result;
+    });
+    try {
+      assert.throws(() => journal.close(), error => error === primary);
+      assert.throws(() => journal.listPending(), {code: 'CheckpointJournalClosed'});
+      assert.equal(selected.isOpen, phase === 'before');
+
+      journal.close();
+      journal.close();
+      assert.equal(selected.isOpen, false);
+      assert.deepEqual(events, phase === 'before'
+        ? [[true, true], [true, false]] : [[true, false]]);
+    } finally {
+      fault.mock.restore();
+    }
+    const reopened = open();
+    assert.deepEqual(reopened.getRunState('run-1').runState, waiting.runState);
+    assert.equal(reopened.listPending()[0].checkpointCid, waiting.checkpointCid);
+    assert.equal(counts(reopened.path).intents, 0);
+  });
+}
+
 test('test canonical JSON agrees with the core Checkpoint identity', () => {
   const sealed = JSON.parse(runtime.checkpointSealBody(
     JSON.stringify(effectBody())));

@@ -1015,9 +1015,43 @@ pub fn[T] local_managed_dispatch_site_capacity(
 }
 
 ///|
+// Only the installed caller that supplies the original producer's canonical
+// rows may select this quote. An ordinary copied or unmeasured input keeps
+// the full existing task envelope.
+fn[T] local_managed_canonical_transfer_quote(
+  setup : LocalManagedDispatchConfiguration[T],
+) -> Int64? {
+  let mut bytes = 0L
+  for input in setup.relation_inputs {
+    match input {
+      OrdinaryRelationInput(read) =>
+        if !@execution.producer_read_has_cell_access(read) {
+          return None
+        }
+      ManagedRelationInput(read) => {
+        guard @execution.managed_producer_read_wire_transfer_bound(
+            read,
+            setup.imports.wire.max_columns,
+            setup.imports.wire.max_bytes,
+          )
+          is Some(bound) &&
+          @execution.checked_preparation_add_product(bytes, bound, 1L)
+          is Some(total) else {
+          return None
+        }
+        bytes = total
+      }
+      SuppliedRelationInput(_) => ()
+    }
+  }
+  Some(Int64::min(bytes, setup.capacity.transfer_bytes))
+}
+
+///|
 pub fn[T] start_local_managed_dispatch(
   setup : LocalManagedDispatchConfiguration[T],
   retained_relation? : Bool = false,
+  canonical_managed_rows? : Bool = false,
 ) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue] {
   let live = Ref(true)
   let settled = Ref(false)
@@ -1373,8 +1407,18 @@ pub fn[T] start_local_managed_dispatch(
     Ok(value) => value
     Err(issue) => return Err(Configuration(issue))
   }
+  let transfer_limit = if canonical_managed_rows {
+    local_managed_canonical_transfer_quote(setup)
+  } else {
+    None
+  }
   let execution = match
-    @strategy.start_captured_managed_execution(setup.run, setup.task, bound) {
+    @strategy.start_captured_managed_execution(
+      setup.run,
+      setup.task,
+      bound,
+      transfer_limit?,
+    ) {
     Ok((_, value)) => value
     Err(issue) => return Err(Execution(issue))
   }
@@ -4164,6 +4208,11 @@ pub fn[T] start_local_managed_dispatch(
 pub fn start_local_managed_dispatch_node(
   setup : LocalManagedDispatchConfiguration[Int],
   retained_relation? : Bool = false,
+  canonical_managed_rows? : Bool = false,
 ) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue] {
-  start_local_managed_dispatch(setup, retained_relation~)
+  start_local_managed_dispatch(
+    setup,
+    retained_relation~,
+    canonical_managed_rows~,
+  )
 }

@@ -59669,7 +59669,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "54b49b6443167cd7e2139ba35f08688367c37da34463ac999a493f9fdb4f6906",
+      "sha256": "e968eb8b2228ac41045688efe5e4e755cd451d14a11a0656ef1719c038af5a48",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -59685,6 +59685,10 @@
         {
           "name": "[T]install_local_managed_input_read",
           "declaration": "[ T ] install_local_managed_input_read ( reads : Array [ T ? ] , pending : Ref [ Int ] , index : Int , value : T , ) - > Bool"
+        },
+        {
+          "name": "[T]local_managed_canonical_transfer_quote",
+          "declaration": "[ T ] local_managed_canonical_transfer_quote ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > Int64 ?"
         },
         {
           "name": "[T]local_managed_captured_relation_input",
@@ -60407,7 +60411,8 @@
             "local_managed_import_working_overlap",
             "local_managed_scalar_overlap_control_capacity",
             "local_managed_logical_work_diagnostic_capacity",
-            "local_managed_task_capacity"
+            "local_managed_task_capacity",
+            "[T]local_managed_canonical_transfer_quote"
           ],
           "exports": [],
           "attributes": {
@@ -60525,6 +60530,10 @@
               {
                 "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
                 "anchor": "managed task projection adds only its complete diagnostic frame"
+              },
+              {
+                "path": "src/client_local_run/ordinary_product_compute_wbtest.mbt",
+                "anchor": "test \"ordinary Python numeric PIVOT completes on the finite original root\""
               }
             ]
           }
