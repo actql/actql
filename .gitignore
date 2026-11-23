@@ -3156,3 +3156,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/salesforce/test/installed-execution-closure.test.d.mts
 /adapters/connectors/salesforce/site/salesforce-effect-capability.mjs
 /adapters/connectors/salesforce/site/salesforce-effect-capability.d.mts
+/adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs
+/adapters/connectors/salesforce/site/salesforce-catalog-sync.d.mts
+/adapters/connectors/salesforce/site/salesforce-query-read.mjs
+/adapters/connectors/salesforce/site/salesforce-query-read.d.mts

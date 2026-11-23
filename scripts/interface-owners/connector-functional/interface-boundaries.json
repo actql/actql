@@ -3628,8 +3628,8 @@
                 "anchor": "const currentRead = async"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
-                "anchor": "let describe = method(site, 'describeForAcquisition');"
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
+                "anchor": "let describe: ReturnType<typeof method> | undefined = method(site, 'describeForAcquisition');"
               },
               {
                 "path": "adapters/host-node/managed-source-reader.md",
@@ -4339,7 +4339,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
-      "sha256": "33b1a587771b64b209bc4bdd70503b69644056eeef1c1ec253b211fb37aaab37",
+      "sha256": "1ff51df75bfe59546c3097b316afb562fc9deefc926272f332d4b86e7003476b",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing scoped Salesforce locator/page exchange; portable read projection, Catalog refresh and current authority remain separate",
@@ -4630,7 +4630,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -4644,7 +4644,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "invocationBindingsMatch"
               },
               {
@@ -4658,7 +4658,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "chargePage"
               },
               {
@@ -4672,7 +4672,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "refreshCatalog"
               },
               {
@@ -4686,7 +4686,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "InvalidSalesforceQueryAuthorization"
               },
               {
@@ -4700,7 +4700,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "signal"
               },
               {
@@ -4714,7 +4714,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "maxTotalRows"
               },
               {

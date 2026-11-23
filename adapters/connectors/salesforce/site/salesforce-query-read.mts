@@ -7,13 +7,90 @@ import {invocationBindingsMatch, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationContext} from
   '../../../host-common/owned-invocation-context.mjs';
 
+import type {SalesforceCatalogRequest, SalesforceCatalogRuntime, SalesforceCatalogScope, SalesforceReadAuthorization,
+  SalesforceReadCall, SalesforceReadResponse} from './salesforce-catalog-sync.mjs';
+
+type QueryLimits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxRows: number;
+  maxLocatorUnits: number; maxPages: number; maxTotalRows: number}>;
+type QueryInput = [plan: unknown, apiVersion: string, bytes: number, nodes: number, depth: number, rows: number,
+  locatorUnits: number, pages: number, totalRows: bigint];
+type QueryRuntime = Readonly<{
+  salesforceReadProjectionScopeMatches(plan: unknown, namespace: string, principal: string, environment: string,
+    site: string, generation: number, registration: string, revision: string, origin: string,
+    invocation: string, dispatch: string): boolean;
+  salesforceRecheckReadProjection(plan: unknown, current: unknown): unknown;
+  salesforceQueryPageResponseSha256(page: unknown): string;
+  salesforceQueryPageRowCount(page: unknown): number;
+  salesforceBeginQueryRead(...input: QueryInput): unknown;
+  salesforceQueryReadNextPath(read: unknown): unknown;
+  salesforceQueryReadAcceptPage(read: unknown, path: string, body: Uint8Array): unknown;
+  salesforceQueryReadValueViolation(plan: unknown, issue: unknown): string | undefined;
+  salesforceQueryReadAcknowledgePage(read: unknown, page: unknown): unknown;
+  salesforceQueryReadComplete(read: unknown): boolean;
+  salesforceQueryReadRowCount(read: unknown): bigint;
+  salesforceQueryReadInterrupt(read: unknown): boolean;
+}>;
+type ManagedRuntime = Pick<QueryRuntime, 'salesforceReadProjectionScopeMatches' | 'salesforceRecheckReadProjection' |
+  'salesforceQueryPageResponseSha256' | 'salesforceQueryPageRowCount'> & Readonly<{
+  salesforcePrepareManagedQuery(...input: [...query: QueryInput, values: unknown]): unknown;
+  salesforceManagedQueryNextPath(query: unknown): unknown;
+  salesforceManagedQueryAcceptPage(query: unknown, path: string, body: Uint8Array): unknown;
+  salesforceManagedQueryComplete(query: unknown): boolean;
+  salesforceManagedQueryRowCount(query: unknown): bigint;
+  salesforceManagedQueryFinish(query: unknown): unknown;
+  salesforceManagedQueryCancel(query: unknown): boolean;
+}>;
+type CatalogFacts = Readonly<{status: string; observation: unknown; observationCid?: string; observationJson?: string;
+  listUseCid?: string; describeUseCids?: readonly (string | undefined)[]}>;
+type CatalogRefresh = (options: Readonly<{signal?: AbortSignal}>) => CatalogFacts | PromiseLike<CatalogFacts>;
+type CatalogInputs = Omit<SalesforceCatalogRequest, 'moon' | 'credential' | 'callResource' | 'signal'>;
+type PageAuthorization = (path: string, index: number) => unknown;
+type ConsumePage = (page: unknown, info: Readonly<{path: string; pageIndex: number; charge: unknown}>) => unknown;
+type ChargePage = (body: Uint8Array) => unknown;
+type ProjectionRuntime = Pick<QueryRuntime, 'salesforceReadProjectionScopeMatches' | 'salesforceRecheckReadProjection'>;
+type QueryCallbacks = Readonly<{authorizationForPage: PageAuthorization; consumePage: ConsumePage;
+  chargePage?: ChargePage; callResource: SalesforceReadCall}>;
+type Context = Omit<ReturnType<typeof ownInvocationContext>, 'authorization' | 'scope' | 'limits' | 'callbacks'> &
+  Readonly<{authorization: SalesforceReadAuthorization; scope: SalesforceCatalogScope; limits: QueryLimits;
+    callbacks: QueryCallbacks; refreshCatalog: CatalogRefresh | CatalogInputs}>;
+type ReadOptions = Readonly<{moon: ProjectionRuntime; plan: unknown; initialAuthorization: SalesforceReadAuthorization;
+  credential: object; limits: QueryLimits; refreshCatalog: CatalogRefresh | CatalogInputs;
+  apiVersion: string; signal?: AbortSignal}> & Omit<QueryCallbacks, 'callResource'> &
+  Readonly<{callResource?: SalesforceReadCall}>;
+type QueryOptions = Omit<ReadOptions, 'moon'> & Readonly<{moon: QueryRuntime; onQueryRead?: (read: unknown) => unknown}>;
+type ManagedOptions = Omit<ReadOptions, 'moon' | 'consumePage'> &
+  Readonly<{moon: ManagedRuntime; values: unknown; consumePage?: ConsumePage}>;
+type RecheckOptions = Pick<ReadOptions, 'moon' | 'plan' | 'credential' | 'refreshCatalog' | 'callResource' | 'signal'>;
+type DriveOptions = Pick<ReadOptions, 'initialAuthorization' | 'credential' | 'limits' | 'signal'> & QueryCallbacks &
+  Readonly<{moon: Pick<QueryRuntime, 'salesforceQueryPageResponseSha256' | 'salesforceQueryPageRowCount'>}>;
+type Page = Readonly<{path: string; useCid: string; responseSha256: string; rows: number}>;
+type ReadOwner<Completion> = Readonly<{nextPath(): unknown; acceptPage(path: string, body: Uint8Array): unknown;
+  acknowledgePage?(page: unknown): unknown; complete(): boolean; rowCount(): bigint; finish(): Completion;
+  interrupt(): unknown}>;
+
+type PreparedRead = Readonly<{wholeInput?: boolean; resource: string; runInvocationCid: string; dispatchRequestCid: string;
+  nonce: string; acquisition: unknown; approval: unknown; signal?: AbortSignal}>;
+type QuerySite = Readonly<{credential: object; apiVersion: string}>;
+type Metadata = Readonly<{observationCid: string; evidence: Readonly<{observationJson: string}>}>;
+type QuantityRuntime = Readonly<{clientProgramSerializationCapacityBytes(quote: unknown): unknown;
+  clientProgramRowSourceProviderCapacity(retained: bigint, peak: bigint): unknown}>;
+type CapacityForResponse = (bytes: number) => unknown;
+type CapacityForCurrentResponse = (facts: Readonly<{metadataBytes: number; read: unknown; body?: Uint8Array;
+  path?: string; receivedBytes?: bigint; responseCount?: number}>) => unknown;
+type SequenceOptions = Readonly<{moon: QuantityRuntime; queryMoon: QueryRuntime; site: QuerySite; declaration: unknown;
+  preparedRead: PreparedRead; originalAuthorization: SalesforceReadAuthorization; recover: (...args: unknown[]) => unknown;
+  limits: QueryLimits; responseCapacity?: CapacityForResponse; currentResponseCapacity?: CapacityForCurrentResponse}>;
+type Sequence = Readonly<{responseCapacity?(bytes: number, body?: Uint8Array, path?: string, receivedBytes?: bigint,
+  responseCount?: number): unknown; read(context: unknown, authorization: SalesforceReadAuthorization): Promise<void>;
+  retire(): boolean}>;
+
 const operation = 'salesforce:query:read';
-const count = value => Number.isSafeInteger(value) && value >= 0;
-const fail = code => {
+const count = (value: number) => Number.isSafeInteger(value) && value >= 0;
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 
-function validateAuthorization(authorization, originalScope) {
+function validateAuthorization(authorization: SalesforceReadAuthorization, originalScope?: SalesforceCatalogScope) {
   if (!authorization || typeof authorization.useId !== 'string' ||
       authorization.useId.length === 0 || !authorization.grant ||
       !authorization.scope || authorization.scope.operation !== operation ||
@@ -25,7 +102,7 @@ function validateAuthorization(authorization, originalScope) {
   return authorization.scope;
 }
 
-function validateLimits(limits) {
+function validateLimits(limits: QueryLimits) {
   if (!limits || !count(limits.maxBytes) || limits.maxBytes === 0 ||
       !count(limits.maxNodes) || limits.maxNodes === 0 ||
       !count(limits.maxDepth) || limits.maxDepth === 0 ||
@@ -48,7 +125,7 @@ function validateRead({
   consumePage,
   chargePage,
   callResource = callHttpsCredentialResource,
-}) {
+}: ReadOptions) {
   if (!moon || !plan ||
       typeof authorizationForPage !== 'function' ||
       typeof consumePage !== 'function' ||
@@ -64,7 +141,7 @@ function validateRead({
     authorization: initialAuthorization, credential, limits,
     callbacks: {authorizationForPage, consumePage, chargePage, callResource},
   });
-  const scope = validateAuthorization(context.authorization);
+  const scope = validateAuthorization(context.authorization as SalesforceReadAuthorization);
   if (!moon.salesforceReadProjectionScopeMatches(
     plan, scope.namespaceId, scope.principal, scope.environment,
     scope.siteKey, scope.siteGeneration, scope.connectorRegistration,
@@ -76,18 +153,18 @@ function validateRead({
   return Object.freeze({...context,
     refreshCatalog: typeof refreshCatalog === 'function' ? refreshCatalog
       : Object.freeze({...refreshCatalog}),
-  });
+  }) as Context;
 }
 
 // `refreshCatalog` is either a full-sync request or a function returning a
 // fresh observation (for example a describe-only recheck of the Resource).
-async function recheckCurrentCatalog(options) {
+async function recheckCurrentCatalog(options: RecheckOptions) {
   const {moon, plan, credential, refreshCatalog, callResource, signal} = options;
   const refreshed = typeof refreshCatalog === 'function'
     ? await refreshCatalog({signal})
     : await syncSalesforceCatalog({
       ...refreshCatalog,
-      moon,
+      moon: moon as ProjectionRuntime & SalesforceCatalogRuntime,
       credential,
       callResource,
       signal,
@@ -104,7 +181,7 @@ async function recheckCurrentCatalog(options) {
   });
 }
 
-async function driveQueryPages({
+async function driveQueryPages<Completion extends object>({
   moon,
   initialAuthorization,
   authorizationForPage,
@@ -114,16 +191,16 @@ async function driveQueryPages({
   chargePage,
   callResource,
   signal,
-}, scope, owner) {
-  const pages = [];
+}: DriveOptions, scope: SalesforceCatalogScope, owner: ReadOwner<Completion>) {
+  const pages: Page[] = [];
   try {
     while (true) {
-      const path = checked(owner.nextPath());
+      const path = checked(owner.nextPath()) as string | null | undefined;
       if (path === undefined || path === null) break;
       signal?.throwIfAborted();
       const authorization = ownInvocationAuthorization(pages.length === 0
         ? initialAuthorization
-        : await authorizationForPage(path, pages.length));
+        : await authorizationForPage(path, pages.length)) as SalesforceReadAuthorization;
       validateAuthorization(authorization, scope);
       signal?.throwIfAborted();
       const response = await invokeScopedCredentialOperation({
@@ -131,7 +208,7 @@ async function driveQueryPages({
         method: 'GET', path,
         maxResponseBytes: limits.maxBytes,
         signal,
-      });
+      }) as SalesforceReadResponse;
       const accepted = response.accepted;
       // Account the exact received body before any provider decoding. The
       // neutral owner binds this single-use admission to the selected run.
@@ -168,7 +245,7 @@ async function driveQueryPages({
 /// Read one bounded query and its locator chain at the Site. The MoonBit
 /// owner chooses every request path and decides when observation is complete.
 /// The caller receives bounded pages, never an implied Acquisition receipt.
-export async function readSalesforceQuery(options) {
+export async function readSalesforceQuery(options: QueryOptions) {
   const {moon, plan, apiVersion, limits} = options;
   if (typeof apiVersion !== 'string') fail('InvalidSalesforceQueryRead');
   const context = validateRead(options);
@@ -223,7 +300,7 @@ export async function readSalesforceQuery(options) {
 /// Use the same physical query path while MoonBit appends each page to one
 /// common managed output owner. The receipt is content evidence, not an
 /// Acquisition completion or a grant to consume the result.
-export async function readSalesforceManagedQuery(options) {
+export async function readSalesforceManagedQuery(options: ManagedOptions) {
   const {moon, plan, apiVersion, limits, values} = options;
   if (typeof apiVersion !== 'string' || !values) {
     fail('InvalidSalesforceQueryRead');
@@ -260,26 +337,26 @@ export async function readSalesforceManagedQuery(options) {
   return Object.freeze({...result, currentCatalog});
 }
 
-const own = (value, name) => {
+const own = (value: unknown, name: PropertyKey): unknown => {
   if (value === null || typeof value !== 'object' || types.isProxy(value)) fail('InvalidSalesforceSourceRead');
   const field = Object.getOwnPropertyDescriptor(value, name);
   if (!field || !Object.hasOwn(field, 'value')) fail('InvalidSalesforceSourceRead');
   return field.value;
 };
-const method = (value, name) => {
+const method = (value: unknown, name: PropertyKey): ((...args: unknown[]) => unknown) => {
   const fn = own(value, name);
   if (typeof fn !== 'function' || types.isProxy(fn)) fail('InvalidSalesforceSourceRead');
-  return fn;
+  return fn as (...args: unknown[]) => unknown;
 };
 
 // The existing codec has already selected this immutable invocation. Preserve
 // the Site issuer's original grant/scope for the shared Reader's nominal check;
 // the copied primitive scope in invokeScopedCredentialOperation is DATA only.
 // This projector performs no physical call, Account decision or grant issuance.
-export function readSalesforceSourceChild(context, originalAuthorization, input) {
+export function readSalesforceSourceChild(context: unknown, originalAuthorization: unknown, input: unknown) {
   const grant = own(originalAuthorization, 'grant'), scope = own(originalAuthorization, 'scope');
-  const suppliedScope = own(input, 'scope');
-  const originalFields = Object.getOwnPropertyDescriptors(scope);
+  const suppliedScope = own(input, 'scope') as object;
+  const originalFields = Object.getOwnPropertyDescriptors(scope) as Record<PropertyKey, PropertyDescriptor>;
   if (own(input, 'grant') !== grant || types.isProxy(suppliedScope) ||
       Reflect.ownKeys(originalFields).length !== Reflect.ownKeys(suppliedScope).length ||
       Reflect.ownKeys(originalFields).some(name => !Object.hasOwn(originalFields[name], 'value') ||
@@ -288,104 +365,104 @@ export function readSalesforceSourceChild(context, originalAuthorization, input)
   if (!(operations instanceof Map) || types.isProxy(operations) || operations.size !== 1 ||
       !operations.has(operation)) fail('InvalidSalesforceSourceReadChild');
   const request = operations.get(operation);
-  if (own(request, 'method') !== 'GET' || Object.hasOwn(request, 'body') ||
-      Object.hasOwn(request, 'bodyBytes')) fail('InvalidSalesforceSourceReadChild');
+  if (own(request, 'method') !== 'GET' || Object.hasOwn(request as object, 'body') ||
+      Object.hasOwn(request as object, 'bodyBytes')) fail('InvalidSalesforceSourceReadChild');
   const authorization = Object.freeze({grant, scope, useId: own(input, 'useId')});
   return Reflect.apply(method(context, 'readChild'), context, [{operation, prepare() {
     return Object.freeze({original: input, originalAuthorization, authorization,
-      request, project(response) {return response;}});
-  }}]);
+      request, project(response: unknown) {return response;}});
+  }}]) as SalesforceReadResponse | PromiseLike<SalesforceReadResponse>;
 }
 
 // Same Salesforce plan/recheck/query codecs, now driven inside ONE admitted
 // shared Reader. Preparing this protocol retains original facts only. The two
 // metadata reads and all query pages happen after its original binding opens.
-export function prepareSalesforceSourceReadSequence(options) {
-  let {moon, queryMoon, site, declaration, preparedRead, originalAuthorization, recover, limits, responseCapacity, currentResponseCapacity} = options;
+export function prepareSalesforceSourceReadSequence(options: SequenceOptions | undefined) {
+  let {moon, queryMoon, site, declaration, preparedRead, originalAuthorization, recover, limits, responseCapacity, currentResponseCapacity} = options! as {[Key in keyof SequenceOptions]: SequenceOptions[Key] | undefined};
   options = undefined;
-  let describe = method(site, 'describeForAcquisition');
+  let describe: ReturnType<typeof method> | undefined = method(site, 'describeForAcquisition');
   // The common owner selected this original acquisition before dispatch.
   // Its complete-input variant is not a QueryRequirement or a Query cast.
-  let recheck = method(moon, preparedRead.wholeInput === true
+  let recheck: ReturnType<typeof method> | undefined = method(moon, preparedRead!.wholeInput === true
     ? 'clientProgramRecheckSalesforceInputProjection'
     : 'clientProgramRecheckSalesforceRowProjection');
-  let values = method(moon, 'clientProgramSalesforceQueryPageValues');
-  let credential = own(site, 'credential'), apiVersion = own(site, 'apiVersion');
-  const scope = own(originalAuthorization, 'scope');
+  let values: ReturnType<typeof method> | undefined = method(moon, 'clientProgramSalesforceQueryPageValues');
+  let credential = own(site, 'credential') as object | undefined, apiVersion = own(site, 'apiVersion') as string;
+  const scope = own(originalAuthorization, 'scope') as SalesforceCatalogScope;
   if (typeof recover !== 'function' || scope.operation !== 'salesforce:query:read' ||
       scope.runInvocationCid !== own(preparedRead, 'runInvocationCid') ||
       scope.dispatchRequestCid !== own(preparedRead, 'dispatchRequestCid')) fail('ForeignSalesforceSourceRead');
   if (responseCapacity !== undefined && typeof responseCapacity !== 'function' ||
       currentResponseCapacity !== undefined && typeof currentResponseCapacity !== 'function') fail('InvalidSalesforceSourceRead');
-  let started = false, pending = false, retired = false, largestResponse = 0, capacity;
-  let activeQuery, metadataBytes = 0;
-  const sequence = Object.freeze({...(currentResponseCapacity === undefined ? {} : {
-    responseCapacity(bytes, body, path, receivedBytes, responseCount) {
+  let started = false, pending = false, retired = false, largestResponse = 0, capacity: unknown;
+  let activeQuery: unknown, metadataBytes = 0;
+  const sequence: Sequence = Object.freeze({...(currentResponseCapacity === undefined ? {} : {
+    responseCapacity(bytes: number, body?: Uint8Array, path?: string, receivedBytes?: bigint, responseCount?: number) {
       if (this !== sequence || !pending || retired ||
-          !Number.isSafeInteger(bytes) || bytes < 0 || bytes > limits.maxBytes ||
+          !Number.isSafeInteger(bytes) || bytes < 0 || bytes > limits!.maxBytes ||
           body?.byteLength !== bytes || typeof path !== 'string' ||
           typeof receivedBytes !== 'bigint' || !Number.isSafeInteger(responseCount)) {
         fail('InvalidSalesforceSourceResponseExtent');
       }
       if (activeQuery === undefined) metadataBytes = Math.max(metadataBytes, bytes);
-      const next = Reflect.apply(currentResponseCapacity, undefined, [{metadataBytes,
+      const next = Reflect.apply(currentResponseCapacity!, undefined, [{metadataBytes,
         read: activeQuery, body, path, receivedBytes, responseCount}]);
       // Reservation growth is monotonic while this reader retains its previous
       // outputs. Coordinate maxima reuse the same immutable quantity family;
       // they do not return a page, parser admission or execution authority.
       if (capacity === undefined) capacity = next;
       else {
-        const oldBytes = moon.clientProgramSerializationCapacityBytes(capacity);
-        const nextBytes = moon.clientProgramSerializationCapacityBytes(next);
-        if (runtimeField(nextBytes, 0) >= runtimeField(oldBytes, 0) && runtimeField(nextBytes, 1) >= runtimeField(oldBytes, 1)) capacity = next;
+        const oldBytes = moon!.clientProgramSerializationCapacityBytes(capacity);
+        const nextBytes = moon!.clientProgramSerializationCapacityBytes(next);
+        if ((runtimeField(nextBytes, 0) as bigint) >= (runtimeField(oldBytes, 0) as bigint) && (runtimeField(nextBytes, 1) as bigint) >= (runtimeField(oldBytes, 1) as bigint)) capacity = next;
         else {
-          capacity = moon.clientProgramRowSourceProviderCapacity(
-            runtimeField(nextBytes, 0) > runtimeField(oldBytes, 0) ? runtimeField(nextBytes, 0) : runtimeField(oldBytes, 0),
-            runtimeField(nextBytes, 1) > runtimeField(oldBytes, 1) ? runtimeField(nextBytes, 1) : runtimeField(oldBytes, 1));
+          capacity = moon!.clientProgramRowSourceProviderCapacity(
+            (runtimeField(nextBytes, 0) as bigint) > (runtimeField(oldBytes, 0) as bigint) ? (runtimeField(nextBytes, 0) as bigint) : (runtimeField(oldBytes, 0) as bigint),
+            (runtimeField(nextBytes, 1) as bigint) > (runtimeField(oldBytes, 1) as bigint) ? (runtimeField(nextBytes, 1) as bigint) : (runtimeField(oldBytes, 1) as bigint));
           if (capacity === undefined) fail('SalesforceSourceCapacityUnavailable');
         }
       }
       return capacity;
     },
-  }), ...(responseCapacity === undefined || currentResponseCapacity !== undefined ? {} : {responseCapacity(bytes) {
+  }), ...(responseCapacity === undefined || currentResponseCapacity !== undefined ? {} : {responseCapacity(bytes: number) {
     if (this !== sequence || !pending || retired || !Number.isSafeInteger(bytes) || bytes < 0 ||
-        bytes > limits.maxBytes) fail('InvalidSalesforceSourceResponseExtent');
+        bytes > limits!.maxBytes) fail('InvalidSalesforceSourceResponseExtent');
     if (capacity === undefined || bytes > largestResponse) {
       largestResponse = Math.max(largestResponse, bytes);
-      capacity = Reflect.apply(responseCapacity, undefined, [largestResponse]);
+      capacity = Reflect.apply(responseCapacity!, undefined, [largestResponse]);
     }
     return capacity;
-  }}), async read(context, initialAuthorization) {
+  }}), async read(context: unknown, initialAuthorization: SalesforceReadAuthorization) {
     if (this !== sequence || started || retired) fail('SalesforceSourceReadAlreadyStarted');
     started = true;pending = true;
     try {
-      if (initialAuthorization?.grant !== originalAuthorization.grant ||
-          initialAuthorization.scope !== originalAuthorization.scope) fail('ForeignSalesforceSourceRead');
+      if (initialAuthorization?.grant !== originalAuthorization!.grant ||
+          initialAuthorization.scope !== originalAuthorization!.scope) fail('ForeignSalesforceSourceRead');
       const project = method(context, 'project'), consumeObservation = method(context, 'consumeObservation');
       const consumeValues = method(context, 'consumeValues');
-      const metadata = async suffix => {
-        const observed = await Reflect.apply(describe, site, [{resource: preparedRead.resource,
-          runInvocationCid: preparedRead.runInvocationCid, dispatchRequestCid: preparedRead.dispatchRequestCid,
-          occurrence: `${preparedRead.nonce}-${suffix}`, approval: preparedRead.approval,
-          signal: preparedRead.signal,
-          readChild: (original, input) => readSalesforceSourceChild(context, original, input)}]);
+      const metadata = async (suffix: string) => {
+        const observed = await Reflect.apply(describe!, site, [{resource: preparedRead!.resource,
+          runInvocationCid: preparedRead!.runInvocationCid, dispatchRequestCid: preparedRead!.dispatchRequestCid,
+          occurrence: `${preparedRead!.nonce}-${suffix}`, approval: preparedRead!.approval,
+          signal: preparedRead!.signal,
+          readChild: (original: unknown, input: unknown) => readSalesforceSourceChild(context, original, input)}]) as Metadata;
         const observation = Reflect.apply(project, context, [recover, undefined,
-          [observed.evidence, preparedRead.runInvocationCid]]);
+          [observed.evidence, preparedRead!.runInvocationCid]]);
         await Reflect.apply(consumeObservation, context, []);
         return Object.freeze({status: 'observed', observation,
           observationCid: observed.observationCid, observationJson: observed.evidence.observationJson});
       };
-      let current = await metadata('plan');
-      const plan = Reflect.apply(project, context, [(...args) => checked(Reflect.apply(recheck, moon, args)),
-        undefined, [declaration, preparedRead.acquisition, current.observation, 4096]]);
+      let current: Awaited<ReturnType<typeof metadata>> | undefined = await metadata('plan');
+      const plan = Reflect.apply(project, context, [(...args: unknown[]) => checked(Reflect.apply(recheck!, moon, args)),
+        undefined, [declaration, preparedRead!.acquisition, current.observation, 4096]]);
       // The plan retains its original selected fields/binding. Relinquish the
       // full first Catalog before the independent current Describe begins.
       current = undefined;
-      await readSalesforceQuery({moon: queryMoon, plan, apiVersion, limits,
+      await readSalesforceQuery({moon: queryMoon!, plan, apiVersion, limits: limits!,
         onQueryRead(read) { activeQuery = read; },
-        initialAuthorization, credential, signal: preparedRead.signal,
+        initialAuthorization, credential: credential!, signal: preparedRead!.signal,
         authorizationForPage: (_path, index) => Object.freeze({...initialAuthorization,
-          useId: `${preparedRead.nonce}-query-${index}`}),
+          useId: `${preparedRead!.nonce}-query-${index}`}),
         refreshCatalog: () => metadata('recheck'),
         callResource: input => readSalesforceSourceChild(context, originalAuthorization, input),
         async consumePage(page) {

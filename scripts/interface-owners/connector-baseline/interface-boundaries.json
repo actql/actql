@@ -10434,7 +10434,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cfec7148c1f79b1e3381bd09a4b8af66e2d06700c96eee5728d8c133e51032b8",
+      "sha256": "2ffe0802ae9629cf0e806c83745592cdbc42d9f715525354d047d62e4dfa4179",
       "role": "physical-io",
       "owner": "Scoped listing/describe exchange sequencing; MoonBit owns Catalog identity, completeness, outcomes and retained reprojection",
       "exports": [
@@ -10490,49 +10490,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mts",
                 "anchor": "syncSalesforceCatalog"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mts",
                 "anchor": "invocationBindingsMatch"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mts",
                 "anchor": "describeBodies"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mts",
                 "anchor": "authorizationForDescribe"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mts",
                 "anchor": "SalesforceCatalogListRejected"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mts",
                 "anchor": "salesforceCatalogCancel"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mts",
                 "anchor": "maxRetainedBytes"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-sync.mts",
                 "anchor": "targeted sync is"
               }
             ],

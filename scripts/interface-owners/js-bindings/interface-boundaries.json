@@ -9503,7 +9503,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9513,7 +9513,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9523,7 +9523,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9533,7 +9533,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9543,7 +9543,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9553,7 +9553,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9563,7 +9563,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9573,7 +9573,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9583,7 +9583,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -9593,7 +9593,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -10997,7 +10997,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11007,7 +11007,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11017,7 +11017,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11027,7 +11027,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11037,7 +11037,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11047,7 +11047,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11057,7 +11057,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11067,7 +11067,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11077,7 +11077,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -11087,7 +11087,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "runtimeField(projected, 0)"
               },
               {
@@ -12473,7 +12473,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "33b1a587771b64b209bc4bdd70503b69644056eeef1c1ec253b211fb37aaab37",
+      "sha256": "1ff51df75bfe59546c3097b316afb562fc9deefc926272f332d4b86e7003476b",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -12711,7 +12711,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12721,7 +12721,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12731,7 +12731,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12741,7 +12741,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12751,7 +12751,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12761,7 +12761,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12771,7 +12771,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12781,7 +12781,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12791,7 +12791,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12801,7 +12801,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "count"
               },
               {
@@ -12821,7 +12821,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12831,7 +12831,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12841,7 +12841,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12851,7 +12851,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12861,7 +12861,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12871,7 +12871,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12881,7 +12881,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12891,7 +12891,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12901,7 +12901,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12911,7 +12911,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "driveQueryPages"
               },
               {
@@ -12931,7 +12931,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -12941,7 +12941,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -12951,7 +12951,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -12961,7 +12961,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -12971,7 +12971,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -12981,7 +12981,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -12991,7 +12991,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -13001,7 +13001,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -13011,7 +13011,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -13021,7 +13021,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "fail"
               },
               {
@@ -13053,7 +13053,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13063,7 +13063,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13073,7 +13073,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13083,7 +13083,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13093,7 +13093,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13103,7 +13103,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13113,7 +13113,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13123,7 +13123,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13133,7 +13133,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13143,7 +13143,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceManagedQuery"
               },
               {
@@ -13174,7 +13174,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13184,7 +13184,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13194,7 +13194,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13204,7 +13204,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13214,7 +13214,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13224,7 +13224,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13234,7 +13234,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13244,7 +13244,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13254,7 +13254,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13264,7 +13264,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "readSalesforceQuery"
               },
               {
@@ -13284,7 +13284,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13294,7 +13294,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13304,7 +13304,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13314,7 +13314,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13324,7 +13324,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13334,7 +13334,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13344,7 +13344,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13354,7 +13354,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13364,7 +13364,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13374,7 +13374,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "recheckCurrentCatalog"
               },
               {
@@ -13394,7 +13394,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13404,7 +13404,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13414,7 +13414,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13424,7 +13424,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13434,7 +13434,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13444,7 +13444,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13454,7 +13454,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13464,7 +13464,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13474,7 +13474,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13484,7 +13484,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateAuthorization"
               },
               {
@@ -13504,7 +13504,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13514,7 +13514,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13524,7 +13524,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13534,7 +13534,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13544,7 +13544,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13554,7 +13554,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13564,7 +13564,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13574,7 +13574,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13584,7 +13584,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13594,7 +13594,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateLimits"
               },
               {
@@ -13614,7 +13614,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13624,7 +13624,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13634,7 +13634,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13644,7 +13644,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13654,7 +13654,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13664,7 +13664,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13674,7 +13674,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13684,7 +13684,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13694,7 +13694,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13704,7 +13704,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "validateRead"
               },
               {
@@ -13743,7 +13743,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13761,7 +13761,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13779,7 +13779,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13797,7 +13797,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13815,7 +13815,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13833,7 +13833,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13851,7 +13851,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13869,7 +13869,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13887,7 +13887,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -13905,7 +13905,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-query-read.mts",
                 "anchor": "import {runtimeField, runtimeIsError} from '../../../host-common/compiler-binding.generated.mjs';"
               },
               {
