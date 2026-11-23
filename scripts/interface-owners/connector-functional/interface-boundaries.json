@@ -3822,7 +3822,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
-      "sha256": "c3cc6d7d8139b3a0caa5acb9a1a0a48ac96e3be59fc66e5b3ce0850ded3368c4",
+      "sha256": "dfb77892969030ac0d4702840c0b5ffa7be0f33c302f05050910c3770cdaa9c8",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce request/projection/target-read/capability/response and recovery functions under Common installed Effect",
@@ -4115,7 +4115,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "Every"
               },
               {
@@ -4125,7 +4125,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -4135,7 +4135,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "requestCid"
               },
               {
@@ -4145,7 +4145,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "recoveryEntry"
               },
               {
@@ -4155,7 +4155,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "recheckRequests"
               },
               {
@@ -4165,7 +4165,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "SalesforceWriteValueRefused"
               },
               {
@@ -4175,7 +4175,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "signal"
               },
               {
@@ -4185,7 +4185,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "limits"
               },
               {
@@ -31621,7 +31621,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
-      "sha256": "d2bf1a81c76f1a9afacc5211030da497f7468966fafb74a71af35a1440c74651",
+      "sha256": "8c2a4184ac8aedd17b8c26bae6aff4adb252e6a901546f514bdd5646193d94fb",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -31773,7 +31773,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-effect-plan.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-effect-plan.mts",
                 "anchor": "captureSalesforceEffectPlanRecipeBuilder"
               }
             ],

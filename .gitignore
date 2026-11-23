@@ -3180,3 +3180,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/salesforce/test/scoped-request-recovery.test.d.mts
 /adapters/connectors/salesforce/host/salesforce-publication.mjs
 /adapters/connectors/salesforce/host/salesforce-publication.d.mts
+/adapters/connectors/salesforce/host/salesforce-write-driver.mjs
+/adapters/connectors/salesforce/host/salesforce-write-driver.d.mts
+/adapters/connectors/salesforce/host/salesforce-effect-plan.mjs
+/adapters/connectors/salesforce/host/salesforce-effect-plan.d.mts

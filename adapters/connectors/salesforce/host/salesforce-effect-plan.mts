@@ -13,22 +13,47 @@ import {httpsCredentialAuthorizationPrefix, httpsCredentialDefaultRequestBytes,
 import {salesforceWriteOperations, salesforceTargetReadOperation} from './salesforce-write-driver.mjs';
 import {salesforceDescribeOperation} from '../site/salesforce-named-describe.mjs';
 
-const fail = () => {throw Object.assign(new Error('InstalledSalesforceEffectRecipeUnavailable'),
+import type {InstalledEffectPlanRecipe} from '../../../host-node/installed-effect-recipe.mjs';
+import type {SalesforceCatalogRequest} from '../site/salesforce-catalog-sync.mjs';
+import type {recoverNamedSalesforceObservation} from '../site/salesforce-named-describe.mjs';
+import type {recoverCapturedSalesforceSingleRequests} from './salesforce-effect-request-recovery.mjs';
+
+type Recovery = Parameters<typeof recoverCapturedSalesforceSingleRequests>[0];
+type Evidence = Parameters<typeof recoverNamedSalesforceObservation>[0]['evidence'];
+type InputMetadata = Readonly<{bodies?: readonly (Uint8Array | undefined)[]; evidence?: Evidence}>;
+type Write = Readonly<{resource: string; fields?: readonly string[]; sources?: readonly Readonly<{target: string}>[]}>;
+type Options = Readonly<{
+  installed: Readonly<{mappings: readonly Readonly<{write: Write}>[]}>;
+  site: Readonly<{apiVersion: string}>;
+  credentialConstruction: Readonly<{scope: object; issuer: object; limits: Readonly<{maxSecretBytes: number}>}>;
+  catalogLimits: Readonly<{describe: SalesforceCatalogRequest['describeLimits']; list: SalesforceCatalogRequest['listLimits'];
+    maxObservationBytes: number}>;
+  limits: Readonly<{preview: Recovery['previewLimits']; body: Recovery['bodyLimits']; request: Recovery['requestLimits'];
+    target: Readonly<{maxResponseBytes: number; maxNodes: number; maxDepth: number}>;
+    write: Readonly<{maxRequestBytes: number; maxResponseBytes: number; maxNodes: number; maxDepth: number}>;
+    maxIdentityBytes: number; maxRetainedBytes: number}>;
+}>;
+type Operation = Readonly<{operation: string; extent: unknown}>;
+type ResponseExtent = (bytes: number, originalBody?: unknown) => unknown;
+type CredentialOperation = Readonly<{phase: string; perRow: boolean; operationIndex: number;
+  maxRequestBytes: number; maxResponseBytes: number; responseExtent?: ResponseExtent}>;
+
+const fail: () => never = () => {throw Object.assign(new Error('InstalledSalesforceEffectRecipeUnavailable'),
   {code: 'InstalledSalesforceEffectRecipeUnavailable'});};
-const integer = value => Number.isSafeInteger(value) && value > 0 && value <= 2_147_483_647;
-function originalMethod(receiver, name) {
+const integer = (value: number | undefined) => Number.isSafeInteger(value) && value! > 0 && value! <= 2_147_483_647;
+function originalMethod(receiver: unknown, name: string) {
   if (receiver === null || !['object', 'function'].includes(typeof receiver) || nodeTypes.isProxy(receiver)) fail();
   const field = Object.getOwnPropertyDescriptor(receiver, name);
   if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
       nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) fail();
-  return (...args) => Reflect.apply(field.value, receiver, args);
+  return (...args: unknown[]): unknown => Reflect.apply(field.value, receiver, args);
 }
 
 // Capture original methods/receivers BEFORE Source reserve/current can reenter.
 // The returned builder runs only inside the funded driver projection. Names
 // and field counts come from the SAME restored immutable Mappings; native
 // Options and tuples pass unchanged to their original Core consumer.
-export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon}) {
+export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon}: Readonly<{moon: unknown; salesforceMoon: unknown}>) {
   const profileFor = originalMethod(salesforceMoon, 'salesforceEffectConstructionProfile');
   const captureFor = originalMethod(salesforceMoon, 'salesforceEffectInputCaptureConstructionProfile');
   const recoveryFor = originalMethod(salesforceMoon, 'salesforceEffectRecoveryInputConstructionProfile');
@@ -41,7 +66,7 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
   const extentFor = originalMethod(moon, 'clientProgramInstalledEffectOperationExtentFromCapacityPrepare');
   const captureExtentFor = originalMethod(moon, 'clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare');
   return function prepareSalesforceEffectPlanRecipes({installed,
-    site, credentialConstruction, catalogLimits, limits}) {
+    site, credentialConstruction, catalogLimits, limits}: Options) {
     const secret = credentialConstruction;
     if (!Object.isFrozen(installed) || !Array.isArray(installed.mappings) ||
         installed.mappings.length === 0 || !secret || !Object.isFrozen(secret) ||
@@ -49,7 +74,7 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
         !integer(secret.limits?.maxSecretBytes)) fail();
     let fields = 0, fieldUnits = 0, resourceUnits = 0;
     for (const mapping of installed.mappings) {
-      const names = mapping.write.fields ?? mapping.write.sources?.map(source => source.target);
+      const names = mapping.write.fields ?? mapping.write.sources?.map((source: NonNullable<Write['sources']>[number]) => source.target);
       if (!Array.isArray(names) || names.length === 0 ||
           names.some(name => typeof name !== 'string' || name.length === 0) ||
           typeof mapping.write.resource !== 'string' || mapping.write.resource.length === 0) fail();
@@ -98,10 +123,10 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
     // The selected native outcome writer already refuses larger output before
     // the existing receipt envelope. Keep its complete rejection prefix and
     // use the original full-codec fallback for wider composed implementations.
-    const controlEntryBytes = checked(controlBoundFor(limits.write.maxResponseBytes,effectLedgerImplementationBounds.maxEntryBytes));
+    const controlEntryBytes = checked(controlBoundFor(limits.write.maxResponseBytes,effectLedgerImplementationBounds.maxEntryBytes)) as number;
     const warmCapture = captureFor(profile, ...captureArguments, 0);
     const maximumCapture = captureFor(profile, ...captureArguments, -1);
-    const recipes = {};
+    const recipes: Record<string, InstalledEffectPlanRecipe> = {};
     for (const [kind, operation] of Object.entries(salesforceWriteOperations)) {
       const targeted = kind !== 'create';
       const composeArguments = Object.freeze([
@@ -118,25 +143,25 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
         Math.max(effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxOutcomeNodes),
         Math.max(effectLedgerImplementationBounds.maxDepth, effectLedgerImplementationBounds.maxOutcomeDepth),
         metadataUnits, httpsCredentialResponseReadQuantum]);
-      const quantities = (inputProfile, capture, controlBytes = controlEntryBytes, hostInputBytes = 0) =>
-        checked(compose(inputProfile, capture, ...composeArguments, controlBytes, hostInputBytes));
+      const quantities = (inputProfile: unknown, capture: unknown, controlBytes = controlEntryBytes, hostInputBytes = 0) =>
+        checked(compose(inputProfile, capture, ...composeArguments, controlBytes, hostInputBytes)) as readonly unknown[];
       const capacities = quantities(initialProfile, warmCapture);
       const maximum = quantities(profile, maximumCapture, controlEntryBytes, -1);
       const fallback = quantities(initialProfile,warmCapture,0);
-      const responseExtent = (bytes, originalBody) => {
+      const responseExtent = (bytes: number, originalBody: unknown) => {
         if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > metadataArguments[0]) fail();
         if (!(originalBody instanceof Uint8Array) || originalBody.byteLength !== bytes) fail();
         const selected = quantities(targetFor(currentMetadataFor(profile, ...metadataArguments, originalBody), ...targetArguments, 0), warmCapture);
         return checked(extentFor(salesforceDescribeOperation, selected[7],
           BigInt(httpsCredentialDefaultRequestBytes) + httpsCredentialResponseWindowBytes(metadataArguments[0]), true));
       };
-      const targetResponseExtent = bytes => {
+      const targetResponseExtent = (bytes: number) => {
         if(!Number.isSafeInteger(bytes)||bytes<0||bytes>targetArguments[0])fail();
         const selected=quantities(targetFor(initialProfile,...targetArguments,bytes),warmCapture);
         return checked(extentFor(salesforceTargetReadOperation,selected[6],
           BigInt(httpsCredentialDefaultRequestBytes)+httpsCredentialResponseWindowBytes(targetArguments[0]),true));
       };
-      const inputExtent = (previewWire, recovery, memberIndex, metadata) => {
+      const inputExtent = (previewWire: string, recovery: Recovery['recovered']['connectorRecovery'], memberIndex?: number, metadata?: InputMetadata) => {
         if (typeof previewWire !== 'string' || !Array.isArray(recovery)) fail();
         const previewBytes = Buffer.byteLength(previewWire);
         let bytes = previewBytes;
@@ -149,10 +174,10 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
         if (!integer(bytes) || bytes > localOutputLimits.maxWireBytes) fail();
         const originalPreviewBounds = effectRecoveryPreviewBounds(previewBytes, limits.preview);
         const entry = Number.isSafeInteger(memberIndex)
-          ? recovery.find(value => value.memberIndex === memberIndex) : undefined;
+          ? recovery.find((value: Recovery['recovered']['connectorRecovery'][number]) => value.memberIndex === memberIndex) : undefined;
         const staged = entry?.kind === 'salesforce-named-catalog' &&
           typeof entry.wire === 'string';
-        let capture;
+        let capture: unknown;
         if (staged && metadata === undefined) {
           // This actual immutable wire bounds the outer/nested JSON forests.
           // It funds binary/Source preflight before the original body is read.
@@ -164,8 +189,8 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
             metadata.bodies[0] instanceof Uint8Array &&
             metadata.evidence?.names?.length === 1 &&
             metadata.evidence.maxObservationBytes === catalogLimits.maxObservationBytes &&
-            ['maxBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameUnits']
-              .every(key => metadata.evidence.describeLimits?.[key] === describe[key])) {
+            (['maxBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameUnits'] as const)
+              .every(key => metadata.evidence!.describeLimits?.[key] === describe[key])) {
           const nodes = sourceJsonWireGeometry(entry.wire).nodes;
           if (nodes > 2_147_483_647n) fail();
           capture = recoveryFor(profile, ...originalPreviewBounds,
@@ -189,17 +214,18 @@ export function captureSalesforceEffectPlanRecipeBuilder({moon, salesforceMoon})
       // select the original warm extents, not the cold Preview/Catalog parser.
       const warmCaptureInputExtent = () => warmCaptureExtent;
       const warmRequestInputExtent = () => warmRequestExtent;
-      const memberOperations = [Object.freeze({operation,
+      const memberOperations: Operation[] = [Object.freeze({operation,
         extent: checked(stageFor(warmCaptureExtent,
           checked(captureExtentFor(operation, maximum.slice(0, 6),
             limits.preview.maxWireBytes, limits.preview.maxNodes, limits.preview.maxDepth))))})];
-      const rowOperations = [Object.freeze({operation,
+      const rowOperations: Operation[] = [Object.freeze({operation,
         extent: checked(stageFor(warmRequestExtent, warmRequestExtent))})];
-      const credentialOperations = [];
-      const physical = (phase, perRow, selectedOperation, capacity, requestBytes, responseBytes, maximumCapacity, originalResponseExtent) => {
+      const credentialOperations: CredentialOperation[] = [];
+      const physical = (phase: string, perRow: boolean, selectedOperation: string, capacity: unknown, requestBytes: number,
+        responseBytes: number, maximumCapacity?: unknown, originalResponseExtent?: ResponseExtent) => {
         const selected = perRow ? rowOperations : memberOperations;
         const operationIndex = selected.length;
-        const extent = value => checked(extentFor(selectedOperation, value,
+        const extent = (value: unknown) => checked(extentFor(selectedOperation, value,
           BigInt(requestBytes) + httpsCredentialResponseWindowBytes(responseBytes), true));
         selected.push(Object.freeze({operation: selectedOperation,
           extent: maximumCapacity === undefined ? extent(capacity) : checked(stageFor(extent(capacity), extent(maximumCapacity)))}));

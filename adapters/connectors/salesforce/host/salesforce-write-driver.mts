@@ -27,7 +27,63 @@ import {projectSalesforceSingleObservation,
 import {recoverCapturedSalesforceSingleRequests} from
   './salesforce-effect-request-recovery.mjs';
 
-const fail = code => {
+import type {ResourceBinding} from './salesforce-resource-resolver.mjs';
+import type {recoverNamedSalesforceObservation} from '../site/salesforce-named-describe.mjs';
+
+type Rebuild = Parameters<typeof recoverCapturedSalesforceSingleRequests>[0];
+type Target = Parameters<typeof observeSalesforceTargetSet>[0];
+type TargetMember = Target['members'][number];
+type Capability = Parameters<typeof issueSalesforceEffectCapability>[0];
+type Sender = Parameters<typeof sendRawSalesforceSingleRecord>[0];
+type Reply = Parameters<typeof projectSalesforceSingleObservation>[0];
+type Runtime = Rebuild['moon'] & Target['moon'] & Capability['moon'] & Sender['moon'] & Readonly<{
+  salesforceWriteValueRefusal(projection: unknown, issue: unknown): string | undefined;
+  salesforcePrepareExecutionWriteBody(mapping: unknown, projection: unknown, value: Uint8Array,
+    bytes: number, nodes: number, depth: number): unknown;
+  salesforcePrepareSingleWriteRequest(body: unknown, apiVersion: string, kind: number, target: string,
+    targetInteger: number, pathBytes: number, targetBytes: number, bodyBytes: number): unknown;
+  salesforceSingleWriteRequestCid(request: unknown, origin: string, maxBytes: number): unknown;
+  salesforceSingleWriteRequestTargetJson(request: unknown): string | undefined;
+  salesforceSingleWriteRequestValue(request: unknown): string;
+  salesforceObservedPreviewRowFields(row: unknown): unknown;
+  salesforcePrepareObservedPreviewRow(request: unknown, observation: unknown, bytes: number): unknown;
+  salesforceSingleWriteMemberFootprint(requests: readonly unknown[], maxRows: number, bytes: number): unknown;
+  salesforceWriteEffectOutcomeWire(outcome: unknown): string;
+  salesforceProjectSingleEffectOutcome(preview: unknown, memberIndex: number, rowIndex: number, request: unknown,
+    response: unknown, identityBytes: number, maxBytes: number, nodes: number, depth: number): unknown;
+}>;
+type Kind = keyof typeof kindCodes;
+type Member = Readonly<{kind: Kind; effectId: string; memberIndex: number; resource: string;
+  mapping: Readonly<{mappingCid: string; mappingRef: string}>}>;
+type Installed = Readonly<{write: Readonly<{kind: (typeof installedKinds)[Kind];
+  fields?: readonly string[]; sources?: readonly Readonly<{target: string}>[]; key?: string}>; mapping: unknown}>;
+type Dispatch = Readonly<{runInvocationCid: string; dispatchRequestCid: string}>;
+type Grant = Dispatch & Readonly<{operation: string; decision: unknown; resource: string; subjectCid?: string}>;
+type Current = Readonly<{observation: unknown}>;
+type CurrentEvidence = Current & Readonly<{observationCid: string;
+  evidence: Parameters<typeof recoverNamedSalesforceObservation>[0]['evidence']}>;
+type DescribeSite = Dispatch & Readonly<{resources: readonly string[]; occurrence: string; approval?: unknown;
+  signal?: AbortSignal; readChild?: unknown; controlConstruction?: unknown}>;
+type Site = Readonly<{apiVersion: string; instanceOrigin: string; credential: TargetMember['credential'] & Capability['credential'];
+  describeEffectCatalog(input: DescribeSite): CurrentEvidence | PromiseLike<CurrentEvidence>;
+  admitCheckpointEffectTargetRead(decision: unknown, binding: Readonly<Record<string, unknown>>): unknown;
+  attestEffectCapability(input: Dispatch & Readonly<{operation: string}>): NonNullable<Capability['authority']>;
+  issueGrant(input: Grant): unknown;
+}>;
+type Options = Readonly<{salesforceMoon: Runtime; site: Site; mappingOf(cid: string): Installed | undefined;
+  nextOccurrence(label: string): string; siteBindingCid: string; generationCid: string;
+  limits: Readonly<{preview: Rebuild['previewLimits']; body: Rebuild['bodyLimits']; request: Rebuild['requestLimits'];
+    maxMembers: number; maxRows: number; maxRetainedBytes: number; maxIdentityBytes: number; maxTotalResponseBytes: number;
+    write: Sender['limits']; target: TargetMember['limits']}>}>;
+type Recovery = Pick<Rebuild, 'recorded' | 'previewWire' | 'memberIndexes' | 'reserveRecoveryInput'> &
+  Readonly<{durable: Rebuild['recovered']; body: Readonly<{run_identity_cid: string;
+    authoring_context: Readonly<{authoring_context_cid: string}>}>}>;
+type MemberInput = Readonly<{member: Member}>;
+type RowsInput = Readonly<{entries: readonly Readonly<{request: unknown}>[]}>;
+type CurrentInput = Readonly<{current: Current}>;
+type Construct = <Value>(scope: undefined, callback: () => Value, inputs: readonly []) => Value;
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 
@@ -46,7 +102,7 @@ export {grantOperations as salesforceWriteOperations,
 const installedKinds = Object.freeze({create: 'createFromResult',
   update: 'update', upsert: 'upsert'});
 
-const parseExact = wire => {
+const parseExact = (wire: unknown): unknown => {
   if (typeof wire !== 'string') fail('InvalidSalesforceUpdateDriver');
   const value = JSON.parse(wire);
   if (JSON.stringify(value) !== wire) fail('InvalidSalesforceUpdateDriver');
@@ -56,7 +112,7 @@ const parseExact = wire => {
 // A row body, or its typed refusal when a written value is outside its
 // declared type: the Resource, field, type and kind, never the value. It is
 // refused before any provider I/O for the row, and nothing is rounded.
-function writeBody(salesforceMoon, result, projection) {
+function writeBody(salesforceMoon: Runtime, result: unknown, projection: unknown) {
   const refusal = runtimeIsError(result)
     ? salesforceMoon.salesforceWriteValueRefusal(projection, runtimeField(result, 0))
     : undefined;
@@ -74,27 +130,27 @@ function writeBody(salesforceMoon, result, projection) {
 // `siteBindingCid` and `generationCid` are the installed Site binding and
 // published generation a resumed target-read approval must name.
 export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
-  nextOccurrence, siteBindingCid, generationCid, limits}) {
+  nextOccurrence, siteBindingCid, generationCid, limits}: Options) {
   if (!salesforceMoon || !site || typeof mappingOf !== 'function' ||
       typeof nextOccurrence !== 'function' || typeof siteBindingCid !==
         'string' || typeof generationCid !== 'string' || !limits) {
     fail('InvalidSalesforceUpdateDriver');
   }
-  const installedOf = member => {
+  const installedOf = (member: Member) => {
     const installed = mappingOf(member.mapping.mappingCid);
     if (installed?.write?.kind !== installedKinds[member.kind]) {
       fail('SalesforceEffectMappingNotInstalled');
     }
     return installed;
   };
-  const fieldsOf = member => {
+  const fieldsOf = (member: Member) => {
     const write = installedOf(member).write;
-    return [...(write.fields ?? write.sources.map(source => source.target))];
+    return [...(write.fields ?? write.sources!.map(source => source.target))];
   };
-  const keyOf = member => installedOf(member).write.key ?? '';
-  const projectionOf = (member, observation) => {
+  const keyOf = (member: Member) => installedOf(member).write.key ?? '';
+  const projectionOf = (member: Member, observation: unknown) => {
     const binding = JSON.parse(
-      salesforceMoon.salesforceCatalogObservationJson(observation)).binding;
+      salesforceMoon.salesforceCatalogObservationJson(observation)).binding as ResourceBinding;
     const fields = fieldsOf(member);
     return checkedSalesforceCatalogPreparation(
       salesforceMoon.salesforcePrepareWriteProjection(observation,
@@ -107,11 +163,11 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
         keyOf(member), fields, fields.length),
       salesforceMoon, observation);
   };
-  const requestCid = request => checked(
+  const requestCid = (request: unknown) => checked(
     salesforceMoon.salesforceSingleWriteRequestCid(request,
       site.instanceOrigin, limits.maxIdentityBytes));
 
-  const recoverRequests = ({durable, recorded, previewWire, body, memberIndexes, reserveRecoveryInput}) => {
+  const recoverRequests = ({durable, recorded, previewWire, body, memberIndexes, reserveRecoveryInput}: Recovery) => {
     const rebuilt = recoverCapturedSalesforceSingleRequests({
       moon: salesforceMoon, recovered: durable, recorded, previewWire,
       runIdentityCid: body.run_identity_cid,
@@ -127,24 +183,24 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
   return Object.freeze({
     kinds: Object.freeze(['create', 'update', 'upsert']),
     targetRead: Object.freeze({operation: OBSERVE_OPERATION}),
-    writeOperation: member => grantOperations[member.kind],
+    writeOperation: (member: Member) => grantOperations[member.kind],
 
     // The Resource's current describe, bound to the member's dispatch.
     describe: ({member, runInvocationCid, dispatchRequestCid, label,
-      approval, signal, readChild, controlConstruction}) => site.describeEffectCatalog({
+      approval, signal, readChild, controlConstruction}: MemberInput & Omit<DescribeSite, 'resources' | 'occurrence'> & Readonly<{label: string}>) => site.describeEffectCatalog({
       resources: [member.resource], runInvocationCid, dispatchRequestCid,
       occurrence: nextOccurrence(label), approval, signal, readChild, controlConstruction}),
 
     // A target read approved through the Host's resumed Checkpoint covers
     // only the physical binding of exactly this member of this installation.
-    admitTargetReadApproval({member, decision}) {
+    admitTargetReadApproval({member, decision}: MemberInput & Readonly<{decision: unknown}>) {
       const expected = {site_binding_cid: siteBindingCid,
         generation_cid: generationCid, effect_id: member.effectId,
         member_index: member.memberIndex,
         mapping_cid: member.mapping.mappingCid,
         mapping_ref: member.mapping.mappingRef, resource: member.resource,
         effect_kind: member.kind, key: keyOf(member), fields: fieldsOf(member)};
-      const binding = checkpointApprovalFacts(decision)?.physicalBindings
+      const binding = (checkpointApprovalFacts(decision)?.physicalBindings as readonly Readonly<Record<string, unknown>>[] | undefined)
         ?.find(candidate => Object.entries(expected).every(([key, value]) =>
           canonicalJson(candidate[key]) === canonicalJson(value)));
       if (binding === undefined) {
@@ -153,7 +209,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
       return site.admitCheckpointEffectTargetRead(decision, binding);
     },
 
-    prepareRequest({member, value, selector, current}) {
+    prepareRequest({member, value, selector, current}: MemberInput & CurrentInput & Readonly<{value: unknown; selector: string}>) {
       const projection = projectionOf(member, current.observation);
       const body = writeBody(salesforceMoon,
         salesforceMoon.salesforcePrepareExecutionWriteBody(
@@ -173,7 +229,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
 
     // The value the request writes (as ActQL values) and the record it
     // selects (its Id or typed external value; none for a create).
-    requestFacts: request => {
+    requestFacts: (request: unknown) => {
       const target = salesforceMoon.salesforceSingleWriteRequestTargetJson(
         request);
       return {value: parseExact(
@@ -184,7 +240,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
 
     // A refusal by a fully described current Catalog is definitive; an
     // outage or incomplete describe is not.
-    recheckRequests({entries, current, controlConstruction}) {
+    recheckRequests({entries, current, controlConstruction}: RowsInput & CurrentInput & Readonly<{controlConstruction?: Construct}>) {
       const recheck = () => {
         for (const entry of entries) {
           checkedSalesforceCatalogPreparation(
@@ -198,7 +254,8 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
 
     // Each row's target, read now, as its observed Preview row: the target
     // identity, the whole-response guard version and the typed before value.
-    async observeTargets({entries, current, authorizationForRow, signal, readChild}) {
+    async observeTargets({entries, current, authorizationForRow, signal, readChild}: RowsInput & CurrentInput &
+      Pick<TargetMember, 'authorizationForRow' | 'readChild'> & Readonly<{signal?: AbortSignal}>) {
       const requests = entries.map(entry => entry.request);
       const [observed] = await observeSalesforceTargetSet({
         moon: salesforceMoon, members: [{requests,
@@ -223,7 +280,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
     // exactly the installed Mapping's write, and the evidence binds the
     // installed runtime, connection and current describe.
     issueCapability({member, entries, current, runInvocationCid,
-      dispatchRequestCid}) {
+      dispatchRequestCid}: MemberInput & RowsInput & CurrentInput & Dispatch) {
       const requests = entries.map(entry => entry.request);
       const capability = issueSalesforceEffectCapability({
         moon: salesforceMoon, requests, currentObservation: current.observation,
@@ -240,7 +297,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
         binding: Object.freeze(JSON.parse(capability.wire).binding)});
     },
 
-    footprint({entries}) {
+    footprint({entries}: RowsInput) {
       const footprint = checked(
         salesforceMoon.salesforceSingleWriteMemberFootprint(
           entries.map(entry => entry.request), limits.maxRows,
@@ -253,7 +310,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
     },
 
     // The retained describe a recovered capture rebuilds its requests from.
-    recoveryEntry: ({member, current}) => ({
+    recoveryEntry: ({member, current}: MemberInput & Readonly<{current: CurrentEvidence}>) => ({
       kind: 'salesforce-named-catalog', observationCid: current.observationCid,
       wire: JSON.stringify({evidence: current.evidence,
         apiVersion: site.apiVersion, resourceName: member.resource,
@@ -265,14 +322,16 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
     // installation's global member positions are decoded by its vendor owner.
     recoverMemberRequests: recoverRequests,
 
-    send: ({request, current, authorization, credential, signal, callResource}) =>
+    send: ({request, current, authorization, credential, signal, callResource}: CurrentInput &
+      Omit<Sender, 'moon' | 'currentObservation' | 'limits'>) =>
       sendRawSalesforceSingleRecord({moon: salesforceMoon, request,
         currentObservation: current.observation, authorization, credential,
         limits: limits.write, signal, callResource}),
 
     // The typed reply as the common `effect_outcome`, projected by the
     // Salesforce owner against the admitted Preview row.
-    project({memberIndex, rowIndex, preview, request, observation}) {
+    project({memberIndex, rowIndex, preview, request, observation}: Pick<Reply, 'request' | 'observation'> &
+      Readonly<{memberIndex: number; rowIndex: number; preview: unknown}>) {
       const projected = projectSalesforceSingleObservation({
         moon: salesforceMoon, request, observation, limits: limits.write});
       if (projected?.kind !== 'typed-success-response' &&
@@ -281,7 +340,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
       }
       const wire = salesforceMoon.salesforceWriteEffectOutcomeWire(checked(
         salesforceMoon.salesforceProjectSingleEffectOutcome(preview,
-          memberIndex, rowIndex, request, projected.response,
+          memberIndex, rowIndex, request, (projected as {response: unknown}).response,
           limits.maxIdentityBytes, limits.write.maxResponseBytes,
           limits.write.maxNodes, limits.write.maxDepth)));
       return {kind: projected.kind, outcome: parseExact(wire)};
@@ -291,14 +350,14 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
 
 // The installed Salesforce Site as the neutral row Effect's credential Site:
 // reads and Effect writes are granted only for this Site's own decisions.
-export function salesforceRowEffectSite(site) {
+export function salesforceRowEffectSite(site: Pick<Site, 'credential' | 'issueGrant'>) {
   return Object.freeze({
     credential: site.credential, callResource: undefined,
     issueReadGrant: ({operation, decision, resource, runInvocationCid,
-      dispatchRequestCid}) => site.issueGrant({operation, decision, resource,
+      dispatchRequestCid}: Grant) => site.issueGrant({operation, decision, resource,
       runInvocationCid, dispatchRequestCid}),
     issueEffectGrant: ({operation, decision, resource, runInvocationCid,
-      dispatchRequestCid, subjectCid}) => site.issueGrant({operation,
+      dispatchRequestCid, subjectCid}: Grant) => site.issueGrant({operation,
       decision, resource, runInvocationCid, dispatchRequestCid, subjectCid}),
     // The bound constructor attaches the original Site's physical cleanup.
   });

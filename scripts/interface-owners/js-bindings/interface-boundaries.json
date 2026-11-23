@@ -11200,7 +11200,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "c3cc6d7d8139b3a0caa5acb9a1a0a48ac96e3be59fc66e5b3ce0850ded3368c4",
+      "sha256": "dfb77892969030ac0d4702840c0b5ffa7be0f33c302f05050910c3770cdaa9c8",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -11458,7 +11458,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11468,7 +11468,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11478,7 +11478,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11488,7 +11488,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11498,7 +11498,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11508,7 +11508,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11518,7 +11518,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11528,7 +11528,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11538,7 +11538,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11548,7 +11548,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "fail"
               },
               {
@@ -11568,7 +11568,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11578,7 +11578,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11588,7 +11588,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11598,7 +11598,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11608,7 +11608,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11618,7 +11618,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11628,7 +11628,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11638,7 +11638,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11648,7 +11648,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11658,7 +11658,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "parseExact"
               },
               {
@@ -11684,7 +11684,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11694,7 +11694,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11704,7 +11704,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11714,7 +11714,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11724,7 +11724,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11734,7 +11734,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11744,7 +11744,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11754,7 +11754,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11764,7 +11764,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11774,7 +11774,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceRowEffectSite"
               },
               {
@@ -11821,7 +11821,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11835,7 +11835,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11849,7 +11849,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11863,7 +11863,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11877,7 +11877,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11891,7 +11891,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11905,7 +11905,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11919,7 +11919,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11933,7 +11933,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11947,7 +11947,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "salesforceWriteDriver"
               },
               {
@@ -11971,7 +11971,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -11981,7 +11981,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -11991,7 +11991,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -12001,7 +12001,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -12011,7 +12011,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -12021,7 +12021,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -12031,7 +12031,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -12041,7 +12041,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -12051,7 +12051,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -12061,7 +12061,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "writeBody"
               },
               {
@@ -12086,7 +12086,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12096,7 +12096,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12106,7 +12106,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12116,7 +12116,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12126,7 +12126,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12136,7 +12136,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12146,7 +12146,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12156,7 +12156,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12166,7 +12166,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
@@ -12176,7 +12176,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-write-driver.mts",
                 "anchor": "// Salesforce record writes (create, update and upsert) as a write driver of"
               },
               {
