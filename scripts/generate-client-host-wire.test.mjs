@@ -340,6 +340,17 @@ test('generated check validator rejects contradictory evidence and partial verif
       reasons: [{code: 'future_violation'}]})), true);
     assert.equal(valid(outcome({...report, verdict: 'undetermined',
       coverage: {limits: [{code: 'future_limit'}], unresolved: []}})), true);
+    const calendar = (requirement) => outcome({...report, verdict: 'undetermined',
+      requirements: [requirement],
+      coverage: {limits: [{code: 'checking_context_missing'}], unresolved: []},
+      runnable: {verdict: 'no', reasons: [{code: 'calendar_profile_required'}]}});
+    const required = {code: 'calendar_profile_required', facts: {issue: 'selection_missing'}};
+    assert.equal(valid(calendar(required)), true);
+    assert.equal(valid(calendar({...required, facts: {issue: 'artifact_missing'}})), true);
+    assert.equal(valid(calendar({...required, facts: {issue: 'unknown'}})), false);
+    assert.equal(valid(calendar({...required, facts: {...required.facts, artifact: 'private'}})), false);
+    assert.equal(valid(calendar({...required, facts: undefined})), false);
+    assert.equal(valid(outcome({...report, verdict: 'invalid', reasons: [required]})), false);
   });
 
 test('typed public facts are closed and locations bind declared input revisions', async () => {

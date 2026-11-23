@@ -35,6 +35,7 @@ priv enum CheckFinding {
   ConsumerCondition(@checked.TemplateParameterCondition, String)
   CapacityPolicyRequired
   NumericProfileRequired
+  CalendarProfileRequired(String)
   // An obligation that cannot be discharged from disclosable evidence.
   Unresolved(String)
   // An allowed construct or budget the checker could not close.
@@ -417,11 +418,9 @@ fn check_source_findings(
         is Some({ kind: NumericReductionProfile(_), .. }) {
         findings.push(NumericProfileRequired)
         findings.push(Limit("checking_context_missing"))
-      } else if @checked.input_request_at(requests, 0)
-        is Some(
-          { kind: HostCalendarSelection | CalendarProfileArtifact(_), .. }
-        ) {
-        findings.push(Limit("checking_context_missing"))
+      } else if @checked.input_request_at(requests, 0) is Some({ kind, .. }) &&
+        check_calendar_requirement(findings, kind) {
+        ()
       } else {
         findings.push(Limit("bound_values_missing"))
       }
@@ -530,6 +529,21 @@ fn check_scope(value : String) -> @checked.CheckScope? {
 }
 
 ///|
+fn check_calendar_requirement(
+  findings : Array[CheckFinding],
+  kind : @checked.InputRequestKind,
+) -> Bool {
+  let issue = match kind {
+    HostCalendarSelection => "selection_missing"
+    CalendarProfileArtifact(_) => "artifact_missing"
+    _ => return false
+  }
+  findings.push(CalendarProfileRequired(issue))
+  findings.push(Limit("checking_context_missing"))
+  true
+}
+
+///|
 /// A known missing Host policy is the existing Owner's context Requirement.
 /// Other incomplete material remains unresolved under the requested scope.
 fn check_missing_input_findings(
@@ -541,8 +555,9 @@ fn check_missing_input_findings(
     is Template(_, Capacity(MissingCapacity)) {
     findings.push(CapacityPolicyRequired)
     findings.push(Limit("checking_context_missing"))
-  } else if @checked.diagnostic_calendar_context_missing(diagnostic) {
-    findings.push(Limit("checking_context_missing"))
+  } else if @checked.diagnostic_calendar_requirement(diagnostic) is Some(kind) &&
+    check_calendar_requirement(findings, kind) {
+    ()
   } else {
     findings.push(
       Limit(
@@ -1258,7 +1273,8 @@ fn write_check_report(
       is (RequiredValue(_, _)
       | ConsumerCondition(_, _)
       | CapacityPolicyRequired
-      | NumericProfileRequired)
+      | NumericProfileRequired
+      | CalendarProfileRequired(_))
     })
     .count()
   let template_report_limited = documents.scope == TemplateOnly &&
@@ -1336,6 +1352,7 @@ fn write_check_report(
         ConsumerCondition(_, _) => Some("parameter_consumer_condition")
         CapacityPolicyRequired => Some("host_capacity_policy_required")
         NumericProfileRequired => Some("numeric_reduction_profile_required")
+        CalendarProfileRequired(_) => Some("calendar_profile_required")
         _ => None
       }
     }) {
@@ -1895,6 +1912,18 @@ fn write_check_report(
       @encode.string_value(writer, "checking_context_owner")
       @encode.key(writer, "stage")
       @encode.string_value(writer, "checking")
+      @encode.end_object(writer)
+      @encode.end_object(writer)
+    }
+    if finding is CalendarProfileRequired(issue) {
+      written_requirements += 1
+      @encode.begin_object(writer)
+      @encode.key(writer, "code")
+      @encode.string_value(writer, "calendar_profile_required")
+      @encode.key(writer, "facts")
+      @encode.begin_object(writer)
+      @encode.key(writer, "issue")
+      @encode.string_value(writer, issue)
       @encode.end_object(writer)
       @encode.end_object(writer)
     }

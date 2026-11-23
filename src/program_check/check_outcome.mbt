@@ -289,8 +289,15 @@ fn calendar_request_inventory(
 
 ///|
 /// Only the existing Calendar selection or artifact obligation.
-pub fn diagnostic_calendar_context_missing(value : CheckDiagnostic) -> Bool {
-  calendar_request_inventory(value.cause) is Some(_)
+pub fn diagnostic_calendar_requirement(
+  value : CheckDiagnostic,
+) -> InputRequestKind? {
+  match calendar_request_inventory(value.cause) {
+    Some(CalendarSelection) => Some(HostCalendarSelection)
+    Some(CalendarArtifact(selection)) =>
+      Some(CalendarProfileArtifact(selection))
+    _ => None
+  }
 }
 
 ///|

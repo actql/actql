@@ -1798,10 +1798,12 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   expected_carrier: "relation" | "vectors";
   actual_carrier: "relation" | "graph" | "events" | "vectors";
+}> | Readonly<{
+  issue: "selection_missing" | "artifact_missing";
 }>;
 }>[];
   requirements: readonly Readonly<{
-  code: "parameter_value_required" | "parameter_consumer_condition" | "host_capacity_policy_required" | "numeric_reduction_profile_required";
+  code: "parameter_value_required" | "parameter_consumer_condition" | "host_capacity_policy_required" | "numeric_reduction_profile_required" | "calendar_profile_required";
   location?: Readonly<{
   kind: "text";
   document_id: "source";
@@ -1927,6 +1929,8 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   expected_carrier: "relation" | "vectors";
   actual_carrier: "relation" | "graph" | "events" | "vectors";
+}> | Readonly<{
+  issue: "selection_missing" | "artifact_missing";
 }>;
 }>[];
   scope: Readonly<{
@@ -1935,7 +1939,7 @@ export type WireCheckOutcomeShape = Readonly<{
   verdict: "invalid" | "undetermined" | "verified";
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652";
+  reason_schema_cid: "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   outcome: "failed";
@@ -2113,10 +2117,12 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   expected_carrier: "relation" | "vectors";
   actual_carrier: "relation" | "graph" | "events" | "vectors";
+}> | Readonly<{
+  issue: "selection_missing" | "artifact_missing";
 }>;
 }>[];
   requirements: readonly Readonly<{
-  code: "parameter_value_required" | "parameter_consumer_condition" | "host_capacity_policy_required" | "numeric_reduction_profile_required";
+  code: "parameter_value_required" | "parameter_consumer_condition" | "host_capacity_policy_required" | "numeric_reduction_profile_required" | "calendar_profile_required";
   location?: Readonly<{
   kind: "text";
   document_id: "source";
@@ -2242,6 +2248,8 @@ export type WireCheckOutcomeShape = Readonly<{
 }> | Readonly<{
   expected_carrier: "relation" | "vectors";
   actual_carrier: "relation" | "graph" | "events" | "vectors";
+}> | Readonly<{
+  issue: "selection_missing" | "artifact_missing";
 }>;
 }>[];
   scope: Readonly<{
@@ -2254,7 +2262,7 @@ export type WireCheckOutcomeShape = Readonly<{
 }>;
   correlation_ref: string;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652";
+  reason_schema_cid: "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8";
   version: "actql-check-outcome/0.1";
 }> | Readonly<{
   correlation_ref: string;
@@ -2263,7 +2271,7 @@ export type WireCheckOutcomeShape = Readonly<{
   code: string;
 }>;
   outcome_schema_cid: string;
-  reason_schema_cid: "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652";
+  reason_schema_cid: "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8";
   version: "actql-check-outcome/0.1";
 }>;
 export type WireCheckLocationShape = Readonly<{

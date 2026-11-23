@@ -394,9 +394,10 @@ fn check_program_findings(
             findings.push(NumericProfileRequired)
             findings.push(Limit("checking_context_missing"))
           }
-          HostCalendarSelection | CalendarProfileArtifact(_) =>
-            findings.push(Limit("checking_context_missing"))
-          _ => findings.push(Limit("bound_values_missing"))
+          kind =>
+            if !check_calendar_requirement(findings, kind) {
+              findings.push(Limit("bound_values_missing"))
+            }
         }
       }
       Report

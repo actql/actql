@@ -17439,7 +17439,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:df5991827836c2e67e5cf8f7ee799d967bd2a63a0037cf6942d3c7c59a74b83e",
+  "artifact_registry_cid": "sha256:1a894324e00788670fa78304d1d97130acafbcc25f205ff6291f90bc198a3234",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17494,8 +17494,8 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:cd072f277d0b6f0910e5e4930f5345dc202eda6167cb487a98202725895c26bf",
-    "check_reason": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652",
+    "check_outcome": "sha256:71541a809907d8c0c9918a5906af393cf41aa21a788f3951bfc6e165d6e6beb2",
+    "check_reason": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3",
     "content_generation": "sha256:a8e96d9a2a9d9e721f69b30da117dc0cdeca4c864cb21747b5551a9853fe037c",
@@ -93457,6 +93457,21 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -94562,6 +94577,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -94847,6 +94863,53 @@
                         }
                       },
                       {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
                         "not": {
                           "properties": {
                             "code": {
@@ -94854,7 +94917,8 @@
                                 "parameter_value_required",
                                 "parameter_consumer_condition",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "calendar_profile_required"
                               ]
                             }
                           }
@@ -94882,7 +94946,8 @@
                           "parameter_value_required",
                           "parameter_consumer_condition",
                           "host_capacity_policy_required",
-                          "numeric_reduction_profile_required"
+                          "numeric_reduction_profile_required",
+                          "calendar_profile_required"
                         ]
                       },
                       "location": {
@@ -95768,6 +95833,21 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -96873,6 +96953,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -97156,6 +97237,53 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
                       }
                     ]
                   }
@@ -97189,7 +97317,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -98591,6 +98719,21 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -99696,6 +99839,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -99981,6 +100125,53 @@
                         }
                       },
                       {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
                         "not": {
                           "properties": {
                             "code": {
@@ -99988,7 +100179,8 @@
                                 "parameter_value_required",
                                 "parameter_consumer_condition",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "calendar_profile_required"
                               ]
                             }
                           }
@@ -100016,7 +100208,8 @@
                           "parameter_value_required",
                           "parameter_consumer_condition",
                           "host_capacity_policy_required",
-                          "numeric_reduction_profile_required"
+                          "numeric_reduction_profile_required",
+                          "calendar_profile_required"
                         ]
                       },
                       "location": {
@@ -100902,6 +101095,21 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              }
+                            }
                           }
                         ]
                       }
@@ -102007,6 +102215,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -102290,6 +102499,53 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
                       }
                     ]
                   }
@@ -102341,7 +102597,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -102387,7 +102643,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -103293,6 +103549,21 @@
                   }
                 }
               ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "issue"
+              ],
+              "properties": {
+                "issue": {
+                  "enum": [
+                    "selection_missing",
+                    "artifact_missing"
+                  ]
+                }
+              }
             }
           ]
         }
@@ -104398,6 +104669,7 @@
                     "implementation_limit",
                     "host_capacity_policy_required",
                     "numeric_reduction_profile_required",
+                    "calendar_profile_required",
                     "program_structure_invalid",
                     "source_selector_unregistered",
                     "query_alias_absent",
@@ -104680,6 +104952,53 @@
                 }
               }
             }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "calendar_profile_required"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "issue"
+                ],
+                "properties": {
+                  "issue": {
+                    "enum": [
+                      "selection_missing",
+                      "artifact_missing"
+                    ]
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "location"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "fixes"
+                  ]
+                }
+              }
+            ]
           }
         }
       ]

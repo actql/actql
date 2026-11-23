@@ -54856,7 +54856,7 @@
     {
       "module": "src/client_local_preparation/client_check_original_outcome.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "070136fef98fbff4515fe9dc0f61938d27779db67ff2d4948a848c49fcef361e",
+      "sha256": "db9ee8ed5046d140db280b9eae990312fa28253bf0629ab77f28544f506940dc",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -54962,7 +54962,7 @@
     {
       "module": "src/client_local_preparation/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "aab4272708bd483cf420cf0a869f07e0727b01b20c6a39e2e91511472b75200a",
+      "sha256": "7db408b6c2f8a963bde8d03041faeb033f209c0623a0d513bf994c869be12b93",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],

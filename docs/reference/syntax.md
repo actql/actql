@@ -761,7 +761,10 @@ never a `|>` step.
 
 Node Local requires an explicitly selected Calendar artifact in
 `open({installation: {calendarArtifact}})`. The artifact must include the
-named time zone. To group by a bucket, project its timestamp fields as keys.
+named time zone. If the checking context lacks a Calendar selection or its
+matching artifact, Check reports `calendar_profile_required`. To group by a
+bucket, project its timestamp fields as keys. Grouping by the bucket record
+itself is unsupported.
 
 **Examples**
 

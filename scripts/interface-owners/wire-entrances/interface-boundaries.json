@@ -6,7 +6,7 @@
     {
       "module": "packages/client-wire/client-host.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "dd4a19277afd5027655c4fc2981d57fd3c751b16de0e02e723091475ad88a48e",
+      "sha256": "990c20ec09a30af59a057a4646090ca27ec3647e7aa399ef4eeadf31b729538a",
       "exports": [
         "ClientHostOperation",
         "WireAdmissionShape",
