@@ -133,6 +133,8 @@ typedef struct {
   int test_commit_skip;
   int test_rollback_failures;
   int test_transaction_state_failures;
+  int test_capacity_commit_fault;
+  bool test_capacity_rollback_fault;
   int transaction_fenced;
   // The same Database retains its read child before BEGIN and after a lost
   // response. This is not the earlier write's outcome or a second ledger.
@@ -2193,10 +2195,68 @@ int32_t actql_native_sqlite_database_rollback(
   return actql_exec(database, "ROLLBACK");
 }
 
-static void actql_capacity_rollback(
+enum actql_capacity_commit_fault {
+  ACTQL_CAPACITY_COMMIT_NORMAL = 0,
+  ACTQL_CAPACITY_COMMIT_REFUSED = 1,
+  ACTQL_CAPACITY_COMMIT_REPLY_LOST = 2,
+  ACTQL_CAPACITY_COMMIT_DEFERRED_CONSTRAINT = 3
+};
+
+// Whitebox-only faults for an internally owned transaction. The existing
+// explicit SQL step fault counts are not consumed by capacity operations.
+void actql_native_sqlite_test_capacity_finish_fault(
+  actql_native_sqlite_database *database, int32_t commit_fault, int32_t rollback_fault
+) {
+  database->test_capacity_commit_fault = commit_fault;
+  database->test_capacity_rollback_fault = rollback_fault != 0;
+}
+
+static int32_t actql_capacity_rollback(
   actql_native_sqlite_database *database
 ) {
-  ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_EXEC, database->library->exec)(database->database, "ROLLBACK", NULL, NULL, NULL);
+  if (database->test_capacity_rollback_fault) {
+    database->test_capacity_rollback_fault = false;
+    return ACTQL_TRANSACTION_REFUSED_BEFORE_SQL;
+  }
+  // The cleanup call must not replace the primary SQLite diagnostic.
+  return ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_EXEC, database->library->exec)(
+    database->database, "ROLLBACK", NULL, NULL, NULL);
+}
+
+static int32_t actql_capacity_finish_failure(
+  actql_native_sqlite_database *database, int32_t primary, bool commit_attempt
+) {
+  int32_t state = actql_native_sqlite_database_transaction_state(database);
+  int32_t rollback = ACTQL_TRANSACTION_NOT_ISSUED;
+  if (state == 1) {
+    rollback = actql_capacity_rollback(database);
+    state = actql_native_sqlite_database_transaction_state(database);
+  }
+  bool stopped = state == 0 && (rollback == SQLITE_OK ||
+    rollback == ACTQL_TRANSACTION_NOT_ISSUED);
+
+  // Keep the original body denial after cleanup. COMMIT BUSY retains its
+  // original category only when the transaction is confirmed stopped.
+  if (!commit_attempt && stopped) return primary;
+  if (commit_attempt && stopped && actql_operation_code(primary) == 3)
+    return 3;
+
+  // NoActive alone supplies neither durable outcome nor retry permission.
+  database->transaction_fenced = 1;
+  char detail[144];
+  snprintf(detail, sizeof(detail),
+    "SQLite capacity %s failure: primary %d, rollback %d, state %d",
+    commit_attempt ? "COMMIT" : "body", primary, rollback, state);
+  actql_replace_error_for(database->library, &database->error,
+    database->diagnostic_ceiling, detail);
+  return -1;
+}
+
+static int32_t actql_capacity_body_failure(
+  actql_native_sqlite_database *database, bool owns_transaction, int32_t primary
+) {
+  return owns_transaction ?
+    actql_capacity_finish_failure(database, primary, false) : primary;
 }
 
 static int32_t actql_capacity_begin(
@@ -2209,10 +2269,20 @@ static int32_t actql_capacity_begin(
 static int32_t actql_capacity_commit(
   actql_native_sqlite_database *database
 ) {
-  int code = actql_exec(database, "COMMIT");
-  if (code == SQLITE_OK) return 0;
-  actql_capacity_rollback(database);
-  return actql_operation_code(code);
+  int fault = database->test_capacity_commit_fault;
+  database->test_capacity_commit_fault = ACTQL_CAPACITY_COMMIT_NORMAL;
+  if (fault == ACTQL_CAPACITY_COMMIT_DEFERRED_CONSTRAINT) {
+    int staged = actql_native_sqlite_test_stage_deferred_constraint(database);
+    if (staged != SQLITE_OK)
+      return actql_capacity_finish_failure(database, staged, false);
+  }
+  int code = fault == ACTQL_CAPACITY_COMMIT_REFUSED ?
+    ACTQL_TRANSACTION_REFUSED_BEFORE_SQL : actql_exec(database, "COMMIT");
+  if (code == SQLITE_OK) {
+    if (fault != ACTQL_CAPACITY_COMMIT_REPLY_LOST) return 0;
+    code = ACTQL_TRANSACTION_REPLY_LOST;
+  }
+  return actql_capacity_finish_failure(database, code, true);
 }
 
 static int32_t actql_capacity_existing(
@@ -2363,15 +2433,13 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   if (result == 0) {
     if (existing_bytes != reserved_bytes ||
         existing_objects != reserved_objects) {
-      if (owns_transaction) actql_capacity_rollback(database);
-      return 2;
+      return actql_capacity_body_failure(database, owns_transaction, 2);
     }
     result = owns_transaction ? actql_capacity_commit(database) : 0;
     return result == 0 ? 7 : result;
   }
   if (result != 1) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return result;
+    return actql_capacity_body_failure(database, owns_transaction, result);
   }
   int64_t used_bytes = 0;
   int64_t used_objects = 0;
@@ -2383,14 +2451,12 @@ int32_t actql_native_sqlite_database_reserve_capacity(
     &used_objects
   );
   if (result != 0) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return result;
+    return actql_capacity_body_failure(database, owns_transaction, result);
   }
   if (used_bytes < 0 || used_objects < 0 || used_bytes > max_bytes ||
       used_objects > max_objects || reserved_bytes > max_bytes - used_bytes ||
       reserved_objects > max_objects - used_objects) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return 6;
+    return actql_capacity_body_failure(database, owns_transaction, 6);
   }
   sqlite3_stmt *statement = NULL;
   int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
@@ -2404,8 +2470,7 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare capacity reservation failed");
-    if (owns_transaction) actql_capacity_rollback(database);
-    return actql_operation_code(code);
+    return actql_capacity_body_failure(database, owns_transaction, actql_operation_code(code));
   }
   result = actql_bind_key(
     database,
@@ -2440,8 +2505,7 @@ int32_t actql_native_sqlite_database_reserve_capacity(
     result = actql_operation_code(finalize_code);
   }
   if (result != 0) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return result;
+    return actql_capacity_body_failure(database, owns_transaction, result);
   }
   return owns_transaction ? actql_capacity_commit(database) : 0;
 }
@@ -2563,8 +2627,7 @@ static int32_t actql_database_release_capacity(
   }
   if (result != 0 || existing_bytes != reserved_bytes ||
       existing_objects != reserved_objects) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return result == 0 ? 2 : result;
+    return actql_capacity_body_failure(database, owns_transaction, result == 0 ? 2 : result);
   }
   sqlite3_stmt *statement = NULL;
   int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
@@ -2577,8 +2640,7 @@ static int32_t actql_database_release_capacity(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare capacity release failed");
-    if (owns_transaction) actql_capacity_rollback(database);
-    return actql_operation_code(code);
+    return actql_capacity_body_failure(database, owns_transaction, actql_operation_code(code));
   }
   result = actql_bind_key(
     database,
@@ -2606,8 +2668,7 @@ static int32_t actql_database_release_capacity(
     result = actql_operation_code(finalize_code);
   }
   if (result != 0) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return result;
+    return actql_capacity_body_failure(database, owns_transaction, result);
   }
   return owns_transaction ? actql_capacity_commit(database) : 0;
 }
@@ -2695,8 +2756,13 @@ static int32_t actql_claim_ordinal(
   bool caller_transaction
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->transaction_fenced || database->lookup_generation != 0)
+  if (database->lookup_generation != 0) return -1;
+  if (database->transaction_fenced) {
+    if (caller_transaction && database->error == NULL)
+      actql_replace_error_for(database->library, &database->error,
+        database->diagnostic_ceiling, "claim requires an active unfenced caller transaction");
     return -1;
+  }
   actql_clear_result(database);
   if (max_claims <= 0) return 6;
   // Caller mode never begins, commits or rolls back the owning journal TX.
@@ -2720,8 +2786,7 @@ static int32_t actql_claim_ordinal(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare bounded claim read failed");
-    if (owns_transaction) actql_capacity_rollback(database);
-    return actql_operation_code(code);
+    return actql_capacity_body_failure(database, owns_transaction, actql_operation_code(code));
   }
   result = actql_bind_key(
     database,
@@ -2749,9 +2814,10 @@ static int32_t actql_claim_ordinal(
   int finalize_code = database->library->finalize(statement);
   statement = NULL;
   if (result == 7) {
-    if (caller_transaction && finalize_code != SQLITE_OK) {
-      actql_database_error(database, "finalize retained caller claim failed");
-      return actql_operation_code(finalize_code);
+    if (finalize_code != SQLITE_OK) {
+      actql_database_error(database, "finalize retained claim failed");
+      return actql_capacity_body_failure(database, owns_transaction,
+        actql_operation_code(finalize_code));
     }
     int32_t commit = owns_transaction ? actql_capacity_commit(database) : 0;
     return commit == 0 ? 7 : commit;
@@ -2761,8 +2827,7 @@ static int32_t actql_claim_ordinal(
       actql_database_error(database, "finalize bounded claim read failed");
       result = actql_operation_code(finalize_code);
     }
-    if (owns_transaction) actql_capacity_rollback(database);
-    return result;
+    return actql_capacity_body_failure(database, owns_transaction, result);
   }
   code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
     database->database,
@@ -2774,8 +2839,7 @@ static int32_t actql_claim_ordinal(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare bounded claim count failed");
-    if (owns_transaction) actql_capacity_rollback(database);
-    return actql_operation_code(code);
+    return actql_capacity_body_failure(database, owns_transaction, actql_operation_code(code));
   }
   code = database->library->bind_text(
     statement,
@@ -2799,12 +2863,10 @@ static int32_t actql_claim_ordinal(
     result = actql_operation_code(finalize_code);
   }
   if (result != 0) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return result;
+    return actql_capacity_body_failure(database, owns_transaction, result);
   }
   if (prior < 0 || prior >= max_claims || prior == INT64_MAX) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return 6;
+    return actql_capacity_body_failure(database, owns_transaction, 6);
   }
   int64_t ordinal = prior + 1;
   code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_QUERY, database->library->prepare_v2)(
@@ -2817,8 +2879,7 @@ static int32_t actql_claim_ordinal(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare bounded claim insert failed");
-    if (owns_transaction) actql_capacity_rollback(database);
-    return actql_operation_code(code);
+    return actql_capacity_body_failure(database, owns_transaction, actql_operation_code(code));
   }
   result = actql_bind_key(
     database,
@@ -2848,8 +2909,7 @@ static int32_t actql_claim_ordinal(
     result = actql_operation_code(finalize_code);
   }
   if (result != 0) {
-    if (owns_transaction) actql_capacity_rollback(database);
-    return result;
+    return actql_capacity_body_failure(database, owns_transaction, result);
   }
   result = owns_transaction ? actql_capacity_commit(database) : 0;
   if (result == 0) database->result_revision = ordinal;
