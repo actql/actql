@@ -3,10 +3,12 @@ test "Native direct destination resumes after its receipt was already committed"
   let library = @sqlite.load_library(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
   ).unwrap()
-  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
-    "/direct-destination-receipt-recovery.sqlite3"
-  let store = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
-  let root = @filesystem.open_root(store).unwrap()
+  let scratch = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let path = scratch + "/direct-destination-receipt-recovery.sqlite3"
+  let parent = @filesystem.open_root(scratch).unwrap()
+  let store = "direct-destination-receipt-recovery-store"
+  parent.create_directory(store).unwrap() |> ignore
+  let root = parent.open_child(store).unwrap()
   let request = native_transfer_request_for(
     [b"original-alpha", b"original-beta"],
     @transfer.DirectStream,
@@ -48,7 +50,7 @@ test "Native direct destination resumes after its receipt was already committed"
   let prior = verify.read("remote_transfer_destination_receipt", key).unwrap()
   assert_eq(prior.revision, 0L)
   let reopened = @journal.open_journal(library, path, 1048576L, 8, 4096, 1024L).unwrap()
-  let root = @filesystem.open_root(store).unwrap()
+  let root = parent.open_child(store).unwrap()
   assert_eq(
     @transfer.record_revision(reopened.require(request).unwrap()),
     revision,
@@ -71,4 +73,5 @@ test "Native direct destination resumes after its receipt was already committed"
   assert_true(reopened.close())
   root.close().unwrap()
   verify.close_checked().unwrap()
+  parent.close().unwrap()
 }
