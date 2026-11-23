@@ -24012,6 +24012,8 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
+            "publicationControl/inspectSnapshot/inspectSnapshot",
             "publicationControl/inspectAdmission/inspectAdmission",
             "publicationControl/queryTimeControls/queryTimeControls",
             "publicationControl/compiledContent/compiledContent",
@@ -24025,12 +24027,6 @@
             "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
             "publicationControl/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
             "publicationControl/init:admit/init:admit",
-            "publicationControl/init:admitCapturedEffectSourceArtifact/init:admitCapturedEffectSourceArtifact",
-            "publicationControl/init:admitCapturedEffectSourceFromCapture/init:admitCapturedEffectSourceFromCapture",
-            "publicationControl/init:admitCapturedEffectSourceFromResult/init:admitCapturedEffectSourceFromResult",
-            "publicationControl/init:admitCapturedEffectSourceFromTableInput/init:admitCapturedEffectSourceFromTableInput",
-            "publicationControl/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
-            "publicationControl/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
             "publicationControl/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
             "publicationControl/init:admitCheckedClientRunPublication/init:admitCheckedClientRunPublication",
             "publicationControl/init:admitCompletedResultSnapshot/init:admitCompletedResultSnapshot",
@@ -24065,33 +24061,6 @@
             "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation",
             "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation/value/value",
             "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
-            "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings",
-            "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/owned/owned",
-            "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required",
-            "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required#2",
-            "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
-            "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
-            "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#2",
-            "publicationControl/init:capturedEffectSourceArtifactCid/init:capturedEffectSourceArtifactCid",
-            "publicationControl/init:capturedEffectSourceHoldingCid/init:capturedEffectSourceHoldingCid",
-            "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
-            "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
-            "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid#2",
-            "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/relations/relations",
-            "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
-            "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
-            "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#2",
-            "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#3",
-            "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
-            "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
-            "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid#2",
-            "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/results/results",
-            "publicationControl/init:capturedEffectSourceMatchesPreview/init:capturedEffectSourceMatchesPreview",
-            "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
-            "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
-            "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
-            "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
-            "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
             "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
             "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
             "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
@@ -24119,12 +24088,9 @@
             "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
             "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
-            "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
-            "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
             "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
             "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
             "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
-            "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
             "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
             "publicationControl/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
             "publicationControl/init:inspectInferInvocationEvidence/init:inspectInferInvocationEvidence",
@@ -24161,8 +24127,6 @@
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#2",
             "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
-            "publicationControl/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
-            "publicationControl/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
             "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
             "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun",
             "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation",
@@ -24197,7 +24161,6 @@
             "publicationControl/init:keyedLookupActivationJournalRecord/init:keyedLookupActivationJournalRecord",
             "publicationControl/init:keyedLookupPageJournalCurrent/init:keyedLookupPageJournalCurrent",
             "publicationControl/init:keyedLookupPageJournalRecord/init:keyedLookupPageJournalRecord",
-            "publicationControl/init:localEffectResultPayloadBinding/init:localEffectResultPayloadBinding",
             "publicationControl/init:localEffectSourceMatches/init:localEffectSourceMatches",
             "publicationControl/init:localEffectTableStorageMapping/init:localEffectTableStorageMapping",
             "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
@@ -24256,7 +24219,6 @@
             "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
             "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
             "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
-            "publicationControl/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
             "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
             "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
             "publicationControl/init:retainResultReadMetadata/init:retainResultReadMetadata",
@@ -27841,22 +27803,15 @@
         },
         {
           "operations": [
-            "publicationControl/init:admitLiveEffectCapturedRun/init:admitLiveEffectCapturedRun",
-            "publicationControl/init:admitRecoveredEffectCapturedRun/init:admitRecoveredEffectCapturedRun",
-            "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#3",
             "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#3",
-            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#4",
-            "publicationControl/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
-            "publicationControl/init:reserveEffectCaptureEncrypted/init:reserveEffectCaptureEncrypted",
-            "publicationControl/init:reserveEffectCaptureEnvelope/init:reserveEffectCaptureEnvelope",
-            "publicationControl/init:retireRecoveredEffectCapturedRun/init:retireRecoveredEffectCapturedRun"
+            "publicationControl/init:issueEffectfulCapturedRun/init:issueEffectfulCapturedRun/preparation/preparation#4"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -27865,8 +27820,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -27875,8 +27830,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -27885,8 +27840,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -27895,8 +27850,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -27905,8 +27860,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -27915,8 +27870,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -27925,8 +27880,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -27935,8 +27890,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "admitRecoveredEffectCapturedRun(parent, input, request, runDefinition, wire, limits)"
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
               },
               {
                 "path": "adapters/host-common/installed-effect-dependency-original.mts",
@@ -28177,114 +28132,6 @@
               {
                 "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
                 "anchor": "test('keyed Source borrows the actual boxed Some inventory"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
-            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
-            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
-            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals",
-            "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals#2"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareCapturedEffectSourceInventory(chain, preview, sources, storeAuthorityCid, limits)"
-              },
-              {
-                "path": "adapters/host-common/completed-run-publication.mts",
-                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
-                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
               }
             ]
           }
@@ -30722,74 +30569,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:admitCapturedEffectSourceArtifact/init:admitCapturedEffectSourceArtifact",
-          "parameters": [
-            "preview",
-            "memberIndex",
-            "invocation",
-            "artifact",
-            "storeAuthorityCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitCapturedEffectSourceFromCapture/init:admitCapturedEffectSourceFromCapture",
-          "parameters": [
-            "preview",
-            "memberIndex",
-            "invocation",
-            "artifact",
-            "capturedRun",
-            "storeAuthorityCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitCapturedEffectSourceFromResult/init:admitCapturedEffectSourceFromResult",
-          "parameters": [
-            "preview",
-            "memberIndex",
-            "invocation",
-            "artifact",
-            "result",
-            "storeAuthorityCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitCapturedEffectSourceFromTableInput/init:admitCapturedEffectSourceFromTableInput",
-          "parameters": [
-            "preview",
-            "memberIndex",
-            "invocation",
-            "artifact",
-            "input",
-            "storeAuthorityCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
-          "parameters": [
-            "definition",
-            "artifact",
-            "rowsWire",
-            "fields",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
-          "parameters": [
-            "field"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
           "parameters": [
             "checkedEffect",
@@ -30935,14 +30714,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:admitLiveEffectCapturedRun/init:admitLiveEffectCapturedRun",
-          "parameters": [
-            "owner",
-            "wire"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
           "parameters": [
             "owner",
@@ -30977,18 +30748,6 @@
           "parameters": [
             "completeWire",
             "observation",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitRecoveredEffectCapturedRun/init:admitRecoveredEffectCapturedRun",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "runDefinition",
-            "wire",
             "limits"
           ],
           "async": false
@@ -31398,219 +31157,6 @@
           "name": "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation/value/value",
           "parameters": [
             "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings",
-          "parameters": [
-            "capturedRun",
-            "bindings"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/owned/owned",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required#2",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
-          "parameters": [
-            "capturedRun"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
-          "parameters": [
-            "pair"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#2",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#3",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceArtifactCid/init:capturedEffectSourceArtifactCid",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceHoldingCid/init:capturedEffectSourceHoldingCid",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
-          "parameters": [
-            "preview",
-            "sources",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/relations/relations",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
-          "parameters": [
-            "preview",
-            "sources",
-            "invocation",
-            "capturedRun",
-            "storeAuthorityCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
-          "parameters": [
-            "preview",
-            "sources",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/results/results",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceMatchesPreview/init:capturedEffectSourceMatchesPreview",
-          "parameters": [
-            "preview",
-            "memberIndex",
-            "invocation",
-            "source",
-            "localEvidence",
-            "storeAuthorityCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
-          "parameters": [
-            "preview",
-            "sources"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
-          "parameters": [
-            "source"
           ],
           "async": false
         },
@@ -32110,15 +31656,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
-          "parameters": [
-            "chain",
-            "preview",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
           "parameters": [
             "original",
@@ -32138,26 +31675,6 @@
           "name": "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
           "parameters": [
             "preview",
-            "storeAuthorityCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
-          "parameters": [
-            "artifact",
-            "invocationCid",
-            "sourceResult",
-            "storeAuthorityCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
-          "parameters": [
-            "artifact",
-            "invocationCid",
-            "sourceTableInput",
             "storeAuthorityCid"
           ],
           "async": false
@@ -32197,13 +31714,6 @@
             "lookup",
             "observedAt",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
-          "parameters": [
-            "capturedRun"
           ],
           "async": false
         },
@@ -32830,32 +32340,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
-          "parameters": [
-            "input",
-            "receipt",
-            "invocation",
-            "retention",
-            "sourceBindingCid",
-            "storeAuthorityCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
-          "parameters": [
-            "input",
-            "receipt",
-            "invocation",
-            "retention",
-            "sourceBindingCid",
-            "storeAuthorityCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueImportedEffectEvidence/init:issueImportedEffectEvidence",
           "parameters": [
             "owner",
@@ -33159,14 +32643,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:localEffectResultPayloadBinding/init:localEffectResultPayloadBinding",
-          "parameters": [
-            "artifact",
-            "runDefinition"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:localEffectSourceMatches/init:localEffectSourceMatches",
           "parameters": [
             "owner",
@@ -33335,38 +32811,6 @@
             "definition",
             "programCid",
             "evidence"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
-          "parameters": [
-            "chain",
-            "preview",
-            "sources",
-            "storeAuthorityCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals#2",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -34609,54 +34053,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "runDefinition",
-            "wire",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:reserveEffectCaptureEncrypted/init:reserveEffectCaptureEncrypted",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "runDefinition",
-            "encryptedBytes",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:reserveEffectCaptureEnvelope/init:reserveEffectCaptureEnvelope",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "runDefinition",
-            "wire",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
-          "parameters": [
-            "parent",
-            "input",
-            "request",
-            "runDefinition",
-            "encryptedBytes",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
           "parameters": [
             "compiled",
@@ -34722,13 +34118,6 @@
           "name": "publicationControl/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
           "parameters": [
             "retained"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:retireRecoveredEffectCapturedRun/init:retireRecoveredEffectCapturedRun",
-          "parameters": [
-            "captured"
           ],
           "async": false
         },
@@ -35088,6 +34477,20 @@
           "async": false
         },
         {
+          "name": "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/inspectSnapshot/inspectSnapshot",
+          "parameters": [
+            "snapshot"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/issuanceLimits/issuanceLimits",
           "parameters": [
             "limits",
@@ -35173,6 +34576,7 @@
         "./result-output-limits.mjs",
         "./runtime-content-inference-control.mjs",
         "./runtime-content-publication-control.mjs",
+        "./runtime-effect-capture-control.mjs",
         "./runtime-execution-control.mjs",
         "./runtime-publication-contract-control.mjs",
         "./runtime-query-time-control.mjs",
@@ -35184,7 +34588,840 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "dec805b860d3a4c6e9a442ac5b1b8e857fe2dbaab0855cb0593e2ee90b530739"
+      "sha256": "4cb2ea575429c93b3a99852231fec116fa133aaa51d4a65ebce68903b863f0ce"
+    },
+    {
+      "module": "adapters/host-common/runtime-effect-capture-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Effect capture, Source ownership and prepared recovery",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createEffectCaptureControls",
+            "createEffectCaptureControls/init:admitCapturedEffectSourceArtifact/init:admitCapturedEffectSourceArtifact",
+            "createEffectCaptureControls/init:admitCapturedEffectSourceFromCapture/init:admitCapturedEffectSourceFromCapture",
+            "createEffectCaptureControls/init:admitCapturedEffectSourceFromResult/init:admitCapturedEffectSourceFromResult",
+            "createEffectCaptureControls/init:admitCapturedEffectSourceFromTableInput/init:admitCapturedEffectSourceFromTableInput",
+            "createEffectCaptureControls/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
+            "createEffectCaptureControls/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
+            "createEffectCaptureControls/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings",
+            "createEffectCaptureControls/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/owned/owned",
+            "createEffectCaptureControls/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required",
+            "createEffectCaptureControls/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required#2",
+            "createEffectCaptureControls/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
+            "createEffectCaptureControls/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
+            "createEffectCaptureControls/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#2",
+            "createEffectCaptureControls/init:capturedEffectSourceArtifactCid/init:capturedEffectSourceArtifactCid",
+            "createEffectCaptureControls/init:capturedEffectSourceHoldingCid/init:capturedEffectSourceHoldingCid",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid#2",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/relations/relations",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#2",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#3",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid#2",
+            "createEffectCaptureControls/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/results/results",
+            "createEffectCaptureControls/init:capturedEffectSourceMatchesPreview/init:capturedEffectSourceMatchesPreview",
+            "createEffectCaptureControls/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
+            "createEffectCaptureControls/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
+            "createEffectCaptureControls/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
+            "createEffectCaptureControls/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
+            "createEffectCaptureControls/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
+            "createEffectCaptureControls/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
+            "createEffectCaptureControls/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
+            "createEffectCaptureControls/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
+            "createEffectCaptureControls/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
+            "createEffectCaptureControls/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
+            "createEffectCaptureControls/init:localEffectResultPayloadBinding/init:localEffectResultPayloadBinding",
+            "createEffectCaptureControls/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery"
+          ],
+          "exports": [
+            "createEffectCaptureControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "export function createEffectCaptureControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "issuanceLimits(limits, 'Effect capture recovery');"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "recoveredEffectCaptures.get(chain.capturedRun as object);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const recoveredEffectCaptures = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const computationPreviewTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const localEffectArtifactTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "return Object.freeze(originals.map(inspectEffectSource));"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "throw new TypeError('Foreign recovered Effect captured Run');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "recoveredEffectCaptures.delete(captured as object); recoveredEffectCaptures.delete(prepared as object);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "typeof moon.clientProgramReserveRequestEffectCaptureRecovery !== 'function'"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...inventoryControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "prepared Source adapter projects N original handles with one Core call"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectCaptureControls/init:admitLiveEffectCapturedRun/init:admitLiveEffectCapturedRun",
+            "createEffectCaptureControls/init:admitRecoveredEffectCapturedRun/init:admitRecoveredEffectCapturedRun",
+            "createEffectCaptureControls/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#3",
+            "createEffectCaptureControls/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
+            "createEffectCaptureControls/init:reserveEffectCaptureEncrypted/init:reserveEffectCaptureEncrypted",
+            "createEffectCaptureControls/init:reserveEffectCaptureEnvelope/init:reserveEffectCaptureEnvelope",
+            "createEffectCaptureControls/init:retireRecoveredEffectCapturedRun/init:retireRecoveredEffectCapturedRun"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "admitRecoveredEffectCapturedRun(parent: unknown, input: unknown, request: unknown"
+              },
+              {
+                "path": "adapters/host-common/installed-effect-dependency-original.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "original cold admission refusal has no legacy parse fallback or prepared projection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectCaptureControls/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
+            "createEffectCaptureControls/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+            "createEffectCaptureControls/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+            "createEffectCaptureControls/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals",
+            "createEffectCaptureControls/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-effect-capture-control.mts",
+                "anchor": "prepareCapturedEffectSourceInventory(chain: CaptureChain, preview: unknown"
+              },
+              {
+                "path": "adapters/host-common/completed-run-publication.mts",
+                "anchor": "const preparedSources = preparedRoute ? control.prepareCapturedEffectSourceInventory("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-effect-capture-control.test.mjs",
+                "anchor": "test('prepared Source adapter projects N original handles with one Core call and no legacy member admissions'"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createEffectCaptureControls"
+      ],
+      "operations": [
+        {
+          "name": "createEffectCaptureControls",
+          "parameters": [
+            "moon",
+            "computationPreviewTokens",
+            "recoveredEffectCaptures",
+            "localEffectArtifactTokens",
+            "token",
+            "inspect",
+            "inspectSnapshot",
+            "inspectEffectSource",
+            "inspectPreparedEffectCapturedRun",
+            "effectSourceToken",
+            "localEffectSourceToken",
+            "issuanceLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:admitCapturedEffectSourceArtifact/init:admitCapturedEffectSourceArtifact",
+          "parameters": [
+            "preview",
+            "memberIndex",
+            "invocation",
+            "artifact",
+            "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:admitCapturedEffectSourceFromCapture/init:admitCapturedEffectSourceFromCapture",
+          "parameters": [
+            "preview",
+            "memberIndex",
+            "invocation",
+            "artifact",
+            "capturedRun",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:admitCapturedEffectSourceFromResult/init:admitCapturedEffectSourceFromResult",
+          "parameters": [
+            "preview",
+            "memberIndex",
+            "invocation",
+            "artifact",
+            "result",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:admitCapturedEffectSourceFromTableInput/init:admitCapturedEffectSourceFromTableInput",
+          "parameters": [
+            "preview",
+            "memberIndex",
+            "invocation",
+            "artifact",
+            "input",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
+          "parameters": [
+            "definition",
+            "artifact",
+            "rowsWire",
+            "fields",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot/init:admitCapturedResultSnapshot",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:admitLiveEffectCapturedRun/init:admitLiveEffectCapturedRun",
+          "parameters": [
+            "owner",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:admitRecoveredEffectCapturedRun/init:admitRecoveredEffectCapturedRun",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings",
+          "parameters": [
+            "capturedRun",
+            "bindings"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/owned/owned",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectDependencyPayloadBindings/init:capturedEffectDependencyPayloadBindings/required/required#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
+          "parameters": [
+            "capturedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#2",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas/init:capturedEffectDependencySchemas#3",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceArtifactCid/init:capturedEffectSourceArtifactCid",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceHoldingCid/init:capturedEffectSourceHoldingCid",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
+          "parameters": [
+            "preview",
+            "sources",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromArtifactsValid/init:capturedEffectSourceInventoryFromArtifactsValid/relations/relations",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
+          "parameters": [
+            "preview",
+            "sources",
+            "invocation",
+            "capturedRun",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid/init:capturedEffectSourceInventoryFromCaptureValid#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
+          "parameters": [
+            "preview",
+            "sources",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceInventoryFromResultsValid/init:capturedEffectSourceInventoryFromResultsValid/results/results",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceMatchesPreview/init:capturedEffectSourceMatchesPreview",
+          "parameters": [
+            "preview",
+            "memberIndex",
+            "invocation",
+            "source",
+            "localEvidence",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
+          "parameters": [
+            "preview",
+            "sources"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid/init:capturedEffectSourceRecoveryInventoryValid#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:capturedEffectSourceStoreAuthorityCid/init:capturedEffectSourceStoreAuthorityCid",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:effectfulComputationEvidenceChainValid/init:effectfulComputationEvidenceChainValid",
+          "parameters": [
+            "chain",
+            "preview",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:effectSourceArtifactPreviewBinding/init:effectSourceArtifactPreviewBinding",
+          "parameters": [
+            "artifact",
+            "invocationCid",
+            "sourceResult",
+            "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:effectTableSourceArtifactPreviewBinding/init:effectTableSourceArtifactPreviewBinding",
+          "parameters": [
+            "artifact",
+            "invocationCid",
+            "sourceTableInput",
+            "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:hasPreparedCapturedEffectRun/init:hasPreparedCapturedEffectRun",
+          "parameters": [
+            "capturedRun"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:issueEffectSourceArtifactFromExport/init:issueEffectSourceArtifactFromExport",
+          "parameters": [
+            "input",
+            "receipt",
+            "invocation",
+            "retention",
+            "sourceBindingCid",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:issueEffectTableSourceArtifactFromExport/init:issueEffectTableSourceArtifactFromExport",
+          "parameters": [
+            "input",
+            "receipt",
+            "invocation",
+            "retention",
+            "sourceBindingCid",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:localEffectResultPayloadBinding/init:localEffectResultPayloadBinding",
+          "parameters": [
+            "artifact",
+            "runDefinition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+          "parameters": [
+            "chain",
+            "preview",
+            "sources",
+            "storeAuthorityCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:prepareCapturedEffectSourceInventory/init:prepareCapturedEffectSourceInventory/originals/originals#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:reserveEffectCaptureDecoded/init:reserveEffectCaptureDecoded",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:reserveEffectCaptureEncrypted/init:reserveEffectCaptureEncrypted",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "encryptedBytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:reserveEffectCaptureEnvelope/init:reserveEffectCaptureEnvelope",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "wire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:reserveEffectCaptureRecovery/init:reserveEffectCaptureRecovery",
+          "parameters": [
+            "parent",
+            "input",
+            "request",
+            "runDefinition",
+            "encryptedBytes",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectCaptureControls/init:retireRecoveredEffectCapturedRun/init:retireRecoveredEffectCapturedRun",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "eeff9999380ea0139d0a9b0f6bdb3258b8223fdb0c463001b3ca4305a40a5c70"
     },
     {
       "module": "adapters/host-common/runtime-content-inference-control.mjs",
