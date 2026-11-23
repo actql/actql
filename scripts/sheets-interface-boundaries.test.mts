@@ -57,7 +57,12 @@ test('the private operation-qualified role issuer requires its own original Moon
 test('a new private Sheets decision cannot inherit an existing module contract', () => {
   const path = 'adapters/connectors/sheets/host/sheets-range-command.mjs';
   const text = readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
-  const changed = jsModule(path, text + '\nfunction decideUnregisteredOutcome() { return "success"; }\n');
+  const factory = 'return Object.freeze({ ...managed, kinds:';
+  const mutated = text.replace(factory, 'return Object.freeze({ ...managed, decideUnregisteredOutcome, kinds:');
+  assert.notEqual(mutated, text, 'the actual driver factory was mutated');
+  const changed = jsModule(path, mutated + '\nfunction decideUnregisteredOutcome() { return "success"; }\n');
+  assert(changed.operations.some(operation => operation.name === 'decideUnregisteredOutcome'));
+  assert(!changed.privateOperations.includes('decideUnregisteredOutcome'));
   const declared = structuredClone(declarations);
   declared.find(value => value.module === path)!.sha256 = changed.sha256;
   assert.throws(() => assertInterfaceCoverage({root, modules: [changed], declarations: declared}),
@@ -70,9 +75,22 @@ test('compiler representation access in the original checked consumer fails its 
   const mutated = text.replace('return checked(result);',
     'return result.$tag === 1 ? result._0 : checked(result);');
   assert.notEqual(mutated, text, 'the actual checked consumer was mutated');
+  const original = jsModule(path, text);
+  assertInterfaceCoverage({root, modules: [original], declarations});
   const changed = jsModule(path, mutated);
+  assert.deepEqual(changed.compilerFields, ['$tag', '_0']);
+  assert.deepEqual(changed.operations, original.operations);
   const declared = structuredClone(declarations);
-  declared.find(value => value.module === path)!.sha256 = changed.sha256;
+  const selected = declared.find(value => value.module === path)!;
+  const moduleContract = selected.contracts.find(contract => contract.operations.includes('<module>'))!;
+  // Compiler field access uses the full callable inventory. Register only
+  // the unchanged original operations to reach the independent role refusal.
+  const existing = new Set(selected.operations.map(operation => operation.name));
+  const privateOriginals = original.operations.filter(operation => original.privateOperations.includes(operation.name) &&
+    !existing.has(operation.name));
+  selected.operations = original.operations;
+  moduleContract.operations.push(...privateOriginals.map(operation => operation.name));
+  selected.sha256 = changed.sha256;
   assert.throws(() => assertInterfaceCoverage({root, modules: [changed], declarations: declared}),
     /Compiler representation outside generated binding/u);
 });
