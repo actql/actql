@@ -6,6 +6,7 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {gateJobs} from './ci-targets.mjs';
 import {classifyJob} from './local-checks-policy.mjs';
@@ -21,7 +22,9 @@ test('normal Linux Local job is separate, mandatory and explicitly bounded', () 
   assert(job);
   assert.deepEqual(job.needs, ['select-targets']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
-  assert.equal(job['timeout-minutes'], 50);
+  const timeout = job['timeout-minutes'].slice(3, -3);
+  assert.equal(runInNewContext(timeout, {inputs: {}}, {timeout: 100}), 50);
+  assert.equal(runInNewContext(timeout, {inputs: {native_shared_remote_linux: true}}, {timeout: 100}), 90);
   assert.match(job.if, /outputs\.profile == 'full'/u);
   assert.equal(job['continue-on-error'], undefined);
   assert(gateJobs.includes('native-cli-linux-local'));
@@ -29,6 +32,71 @@ test('normal Linux Local job is separate, mandatory and explicitly bounded', () 
   assert.equal(classifyJob('native-cli-linux-local').heavy, true);
   assert(!job.steps.some(step => step.uses === './.github/actions/download-client-packages'),
     'Source-free acceptance cannot borrow a Node Host package cohort');
+});
+
+test('manual shared Remote qualification selects only the existing Linux producer', () => {
+  const input = 'native_shared_remote_linux';
+  assert.equal(workflow.on.workflow_dispatch.inputs[input].type, 'boolean');
+  assert.equal(workflow.on.workflow_dispatch.inputs[input].default, false);
+  const evaluate = (value, {event = 'workflow_dispatch', inputs = {[input]: true},
+    repository = {visibility: 'public', private: false}, result = 'skipped',
+    profile, cancelled = false} = {}) => runInNewContext(
+    value.replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+      .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`),
+    {github: {event_name: event, event: {repository}}, inputs,
+      needs: {'select-targets': {result, outputs: {profile}}, 'native-cli-linux-local': {result: 'success'}},
+      always: () => true, cancelled: () => cancelled, toJSON: JSON.stringify}, {timeout: 100});
+  assert.equal(evaluate(job.if), true);
+  assert.equal(evaluate(workflow.jobs['select-targets'].if), false);
+  assert.equal(evaluate(workflow.jobs.check.if), false);
+  for (const consumer of [installedJob, mockJob]) assert.equal(evaluate(consumer.if), false);
+  for (const option of [
+    {event: 'pull_request'}, {result: 'failure'}, {result: 'success', profile: 'full'},
+    {cancelled: true}, {repository: {visibility: 'private', private: true}},
+    {inputs: {[input]: true, performance_matrix: true}},
+    {inputs: {[input]: true, packed_query_evidence_probe: true}},
+  ]) assert.equal(evaluate(job.if, option), false);
+  const ordinary = {event: 'pull_request', inputs: {}, result: 'success', profile: 'full'};
+  assert.equal(evaluate(job.if, ordinary), true);
+  assert.equal(evaluate(workflow.jobs.check.if, ordinary), true);
+  for (const option of [{...ordinary, profile: 'draft'}, {...ordinary, result: 'failure'}])
+    assert.equal(evaluate(job.if, option), false);
+
+  const prep = job.steps.find(step => step.run?.includes('prepare-native-resident-http-component.py'));
+  const produce = job.steps.find(step => step.run?.includes('produce-native-cli-linux-local.mjs'));
+  const pack = job.steps.find(step => step.id === 'local_cohort');
+  const consumer = job.steps.find(step => step.run?.includes('test-native-cli-release-install.mjs'));
+  assert(job.steps.indexOf(prep) < job.steps.indexOf(produce));
+  assert(job.steps.indexOf(pack) < job.steps.indexOf(consumer));
+  assert.equal(prep['continue-on-error'], undefined);
+  assert.equal(consumer['continue-on-error'], undefined);
+  assert.match(prep.run, /test "\$\(uname -m\)" = x86_64/u);
+  assert.match(prep.run, /--source "\$\(git rev-parse HEAD\)" --target linux-x64/u);
+  assert.match(consumer.run,
+    /node scripts\/test-native-cli-release-install\.mjs "\$output\/release" "\$output\/node-release" --shared-clients/u);
+  assert(consumer.run.includes('release/0.0.2/node-cohort.json'));
+  for (const step of [prep, consumer]) {
+    assert.equal(evaluate(step.if), true);
+    assert.equal(evaluate(step.if, ordinary), false);
+  }
+
+  // Execute the actual shell argument selection with closed recording ports.
+  const port = 'node() { printf "%s\\n" "$@"; }\n' +
+    'git() { printf "commit\\n"; }\nrealpath() { printf "%s\\n" "$1"; }\n';
+  const temp = '/tmp/with spaces';
+  for (const selected of ['false', 'true']) {
+    const child = spawnSync('bash', ['-eo', 'pipefail', '-c', port + produce.run], {
+      encoding: 'utf8', timeout: 5000,
+      env: {...process.env, RUNNER_TEMP: temp, SHARED_REMOTE_LINUX: selected},
+    });
+    assert.equal(child.status, 0, child.stderr);
+    const args = child.stdout.trimEnd().split('\n');
+    assert.equal(args[0], 'scripts/produce-native-cli-linux-local.mjs');
+    assert.equal(args.filter(arg => arg === '--remote-http-preparation').length, selected === 'true' ? 1 : 0);
+    if (selected === 'true') assert.deepEqual(args.slice(-2),
+      ['--remote-http-preparation', temp + '/native-cli-linux-local/http/preparation.json']);
+    else assert.equal(args.at(-1), '1800');
+  }
 });
 
 test('Local CI finishes normal production and packaging before independent installed acceptance', () => {

@@ -70,12 +70,16 @@ on:
         description: Also run the macOS native diagnostic job
         type: boolean
         default: false
+      native_shared_remote_linux:
+        description: Qualify shared Remote CLI clients with the verified Linux x64 HTTPS member
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_shared_remote_linux && 'linux-shared-remote' || 'normal' }}
   # Keep the active main integration; GitHub retains only the latest pending run.
   # Branch and performance groups cannot cancel normal main integration.
   cancel-in-progress: ${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}
@@ -87,7 +91,7 @@ jobs:
   select-targets:
     permissions:
       contents: read
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -2619,14 +2623,16 @@ jobs:
   # Separate positive Local cohort; the Remote/no-runtime regression is independent.
   native-cli-linux-local:
     needs: [select-targets]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+      ((github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux && needs.select-targets.result == 'skipped') ||
+        (!inputs.native_shared_remote_linux && needs.select-targets.result == 'success' && needs.select-targets.outputs.profile == 'full')) }}
     outputs:
       artifact-id: ${{ steps.local_evidence.outputs.artifact-id }}
       artifact-run-id: ${{ github.run_id }}
       artifact-run-attempt: ${{ github.run_attempt }}
       artifact-source-sha: ${{ github.sha }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: ${{ inputs.native_shared_remote_linux && 90 || 50 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2682,8 +2688,27 @@ jobs:
           for name, original in [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]:
               retain_original(original, inputs / name)
           PY
-      - name: Produce normal selected Linux Local artifact
+      - name: Prepare the verified synchronous Remote HTTPS member
+        if: github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux
+        timeout-minutes: 25
         run: |
+          test "$(uname -m)" = x86_64
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends gnupg gpgv
+          python3 scripts/prepare-native-resident-http-component.py \
+            --source "$(git rev-parse HEAD)" --target linux-x64 \
+            --clang "$(realpath /usr/bin/clang-19)" --make "$(realpath /usr/bin/make)" \
+            --perl "$(realpath /usr/bin/perl)" --gpg "$(realpath /usr/bin/gpg)" \
+            --gpgv "$(realpath /usr/bin/gpgv)" \
+            --destination "$RUNNER_TEMP/native-cli-linux-local/http" --seconds 1200 --tls-jobs 2
+      - name: Produce normal selected Linux Local artifact
+        env:
+          SHARED_REMOTE_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux }}
+        run: |
+          remote_http=()
+          if [ "$SHARED_REMOTE_LINUX" = true ]; then
+            remote_http=(--remote-http-preparation "$RUNNER_TEMP/native-cli-linux-local/http/preparation.json")
+          fi
           node scripts/produce-native-cli-linux-local.mjs \
             --source "$(git rev-parse HEAD)" --package-version 0.0.2 \
             --output "$RUNNER_TEMP/native-cli-linux-local/production" \
@@ -2691,7 +2716,7 @@ jobs:
             --sqlite-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/sqlite.zip" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl-dev.deb" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl3t64.deb" \
-            --component-seconds 300 --compile-seconds 1800
+            --component-seconds 300 --compile-seconds 1800 "${remote_http[@]}"
       - name: Require Local payload in the selected npm cohort
         id: local_cohort
         run: |
@@ -2708,6 +2733,13 @@ jobs:
             --source "$(git rev-parse HEAD)" --clang "$(realpath /usr/bin/clang-19)" \
             --crypto-producer "$RUNNER_TEMP/native-cli-linux-local/production/crypto/producer.json" \
             --output "$RUNNER_TEMP/native-cli-linux-local/crypto-allocator" --seconds 150
+      - name: Exercise installed shared Remote clients with the matching ordinary packages
+        if: github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux
+        timeout-minutes: 20
+        run: |
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          node scripts/package-release.mjs prepare "$output/node-release" release/0.0.2/node-cohort.json
+          node scripts/test-native-cli-release-install.mjs "$output/release" "$output/node-release" --shared-clients
       - name: Retain exact component and Local artifact receipts
         id: local_evidence
         if: always()
@@ -2724,6 +2756,14 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/release/release.json
             ${{ runner.temp }}/native-cli-linux-local/release/actql-0.0.2.tgz
             ${{ runner.temp }}/native-cli-linux-local/release/actql-cli-linux-x64-gnu-0.0.2.tgz
+            ${{ runner.temp }}/native-cli-linux-local/http/preparation.json
+            ${{ runner.temp }}/native-cli-linux-local/http/component/build.json
+            ${{ runner.temp }}/native-cli-linux-local/http/owned-tls/build.json
+            ${{ runner.temp }}/native-cli-linux-local/release/install-linux-x64-gnu-*.json
+            ${{ runner.temp }}/native-cli-linux-local/node-release/release.json
+            ${{ runner.temp }}/native-cli-linux-local/node-release/*.tgz
+            ${{ runner.temp }}/native-cli-linux-local/node-release/development/packed-client-packages.json
+            ${{ runner.temp }}/native-cli-linux-local/node-release/development/*.tgz
           if-no-files-found: warn
           retention-days: 14
   # Independent installed and Mock consumers share only the fixed producer artifact.
@@ -3113,7 +3153,7 @@ jobs:
             }
           '
   check:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux }}
     needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-installed, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04
