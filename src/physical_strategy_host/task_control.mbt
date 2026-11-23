@@ -401,12 +401,15 @@ fn commit_captured_task_control(
   if !captured_control_owner_matches(run, hooks) || control.binding is None {
     return
   }
-  // Keep only a scalar from the actual consumed attempt. A materialized
-  // output without a started reservation still commits with legacy behavior,
-  // but cannot become this Debug producer's Sample origin.
-  control.committed_attempt_sequence = if run.outputs[task]
-    is Some(Materialized(output)) &&
-    @execution.completed_has_cell_access(output) {
+  // Keep only the started ordinal after a Relation commit. The selected
+  // reader separately verifies cell availability and the original projection
+  // retained by the full managed completion receipt.
+  let relation = match run.outputs[task] {
+    Some(Materialized(output)) => @execution.completed_has_cell_access(output)
+    Some(Managed(_)) => true
+    _ => false
+  }
+  control.committed_attempt_sequence = if relation {
     @resources.completed_output_attempt_sequence(run.ledger, reservation)
   } else {
     0

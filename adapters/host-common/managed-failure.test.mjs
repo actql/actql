@@ -107,6 +107,60 @@ function managedCase(factory, prefix, provider, overrides = {}) {
   return {entry, prepared, events, memory};
 }
 
+test('Local optional Sample preserves its first failure while the same prefix return is pending', async () => {
+  const prefix = Object.freeze({});
+  const first = new Error('original Sample visitor refusal');
+  const pending = new Error('original Sample reservation return is blocked');
+  const owner = {}, profile = {};
+  let allowed = false, firstReturns = 0, commits = 0, adoptions = 0;
+  const fixture = managedCase((moon, setup, verify) => localStrategyContribution({
+    ...moon,
+    strategyModule_local_ManagedStartSample(configuration, retained, original, selected, task,
+      maxBytes, maxNodes, maxDepth, current, adopt, retainPending, result) {
+      assert.equal(original, owner);
+      assert.equal(selected, profile);
+      const operations = verify(moon.strategyModule_local_ManagedStart(configuration));
+      return ok({...operations, complete() {
+        const completed = operations.complete();
+        commits++;
+        assert.equal(current(), true);
+        assert.equal(adopt(prefix), false);
+        retainPending(prefix);
+        // The lower boundary ledger may report no pending return yet.
+        result(failed(first), false, false);
+        return completed;
+      }});
+    },
+    strategyModule_local_ReturnPendingSample(original) {
+      assert.equal(original, prefix);
+      firstReturns++;
+      return allowed ? ok() : failed(pending);
+    },
+  }, setup, verify), 'local', {async read() {}});
+  let failure;
+  await assert.rejects(fixture.entry.runPrepared(fixture.prepared, undefined, {
+    owner, profile, maxWireBytes: 4096, maxNodes: 128, maxDepth: 16, current: () => true,
+    adopt(original) {
+      assert.equal(original, prefix);
+      adoptions++;
+      throw first;
+    },
+  }), error => {failure = error; return error.primaryFailure === first;});
+  const handle = failure.cleanupHandle;
+  assert.equal(handle.status().pending, true);
+  assert.ok(handle.status().errors.some(error => error.cause === pending));
+  assert.ok(firstReturns >= 1);
+  assert.equal(fixture.events.includes('close'), false);
+  allowed = true;
+  assert.equal((await handle.retry()).pending, false);
+  assert.equal(fixture.events.includes('close'), true);
+  const settledReturns = firstReturns;
+  assert.equal((await handle.retry()).pending, false);
+  assert.equal(firstReturns, settledReturns);
+  assert.equal(adoptions, 1);
+  assert.equal(commits, 1);
+});
+
 for (const [name, factory, prefix] of [
   ['Local', localStrategyContribution, 'local'],
   ['reference', numericStrategyContribution, 'reference_compute'],

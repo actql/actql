@@ -78,6 +78,24 @@ pub fn completed_relation_sample_prefix_construction_bytes(
 }
 
 ///|
+fn emit_relation_sample_value(
+  value : Value,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  if value is Captured(captured) {
+    let cursor = @admitted.start_wire_emit(captured, writer)
+    while true {
+      @encode.construction_work_step(writer, 1)
+      if @admitted.advance_wire_emit(cursor) {
+        break
+      }
+    }
+  } else {
+    emit_runtime_value(value, writer)
+  }
+}
+
+///|
 /// Project a bounded prefix in the admitted material's stored row and column
 /// order. The caller funds schema, writer, document and their coexistence
 /// before entry and retains the original output pin through consumption.
@@ -89,6 +107,7 @@ pub fn encode_completed_relation_sample_prefix(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  work : (Int) -> Bool,
   original_current? : () -> Bool = () => true,
 ) -> Result[(@encode.EncodedDocument, Int, Int), RelationSamplePrefixIssue] {
   if max_items < 1 || max_bytes < 1 || max_nodes < 1 || max_depth < 1 {
@@ -106,7 +125,8 @@ pub fn encode_completed_relation_sample_prefix(
     names.length() == @schema.field_count(schema) else {
     return Err(InvalidLayout)
   }
-  let schema_identity = match identify_relation_schema(schema, schema_limits) {
+  let schema_identity = match
+    identify_relation_schema(schema, schema_limits, work=Some(work)) {
     Ok(value) => value
     Err(issue) => return Err(Schema(issue))
   }
@@ -116,19 +136,34 @@ pub fn encode_completed_relation_sample_prefix(
     2L * schema_limits.max_nodes.to_int64() + 8L,
   ).to_int()
   let document = try {
-    let writer = @encode.writer(max_bytes, max_nodes, max_depth)
+    let writer = @encode.work_writer(max_bytes, max_nodes, max_depth, work)
     @encode.begin_ordered_object(writer)
     @encode.ordered_key(writer, "columns")
     @encode.begin_array(writer)
     let contracts : Array[(String, Bool)] = Array(capacity=names.length())
+    // Each lookup compares at most one exact field per halving of the
+    // admitted width, then verifies equality with the borrowed spelling.
+    let mut probes = 2L
+    let mut width = names.length()
+    while width > 0 {
+      @encode.construction_work_step(writer, 1)
+      width = width / 2
+      probes += 1L
+    }
     for index, name in names {
+      let units = probes * (1L + name.length().to_int64())
+      if units > 2147483647L {
+        return Err(InvalidLimits)
+      }
+      @encode.construction_work_step(writer, units.to_int())
       guard @schema.lookup_reference(schema, name) is Some(field) else {
         return Err(InvalidLayout)
       }
-      let hash = @encode.hashing_writer(
+      let hash = @encode.work_hashing_writer(
         schema_limits.max_bytes,
         schema_limits.max_nodes,
         schema_limits.max_depth,
+        work,
       )
       let emitter = @contract.start_checked_emission(
         field.contract,
@@ -160,11 +195,13 @@ pub fn encode_completed_relation_sample_prefix(
     @encode.ordered_key(writer, "rows")
     @encode.begin_array(writer)
     for row in 0..<items {
+      @encode.construction_work_step(writer, 1)
       if IndexedRows::row_width(table, row) != contracts.length() {
         return Err(InvalidLayout)
       }
       @encode.begin_array(writer)
       for column, entry in contracts {
+        @encode.construction_work_step(writer, 1)
         let (contract, required) = entry
         let present = IndexedRows::cell_present(table, row, column)
         if required && !present {
@@ -175,7 +212,10 @@ pub fn encode_completed_relation_sample_prefix(
         if present {
           @encode.string_value(writer, "present")
           @encode.ordered_key(writer, "value")
-          emit_runtime_value(IndexedRows::read_cell(table, row, column), writer)
+          emit_relation_sample_value(
+            IndexedRows::read_cell(table, row, column),
+            writer,
+          )
           @encode.ordered_key(writer, "value_contract_cid")
           @encode.string_value(writer, contract)
         } else {

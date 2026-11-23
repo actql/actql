@@ -934,12 +934,21 @@ pub fn captured_task_output_pin_matches_committed_relation(
   boundary : CapturedTaskBoundary,
   pin : CapturedOutputPin,
 ) -> Bool {
+  captured_committed_relation_pin_current(run, boundary, pin) &&
+  captured_control_boundary_available(run.graph, pin.task)
+}
+
+///|
+fn captured_committed_relation_pin_current(
+  run : CapturedDAG,
+  boundary : CapturedTaskBoundary,
+  pin : CapturedOutputPin,
+) -> Bool {
   guard boundary.phase != Before &&
     pin.live &&
     physical_equal(pin.run, run) &&
     pin.task == boundary.task &&
     captured_task_boundary_current(run, boundary) &&
-    captured_control_boundary_available(run.graph, pin.task) &&
     run.outputs[pin.task] is Some(Materialized(output)) else {
     return false
   }

@@ -10,6 +10,37 @@ const sql = Object.freeze([
   compiled_plan_wire TEXT NOT NULL,
   plan_view_wire TEXT NOT NULL
 ) STRICT`,
+  `CREATE TABLE client_relation_sample_adoptions (
+  run_definition_cid TEXT NOT NULL REFERENCES client_relation_sample_starts(run_definition_cid) ON DELETE CASCADE,
+  sample_ref_cid TEXT NOT NULL,
+  source_generation_cid TEXT NOT NULL,
+  expires_at INTEGER NOT NULL CHECK (expires_at > 0),
+  journal_receipt_ordinal INTEGER NOT NULL CHECK (journal_receipt_ordinal > 0),
+  run_receipt_ordinal INTEGER NOT NULL CHECK (run_receipt_ordinal > 0),
+  source_generation_wire TEXT,
+  capture_wire TEXT,
+  emission_wire TEXT,
+  reference_wire TEXT,
+  receipt_wire TEXT NOT NULL,
+  relation_wire TEXT,
+  CHECK ((relation_wire IS NULL) = (source_generation_wire IS NULL) AND
+    (relation_wire IS NULL) = (capture_wire IS NULL) AND
+    (relation_wire IS NULL) = (emission_wire IS NULL) AND
+    (relation_wire IS NULL) = (reference_wire IS NULL)),
+  PRIMARY KEY (run_definition_cid, sample_ref_cid),
+  UNIQUE (run_definition_cid, source_generation_cid),
+  UNIQUE (journal_receipt_ordinal),
+  UNIQUE (run_definition_cid, run_receipt_ordinal)
+) STRICT`,
+  `CREATE TABLE client_relation_sample_starts (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL,
+  submitted_intent_cid TEXT NOT NULL,
+  control_admission_cid TEXT NOT NULL,
+  resolved_profile_cid TEXT NOT NULL,
+  start_revision INTEGER NOT NULL CHECK (start_revision BETWEEN 1 AND 2147483647)
+) STRICT`,
   `CREATE TABLE client_run_explanation_context_originals (
   run_definition_cid TEXT PRIMARY KEY REFERENCES client_run_explanation_originals(run_definition_cid) ON DELETE CASCADE,
   context_wire TEXT NOT NULL,

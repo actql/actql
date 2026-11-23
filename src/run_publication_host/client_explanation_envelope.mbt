@@ -81,6 +81,22 @@ fn explanation_original_matches(
 }
 
 ///|
+/// Borrow the exact compiler-issued map identity beside its still-held Plan.
+/// A sealed replacement with different capabilities, ports or keys refuses.
+pub fn client_structural_explanation_map_matches(
+  original : ClientStructuralExplanationOriginal,
+  compiled : ClientCompiledRun,
+  prepared : PreparedClientProgram,
+  map : @publication.RunEvidenceValue,
+) -> Bool {
+  explanation_original_matches(original, compiled, prepared) &&
+  @publication.run_evidence_value_name(map) == "logical_map" &&
+  @canonical.object_field(original.map, "self_cid")
+  is Some(@canonical.String(identity)) &&
+  identity == @publication.run_evidence_value_identity(map)
+}
+
+///|
 fn explanation_original_text(
   value : @canonical.CanonicalValue,
   field : String,

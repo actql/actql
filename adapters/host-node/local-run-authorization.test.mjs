@@ -219,6 +219,20 @@ test('actual Account keeps Run-read and named-Result-read distinct and current',
     'the same Account owner already observed this policy change');
   assert.equal(await authority.run({...request, principalId: 'foreign'}), false);
   assert.equal(await authority.run({...request, indexKey: {...facts.ref, namespaceId: 'foreign'}}), false);
+  await writeFile(accountConfig, configuration('allow', 'allow'));
+  assert.equal(authority.sampleCaptureImmediate(request), false);
+  const sample = JSON.parse(configuration('allow', 'allow'));
+  const sampleRead = JSON.parse(sourceReadAccountConfiguration({connection: 'local-mock',
+    resource: 'sample', entryId: 'sample-access'})).entries[0];
+  sample.entries.push(sampleRead);
+  await writeFile(accountConfig, canonicalJson(sample));
+  assert.equal(authority.sampleCaptureImmediate(request), false, 'Sample read never grants capture');
+  sampleRead.operation.any_of = ['capture'];
+  await writeFile(accountConfig, canonicalJson(sample));
+  assert.equal(authority.sampleCaptureImmediate(request), true);
+  sampleRead.outcome = 'deny';
+  await writeFile(accountConfig, canonicalJson(sample));
+  assert.equal(authority.sampleCaptureImmediate(request), false);
 });
 
 test('Sheets public fixture admits only owner Run and answer reads while keeping business denial', async () => {

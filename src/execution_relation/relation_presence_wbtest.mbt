@@ -553,7 +553,13 @@ test "presence output stream retains exact bytes and reloads through the existin
     ] {
     let (rows, bytes, expected) = sample
     let (document, items, total) = encode_completed_relation_sample_prefix(
-      reloaded, rows, sample_limits, bytes, 128, 12,
+      reloaded,
+      rows,
+      sample_limits,
+      bytes,
+      128,
+      12,
+      _ => true,
     ).unwrap()
     assert_eq(
       (items, total, @encode.document_bytes(document)),
@@ -575,6 +581,7 @@ test "presence output stream retains exact bytes and reloads through the existin
         bytes - 1,
         128,
         12,
+        _ => true,
       )
       is Err(Encoding(@encode.OutputLimit)),
     )
@@ -587,6 +594,7 @@ test "presence output stream retains exact bytes and reloads through the existin
       1141,
       128,
       12,
+      _ => true,
     )
     is Err(Unavailable),
   )

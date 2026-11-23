@@ -2077,7 +2077,7 @@
         {
           "path": "spec/contracts/actql-interactive-run-control.json",
           "pointer": "",
-          "cid": "sha256:53f47d53418e0483919707ef183656bab436286c616eb300d0e2d0f98db6384e",
+          "cid": "sha256:c9937c7bba87027df33dd40a574c45c0bd6d7f5c158fd1db90181dde2a9054c9",
           "version": "actql-interactive-run-control-registry/0.1"
         },
         {
@@ -2168,6 +2168,36 @@
           "path": "spec/contracts/actql-interactive-run-control.json",
           "pointer": "/schemas/run_explanation_context_view",
           "cid": "sha256:3cec5b8c56eea51ad6f570a730a7921725b1d98247c7c34b8792b5dc57e3959d",
+          "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/sample_source_generation",
+          "cid": "sha256:b5603e21c94f2aceacb6b2ca74783379e0cdbce58b3ae1ca36a62cd5c0e5dbb8",
+          "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/sample_original_capture",
+          "cid": "sha256:568e8095002ae75e212a9b3971d170f7ea938eb75c2286a258ccbd190b9384af",
+          "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/sample_emission_provenance",
+          "cid": "sha256:a285c28998d3e7bb2f221cc37ff23173448beb5dfe65e1007308a20c8af30994",
+          "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/sample_reference",
+          "cid": "sha256:bc73183c548b99a1c437a23268bda1bdfcdbdba95f66f82ac213f37a61077796",
+          "version": "actql-interactive-run-control-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/sample_adoption_receipt",
+          "cid": "sha256:b4d721ccfa06c55cc7c21275dff12636314a2666447796c9c84636ef8a95e225",
           "version": "actql-interactive-run-control-registry/0.1"
         }
       ],

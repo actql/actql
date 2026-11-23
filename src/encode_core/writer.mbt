@@ -30,6 +30,7 @@ priv enum OutputSink {
   WorkGeometryOutput(ConstructionGeometryState, (Int) -> Bool, Bool)
   WorkTextOutput(StringBuilder, (Int) -> Bool)
   HashOutput(@sha256.Hasher)
+  WorkHashOutput(@sha256.Hasher, (Int) -> Bool)
   BufferedHashOutput(BufferedHash)
   BufferedTextOutput(BufferedText)
   CompareOutput(ComparedText)
@@ -293,7 +294,8 @@ pub fn cancel_writer(w : Writer) -> Unit {
     MeasureOutput
     | GeometryOutput(_)
     | WorkGeometryOutput(_, _, _)
-    | HashOutput(_) => ()
+    | HashOutput(_)
+    | WorkHashOutput(_, _) => ()
   }
 }
 
@@ -318,6 +320,9 @@ fn hash_byte(
   h : @sha256.Hasher,
   byte : Int,
 ) -> Unit raise EncodeFailure {
+  if w.output is WorkHashOutput(_, _) {
+    construction_work_step(w, 1)
+  }
   @sha256.update_byte(h, byte.to_byte()) catch {
     @sha256.ClosedHasher => fail(w, ClosedWriter)
     @sha256.MessageTooLong => fail(w, OutputLimit)
@@ -333,6 +338,9 @@ fn hash_ascii_range(
   start : Int,
   end : Int,
 ) -> Unit raise EncodeFailure {
+  if w.output is WorkHashOutput(_, _) {
+    construction_work_step(w, end - start)
+  }
   @sha256.update_ascii_range(h, text, start, end) catch {
     @sha256.ClosedHasher => fail(w, ClosedWriter)
     @sha256.MessageTooLong => fail(w, OutputLimit)
@@ -397,7 +405,8 @@ fn ascii(w : Writer, text : String) -> Unit raise EncodeFailure {
     CompareOutput(output) | WorkCompareOutput(output, _) =>
       compare_range(output, text, 0, text.length())
     BufferedTextOutput(buffer) => buffer.text.write_string(text)
-    HashOutput(h) => hash_ascii_range(w, h, text, 0, text.length())
+    HashOutput(h) | WorkHashOutput(h, _) =>
+      hash_ascii_range(w, h, text, 0, text.length())
     BufferedHashOutput(buffer) => {
       hash_ascii_range(w, buffer.hash, text, 0, text.length())
       buffer.text.write_string(text)
@@ -503,7 +512,7 @@ fn quoted_contents(
             }
           BufferedTextOutput(buffer) =>
             buffer.text.write_char(scalar.unsafe_to_char())
-          HashOutput(h) => hash_scalar(w, h, scalar)
+          HashOutput(h) | WorkHashOutput(h, _) => hash_scalar(w, h, scalar)
           BufferedHashOutput(buffer) => {
             hash_scalar(w, buffer.hash, scalar)
             buffer.text.write_char(scalar.unsafe_to_char())
@@ -553,7 +562,8 @@ fn ascii_span(
       output.write_view(text.view(start_offset=start, end_offset=end))
     BufferedTextOutput(buffer) =>
       buffer.text.write_view(text.view(start_offset=start, end_offset=end))
-    HashOutput(hash) => hash_ascii_range(w, hash, text, start, end)
+    HashOutput(hash) | WorkHashOutput(hash, _) =>
+      hash_ascii_range(w, hash, text, start, end)
     BufferedHashOutput(buffer) => {
       hash_ascii_range(w, buffer.hash, text, start, end)
       buffer.text.write_view(text.view(start_offset=start, end_offset=end))
@@ -780,6 +790,7 @@ pub fn begin_object(w : Writer) -> Unit raise EncodeFailure {
   match w.output {
     WorkGeometryOutput(_, _, _)
     | WorkTextOutput(_, _)
+    | WorkHashOutput(_, _)
     | WorkCompareOutput(_, _) => w.frames.push(OrderedObjectKey(None, 0))
     _ => w.frames.push(ObjectKey(true, Map([])))
   }
@@ -1150,6 +1161,11 @@ pub fn finish_hash_metrics(
   active(w)
   let h = match w.output {
     HashOutput(h) => h
+    WorkHashOutput(h, _) => {
+      // SHA-256 finalization can add two padding blocks.
+      construction_work_step(w, 128)
+      h
+    }
     BufferedHashOutput(buffer) => {
       if buffer.bytes != 0 {
         fail(w, InvalidStructure)

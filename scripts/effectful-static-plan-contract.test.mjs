@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {canonicalText} from './check-canonical-json.mjs';
-import {buildControlRegistry} from './interactive-run-control-contract.mjs';
+import {buildControlRegistry, privateSampleEvidenceNames} from './interactive-run-control-contract.mjs';
 import {validWireEffectfulStaticPlanViewShape, validWireExplanationContextShape,
   validWirePlanViewShape, validWireRunExplanationContextViewShape, validWireStaticExplanationViewShape} from
   '../packages/client-wire/interactive-control.generated.js';
@@ -76,8 +76,10 @@ test('Effectful static envelope preserves the independent original Plan/map sche
 
 test('versioned static Explanation composes the existing closed schema families', () => {
   const registry = buildControlRegistry();
+  const publicPins = Object.fromEntries(Object.entries(registry.schema_cids)
+    .filter(([name]) => !privateSampleEvidenceNames.includes(name)));
   const {static_explanation_view: added, run_explanation_context_view: saved,
-    explanation_context: contextPin, ...originalPins} = registry.schema_cids;
+    explanation_context: contextPin, ...originalPins} = publicPins;
   assert.equal(contextPin, 'sha256:146f86ffe25bc0026368ee0a9d5a3ae03b7f3652de281c5534a95496c615b2fb');
   assert.match(added, /^sha256:[0-9a-f]{64}$/u);
   assert.match(saved, /^sha256:[0-9a-f]{64}$/u);

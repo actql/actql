@@ -2647,7 +2647,8 @@ async function openInstalledHost(originalInstallation, preparation) {
     authorizeRunStart: ({principalId: actual, connection, ref}) =>
       hostConnection({principalId: actual, connection, ref})});
   const {result: authorizeLocalResult, run: authorizeLocalRun, runImmediate: authorizeLocalRunImmediate,
-    runCurrent: authorizeCurrentLocalRun, staticPlanImmediate: authorizeStaticPlan} = createLocalReadAuthorizations({
+    runCurrent: authorizeCurrentLocalRun, staticPlanImmediate: authorizeStaticPlan,
+    sampleCaptureImmediate} = createLocalReadAuthorizations({
     moon, authorization, principalId, namespaceId, authorityScopeCid, observation});
   const resultAuthority = installResultAccessAuthority({
     authorizeResultReadRequest: authorizeLocalResult,
@@ -4394,6 +4395,13 @@ async function openInstalledHost(originalInstallation, preparation) {
       const selected = {principalId: operation.principalId, connection, ref: operation.indexKey};
       if (!hostConnection(selected) || authorizeLocalRunImmediate(operation, operation) !== true) return false;
       return hostConnection(selected);
+    },
+    authorizeSampleCapture: ({principalId: actual, connection, ref}) => {
+      const selected = {principalId: actual, connection, ref};
+      const facts = {principalId: actual, indexKey: ref};
+      return hostConnection(selected) &&
+        authorizeLocalRunImmediate(facts, undefined) === true &&
+        sampleCaptureImmediate(facts) === true;
     },
     managedComputeRequired: true,
     computeConfigurations: {local:localSnapshotConfiguration}});

@@ -10,6 +10,7 @@ import {identityVectors, shapeVectors, negativeVectors, legacyState, profile,
   command, cid, bindingVectors, running} from './fixtures/interactive-run-control-vectors.mjs';
 import {explanationBody, explanationCid, explanationFacts, explanationLeakageVectors,
   runExplanation, unprojectedRunExplanation} from './fixtures/explanation-facts-vectors.mjs';
+import {relationPrefix, sampleIdentityVectors} from './fixtures/relation-sample-identity-vectors.mjs';
 
 const schemaName = name => 'validWire' + name.split('_')
   .map(part => part[0].toUpperCase() + part.slice(1)).join('') + 'Shape';
@@ -84,6 +85,32 @@ test('independent canonical preimages distinguish input-only output and operatio
   assert.notEqual(identityVectors[2].cid, identityVectors[3].cid);
   assert.notEqual(hash({...command, operation_id: 'different'}), identityVectors[1].cid);
   assert.notEqual(hash({...profile, retain: {samples: {max_items: 1}}}), identityVectors[0].cid);
+});
+
+test('private Relation Sample seals retain every existing public schema and identity domain', () => {
+  const registry = buildControlRegistry();
+  const remainingSchemas = {...registry.schema_cids};
+  const remainingDomains = {...registry.identity_domains};
+  for (const {name, body, cid: expected} of sampleIdentityVectors) {
+    verifyIdentity(body, expected);
+    assert.ok(registry.schema_cids[name]);
+    assert.ok(!Object.hasOwn(wire, schemaName(name)));
+    assert.deepEqual(registry.identity_domains[name], {
+      version: body.version, identity_field: 'self_cid',
+      preimage: 'complete_body_except_self_cid', algorithm: 'sha256',
+    });
+    delete remainingSchemas[name];
+    delete remainingDomains[name];
+  }
+  assert.equal(Object.keys(remainingSchemas).length, 47);
+  assert.equal(hash(remainingSchemas),
+    'sha256:9fd8c42d629037b073e2fb06f6b1030085a6b77e8641b7f7a43350adf0dc71ab');
+  assert.equal(Object.keys(remainingDomains).length, 10);
+  assert.equal(hash(remainingDomains),
+    'sha256:ce704655344fa81848b6c89770abffdd99513a3c640b4dff51dd1ff574d50a50');
+  assert.equal(wire.validWireSampleRelationShape(relationPrefix), true);
+  const emission = sampleIdentityVectors.find(({name}) => name === 'sample_emission_provenance');
+  verifyIdentity(relationPrefix, emission.body.relation_prefix_cid);
 });
 
 test('independent state, four Carrier and honest availability positives', () => {

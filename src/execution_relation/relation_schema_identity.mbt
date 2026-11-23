@@ -69,6 +69,7 @@ fn start_relation_schema_output(
   schema : @schema.Schema,
   limits : RelationSchemaIdentityLimits,
   measurement_only : Bool,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[RelationSchemaIdentityPreparation, RelationSchemaIdentityIssue] {
   if limits.max_fields < 0 ||
     limits.max_bytes < 0 ||
@@ -87,6 +88,13 @@ fn start_relation_schema_output(
         limits.max_nodes,
         limits.max_depth,
       )
+    } else if work is Some(spend) {
+      @encode.work_hashing_writer(
+        limits.max_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        spend,
+      )
     } else {
       @encode.hashing_writer(
         limits.max_bytes,
@@ -96,6 +104,15 @@ fn start_relation_schema_output(
     }
     let wire_writer = if measurement_only {
       None
+    } else if work is Some(spend) {
+      Some(
+        @encode.work_writer(
+          limits.max_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+          spend,
+        ),
+      )
     } else {
       Some(@encode.writer(limits.max_bytes, limits.max_nodes, limits.max_depth))
     }
@@ -183,6 +200,7 @@ pub fn advance_relation_schema_identity(
       } else {
         value.wire_writer.unwrap()
       }
+      @encode.construction_work_step(writer, 1)
       match value.phase {
         0 => {
           @encode.begin_ordered_object(writer)
@@ -313,8 +331,9 @@ pub fn finish_relation_schema_identity(
 pub fn identify_relation_schema(
   schema : @schema.Schema,
   limits : RelationSchemaIdentityLimits,
+  work? : ((Int) -> Bool)? = None,
 ) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue] {
-  let value = match start_relation_schema_identity(schema, limits) {
+  let value = match start_relation_schema_output(schema, limits, false, work~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

@@ -101,6 +101,8 @@ pub fn cancel_resident_inputs(ResidentInputs) -> Result[Unit, @physical_resource
 
 pub fn cancel_resident_table_preparation(CapturedDAG, ResidentTable) -> Result[Unit, @physical_resources.LedgerIssue]
 
+pub fn[T] capture_captured_managed_relation_sample_prefix(CapturedDAG, CapturedTaskBoundary, @execution_relation.ManagedCompletedOutput[T], @execution_relation.CompletedOutput, Int, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int, () -> Bool) -> Result[CapturedRelationSamplePrefix, CapturedRelationSamplePrefixIssue]
+
 pub fn capture_captured_relation_sample_prefix(CapturedDAG, CapturedTaskBoundary, CapturedOutputPin, Int, @execution_relation.RelationSchemaIdentityLimits, Int, Int, Int) -> Result[CapturedRelationSamplePrefix, CapturedRelationSamplePrefixIssue]
 
 pub fn capture_effect_result_import(CapturedEffectInputs, Int, Int, Int) -> Result[CapturedEffectResultImport, RunIssue]
@@ -325,6 +327,8 @@ pub fn captured_execution_root_statistics(CapturedDAG) -> CapturedExecutionRootS
 
 pub fn captured_logical_observation_construction_bytes() -> Int64
 
+pub fn captured_managed_relation_sample_prefix_current(CapturedDAG, CapturedRelationSamplePrefix) -> (@encode_core.EncodedDocument, Int, Int, Int, Int64, Int)?
+
 pub fn[T] captured_managed_task_input(CapturedDAG, Int, @execution_relation.ManagedCompletedOutput[T], Int, Int, input_index? : Int) -> Result[@execution_relation.ManagedProducerRead[T], RunIssue]
 
 pub fn[T] captured_managed_task_output_matches(CapturedDAG, Int, @pipeline_typing.Target, @execution_relation.ManagedCompletedOutput[T]) -> Bool
@@ -358,6 +362,8 @@ pub fn captured_output_pin_materialized(CapturedOutputPin) -> @execution_relatio
 pub fn captured_pending_task_input_output(CapturedDAG, Int, Int) -> @execution_relation.CompletedOutput?
 
 pub fn captured_relation_sample_prefix_current(CapturedDAG, CapturedRelationSamplePrefix, CapturedOutputPin) -> (@encode_core.EncodedDocument, Int, Int, Int, Int64, Int)?
+
+pub fn captured_relation_sample_start_selected(CapturedDAG) -> Bool
 
 pub fn captured_releasable_managed_producers(CapturedDAG) -> Array[Int]
 
@@ -1273,6 +1279,9 @@ pub(all) enum CapturedRelationSamplePrefixIssue {
   StartUnavailable
   AttemptUnavailable
   StaleOriginal
+  AuthorityLost
+  Work(@physical_resources.LedgerIssue)
+  Resident(RunIssue)
   InvalidLimits
   Boundary(CapturedTaskBoundaryIssue)
   Prefix(@execution_relation.RelationSamplePrefixIssue)

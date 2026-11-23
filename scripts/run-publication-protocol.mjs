@@ -7,7 +7,7 @@ import {readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {dirname, join} from 'node:path';
 import {resolveControlSchema} from './interactive-run-control-schema.mjs';
-import {amountMicroPattern} from './interactive-run-control-contract.mjs';
+import {amountMicroPattern, privateSampleEvidenceNames} from './interactive-run-control-contract.mjs';
 import {generateEffectLocalOperationVectors} from './effect-local-operation-vectors.mjs';
 import {generateEffectFileOperationVectors,generateEffectFileLedgerVectors} from './effect-file-operation-vectors.mjs';
 import {generateEffectReviewVectors} from './effect-review-projection-vectors.mjs';
@@ -619,7 +619,7 @@ for (const [name, selection] of Object.entries(selected)) {
 // its pinned protocol schema without inventing an identity-excluded body.
 roots.set('effect_outcome:true', emitSchema(document.schemas.effect_outcome));
 
-for (const [name, schema] of Object.entries(control.schemas)) {
+function registerInteractiveSchema(name, schema) {
   const complete = resolveControlSchema(schema, control);
   roots.set(`${name}:true`, emitSchema(complete));
   if (schema.properties?.self_cid) {
@@ -627,6 +627,9 @@ for (const [name, schema] of Object.entries(control.schemas)) {
     omitRequiredProperty(body, 'self_cid');
     roots.set(`${name}:false`, emitSchema(body));
   }
+}
+for (const [name, schema] of Object.entries(control.schemas)) {
+  if (!privateSampleEvidenceNames.includes(name)) registerInteractiveSchema(name, schema);
 }
 
 // Append the new descriptor without renumbering historical artifact/control
@@ -728,6 +731,10 @@ for (const [name, schema] of [
 registerArtifactSchema('installed_row_source_read', {
   schema: 'installed_row_source_read', identity: 'transport_cid', registry: 'profiles',
 });
+// Append Journal evidence while preserving every existing descriptor index.
+for (const name of privateSampleEvidenceNames) {
+  registerInteractiveSchema(name, control.schemas[name]);
+}
 const sharedNodes = shareProtocolRuleConstructors(nodes);
 
 const nodeChunks = [];

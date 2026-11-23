@@ -98,6 +98,51 @@ export const bindingMutations = [
   ['control_admission', {...admissionBody, run_ref: {...ref, runDefinitionCid: cid('0')}}],
   ['control_admission', {...admissionBody, run_ref: {...ref, authorityScopeCid: cid('0')}}],
 ].map(([name, body]) => ({name, body, cid: digest(body)}));
+// Independently spell the checked output inventory. Both have can_sample:false
+// because the complete target inventory precedes installed support filtering.
+const computedStep = sealed({...operationKey, compiled_plan_cid: planCid});
+const computedOutputId = digest({version: 'actql-logical-port-key/0.1',
+  compiled_plan_cid: planCid, step_id: computedStep.self_cid, role: 'output', port_ordinal: 0});
+const inputOnlyOutputId = portKey('output').self_cid;
+const sampleMap = {...mapBody, steps: [...mapBody.steps, {
+  step_id: computedStep.self_cid, key: computedStep, names: ['computed'],
+  operator: 'select', ports: [{...mapBody.steps[0].ports[1],
+    port_id: computedOutputId, source: {kind: 'logical_output',
+      step_id: computedStep.self_cid, output_port_id: computedOutputId}}],
+  can_stop_before: false, can_stop_after: false, stop_reason: 'not_installed',
+}]};
+const allOutputs = [inputOnlyOutputId, computedOutputId];
+export const sampleBindingCases = [
+  ['all original outputs', [], allOutputs, true],
+  ['all outputs cannot omit a projected target', [], [computedOutputId], false],
+  ['operator selects the original operation', [{by: 'operator', operator: 'select'}],
+    [computedOutputId], true],
+  ['operator cannot add an unrelated output', [{by: 'operator', operator: 'select'}],
+    allOutputs, false],
+  ['name selects an input-only output', [{by: 'name', name: 'answer'}],
+    [inputOnlyOutputId], true],
+  ['name cannot substitute a different valid output', [{by: 'name', name: 'answer'}],
+    [computedOutputId], false],
+  ['overlapping selectors retain one original port', [
+    {by: 'id', step_id: computedStep.self_cid}, {by: 'name', name: 'computed'},
+  ], [computedOutputId], true],
+].map(([label, targets, outputs, expected]) => {
+  const selectedProfile = {...profile, retain: {samples: {strategy: 'execution_prefix',
+    capture_scope: targets.length ? 'selected_outputs' : 'all_outputs',
+    targets, max_items: 50, max_bytes: '65536', max_artifacts: 2, ttl_seconds: 30,
+    required: true, graph: {max_nodes: 0, max_edges: 0}, vectors: {max_components_per_item: 1}}}};
+  const intent = {...intentBody, requested_profile_cid: digest(selectedProfile)};
+  const resolved = {...resolvedBody, logical_map_cid: digest(sampleMap),
+    requested_profile_cid: digest(selectedProfile), effective_profile_cid: digest(selectedProfile),
+    sample_output_port_ids: outputs};
+  const admission = {...admissionBody, request_intent_cid: digest(intent),
+    logical_map_cid: resolved.logical_map_cid, resolved_profile_cid: digest(resolved)};
+  return {label, expected, records: [
+    ['control_profile', selectedProfile], ['control_request_intent', intent],
+    ['resolved_control_profile', resolved], ['logical_map', sampleMap],
+    ['control_admission', admission],
+  ]};
+});
 export const sampleRelation = {version: 'actql-sample-relation/0.1',
   kind: 'relation', schema_cid: cid('7'), columns: [
     {position: 0, name: 'p', value_contract_cid: cid('8'), required: false}],

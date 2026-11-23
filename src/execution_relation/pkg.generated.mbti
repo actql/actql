@@ -718,7 +718,7 @@ pub fn emit_relation_row(AdmittedRelationRow, @encode_core.Writer) -> Unit raise
 
 pub fn enable_managed_row_measurements(ManagedOutputValues, Int) -> Result[Unit, ManagedOutputValueIssue]
 
-pub fn encode_completed_relation_sample_prefix(CompletedOutput, Int, RelationSchemaIdentityLimits, Int, Int, Int, original_current? : () -> Bool) -> Result[(@encode_core.EncodedDocument, Int, Int), RelationSamplePrefixIssue]
+pub fn encode_completed_relation_sample_prefix(CompletedOutput, Int, RelationSchemaIdentityLimits, Int, Int, Int, (Int) -> Bool, original_current? : () -> Bool) -> Result[(@encode_core.EncodedDocument, Int, Int), RelationSamplePrefixIssue]
 
 pub fn[T] establish_managed_completed_identity(ManagedCompletedOutput[T], ManagedIdentityDomain, ManagedIdentitySubject) -> Result[Unit, ManagedIdentityEstablishmentIssue]
 
@@ -908,7 +908,7 @@ pub fn identify_captured_rows(CapturedRows, RowWireLimits) -> Result[RowWireIden
 
 pub fn identify_completed_rows(CompletedOutput, RowWireLimits) -> Result[RowWireIdentity, RowWireIssue]
 
-pub fn identify_relation_schema(@relation_schema.Schema, RelationSchemaIdentityLimits) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue]
+pub fn identify_relation_schema(@relation_schema.Schema, RelationSchemaIdentityLimits, work? : ((Int) -> Bool)?) -> Result[RelationSchemaIdentity, RelationSchemaIdentityIssue]
 
 pub fn infer_completed_producer_input(@lowering_relation.BoundPrepared, Int, ProducerRead) -> CompletedOutput?
 

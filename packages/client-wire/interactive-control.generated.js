@@ -23636,7 +23636,7 @@ function valid(value, schema) {
   return true;
 }
 
-export const interactiveControlRegistryCid = "sha256:f35f84748cb37f9419da36f2c4f64c492ffa5c74ec1231243ec1b45b73074ebb";
+export const interactiveControlRegistryCid = "sha256:e35d6fd107b8ab453c24ed1d822e8733b7c9d96c7e08862377599989bb152b11";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired","RunStateVersionUnsupported","RunNotPaused","CheckpointPending","ControlRevisionConflict","ControlOperationConflict","ControlRevisionExhausted","BreakpointUnresolved","BreakpointAmbiguous","BreakpointPlanMismatch","BreakpointUnsupported","BoundaryUnsupported","InitialPauseUnsupported","InspectionRetentionUnsupported","SampleCaptureRequiredFailed","GuardExceeded","GuardUnavailable","InvalidCostAmount","ExecutionProfileConflict","CLIOptionConflict","InteractiveTTYRequired"]);
 export const validWireControlQuantityShape = value => valid(value, schemas.control_quantity);
 export const validWireControlMoneyShape = value => valid(value, schemas.control_money);

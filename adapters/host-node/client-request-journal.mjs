@@ -34,6 +34,8 @@ import {valuesExecutionContextCid, validValuesHostPolicyRows} from './local-valu
 import {sourceAliasDataGeometry} from './source-alias-construction.mjs';
 import {sourceOperationTable, inspectClientSourceOperationStorage,
   clientSourceOperationStorage, snapshotClientSourceOperationLimits} from './client-source-operation.mjs';
+import {relationSampleAdoptionTable, inspectRelationSampleAdoptionStorage,
+  clientRelationSampleAdoptionStorage} from './client-relation-sample-adoption.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionName, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 
 // Originals of the existing checked keyed Source on this Request Journal.
@@ -99,6 +101,22 @@ function inspectExplanationPlanOriginalStorage(database) {
   const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_run_explanation_plan_originals'")
     .get(explanationPlanOriginalTable.length + 1);
   if (row !== undefined && row.sql !== explanationPlanOriginalTable) fail('UnknownClientRequestJournalFormat');
+  return row !== undefined;
+}
+
+const relationSampleStartTable = `CREATE TABLE client_relation_sample_starts (
+  run_definition_cid TEXT PRIMARY KEY REFERENCES client_requests(run_definition_cid) ON DELETE CASCADE,
+  namespace_id TEXT NOT NULL,
+  authority_scope_cid TEXT NOT NULL,
+  submitted_intent_cid TEXT NOT NULL,
+  control_admission_cid TEXT NOT NULL,
+  resolved_profile_cid TEXT NOT NULL,
+  start_revision INTEGER NOT NULL CHECK (start_revision BETWEEN 1 AND 2147483647)
+) STRICT`;
+function inspectRelationSampleStartStorage(database) {
+  const row = database.prepare("SELECT substr(sql, 1, ?) AS sql FROM sqlite_master WHERE type = 'table' AND name = 'client_relation_sample_starts'")
+    .get(relationSampleStartTable.length + 1);
+  if (row !== undefined && row.sql !== relationSampleStartTable) fail('UnknownClientRequestJournalFormat');
   return row !== undefined;
 }
 
@@ -1157,6 +1175,18 @@ function retainedResultNames(row, maxWireBytes) {
   return names;
 }
 
+function checkOriginalLocalExecutionDefinition(program, compiled, definition, requestControl, publicationControl) {
+  publicationControl.checkClientCompiledRunDefinition(compiled, definition);
+  publicationControl.checkClientCompiledLocalExecutionOwner(compiled, definition);
+  const inferred = checked(requestControl.clientProgramComposedInferOccurrences(program));
+  const serialized = requestControl.clientProgramSerializationOccurrences(program);
+  if (requestControl.clientProgramAcquisitionCount(program) !== 0 ||
+      !Array.isArray(inferred) || inferred.length !== 0 ||
+      !Array.isArray(serialized) || serialized.length !== 0) {
+    fail('ForeignClientLocalExecutionOwner');
+  }
+}
+
 function retainedRunFacts(row, publicationControl, maxWireBytes, updateOriginalControl) {
   if (![0, 1].includes(row.dispatch_reserved) ||
       ![0, 1].includes(row.pre_dispatch_failure_confirmed) ||
@@ -1688,6 +1718,8 @@ function inspectJournalNativeStorage(database, features) {
   inspectSubmissionUsageStorage(database, features.usageEnabled);
   inspectClientSourceOperationStorage(database);
   inspectLocalExecutionOwnerStorage(database);
+  inspectRelationSampleStartStorage(database);
+  inspectRelationSampleAdoptionStorage(database);
 }
 
 // Unowned/standalone inspection still needs an isolated snapshot: merely
@@ -2277,6 +2309,9 @@ export function openClientRequestJournal(directory, {
       ticket: activeCancellationAttempt}));
     throw error;
   };
+  // Created only for a checked selected Sample. A ticket never escapes the
+  // scope of the prepared start, even if Common retains its separate profile.
+  let relationSampleStarts;
   const transact = (operation, unknownCode, known, action) => {
     try { return transaction.run(action); }
     catch (error) {
@@ -2457,6 +2492,14 @@ export function openClientRequestJournal(directory, {
     if (persist && needsWrite) advanceEpochTime.run(floor);
     return {...row, observed_at: observedAt, needsWrite};
   };
+  let relationSampleStorage;
+  const sampleStorage = () => relationSampleStorage ??=
+    clientRelationSampleAdoptionStorage(database, {
+      ensureOpen, transact, maxRecords, maxWireBytes: inspectionBytes,
+      now: () => epochClock().observed_at,
+      createSupported: primarySchemaSqlSupport === undefined ||
+        primarySchemaSqlSupport.includes(relationSampleAdoptionTable),
+    });
   const epochHandle = (epoch, control) => {
     const operation = submissionOperations.get(epoch);
     if (operation?.control === control && operation.original !== undefined) return operation.original;
@@ -2551,6 +2594,31 @@ export function openClientRequestJournal(directory, {
       ? 'ClientSubmissionEpochExpired' : 'ClientSubmissionEpochNotYetValid');
   };
   const intentSelect = database.prepare('SELECT * FROM client_submitted_intents WHERE submission_id = ?');
+  let sampleOriginalExtent;
+  // This selected probe returns only a scalar. Use the same checked schema
+  // and exact keys as the retained reads, including restart and epoch inputs.
+  function sampleOriginalStoredBytes(namespaceId, fields, definition) {
+    sampleOriginalExtent ??= database.prepare(`SELECT
+      ${[
+        ['r', selectColumns.split(',').map(field => field.trim())],
+        ['i', ['submission_id', 'authority_scope_cid', 'nonce', 'epoch_wire',
+          'intent_cid', 'intent_wire', 'accepted_at', 'phase', 'outcome_wire', 'revision']],
+        ['s', ['fresh_submission_id', 'original_submission_id', 'link_wire']],
+        ['e', ['authentication_key', 'observed_at']],
+      ].flatMap(([table, fields]) => fields.map(field =>
+        `COALESCE(length(CAST(${table}.${field} AS BLOB)), 0)`)).join(' + ')} AS stored_bytes
+      FROM client_requests r LEFT JOIN client_submitted_intents i
+        ON i.submission_id = r.caller_request_id
+      LEFT JOIN client_submission_restarts s ON s.fresh_submission_id = r.caller_request_id
+      LEFT JOIN client_submission_epoch_authority e ON e.singleton = 1
+      WHERE r.authority_scope_cid = ? AND r.caller_request_id = ? AND
+        r.namespace_id = ? AND r.run_definition_cid = ?`);
+    const row = sampleOriginalExtent.get(fields.authorityScopeCid, fields.requestId, namespaceId, definition);
+    if (row === undefined) fail('ClientRunSampleStartOriginalUnavailable');
+    if (!Number.isSafeInteger(row.stored_bytes) || row.stored_bytes < 1 ||
+        row.stored_bytes > 2147483519) fail('ClientRunSampleOriginalCapacity');
+    return row.stored_bytes;
+  }
   const intentUsage = database.prepare(`SELECT retained_count AS n,retained_bytes AS bytes,revision
     FROM client_submitted_intent_usage WHERE singleton=1`);
   const intentIssued = database.prepare('SELECT issued_count FROM client_submitted_intent_custody WHERE singleton = 1');
@@ -4044,25 +4112,51 @@ export function openClientRequestJournal(directory, {
     // It grants neither current authorization nor a physical/resume claim.
     // Historical unselected Runs remain readable without a new reference;
     // missing selected custody cannot be repaired from current caller options.
-    originalSubmittedIntent(identity, {namespaceId}, requestControl,
+    originalSubmittedIntent(identity, {namespaceId, sampleRunRef, reserveSampleRead}, requestControl,
       publicationControl) {
       ensureOpen();
       if (!text(namespaceId) ||
-          typeof requestControl?.clientSubmittedIntentRequestsCommitStop !== 'function') {
+          typeof requestControl?.clientSubmittedIntentRequestsCommitStop !== 'function' ||
+          sampleRunRef !== undefined && (typeof requestControl.clientSubmittedIntentRequestsDebug !== 'function' ||
+            typeof reserveSampleRead !== 'function')) {
         fail('InvalidClientRequestJournalControl');
       }
       const fields = checkedIdentity(identity, requestControl);
+      let sampleDefinitionCid, sampleStoredBytes;
+      if (sampleRunRef !== undefined) {
+        sampleDefinitionCid = sampleRunRef?.runDefinitionCid;
+        if (sampleRunRef?.namespaceId !== namespaceId ||
+            sampleRunRef?.authorityScopeCid !== fields.authorityScopeCid || !cid(sampleDefinitionCid)) {
+          fail('ClientRunSampleStartOriginalUnavailable');
+        }
+        sampleStoredBytes = sampleOriginalStoredBytes(namespaceId, fields, sampleDefinitionCid);
+        const reserved = reserveSampleRead(sampleStoredBytes);
+        if (reserved !== undefined) {
+          if (typeof reserved?.then === 'function') void Promise.resolve(reserved).catch(() => {});
+          fail('InvalidClientRunSampleReadReservation');
+        }
+      }
       const requestOriginal = Object.freeze({identity, fields});
       let previousRunRow, previousRunFacts, previousIntent;
       let previousReference;
       const readOriginal = () => {
         try {
+          // Repeat inside the actual retained read transaction, including
+          // every freshness probe. A resize callback can observe the Journal
+          // but cannot admit a larger original than the funded extent.
+          if (sampleDefinitionCid !== undefined &&
+              sampleOriginalStoredBytes(namespaceId, fields, sampleDefinitionCid) > sampleStoredBytes) {
+            fail('ClientRunSampleOriginalCapacity');
+          }
           assertSubmissionCustody();
           assertIntentCustody();
           const run = lookupRecord({namespaceId, authorityScopeCid: fields.authorityScopeCid,
             requestId: fields.requestId}, requestControl, requestOriginal);
           if (run === undefined || requestControl.clientRequestRelation(identity,
             run.identity) !== 1) fail('ClientRequestSubmittedIntentMismatch');
+          if (sampleDefinitionCid !== undefined && run.row.run_definition_cid !== sampleDefinitionCid) {
+            fail('ClientRunSampleStartOriginalUnavailable');
+          }
           // This existing handle retains only typed facts for exact unchanged
           // scalar rows. Storage/custody is still observed in this transaction;
           // an actual change re-enters the original admission path below.
@@ -4078,7 +4172,13 @@ export function openClientRequestJournal(directory, {
           const row = intentSelect.get(fields.requestId);
           if (row === undefined) {
             if (expectedCid !== undefined) fail('ClientSubmittedIntentCustodyLost');
+            if (sampleDefinitionCid !== undefined) fail('ClientRequestSubmittedIntentBindingMissing');
             return undefined;
+          }
+          // A ready outcome rechecks its Run by the intent's own key. For
+          // this funded read that key must name the same measured Run row.
+          if (sampleDefinitionCid !== undefined && row.authority_scope_cid !== fields.authorityScopeCid) {
+            fail('ClientSubmittedIntentCorrupt');
           }
           previousIntent = retainedIntentOriginal(row, requestControl, undefined, previousIntent);
           const {intent, value: original} = previousIntent;
@@ -4086,13 +4186,18 @@ export function openClientRequestJournal(directory, {
             fail('ClientRequestSubmittedIntentMismatch');
           }
           if (expectedCid === undefined) {
-            if (requestControl.clientSubmittedIntentRequestsCommitStop(intent) ||
+            if (sampleDefinitionCid !== undefined || requestControl.clientSubmittedIntentRequestsCommitStop(intent) ||
                 requestControl.clientSubmittedIntentRequestsReadOnly(intent)) {
               fail('ClientRequestSubmittedIntentBindingMissing');
             }
             return undefined;
           }
           if (expectedCid !== original.intentCid) fail('ClientRequestSubmittedIntentMismatch');
+          // Run acceptance commits the intent CID before dispatch. The
+          // submission outcome may still be preparing until dispatch returns.
+          if (sampleDefinitionCid !== undefined && requestControl.clientSubmittedIntentRequestsDebug(intent) !== true) {
+            fail('ClientRunSampleStartOriginalUnavailable');
+          }
           if (previousReference === undefined || previousReference.epochWire !== row.epoch_wire ||
               previousReference.nonce !== row.nonce) {
             previousReference = Object.freeze({epochWire: row.epoch_wire, nonce: row.nonce,
@@ -4108,22 +4213,72 @@ export function openClientRequestJournal(directory, {
       };
       const original = transaction.run(readOriginal);
       if (original === undefined) return undefined;
-      return Object.freeze({intent: original.intent, referenceWire: original.referenceWire,
+      const checkOriginal = current => {
+        if (current === undefined || current.intentCid !== original.intentCid ||
+            current.intentWire !== original.intentWire ||
+            current.referenceWire !== original.referenceWire ||
+            current.runDefinitionCid !== original.runDefinitionCid) {
+          previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;
+          fail('ClientRequestSubmittedIntentMismatch');
+        }
+      };
+      const originalView = {intent: original.intent, referenceWire: original.referenceWire,
         assertCurrent() {
           try {
             ensureOpen();
-            const current = transaction.run(readOriginal);
-            if (current === undefined || current.intentCid !== original.intentCid ||
-                current.intentWire !== original.intentWire ||
-                current.referenceWire !== original.referenceWire ||
-                current.runDefinitionCid !== original.runDefinitionCid) {
-              fail('ClientRequestSubmittedIntentMismatch');
-            }
+            checkOriginal(transaction.run(readOriginal));
           } catch (error) {
             previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;
             throw error;
           }
-        }});
+        }};
+      if (sampleDefinitionCid !== undefined) {
+        // Only this selected Journal original can supply its authenticated
+        // reference. The installed checker still owns the exact live Run and
+        // logical observation. Neither check grants capture or disclosure.
+        let checking = false;
+        function checkSampleProfile(owner, definition, observation, records, limits) {
+          if (checking) fail('ClientRunSampleProfileCheckActive');
+          checking = true;
+          try {
+            originalView.assertCurrent();
+            const checked = publicationControl.checkClientRelationSampleProfile(owner, identity, definition,
+              observation, original.referenceWire, records, limits);
+            if (typeof checked?.then === 'function') {
+              void Promise.resolve(checked).catch(() => {});
+              fail('InvalidClientRunSampleProfileCheck');
+            }
+            if (checked?.profile === null || typeof checked?.profile !== 'object' ||
+                !cid(checked.controlAdmissionCid) || !cid(checked.resolvedProfileCid) ||
+                typeof checked.matchesStart !== 'function') {
+              fail('InvalidClientRunSampleProfileCheck');
+            }
+            originalView.assertCurrent();
+            const startTicket = Object.freeze({});
+            relationSampleStarts ??= new WeakMap();
+            relationSampleStarts.set(startTicket, {
+              identity, requestControl, publicationControl, namespaceId, sampleDefinitionCid,
+              intentCid: original.intentCid,
+              controlAdmissionCid: checked.controlAdmissionCid,
+              resolvedProfileCid: checked.resolvedProfileCid,
+              matchesStart: checked.matchesStart,
+              matchesAdoption: checked.matchesAdoption,
+              visitAdoption: checked.visitAdoption,
+              currentRow() {
+                // The caller already owns the start transaction. Keep the
+                // measured read, authenticated epoch and bound intent together.
+                checkOriginal(readOriginal());
+                return previousRunRow;
+              },
+            });
+            return Object.freeze({profile: checked.profile, startTicket, withAdoption: checked.withAdoption});
+          } finally {
+            checking = false;
+          }
+        }
+        return Object.freeze({...originalView, checkSampleProfile});
+      }
+      return Object.freeze(originalView);
     },
     // Advance only published logical/control/availability facts. The same
     // original accepted row, complete observation fence and confirmed COMMIT
@@ -4350,16 +4505,30 @@ export function openClientRequestJournal(directory, {
       }
       const fields = checkedIdentity(identity, requestControl);
       let sourceOriginal, captureOriginal, captureReceiver;
-      let sampleCapture, sampleProgram, sampleCompiled;
+      let sampleCapture, sampleAdoption, sampleProgram, sampleCompiled, sampleClaim;
       if (captureSampleStart !== undefined) {
         sampleCapture = captureSampleStart?.captureRevision;
+        sampleAdoption = captureSampleStart?.captureAdoption;
         sampleProgram = captureSampleStart?.program;
         sampleCompiled = captureSampleStart?.compiled;
-        if (typeof sampleCapture !== 'function' || captureSourceOperation !== undefined ||
+        const sampleTicket = captureSampleStart?.startTicket;
+        sampleClaim = relationSampleStarts?.get(sampleTicket);
+        if (typeof sampleCapture !== 'function' ||
+            sampleAdoption !== undefined && (typeof sampleAdoption !== 'function' ||
+              typeof sampleClaim?.matchesAdoption !== 'function' ||
+              typeof sampleClaim.visitAdoption !== 'function') ||
+            captureSourceOperation !== undefined ||
             localExecutionOwner === undefined || sampleProgram !== localExecutionOwner.program ||
-            sampleCompiled !== localExecutionOwner.compiled) {
+            sampleCompiled !== localExecutionOwner.compiled || sampleClaim === undefined ||
+            sampleClaim.identity !== identity || sampleClaim.requestControl !== requestControl ||
+            sampleClaim.publicationControl !== publicationControl ||
+            sampleClaim.namespaceId !== namespaceId || ref.namespaceId !== namespaceId ||
+            sampleClaim.sampleDefinitionCid !== ref.runDefinitionCid ||
+            fields.authorityScopeCid !== ref.authorityScopeCid ||
+            sampleClaim.matchesStart(sampleProgram, sampleCompiled) !== true) {
           fail('ClientRunSampleStartOriginalUnavailable');
         }
+        relationSampleStarts.delete(sampleTicket);
       }
       if (captureSourceOperation !== undefined) {
         if (sourceOperations === undefined) fail('ClientSourceOperationUnavailable');
@@ -4393,7 +4562,7 @@ export function openClientRequestJournal(directory, {
       // Only the actual compiled effect-free Prepared original can qualify;
       // source text, a caller boolean or an empty local worker map cannot.
       let localOwnerProgram, localOwnerCompiled;
-      if (localExecutionOwner !== undefined && ownedOriginal !== undefined) {
+      if (sampleClaim === undefined && localExecutionOwner !== undefined && ownedOriginal !== undefined) {
         const {program, compiled} = localExecutionOwner;
         try {
           if (requestControl.clientProgramMatchesRequestIdentity(program, identity) !== true) {
@@ -4403,23 +4572,18 @@ export function openClientRequestJournal(directory, {
           const row = selectRef.get(ref.namespaceId, ref.authorityScopeCid, ref.runDefinitionCid);
           if (row === undefined) fail('ForeignClientLocalExecutionOwner');
           const definition = retainedRunDefinition(row, publicationControl, maxRunDefinitionWireBytes);
-          publicationControl.checkClientCompiledRunDefinition(compiled, definition);
-          publicationControl.checkClientCompiledLocalExecutionOwner(compiled, definition);
-          const inferred = checked(requestControl.clientProgramComposedInferOccurrences(program));
-          const serialized = requestControl.clientProgramSerializationOccurrences(program);
-          if (requestControl.clientProgramAcquisitionCount(program) !== 0 ||
-              !Array.isArray(inferred) || inferred.length !== 0 ||
-              !Array.isArray(serialized) || serialized.length !== 0) {
-            fail('ForeignClientLocalExecutionOwner');
-          }
+          checkOriginalLocalExecutionDefinition(program, compiled, definition, requestControl, publicationControl);
           localOwnerProgram = program; localOwnerCompiled = compiled;
         } catch (cause) {fail('ForeignClientLocalExecutionOwner', cause);}
       }
       const started = transact('physical_start', 'ClientRunPhysicalStartUnknown',
         error => typeof error?.code === 'string' &&
           (error.code.startsWith('ClientRun') ||
-            error.code.startsWith('ClientRequest')), () => {
-        const row = select.get(fields.authorityScopeCid, fields.requestId);
+            error.code.startsWith('ClientRequest') ||
+            sampleClaim !== undefined && (error.code.startsWith('ClientSubmittedIntent') ||
+              error.code.startsWith('ClientSubmissionEpoch'))), () => {
+        const row = sampleClaim === undefined ? select.get(fields.authorityScopeCid, fields.requestId)
+          : sampleClaim.currentRow();
         if (row === undefined || row.namespace_id !== namespaceId ||
             ref.namespaceId !== namespaceId ||
             ref.authorityScopeCid !== fields.authorityScopeCid ||
@@ -4444,12 +4608,18 @@ export function openClientRequestJournal(directory, {
             'ClientRequestJournalCorrupt');
         }
         let sampleRevision;
-        if (sampleCapture !== undefined) {
+        if (sampleClaim !== undefined) {
           if (requestControl.clientProgramMatchesRequestIdentity(sampleProgram, identity) !== true) {
             fail('ClientRunSampleStartOriginalUnavailable');
           }
           publicationControl.checkClientCompiledRunOwner(sampleCompiled, sampleProgram);
-          publicationControl.checkClientCompiledRunDefinition(sampleCompiled, definition);
+          if (ownedOriginal === undefined) {
+            publicationControl.checkClientCompiledRunDefinition(sampleCompiled, definition);
+          } else {
+            checkOriginalLocalExecutionDefinition(sampleProgram, sampleCompiled, definition,
+              requestControl, publicationControl);
+            localOwnerProgram = sampleProgram; localOwnerCompiled = sampleCompiled;
+          }
           if (!Number.isInteger(row.revision) || row.revision < 0 ||
               row.revision >= 2147483647) {
             fail('ClientRunSampleStartRevisionExhausted');
@@ -4476,6 +4646,17 @@ export function openClientRequestJournal(directory, {
           ref.authorityScopeCid, ref.runDefinitionCid).changes !== 1) {
           fail('ClientRequestJournalCorrupt');
         }
+        if (sampleRevision !== undefined) {
+          if (primarySchemaSqlSupport !== undefined && !primarySchemaSqlSupport.includes(relationSampleStartTable)) {
+            fail('ClientRunSampleStartOriginalUnavailable');
+          }
+          if (!inspectRelationSampleStartStorage(database)) database.exec(relationSampleStartTable);
+          database.prepare(`INSERT INTO client_relation_sample_starts (run_definition_cid, namespace_id,
+            authority_scope_cid, submitted_intent_cid, control_admission_cid, resolved_profile_cid,
+            start_revision) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+            .run(row.run_definition_cid, row.namespace_id, row.authority_scope_cid, sampleClaim.intentCid,
+              sampleClaim.controlAdmissionCid, sampleClaim.resolvedProfileCid, sampleRevision);
+        }
         return sampleRevision ?? true;
       });
       // No lookup/recovery API exposes these handoffs. A lost COMMIT reply
@@ -4485,7 +4666,34 @@ export function openClientRequestJournal(directory, {
         Reflect.apply(captureOriginal, captureReceiver, [sourceOperations.issue(sourceOriginal)]);
       }
       if (sampleCapture !== undefined) Reflect.apply(sampleCapture, captureSampleStart, [started]);
+      if (sampleAdoption !== undefined) {
+        // Copy only the original scalar coordinates. No accepted-intent view
+        // or borrowed definition survives in the writer across suspensions.
+        const ownedRef = Object.freeze({namespaceId, authorityScopeCid: fields.authorityScopeCid,
+          runDefinitionCid: sampleClaim.sampleDefinitionCid});
+        const original = Object.freeze({revision: started, controlAdmissionCid: sampleClaim.controlAdmissionCid,
+          resolvedProfileCid: sampleClaim.resolvedProfileCid, matchesAdoption: sampleClaim.matchesAdoption,
+          visitAdoption: sampleClaim.visitAdoption});
+        Reflect.apply(sampleAdoption, captureSampleStart,
+          [sampleStorage().writer(ownedRef, original, publicationControl)]);
+      }
       return true;
+    },
+    // Private same-operation reconciliation. A missing durable row does not
+    // attest that pending physical custody was released.
+    lookupRelationSampleAdoption(ref, sampleRefCid, custody, publicationControl) {
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
+        fail('ClientRelationSampleInvalidOriginal');
+      }
+      return sampleStorage().lookup(ref, sampleRefCid, publicationControl, custody);
+    },
+    // Host retention of the same original Sample, independent of public
+    // disclosure and the receipt used to reconcile an uncertain adoption.
+    retireRelationSamplePayload(ref, sampleRefCid, custody, publicationControl) {
+      if (!text(ref?.namespaceId) || !cid(ref?.authorityScopeCid) || !cid(ref?.runDefinitionCid)) {
+        fail('ClientRelationSampleInvalidOriginal');
+      }
+      return sampleStorage().retire(ref, sampleRefCid, publicationControl, custody);
     },
     // Persist the original checked activation BEFORE its first physical
     // attempt. An existing/uncertain entry never authorizes another send.

@@ -1018,7 +1018,15 @@ pub fn[T] local_managed_dispatch_site_capacity(
 pub fn[T] start_local_managed_dispatch(
   setup : LocalManagedDispatchConfiguration[T],
   retained_relation? : Bool = false,
+  on_relation_commit? : ((
+    @execution.ManagedCompletedOutput[T],
+    @execution.CompletedOutput?,
+  ) -> Unit)? = None,
 ) -> Result[LocalManagedDispatchOperations[T], LocalDispatchIssue] {
+  if on_relation_commit is Some(_) &&
+    !@strategy.captured_relation_sample_start_selected(setup.run) {
+    return Err(Configuration(InvalidLimits))
+  }
   let live = Ref(true)
   let settled = Ref(false)
   let disposed = Ref(false)
@@ -4096,8 +4104,25 @@ pub fn[T] start_local_managed_dispatch(
       }
     },
   }
+  // The selected caller accounts for this extra receiver before installing
+  // it. Observe only after the ordinary completion committed, under the
+  // original scratch/retention lifecycle; Normal keeps its original function.
+  let complete = match on_relation_commit {
+    None => operations.complete
+    Some(visit) =>
+      (payload, bytes, available) => {
+        with_managed_scratch_use(scratch_uses, release_owned_scratch, () => {
+          let committed = (operations.complete)(payload, bytes, available)
+          if committed is Ok(output) {
+            visit(output, ordinary.val)
+          }
+          committed
+        })
+      }
+  }
   Ok({
     ..operations,
+    complete,
     inputs: operations.inputs.map(transfer => {
       ..transfer,
       append: row => {
@@ -4164,6 +4189,10 @@ pub fn[T] start_local_managed_dispatch(
 pub fn start_local_managed_dispatch_node(
   setup : LocalManagedDispatchConfiguration[Int],
   retained_relation? : Bool = false,
+  on_relation_commit? : ((
+    @execution.ManagedCompletedOutput[Int],
+    @execution.CompletedOutput?,
+  ) -> Unit)? = None,
 ) -> Result[LocalManagedDispatchOperations[Int], LocalDispatchIssue] {
-  start_local_managed_dispatch(setup, retained_relation~)
+  start_local_managed_dispatch(setup, retained_relation~, on_relation_commit~)
 }

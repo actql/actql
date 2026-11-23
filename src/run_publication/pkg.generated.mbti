@@ -137,6 +137,8 @@ pub fn bind_content_byte_input(ContentByteEncoder, Int, () -> Bool) -> Result[Un
 
 pub fn bind_generated_content_observation(RunEvidenceValue, String, String, String, RunEvidenceValue, GeneratedContentReference, @value_admission.CheckedValue, Int, Int, Int) -> Result[BoundContentGeneration, RunEvidenceValueIssue]
 
+pub fn bind_interactive_relation_sample_selection(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, Int, Int, Int) -> Result[InteractiveRelationSampleSelection?, RunEvidenceValueIssue]
+
 pub fn bind_model_invocation_saved_call(BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue) -> Result[BoundModelSlotCapture, RunEvidenceValueIssue]
 
 pub fn bind_model_invocation_scope(RunPublicationAdmission, PublicationContract, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, Array[RunEvidenceValue], ModelInvocationBoundary) -> Result[BoundModelInvocationScope, RunEvidenceValueIssue]
@@ -292,6 +294,8 @@ pub fn check_effect_preview_row_outcome(EffectPreviewIdentity, Int, Int, String,
 pub fn check_effect_preview_run_binding(RunPublicationAdmission, PublicationContract, PublicationContract, EffectPreviewIdentity) -> Result[Unit, EffectPreviewRunBindingIssue]
 
 pub fn check_interactive_admission_binding(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, RunEvidenceValue, PublicationContract, String, String, Int, Int, Int) -> Result[Unit, RunEvidenceValueIssue]
+
+pub fn check_interactive_admission_request_identity(RunEvidenceValue, RunEvidenceValue, String, String, String) -> Bool
 
 pub fn check_interactive_logical_map_binding(RunEvidenceValue, PublicationContract, Int, Int, Int) -> Result[Unit, RunEvidenceValueIssue]
 
@@ -614,6 +618,10 @@ pub fn installation_publication_storage_binding_wire(InstallationPublicationStor
 pub fn interactive_logical_map_binding_construction(RunEvidenceValue, PublicationContract, Int, Int, Int) -> InteractiveLogicalMapBindingConstruction?
 
 pub fn interactive_logical_map_binding_scanner_controls() -> (@decode_shape.CollectionConstructionExtent, Int, Int)
+
+pub fn interactive_relation_sample_output_limits(InteractiveRelationSampleSelection, String) -> InteractiveRelationSampleLimits?
+
+pub fn interactive_submission_reference_limits() -> (Int, Int, Int)
 
 pub fn issue_admitted_effect_failed_run_state_wire(EffectSetApplyReceiptEvidence, String, String, Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
@@ -2058,6 +2066,16 @@ pub(all) struct InteractiveLogicalMapBindingConstruction {
   port_body : (Int, Int, Int)
   port_complete : (Int, Int, Int)
 } derive(Eq, @debug.Debug)
+
+pub(all) struct InteractiveRelationSampleLimits {
+  max_items : Int64
+  max_bytes : Int64
+  max_artifacts : Int64
+  ttl_seconds : Int64
+  required : Bool
+}
+
+type InteractiveRelationSampleSelection
 
 pub(all) enum LocalSDKReadSelectionIssue {
   InvalidBinding

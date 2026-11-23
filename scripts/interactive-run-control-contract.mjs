@@ -48,6 +48,18 @@ const when = (field, value, then, otherwise) => ({
   ...(otherwise ? {else: otherwise} : {}),
 });
 const kind = choice('relation', 'graph', 'vectors', 'events');
+const positiveInt64Decimal = {type: 'string', pattern: amountMicroPattern,
+  not: {const: '0'}};
+
+// Sealed by Common for the original Journal. These domains add no client wire
+// entry, read permission, or installed Sample capability.
+export const privateSampleEvidenceNames = Object.freeze([
+  'sample_source_generation',
+  'sample_original_capture',
+  'sample_emission_provenance',
+  'sample_reference',
+  'sample_adoption_receipt',
+]);
 // Checked logical operation tags, not backend/AoA opcodes or an execution
 // support claim. Keep this finite vocabulary aligned with the common checker.
 export const logicalOperators = Object.freeze([
@@ -370,7 +382,40 @@ export function interactiveRunControlSchemas() {
   });
   const effectDeclaration = schemas.effectful_static_plan_view.properties
     .effect_set.properties.members.items;
-  return Object.assign(schemas, explanationFactSchemas({logicalOperators, effectDeclaration}));
+  Object.assign(schemas, explanationFactSchemas({logicalOperators, effectDeclaration}));
+  const runRef = {$ref: 'actql-client-host.json#/schemas/run_ref'};
+  schemas.sample_source_generation = envelope('sample_source_generation', {
+    run_ref: runRef, compiled_plan_cid: cid, logical_map_cid: cid,
+    step_id: cid, output_port_id: cid, carrier: {const: 'relation'},
+    carrier_contract_cid: cid,
+    producer_occurrence: object({
+      kind: {const: 'first_physical_start'},
+      start_revision: positiveInt64Decimal, attempt_sequence: positiveInt64Decimal,
+    }),
+    committed_generation: positiveInt64Decimal,
+    self_cid: cid,
+  });
+  schemas.sample_original_capture = envelope('sample_original_capture', {
+    source_generation_cid: cid, control_admission_cid: cid,
+    resolved_profile_cid: cid, strategy: {const: 'execution_prefix'},
+    max_items: positive, max_bytes: positiveInt64Decimal,
+    max_artifacts: positive, ttl_seconds: positive, required: bool, self_cid: cid,
+  });
+  schemas.sample_emission_provenance = envelope('sample_emission_provenance', {
+    original_capture_cid: cid, source_generation_cid: cid, relation_prefix_cid: cid,
+    ordering_evidence_cid: nullable(cid), sampled_items: decimal,
+    total: ref('control_quantity'), completeness: choice('complete', 'partial', 'unknown'),
+    truncation: choice('confirmed', 'not_truncated', 'unknown'), self_cid: cid,
+  });
+  schemas.sample_reference = envelope('sample_reference', {
+    run_ref: runRef, output_port_id: cid, original_capture_cid: cid,
+    emission_provenance_cid: cid, self_cid: cid,
+  });
+  schemas.sample_adoption_receipt = envelope('sample_adoption_receipt', {
+    run_ref: runRef, sample_ref_cid: cid, adoption: {const: 'retained_relation_prefix'},
+    expires_at_epoch_ms: positiveInt64Decimal, self_cid: cid,
+  });
+  return schemas;
 }
 
 export const controlErrors = Object.freeze([

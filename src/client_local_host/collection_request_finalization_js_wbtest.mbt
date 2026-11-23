@@ -1,11 +1,729 @@
 ///|
-test "Relation Sample start reuses exact installed Request, Definition and setup" {
+test "Relation Sample captures the exact installed Request and committed output" {
   collection_request_publication_case(
     1,
     false,
     simple=true,
     check_sample_start=true,
   )
+}
+
+///|
+fn collection_sample_submission_reference(
+  tag_digit : String,
+) -> @publication_host.ClientSubmissionReferenceRecord {
+  let epoch = @publication_host.admit_client_submission_epoch_token(
+    "{\"version\":\"actql-submission-epoch/0.1\",\"authorityScopeCid\":\"sha256:" +
+    "a".repeat(64) +
+    "\",\"epochNonce\":\"" +
+    "1".repeat(64) +
+    "\",\"notBefore\":1,\"expiresAt\":2,\"authenticator\":\"" +
+    tag_digit.repeat(64) +
+    "\"}",
+  ).unwrap()
+  @publication_host.prepare_client_submission_reference_record(
+    epoch, "sample-binding-fixture",
+  ).unwrap()
+}
+
+///|
+fn check_relation_sample_profile_on_collection(
+  run : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  request : @publication_host.ClientRequestIdentity,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  ledger : @resources.Ledger,
+  original_reference : @publication_host.ClientSubmissionReferenceRecord,
+) -> ClientCheckedRelationSampleProfile raise {
+  let observation = prepare_installed_logical_observation(
+    run, prepared, compiled, definition, 65536, 8192, 64,
+  ).unwrap()
+  let map = @publication.admit_interactive_run_evidence_value(
+    "logical_map",
+    observation.original.unwrap().map,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let seal = fn(name, body) {
+    @publication.seal_run_evidence_value(name, body, 65536, 8192, 64).unwrap()
+  }
+  let profile_body =
+    #|{"version":"actql-control-profile/0.1","execution":{"stop_on_entry":false,"default_until":"terminal","breakpoints":[],"guards":null},"retain":{"samples":{"strategy":"execution_prefix","capture_scope":"all_outputs","targets":[],"max_items":50,"max_bytes":"512","max_artifacts":1,"ttl_seconds":60,"required":true,"graph":{"max_nodes":0,"max_edges":0},"vectors":{"max_components_per_item":1}}}}
+  let profile = seal("control_profile", profile_body)
+  let plan_cid = @publication.publication_contract_identity(
+    @publication_host.client_compiled_run_plan(compiled),
+  )
+  let profile_cid = @publication.run_evidence_value_identity(profile)
+  let authority = @publication_host.client_request_authority_scope_cid(request)
+  let fingerprint = @publication_host.client_request_intent_cid(request)
+  let changed_reference = collection_sample_submission_reference("3")
+  // The authenticator changes without changing the derived request ID.
+  assert_true(
+    @publication_host.client_submission_reference_matches_request(
+      changed_reference, request,
+    ),
+  )
+  let map_cid = @publication.run_evidence_value_identity(map)
+  let definition_cid = @publication.publication_contract_identity(definition)
+  let policy = "sha256:" + "d".repeat(64)
+  guard @identity.object_field(observation.original.unwrap().map, "steps")
+    is Some(@identity.Array(steps)) else {
+    fail("the original Plan must project logical steps")
+  }
+  let outputs : Array[String] = []
+  let mut first_output = None
+  let mut port_count = 0
+  for i in 0..<@identity.array_count(steps) {
+    let step = @identity.array_at(steps, i).unwrap()
+    guard @identity.object_field(step, "ports") is Some(@identity.Array(ports)) else {
+      fail("actual original ports")
+    }
+    port_count += @identity.array_count(ports)
+    for j in 0..<@identity.array_count(ports) {
+      let port = @identity.array_at(ports, j).unwrap()
+      if @identity.object_field(port, "role")
+        is Some(@identity.String("output")) {
+        guard @identity.object_field(port, "port_id")
+          is Some(@identity.String(id)) else {
+          fail("actual original port ID")
+        }
+        outputs.push("\"" + id + "\"")
+        if first_output is None {
+          first_output = Some(id)
+        }
+      }
+    }
+  }
+  assert_false(outputs.is_empty())
+  let max_nodes = 256
+  let mut admitted = None
+  for (complete, same_reference) in [(true, true), (false, true), (true, false)] {
+    let reference = if same_reference {
+      original_reference
+    } else {
+      changed_reference
+    }
+    let intent = seal(
+      "control_request_intent",
+      "{\"version\":\"actql-control-request-intent/0.1\",\"submission_ref\":" +
+      @publication_host.client_submission_reference_record_wire(reference) +
+      ",\"legacy_request_fingerprint_cid\":\"" +
+      fingerprint +
+      "\",\"requested_profile_cid\":\"" +
+      profile_cid +
+      "\",\"expected_plan_cid\":\"" +
+      plan_cid +
+      "\"}",
+    )
+    let intent_cid = @publication.run_evidence_value_identity(intent)
+    let selected = if complete { outputs.join(",") } else { "" }
+    let resolved = seal(
+      "resolved_control_profile",
+      "{\"version\":\"actql-resolved-control-profile/0.1\",\"requested_profile_cid\":\"" +
+      profile_cid +
+      "\",\"effective_profile_cid\":\"" +
+      profile_cid +
+      "\",\"compiled_plan_cid\":\"" +
+      plan_cid +
+      "\",\"logical_map_cid\":\"" +
+      map_cid +
+      "\",\"breakpoints\":[],\"sample_output_port_ids\":[" +
+      selected +
+      "]}",
+    )
+    let resolved_cid = @publication.run_evidence_value_identity(resolved)
+    let admission = seal(
+      "control_admission",
+      "{\"version\":\"actql-control-admission/0.1\",\"request_intent_cid\":\"" +
+      intent_cid +
+      "\",\"run_ref\":{\"namespaceId\":\"collection-publication\",\"authorityScopeCid\":\"" +
+      authority +
+      "\",\"runDefinitionCid\":\"" +
+      definition_cid +
+      "\"},\"compiled_plan_cid\":\"" +
+      plan_cid +
+      "\",\"logical_map_cid\":\"" +
+      map_cid +
+      "\",\"resolved_profile_cid\":\"" +
+      resolved_cid +
+      "\",\"policy_revision_cid\":\"" +
+      policy +
+      "\"}",
+    )
+    let records : InstalledRelationSampleProfileEvidence = {
+      intent,
+      requested: profile,
+      effective: profile,
+      resolved,
+      map,
+      admission,
+    }
+    let before = @resources.ledger_usage(ledger).planning_work
+    if complete && same_reference {
+      let used = @resources.ledger_usage(ledger)
+      let limits = @resources.ledger_limits(ledger)
+      let entry_quote = 2464L +
+        explanation_logical_map_scanner_bytes().unwrap() +
+        installed_sample_profile_reference_bytes
+      let blocker = @resources.reserve_capacity(
+        ledger,
+        limits.retained_bytes -
+        used.held_bytes -
+        used.reserved_retention_bytes -
+        entry_quote +
+        1L,
+        0L,
+      ).unwrap()
+      assert_true(
+        check_installed_relation_sample_profile(
+          run, request, definition, observation, original_reference, records, 65536,
+          max_nodes, 64,
+        )
+        is Err(SampleProfileCapacity(Resource(RetentionLimit))),
+      )
+      assert_eq(@resources.ledger_usage(ledger).planning_work, before)
+      @resources.settle_capacity(ledger, blocker).unwrap()
+    }
+    let outcome = check_installed_relation_sample_profile(
+      run, request, definition, observation, original_reference, records, 65536,
+      max_nodes, 64,
+    )
+    if !same_reference {
+      assert_true(outcome is Err(ForeignSampleProfile))
+    } else if complete {
+      outcome.unwrap() |> ignore
+    } else {
+      assert_true(
+        outcome
+        is Err(
+          SampleProfileBinding(
+            RunEvidenceReferenceMismatch("control_admission.sample_output")
+          )
+        ),
+      )
+    }
+    let (_, resolved_nodes, _) = @publication.run_evidence_value_wire_usage(
+      resolved,
+    ).unwrap()
+    // A foreign reference consumes only the fixed bounded reference visit.
+    let expected = if same_reference {
+      32 +
+      2 * max_nodes +
+      2 * (@identity.array_count(steps) + port_count) +
+      resolved_nodes +
+      (if complete { 2 * @identity.array_count(steps) } else { 0 })
+    } else {
+      32
+    }
+    assert_eq(@resources.ledger_usage(ledger).planning_work - before, expected)
+    assert_false(observation.reading || run.source_free_opening)
+    if complete && same_reference {
+      let reference_wire = @publication_host.client_submission_reference_record_wire(
+        original_reference,
+      )
+      let before_wire = @resources.ledger_usage(ledger).planning_work
+      let used = @resources.ledger_usage(ledger)
+      let limits = @resources.ledger_limits(ledger)
+      let quote = 2464L +
+        explanation_logical_map_scanner_bytes().unwrap() +
+        installed_sample_profile_reference_bytes +
+        installed_sample_journal_reference_bytes
+      let blocker = @resources.reserve_capacity(
+        ledger,
+        limits.retained_bytes -
+        used.held_bytes -
+        used.reserved_retention_bytes -
+        quote +
+        1L,
+        0L,
+      ).unwrap()
+      assert_true(
+        check_installed_relation_sample_profile_journal_reference(
+          run, request, definition, observation, reference_wire, records, 65536,
+          max_nodes, 64,
+        )
+        is Err(SampleProfileCapacity(Resource(RetentionLimit))),
+      )
+      assert_eq(@resources.ledger_usage(ledger).planning_work, before_wire)
+      @resources.settle_capacity(ledger, blocker).unwrap()
+      assert_true(
+        check_installed_relation_sample_profile_journal_reference(
+          run,
+          request,
+          definition,
+          observation,
+          " " + reference_wire,
+          records,
+          65536,
+          max_nodes,
+          64,
+        )
+        is Err(ForeignSampleProfile),
+      )
+      let (bytes, nodes, _) = @publication.interactive_submission_reference_limits()
+      // This fixture's epoch/ref wire is ASCII; leading space adds one byte.
+      let codec_work = bytes + 12 * reference_wire.length() + 16 * nodes
+      assert_eq(
+        @resources.ledger_usage(ledger).planning_work - before_wire,
+        codec_work + 12,
+      )
+      let valid_wire = check_installed_relation_sample_profile_journal_reference(
+        run, request, definition, observation, reference_wire, records, 65536, max_nodes,
+        64,
+      )
+      match valid_wire {
+        Ok(checked) =>
+          admitted = Some(
+            (
+              checked,
+              @publication.run_evidence_value_identity(admission),
+              resolved_cid,
+            ),
+          )
+        Err(ForeignSampleProfile) =>
+          fail("the exact canonical original reference was refused")
+        Err(SampleProfileCapacity(_)) =>
+          fail("the second codec reservation did not fit the fixture")
+        Err(SampleProfileWork(_)) =>
+          fail("the second codec work charge did not fit the fixture")
+        Err(_) => fail("the exact original profile did not bind")
+      }
+      assert_eq(
+        @resources.ledger_usage(ledger).planning_work - before_wire,
+        2 * codec_work + 12 + expected,
+      )
+      assert_false(observation.reading || run.source_free_opening)
+    }
+  }
+  // No boundary, task control or prefix was entered by profile validation.
+  assert_true(observation.attached is None)
+  return_installed_logical_observation(observation).unwrap() |> ignore
+  let (checked, admission_cid, resolved_cid) = admitted.unwrap()
+  let before_lookup = @resources.ledger_usage(ledger).planning_work
+  let retention = installed_relation_sample_retention_for_output(
+      run,
+      checked,
+      first_output.unwrap(),
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(retention.control_admission_cid, admission_cid)
+  assert_eq(retention.resolved_profile_cid, resolved_cid)
+  assert_eq(retention.limits.max_items, 50L)
+  assert_eq(retention.limits.max_bytes, 512L)
+  assert_eq(retention.limits.max_artifacts, 1L)
+  assert_eq(retention.limits.ttl_seconds, 60L)
+  assert_true(retention.limits.required)
+  assert_true(
+    installed_relation_sample_retention_for_output(
+      run,
+      checked,
+      "sha256:" + "f".repeat(64),
+    )
+    is Ok(None),
+  )
+  assert_eq(@resources.ledger_usage(ledger).planning_work - before_lookup, 2)
+  checked
+}
+
+///|
+fn check_collection_committed_relation_sample(
+  owner : ClientInstalledManagedRun,
+  profile : ClientCheckedRelationSampleProfile,
+  completed : @execution.ManagedCompletedOutput[Int],
+  supplied : @execution.CompletedOutput?,
+  expected_task : Int,
+  expected_attempt : Int,
+  adopt_after_refusals : Bool,
+) -> String raise {
+  let original = supplied.unwrap()
+  let captured = profile.captured
+  let observation = prepare_installed_logical_observation(
+    owner,
+    profile.prepared,
+    profile.compiled,
+    profile.definition,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  defer return_installed_logical_observation(observation) |> ignore
+  let hooks = @strategy.captured_task_boundary_hooks(captured).unwrap()
+  let committed = @strategy.read_captured_task_boundary(
+      captured,
+      hooks,
+      Settled,
+    )
+    .unwrap()
+    .unwrap()
+  defer @strategy.return_captured_task_boundary(committed) |> ignore
+  let projected = @publication_host.bind_client_logical_task_boundary(
+    observation.original.unwrap(),
+    profile.compiled,
+    profile.prepared,
+    captured,
+    committed,
+    8192,
+  ).unwrap()
+  guard projected is @publication_host.Projected(boundary) else {
+    fail("exact completed logical output required")
+  }
+  defer @publication_host.return_client_logical_task_boundary(boundary)
+    |> ignore
+  assert_eq(@strategy.captured_task_boundary_task(committed), expected_task)
+  let expected_step = @publication_host.client_logical_task_boundary_step_id(
+    boundary,
+    profile.compiled,
+    profile.prepared,
+  ).unwrap()
+  @strategy.return_captured_task_boundary(committed).unwrap()
+  let generation = @strategy.captured_task_boundary_generation(committed)
+  let schema : @execution.RelationSchemaIdentityLimits = {
+    max_fields: 1,
+    max_bytes: 512,
+    max_nodes: 32,
+    max_depth: 8,
+  }
+  let ledger = @strategy.captured_dag_ledger(captured)
+  let before = @resources.ledger_usage(ledger)
+  assert_eq(before.attempts, expected_attempt)
+  for denied_at in [2, 4] {
+    let check_count = Ref(0)
+    match
+      retain_installed_relation_sample_prefix(
+        owner,
+        profile,
+        boundary,
+        completed,
+        original,
+        schema,
+        32,
+        8,
+        () => {
+          check_count.val += 1
+          check_count.val < denied_at
+        },
+      ) {
+      Err(SamplePrefixAuthorityLost) => ()
+      Err(SamplePrefixLogical(issue)) => fail(@debug.to_string(issue))
+      Err(SamplePrefixPhysical(@strategy.AttemptUnavailable)) =>
+        fail("missing consumed attempt")
+      Err(SamplePrefixPhysical(@strategy.StartUnavailable)) =>
+        fail("missing acknowledged start")
+      Err(SamplePrefixPhysical(@strategy.StaleOriginal)) =>
+        fail("stale managed producer")
+      Err(SamplePrefixPhysical(@strategy.Resident(_))) =>
+        fail("resident pin refused")
+      Err(SamplePrefixPhysical(@strategy.Prefix(@execution.Encoding(issue)))) =>
+        fail(@debug.to_string(issue))
+      Err(SamplePrefixPhysical(@strategy.Prefix(@execution.Schema(_)))) =>
+        fail("schema extent refused")
+      Err(SamplePrefixPhysical(@strategy.Prefix(_))) =>
+        fail("prefix layout or availability")
+      Err(SamplePrefixPhysical(@strategy.Boundary(issue))) =>
+        fail(@debug.to_string(issue))
+      Err(_) => fail("other capture refusal")
+      Ok(None) => fail("Relation port not selected")
+      Ok(Some(sample)) => {
+        return_installed_relation_sample_prefix(sample).unwrap()
+        fail("revoked capture authority admitted the prefix")
+      }
+    }
+    assert_eq(check_count.val, denied_at)
+    let after_refusal = @resources.ledger_usage(ledger)
+    assert_eq(after_refusal.live_reservations, before.live_reservations)
+    assert_eq(
+      after_refusal.reserved_retention_bytes,
+      before.reserved_retention_bytes,
+    )
+    assert_eq(
+      after_refusal.reserved_execution_bytes,
+      before.reserved_execution_bytes,
+    )
+  }
+  let sample = retain_installed_committed_relation_sample(
+      owner,
+      profile,
+      expected_task,
+      completed,
+      Some(original),
+      schema,
+      32,
+      8,
+      () => true,
+    )
+    .unwrap()
+    .unwrap()
+  defer return_installed_relation_sample_prefix(sample) |> ignore
+  assert_true(
+    @resources.ledger_usage(ledger).live_reservations > before.live_reservations,
+  )
+  @publication_host.return_client_logical_task_boundary(boundary).unwrap()
+  return_installed_logical_observation(observation).unwrap() |> ignore
+  let (
+    retention,
+    step_id,
+    port_id,
+    contract,
+    document,
+    count,
+    total,
+    actual_generation,
+    attempt,
+    revision,
+  ) = installed_relation_sample_prefix_original(owner, sample).unwrap()
+  assert_eq(retention.control_admission_cid, profile.control_admission_cid)
+  assert_eq(step_id, expected_step)
+  assert_eq(
+    (actual_generation, attempt, revision),
+    (generation, expected_attempt.to_int64(), 2),
+  )
+  assert_eq((count, total), (1, 1))
+  let expected = @publication.seal_run_evidence_value(
+    "logical_port_key",
+    "{\"version\":\"actql-logical-port-key/0.1\",\"compiled_plan_cid\":\"" +
+    @publication.publication_contract_identity(
+      @publication_host.client_compiled_run_plan(profile.compiled),
+    ) +
+    "\",\"step_id\":\"" +
+    step_id +
+    "\",\"role\":\"output\",\"port_ordinal\":0}",
+    4096,
+    32,
+    8,
+  ).unwrap()
+  assert_eq(port_id, @publication.run_evidence_value_identity(expected))
+  assert_true(contract.has_prefix("sha256:"))
+  // Only the final SELECT output has the independently expected value 0.
+  // The earlier original is a separate materialized computation.
+  if adopt_after_refusals {
+    assert_true(
+      @encode.document_text(document).contains(
+        "\"rows\":[[{\"presence\":\"present\",\"value\":0,",
+      ),
+    )
+  }
+  let visits = Ref(0)
+  let reserved = @resources.ledger_usage(ledger)
+  let refusals = if adopt_after_refusals { [] } else { [1, 2, 2, 2] }
+  for denied_at in refusals {
+    let checks = Ref(0)
+    let entered_charge = Ref(false)
+    let work = @resources.ledger_usage(ledger).planning_work
+    match
+      with_installed_relation_sample_adoption(
+        owner,
+        sample,
+        () => {
+          checks.val += 1
+          if checks.val == 2 {
+            let charged = @resources.ledger_usage(ledger)
+            entered_charge.val = charged.live_reservations ==
+              reserved.live_reservations + 1 &&
+              charged.reserved_retention_bytes >
+              reserved.reserved_retention_bytes &&
+              charged.reserved_execution_bytes >
+              reserved.reserved_execution_bytes
+          }
+          checks.val < denied_at
+        },
+        (_, _) => {
+          visits.val += 1
+          Ok(())
+        },
+      ) {
+      Err(SampleAdoptionAuthorityLost) => ()
+      Err(SampleAdoptionOriginalUnavailable) =>
+        fail("Sample original unavailable")
+      Err(SampleAdoptionLimits) => fail("Sample adoption geometry refused")
+      Err(SampleAdoptionEncoding(issue)) => fail(@debug.to_string(issue))
+      Err(SampleAdoptionEvidence(issue)) => fail(@debug.to_string(issue))
+      Err(SampleAdoptionCapacity(issue))
+      | Err(SampleAdoptionReturn(issue))
+      | Err(SampleAdoptionWork(issue)) => fail(@debug.to_string(issue))
+      Err(SampleAdoptionVisitorRefused) | Ok(_) =>
+        fail("Revoked capture authority reached the Sample Journal visitor")
+    }
+    assert_eq(checks.val, denied_at)
+    assert_eq(entered_charge.val, denied_at >= 2)
+    let after = @resources.ledger_usage(ledger)
+    assert_eq(after.live_reservations, reserved.live_reservations)
+    assert_eq(after.reserved_retention_bytes, reserved.reserved_retention_bytes)
+    assert_eq(after.reserved_execution_bytes, reserved.reserved_execution_bytes)
+    assert_eq(after.planning_work, work + denied_at - 1)
+  }
+  assert_eq(visits.val, 0)
+  if adopt_after_refusals {
+    let equivalent = { ..profile, }
+    assert_true(
+      with_installed_relation_sample_journal(
+        owner,
+        equivalent,
+        sample,
+        () => true,
+        (_, _, _) => {
+          visits.val += 1
+          true
+        },
+      )
+      is Err(SampleAdoptionOriginalUnavailable),
+    )
+    let readbacks : Ref[Result[Unit, Error]?] = Ref(None)
+    let escaped_current : Ref[(() -> Bool)?] = Ref(None)
+    let outcome = with_installed_relation_sample_journal(
+      owner,
+      profile,
+      sample,
+      () => true,
+      (input, current, funded_bytes) => {
+        escaped_current.val = Some(current)
+        try {
+          visits.val += 1
+          assert_true(current())
+          assert_true(physical_equal(input.relation, document))
+          assert_true(
+            return_installed_relation_sample_prefix(sample)
+            is Err(@strategy.ReadInProgress),
+          )
+          assert_true(
+            with_installed_relation_sample_adoption(owner, sample, () => true, (
+              _,
+              _,
+            ) => {
+              visits.val += 1
+              Ok(())
+            })
+            is Err(SampleAdoptionOriginalUnavailable),
+          )
+          let generation = @publication.run_evidence_value_json(
+            input.source_generation,
+          )
+          assert_true(generation.contains("\"start_revision\":\"2\""))
+          assert_true(
+            generation.contains(
+              "\"attempt_sequence\":\"" + expected_attempt.to_string() + "\"",
+            ),
+          )
+          assert_true(
+            generation.contains(
+              "\"committed_generation\":\"" +
+              actual_generation.to_string() +
+              "\"",
+            ),
+          )
+          assert_true(
+            generation.contains("\"output_port_id\":\"" + port_id + "\""),
+          )
+          let emission = @publication.run_evidence_value_json(input.emission)
+          let digest = @sha.hex(@utf8.encode(@encode.document_text(document)))
+          assert_true(
+            emission.contains(
+              "\"relation_prefix_cid\":\"sha256:" + digest + "\"",
+            ),
+          )
+          assert_true(emission.contains("\"completeness\":\"complete\""))
+          assert_true(emission.contains("\"truncation\":\"not_truncated\""))
+          let reference = @publication.run_evidence_value_json(input.reference)
+          assert_true(
+            reference.contains(
+              "\"original_capture_cid\":\"" +
+              @publication.run_evidence_value_identity(input.capture) +
+              "\"",
+            ),
+          )
+          assert_true(
+            reference.contains(
+              "\"emission_provenance_cid\":\"" +
+              @publication.run_evidence_value_identity(input.emission) +
+              "\"",
+            ),
+          )
+          assert_true(
+            @publication.run_evidence_value_identity(input.reference).has_prefix(
+              "sha256:",
+            ),
+          )
+          assert_eq(
+            @resources.ledger_usage(ledger).live_reservations,
+            reserved.live_reservations + 1,
+          )
+          let namespace_id = @publication.run_definition_namespace(
+            profile.definition,
+          ).unwrap()
+          let mut actual_bytes = @utf8.encode(@encode.document_text(document)).length() +
+            1024 +
+            6 * namespace_id.length()
+          for
+            value in [
+              input.source_generation,
+              input.capture,
+              input.emission,
+              input.reference,
+            ] {
+            actual_bytes += @utf8.encode(
+              @publication.run_evidence_value_json(value),
+            ).length()
+          }
+          assert_eq(funded_bytes, actual_bytes)
+        } catch {
+          issue => readbacks.val = Some(Err(issue))
+        } noraise {
+          _ => readbacks.val = Some(Ok(()))
+        }
+        true
+      },
+    )
+    match outcome {
+      Ok(_) => ()
+      Err(SampleAdoptionCapacity(issue))
+      | Err(SampleAdoptionReturn(issue))
+      | Err(SampleAdoptionWork(issue)) => fail(@debug.to_string(issue))
+      Err(SampleAdoptionEvidence(issue)) => fail(@debug.to_string(issue))
+      Err(SampleAdoptionEncoding(issue)) => fail(@debug.to_string(issue))
+      Err(_) => fail("Original Sample adoption visit refused")
+    }
+    match readbacks.val.unwrap() {
+      Ok(_) => ()
+      Err(issue) => raise issue
+    }
+    assert_false(escaped_current.val.unwrap()())
+    let after = @resources.ledger_usage(ledger)
+    assert_eq(after.live_reservations, reserved.live_reservations)
+    assert_eq(after.reserved_retention_bytes, reserved.reserved_retention_bytes)
+    assert_eq(after.reserved_execution_bytes, reserved.reserved_execution_bytes)
+    assert_eq(visits.val, 1)
+  } else {
+    let work = @resources.ledger_usage(ledger).planning_work
+    assert_true(
+      with_installed_relation_sample_adoption(owner, sample, () => true, (_, _) => {
+        Err(SampleAdoptionVisitorRefused)
+      })
+      is Err(SampleAdoptionVisitorRefused),
+    )
+    let after = @resources.ledger_usage(ledger)
+    assert_true(after.planning_work > work + 1)
+    assert_eq(after.live_reservations, reserved.live_reservations)
+    assert_eq(after.reserved_retention_bytes, reserved.reserved_retention_bytes)
+    assert_eq(after.reserved_execution_bytes, reserved.reserved_execution_bytes)
+  }
+  return_installed_relation_sample_prefix(sample).unwrap()
+  assert_true(installed_relation_sample_prefix_original(owner, sample) is None)
+  assert_true(
+    with_installed_relation_sample_adoption(owner, sample, () => true, (_, _) => {
+      visits.val += 1
+      Ok(())
+    })
+    is Err(SampleAdoptionOriginalUnavailable),
+  )
+  assert_eq(visits.val, if adopt_after_refusals { 1 } else { 0 })
+  return_installed_relation_sample_prefix(sample).unwrap()
+  assert_eq(
+    @resources.ledger_usage(ledger).live_reservations,
+    before.live_reservations - 1,
+  )
+  port_id
 }
 
 ///|
@@ -292,10 +1010,17 @@ fn collection_request_publication_case(
     ),
   )
   let holder = borrow_request_program_preparation(parent).unwrap()
+  let original_reference = if check_sample_start {
+    Some(collection_sample_submission_reference("2"))
+  } else {
+    None
+  }
   let request = @publication_host.prepare_source_free_client_request_identity(
     prepared,
     "sha256:" + "a".repeat(64),
-    "same-request-finalization-" + count.to_string(),
+    original_reference
+    .map(@publication_host.client_submission_reference_record_request_id)
+    .unwrap_or("same-request-finalization-" + count.to_string()),
   ).unwrap()
   let run = begin_request_program_managed_run(parent, request).unwrap()
   assert_true(physical_equal(run.ledger.unwrap(), original_ledger))
@@ -350,7 +1075,7 @@ fn collection_request_publication_case(
     )
     .unwrap()
     .unwrap()
-  if check_sample_start {
+  let sample_profile = if check_sample_start {
     let captured = run.source_free_captured.unwrap()
     let foreign_definition = @publication.admit_publication_contract(
       "run_definition",
@@ -368,7 +1093,7 @@ fn collection_request_publication_case(
     let foreign_request = @publication_host.prepare_source_free_client_request_identity(
       prepared,
       "sha256:" + "a".repeat(64),
-      "same-request-finalization-" + count.to_string(),
+      @publication_host.client_request_caller_id(request),
     ).unwrap()
     assert_true(
       acknowledge_installed_relation_sample_start(
@@ -388,61 +1113,92 @@ fn collection_request_publication_case(
       is Err(ForeignSampleStart),
     )
     @strategy.stop_captured_dag(foreign_run)
-    // The independent header/reference/word inventory costs 1376 bytes in
+    // The independent header/reference/word inventory costs 7456 bytes in
     // both dimensions on this SAME original preparation reservation.
-    let start_bytes = 1376L
+    let journal_bytes = 1024
+    let journal_charge = installed_relation_sample_journal_bytes(journal_bytes).unwrap()
+    assert_true(journal_charge > journal_bytes.to_int64())
     let original_holder = managed_run_publication_body(run, prepared).unwrap()
-    let (retained, execution) = @resources.preparation_body_borrow_reserved_extents(
-      original_holder,
-    ).unwrap()
-    let used = @resources.ledger_usage(ledger)
-    let limits = @resources.ledger_limits(ledger)
-    let retention_blocker = limits.retained_bytes -
-      used.held_bytes -
-      used.reserved_retention_bytes -
-      start_bytes
-    let execution_blocker = limits.execution_bytes -
-      used.reserved_execution_bytes -
-      start_bytes
-    for retention in [true, false] {
-      let blocker = @resources.reserve_capacity(
-        ledger,
-        retention_blocker + (if retention { 1L } else { 0L }),
-        execution_blocker + (if retention { 0L } else { 1L }),
+    for (stored, start_bytes) in [(0, 7456L), (journal_bytes, journal_charge)] {
+      let (retained, execution) = @resources.preparation_body_borrow_reserved_extents(
+        original_holder,
       ).unwrap()
-      let declined = reserve_installed_relation_sample_start(
-        run, prepared, request, compiled, definition, captured,
-      )
+      let used = @resources.ledger_usage(ledger)
+      let limits = @resources.ledger_limits(ledger)
+      let retention_blocker = limits.retained_bytes -
+        used.held_bytes -
+        used.reserved_retention_bytes -
+        start_bytes
+      let execution_blocker = limits.execution_bytes -
+        used.reserved_execution_bytes -
+        start_bytes
+      for retention in [true, false] {
+        let blocker = @resources.reserve_capacity(
+          ledger,
+          retention_blocker + (if retention { 1L } else { 0L }),
+          execution_blocker + (if retention { 0L } else { 1L }),
+        ).unwrap()
+        let declined = reserve_installed_relation_sample_start(
+          run,
+          prepared,
+          request,
+          compiled,
+          definition,
+          captured,
+          journal_bytes=stored,
+        )
+        assert_true(
+          if retention {
+            declined is Err(SampleStartCapacity(Resource(RetentionLimit)))
+          } else {
+            declined is Err(SampleStartCapacity(Resource(ExecutionLimit)))
+          },
+        )
+        assert_eq(
+          @resources.preparation_body_borrow_reserved_extents(original_holder),
+          Ok((retained, execution)),
+        )
+        @resources.settle_capacity(ledger, blocker).unwrap()
+      }
+      let blocker = @resources.reserve_capacity(
+        ledger, retention_blocker, execution_blocker,
+      ).unwrap()
       assert_true(
-        if retention {
-          declined is Err(SampleStartCapacity(Resource(RetentionLimit)))
-        } else {
-          declined is Err(SampleStartCapacity(Resource(ExecutionLimit)))
-        },
+        reserve_installed_relation_sample_start(
+          run,
+          prepared,
+          foreign_request,
+          compiled,
+          definition,
+          captured,
+          journal_bytes=stored,
+        )
+        is Err(ForeignSampleStart),
       )
+      reserve_installed_relation_sample_start(
+        run,
+        prepared,
+        request,
+        compiled,
+        definition,
+        captured,
+        journal_bytes=stored,
+      ).unwrap()
       assert_eq(
         @resources.preparation_body_borrow_reserved_extents(original_holder),
-        Ok((retained, execution)),
+        Ok((retained + start_bytes, execution + start_bytes)),
       )
       @resources.settle_capacity(ledger, blocker).unwrap()
     }
-    let blocker = @resources.reserve_capacity(
-      ledger, retention_blocker, execution_blocker,
-    ).unwrap()
-    assert_true(
-      reserve_installed_relation_sample_start(
-        run, prepared, foreign_request, compiled, definition, captured,
-      )
-      is Err(ForeignSampleStart),
+    let profile = check_relation_sample_profile_on_collection(
+      run,
+      prepared,
+      request,
+      compiled,
+      definition,
+      ledger,
+      original_reference.unwrap(),
     )
-    reserve_installed_relation_sample_start(
-      run, prepared, request, compiled, definition, captured,
-    ).unwrap()
-    assert_eq(
-      @resources.preparation_body_borrow_reserved_extents(original_holder),
-      Ok((retained + start_bytes, execution + start_bytes)),
-    )
-    @resources.settle_capacity(ledger, blocker).unwrap()
     // Exact originals alone cannot substitute for the selected controller.
     assert_true(
       acknowledge_installed_relation_sample_start(
@@ -525,8 +1281,51 @@ fn collection_request_publication_case(
       subject,
       context,
     ).unwrap()
+    Some(profile)
+  } else {
+    None
   }
   let ledger = parent.ledger
+  let sample_failure : Ref[Error?] = Ref(None)
+  let sample_ports : Array[String] = []
+  let sample_compute : Ref[(Int, Int)?] = Ref(None)
+  let sample_tasks = match sample_profile {
+    None => []
+    Some(profile) => {
+      let graph = @strategy.captured_dag_graph(profile.captured)
+      let result = @strategy.graph_result_task(graph, 0).unwrap()
+      let earlier = @strategy.graph_captured_prefix(graph)
+      assert_true(earlier < result)
+      assert_true(@strategy.graph_task_target(graph, earlier) is Some(_))
+      [earlier, result]
+    }
+  }
+  let on_relation_commit = sample_profile.map(profile => {
+    (completed, original) => {
+      if sample_failure.val is Some(_) {
+        return
+      }
+      let (expected_task, expected_attempt) = sample_compute.val.unwrap()
+      sample_compute.val = None
+      try {
+        let port = check_collection_committed_relation_sample(
+          run,
+          profile,
+          completed,
+          original,
+          expected_task,
+          expected_attempt,
+          expected_task == sample_tasks[1],
+        )
+        assert_false(sample_ports.contains(port))
+        sample_ports.push(port)
+      } catch {
+        issue => sample_failure.val = Some(issue)
+      } noraise {
+        _ => ()
+      }
+    }
+  })
   let result = collection_node_callback_order(
     setup,
     32,
@@ -535,13 +1334,31 @@ fn collection_request_publication_case(
     require_live=None,
     first=0,
     component_compute_quantum=256,
+    on_relation_commit~,
+    sample_tasks~,
     component_after_compute=Some((operations, task) => {
+      if sample_tasks.contains(task) && sample_profile is Some(profile) {
+        sample_compute.val = Some(
+          (
+            task,
+            @resources.ledger_usage(
+              @strategy.captured_dag_ledger(profile.captured),
+            ).attempts,
+          ),
+        )
+      }
       collection_node_snapshot(operations, task, ledger)
     }),
   )
   let output = match result {
     Ok(value) => {
       assert_false(expect_work_refusal)
+      if sample_profile is Some(_) {
+        if sample_failure.val is Some(issue) {
+          raise issue
+        }
+        assert_eq(sample_ports.length(), 2)
+      }
       value
     }
     Err(failure) => {
@@ -867,8 +1684,32 @@ fn collection_request_publication_case(
   stream.cancel()
   @execution.close_managed_publication_bridge(bridge)
   assert_true(output.close())
+  if sample_profile is Some(profile) {
+    assert_false(
+      @strategy.captured_task_boundary_cleanup_pending(profile.captured),
+    )
+    assert_eq(
+      @strategy.captured_task_boundary_cleanup_issue(profile.captured),
+      None,
+    )
+    let usage = @resources.ledger_usage(
+      @strategy.captured_dag_ledger(profile.captured),
+    )
+    assert_eq(usage.live_reservations, 1)
+    assert_eq(usage.holdings, 0)
+  }
   @resources.return_preparation_body_borrow(holder).unwrap() |> ignore
-  retire_installed_managed_run(run).unwrap()
+  match retire_installed_managed_run(run) {
+    Ok(_) => ()
+    Err(CleanupPending) =>
+      fail(
+        "retirement still pending: " +
+        @debug.to_string(@resources.ledger_usage(parent.ledger)),
+      )
+    Err(Ledger(issue)) => fail(@debug.to_string(issue))
+    Err(Preparation(issue)) => fail(@debug.to_string(issue))
+    Err(_) => fail("original retirement refused")
+  }
   assert_eq(@resources.ledger_usage(parent.ledger).live_reservations, 0)
   if observed is Some(samples) {
     samples.push(@resources.ledger_usage(parent.ledger))
@@ -1103,6 +1944,11 @@ fn collection_node_callback_order(
     @local_driver.LocalManagedDispatchOperations[Int],
     Int,
   ) -> Result[Unit, @local_driver.LocalDispatchIssue])? = None,
+  on_relation_commit? : ((
+    @execution.ManagedCompletedOutput[Int],
+    @execution.CompletedOutput?,
+  ) -> Unit)? = None,
+  sample_tasks? : Array[Int] = [],
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(failed_local_values_execution(InvalidLimits))
@@ -1253,7 +2099,14 @@ fn collection_node_callback_order(
       }
     }
     let operations = match
-      @local_driver.start_local_managed_dispatch_node(prepared) {
+      @local_driver.start_local_managed_dispatch_node(
+        prepared,
+        on_relation_commit=if sample_tasks.contains(index) {
+          on_relation_commit
+        } else {
+          None
+        },
+      ) {
       Ok(value) => value
       Err(issue) => return reject(Driver(issue))
     }

@@ -4,12 +4,15 @@ import {execFileSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 import {identityVectors, shapeVectors, negativeVectors, running, paused,
-  manual, legacyState, bindingVectors, bindingMutations, planBody, ref} from './fixtures/interactive-run-control-vectors.mjs';
+  manual, legacyState, bindingVectors, bindingMutations, sampleBindingCases, planBody, ref} from './fixtures/interactive-run-control-vectors.mjs';
+import {sampleIdentityVectors, sampleInvalidIdentityBodies, sampleSubstitutedCompleteValues} from
+  './fixtures/relation-sample-identity-vectors.mjs';
 
 const quote = value => JSON.stringify(value);
 export function generateControlVectors() {
   let source = '// Generated from independently authored Interactive Control vectors.\n';
-  for (const [index, vector] of [...identityVectors, ...bindingVectors].entries()) {
+  for (const [index, vector] of [...identityVectors, ...bindingVectors,
+    ...sampleIdentityVectors].entries()) {
     verifyIdentity(vector.body, vector.cid);
     const body = canonicalText(vector.body);
     const complete = canonicalText({...vector.body, self_cid: vector.cid});
@@ -45,6 +48,21 @@ export function generateControlVectors() {
   source += bindingTest('original intent and input-only Plan map', null, true);
   for (const [index, mutation] of bindingMutations.entries())
     source += bindingTest(`rehashed substitution ${index}`, mutation, false);
+  for (const {label, records, expected} of sampleBindingCases) {
+    source += `\n///|\ntest "interactive Sample target binding ${label}" {\n` +
+      `  let plan = seal_publication_contract("compiled_plan", ${quote(canonicalText(planBody))}, 20000, 2000, 32).unwrap()\n` +
+      records.map(([name, body], index) => `  let value${index} = seal_run_evidence_value(${quote(name)}, ${quote(canonicalText(body))}, 20000, 2000, 32).unwrap()\n`).join('') +
+      `  assert_${expected ? 'true' : 'false'}(check_interactive_admission_binding(value1, value0, value0, value2, value3, value4, plan, ${quote(ref.namespaceId)}, ${quote(ref.runDefinitionCid)}, 20000, 2000, 32) is Ok(_))\n}\n`;
+  }
+  for (const [index, [name, body]] of sampleInvalidIdentityBodies.entries()) {
+    source += `\n///|\ntest "interactive sample invalid body ${index}" {\n` +
+      `  assert_true(seal_run_evidence_value(${quote(name)}, ${quote(canonicalText(body))}, 20000, 2000, 32) is Err(RunEvidenceInvalidShape))\n}\n`;
+  }
+  for (const [index, [name, cid, body]] of sampleSubstitutedCompleteValues.entries()) {
+    const complete = canonicalText({...body, self_cid: cid});
+    source += `\n///|\ntest "interactive sample substituted identity ${index}" {\n` +
+      `  assert_true(admit_run_evidence_value(${quote(name)}, ${quote(complete)}, 20000, 2000, 32) is Err(RunEvidenceIdentityMismatch))\n}\n`;
+  }
   return execFileSync(process.env.MOON_HOME ? `${process.env.MOON_HOME}/bin/moonfmt`
     : 'moonfmt', ['-'], {input: source, encoding: 'utf8'});
 }

@@ -15518,7 +15518,7 @@
     {
       "module": "adapters/host-common/strategy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "15f81cda70640c27c03b30c7e9d83babf97fcd90d9dceaf041d9ffd4276c16d8",
+      "sha256": "75e982d21111150172628924cbde82a1f4ae08dde5abe2a4acdb33517924e5ca",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -15638,6 +15638,7 @@
             "observeCompletion",
             "observeTaskStart",
             "taskObservation",
+            "relationSample",
             "beforeCompute",
             "retainPreflightCleanup",
             "preparationHolder"
@@ -28665,9 +28666,358 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/client-relation-sample-adoption.mjs",
+      "exports": [
+        "clientRelationSampleAdoptionStorage",
+        "inspectRelationSampleAdoptionStorage",
+        "relationSampleAdoptionTable"
+      ],
+      "imports": [
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "operations": [
+        {
+          "name": "clientRelationSampleAdoptionStorage",
+          "parameters": [
+            "database",
+            "ensureOpen",
+            "transact",
+            "now",
+            "maxRecords",
+            "maxWireBytes",
+            "createSupported"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/adopt/adopt/adopt",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:lookup/init:lookup",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "control",
+            "current",
+            "reserve"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:lookup/init:lookup/result/result",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:retire/init:retire",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "control",
+            "current",
+            "reserve"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:retire/init:retire/init:retire",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:writer/init:writer",
+          "parameters": [
+            "ref",
+            "original",
+            "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:writer/init:writer/init:writer",
+          "parameters": [
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "clientRelationSampleAdoptionStorage/init:writer/init:writer/init:writer/init:writer",
+          "parameters": [
+            "loan"
+          ],
+          "async": false
+        },
+        {
+          "name": "inspectRelationSampleAdoptionStorage",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        },
+        {
+          "name": "requireAuthority/requireAuthority",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "reserveOriginal/reserveOriginal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sampleFailure/sampleFailure",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        }
+      ],
+      "sha256": "af1d9411b78d4a574375901104150bf0c6dd663a90aaf542ebe2ba875a620e7e",
+      "role": "physical-io",
+      "owner": "Existing Client Request Journal and original Relation Sample custody",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "clientRelationSampleAdoptionStorage",
+            "inspectRelationSampleAdoptionStorage",
+            "requireAuthority/requireAuthority",
+            "reserveOriginal/reserveOriginal",
+            "sampleFailure/sampleFailure"
+          ],
+          "exports": [
+            "clientRelationSampleAdoptionStorage",
+            "inspectRelationSampleAdoptionStorage",
+            "relationSampleAdoptionTable"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The Request Journal owns this optional durable table"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The Journal's private SQLite transaction owns the copy"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "source.producer_occurrence.start_revision !== String(start.start_revision)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "Copy only the original scalar coordinates"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "return transact('relation_sample_adoption'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "start.cancellation_requested !== 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "bytes + limits.maxWireBytes !== fundedBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "if (!createSupported)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption retains one exact prefix and stable receipt under its original start"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "clientRelationSampleAdoptionStorage/adopt/adopt/adopt",
+            "clientRelationSampleAdoptionStorage/init:lookup/init:lookup",
+            "clientRelationSampleAdoptionStorage/init:lookup/init:lookup/result/result",
+            "clientRelationSampleAdoptionStorage/init:writer/init:writer",
+            "clientRelationSampleAdoptionStorage/init:writer/init:writer/init:writer",
+            "clientRelationSampleAdoptionStorage/init:writer/init:writer/init:writer/init:writer"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "One synchronous loan per exact checked profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const ticket = Object.freeze({});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "physical_equal(profile, original.profile)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The Journal's private SQLite transaction owns the copy"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "An escaped ticket contains no bytes, funding or current grant"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "if !current()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "grow_capacity_reservation(ledger, reservation, total, total)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_with_relation_sample_journal("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption refuses equal payloads from another scope and asynchronous loans"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"Relation Sample captures the exact installed Request and committed output\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "clientRelationSampleAdoptionStorage/init:retire/init:retire",
+            "clientRelationSampleAdoptionStorage/init:retire/init:retire/init:retire"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "Host retention of the same original Sample"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "prior.has_payload === 0 || original.expiresAt > now()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "const original = retainedReceipt(control, ref, sampleRefCid, limits, prior)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "UPDATE client_relation_sample_adoptions SET"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "return transact('relation_sample_retirement'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample retirement releases no observed slot on uncertain COMMIT"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "authority loss rolled back retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "Each MAX seeks"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "Receipts keep their original ordinal after payload retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample retirement leaves other rows and durable receipt limits intact"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample retirement releases no observed slot on uncertain COMMIT"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/client-request-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2d4b49d380ed33b1d3fb646960afbeef0785649d0ff049acf94a3c2a7c0a781a",
+      "sha256": "c7ecdf8a6f4071546841f5881ca8e23742ed86f04127c0341f356adea1e3f071",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -29556,6 +29906,16 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:lookupRelationSampleAdoption/init:lookupRelationSampleAdoption",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "custody",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:lookupRunDefinition/init:lookupRunDefinition",
           "parameters": [
             "ref",
@@ -29672,13 +30032,41 @@
           "parameters": [
             "identity",
             "namespaceId",
+            "sampleRunRef",
+            "reserveSampleRead",
             "requestControl",
             "publicationControl"
           ],
           "async": false
         },
         {
-          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile",
+          "parameters": [
+            "owner",
+            "definition",
+            "observation",
+            "records",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/init:currentRow/init:currentRow",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:originalSubmittedIntent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/originalView/init:assertCurrent/init:assertCurrent",
           "parameters": [],
           "async": false
         },
@@ -30046,6 +30434,16 @@
           "async": false
         },
         {
+          "name": "openClientRequestJournal/journal/init:retireRelationSamplePayload/init:retireRelationSamplePayload",
+          "parameters": [
+            "ref",
+            "sampleRefCid",
+            "custody",
+            "publicationControl"
+          ],
+          "async": false
+        },
+        {
           "name": "openClientRequestJournal/journal/init:retireSubmittedIntent/init:retireSubmittedIntent",
           "parameters": [
             "submissionRef",
@@ -30143,6 +30541,33 @@
           "parameters": [
             "key"
           ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes/sampleOriginalStoredBytes",
+          "parameters": [
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes#2",
+          "parameters": [
+            "table",
+            "fields"
+          ],
+          "async": false
+        },
+        {
+          "name": "openClientRequestJournal/sampleStorage/sampleStorage/sampleStorage",
+          "parameters": [],
           "async": false
         },
         {
@@ -30361,7 +30786,6 @@
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:observeRunCancellation/init:observeRunCancellation/init:observeRunCancellation",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent",
-            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:assertCurrent/init:assertCurrent",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal",
             "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/readOriginal/readOriginal/readOriginal",
             "openClientRequestJournal/journal/init:prepareSubmittedIntent/init:prepareSubmittedIntent",
@@ -34073,6 +34497,982 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:lookupRelationSampleAdoption/init:lookupRelationSampleAdoption",
+            "openClientRequestJournal/sampleStorage/sampleStorage/sampleStorage"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The Request Journal owns this optional durable table"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The Journal's private SQLite transaction owns the copy"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "source.producer_occurrence.start_revision !== String(start.start_revision)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "Copy only the original scalar coordinates"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "return transact('relation_sample_adoption'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "start.cancellation_requested !== 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "bytes + limits.maxWireBytes !== fundedBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "if (!createSupported)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption retains one exact prefix and stable receipt under its original start"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/checkSampleProfile",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/checkSampleProfile/init:currentRow/init:currentRow",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/init:originalSubmittedIntent",
+            "openClientRequestJournal/journal/init:originalSubmittedIntent/init:originalSubmittedIntent/originalView/init:assertCurrent/init:assertCurrent",
+            "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes",
+            "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes/sampleOriginalStoredBytes",
+            "openClientRequestJournal/sampleOriginalStoredBytes/sampleOriginalStoredBytes#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Fresh Journal initialization durability"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn prepare_run_state_observation("
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "`stopBefore`"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "### Original short-query continuation"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The private Node binding projects the Program from the actual compiled owner"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "An existing same-Run submitted-content handle retains its admitted request,"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Run resolution admits its supplied logical-request identity once. If all seven"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "A Local status observation retains its journal's nominal admitted Run frame"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const admitIntentOriginal = (wire, control, epoch, code, canonical = true) => {"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Journal acceptance captures bounded admission evidence as owned DATA and checks"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "## Shared binding observation of original intents"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "pub fn RunStateObservation::wire("
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"request_optional_fields\""
+              },
+              {
+                "path": "spec/contracts/actql-client-host.json",
+                "anchor": "\"readOnly\": {\"const\": true}"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "admitStoredClientInferRunOriginal(original, definition, request, evidence, profiles, limits, recovery) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "temporaryDirectory: inspectionTemporaryDirectory,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "retainedIntentOriginal(row, control, originalEpoch, undefined, expected, inserted).value;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const resolveOriginalDefinition = (identity, fields, namespaceId,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "observeRunCancellation(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "lookupRunDefinition(ref, requestControl, publicationControl, originalFrame) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "prepareSubmittedIntent(epoch, wire, control) {"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const captured = {wire, value: JSON.parse(wire)};"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn observe_client_submitted_intent("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "// MoonBit supplies and re-admits the identity and decides intent conflicts."
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_original_data.mbt",
+                "anchor": "pub fn client_effect_target_selection_current("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "src/run_publication_host/client_requested_effect_stop.mbt",
+                "anchor": "fn check_requested_effect_stop_original("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_cid("
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const retained = originalInferRunTokens.get(selected);"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('first Infer journal admission refuses copied or other-control tickets and raw evidence'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "row.authority_scope_cid === original.fields.authorityScopeCid &&"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "requestId: fields.requestId}, requestControl, {identity, fields});"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "original.row.run_definition_cid!==selected?.runDefinitionCid)"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (previous !== undefined && previous.intent === intent) return previous;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "row.run_admission_evidence_json === original.wire"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "if expected.wire != original.wire || expected.cid != original.cid {"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "// Physical durable storage for an owner-issued Client request and Run ref."
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "publishRunState(frame, state, requestControl, publicationControl)"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "originalSubmittedIntent("
+              },
+              {
+                "path": "adapters/host-node/client-program-preparation.mjs",
+                "anchor": "assertSubmittedIntent(prepared, intent)"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const originalInferRunTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (originalInferRun !== undefined) {"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const entries = journalDirectoryEntries(directory, maxInspectionEntries, primaryDirectoryInspection);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const requestOriginal = Object.freeze({identity, fields});"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "uses it for the common relation rather than admitting identical bytes again."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "observation; they retain no current Account decision or physical cleanup ACK."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Physical-stop observation uses the same journal-owned frame across publication"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (submissionOperations.get(epoch) === operation) submissionOperations.delete(epoch);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return Object.freeze(captured);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const outcome = transact('accept', 'ClientRequestAcceptanceUnknown',"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer material and Run roll back together when original journal custody COMMIT fails'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "One durable clock floor covers unchanged internal observations."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = transaction.run(readOriginal);"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "after an issuer callback retains its original validation and race handling."
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const after = observeControl();"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "physical-close transaction compares that complete original row before its"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const original = admitIntentOriginal(wire, control, epoch,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "import {createSqliteTransaction, throwSqliteInitializationFailure} from"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('RequestedEffectStopCommitMismatch');"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "pub fn client_submitted_intent_effect_compatible("
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (original === undefined) fail('ClientRequestInferEvidenceMissing');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('saved Infer reader refuses altered original Task materials Run program and admission correspondence'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "previousRunRow = previousRunFacts = previousIntent = previousReference = undefined;"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const relation = requestControl.clientRequestRelation(identity, retained.identity);"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "A changed payload without a revision increment cannot reuse the frame"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "COMMIT failure retains the existing Unknown outcome. Copied, foreign-journal,"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (canonical && original.wire !== wire) fail(code);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (!admissionEvidenceShape(captured.value, updateOriginalControl, captured)) {"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "if !client_submitted_intent_transition(phase, phase) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const originalClose = closeSync;"
+              },
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "cancellationRequested: frame.cancellationRequested,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "options.signal?.throwIfAborted();"
+              },
+              {
+                "path": "adapters/host-node/client-effect-run.mjs",
+                "anchor": "originalSubmittedIntent?.assertCurrent();"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The existing stop, Unknown and cleanup obligations are unchanged."
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "assert.equal(saved.physicalStartReserved, false);"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "// Retain this same selected statement/cursor custody beside the"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "supplies current Account authority, a resume/physical-start claim or an ACK."
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "No identity or permission is cached across resolution calls."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "facts, and closed journals refuse. These managed references end with the"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "finally {release?.();}"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "Run issuance, Source permission or Effect permission."
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "import {createHash, createHmac, randomBytes, timingSafeEqual} from 'node:crypto';"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "src/run_publication/run_state_observation.mbt",
+                "anchor": "max_bytes : Int"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const runStateFrames = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "function cleanupCustody("
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "fn valid_client_submitted_intent_limits("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The Node ticket, its WeakMap entry, saved material/Result-policy Strings, journal"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('Infer original copies use the existing aggregate evidence bound before durable acceptance'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "function journalMarkerMatches(path, expected)"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "One durable clock floor covers unchanged internal observations."
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "epoch key and restart linkage under the same transaction and checks issuance"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "A distinct saved identity is independently admitted before the existing"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "The complete original row has already been admitted"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "they do not cache Account decisions, issue a cleanup ACK or replay execution."
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const intent = control.clientSubmittedIntent(wire, bytes, bytes, bytes);"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "if (Buffer.byteLength(originalAdmissionEvidence) > evidenceLimit) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "const fields = {"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "# OSS Host authorization behavior"
+              },
+              {
+                "path": "docs/spec/execution.md",
+                "anchor": "### Run admission and identity"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "export function validateSourceInventory(wire) {"
+              },
+              {
+                "path": "docs/design/connector-layout.md",
+                "anchor": "## Original Effect selection boundary"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "fail('UnknownClientRequestJournalFormat');"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent.mbt",
+                "anchor": "let expected_fields = 3 +"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "That returned pair is not itself Host restoration:"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "retain their wire shape. A new handle performs its own admission. None of this"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "step before issuance; a retained Run never calls its issuer. Atomic acceptance"
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "Run bytes, while a new public observation acquires its own current original."
+              },
+              {
+                "path": "docs/design/interactive-run-control.md",
+                "anchor": "An unchanged complete row reuses its original request identity and"
+              },
+              {
+                "path": "adapters/host-node/client-submission.mjs",
+                "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
+              },
+              {
+                "path": "docs/design/client-submission-identity.md",
+                "anchor": "current evidence independently. These facts supply no epoch authentication,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-request-journal.test.mjs",
+                "anchor": "test('Run-control issuer failure retains its typed reason across the Host JS bridge',"
+              },
+              {
+                "path": "src/run_publication_host/pkg.generated.mbti",
+                "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "test('actual UPDATE original refuses copied selection foreign prepared installation and stale generation'"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_target_selections.mbt",
+                "anchor": "pub fn client_effect_target_selection_matches_prepared("
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision.test.mjs",
+                "anchor": "test('state revision persists independently of control and unchanged rereads across reopen'"
+              },
+              {
+                "path": "adapters/host-node/client-run-state-revision-public.test.mjs",
+                "anchor": "test('actual Local Run state revision survives Host release and attach without another computation'"
+              },
+              {
+                "path": "src/query_integration/client_requested_effect_stop_wbtest.mbt",
+                "anchor": "fn check_requested_effect_stop_projection("
+              },
+              {
+                "path": "adapters/host-node/requested-effect-host.integration.test.mjs",
+                "anchor": "test('requested first Effect pauses Account Allow"
+              },
+              {
+                "path": "src/run_publication_host/client_effect_program_test.mbt",
+                "anchor": "test \"original submitted read-only restriction rejects the same complete Effect preparation\""
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-journal.test.mjs",
+                "anchor": "test('another process reads the same Journal original pair after an acceptance reply is discarded'"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "## Ordinary Host initialization and preparation"
+              },
+              {
+                "path": "adapters/host-node/client-request-journal-inspection-bounds.test.mjs",
+                "anchor": "fixed journal markers use no whole-file materialization during admission or currentness"
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "one actual submit retains epoch authentication and one durable floor through the same Run acceptance"
+              },
+              {
+                "path": "adapters/host-node/client-submission-usage.test.mjs",
+                "anchor": "new submitted intent uses no historical aggregate with ${history} retained originals"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "ordinary Journal keeps native directory admission separate from accepted row projection"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "test('one original submitted-content handle admits each unchanged row once', async t => {"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "assert.equal(admissions, 1, 'one exact request has one Common admission, not repeated stored copies');"
+              },
+              {
+                "path": "adapters/host-node/client-run-observation-reuse.test.mjs",
+                "anchor": "Local Run observation retries changed control and final publication conflicts"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "physical stop transaction rejects mutation during the terminal decision callback"
+              },
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The request Journal hooks its actual prepared `client_requests` gets, including"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "Journal selected-row observations count actual target rows without traversing other Runs"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "Journal selected-row observations retain unknown classification before a Run is selected"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "Journal selected-row observations do not turn refused or failed reads into empty results"
+              },
+              {
+                "path": "adapters/host-node/ordinary-host-journal.test.mjs",
+                "anchor": "Journal selected-row observations retain the native get receiver and do not report a failed get as zero"
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "test('one submit admits each unchanged intent wire once through preparation and original Run acceptance'"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "original submitted intent binds UPDATE evidence after one shape admission"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "captured UPDATE evidence is local to one acceptance and changed saved bytes refuse"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "captured UPDATE evidence uses each input getter once and checks serialized materials"
+              },
+              {
+                "path": "adapters/host-node/installed-update-targets.test.mjs",
+                "anchor": "captured UPDATE intent binding retains its final wire limit and original CID check"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "test('stop state-only comparison accepts actual observation frames without promoting copies or foreign controls'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "test('actual installed failed Compute observes stop across public observation publication'"
+              },
+              {
+                "path": "src/run_publication_host/client_submitted_intent_observation_test.mbt",
+                "anchor": "test \"submission observation shares retained original and invocation decisions\""
+              },
+              {
+                "path": "adapters/host-node/client-submission-operation.test.mjs",
+                "anchor": "test('shared observation compares the selected journal original rather than a repeated incoming alias'"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "test('signing stop comparison accepts only the same Journal original physical-close progression'"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
+                "anchor": "test('Local signing original uses the same restored parent and keeps its borrow through consumption'"
+              },
+              {
+                "path": "adapters/host-node/client-run-stop-observation.test.mjs",
+                "anchor": "name: 'preserves physical close plus a published observation during retained signing recovery'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "openClientRequestJournal/journal/init:retireRelationSamplePayload/init:retireRelationSamplePayload"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "Host retention of the same original Sample"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "prior.has_payload === 0 || original.expiresAt > now()"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "const original = retainedReceipt(control, ref, sampleRefCid, limits, prior)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "UPDATE client_relation_sample_adoptions SET"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "return transact('relation_sample_retirement'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample retirement releases no observed slot on uncertain COMMIT"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "authority loss rolled back retirement"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "Each MAX seeks"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "Receipts keep their original ordinal after payload retirement"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample retirement leaves other rows and durable receipt limits intact"
+              },
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample retirement releases no observed slot on uncertain COMMIT"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
@@ -34088,6 +35488,7 @@
         "../store-local/publication-store.mjs",
         "./client-dispatch-diagnostic.mjs",
         "./client-observation-journal.mjs",
+        "./client-relation-sample-adoption.mjs",
         "./client-source-operation.mjs",
         "./host-journal-directory.mjs",
         "./host-journal-facility-fields.cjs",
@@ -44434,7 +45835,7 @@
     {
       "module": "adapters/host-node/entry.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a86da4ec51353c1dec11371e9ac56a2441bf9cd537de5326a845e422e19894e",
+      "sha256": "4b912582ea66175b4dde95c99d508b8b9fa724a264236ff7153f00aa872694ce",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -44526,7 +45927,8 @@
             "retainExecution",
             "taskObservation",
             "preparationHolder",
-            "beforePublication"
+            "beforePublication",
+            "relationSample"
           ],
           "async": false
         },
@@ -47249,7 +48651,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "7010e08d70b750139c6ed9a7e29e6e36a70b769875ffd0c359dcb48669192535",
+      "sha256": "39d9e80f4a36925048f13abc579bf304bff7699719a70794279e5b7c25037ec8",
       "exports": [
         "commonjs:sql"
       ],
@@ -120208,7 +121610,7 @@
     {
       "module": "adapters/host-node/local-result-authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f15c69367eaf0f8da73ee41a1ea9396312aba044654148a1af803b47c758a92",
+      "sha256": "a9d5902a906a96879f6b8e317b13be7713da696225546d94e36563c14ff3d588",
       "role": "physical-io",
       "owner": "Existing installed Local Host Result access and Common execution-authorization Owners",
       "exports": [
@@ -120235,7 +121637,8 @@
             "operation",
             "resource",
             "interactive",
-            "reobserve"
+            "reobserve",
+            "accessOperation"
           ],
           "async": false
         },
@@ -120268,6 +121671,13 @@
           "parameters": [
             "facts",
             "operation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createLocalReadAuthorizations/init:sampleCaptureImmediate/init:sampleCaptureImmediate",
+          "parameters": [
+            "facts"
           ],
           "async": false
         },
@@ -120321,7 +121731,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "const scope = {connection, resource, operation: 'read'};"
+                "anchor": "const scope = {connection, resource, operation: accessOperation};"
               }
             ],
             "ownership": [
@@ -120491,7 +121901,7 @@
             "identity": [
               {
                 "path": "adapters/host-node/local-result-authorization.mjs",
-                "anchor": "const scope = {connection, resource, operation: 'read'};"
+                "anchor": "const scope = {connection, resource, operation: accessOperation};"
               }
             ],
             "ownership": [
@@ -120678,6 +122088,78 @@
               {
                 "path": "adapters/host-node/client-interactive-plan.test.mjs",
                 "anchor": "test('static Explanation checks the current Account run-read decision before projection and egress', async t => {"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createLocalReadAuthorizations/init:sampleCaptureImmediate/init:sampleCaptureImmediate"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "Selected Node Driver entrance for the original Debug Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "moon.strategyModule_local_ManagedStartSample("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.driver_outputs.get(task)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "owner = profile = undefined"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "on_relation_commit~"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "sampleFailure?.outcome !== 'unknown'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "closeSampleAdoption(entry)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile getters remain live through Compute (H18/R42/W26)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "sampleCaptureImmediate(facts) === true"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "publication may keep the port but the original is released"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "anchor": "Sample read never grants capture"
               }
             ]
           }

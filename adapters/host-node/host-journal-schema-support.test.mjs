@@ -62,11 +62,14 @@ test('selected own-DDL bytes cover the actual primary, Source and observation sc
   // This fixture intentionally opens without an owned Store. The supported
   // local execution-owner table is conditional on that original ownership.
   // Facts and Context tables also require the first Plan admission to carry
-  // their optional originals.
+  // their optional originals. Sample metadata and payloads require their
+  // respective original Debug start and adoption.
   const selectedSql = support.sql.filter(sql => !sql.startsWith('CREATE TABLE client_local_execution_owners (') &&
     !sql.startsWith('CREATE TABLE client_run_explanation_originals (') &&
     !sql.startsWith('CREATE TABLE client_run_explanation_context_originals (') &&
     !sql.startsWith('CREATE TABLE client_run_explanation_plan_originals (') &&
+    !sql.startsWith('CREATE TABLE client_relation_sample_starts (') &&
+    !sql.startsWith('CREATE TABLE client_relation_sample_adoptions (') &&
     !((sql.startsWith('CREATE TABLE client_submitted_intent_usage (') ||
       sql.startsWith('CREATE TABLE client_submission_restart_usage (')) &&
       sql.includes('retained_bytes <= 67108864')));

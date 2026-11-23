@@ -1841,7 +1841,7 @@
     {
       "module": "packages/client-wire/interactive-control.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "1a1e74078d53173576da86a4e95a41160c6c1a98a84af46d7400f48dd0e26e40",
+      "sha256": "0fc46c49a6ea987c57778cfbddb4ed21a78f552aa5fb0ff0dfe87cb63385d6cf",
       "exports": [
         "interactiveControlErrors",
         "interactiveControlRegistryCid",

@@ -25546,7 +25546,7 @@
               },
               {
                 "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
-                "anchor": "test \"Relation Sample start reuses exact installed Request, Definition and setup\""
+                "anchor": "test \"Relation Sample captures the exact installed Request and committed output\""
               }
             ]
           }
@@ -25932,6 +25932,225 @@
               {
                 "path": "adapters/host-node/client-failure-catalog-message.test.mjs",
                 "anchor": "test('actual dispatch owner forwards only the installed Common catalogue method'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/compiledRunResult/compiledRunResult",
+            "relationSampleJournalScope/init:visitAdoption/init:visitAdoption",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed/allowed",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result/result"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "One synchronous loan per exact checked profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const ticket = Object.freeze({});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "physical_equal(profile, original.profile)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The Journal's private SQLite transaction owns the copy"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "An escaped ticket contains no bytes, funding or current grant"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "if !current()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "grow_capacity_reservation(ledger, reservation, total, total)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_with_relation_sample_journal("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption refuses equal payloads from another scope and asynchronous loans"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"Relation Sample captures the exact installed Request and committed output\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile",
+            "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesStart/init:matchesStart"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesAdoption/init:matchesAdoption"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "Match a write candidate against the policy and exact port already admitted"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_relation_sample_adoption_matches_profile("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.logical_map_cid == logical_map_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "Copy only the original scalar coordinates"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "return transact('relation_sample_adoption'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "start.cancellation_requested !== 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "bytes + limits.maxWireBytes !== fundedBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "if (!createSupported)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption retains one exact prefix and stable receipt under its original start"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "client_program_relation_sample_adoption_matches_profile"
               }
             ]
           }
@@ -27256,6 +27475,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/compiledRunResult/compiledRunResult",
+          "parameters": [
+            "result",
+            "code"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/compiledSourceFreeResultPolicy/compiledSourceFreeResultPolicy",
           "parameters": [
             "compiled"
@@ -28443,6 +28670,35 @@
           "parameters": [
             "compiled",
             "checkedProgram"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile",
+          "parameters": [
+            "run",
+            "request",
+            "definition",
+            "observation",
+            "referenceWire",
+            "records",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesAdoption/init:matchesAdoption",
+          "parameters": [
+            "source",
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesStart/init:matchesStart",
+          "parameters": [
+            "program",
+            "candidate"
           ],
           "async": false
         },
@@ -32294,7 +32550,8 @@
             "request",
             "executionOwner",
             "definition",
-            "setup"
+            "setup",
+            "journalBytes"
           ],
           "async": false
         },
@@ -33101,6 +33358,51 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:visitAdoption/init:visitAdoption",
+          "parameters": [
+            "ticket",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption",
+          "parameters": [
+            "prefix",
+            "requireCurrent",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result",
+          "parameters": [
+            "generation",
+            "capture",
+            "emission",
+            "reference",
+            "relation",
+            "current",
+            "fundedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result/result",
+          "parameters": [],
           "async": false
         },
         {
@@ -35243,7 +35545,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cbe5bd6d4790eec33a7c58a332302bbb5b241062e9306c6e66fa4a04e9e3789b"
+      "sha256": "10f001cb4caaacd1670ee42af9b3e65e61f5d8d998790092484e81b5cfa12066"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -40061,6 +40363,7 @@
             "preparationCustody",
             "beforePublication",
             "authorizeLogicalObservation",
+            "authorizeSampleCapture",
             "managedComputeRequired",
             "retainedRelationOutput",
             "runPublished"
@@ -40107,6 +40410,26 @@
           "name": "installNodeClientDispatchOwner/cancel/cancel",
           "parameters": [
             "ref"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/checkSampleProfile",
+          "parameters": [
+            "entry",
+            "requested",
+            "accepted",
+            "run",
+            "execution",
+            "setup",
+            "profile"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeClientDispatchOwner/checkSampleProfile/original/init:reserveSampleRead/init:reserveSampleRead",
+          "parameters": [
+            "bytes"
           ],
           "async": false
         },
@@ -40598,6 +40921,75 @@
             "control",
             "outcome"
           ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/init:adopt/init:adopt",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/init:current/init:current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:adopt/init:adopt",
+          "parameters": [
+            "prefix",
+            "authorizeSample"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:adopt/init:adopt/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:adopt/init:adopt/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:adopt/init:adopt/init:adopt",
+          "parameters": [
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:arm/init:arm",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:captureAdoption/init:captureAdoption",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:close/init:close",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/scope/init:requireWriter/init:requireWriter",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/selectedSampleAdoption",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "selectedSampleAdoption/selectedSampleAdoption#2",
+          "parameters": [],
           "async": false
         }
       ],
@@ -42802,6 +43194,318 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "installNodeClientDispatchOwner/checkSampleProfile",
+            "installNodeClientDispatchOwner/checkSampleProfile/original/init:reserveSampleRead/init:reserveSampleRead"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "capacities.some(value => value.managedRun !== managedRun)"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Source observation and Result publication policies"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "clientProgramInstalledManagedRunPrepareLedger("
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/reference-host.md",
+                "anchor": "borrow that same Ledger internally. The existing physical Ledger equality at"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              },
+              {
+                "path": "docs/design/source-input-acquisition.md",
+                "anchor": "## Mixed installed capture originals"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "throw new Error('InstalledMultiSourceOriginalRunUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "function retire(entry) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "installNodeClientDispatchOwner"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.test.mjs",
+                "anchor": "ordinary Source managed Run foreign reference refuses without consuming the original claim"
+              },
+              {
+                "path": "adapters/host-node/client-values-fragment-capacity.test.mjs",
+                "anchor": "test('a demanded expression failure retains its original typed dispatch cause'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication selects checked Result policy and retains original Source policy evidence"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication missing or refused checked Result policy never falls back to read policy"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary source Run retirement preserves nonzero usage and sibling Run custody"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-public-client.integration.test.mjs",
+                "anchor": "{entrance: 'LocalJSON', format: 'json', program: wholeSource}"
+              },
+              {
+                "path": "adapters/connectors/github/test/github-standard-host.integration.test.mjs",
+                "anchor": "test('a parser-refused GitHub raw response remains charged without a Result'"
+              },
+              {
+                "path": "adapters/host-node/installed-managed-source.test.mjs",
+                "anchor": "test('dispatch retains an unreturned original Source preparation after physical cleanup'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
+                "anchor": "test('retained dispatch forwards the same request into its original timed-plan validator'"
+              },
+              {
+                "path": "adapters/host-node/client-dispatch-retained-request.test.mjs",
+                "anchor": "test('retained dispatch cannot substitute a copied request for the timed-plan original'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "selectedSampleAdoption/init:adopt/init:adopt",
+            "selectedSampleAdoption/init:current/init:current",
+            "selectedSampleAdoption/scope/init:adopt/init:adopt",
+            "selectedSampleAdoption/scope/init:adopt/init:adopt/current/current",
+            "selectedSampleAdoption/scope/init:adopt/init:adopt/current/current/current",
+            "selectedSampleAdoption/scope/init:adopt/init:adopt/init:adopt",
+            "selectedSampleAdoption/scope/init:arm/init:arm",
+            "selectedSampleAdoption/scope/init:captureAdoption/init:captureAdoption",
+            "selectedSampleAdoption/scope/init:close/init:close",
+            "selectedSampleAdoption/scope/init:requireWriter/init:requireWriter",
+            "selectedSampleAdoption/selectedSampleAdoption",
+            "selectedSampleAdoption/selectedSampleAdoption#2"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "Selected Node Driver entrance for the original Debug Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "moon.strategyModule_local_ManagedStartSample("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.driver_outputs.get(task)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "owner = profile = undefined"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "on_relation_commit~"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "sampleFailure?.outcome !== 'unknown'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "closeSampleAdoption(entry)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile getters remain live through Compute (H18/R42/W26)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "sampleCaptureImmediate(facts) === true"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "publication may keep the port but the original is released"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "anchor": "Sample read never grants capture"
+              }
+            ]
+          }
         }
       ],
       "imports": [
@@ -42825,7 +43529,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "0fa8b2d0ef995ab1b477985daadb364976da8aa3ecb62bc559dec9e3fc2dcafe",
+      "sha256": "3d3d46da96bf05e81eea8f8a3a7719cfb024cde384ce152b49d00d1ae8b00674",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -64931,6 +65635,78 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#10"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "Selected Node Driver entrance for the original Debug Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "moon.strategyModule_local_ManagedStartSample("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.driver_outputs.get(task)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "owner = profile = undefined"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "on_relation_commit~"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "sampleFailure?.outcome !== 'unknown'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "closeSampleAdoption(entry)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile getters remain live through Compute (H18/R42/W26)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "sampleCaptureImmediate(facts) === true"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "publication may keep the port but the original is released"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "anchor": "Sample read never grants capture"
+              }
+            ]
+          }
         }
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
@@ -65788,6 +66564,11 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#10",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
           "parameters": [
             "facts"
@@ -65837,7 +66618,11 @@
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#9",
-          "parameters": [],
+          "parameters": [
+            "actual",
+            "connection",
+            "ref"
+          ],
           "async": false
         },
         {
@@ -69195,7 +69980,7 @@
       "unresolvedSyntax": [
         "runtime-dependent module dependency requires original owner/artifact mapping"
       ],
-      "sha256": "2cafbef3402b1fd13fb6ebc8f934b4cd8904678bbff16f53a813ef7c05577a51"
+      "sha256": "fab2ea761f1672aa9fb27f80b8dce3d8c0d4b2323841ccf40a9cd9d8c62b9207"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
@@ -109980,7 +110765,7 @@
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6182535c3e96d660916eaec82f9ca0062dfdcb11af32b1844b3574e9d6552833",
+      "sha256": "46dfd57660fe51cb1d4d4999e3183e5ca9aa93aa937b7ce97b7997aea7c03f90",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -110145,9 +110930,15 @@
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared",
           "parameters": [
             "prepared",
-            "signal"
+            "signal",
+            "relationSample"
           ],
           "async": true
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:close/init:close",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared",
@@ -110278,6 +111069,34 @@
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#2",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#3",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#4",
+          "parameters": [
+            "result",
+            "required",
+            "cleanupPending"
+          ],
           "async": false
         },
         {
@@ -111346,6 +112165,94 @@
               {
                 "path": "scripts/js-compiler-binding-runtime.test.mjs",
                 "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:close/init:close",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#2",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#3",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "Selected Node Driver entrance for the original Debug Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "moon.strategyModule_local_ManagedStartSample("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.driver_outputs.get(task)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "owner = profile = undefined"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "checked(moon.strategyModule_local_ReturnPendingSample(pendingSample));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "on_relation_commit~"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "sampleFailure?.outcome !== 'unknown'"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "pendingSample !== undefined || cleanupPending"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "closeSampleAdoption(entry)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile getters remain live through Compute (H18/R42/W26)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "sampleCaptureImmediate(facts) === true"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "publication may keep the port but the original is released"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "anchor": "Sample read never grants capture"
+              },
+              {
+                "path": "adapters/host-common/managed-failure.test.mjs",
+                "anchor": "Local optional Sample preserves its first failure while the same prefix return is pending"
               }
             ]
           }

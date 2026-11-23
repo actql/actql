@@ -402,7 +402,7 @@ export async function runInstalledStrategy({
   setup,
   runtime: {core, contributions, sitePolicy, observeFailure,
     authorization = missingAuthorizationGate()},
-  control: {signal, observeCompletion, observeTaskStart, taskObservation} = {},
+  control: {signal, observeCompletion, observeTaskStart, taskObservation, relationSample} = {},
   publication: {beforeCompute} = {},
   cleanup: {retainPreflightCleanup, preparationHolder} = {},
 }) {
@@ -485,6 +485,7 @@ export async function runInstalledStrategy({
       run: entry.run,
       prepareNext: entry.prepareNext,
       runPrepared: entry.runPrepared,
+      relationSample: entry.relationSample,
       managedSelectionKey: entry.managedSelectionKey,
       beforeNext: entry.beforeNext,
       finish: entry.finish,
@@ -798,6 +799,9 @@ export async function runInstalledStrategy({
       if (!entry || (managed && typeof entry.runPrepared !== 'function')) {
         throw new StrategyHostError('MissingStrategyImplementation');
       }
+      if (relationSample !== undefined && (!managed || entry.relationSample !== true)) {
+        throw new StrategyHostError('ClientRunSampleDriverUnavailable');
+      }
       signal?.throwIfAborted();
       if (managed && !core.selectManaged(setup, index, managed.entry.registration)) {
         throw new StrategyHostError('ManagedSelectionRejected');
@@ -924,7 +928,8 @@ export async function runInstalledStrategy({
       const taskStarted = performance.now();
       try {
         result = await (managed
-          ? entry.runPrepared(siteTask, signal)
+          ? (relationSample === undefined ? entry.runPrepared(siteTask, signal)
+            : entry.runPrepared(siteTask, signal, relationSample))
           : entry.run(task, signal, siteCompletionPermit));
         if (result?.status === 'waiting_checkpoint') {
           if (result.checkpoint == null) {

@@ -37,16 +37,83 @@ fn installed_relation_sample_start_matches(
 // Node's bounded selection/action packets, ready and revision closures,
 // original setup/definition references, bridge argument vectors and Result
 // conversion (H18/R43/W20). Core's reserve/current and acknowledgement
-// options, typed returns and temporary controls add H14/R29/W16. This covers
-// no output bytes or Sample controller construction.
+// options, typed returns and temporary controls add H14/R29/W16.
+// The selected Journal handoff adds the option and view records, retained
+// methods and captured references, scope checks and bridge frames, and an
+// observation return slot (H40/R192/W64). The selected scalar probe and
+// reservation callback use another H6/R22/W8. The original charged ticket,
+// checked CID projection, transactional recheck and fixed start row/bind
+// packets add H24/R62/W24. Row and codec backing is admitted separately
+// after the probe and before the first retained read.
+// The dispatch-held adoption port, its original authority packet, Journal
+// writer receiver, scoped current/receive calls and receipt reference add
+// H24/R64/W32. The prefix and SQL construction keep their own scoped quote.
+// The installed Driver route, authorization packet and revocable Owner and
+// profile getters remain live through Compute (H18/R42/W26).
 let installed_relation_sample_start_bytes : Int64 = @execution.preparation_representation_cost({
-    record_headers: 32L,
-    reference_slots: 72L,
-    scalar_words: 36L,
+    record_headers: 144L,
+    reference_slots: 454L,
+    scalar_words: 190L,
     owned_utf16_units: 0L,
     owned_wire_bytes: 0L,
   },
 ).unwrap()
+
+///|
+fn installed_relation_sample_journal_bytes(bytes : Int) -> Int64? {
+  guard bytes > 0 &&
+    bytes <= 2147483519 &&
+    program_artifact_parse_layout((bytes, bytes, bytes)) is Some(parse) &&
+    @encode.text_writer_construction_inventory(bytes, bytes, bytes)
+    is Some(text) &&
+    @encode.hash_writer_construction_inventory(bytes + 4, bytes + 1)
+    is Some(hash) &&
+    compilation_canonical_emitter_layout(bytes + 1) is Some(emitter) else {
+    return None
+  }
+  let n = bytes.to_int64()
+  // One stored-byte envelope includes the Run, intent, restart and epoch.
+  // Each byte bounds a JSON node/key/text position. The currentness reads
+  // may coexist with the starting and last checked originals. Count four
+  // generations, plus a second raw Run/key copy in each ready/restart check.
+  // Co-count readmitted Common Definition/intent and both canonical sinks;
+  // JavaScript row, JSON snapshot and canonical restart controls are separate.
+  @execution.preparation_representation_cost({
+    record_headers: 4L *
+    (
+      4L * n +
+      2L * parse.temporary.record_headers +
+      text.record_headers +
+      hash.record_headers +
+      2L * emitter.record_headers
+    ),
+    reference_slots: 4L *
+    (
+      8L * n +
+      2L * parse.temporary.reference_slots +
+      text.reference_slots +
+      hash.reference_slots +
+      2L * emitter.reference_slots
+    ),
+    scalar_words: 4L *
+    (
+      4L * n +
+      2L * parse.temporary.scalar_words +
+      text.scalar_words +
+      hash.scalar_words +
+      2L * emitter.scalar_words
+    ),
+    owned_utf16_units: 4L *
+    (
+      9L * n +
+      2L * parse.temporary.owned_utf16_units +
+      text.owned_utf16_units +
+      hash.owned_utf16_units
+    ),
+    owned_wire_bytes: 4L *
+    (3L * n + 2L * parse.temporary.owned_wire_bytes + hash.owned_wire_bytes),
+  })
+}
 
 ///|
 /// Fund the synchronous installed receiver with the original adopted body's
@@ -59,6 +126,7 @@ pub fn reserve_installed_relation_sample_start(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   captured : @strategy.CapturedDAG,
+  journal_bytes? : Int = 0,
 ) -> Result[Unit, InstalledRelationSampleStartIssue] {
   if owner.source_free_opening {
     return Err(SampleStartRun(CleanupPending))
@@ -74,7 +142,14 @@ pub fn reserve_installed_relation_sample_start(
     Err(issue) => return Err(SampleStartCapacity(issue))
     Ok(extents) => extents
   }
-  let bytes = installed_relation_sample_start_bytes
+  let bytes = if journal_bytes == 0 {
+    installed_relation_sample_start_bytes
+  } else {
+    match installed_relation_sample_journal_bytes(journal_bytes) {
+      Some(cost) => cost
+      None => return Err(SampleStartCapacity(InvalidExtent))
+    }
+  }
   guard @execution.checked_preparation_add_product(retained, bytes, 1L)
     is Some(retained) &&
     @execution.checked_preparation_add_product(execution, bytes, 1L)

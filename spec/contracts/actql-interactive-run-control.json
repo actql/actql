@@ -5282,6 +5282,314 @@
           ]
         }
       }
+    },
+    "sample_source_generation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-sample-source-generation-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_ref",
+        "compiled_plan_cid",
+        "logical_map_cid",
+        "step_id",
+        "output_port_id",
+        "carrier",
+        "carrier_contract_cid",
+        "producer_occurrence",
+        "committed_generation",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-sample-source-generation/0.1"
+        },
+        "run_ref": {
+          "$ref": "actql-client-host.json#/schemas/run_ref"
+        },
+        "compiled_plan_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_map_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "step_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "output_port_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "carrier": {
+          "const": "relation"
+        },
+        "carrier_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "producer_occurrence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "start_revision",
+            "attempt_sequence"
+          ],
+          "properties": {
+            "kind": {
+              "const": "first_physical_start"
+            },
+            "start_revision": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])",
+              "not": {
+                "const": "0"
+              }
+            },
+            "attempt_sequence": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])",
+              "not": {
+                "const": "0"
+              }
+            }
+          }
+        },
+        "committed_generation": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])",
+          "not": {
+            "const": "0"
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "sample_original_capture": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-sample-original-capture-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "source_generation_cid",
+        "control_admission_cid",
+        "resolved_profile_cid",
+        "strategy",
+        "max_items",
+        "max_bytes",
+        "max_artifacts",
+        "ttl_seconds",
+        "required",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-sample-original-capture/0.1"
+        },
+        "source_generation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "control_admission_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "resolved_profile_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "strategy": {
+          "const": "execution_prefix"
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "max_bytes": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])",
+          "not": {
+            "const": "0"
+          }
+        },
+        "max_artifacts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "ttl_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "sample_emission_provenance": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-sample-emission-provenance-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "original_capture_cid",
+        "source_generation_cid",
+        "relation_prefix_cid",
+        "ordering_evidence_cid",
+        "sampled_items",
+        "total",
+        "completeness",
+        "truncation",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-sample-emission-provenance/0.1"
+        },
+        "original_capture_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "source_generation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "relation_prefix_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordering_evidence_cid": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          ]
+        },
+        "sampled_items": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+        },
+        "total": {
+          "$ref": "#/schemas/control_quantity"
+        },
+        "completeness": {
+          "type": "string",
+          "enum": [
+            "complete",
+            "partial",
+            "unknown"
+          ]
+        },
+        "truncation": {
+          "type": "string",
+          "enum": [
+            "confirmed",
+            "not_truncated",
+            "unknown"
+          ]
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "sample_reference": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-sample-reference-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_ref",
+        "output_port_id",
+        "original_capture_cid",
+        "emission_provenance_cid",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-sample-reference/0.1"
+        },
+        "run_ref": {
+          "$ref": "actql-client-host.json#/schemas/run_ref"
+        },
+        "output_port_id": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "original_capture_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "emission_provenance_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "sample_adoption_receipt": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-sample-adoption-receipt-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_ref",
+        "sample_ref_cid",
+        "adoption",
+        "expires_at_epoch_ms",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-sample-adoption-receipt/0.1"
+        },
+        "run_ref": {
+          "$ref": "actql-client-host.json#/schemas/run_ref"
+        },
+        "sample_ref_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "adoption": {
+          "const": "retained_relation_prefix"
+        },
+        "expires_at_epoch_ms": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,17}|[1-8][0-9]{18}|9[0-1][0-9]{17}|92[0-1][0-9]{16}|922[0-2][0-9]{15}|9223[0-2][0-9]{14}|92233[0-6][0-9]{13}|922337[0-1][0-9]{12}|92233720[0-2][0-9]{10}|922337203[0-5][0-9]{9}|9223372036[0-7][0-9]{8}|92233720368[0-4][0-9]{7}|922337203685[0-3][0-9]{6}|9223372036854[0-6][0-9]{5}|92233720368547[0-6][0-9]{4}|922337203685477[0-4][0-9]{3}|9223372036854775[0-7][0-9]{2}|922337203685477580[0-6]|9223372036854775807)$(?![\\s\\S])",
+          "not": {
+            "const": "0"
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
     }
   },
   "schema_cids": {
@@ -5331,7 +5639,12 @@
     "run_explanation_view": "sha256:f5c04ef26d8501d981d8640929b657255eb8156d3c114d28d91472f80f281aa1",
     "explanation_context": "sha256:146f86ffe25bc0026368ee0a9d5a3ae03b7f3652de281c5534a95496c615b2fb",
     "static_explanation_view": "sha256:8e4b03ac25f7e1457d676d66caf56ece97fdbad1a3dd78d09552f3bc0e4a73a2",
-    "run_explanation_context_view": "sha256:3cec5b8c56eea51ad6f570a730a7921725b1d98247c7c34b8792b5dc57e3959d"
+    "run_explanation_context_view": "sha256:3cec5b8c56eea51ad6f570a730a7921725b1d98247c7c34b8792b5dc57e3959d",
+    "sample_source_generation": "sha256:b5603e21c94f2aceacb6b2ca74783379e0cdbce58b3ae1ca36a62cd5c0e5dbb8",
+    "sample_original_capture": "sha256:568e8095002ae75e212a9b3971d170f7ea938eb75c2286a258ccbd190b9384af",
+    "sample_emission_provenance": "sha256:a285c28998d3e7bb2f221cc37ff23173448beb5dfe65e1007308a20c8af30994",
+    "sample_reference": "sha256:bc73183c548b99a1c437a23268bda1bdfcdbdba95f66f82ac213f37a61077796",
+    "sample_adoption_receipt": "sha256:b4d721ccfa06c55cc7c21275dff12636314a2666447796c9c84636ef8a95e225"
   },
   "identity_domains": {
     "control_profile": {
@@ -5393,6 +5706,36 @@
       "identity_field": "self_cid",
       "preimage": "complete_body_except_self_cid",
       "algorithm": "sha256"
+    },
+    "sample_source_generation": {
+      "version": "actql-sample-source-generation/0.1",
+      "identity_field": "self_cid",
+      "preimage": "complete_body_except_self_cid",
+      "algorithm": "sha256"
+    },
+    "sample_original_capture": {
+      "version": "actql-sample-original-capture/0.1",
+      "identity_field": "self_cid",
+      "preimage": "complete_body_except_self_cid",
+      "algorithm": "sha256"
+    },
+    "sample_emission_provenance": {
+      "version": "actql-sample-emission-provenance/0.1",
+      "identity_field": "self_cid",
+      "preimage": "complete_body_except_self_cid",
+      "algorithm": "sha256"
+    },
+    "sample_reference": {
+      "version": "actql-sample-reference/0.1",
+      "identity_field": "self_cid",
+      "preimage": "complete_body_except_self_cid",
+      "algorithm": "sha256"
+    },
+    "sample_adoption_receipt": {
+      "version": "actql-sample-adoption-receipt/0.1",
+      "identity_field": "self_cid",
+      "preimage": "complete_body_except_self_cid",
+      "algorithm": "sha256"
     }
   },
   "errors": [
@@ -5429,5 +5772,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:f35f84748cb37f9419da36f2c4f64c492ffa5c74ec1231243ec1b45b73074ebb"
+  "registry_cid": "sha256:e35d6fd107b8ab453c24ed1d822e8733b7c9d96c7e08862377599989bb152b11"
 }

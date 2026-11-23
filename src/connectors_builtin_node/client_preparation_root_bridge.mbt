@@ -3279,6 +3279,85 @@ pub fn client_program_request_explanation_read_issue_code(
 }
 
 ///|
+#export_name("clientProgramCheckRelationSampleProfile")
+pub fn client_program_check_relation_sample_profile(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  request : @publication_host.ClientRequestIdentity,
+  definition : @publication.PublicationContract,
+  observation : @client_local_host.ClientLogicalObservation,
+  original_reference_wire : String,
+  records : @client_local_host.InstalledRelationSampleProfileEvidence,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  (
+    @client_local_host.ClientCheckedRelationSampleProfile,
+    String,
+    String,
+    @publication_host.PreparedClientProgram,
+    @publication_host.ClientCompiledRun,
+  ),
+  @client_local_host.InstalledRelationSampleProfileIssue,
+] {
+  @client_local_host.check_installed_relation_sample_profile_journal_reference(
+    owner, request, definition, observation, original_reference_wire, records, max_bytes,
+    max_nodes, max_depth,
+  ).map(profile => {
+    let (admission, resolved, prepared, compiled) = @client_local_host.installed_relation_sample_profile_start_original(
+      profile,
+    )
+    (profile, admission, resolved, prepared, compiled)
+  })
+}
+
+///|
+#export_name("clientProgramRelationSampleAdoptionMatchesProfile")
+pub fn client_program_relation_sample_adoption_matches_profile(
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  logical_map_cid : String,
+  output_port_id : String,
+  max_items : String,
+  max_bytes : String,
+  max_artifacts : String,
+  ttl_seconds : String,
+  required : Bool,
+) -> Bool {
+  @client_local_host.installed_relation_sample_adoption_matches_profile(
+    profile, logical_map_cid, output_port_id, max_items, max_bytes, max_artifacts,
+    ttl_seconds, required,
+  )
+}
+
+///|
+#export_name("clientProgramWithRelationSampleJournal")
+pub fn client_program_with_relation_sample_journal(
+  owner : @client_local_host.ClientInstalledManagedRun,
+  profile : @client_local_host.ClientCheckedRelationSampleProfile,
+  prefix : @client_local_host.InstalledRelationSamplePrefix,
+  require_current : () -> Bool,
+  consume : (String, String, String, String, String, () -> Bool, Int) -> Bool,
+) -> Result[Unit, @client_local_host.InstalledRelationSampleAdoptionIssue] {
+  @client_local_host.with_installed_relation_sample_journal(
+    owner,
+    profile,
+    prefix,
+    require_current,
+    (input, current, bytes) => {
+      consume(
+        @publication.run_evidence_value_json(input.source_generation),
+        @publication.run_evidence_value_json(input.capture),
+        @publication.run_evidence_value_json(input.emission),
+        @publication.run_evidence_value_json(input.reference),
+        @encode.document_text(input.relation),
+        current,
+        bytes,
+      )
+    },
+  )
+}
+
+///|
 #export_name("clientProgramReserveRelationSampleStart")
 pub fn client_program_reserve_relation_sample_start(
   owner : @client_local_host.ClientInstalledManagedRun,
@@ -3287,6 +3366,7 @@ pub fn client_program_reserve_relation_sample_start(
   compiled : @publication_host.ClientCompiledRun,
   definition : @publication.PublicationContract,
   setup : @builtin.ConfiguredComputeHost[@strategy.RunIssue],
+  journal_bytes : Int,
 ) -> Result[Unit, @client_local_host.InstalledRelationSampleStartIssue] {
   @client_local_host.reserve_installed_relation_sample_start(
     owner,
@@ -3295,6 +3375,7 @@ pub fn client_program_reserve_relation_sample_start(
     compiled,
     definition,
     @host_driver.dispatch_driver_run(@builtin.configured_host_driver(setup)),
+    journal_bytes~,
   )
 }
 

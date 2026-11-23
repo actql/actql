@@ -9862,7 +9862,7 @@
               },
               {
                 "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
-                "anchor": "test \"Relation Sample start reuses exact installed Request, Definition and setup\""
+                "anchor": "test \"Relation Sample captures the exact installed Request and committed output\""
               }
             ]
           }
@@ -10248,6 +10248,225 @@
               {
                 "path": "adapters/host-node/client-failure-catalog-message.test.mjs",
                 "anchor": "test('actual dispatch owner forwards only the installed Common catalogue method'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/compiledRunResult/compiledRunResult",
+            "relationSampleJournalScope/init:visitAdoption/init:visitAdoption",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed/allowed",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result",
+            "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result/result"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "One synchronous loan per exact checked profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const ticket = Object.freeze({});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "physical_equal(profile, original.profile)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The Journal's private SQLite transaction owns the copy"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "An escaped ticket contains no bytes, funding or current grant"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "if !current()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "grow_capacity_reservation(ledger, reservation, total, total)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_with_relation_sample_journal("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption refuses equal payloads from another scope and asynchronous loans"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"Relation Sample captures the exact installed Request and committed output\""
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile",
+            "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesStart/init:matchesStart"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/node-host-observability.md",
+                "anchor": "The installed source-free Compute consumer prepares its optional metadata loan"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/logical-task-observation.test.mjs",
+                "anchor": "test('funded logical queue retains its same original until actual delivery settles'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesAdoption/init:matchesAdoption"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "Match a write candidate against the policy and exact port already admitted"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_relation_sample_adoption_matches_profile("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.logical_map_cid == logical_map_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "Copy only the original scalar coordinates"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "return transact('relation_sample_adoption'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "start.cancellation_requested !== 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "bytes + limits.maxWireBytes !== fundedBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "if (!createSupported)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption retains one exact prefix and stable receipt under its original start"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "client_program_relation_sample_adoption_matches_profile"
               }
             ]
           }
@@ -11572,6 +11791,14 @@
           "async": false
         },
         {
+          "name": "publicationControl/compiledRunResult/compiledRunResult",
+          "parameters": [
+            "result",
+            "code"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/compiledSourceFreeResultPolicy/compiledSourceFreeResultPolicy",
           "parameters": [
             "compiled"
@@ -12759,6 +12986,35 @@
           "parameters": [
             "compiled",
             "checkedProgram"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile",
+          "parameters": [
+            "run",
+            "request",
+            "definition",
+            "observation",
+            "referenceWire",
+            "records",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesAdoption/init:matchesAdoption",
+          "parameters": [
+            "source",
+            "capture"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/init:checkClientRelationSampleProfile/init:checkClientRelationSampleProfile/init:matchesStart/init:matchesStart",
+          "parameters": [
+            "program",
+            "candidate"
           ],
           "async": false
         },
@@ -16610,7 +16866,8 @@
             "request",
             "executionOwner",
             "definition",
-            "setup"
+            "setup",
+            "journalBytes"
           ],
           "async": false
         },
@@ -17417,6 +17674,51 @@
           "parameters": [
             "value"
           ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:visitAdoption/init:visitAdoption",
+          "parameters": [
+            "ticket",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption",
+          "parameters": [
+            "prefix",
+            "requireCurrent",
+            "consume"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/allowed/allowed/allowed",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result",
+          "parameters": [
+            "generation",
+            "capture",
+            "emission",
+            "reference",
+            "relation",
+            "current",
+            "fundedBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "relationSampleJournalScope/init:withAdoption/init:withAdoption/result/result/result",
+          "parameters": [],
           "async": false
         },
         {
@@ -19559,7 +19861,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cbe5bd6d4790eec33a7c58a332302bbb5b241062e9306c6e66fa4a04e9e3789b"
+      "sha256": "10f001cb4caaacd1670ee42af9b3e65e61f5d8d998790092484e81b5cfa12066"
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
@@ -28021,7 +28323,7 @@
     },
     {
       "module": "adapters/local-node/strategy-bundle.mjs",
-      "sha256": "6182535c3e96d660916eaec82f9ca0062dfdcb11af32b1844b3574e9d6552833",
+      "sha256": "46dfd57660fe51cb1d4d4999e3183e5ca9aa93aa937b7ce97b7997aea7c03f90",
       "role": "physical-io",
       "exports": [
         "localStrategyContribution"
@@ -28185,9 +28487,15 @@
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared",
           "parameters": [
             "prepared",
-            "signal"
+            "signal",
+            "relationSample"
           ],
           "async": true
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:close/init:close",
+          "parameters": [],
+          "async": false
         },
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/init:runPrepared",
@@ -28318,6 +28626,34 @@
         {
           "name": "localStrategyContribution/init:runPrepared/init:runPrepared/memory/memory#3",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#2",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#3",
+          "parameters": [
+            "prefix"
+          ],
+          "async": false
+        },
+        {
+          "name": "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#4",
+          "parameters": [
+            "result",
+            "required",
+            "cleanupPending"
+          ],
           "async": false
         },
         {
@@ -28726,6 +29062,94 @@
               {
                 "path": "src/physical_host_dispatch/pkg.generated.mbti",
                 "anchor": "pub fn[E] adaptive_offline_policy_position(AdaptiveDispatch[E]) -> Result[Int?, AdaptiveEstimateIssue[E]]"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "localStrategyContribution/init:runPrepared/init:runPrepared/init:close/init:close",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#2",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#3",
+            "localStrategyContribution/init:runPrepared/init:runPrepared/operations/operations#4"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "Selected Node Driver entrance for the original Debug Run"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "moon.strategyModule_local_ManagedStartSample("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.driver_outputs.get(task)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "owner = profile = undefined"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "checked(moon.strategyModule_local_ReturnPendingSample(pendingSample));"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/connectors_builtin_node/local_carrier_bridge.mbt",
+                "anchor": "on_relation_commit~"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "sampleFailure?.outcome !== 'unknown'"
+              },
+              {
+                "path": "adapters/local-node/strategy-bundle.mjs",
+                "anchor": "pendingSample !== undefined || cleanupPending"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-owner.mjs",
+                "anchor": "closeSampleAdoption(entry)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_start.mbt",
+                "anchor": "profile getters remain live through Compute (H18/R42/W26)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "sampleCaptureImmediate(facts) === true"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-source-free-setup-custody.test.mjs",
+                "anchor": "publication may keep the port but the original is released"
+              },
+              {
+                "path": "adapters/host-node/local-run-authorization.test.mjs",
+                "anchor": "Sample read never grants capture"
+              },
+              {
+                "path": "adapters/host-common/managed-failure.test.mjs",
+                "anchor": "Local optional Sample preserves its first failure while the same prefix return is pending"
               }
             ]
           }
@@ -59702,7 +60126,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "54b49b6443167cd7e2139ba35f08688367c37da34463ac999a493f9fdb4f6906",
+      "sha256": "601a52038d510865fcdc6889ec23cc2192e986e23ec1ab2ef28de9deaff0de64",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -65257,7 +65681,7 @@
               },
               {
                 "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
-                "anchor": "test \"Relation Sample start reuses exact installed Request, Definition and setup\""
+                "anchor": "test \"Relation Sample captures the exact installed Request and committed output\""
               }
             ]
           }
@@ -67796,7 +68220,8 @@
             "client_program_logical_observation_record_state",
             "client_program_prepare_logical_observation",
             "client_program_return_logical_observation",
-            "client_program_return_logical_observation_record"
+            "client_program_return_logical_observation_record",
+            "client_program_check_relation_sample_profile"
           ],
           "exports": [],
           "attributes": {
@@ -68336,6 +68761,150 @@
               }
             ]
           }
+        },
+        {
+          "operations": [
+            "client_program_relation_sample_adoption_matches_profile"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "Match a write candidate against the policy and exact port already admitted"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_relation_sample_adoption_matches_profile("
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_profile.mbt",
+                "anchor": "profile.logical_map_cid == logical_map_cid"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-request-journal.mjs",
+                "anchor": "Copy only the original scalar coordinates"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "return transact('relation_sample_adoption'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "start.cancellation_requested !== 0"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "bytes + limits.maxWireBytes !== fundedBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "if (!createSupported)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption retains one exact prefix and stable receipt under its original start"
+              },
+              {
+                "path": "src/connectors_builtin_node/pkg.generated.mbti",
+                "anchor": "client_program_relation_sample_adoption_matches_profile"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "client_program_with_relation_sample_journal"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "One synchronous loan per exact checked profile"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const ticket = Object.freeze({});"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "physical_equal(profile, original.profile)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-relation-sample-adoption.mjs",
+                "anchor": "The Journal's private SQLite transaction owns the copy"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "An escaped ticket contains no bytes, funding or current grant"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption with an uncertain COMMIT resolves only the original durable key"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "if !current()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_relation_sample_journal.mbt",
+                "anchor": "grow_capacity_reservation(ledger, reservation, total, total)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/connectors_builtin_node/client_preparation_root_bridge.mbt",
+                "anchor": "pub fn client_program_with_relation_sample_journal("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-original-submitted-intent.test.mjs",
+                "anchor": "Relation Sample adoption refuses equal payloads from another scope and asynchronous loans"
+              },
+              {
+                "path": "src/client_local_host/collection_request_finalization_js_wbtest.mbt",
+                "anchor": "test \"Relation Sample captures the exact installed Request and committed output\""
+              }
+            ]
+          }
         }
       ],
       "exports": [],
@@ -68459,6 +69028,10 @@
         {
           "name": "client_program_capture_request_original_explanation",
           "declaration": "client_program_capture_request_original_explanation ( original : @ client_local_host . ClientRequestOriginalExplanation [ ClientLocalPreparationInputOriginal , ] , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , ) - > Result [ @ client_local_host . ClientOriginalExplanationCapture , @ client_local_host . ClientOriginalExplanationCaptureIssue , ]"
+        },
+        {
+          "name": "client_program_check_relation_sample_profile",
+          "declaration": "client_program_check_relation_sample_profile ( owner : @ client_local_host . ClientInstalledManagedRun , request : @ publication_host . ClientRequestIdentity , definition : @ publication . PublicationContract , observation : @ client_local_host . ClientLogicalObservation , original_reference_wire : String , records : @ client_local_host . InstalledRelationSampleProfileEvidence , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ ( @ client_local_host . ClientCheckedRelationSampleProfile , String , String , @ publication_host . PreparedClientProgram , @ publication_host . ClientCompiledRun , ) , @ client_local_host . InstalledRelationSampleProfileIssue , ]"
         },
         {
           "name": "client_program_cleanup_local_preparation_admission",
@@ -68889,6 +69462,10 @@
           "declaration": "client_program_reconcile_program_json_preparation_structure ( owner : @ client_local_host . ClientProgramJsonPreparation [ ClientLocalPreparationInputOriginal , Unit , ] , ) - > Result [ Unit , @ client_local_host . ClientProgramJsonPreparationIssue ]"
         },
         {
+          "name": "client_program_relation_sample_adoption_matches_profile",
+          "declaration": "client_program_relation_sample_adoption_matches_profile ( profile : @ client_local_host . ClientCheckedRelationSampleProfile , logical_map_cid : String , output_port_id : String , max_items : String , max_bytes : String , max_artifacts : String , ttl_seconds : String , required : Bool , ) - > Bool"
+        },
+        {
           "name": "client_program_request_checked_static_plan_issue_code",
           "declaration": "client_program_request_checked_static_plan_issue_code ( result : Result [ String , ClientRequestStaticPlanBridgeIssue ] , ) - > String ?"
         },
@@ -68962,7 +69539,7 @@
         },
         {
           "name": "client_program_reserve_relation_sample_start",
-          "declaration": "client_program_reserve_relation_sample_start ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
+          "declaration": "client_program_reserve_relation_sample_start ( owner : @ client_local_host . ClientInstalledManagedRun , prepared : @ publication_host . PreparedClientProgram , request : @ publication_host . ClientRequestIdentity , compiled : @ publication_host . ClientCompiledRun , definition : @ publication . PublicationContract , setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , journal_bytes : Int , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleStartIssue ]"
         },
         {
           "name": "client_program_reserve_request_effect_capture_recovery",
@@ -69041,6 +69618,10 @@
           "declaration": "client_program_try_capture_effect_run_explanation ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , allowed : @ publication_host . ClientEffectAllowedRun , definition : @ publication . PublicationContract , bytes : Int , nodes : Int , depth : Int , work : Int , ) - > Result [ @ client_local_host . ClientRequestEffectRunExplanation [ ClientLocalPreparationInputOriginal , ] ? , @ client_local_host . ClientRequestStaticContextIssue , ]"
         },
         {
+          "name": "client_program_with_relation_sample_journal",
+          "declaration": "client_program_with_relation_sample_journal ( owner : @ client_local_host . ClientInstalledManagedRun , profile : @ client_local_host . ClientCheckedRelationSampleProfile , prefix : @ client_local_host . InstalledRelationSamplePrefix , require_current : ( ) - > Bool , consume : ( String , String , String , String , String , ( ) - > Bool , Int ) - > Bool , ) - > Result [ Unit , @ client_local_host . InstalledRelationSampleAdoptionIssue ]"
+        },
+        {
           "name": "prepare_request_model_graph_with_file_declarations",
           "declaration": "prepare_request_model_graph_with_file_declarations ( parent : @ client_local_host . ClientRequestPreparation [ ClientLocalPreparationInputOriginal , ] , input : ClientLocalPreparationInputOriginal , occurrence : @ publication_host . ClientInferOccurrence , execution : @ check_environment . ModelExecutionContract , contracts : @ client_local_host . ClientInstalledSequenceContracts , keyed_file_declarations : Array [ @ client_row_source_host . RowDeclaration ] ? , provider ? : @ model . ModelProvider ?"
         },
@@ -69057,7 +69638,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "b90229e5b24b7675453c9439a7ba7980581d845e263f4f8e055cd88baa5b0a71"
+      "sha256": "64d37eb5a35fa8d9f763f034bf03ed2a280606bb834b4af28f6c35a22eecd80d"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -98197,11 +98778,15 @@
     {
       "module": "src/encode_core/construction_geometry.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "9e9953fb72293066286ccb8f38eb5a4adae2b062e8908e115a9f0361e0d70d6d",
+      "sha256": "8f387e55f8351f48e326859f6898a96c824e124adbe38d24989097db21f05260",
       "role": "common-semantics",
       "owner": "Existing bounded JSON writer and compiler construction owners",
       "exports": [],
       "operations": [
+        {
+          "name": "construction_census_mode",
+          "declaration": "construction_census_mode ( writer : Writer ) - > Bool"
+        },
         {
           "name": "construction_geometry_usage",
           "declaration": "construction_geometry_usage ( value : EncodingConstructionGeometry , ) - > ( Int , Int , Int )"
@@ -98209,6 +98794,10 @@
         {
           "name": "construction_measuring_writer",
           "declaration": "construction_measuring_writer ( max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Writer raise EncodeFailure"
+        },
+        {
+          "name": "construction_work_step",
+          "declaration": "construction_work_step ( writer : Writer , units : Int , ) - > Unit raise EncodeFailure"
         },
         {
           "name": "emit_construction_measurement",
@@ -98237,6 +98826,26 @@
         {
           "name": "observe_embedded_construction",
           "declaration": "observe_embedded_construction ( writer : Writer , nodes : Int , bytes : Int , shape : EncodingConstructionGeometry ? , ) - > Unit"
+        },
+        {
+          "name": "work_comparing_writer",
+          "declaration": "work_comparing_writer ( expected : String , max_bytes : Int , max_nodes : Int , max_depth : Int , work : ( Int ) - > Bool , ) - > Writer raise EncodeFailure"
+        },
+        {
+          "name": "work_construction_census_writer",
+          "declaration": "work_construction_census_writer ( max_bytes : Int , max_nodes : Int , max_depth : Int , work : ( Int ) - > Bool , ) - > Writer raise EncodeFailure"
+        },
+        {
+          "name": "work_construction_measuring_writer",
+          "declaration": "work_construction_measuring_writer ( max_bytes : Int , max_nodes : Int , max_depth : Int , work : ( Int ) - > Bool , ) - > Writer raise EncodeFailure"
+        },
+        {
+          "name": "work_hashing_writer",
+          "declaration": "work_hashing_writer ( max_bytes : Int , max_nodes : Int , max_depth : Int , work : ( Int ) - > Bool , ) - > Writer raise EncodeFailure"
+        },
+        {
+          "name": "work_writer",
+          "declaration": "work_writer ( max_bytes : Int , max_nodes : Int , max_depth : Int , work : ( Int ) - > Bool , ) - > Writer raise EncodeFailure"
         }
       ],
       "contracts": [
@@ -98251,7 +98860,14 @@
             "observe_construction_field",
             "observe_construction_object_end",
             "observe_construction_text",
-            "observe_embedded_construction"
+            "observe_embedded_construction",
+            "construction_census_mode",
+            "construction_work_step",
+            "work_comparing_writer",
+            "work_construction_census_writer",
+            "work_construction_measuring_writer",
+            "work_hashing_writer",
+            "work_writer"
           ],
           "exports": [],
           "attributes": {
@@ -98317,6 +98933,14 @@
               {
                 "path": "src/run_publication_host/client_pure_compilation_construction_wbtest.mbt",
                 "anchor": "test \"unobserved codec role cannot borrow another same-sized subtree shape\""
+              },
+              {
+                "path": "src/encode_core/work_construction_geometry_wbtest.mbt",
+                "anchor": "test \"controlled geometry uses bulk observed spans and preserves the same canonical geometry\""
+              },
+              {
+                "path": "src/physical_strategy_host/task_completion_current_js_wbtest.mbt",
+                "anchor": "is Err(Work(@resources.PlanningLimit))"
               }
             ]
           }

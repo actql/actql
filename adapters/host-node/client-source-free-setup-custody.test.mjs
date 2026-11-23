@@ -114,7 +114,9 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   sourceLedger = 'owned', cleanupReady = true, physicalStart = false,
   whole = false, capture = false, placement = 'owned', sampleStart = false,
   sampleStartCoreFailure = false, sampleStartCapacityFailure = false,
-  sampleStartMissingReady = false, normalCompute = false} = {}) {
+  sampleStartMissingReady = false, sampleProfileFailure = false,
+  missingSampleProfile = false, sampleReadCapacityFailure = false, normalCompute = false,
+  sampleWriterMissing = false} = {}) {
   const prepared = {}, request = {}, run = {}, holder = {}, setup = {}, capacity = {}, ledger = {};
   const ref = {runDefinitionCid: 'original-dispatch-custody'};
   const runDefinition = {wire: 'definition'}, failures = [];
@@ -309,17 +311,43 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     });
   }
   const sampleEvents = [];
+  const sampleObservation = {}, profile = {}, checkedProfile = {}, startTicket = {};
+  const committedPrefix = {}, scopedTicket = {}, originalReceipt = {};
+  let adoptSample;
   if (sampleStart) {
     moon.strategyHostRun = value => { assert.equal(value, setup); return dag; };
-    control.reserveClientRelationSampleStart = (owner, identity, execution, definition, configured) => {
+    control.reserveClientRelationSampleStart = (owner, identity, execution, definition, configured, journalBytes) => {
       assert.equal(owner, run);
       assert.equal(identity, request);
       assert.equal(execution.program, prepared);
       assert.equal(definition, runDefinition);
       assert.equal(configured, setup);
       assert.equal(held.prepareSampleStart, undefined, 'The same Run transferred the receiver before funding');
-      sampleEvents.push('reserve');
-      if (sampleStartCapacityFailure) throw marker;
+      assert.equal(held.sampleProfile, undefined);
+      if (journalBytes === undefined) {
+        sampleEvents.push('reserve');
+        if (sampleStartCapacityFailure) throw marker;
+      } else {
+        assert.equal(journalBytes, 12345);
+        sampleEvents.push('reserve-original');
+        if (sampleReadCapacityFailure) throw marker;
+      }
+    };
+    control.prepareClientLogicalObservation = (owner, execution, definition, limits) => {
+      assert.equal(owner, run);
+      assert.equal(execution.program, prepared);
+      assert.equal(definition, runDefinition);
+      assert.ok(limits.maxWireBytes > 0);
+      sampleEvents.push('observation');
+      return ok(sampleObservation);
+    };
+    moon.clientProgramLogicalObservationCleanup = () => assert.fail('The original observation was prepared');
+    moon.clientProgramReturnLogicalObservation = function(value) {
+      assert.equal(this, moon);
+      assert.equal(value, sampleObservation);
+      sampleEvents.push('return-observation');
+      if (!ready) throw new Error('OriginalSampleObservationReturnPending');
+      return ok(true);
     };
     control.acknowledgeClientRelationSampleStart = (owner, identity, execution, definition, captured, revision) => {
       assert.equal(owner, run);
@@ -354,14 +382,48 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
   const owner = installNodeClientDispatchOwner({moon,
     control,
     journal: {
+      originalSubmittedIntent(identity, options, originalMoon, originalControl) {
+        assert.equal(sampleStart, true, 'Normal dispatch must not open a Sample Journal view');
+        assert.equal(identity, request);
+        assert.equal(options.namespaceId, 'fixture-namespace');
+        assert.equal(options.sampleRunRef, ref);
+        assert.equal(originalMoon, moon);
+        assert.equal(originalControl, control);
+        sampleEvents.push('probe-original');
+        options.reserveSampleRead(12345);
+        sampleEvents.push('journal-original');
+        return {checkSampleProfile(owner, definition, observation, evidence, limits) {
+          assert.equal(owner, run);
+          assert.equal(definition, runDefinition);
+          assert.equal(observation, sampleObservation);
+          assert.equal(evidence, profile);
+          assert.ok(limits.maxWireBytes > 0);
+          sampleEvents.push('check-profile');
+          if (sampleProfileFailure) throw new Error('ClientRequestSubmittedIntentMismatch');
+          return {profile: checkedProfile, startTicket, withAdoption(prefix, current, consume) {
+            assert.equal(prefix, committedPrefix);
+            if (current() !== true) throw new Error('FixtureSamplePermissionDenied');
+            sampleEvents.push('visit-prefix');
+            assert.equal(consume(scopedTicket), undefined);
+          }};
+        }};
+      },
       reservePhysicalStart(_request, options) {
         calls.physicalClaims++;
         if (sampleStart && !sampleStartMissingReady) {
           const capture = options.captureSampleStart;
+          assert.equal(capture.startTicket, startTicket);
           assert.equal(capture.program, prepared);
           assert.equal(capture.compiled, options.localExecutionOwner.compiled);
           sampleEvents.push('claim');
-          if (physicalStart) capture.captureRevision(2);
+          if (physicalStart) {
+            capture.captureRevision(2);
+            if (!sampleWriterMissing) capture.captureAdoption(ticket => {
+              assert.equal(ticket, scopedTicket);
+              sampleEvents.push('journal-adopted');
+              return originalReceipt;
+            });
+          }
         } else assert.equal(Object.hasOwn(options, 'captureSampleStart'), false);
         return physicalStart;
       },
@@ -382,6 +444,11 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     store: {confirmCommittedIndex: async () => calls.computed === 1 ? {} : undefined},
     startRun: async () => ({kind: 'reserved', ref}),
     hostConnection: () => true,
+    authorizeSampleCapture({ref: original, principalId}) {
+      assert.equal(original, ref);
+      assert.equal(principalId, 'owner');
+      return true;
+    },
     planFor: () => samplePlan ?? ({kind: source ? 'tasks' : 'values', compiled, runDefinition,
       publicationPreparation, requestIdentity: request, authoringContextOriginal, admission: {}, compiledPlan: {identity: 'fixture-compiled'},
       createdAt: '2026-11-15T00:00:00.000Z'}),
@@ -396,37 +463,55 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     },
     registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered',
     managedComputeRequired: true, retainedRelationOutput: retained,
-    runPublished(actual, _publication, _config, _signal, _before, retain) {
+    runPublished(actual, _publication, _config, _signal, _before, retain, _taskObservation,
+      _preparationHolder, _beforePublication, sampleDriver) {
       calls.computed++;
       assert.equal(normalCompute, true, 'Refused physical start must not enter Compute');
       assert.equal(actual, setup);
+      if (sampleStart) {
+        assert.equal(sampleDriver.owner, run);
+        assert.equal(sampleDriver.profile, checkedProfile);
+        assert.equal(sampleDriver.current(), true);
+        assert.throws(() => adoptSample(committedPrefix, () => false), /FixtureSamplePermissionDenied/u);
+        assert.equal(sampleDriver.adopt(committedPrefix), undefined);
+      } else assert.equal(sampleDriver, undefined);
       const completed = {
         close() {calls.closed++;},
         cleanup() {return true;},
         cleanupPending() {return false;},
       };
       retain(completed);
+      if (sampleStart) {
+        assert.equal(sampleDriver.owner, undefined, 'publication may keep the port but the original is released');
+        assert.equal(sampleDriver.current(), false);
+        assert.throws(() => sampleDriver.adopt(committedPrefix), /ClientRunSampleStartOriginalUnavailable/u);
+      }
       return completed;
     },
     namespaceId: 'fixture-namespace', authorityScopeCid: 'fixture-scope',
     now: () => '2026-11-15T00:00:00.000Z',
   });
   const held = {...(managed ? {managedRun: run} : {}),
-    ...(sampleStart ? {prepareSampleStart(actual, managedRun, execution, actualRef, actualDefinition) {
+    ...(sampleStart && !missingSampleProfile ? {sampleProfile: profile} : {}),
+    ...(sampleStart ? {prepareSampleStart(actual, managedRun, execution, actualRef, actualDefinition, evidence) {
       assert.equal(actual, setup);
       assert.equal(managedRun, run);
       assert.equal(execution.program, prepared);
       assert.equal(actualRef, ref);
       assert.equal(actualDefinition, runDefinition);
+      assert.equal(evidence, checkedProfile);
       sampleEvents.push('prepared');
       if (sampleStartMissingReady) return undefined;
-      return revision => {
+      return (revision, adopt) => {
         assert.equal(revision, 2);
+        assert.throws(() => adopt(committedPrefix, () => true), /ClientRunSampleStartOriginalUnavailable/u);
+        adoptSample = adopt;
         sampleEvents.push('received');
       };
     }} : {}),
     ...(source ? {preparedSource, preparedSourceAccess: sourceAccess} : {})};
   return {owner, moon, calls, marker, failures, failure, ref, stops, physicalEntered, sampleEvents,
+    adoptSample() { return adoptSample(committedPrefix, () => true); },
     ready() { ready = true; },
     resume,
     cancel() {
@@ -438,21 +523,52 @@ function originalDispatchFixture({source = false, managed = true, retained = fal
     {ref, runDefinition, dispatchReserved: false, cancellationRequested: false}, held); }};
 }
 
+const sampleProfileCheckEvents = ['reserve', 'observation', 'probe-original', 'reserve-original',
+  'journal-original', 'check-profile', 'return-observation'];
+
 test('Sample start revision reaches the pending managed setup before activity and only on a confirmed start', async () => {
   for (const physicalStart of [false, true]) {
     const f = originalDispatchFixture({sampleStart: true, physicalStart});
     assert.equal(await f.start(), physicalStart ? 'started' : 'not_started');
     if (physicalStart) {
       await f.physicalEntered;
-      assert.deepEqual(f.sampleEvents, ['reserve', 'prepared', 'claim', 'received', 'core', 'reservation-observed']);
+      assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'received', 'core', 'reservation-observed']);
       f.cancel();
       f.resume();
       await f.owner.operation(f.ref);
-    } else assert.deepEqual(f.sampleEvents, ['reserve', 'prepared', 'claim']);
+    } else assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim']);
     await f.owner.drain();
     assert.equal(f.calls.opened, 1);
     assert.equal(f.calls.returned, 1);
   }
+});
+
+test('selected dispatch uses only its acknowledged Journal writer during Compute', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, normalCompute: true});
+  assert.equal(await f.start(), 'started');
+  await f.physicalEntered;
+  assert.throws(f.adoptSample, /ClientRunSampleStartOriginalUnavailable/u);
+  const operation = f.owner.operation(f.ref);
+  f.resume();
+  await operation;
+  await f.owner.drain();
+  assert.equal(f.calls.computed, 1);
+  assert.equal(f.calls.returned, 1);
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'received', 'core',
+    'reservation-observed', 'visit-prefix', 'journal-adopted']);
+  assert.throws(f.adoptSample, /ClientRunSampleStartOriginalUnavailable/u);
+});
+
+test('durable Sample start without its writer closes the original setup before Compute', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, sampleWriterMissing: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, 'ClientRunSampleStartOriginalUnavailable');
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim']);
+  assert.equal(f.calls.computed, 0);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+  assert.deepEqual(f.stops, ['failed']);
 });
 
 test('refused Sample handoff after a durable start closes the same setup before Compute', async () => {
@@ -460,7 +576,7 @@ test('refused Sample handoff after a durable start closes the same setup before 
   assert.equal(await f.start(), 'not_started');
   assert.equal((await f.failure).code, f.marker.message);
   await f.owner.drain();
-  assert.deepEqual(f.sampleEvents, ['reserve', 'prepared', 'claim', 'received', 'core']);
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared', 'claim', 'received', 'core']);
   assert.equal(f.calls.physicalClaims, 1);
   assert.equal(f.calls.opened, 1);
   assert.equal(f.calls.returned, 1);
@@ -488,7 +604,7 @@ test('selected Sample receiver without ready refuses before physical start and r
   assert.equal(await f.start(), 'not_started');
   assert.equal((await f.failure).code, 'InvalidClientRunSampleStartReceiver');
   await f.owner.drain();
-  assert.deepEqual(f.sampleEvents, ['reserve', 'prepared']);
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'prepared']);
   assert.equal(f.calls.physicalClaims, 0);
   assert.equal(f.calls.preDispatchFailures, 1);
   assert.equal(f.calls.computed, 0);
@@ -497,6 +613,58 @@ test('selected Sample receiver without ready refuses before physical start and r
   assert.equal(f.calls.leaseRetired, 1);
   assert.deepEqual(f.stops, []);
   assert.equal(f.owner.operation(f.ref), undefined);
+});
+
+test('a selected Sample with stale Journal evidence never reaches its receiver or physical start', async () => {
+  const f = originalDispatchFixture({sampleStart: true, sampleProfileFailure: true, physicalStart: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, 'ClientRequestSubmittedIntentMismatch');
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, sampleProfileCheckEvents);
+  assert.equal(f.calls.physicalClaims, 0);
+  assert.equal(f.calls.computed, 0);
+  assert.equal(f.calls.preDispatchFailures, 1);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+});
+
+test('selected Sample row capacity refusal leaves no original view or start claim', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, sampleReadCapacityFailure: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, f.marker.message);
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, ['reserve', 'observation', 'probe-original', 'reserve-original',
+    'return-observation']);
+  assert.equal(f.calls.physicalClaims, 0);
+  assert.equal(f.calls.computed, 0);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+});
+
+test('a selected Sample cannot start while returning its original Journal profile observation', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, cleanupReady: false});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, 'OriginalSampleObservationReturnPending');
+  assert.equal(f.calls.leaseRetired, 0);
+  f.ready();
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, [...sampleProfileCheckEvents, 'return-observation', 'return-observation']);
+  assert.equal(f.calls.computed, 0);
+  assert.equal(f.calls.physicalClaims, 0);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
+});
+
+test('a selected Sample without admitted profile evidence refuses without opening a Journal view', async () => {
+  const f = originalDispatchFixture({sampleStart: true, physicalStart: true, missingSampleProfile: true});
+  assert.equal(await f.start(), 'not_started');
+  assert.equal((await f.failure).code, 'ClientRunSampleStartOriginalUnavailable');
+  await f.owner.drain();
+  assert.deepEqual(f.sampleEvents, []);
+  assert.equal(f.calls.computed, 0);
+  assert.equal(f.calls.physicalClaims, 0);
+  assert.equal(f.calls.returned, 1);
+  assert.equal(f.calls.leaseRetired, 1);
 });
 
 test('Normal dispatch without a Sample receiver starts and enters Compute with the same setup', async () => {

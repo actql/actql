@@ -7,7 +7,7 @@ import {runtimeField, runtimeOptionalField, runtimeTag} from '../host-common/com
 import {CapturedRunPublicationError,
   runPublishedCapturedStrategy} from './entry.mjs';
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan,
-  acquiredKeyedTaskPublicationPlan, sourceFreePlanExecutionOwner} from './local-values-plan.mjs';
+  acquiredKeyedTaskPublicationPlan, localContractLimits, sourceFreePlanExecutionOwner} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
 import {ordinarySourceDescriptors, verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
@@ -211,12 +211,63 @@ function invalidSampleStartReceiver(value) {
   throw new TypeError('InvalidClientRunSampleStartReceiver');
 }
 
+// The existing dispatch entry owns the Journal writer until cleanup. A
+// prepared Driver only receives a synchronous port to the checked prefix.
+function selectedSampleAdoption(entry, visit, hostConnection, authority, authorizeSampleCapture, owner, profile) {
+  let writer, armed = false;
+  const unavailable = () => {throw new Error('ClientRunSampleStartOriginalUnavailable');};
+  const active = () => armed && entry !== undefined && entry.computeStartAttempted &&
+    !entry.abort.signal.aborted;
+  const scope = {
+    captureAdoption(original) {
+      if (entry === undefined || writer !== undefined || typeof original !== 'function') unavailable();
+      writer = original;
+    },
+    requireWriter() {
+      if (typeof writer !== 'function' || entry === undefined) unavailable();
+    },
+    arm() {armed = true;},
+    adopt(prefix, authorizeSample) {
+      if (!active() || typeof authorizeSample !== 'function') unavailable();
+      const current = () => {
+        if (!active() || hostConnection(authority) !== true || !active()) return false;
+        const outcome = authorizeSample();
+        if (typeof outcome?.then === 'function') void Promise.resolve(outcome).catch(() => {});
+        return outcome === true && active() && hostConnection(authority) === true && active();
+      };
+      let receipt;
+      const write = writer;
+      visit(prefix, current, ticket => {receipt = write(ticket);});
+      if (!current() || receipt === undefined) unavailable();
+      return receipt;
+    },
+    close() {
+      armed = false;
+      writer = visit = authority = entry = undefined;
+      owner = profile = undefined;
+    },
+  };
+  scope.driver = Object.freeze({
+    get owner() {return owner;},
+    get profile() {return profile;},
+    maxWireBytes: localContractLimits.maxWireBytes,
+    maxNodes: localContractLimits.maxNodes,
+    maxDepth: localContractLimits.maxDepth,
+    current() {
+      return active() && hostConnection(authority) === true && active() &&
+        authorizeSampleCapture(authority) === true && active();
+    },
+    adopt(prefix) {scope.adopt(prefix, scope.driver.current);},
+  });
+  return scope;
+}
+
 export function installNodeClientDispatchOwner({moon, control, journal,
   store, checkpoints, startRun, hostConnection, beforeDispatch, observed,
   prepareAcquisition, planFor, sourceProfile, registry, values, fragment,
   ordered, namespaceId, authorityScopeCid, storeAuthorityCid, now,
   faultInjection, runInfer, runContent, computeConfigurations = {},
-  observation, preparationCustody, beforePublication, authorizeLogicalObservation,
+  observation, preparationCustody, beforePublication, authorizeLogicalObservation, authorizeSampleCapture,
   managedComputeRequired = false,
   retainedRelationOutput = false,
   runPublished = runPublishedCapturedStrategy}) {
@@ -419,7 +470,8 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     return entry.settled && entry.cleanupOwner === undefined &&
         entry.cleanupHandle === undefined && !entry.unresolvedCleanup &&
         entry.sourceCapture === undefined && entry.sourcePreparations === undefined &&
-        entry.pendingSetup === undefined &&
+        entry.pendingSetup === undefined && entry.sampleProfileObservation === undefined &&
+        entry.sampleAdoption === undefined &&
         !entry.stopObservationPending &&
         !entry.failureObservationPending && !entry.finishPending &&
         !entry.releasePending &&
@@ -512,7 +564,16 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     entry.cleanupHandle = undefined;
   }
 
+  function closeSampleAdoption(entry) {
+    if (entry.sampleAdoption !== undefined) {
+      entry.sampleAdoption.close();
+      entry.sampleAdoption = undefined;
+    }
+  }
+
   async function settleCleanup(entry) {
+    closeSampleAdoption(entry);
+    returnSampleProfileObservation(entry);
     const execution = entry.cleanupOwner;
     if (entry.borrowedSources && entry.sourceCapture !== undefined) {
       // Stop Compute before closing any borrowed native input. The same
@@ -593,6 +654,38 @@ export function installNodeClientDispatchOwner({moon, control, journal,
     }
     observation?.emit('cleanup', 'cleanup_completed', {ref: entry.ref,
       physicalStop: entry.stopObserved ? 'confirmed' : undefined});
+  }
+
+  function returnSampleProfileObservation(entry) {
+    if (entry.sampleProfileObservation === undefined) return;
+    checked(moon.clientProgramReturnLogicalObservation(entry.sampleProfileObservation));
+    entry.sampleProfileObservation = undefined;
+  }
+
+  function checkSampleProfile(entry, requested, accepted, run, execution, setup, profile) {
+    const result = control.prepareClientLogicalObservation(run, execution,
+      accepted.runDefinition, localContractLimits);
+    try {
+      entry.sampleProfileObservation = checked(result);
+    } catch (error) {
+      entry.sampleProfileObservation = moon.clientProgramLogicalObservationCleanup(result);
+      throw error;
+    }
+    const original = journal.originalSubmittedIntent(requested,
+      {namespaceId, sampleRunRef: accepted.ref, reserveSampleRead(bytes) {
+        control.reserveClientRelationSampleStart(run, requested, execution, accepted.runDefinition, setup, bytes);
+        entry.abort.signal.throwIfAborted();
+      }}, moon, control);
+    if (typeof original?.checkSampleProfile !== 'function') {
+      throw new Error('ClientRunSampleStartOriginalUnavailable');
+    }
+    const profileCheck = original.checkSampleProfile(run, accepted.runDefinition,
+      entry.sampleProfileObservation, profile, localContractLimits);
+    if (profileCheck?.profile === null || typeof profileCheck?.profile !== 'object' ||
+        profileCheck.startTicket === null || typeof profileCheck.startTicket !== 'object' ||
+        typeof profileCheck.withAdoption !== 'function' ||
+        typeof profileCheck.then === 'function') invalidSampleStartReceiver(profileCheck);
+    return profileCheck;
   }
 
   async function finishRun(entry) {
@@ -1017,16 +1110,19 @@ export function installNodeClientDispatchOwner({moon, control, journal,
       }
       let physicalStarted;
       {
-        // The selected synchronous receiver, revision callback and original
-        // aliases have no lifetime across the supervisor's following awaits.
+        // Transfer the selected writer into the original dispatch entry.
+        // The remaining synchronous aliases end before the following awaits.
         let sampleReady, sampleStartSelection, sampleStartRevision;
         let sampleRun, sampleExecution, sampleDefinition, sampleCaptured;
         const prepareSampleStart = held.prepareSampleStart;
-        if (prepareSampleStart !== undefined) {
+        const sampleProfile = held.sampleProfile;
+        if (prepareSampleStart !== undefined || sampleProfile !== undefined) {
           // The already selected Run transfers its preparation receiver once.
           // Merely installing the shared dispatcher never selects a Normal Run.
           held.prepareSampleStart = undefined;
-          if (typeof prepareSampleStart !== 'function' || gate !== undefined ||
+          held.sampleProfile = undefined;
+          if (typeof prepareSampleStart !== 'function' || sampleProfile === undefined ||
+              gate !== undefined ||
               accepted.dispatchReserved === true || preparationLease === undefined ||
               acquiring || inferring || serializing || generatingContent ||
               held.managedRun === undefined || setup === undefined ||
@@ -1036,6 +1132,11 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           const execution = sourceFreePlanExecutionOwner(held.plan);
           if (execution === undefined ||
               typeof capturedRun !== 'function' ||
+              typeof journal.originalSubmittedIntent !== 'function' ||
+              typeof control.prepareClientLogicalObservation !== 'function' ||
+              typeof moon.clientProgramLogicalObservationCleanup !== 'function' ||
+              typeof moon.clientProgramReturnLogicalObservation !== 'function' ||
+              typeof authorizeSampleCapture !== 'function' ||
               typeof control.reserveClientRelationSampleStart !== 'function' ||
               typeof control.acknowledgeClientRelationSampleStart !== 'function') {
             throw new Error('ClientRunSampleStartOriginalUnavailable');
@@ -1044,12 +1145,20 @@ export function installNodeClientDispatchOwner({moon, control, journal,
           sampleDefinition = accepted.runDefinition;
           control.reserveClientRelationSampleStart(sampleRun, requested, execution, sampleDefinition, setup);
           entry.abort.signal.throwIfAborted();
-          sampleReady = prepareSampleStart(setup, sampleRun, execution, accepted.ref, sampleDefinition);
+          const {profile: checkedProfile, startTicket, withAdoption} = checkSampleProfile(entry, requested, accepted, sampleRun, execution,
+            setup, sampleProfile);
+          returnSampleProfileObservation(entry);
+          entry.abort.signal.throwIfAborted();
+          sampleReady = prepareSampleStart(setup, sampleRun, execution, accepted.ref, sampleDefinition,
+            checkedProfile);
           if (typeof sampleReady !== 'function') invalidSampleStartReceiver(sampleReady);
           sampleExecution = execution;
           sampleCaptured = Reflect.apply(capturedRun, moon, [setup]);
           if (sampleCaptured === undefined) throw new Error('ClientRunSampleStartOriginalUnavailable');
-          sampleStartSelection = {captureSampleStart: {program: execution.program, compiled: execution.compiled,
+          entry.sampleAdoption = selectedSampleAdoption(entry, withAdoption, hostConnection,
+            {principalId: actual, connection, ref: accepted.ref}, authorizeSampleCapture, sampleRun, checkedProfile);
+          sampleStartSelection = {captureSampleStart: {program: execution.program, compiled: execution.compiled, startTicket,
+            captureAdoption: entry.sampleAdoption.captureAdoption,
             captureRevision(revision) { sampleStartRevision = revision; }}};
           entry.abort.signal.throwIfAborted();
         }
@@ -1076,11 +1185,13 @@ export function installNodeClientDispatchOwner({moon, control, journal,
                 sampleStartRevision > 2147483647) {
               throw new Error('ClientRunSampleStartOriginalUnavailable');
             }
-            const result = sampleReady(sampleStartRevision);
+            entry.sampleAdoption.requireWriter();
+            const result = sampleReady(sampleStartRevision, entry.sampleAdoption.adopt);
             if (result !== undefined) invalidSampleStartReceiver(result);
             entry.abort.signal.throwIfAborted();
             control.acknowledgeClientRelationSampleStart(sampleRun, requested, sampleExecution,
               sampleDefinition, sampleCaptured, sampleStartRevision);
+            entry.sampleAdoption.arm();
           }
         }
       }
@@ -1376,6 +1487,9 @@ export function installNodeClientDispatchOwner({moon, control, journal,
               entry.pendingSetup !== undefined && entry.pendingSetup !== setup) {
             throw new Error('ClientDispatchCleanupOwnerAlreadyRetained');
           }
+          // The managed driver has returned. Publication may await an
+          // independent Store, but it no longer owns a Sample commit visit.
+          closeSampleAdoption(entry);
           entry.cleanupOwner = owner;
           entry.pendingSetup = undefined;
         }, observation === undefined ? undefined : installTaskObservation(({event, task, durationMs}) =>
@@ -1385,7 +1499,7 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         entry.preparationHostBorrow === undefined ? undefined : () => {
           if (typeof beforePublication !== 'function') throw new Error('PreparationPublicationUnavailable');
           return beforePublication(preparedProgram);
-        });
+        }, entry.sampleAdoption?.driver);
       entry.cleanupOwner = published;
       entry.publicationCommitted = true;
       await step('computed', {ref: accepted.ref,

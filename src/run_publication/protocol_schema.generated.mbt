@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=10623)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=10806)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -29930,6 +29930,534 @@ fn generated_protocol_schema_nodes_10(
       None,
     ),
   )
+  nodes.push(
+    protocol_string_rule(Some("actql-sample-source-generation/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[451])
+  nodes.push(nodes[3716])
+  nodes.push(AllOfRule([10624, 10625]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("namespaceId", 10626),
+        ("authorityScopeCid", 10627),
+        ("runDefinitionCid", 10628),
+      ],
+      ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[19])
+  nodes.push(nodes[2])
+  nodes.push(protocol_string_rule(Some("first_physical_start"), [], 0, 0))
+  nodes.push(protocol_string_rule(Some("0"), [], 0, 0))
+  nodes.push(NotRule(10637))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10638, 10639]))
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10641))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10642, 10643]))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 10636), ("start_revision", 10640), ("attempt_sequence", 10644)],
+      ["kind", "start_revision", "attempt_sequence"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10646))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10647, 10648]))
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10623),
+        ("run_ref", 10629),
+        ("compiled_plan_cid", 10630),
+        ("logical_map_cid", 10631),
+        ("step_id", 10632),
+        ("output_port_id", 10633),
+        ("carrier", 10634),
+        ("carrier_contract_cid", 10635),
+        ("producer_occurrence", 10645),
+        ("committed_generation", 10649),
+        ("self_cid", 10650),
+      ],
+      [
+        "version", "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id",
+        "output_port_id", "carrier", "carrier_contract_cid", "producer_occurrence",
+        "committed_generation", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[10623])
+  nodes.push(nodes[451])
+  nodes.push(nodes[3716])
+  nodes.push(AllOfRule([10653, 10654]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("namespaceId", 10655),
+        ("authorityScopeCid", 10656),
+        ("runDefinitionCid", 10657),
+      ],
+      ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[19])
+  nodes.push(nodes[2])
+  nodes.push(nodes[10636])
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10666))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10667, 10668]))
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10670))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10671, 10672]))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 10665), ("start_revision", 10669), ("attempt_sequence", 10673)],
+      ["kind", "start_revision", "attempt_sequence"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10675))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10676, 10677]))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10652),
+        ("run_ref", 10658),
+        ("compiled_plan_cid", 10659),
+        ("logical_map_cid", 10660),
+        ("step_id", 10661),
+        ("output_port_id", 10662),
+        ("carrier", 10663),
+        ("carrier_contract_cid", 10664),
+        ("producer_occurrence", 10674),
+        ("committed_generation", 10678),
+      ],
+      [
+        "version", "run_ref", "compiled_plan_cid", "logical_map_cid", "step_id",
+        "output_port_id", "carrier", "carrier_contract_cid", "producer_occurrence",
+        "committed_generation",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_string_rule(Some("actql-sample-original-capture/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[3602])
+  nodes.push(nodes[3615])
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10686))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10687, 10688]))
+  nodes.push(nodes[3615])
+  nodes.push(nodes[3615])
+  nodes.push(nodes[14])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10680),
+        ("source_generation_cid", 10681),
+        ("control_admission_cid", 10682),
+        ("resolved_profile_cid", 10683),
+        ("strategy", 10684),
+        ("max_items", 10685),
+        ("max_bytes", 10689),
+        ("max_artifacts", 10690),
+        ("ttl_seconds", 10691),
+        ("required", 10692),
+        ("self_cid", 10693),
+      ],
+      [
+        "version", "source_generation_cid", "control_admission_cid", "resolved_profile_cid",
+        "strategy", "max_items", "max_bytes", "max_artifacts", "ttl_seconds", "required",
+        "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[10680])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[3602])
+  nodes.push(nodes[3615])
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10701))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10702, 10703]))
+  nodes.push(nodes[3615])
+  nodes.push(nodes[3615])
+  nodes.push(nodes[14])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10695),
+        ("source_generation_cid", 10696),
+        ("control_admission_cid", 10697),
+        ("resolved_profile_cid", 10698),
+        ("strategy", 10699),
+        ("max_items", 10700),
+        ("max_bytes", 10704),
+        ("max_artifacts", 10705),
+        ("ttl_seconds", 10706),
+        ("required", 10707),
+      ],
+      [
+        "version", "source_generation_cid", "control_admission_cid", "resolved_profile_cid",
+        "strategy", "max_items", "max_bytes", "max_artifacts", "ttl_seconds", "required",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_string_rule(Some("actql-sample-emission-provenance/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(nodes[2])
+  nodes.push(protocol_one_of_rule([10713, 10714]))
+  nodes.push(nodes[3523])
+  nodes.push(nodes[3522])
+  nodes.push(nodes[3523])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("kind", 10717),
+        ("value", 10718),
+        ("unit", 10719),
+        ("scope_cid", 10720),
+        ("basis_cid", 10721),
+      ],
+      ["kind", "value", "unit", "scope_cid", "basis_cid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2946])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 10723), ("unit", 10724), ("reason", 10725)],
+      ["kind", "unit", "reason"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([10722, 10726]))
+  nodes.push(nodes[5110])
+  nodes.push(nodes[5111])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10709),
+        ("original_capture_cid", 10710),
+        ("source_generation_cid", 10711),
+        ("relation_prefix_cid", 10712),
+        ("ordering_evidence_cid", 10715),
+        ("sampled_items", 10716),
+        ("total", 10727),
+        ("completeness", 10728),
+        ("truncation", 10729),
+        ("self_cid", 10730),
+      ],
+      [
+        "version", "original_capture_cid", "source_generation_cid", "relation_prefix_cid",
+        "ordering_evidence_cid", "sampled_items", "total", "completeness", "truncation",
+        "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[10709])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[122])
+  nodes.push(nodes[2])
+  nodes.push(protocol_one_of_rule([10736, 10737]))
+  nodes.push(nodes[3523])
+  nodes.push(nodes[3522])
+  nodes.push(nodes[3523])
+  nodes.push(nodes[1])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("kind", 10740),
+        ("value", 10741),
+        ("unit", 10742),
+        ("scope_cid", 10743),
+        ("basis_cid", 10744),
+      ],
+      ["kind", "value", "unit", "scope_cid", "basis_cid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2946])
+  nodes.push(nodes[1])
+  nodes.push(nodes[1])
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 10746), ("unit", 10747), ("reason", 10748)],
+      ["kind", "unit", "reason"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([10745, 10749]))
+  nodes.push(nodes[5110])
+  nodes.push(nodes[5111])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10732),
+        ("original_capture_cid", 10733),
+        ("source_generation_cid", 10734),
+        ("relation_prefix_cid", 10735),
+        ("ordering_evidence_cid", 10738),
+        ("sampled_items", 10739),
+        ("total", 10750),
+        ("completeness", 10751),
+        ("truncation", 10752),
+      ],
+      [
+        "version", "original_capture_cid", "source_generation_cid", "relation_prefix_cid",
+        "ordering_evidence_cid", "sampled_items", "total", "completeness", "truncation",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("actql-sample-reference/0.1"), [], 0, 0))
+  nodes.push(nodes[451])
+  nodes.push(nodes[3716])
+  nodes.push(AllOfRule([10755, 10756]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("namespaceId", 10757),
+        ("authorityScopeCid", 10758),
+        ("runDefinitionCid", 10759),
+      ],
+      ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10754),
+        ("run_ref", 10760),
+        ("output_port_id", 10761),
+        ("original_capture_cid", 10762),
+        ("emission_provenance_cid", 10763),
+        ("self_cid", 10764),
+      ],
+      [
+        "version", "run_ref", "output_port_id", "original_capture_cid", "emission_provenance_cid",
+        "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[10754])
+  nodes.push(nodes[451])
+  nodes.push(nodes[3716])
+  nodes.push(AllOfRule([10767, 10768]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("namespaceId", 10769),
+        ("authorityScopeCid", 10770),
+        ("runDefinitionCid", 10771),
+      ],
+      ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10766),
+        ("run_ref", 10772),
+        ("output_port_id", 10773),
+        ("original_capture_cid", 10774),
+        ("emission_provenance_cid", 10775),
+      ],
+      [
+        "version", "run_ref", "output_port_id", "original_capture_cid", "emission_provenance_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_string_rule(Some("actql-sample-adoption-receipt/0.1"), [], 0, 0),
+  )
+  nodes.push(nodes[451])
+  nodes.push(nodes[3716])
+  nodes.push(AllOfRule([10778, 10779]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("namespaceId", 10780),
+        ("authorityScopeCid", 10781),
+        ("runDefinitionCid", 10782),
+      ],
+      ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(protocol_string_rule(Some("retained_relation_prefix"), [], 0, 0))
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10786))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10787, 10788]))
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10777),
+        ("run_ref", 10783),
+        ("sample_ref_cid", 10784),
+        ("adoption", 10785),
+        ("expires_at_epoch_ms", 10789),
+        ("self_cid", 10790),
+      ],
+      [
+        "version", "run_ref", "sample_ref_cid", "adoption", "expires_at_epoch_ms",
+        "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[10777])
+  nodes.push(nodes[451])
+  nodes.push(nodes[3716])
+  nodes.push(AllOfRule([10793, 10794]))
+  nodes.push(nodes[2])
+  nodes.push(nodes[2])
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("namespaceId", 10795),
+        ("authorityScopeCid", 10796),
+        ("runDefinitionCid", 10797),
+      ],
+      ["namespaceId", "authorityScopeCid", "runDefinitionCid"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(nodes[2])
+  nodes.push(nodes[10785])
+  nodes.push(nodes[10637])
+  nodes.push(NotRule(10801))
+  nodes.push(nodes[3534])
+  nodes.push(AllOfRule([10802, 10803]))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 10792),
+        ("run_ref", 10798),
+        ("sample_ref_cid", 10799),
+        ("adoption", 10800),
+        ("expires_at_epoch_ms", 10804),
+      ],
+      [
+        "version", "run_ref", "sample_ref_cid", "adoption", "expires_at_epoch_ms",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
 }
 
 ///|
@@ -30126,6 +30654,16 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("native_file_lookup_adoption", true) => Some(10609)
     ("installed_row_source_read", false) => Some(10615)
     ("installed_row_source_read", true) => Some(10622)
+    ("sample_source_generation", true) => Some(10651)
+    ("sample_source_generation", false) => Some(10679)
+    ("sample_original_capture", true) => Some(10694)
+    ("sample_original_capture", false) => Some(10708)
+    ("sample_emission_provenance", true) => Some(10731)
+    ("sample_emission_provenance", false) => Some(10753)
+    ("sample_reference", true) => Some(10765)
+    ("sample_reference", false) => Some(10776)
+    ("sample_adoption_receipt", true) => Some(10791)
+    ("sample_adoption_receipt", false) => Some(10805)
     _ => None
   }
 }
@@ -30180,6 +30718,11 @@ fn generated_interactive_protocol_schema(name : String) -> Bool {
     "explanation_context" => true
     "static_explanation_view" => true
     "run_explanation_context_view" => true
+    "sample_source_generation" => true
+    "sample_original_capture" => true
+    "sample_emission_provenance" => true
+    "sample_reference" => true
+    "sample_adoption_receipt" => true
     _ => false
   }
 }
@@ -30197,6 +30740,11 @@ fn generated_interactive_identity_field(name : String) -> String? {
     "control_command" => Some("self_cid")
     "control_operation_receipt" => Some("self_cid")
     "explanation_facts" => Some("self_cid")
+    "sample_source_generation" => Some("self_cid")
+    "sample_original_capture" => Some("self_cid")
+    "sample_emission_provenance" => Some("self_cid")
+    "sample_reference" => Some("self_cid")
+    "sample_adoption_receipt" => Some("self_cid")
     _ => None
   }
 }

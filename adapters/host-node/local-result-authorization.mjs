@@ -25,11 +25,12 @@ export function createLocalReadAuthorizations({moon, authorization,
   // The existing owned public request is the lifetime of this memo. No
   // outcome survives into another operation, even for identical wire/tuples.
   const operations = new WeakMap();
-  const authorize = (facts, operation, resource, interactive = true, reobserve = false) => {
+  const authorize = (facts, operation, resource, interactive = true, reobserve = false,
+    accessOperation = 'read') => {
     if (facts.principalId !== principalId || facts.indexKey?.namespaceId !== namespaceId ||
         facts.indexKey?.authorityScopeCid !== authorityScopeCid ||
         resource === undefined) return false;
-    const scope = {connection, resource, operation: 'read'};
+    const scope = {connection, resource, operation: accessOperation};
     // Immediate metadata never consumes or installs an async read's allowed
     // memo. Observe current Account/Common at EACH actual boundary instead.
     const sameOperation = interactive && operation !== null && typeof operation === 'object' &&
@@ -114,6 +115,9 @@ export function createLocalReadAuthorizations({moon, authorization,
     runCurrent(facts, operation) {return authorize(facts, operation, 'run', true, true);},
     // Internal installed metadata consumer, never a public permission field.
     runImmediate(facts, operation) {return authorize(facts, operation, 'run', false);},
+    sampleCaptureImmediate(facts) {
+      return authorize(facts, undefined, 'sample', false, false, 'capture');
+    },
     // Static metadata has the installed scope and no Run reference. Check the
     // current Account at every boundary, including immediately before egress.
     staticPlanImmediate({principalId: actual}) {

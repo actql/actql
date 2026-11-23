@@ -1903,6 +1903,73 @@ function remoteBundleControl(moon) {
   return control;
 }
 
+// One synchronous loan per exact checked profile. Only the Common bridge can
+// open it from the same profile's live committed prefix. The two operations
+// are split between the capture receiver and the original Journal writer.
+function relationSampleJournalScope(moon, visit, run, profile, checkResult) {
+  if (typeof visit !== 'function') return undefined;
+  let active;
+  let visiting = false;
+  return Object.freeze({
+    withAdoption(prefix, requireCurrent, consume) {
+      if (visiting || typeof requireCurrent !== 'function' || typeof consume !== 'function') {
+        throw new Error('ClientRelationSampleVisitUnavailable');
+      }
+      visiting = true;
+      let primary, failed = false, entered = false;
+      const allowed = () => {
+        try {
+          const value = requireCurrent();
+          if (typeof value?.then === 'function') void Promise.resolve(value).catch(() => {});
+          return value === true;
+        } catch (cause) {
+          if (!failed) {failed = true; primary = cause;}
+          return false;
+        }
+      };
+      try {
+        const result = visit.call(moon, run, profile, prefix, allowed,
+          (generation, capture, emission, reference, relation, current, fundedBytes) => {
+            if (entered) return false;
+            entered = true;
+            const ticket = Object.freeze({});
+            active = {ticket, generation, capture, emission, reference, relation, current, fundedBytes,
+              consumed: false};
+            try {
+              const value = consume(ticket);
+              if (value !== undefined) {
+                if (typeof value?.then === 'function') void Promise.resolve(value).catch(() => {});
+                throw new Error('ClientRelationSampleVisitMustBeSynchronous');
+              }
+              if (!active.consumed) throw new Error('ClientRelationSampleVisitUnconsumed');
+              return !failed;
+            } catch (cause) {
+              if (!failed) {failed = true; primary = cause;}
+              return false;
+            } finally {
+              // An escaped ticket contains no bytes, funding or current grant.
+              active = undefined;
+            }
+          });
+        if (failed) throw primary;
+        checkResult(result, 'RunHostRelationSampleJournalRejected');
+        if (!entered) throw new Error('ClientRelationSampleVisitUnavailable');
+      } finally {
+        active = undefined;
+        visiting = false;
+      }
+    },
+    visitAdoption(ticket, consume) {
+      const original = active;
+      if (original === undefined || original.ticket !== ticket || original.consumed) {
+        throw Object.assign(new Error('ClientRelationSampleForeignLoan'), {code: 'ClientRelationSampleForeignLoan'});
+      }
+      original.consumed = true;
+      return consume(original);
+    },
+  });
+}
+
 function publicationControl(moon) {
   let control = publicationControls.get(moon);
   if (control !== undefined) return control;
@@ -1929,6 +1996,9 @@ function publicationControl(moon) {
   const observeOriginalDispatchFailure = moon.clientProgramObserveOriginalDispatchFailure;
   const describeExecutionFailure = moon.strategyModule_local_ManagedFailureExplanation;
   const prepareLogicalObservation = moon.clientProgramPrepareLogicalObservation;
+  const checkRelationSampleProfile = moon.clientProgramCheckRelationSampleProfile;
+  const matchRelationSampleAdoption = moon.clientProgramRelationSampleAdoptionMatchesProfile;
+  const visitRelationSampleJournal = moon.clientProgramWithRelationSampleJournal;
   const reserveRelationSampleStart = moon.clientProgramReserveRelationSampleStart;
   const acknowledgeRelationSampleStart = moon.clientProgramAcknowledgeRelationSampleStart;
   const originalInferRunTokens = new WeakMap();
@@ -2677,17 +2747,44 @@ function publicationControl(moon) {
         limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
       'RunHostStaticPlanRejected');
     },
-    reserveClientRelationSampleStart(run, request, executionOwner, definition, setup) {
+    checkClientRelationSampleProfile(run, request, definition, observation, referenceWire, records, limits) {
+      issuanceLimits(limits, 'Original Relation Sample profile');
+      if (typeof checkRelationSampleProfile !== 'function') {
+        throw new TypeError('ClientRunSampleProfileUnavailable');
+      }
+      const original = compiledRunResult(checkRelationSampleProfile.call(moon, run, request, token(definition),
+        observation, referenceWire, records, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
+      'RunHostRelationSampleProfileRejected');
+      const prepared = runtimeField(original, 3), compiled = runtimeField(original, 4);
+      const profile = runtimeField(original, 0);
+      return Object.freeze({profile,
+        controlAdmissionCid: runtimeField(original, 1),
+        resolvedProfileCid: runtimeField(original, 2),
+        ...relationSampleJournalScope(moon, visitRelationSampleJournal, run, profile, compiledRunResult),
+        matchesStart(program, candidate) {
+          return prepared !== undefined && compiled !== undefined && program === prepared &&
+            compiledRunTokens.get(candidate) === compiled;
+        },
+        matchesAdoption(source, capture) {
+          return typeof matchRelationSampleAdoption === 'function' &&
+            matchRelationSampleAdoption.call(moon, profile, source.logical_map_cid, source.output_port_id,
+              String(capture.max_items), capture.max_bytes, String(capture.max_artifacts),
+              String(capture.ttl_seconds), capture.required) === true;
+        },
+      });
+    },
+    reserveClientRelationSampleStart(run, request, executionOwner, definition, setup, journalBytes = 0) {
       const compiled = compiledRunTokens.get(executionOwner?.compiled);
       const prepared = executionOwner?.program;
       if (compiled === undefined || prepared === undefined ||
+          !Number.isInteger(journalBytes) || journalBytes < 0 || journalBytes > 2147483519 ||
           typeof reserveRelationSampleStart !== 'function') {
         throw new TypeError('Foreign Client Relation Sample start');
       }
       // The fixed bootstrap calls the original owner positionally. The
       // dynamic argument vector for acknowledgement is allocated after this.
       compiledRunResult(reserveRelationSampleStart.call(moon,
-        run, prepared, request, compiled, token(definition), setup),
+        run, prepared, request, compiled, token(definition), setup, journalBytes),
       'RunHostRelationSampleStartCapacityRejected');
     },
     acknowledgeClientRelationSampleStart(run, request, executionOwner, definition, captured, revision) {

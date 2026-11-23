@@ -22,7 +22,7 @@ extern "js" fn task_completion_fixture_original(
   #|(load, graph, capacity, current) =>
   #|  load('../../../../../adapters/host-node/ordinary-node-resource-runtime.cjs')
   #|    .retainOrdinaryManagedRun(graph, {
-  #|      planningWork: 1000, attempts: 4, holdings: 4,
+  #|      planningWork: 10000, attempts: 4, holdings: 4,
   #|      transferBytes: 0n, retainedBytes: capacity, executionBytes: capacity,
   #|    }, current, () => false)
 
@@ -424,12 +424,44 @@ test "Debug task commit preserves the first identical settlement reentered by th
   inspect_sample()
   return_captured_relation_sample_prefix(sample).unwrap()
   assert_true(captured_relation_sample_prefix_current(run, sample, pin) is None)
-  assert_false(
-    captured_task_output_pin_matches_committed_relation(run, boundary, pin),
-  )
   let current_boundary = read_captured_task_boundary(run, hooks, Settled)
     .unwrap()
     .unwrap()
+  // One Work unit short with the exact same schema, output pin and byte
+  // limits. The committed output must survive, and this path yields no prefix.
+  let work = charged.planning_work - exact.planning_work
+  assert_true(work > 0)
+  let budget = @resources.ledger_limits(ledger).planning_work
+  let spent = @resources.ledger_usage(ledger).planning_work
+  @resources.charge_planning(ledger, budget - spent - work + 1).unwrap()
+  let before_work_refusal = @resources.ledger_usage(ledger)
+  assert_true(
+    capture_captured_relation_sample_prefix(
+      run, current_boundary, pin, 1, schema, 512, 32, 8,
+    )
+    is Err(Work(@resources.PlanningLimit)),
+  )
+  let after_work_refusal = @resources.ledger_usage(ledger)
+  assert_eq(
+    after_work_refusal.live_reservations,
+    before_work_refusal.live_reservations,
+  )
+  assert_eq(
+    after_work_refusal.reserved_retention_bytes,
+    before_work_refusal.reserved_retention_bytes,
+  )
+  assert_eq(
+    after_work_refusal.reserved_execution_bytes,
+    before_work_refusal.reserved_execution_bytes,
+  )
+  assert_true(
+    captured_task_output_pin_matches_committed_relation(
+      run, current_boundary, pin,
+    ),
+  )
+  assert_false(
+    captured_task_output_pin_matches_committed_relation(run, boundary, pin),
+  )
   assert_true(release_captured_output_pin(pin))
   assert_false(
     captured_task_output_pin_matches_committed_relation(
