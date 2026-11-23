@@ -11126,11 +11126,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cts",
                 "anchor": "control !== field(entry.subject, 'control')"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cts",
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
               },
               {
@@ -11140,7 +11140,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cts",
                 "anchor": "entry.store = store;"
               },
               {
@@ -11168,7 +11168,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cts",
                 "anchor": "entry.unknownCleanup = true;"
               },
               {
@@ -11186,7 +11186,7 @@
                 "anchor": "Cleanup does not require current admission."
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cts",
                 "anchor": "entry.closedObservation = resultStatus(entry);"
               },
               {
@@ -11200,7 +11200,7 @@
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
-                "path": "adapters/host-node/node-public-initial-control-bootstrap.cjs",
+                "path": "adapters/host-node/node-public-initial-control-bootstrap.cts",
                 "anchor": "entry.storeCurrent = () => void resultCurrent(entry.original, held);"
               },
               {
