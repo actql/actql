@@ -190,7 +190,8 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
     return -20
   }
   let body = @utf8.decode(wire) catch { _ => return -12 }
-  guard admit_python_local_source_free_environment(body, cid) is Some(environment) else {
+  guard admit_python_local_source_free_environment(body, cid)
+    is Some(environment) else {
     return -20
   }
   // This entry installs the source-free profile. Source-backed aliases must
