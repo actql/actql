@@ -2812,3 +2812,17 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/host/project-connection.d.mts
 /adapters/connectors/notion/host/original-effect-property-codec.mjs
 /adapters/connectors/notion/host/original-effect-property-codec.d.mts
+/adapters/connectors/notion/test/database-catalog.test.mjs
+/adapters/connectors/notion/test/database-catalog.test.d.mts
+/adapters/connectors/notion/test/query-page-catalog.test.mjs
+/adapters/connectors/notion/test/query-page-catalog.test.d.mts
+/adapters/connectors/notion/test/read-contract-catalog.test.mjs
+/adapters/connectors/notion/test/read-contract-catalog.test.d.mts
+/adapters/connectors/notion/test/users-catalog.test.mjs
+/adapters/connectors/notion/test/users-catalog.test.d.mts
+/adapters/connectors/notion/test/database-read-source-preparation.test.mjs
+/adapters/connectors/notion/test/database-read-source-preparation.test.d.mts
+/adapters/connectors/notion/test/public-connection.test.mjs
+/adapters/connectors/notion/test/public-connection.test.d.mts
+/adapters/connectors/notion/test/read-declarations.test.mjs
+/adapters/connectors/notion/test/read-declarations.test.d.mts

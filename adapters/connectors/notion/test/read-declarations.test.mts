@@ -2,20 +2,26 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 
-const metadata=[16384,2048,24,8,8,128,128];
-const limits=[...metadata,256,16,4096,16,100000];
-const hash=wire=>'sha256:'+createHash('sha256').update(wire).digest('hex');
-const read=(wire,{work=100000,count=8}={})=>checked(provider.notionReadDatabaseDeclarations(
-  Buffer.isBuffer(wire)?wire:Buffer.from(wire),...limits.slice(0,-1),work,count));
-const entry=(inventory,index)=>checked(provider.notionDatabaseReadDeclarationsAt(inventory,index));
+import type {CommonCatalogBindings,NotionCatalogBindings,NotionMetadataBounds,NotionDeclarationBounds,NotionDeclarationPrefix,CatalogDeclaredSource} from './catalog-bindings.fixture.mjs';
+
+type DeclarationVector = Readonly<{source:string;sourceCid:string;entries:
+  readonly Readonly<{alias:string;source:string;sourceCid:string}>[]}>;
+
+const common:CommonCatalogBindings=await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
+const provider:NotionCatalogBindings=await import(new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
+
+const metadata:NotionMetadataBounds=[16384,2048,24,8,8,128,128];
+const limits:NotionDeclarationBounds=[...metadata,256,16,4096,16,100000];
+const hash=(wire:string)=>'sha256:'+createHash('sha256').update(wire).digest('hex');
+const read=(wire:string|Buffer,{work=100000,count=8}={})=>checked(provider.notionReadDatabaseDeclarations(
+  Buffer.isBuffer(wire)?wire:Buffer.from(wire),...(limits.slice(0,-1) as NotionDeclarationPrefix),work,count));
+const entry=(inventory:unknown,index:number)=>checked(provider.notionDatabaseReadDeclarationsAt(inventory,index));
 
 test('actual typed public map retains original value bytes and exact Unicode without caller-buffer aliases',()=>{
-  const vectors=JSON.parse(readFileSync(new URL('../../../../spec/contracts/fixtures/notion-read-declarations-vectors.json',import.meta.url),'utf8')).vectors;
+  const vectors=JSON.parse(readFileSync(new URL('../../../../spec/contracts/fixtures/notion-read-declarations-vectors.json',import.meta.url),'utf8')).vectors as readonly DeclarationVector[];
   for(const vector of vectors){
     const mutable=Buffer.from(vector.source),inventory=read(mutable);
     mutable.fill(0);
@@ -36,7 +42,7 @@ test('actual typed public map retains original value bytes and exact Unicode wit
   assert.throws(()=>checked(provider.notionDatabaseReadDeclarationsCount(Object.freeze({}))),TypeError);
 });
 
-function snapshot(declaration,databaseId,sourceId,properties){
+function snapshot(declaration:unknown,databaseId:string,sourceId:string,properties:Readonly<Record<string,unknown>>){
   const database=checked(provider.notionProjectDatabase(Buffer.from(JSON.stringify({object:'database',id:databaseId,
     data_sources:[{id:sourceId,name:'same display name'}]})),...metadata));
   const selection=checked(provider.notionSelectReadSource(declaration,database,100000));
@@ -52,15 +58,15 @@ test('public task/account aliases feed original snapshots and actual Common Sour
   const declaration='{\r\n "id":"db", "data_source_id":"s", "unique":"external_id", "marker":"actql_request",'+
     '"read_contracts":{"n":[{"column":"amount","projection":"value","contract":{"type":"decimal","nullable":false,"precision":20,"scale":2}}]}}';
   const wire='{"tasks":'+declaration+',"accounts":"db2"}',inventory=read(wire,{count:2});
-  const aliases=[0,1].map(index=>checked(provider.notionDatabaseReadDeclarationsAliasAt(inventory,index)));
+  const aliases=[0,1].map(index=>checked(provider.notionDatabaseReadDeclarationsAliasAt(inventory,index)) as string);
   const snapshots=[snapshot(entry(inventory,0),'db','s',{
     title:{id:'t',name:'title',type:'rich_text',rich_text:{}},amount:{id:'n',name:'amount',type:'number',number:{format:'number'}}}),
   snapshot(entry(inventory,1),'db2','s2',{title:{id:'t2',name:'title',type:'rich_text',rich_text:{}}})];
   assert.equal(checked(provider.notionDatabaseReadDeclarationOriginalJson(entry(inventory,0),16384)),declaration);
   assert.equal(checked(provider.notionDatabaseReadDeclarationsSourceCid(inventory)),hash(wire));
-  const specification=checked(provider.notionDatabaseReadSnapshotsRelationSpecification(aliases,snapshots,131072,16384,32,2,1000));
+  const specification=checked(provider.notionDatabaseReadSnapshotsRelationSpecification(aliases,snapshots,131072,16384,32,2,1000)) as string;
   const original=checked(common.clientProgramRowSourceRestoreRelationDeclaration('original-public-map','notion','notion/0.1',specification,undefined));
-  const declared=JSON.parse(common.clientProgramRowSourceDeclarationJson(original));
+  const declared=JSON.parse(common.clientProgramRowSourceDeclarationJson(original)) as CatalogDeclaredSource;
   const environment=rowSourceCheckEnvironment(readFileSync(new URL('../../../../spec/local-check-environment.json',import.meta.url),'utf8'),declared);
   const check=common.clientProgramCheckEnvironment(environment.wire,environment.evidenceCid,false,false,true,false,false,false,false);assert.ok(check);
   const publication=JSON.stringify({environmentCid:environment.evidenceCid,aliases:declared.views.map(view=>({
@@ -69,7 +75,7 @@ test('public task/account aliases feed original snapshots and actual Common Sour
     const outcome=common.clientProgramPrepareSourceWithParameters(text,format,check,publication,undefined,undefined);
     assert.ok(common.clientProgramPreparationReady(outcome),common.clientProgramPreparationIssueCode(outcome));
   }
-  const saved=JSON.parse(checked(provider.notionDatabaseReadSnapshotWire(snapshots[0])));
+  const saved=JSON.parse(checked(provider.notionDatabaseReadSnapshotWire(snapshots[0])) as string) as {declaration_source:string;schema_wire:string};
   assert.equal(saved.declaration_source,declaration);
   assert.match(saved.schema_wire,/"precision":20/);
   assert.match(saved.schema_wire,/"scale":2/);

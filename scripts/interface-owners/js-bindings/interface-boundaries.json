@@ -113696,7 +113696,7 @@
                 "anchor": "actual pinned MoonBit Result"
               },
               {
-                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mjs",
+                "path": "adapters/connectors/notion/test/database-read-source-preparation.test.mts",
                 "anchor": "enum survives installed Check Environment and SQL/AQL preparation"
               }
             ]

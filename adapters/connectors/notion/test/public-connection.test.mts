@@ -2,21 +2,27 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
 
-const metadata=[16384,2048,24,8,8,128,128];
-const limits=[...metadata,256,16,4096,16,100000];
-const read=(wire,{work=100000,count=8,reference=512}={})=>checked(provider.notionReadPublicConnection(
-  Buffer.isBuffer(wire)?wire:Buffer.from(wire),...limits.slice(0,-1),work,count,reference));
-const map=value=>checked(provider.notionPublicConnectionDatabases(value));
-const entry=(value,index)=>checked(provider.notionDatabaseReadDeclarationsAt(value,index));
-const hash=wire=>'sha256:'+createHash('sha256').update(wire).digest('hex');
+import type {CommonCatalogBindings,NotionCatalogBindings,NotionMetadataBounds,NotionDeclarationBounds,NotionDeclarationPrefix,CatalogDeclaredSource} from './catalog-bindings.fixture.mjs';
+
+type ConnectionVector = Readonly<{source:string;sourceCid:string;credentialKind:string;credentialReference:string;
+  databases:Readonly<{sourceCid:string;entries:readonly Readonly<{source:string;sourceCid:string}>[]}>|null}>;
+
+const common:CommonCatalogBindings=await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
+const provider:NotionCatalogBindings=await import(new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
+
+const metadata:NotionMetadataBounds=[16384,2048,24,8,8,128,128];
+const limits:NotionDeclarationBounds=[...metadata,256,16,4096,16,100000];
+const read=(wire:string|Buffer,{work=100000,count=8,reference=512}={})=>checked(provider.notionReadPublicConnection(
+  Buffer.isBuffer(wire)?wire:Buffer.from(wire),...(limits.slice(0,-1) as NotionDeclarationPrefix),work,count,reference));
+const map=(value:unknown)=>checked(provider.notionPublicConnectionDatabases(value));
+const entry=(value:unknown,index:number)=>checked(provider.notionDatabaseReadDeclarationsAt(value,index));
+const hash=(wire:string)=>'sha256:'+createHash('sha256').update(wire).digest('hex');
 
 test('actual public connection keeps original reference and nested span identities after caller-buffer mutation',()=>{
-  const vectors=JSON.parse(readFileSync(new URL('../../../../spec/contracts/fixtures/notion-public-connection-vectors.json',import.meta.url),'utf8')).vectors;
+  const vectors=JSON.parse(readFileSync(new URL('../../../../spec/contracts/fixtures/notion-public-connection-vectors.json',import.meta.url),'utf8')).vectors as readonly ConnectionVector[];
   for(const vector of vectors){
     const buffer=Buffer.from(vector.source),original=read(buffer);buffer.fill(0);
     assert.equal(checked(provider.notionPublicConnectionOriginalJson(original,16384)),vector.source);
@@ -39,7 +45,7 @@ test('actual public connection keeps original reference and nested span identiti
   }
 });
 
-function snapshot(declaration,databaseId,sourceId){
+function snapshot(declaration:unknown,databaseId:string,sourceId:string){
   const database=checked(provider.notionProjectDatabase(Buffer.from(JSON.stringify({object:'database',id:databaseId,
     data_sources:[{id:sourceId,name:'same name'}]})),...metadata));
   const selected=checked(provider.notionSelectReadSource(declaration,database,100000));
@@ -57,15 +63,15 @@ test('the documented public connection retains task/account declarations through
   const databases='{"tasks":'+originalDeclaration+',"accounts":"db2"}';
   const wire='{"connector":"notion","databases":'+databases+',"credentials":{"integration_token":{"env":"NOTION_TOKEN"}}}';
   const original=read(wire),declarations=map(original);
-  const aliases=[0,1].map(index=>checked(provider.notionDatabaseReadDeclarationsAliasAt(declarations,index)));
+  const aliases=[0,1].map(index=>checked(provider.notionDatabaseReadDeclarationsAliasAt(declarations,index)) as string);
   const snapshots=[snapshot(entry(declarations,0),'db','s'),snapshot(entry(declarations,1),'db2','s2')];
   assert.equal(checked(provider.notionPublicConnectionCredentialReference(original)),'NOTION_TOKEN');
   assert.equal(checked(provider.notionPublicConnectionSourceCid(original)),hash(wire));
   assert.equal(checked(provider.notionDatabaseReadDeclarationsSourceCid(declarations)),hash(databases));
   assert.equal(checked(provider.notionDatabaseReadDeclarationOriginalJson(entry(declarations,0),16384)),originalDeclaration);
-  const specification=checked(provider.notionDatabaseReadSnapshotsRelationSpecification(aliases,snapshots,131072,16384,32,2,1000));
+  const specification=checked(provider.notionDatabaseReadSnapshotsRelationSpecification(aliases,snapshots,131072,16384,32,2,1000)) as string;
   const declaration=checked(common.clientProgramRowSourceRestoreRelationDeclaration('public-notion-connection','notion','notion/0.1',specification,undefined));
-  const declared=JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
+  const declared=JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)) as CatalogDeclaredSource;
   const environment=rowSourceCheckEnvironment(readFileSync(new URL('../../../../spec/local-check-environment.json',import.meta.url),'utf8'),declared);
   const check=common.clientProgramCheckEnvironment(environment.wire,environment.evidenceCid,false,false,true,false,false,false,false);assert.ok(check);
   const publication=JSON.stringify({environmentCid:environment.evidenceCid,aliases:declared.views.map(view=>({

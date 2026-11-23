@@ -856,7 +856,9 @@ A failed generation or test step stops the sequence. Missing dependencies,
 stale generated output and zero/skip-only test execution remain failures.
 Prepare the selected tests' ordinary dependencies first; this command does not
 build a runtime, pack a distribution, install dependencies or require a clean
-working tree. It supports editing an unfinished change.
+working tree. For a TypeScript test, run `npm run build:typescript` in the
+prepared checkout, then select its emitted `.test.mjs` file. The command
+supports editing an unfinished change.
 
 This first author entry implements `source` only. `installed` is refused rather
 than redirected to source checks. Standard-loader, authentication, capacity,

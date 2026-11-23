@@ -1,15 +1,18 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as provider from '../../../../_build/js/release/build/connectors/notion/host_node/host_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
-const limits=[8192,512,16,100,64,64,400,4096];
-const wire=(results=[],has_more=false,next_cursor=null)=>JSON.stringify({object:'list',type:'user',user:{},results,has_more,next_cursor});
-const project=(body,bounds=limits)=>checked(provider.notionProjectUserList(
+import type {NotionCatalogBindings,NotionUserBounds} from './catalog-bindings.fixture.mjs';
+
+const provider:NotionCatalogBindings=await import(new URL('../../../../_build/js/release/build/connectors/notion/host_node/host_node.js',import.meta.url).href);
+
+const limits:NotionUserBounds=[8192,512,16,100,64,64,400,4096];
+const wire=(results:readonly unknown[]=[],has_more=false,next_cursor:string|null=null)=>JSON.stringify({object:'list',type:'user',user:{},results,has_more,next_cursor});
+const project=(body:string|Uint8Array,bounds=limits)=>checked(provider.notionProjectUserList(
   typeof body==='string'?Buffer.from(body):body,...bounds));
-const rows=(page,names=provider.notionUserListColumnNames())=>JSON.parse(checked(
-  provider.notionUserListRowsWire(page,names,8192,100,8)));
-const metadata=page=>JSON.parse(checked(provider.notionUserListMetadataJson(page,4096,20,8)));
+const rows=(page:unknown,names=provider.notionUserListColumnNames())=>JSON.parse(checked(
+  provider.notionUserListRowsWire(page,names,8192,100,8)) as string);
+const metadata=(page:unknown)=>JSON.parse(checked(provider.notionUserListMetadataJson(page,4096,20,8)) as string);
 
 test('Notion actual Catalog exports keep original person bot and nullable partial values',()=>{
   const page=project(wire([
@@ -53,10 +56,10 @@ test('Notion actual inconsistent continuation and errors cannot become an empty 
 test('Notion actual raw cursor identity and selected-output limits reject without truncation',()=>{
   const body=wire([{object:'user',id:'original',type:'person',person:{email:'checked even before selection'}}]);
   for(const [index,value]of [[0,Buffer.byteLength(body)-1],[1,1],[3,0],[5,1],[6,3],[7,1]]){
-    const bound=[...limits];bound[index]=value;
+    const bound:NotionUserBounds=[...limits];bound[index as 0|1|2|3|4|5|6|7]=value;
     assert.throws(()=>project(body,bound),{code:'MoonBitHostFailure'});
   }
-  const bound=[...limits];bound[4]=1;
+  const bound:NotionUserBounds=[...limits];bound[4]=1;
   assert.throws(()=>project(wire([],true,'é'),bound),{code:'MoonBitHostFailure'});
   assert.throws(()=>project(Buffer.from([0xff,0x80])),{code:'MoonBitHostFailure'});
   const page=project(body);
@@ -67,7 +70,7 @@ test('Notion actual raw cursor identity and selected-output limits reject withou
 });
 
 test('Notion actual schema preserves exact public columns and nullability independently of names',()=>{
-  assert.deepEqual(JSON.parse(checked(provider.notionUserListSchemaWire(4096,100,8))),{
+  assert.deepEqual(JSON.parse(checked(provider.notionUserListSchemaWire(4096,100,8)) as string),{
     email:{nullable:true,type:'string'},id:{nullable:false,type:'string'},
     name:{nullable:true,type:'string'},type:{nullable:true,type:'string'},
   });
