@@ -68737,7 +68737,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/recovered-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-command-content.test.mts",
                 "anchor": "test('recovered Command close during the original evidence await"
               },
               {
@@ -69797,7 +69797,7 @@
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {
-                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.test.mts",
                 "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
               },
               {
@@ -128474,7 +128474,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/recovered-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-command-content.test.mts",
                 "anchor": "test('recovered Command retains the same Store original"
               }
             ]
@@ -128578,7 +128578,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/recovered-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-command-content.test.mts",
                 "anchor": "test('recovered Command retains the same Store original"
               }
             ]
@@ -146737,7 +146737,7 @@
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {
-                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.test.mts",
                 "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
               },
               {
@@ -146849,7 +146849,7 @@
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {
-                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.test.mts",
                 "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
               },
               {

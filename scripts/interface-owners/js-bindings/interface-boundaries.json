@@ -18033,7 +18033,7 @@
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {
-                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.test.mts",
                 "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
               },
               {
@@ -26602,7 +26602,7 @@
                 "anchor": "test \"saved Content generation needs original identity"
               },
               {
-                "path": "adapters/host-node/recovered-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-command-content.test.mts",
                 "anchor": "test('recovered Command retains the same Store original"
               },
               {
@@ -28852,7 +28852,7 @@
                 "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
               },
               {
-                "path": "adapters/host-node/recovered-source-command-content.test.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.test.mts",
                 "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
               },
               {
