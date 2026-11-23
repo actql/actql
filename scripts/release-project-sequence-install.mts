@@ -8,7 +8,13 @@ import {constants} from 'node:fs';
 import {verifyPackageRelease, inventory} from './package-release.mjs';
 import type {runReleaseProjectSequences} from './release-project-sequences.mjs';
 
-type NodeManifest = Awaited<ReturnType<typeof verifyPackageRelease>>;
+type VerifiedNodeManifest = Awaited<ReturnType<typeof verifyPackageRelease>>;
+type NodeManifest = {
+  sourceSha: VerifiedNodeManifest['sourceSha'];
+  cohort: Pick<VerifiedNodeManifest['cohort'], 'packageVersion' | 'packages'>;
+  packages: readonly Pick<VerifiedNodeManifest['packages'][number],
+    'name' | 'version' | 'file' | 'bytes' | 'sha256' | 'integrity' | 'originalFile' | 'originalSha256' | 'files'>[];
+};
 type CohortIdentity = {sourceSha: NodeManifest['sourceSha'];
   cohort: Pick<NodeManifest['cohort'], 'packageVersion'>};
 type Report = Awaited<ReturnType<Parameters<typeof runReleaseProjectSequences>[0]['node']>>;
@@ -21,7 +27,7 @@ type ArchiveManifest = {packages: readonly {file: string; bytes: number; sha256:
 type Preparation = {directory: string; nativeManifest: CohortIdentity;
   originalNodeManifest: NodeManifest; originalNodeManifestBytes: Buffer; originalNodeDevelopmentManifestBytes: Buffer; root: string;
   repository: string; registry: {url: string}; run: Run<Promise<Exit>>;
-  verifySource: () => void | Promise<void>; verifyManifest?: typeof verifyPackageRelease};
+  verifySource: () => void | Promise<void>; verifyManifest?: (directory: string) => Promise<NodeManifest>};
 type Lock = {packages: Record<string, {dependencies?: Record<string, string>; version?: string;
   integrity?: string; link?: boolean; resolved: string}>};
 

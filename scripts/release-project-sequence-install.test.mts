@@ -12,11 +12,20 @@ import {readFileSync, chmodSync} from 'node:fs';
 import {parse} from 'yaml';
 import {assertReleaseProjectCohort, prepareReleaseProjectNode, retainReleaseProjectArchives, runReleaseProjectCli} from './release-project-sequence-install.mjs';
 import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
+import type {ImportDeclaration} from 'acorn';
+import type {SpawnSyncReturns} from 'node:child_process';
+import type {BinaryLike} from 'node:crypto';
+
+type CliCall = {command: string; args: readonly string[]; cwd: string};
+type LockPackage = {dependencies?: Record<string, string>; version?: string; integrity?: string; resolved?: string};
+type Workflow = {jobs: Record<string, {needs: string[]; steps: {
+  run?: string; uses?: string; 'continue-on-error'?: boolean; with?: {path: string};
+}[]}>};
 
 const source = 'a'.repeat(40), registry = {url: 'http://127.0.0.1:32123/'};
 const native = {sourceSha: source, cohort: {packageVersion: '0.0.2'}};
-const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
-const fixtureArchive = file => Buffer.from('Independent exact archive bytes for ' + file);
+const sha256 = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
+const fixtureArchive = (file: string) => Buffer.from('Independent exact archive bytes for ' + file);
 const nodeManifest = () => ({sourceSha: source, cohort: {packageVersion: '0.0.2', packages: ['client-wire', 'sdk', 'local-node', 'node']},
   packages: ['client-wire', 'sdk', 'local-node', 'node'].map(name => {
     const file = name + '.tgz', originalFile = 'original-' + file;
@@ -41,8 +50,8 @@ if (command === 'init') {
 if (command === 'refuse') process.exitCode = 19;
 console.log(JSON.stringify({cwd: process.cwd(), command, args}));
 `);
-  const execute = promisify(execFile), calls = [];
-  const run = async (command, args, cwd) => {
+  const execute = promisify(execFile), calls: CliCall[] = [];
+  const run = async (command: string, args: readonly string[], cwd: string) => {
     calls.push({command, args, cwd});
     return JSON.parse((await execute(command, args, {cwd, encoding: 'utf8', timeout: 5000})).stdout);
   };
@@ -77,8 +86,8 @@ if (command === 'init') {
 if (command === 'refuse') process.exitCode = 19;
 console.log(JSON.stringify({cwd: process.cwd(), command, args}));
 `);
-  const execute = promisify(execFile), calls = [];
-  const run = async (command, args, cwd) => {
+  const execute = promisify(execFile), calls: CliCall[] = [];
+  const run = async (command: string, args: readonly string[], cwd: string) => {
     calls.push({command, args, cwd});
     return JSON.parse((await execute(command, args, {cwd, encoding: 'utf8', timeout: 5000})).stdout);
   };
@@ -122,9 +131,9 @@ test('Original Mock regression selection reuses exact Mac companion and stays se
 
 test('RC companion fences exact source, version and complete Node roles before installation', () => {
   assertReleaseProjectCohort(native, nodeManifest());
-  for (const mutate of [value => {value.sourceSha = 'b'.repeat(40);},
-    value => {value.cohort.packageVersion = '0.0.3';}, value => {value.cohort.packages.pop();},
-    value => {value.packages.pop();}, value => {value.packages.push({...value.packages[0]});}]) {
+  for (const mutate of [(value: ReturnType<typeof nodeManifest>) => {value.sourceSha = 'b'.repeat(40);},
+    (value: ReturnType<typeof nodeManifest>) => {value.cohort.packageVersion = '0.0.3';}, (value: ReturnType<typeof nodeManifest>) => {value.cohort.packages.pop();},
+    (value: ReturnType<typeof nodeManifest>) => {value.packages.pop();}, (value: ReturnType<typeof nodeManifest>) => {value.packages.push({...value.packages[0]});}]) {
     const candidate = nodeManifest(); mutate(candidate); assert.throws(() => assertReleaseProjectCohort(native, candidate));
   }
 });
@@ -142,7 +151,8 @@ test('RC companion checks payload/lock on both sides of the original child and p
     await writeFile(join(directory, item.file), fixtureArchive(item.file));
     await writeFile(join(development, item.originalFile), fixtureArchive(item.originalFile));
   }
-  let calls = 0, releaseChecks = 0, originalLock, consumer, childEntry, fail = false;
+  let calls = 0, releaseChecks = 0, originalLock: string | undefined, consumer: string | undefined,
+    childEntry: string | undefined, fail = false;
   const prepared = await prepareReleaseProjectNode({directory, nativeManifest: native, root,
     originalNodeManifest: manifest, originalNodeManifestBytes: await readFile(join(directory, 'release.json')),
     originalNodeDevelopmentManifestBytes: developmentManifest,
@@ -154,14 +164,14 @@ test('RC companion checks payload/lock on both sides of the original child and p
       if (command === 'npm') {
         consumer = cwd;
         assert(args.includes('--ignore-scripts') && args.includes('--engine-strict'));
-        const packages = {'': {dependencies: {'@actql/node': '0.0.2'}}};
+        const packages: Record<string, LockPackage> = {'': {dependencies: {'@actql/node': '0.0.2'}}};
         for (const item of manifest.packages) {
           await mkdir(join(cwd, 'node_modules', item.name), {recursive: true});
           packages['node_modules/' + item.name] = {version: item.version, integrity: item.integrity,
             resolved: registry.url + 'archives/' + item.file};
         }
         originalLock = JSON.stringify({lockfileVersion: 3, packages});
-        await writeFile(join(cwd, 'package-lock.json'), originalLock);
+        await writeFile(join(cwd, 'package-lock.json'), originalLock!);
         return {code: 0, signal: null};
       }
       assert.equal(command, process.execPath);
@@ -177,16 +187,18 @@ test('RC companion checks payload/lock on both sides of the original child and p
   await prepared.verifyRelease();
   assert.equal(releaseChecks, 2);
   const before = calls;
-  const lock = JSON.parse(originalLock); lock.packages['node_modules/@actql/sdk'].integrity = 'foreign-SRI';
-  await writeFile(join(consumer, 'package-lock.json'), JSON.stringify(lock));
+  const lock = JSON.parse(originalLock!); lock.packages['node_modules/@actql/sdk'].integrity = 'foreign-SRI';
+  await writeFile(join(consumer!, 'package-lock.json'), JSON.stringify(lock));
   await assert.rejects(prepared.node({kind: 'start'}, prepared.projects, label));
   assert.equal(calls, before, 'Failed admission cannot start even the fixture child');
-  await writeFile(join(consumer, 'package-lock.json'), originalLock);
-  const fixture = childEntry, originalFixture = await readFile(fixture);
+  await writeFile(join(consumer!, 'package-lock.json'), originalLock!);
+  const fixture = childEntry!, originalFixture = await readFile(fixture);
   const imports = parseModule(originalFixture.toString('utf8'), {sourceType: 'module', ecmaVersion: 'latest'}).body
-    .filter(statement => statement.type === 'ImportDeclaration' && statement.source.value.startsWith('.'));
+    .filter((statement): statement is ImportDeclaration =>
+      statement.type === 'ImportDeclaration' && (statement.source.value as string).startsWith('.'));
   assert.equal(imports.length, 2);
-  const dependencies = await Promise.all(imports.map(statement => import(new URL(statement.source.value, pathToFileURL(fixture)))));
+  const dependencies = await Promise.all(imports.map(statement =>
+    import(new URL(statement.source.value as string, pathToFileURL(fixture)).href)));
   assert(dependencies.some(namespace => typeof namespace.runReleaseProjectNodeAction === 'function'));
   assert(dependencies.some(namespace => typeof namespace.workflowWorkObservation === 'function'));
   await writeFile(fixture, 'foreign fixture implementation');
@@ -224,7 +236,7 @@ test('RC archive fence refuses same-byte replacement and changes to original man
 });
 
 test('RC actual command selects only Mac project sequences and preserves failures', async t => {
-  const workflow = parse(readFileSync(new URL('../.github/workflows/release-candidate.yml', import.meta.url), 'utf8'));
+  const workflow = parse(readFileSync(new URL('../.github/workflows/release-candidate.yml', import.meta.url), 'utf8')) as Workflow;
   const job = workflow.jobs['native-installed'];
   assert(job.needs.includes('native-packages'));
   const functional = job.steps.find(step => step.run?.includes('node scripts/test-native-cli-mock-install.mjs'));
@@ -235,7 +247,7 @@ test('RC actual command selects only Mac project sequences and preserves failure
   const bin = join(scratch, 'bin'), calls = join(scratch, 'calls'); await mkdir(bin);
   await writeFile(join(bin, 'node'), '#!/bin/sh\nprintf "%s\\n" "$@" > "$CALLS"\nexit "$OUTCOME"\n'); chmodSync(join(bin, 'node'), 0o755);
   for (const platform of ['darwin-arm64', 'linux-x64-gnu']) for (const outcome of [0, 19]) {
-    const value = spawnSync('bash', ['-eo', 'pipefail', '-c', functional.run], {cwd: scratch,
+    const value: SpawnSyncReturns<string> = spawnSync('bash', ['-eo', 'pipefail', '-c', functional.run!], {cwd: scratch,
       env: {...process.env, PATH: bin + ':/usr/bin:/bin', CALLS: calls, OUTCOME: String(outcome),
         RUNNER_TEMP: scratch, SELECTED_PLATFORM: platform}, encoding: 'utf8', timeout: 5000});
     assert.equal(value.error, undefined); assert.equal(value.status, outcome);
@@ -250,7 +262,7 @@ test('RC actual command selects only Mac project sequences and preserves failure
   const ordinary = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');
   const formal = readFileSync(new URL('../scripts/test-native-approval-performance.mjs', import.meta.url), 'utf8');
   assert(!ordinary.includes('--release-project-sequences') && !formal.includes('--release-project-sequences'));
-  const outputs = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@')).with.path;
+  const outputs = job.steps.find(step => step.uses?.startsWith('actions/upload-artifact@'))!.with!.path;
   const sequenceCases = outputs.trim().split('\n').filter(path => path.includes('sequence-cases'));
   assert.deepEqual(sequenceCases, [
     '${{ runner.temp }}/native-installed/scratch/**/sequence-cases/*.json',

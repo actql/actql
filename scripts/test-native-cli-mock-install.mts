@@ -30,6 +30,7 @@ import type {NativeMockHarnessRecord} from './native-approval-performance.mjs';
 type InstallOptions = ReturnType<typeof nativeApprovalObservationOptions> & {
   projectSequenceNodeRelease?: string; originalMockRegressions?: boolean;
 };
+type SharedFileOptions = {sharedFileMock: true} & Partial<Record<keyof InstallOptions, never>>;
 type RunOptions = Partial<InstallOptions> & {sharedFileMock?: boolean;
   releaseAdmission?: ReturnType<typeof originalNativeMockReleaseAdmission>};
 type NativeManifest = Awaited<ReturnType<typeof verifyNativeCliRelease>>;
@@ -61,7 +62,7 @@ type ObservedApproval = (StandardScenario | SharedScenario)['commands'][number] 
 };
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-export function nativeMockInstallOptions(extra: readonly string[], platform: string): InstallOptions | {sharedFileMock: true} {
+export function nativeMockInstallOptions(extra: readonly string[], platform: string): InstallOptions | SharedFileOptions {
   if (extra.includes('--shared-file-mock')) {
     assert.deepEqual(extra, ['--shared-file-mock'], 'Shared-file Mock requires a separate acceptance invocation');
     return {sharedFileMock: true};
