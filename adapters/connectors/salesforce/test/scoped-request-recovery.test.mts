@@ -4,10 +4,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {recoverPreparedSalesforceSingleRequests} from '../host/salesforce-effect-request-recovery.mjs';
 
+type RecoveryOptions = Parameters<typeof recoverPreparedSalesforceSingleRequests>[0];
+type RecoveryCall = ['rows', unknown, number] | ['request', unknown, number, number];
 function fixture() {
-  const calls = [];
+  const calls: RecoveryCall[] = [];
   const preview = {};
-  const moon = {
+  const moon: RecoveryOptions['moon'] = {
     salesforceAdmitRecoveryPreview: () => ({$tag: 1, _0: preview}),
     salesforceRecoveryPreviewMemberCount: original => {
       assert.equal(original, preview);
@@ -46,14 +48,14 @@ test('selected recovery keeps original global indices and ignores caller Array m
 test('selection length and each index are captured once before request decoding', () => {
   const {calls, options} = fixture();
   let lengths = 0;
-  const reads = [];
+  const reads: string[] = [];
   const selection = new Proxy([0, 2], {get(target, key) {
     if (key === 'length') return ++lengths === 1 ? 2 : 1_000_000;
     if (key === '0' || key === '1') {
       reads.push(key);
       assert.equal(reads.filter(value => value === key).length, 1);
     } else assert.fail(`unexpected read ${String(key)}`);
-    return target[key];
+    return target[key as '0' | '1'];
   }});
   recoverPreparedSalesforceSingleRequests({...options, memberIndexes: selection});
   assert.equal(lengths, 1);
@@ -66,7 +68,7 @@ test('foreign, repeated, reversed and excessive indices refuse before request de
     new Proxy([], {get() { return Number.MAX_SAFE_INTEGER; }})]) {
     const {calls, options} = fixture();
     assert.throws(() => recoverPreparedSalesforceSingleRequests({...options,
-      memberIndexes: selection}), {code: 'InvalidSalesforcePreparedRequestRecovery'});
+      memberIndexes: selection as RecoveryOptions['memberIndexes']}), {code: 'InvalidSalesforcePreparedRequestRecovery'});
     assert.deepEqual(calls, []);
   }
 });

@@ -3,7 +3,7 @@ import test from 'node:test';
 import {salesforceInitializationConstructionCapacity, salesforceObservationConstructionCapacity,
   salesforceDeclarationConstructionCapacity} from '../host/salesforce-initialization-construction.mjs';
 
-const generation = bodies => ({connector_id: 'salesforce', evidence: {
+const generation = (bodies: readonly (string | null)[]) => ({connector_id: 'salesforce', evidence: {
   names: bodies.map((_, index) => `Object${index}`),
   describeBodyBase64: bodies, outcomes: bodies.map(() => 'available'),
   describeUseCids: bodies.map(() => null), describeResponseSha256: bodies.map(() => null),
@@ -17,7 +17,7 @@ test('Salesforce initialization forwards exact original Base64 to the Common str
   const original = generation([body, null]);
   const capacity = Object.freeze({opaque: true});
   let calls = 0;
-  const common = {clientProgramSalesforceOriginalInitializationConstructionCapacity(...args) {
+  const common = {clientProgramSalesforceOriginalInitializationConstructionCapacity(...args: unknown[]) {
     calls++;
     assert.deepEqual(args, [[body, undefined], 2, [7, 7], 5, 10, 14,
       4_000_000, 400_000, 32, 1000, 200_000, 8_000_000, 4_000_000, 400_000, 64]);
@@ -50,13 +50,13 @@ test('Salesforce initialization preserves descriptor and canonical Base64 refusa
 
 test('Salesforce phases forward the original body then a detached typed-observation dimension snapshot', () => {
   const original = generation(['e30=']);
-  const dimensions = [2, 14], calls = [];
+  const dimensions = [2, 14], calls: string[] = [];
   const capacity = Object.freeze({opaque: true});
   const common = {
-    clientProgramSalesforceObservationConstructionCapacity(...args) {
+    clientProgramSalesforceObservationConstructionCapacity(...args: unknown[]) {
       calls.push('observation'); assert.deepEqual(args[0], ['e30=']); return capacity;
     },
-    clientProgramSalesforceDeclarationConstructionCapacity(...args) {
+    clientProgramSalesforceDeclarationConstructionCapacity(...args: unknown[]) {
       calls.push('declaration'); assert.notEqual(args[0], dimensions);
       assert.deepEqual(args[0], [2, 14]); return capacity;
     },
