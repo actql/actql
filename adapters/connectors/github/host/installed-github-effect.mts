@@ -38,6 +38,44 @@ import {openGitHubSite, publishGitHubRepository, readGitHubPublication,
   readGitHubSite, restoreGitHubDeclaration} from
   './installed-github-source.mjs';
 
+type EffectOptions = Parameters<typeof createInstalledRowEffect>[0];
+type SourcePublish = Parameters<typeof publishGitHubRepository>[1];
+type Common = SourcePublish['moon'] & Parameters<typeof rowSourceMapping>[0];
+type PublishOptions = Omit<SourcePublish, 'moon'> & Readonly<{moon: Common}>;
+type CommentProvider = SourcePublish['providerMoon'] &
+  Parameters<typeof prepareGitHubCommentSubjectRequest>[0]['moon'] &
+  Parameters<typeof finalizeGitHubCommentRequest>[0]['moon'] &
+  Parameters<typeof restoreGitHubCommentRequest>[0]['moon'] &
+  Parameters<typeof projectGitHubCommentConfirmation>[0]['moon'] &
+  Parameters<typeof projectGitHubCommentObservation>[0]['moon'] &
+  Readonly<{githubResponseHeadersJson(): string}>;
+type InstallOptions = Omit<PublishOptions, 'providerMoon' | 'installation'> & Readonly<{
+  providerMoon: CommentProvider; baseEnvironmentWire: string; ledgerRoot: string;
+  installation?: EffectOptions['installation'] & Pick<NonNullable<SourcePublish['installation']>, 'responseHeaders'>;
+  configurationReader?: unknown; installationServices?: object; sourceInitialization?: object;
+}>;
+type Field = Readonly<{target: string; field: string; null_behavior: string}>;
+type Write = Readonly<{resource: string; sources: readonly Field[]}>;
+type Profile = Parameters<typeof publishGitHubRepository>[0] &
+  Readonly<{version: typeof INSTALLED_GITHUB_EFFECT_VERSION; writes: readonly Write[]}>;
+type Read = NonNullable<Parameters<typeof readGitHubPublication>[2]>;
+type ReadText = NonNullable<Parameters<typeof restoreGitHubDeclaration>[4]>;
+type Configuration = ReturnType<typeof captureConfigurationReaders> & Readonly<{readOriginalText?: ReadText}>;
+type LegacyMapping = ReturnType<typeof rowSourceMapping> & Readonly<{resource: string}>;
+type Prepared = Readonly<{mappings: NonNullable<EffectOptions['mappings']>;
+  environment?: Readonly<{wire: string}>}>;
+type Comment = Readonly<{subject_id: string; body: string}>;
+type CommentObservation = ReturnType<typeof projectGitHubCommentObservation> & Readonly<{errorType?: string}>;
+type Finalize = Omit<Parameters<typeof finalizeGitHubCommentRequest>[0], 'moon'>;
+type Restore = Pick<Parameters<typeof restoreGitHubCommentRequest>[0], 'request' | 'logical' | 'requestTag'>;
+type Confirmation = Omit<Parameters<typeof projectGitHubCommentConfirmation>[0], 'moon' | 'repository' | 'limits'>;
+type ConfirmationRequest = Pick<Confirmation, 'providerEvidence'>;
+type SubjectRequest = Readonly<{request: Readonly<{subjectId: string}>}>;
+type SubjectResponse = Parameters<typeof projectGitHubCommentSubjectResponse>[0]['response'];
+type SubjectObservation = SubjectRequest & Pick<SubjectResponse, 'accepted' | 'headers'> &
+  Readonly<{observation: Pick<SubjectResponse, 'body' | 'statusCode'>}>;
+type Classify = Pick<Parameters<typeof projectGitHubCommentObservation>[0], 'observation' | 'headers'> & SubjectRequest;
+
 export const INSTALLED_GITHUB_EFFECT_VERSION =
   'actql-installed-github-effect/0.1';
 const registration = 'github';
@@ -47,35 +85,35 @@ const writesUrl = new URL('../../../../src/connectors/github/writes.json',
 const profileKeys = ['accountConfigurationWire', 'connectorId',
   'publicationPath', 'siteProfilePath', 'version', 'writes'];
 
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
-const absolute = value => text(value) && isAbsolute(value);
-const sameKeys = (value, keys) => value !== null && typeof value === 'object' &&
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const absolute = (value: unknown): value is string => text(value) && isAbsolute(value);
+const sameKeys = (value: unknown, keys: readonly string[]): value is Record<string, unknown> => value !== null && typeof value === 'object' &&
   !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const cid = value => `sha256:${createHash('sha256')
+const cid = (value: unknown) => `sha256:${createHash('sha256')
   .update(canonicalJson(value)).digest('hex')}`;
 
-function checkWrite(write) {
+function checkWrite(write: unknown): Write {
   if (!sameKeys(write, ['resource', 'sources']) || !text(write.resource) ||
       !Array.isArray(write.sources) || write.sources.length === 0 ||
       write.sources.length > 16 ||
-      !write.sources.every(source => sameKeys(source,
+      !write.sources.every((source: unknown) => sameKeys(source,
         ['field', 'null_behavior', 'target']) && text(source.target) &&
         text(source.field) && text(source.null_behavior))) {
     fail('InvalidInstalledEffectProfile');
   }
   return Object.freeze({resource: write.resource,
-    sources: Object.freeze(write.sources.map(source =>
+    sources: Object.freeze(write.sources.map((source: Field) =>
       Object.freeze({...source})))});
 }
 
 // Check the Host profile's shape before anything is read or installed. It
 // holds no secret value: the Site profile names the token's environment
 // variable.
-export function checkInstalledGitHubEffectProfile(profile) {
+export function checkInstalledGitHubEffectProfile(profile: unknown): Profile {
   if (!sameKeys(profile, profileKeys) ||
       profile.version !== INSTALLED_GITHUB_EFFECT_VERSION ||
       !absolute(profile.siteProfilePath) || !absolute(profile.publicationPath) ||
@@ -89,12 +127,12 @@ export function checkInstalledGitHubEffectProfile(profile) {
       writes.length) {
     fail('InvalidInstalledEffectProfile');
   }
-  return Object.freeze({...profile, writes: Object.freeze(writes)});
+  return Object.freeze({...profile, writes: Object.freeze(writes)}) as Profile;
 }
 
 // The parts of this installation's identity: the Host profile with its
 // account configuration as a document, the Site profile and the publication.
-export async function installedGitHubEffectIdentityParts(profile, read) {
+export async function installedGitHubEffectIdentityParts(profile: Profile, read: Read) {
   const checked = checkInstalledGitHubEffectProfile(profile);
   return [
     {...profile, accountConfigurationWire: JSON.parse(
@@ -106,23 +144,26 @@ export async function installedGitHubEffectIdentityParts(profile, read) {
 
 // The installed writes' Mappings, generated by the common runtime from the
 // declaration and GitHub's declared writes.
-async function mappingsOf(moon, declaration, writes, sourceInitialization,
-  readOriginalText = path => readFile(path, 'utf8')) {
+function mappingsOf(moon: Common, declaration: unknown, writes: readonly Write[]): Promise<{mappings: readonly LegacyMapping[]}>;
+function mappingsOf(moon: Common, declaration: unknown, writes: readonly Write[], sourceInitialization?: object,
+  readOriginalText?: ReadText): Promise<Prepared>;
+async function mappingsOf(moon: Common, declaration: unknown, writes: readonly Write[], sourceInitialization?: object,
+  readOriginalText: ReadText = path => readFile(path, 'utf8')): Promise<Prepared> {
   const constructor = sourceInitialization === undefined ? undefined
     : Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareMappings');
   if (sourceInitialization !== undefined && (!constructor || !Object.hasOwn(constructor, 'value') ||
       typeof constructor.value !== 'function')) fail('InstalledGitHubInitializationUnavailable');
   const writesJson = await readOriginalText(writesUrl);
-  if (constructor !== undefined) return Reflect.apply(constructor.value, sourceInitialization, [writesJson, writes]);
+  if (constructor !== undefined) return Reflect.apply(constructor.value, sourceInitialization, [writesJson, writes]) as Prepared;
   return {mappings: writes.map(write => {
     const mapping = rowSourceMapping(moon, declaration, writesJson, write.resource, write.sources);
-    return Object.freeze({...mapping, resource: mapping.target.split('/').at(-1)});
+    return Object.freeze({...mapping, resource: mapping.target.split('/').at(-1)!});
   })};
 }
 
 // The explicit publication step: bind the repository exactly as the GitHub
 // source does, and report the Mappings a Program targets.
-export async function publishInstalledGitHubEffect(profile, options) {
+export async function publishInstalledGitHubEffect(profile: unknown, options: PublishOptions) {
   const checked = checkInstalledGitHubEffectProfile(profile);
   const publication = await publishGitHubRepository(checked, options);
   const {declaration} = await restoreGitHubDeclaration(options.moon,
@@ -137,18 +178,18 @@ export async function publishInstalledGitHubEffect(profile, options) {
 }
 
 // The comment value of one row: exactly the Issue node ID and the body.
-function commentValue(resource, value) {
+function commentValue(resource: string, value: unknown): Comment {
   if (resource !== 'issue_comments' ||
       !sameKeys(value, ['body', 'subject_id']) ||
       typeof value.subject_id !== 'string' || typeof value.body !== 'string') {
     fail('GitHubCommentValueRefused');
   }
-  return value;
+  return value as Comment;
 }
 
 // A Created response is provider evidence pending actual scoped confirmation,
 // not a terminal Effect outcome or an asynchronous OperationRef.
-function commentOutcome(projected) {
+function commentOutcome(projected: CommentObservation) {
   if (projected.kind === 'typed-success-response') {
     return Object.freeze({kind: 'provider-response', observation: projected.observation,
       providerEvidence: Object.freeze({kind: 'CreatedComment',
@@ -168,27 +209,27 @@ function commentOutcome(projected) {
 
 // Load the installed GitHub Effect: restore its declaration, Mappings and
 // repository binding without provider I/O.
-export async function loadInstalledGitHubEffect(profile, {root, principalId,
+export async function loadInstalledGitHubEffect(profile: unknown, {root, principalId,
   moon, providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret,
-  ledgerRoot, installation, installationServices, configurationReader, sourceInitialization}) {
+  ledgerRoot, installation, installationServices, configurationReader, sourceInitialization}: InstallOptions) {
   const checked = checkInstalledGitHubEffectProfile(profile);
   if (!text(baseEnvironmentWire) || !absolute(ledgerRoot)) {
     fail('InvalidInstalledEffectOptions');
   }
   const commentLimits = captureInstalledStandardCreateLimits(providerMoon);
   const readers = captureConfigurationReaders(configurationReader, undefined,
-    () => fail('InstalledGitHubConfigurationReaderUnavailable'));
+    () => fail('InstalledGitHubConfigurationReaderUnavailable')) as Configuration;
   if (configurationReader !== undefined && readers.readOriginalText === undefined) {
     fail('InstalledGitHubConfigurationReaderUnavailable');
   }
   const site = await readGitHubSite(checked.siteProfilePath, configurationReader, providerMoon);
-  const publication = await readGitHubPublication(checked, site, readers.readJson);
+  const publication = await readGitHubPublication(checked, site, readers.readJson as Read);
   const {declaration, declared} = await restoreGitHubDeclaration(moon,
     checked.connectorId, publication.catalogCid, sourceInitialization, readers.readOriginalText);
   const prepared = await mappingsOf(moon, declaration, checked.writes, sourceInitialization, readers.readOriginalText);
   const {mappings} = prepared;
   const environment = sourceInitialization === undefined ? rowSourceCheckEnvironment(baseEnvironmentWire,
-    declared, mappings.map(mapping => mapping.body)) : prepared.environment;
+    declared, mappings.map(mapping => mapping.body)) : prepared.environment!;
   const opened = await openGitHubSite(checked, site, {root, principalId,
     moon, runtimeBundleCid, resolveSecret, publication, installation, sourceInitialization}, installationServices);
   try {
@@ -221,7 +262,7 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
           headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
           responseHeaders: JSON.parse(providerMoon.githubResponseHeadersJson()),
           maxRequestBytes: commentLimits.maxRequestBytes, maxResponseBytes: commentLimits.maxResponseBytes},
-        request({resource, value}) {
+        request({resource, value}: Readonly<{resource: string; value: unknown}>) {
           if (typeof providerMoon.githubCommentOutcomeJson !== 'function') fail('InvalidGitHubCommentSend');
           const comment = commentValue(resource, value);
           return prepareGitHubCommentLogicalRequest({
@@ -229,30 +270,30 @@ export async function loadInstalledGitHubEffect(profile, {root, principalId,
             body: comment.body});
         },
         finalization: {recipe: GITHUB_COMMENT_STAMP_RECIPE,
-          finalize: ({request, requestTag}) => finalizeGitHubCommentRequest({moon: providerMoon, request, requestTag}),
-          restore: ({request, logical, requestTag}) => restoreGitHubCommentRequest({moon: providerMoon,
+          finalize: ({request, requestTag}: Finalize) => finalizeGitHubCommentRequest({moon: providerMoon, request, requestTag}),
+          restore: ({request, logical, requestTag}: Restore) => restoreGitHubCommentRequest({moon: providerMoon,
             request, logical, requestTag, limits: commentLimits})},
         confirmation: {resource: 'issue_comments', operation: GITHUB_GRAPHQL_READ_OPERATION,
           http: {origin: site.apiOrigin, method: 'POST', path: GITHUB_GRAPHQL_PATH,
             headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
             responseHeaders: JSON.parse(providerMoon.githubResponseHeadersJson()),
             maxRequestBytes: commentLimits.maxRequestBytes, maxResponseBytes: commentLimits.maxResponseBytes},
-          body: ({providerEvidence}) => prepareGitHubCommentConfirmationRequest({moon: providerMoon, providerEvidence}),
-          project: ({request, providerEvidence, observation, accepted}) => projectGitHubCommentConfirmation({
+          body: ({providerEvidence}: ConfirmationRequest) => prepareGitHubCommentConfirmationRequest({moon: providerMoon, providerEvidence}),
+          project: ({request, providerEvidence, observation, accepted}: Confirmation) => projectGitHubCommentConfirmation({
             moon: providerMoon, request, providerEvidence, repository, limits: commentLimits, observation, accepted})},
         check: {resource: 'issues', operation: GITHUB_GRAPHQL_READ_OPERATION,
           http: {origin: site.apiOrigin, method: 'POST', path: GITHUB_GRAPHQL_PATH,
             headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
             responseHeaders: JSON.parse(providerMoon.githubResponseHeadersJson()),
             maxRequestBytes: commentLimits.maxRequestBytes, maxResponseBytes: commentLimits.maxResponseBytes},
-          body: ({request}) => prepareGitHubCommentSubjectRequest({moon: providerMoon,
+          body: ({request}: SubjectRequest) => prepareGitHubCommentSubjectRequest({moon: providerMoon,
             subjectId: request.subjectId, repository, limits: commentLimits}),
-          project({request, observation, headers, accepted}) {
+          project({request, observation, headers, accepted}: SubjectObservation) {
             projectGitHubCommentSubjectResponse({moon: providerMoon,
               subjectId: request.subjectId, repository, limits: commentLimits,
               response: {accepted, ...observation, headers}});
           }},
-        classify: ({request, observation, headers}) => commentOutcome(
+        classify: ({request, observation, headers}: Classify) => commentOutcome(
           projectGitHubCommentObservation({moon: providerMoon, observation,
             headers, limits: commentLimits, subjectId: request.subjectId})),
       }});

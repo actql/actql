@@ -3038,3 +3038,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/github/test/github-comment-marker.test.d.mts
 /adapters/connectors/github/site/github-issue-read.mjs
 /adapters/connectors/github/site/github-issue-read.d.mts
+/adapters/connectors/github/host/installed-github-source.mjs
+/adapters/connectors/github/host/installed-github-source.d.mts
+/adapters/connectors/github/host/installed-github-effect.mjs
+/adapters/connectors/github/host/installed-github-effect.d.mts

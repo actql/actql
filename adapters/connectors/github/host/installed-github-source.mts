@@ -32,6 +32,87 @@ import {invokeScopedCredentialOperation} from
   '../../../host-common/owned-invocation-context.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION,
   prepareGitHubSourceReadSequence} from '../site/github-issue-graphql-read.mjs';
+import type {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
+import type {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import type {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
+
+type Sequence = Parameters<typeof prepareGitHubSourceReadSequence>[0];
+type HttpResponse = Awaited<ReturnType<typeof callHttpsCredentialResource>>;
+type SiteOptions = Parameters<typeof openRowSourceCredentialSite>[0];
+type Reader = ReturnType<typeof createInstalledCredentialSourceReader>;
+type Configuration = ReturnType<typeof captureConfigurationReaders> &
+  Readonly<{readOriginalText?: (path: URL) => unknown; readOriginalBytes?: (path: string) => unknown}>;
+type Read = (path: string, options: Readonly<{maxBytes: number}>) => unknown;
+type ReadText = (path: URL) => string | PromiseLike<string>;
+type Profile = Readonly<{accountConfigurationWire: string; connectorId: string; publicationPath: string; siteProfilePath: string}>;
+type SourceProfile = Profile & Readonly<{version: typeof INSTALLED_GITHUB_SOURCE_VERSION}>;
+type SiteInput = Readonly<{
+  version: typeof INSTALLED_GITHUB_SITE_VERSION; caPath?: string;
+  apiOrigin: string; credentialAuthorityId: string; credentialKeyId: string; credentialPrivateKeyPath: string;
+  environment: string; journalRoot: string; namespaceId: string; owner: string; repo: string;
+  siteGeneration: number; siteKey: string; tokenEnvironment: string;
+}>;
+type Site = SiteInput & Readonly<{ca: SiteOptions['ca']}>;
+type Repository = Readonly<{id: number; node_id: string}>;
+type Publication = Readonly<{
+  version: typeof PUBLICATION_VERSION; apiOrigin: string; owner: string; repo: string; repository: Repository;
+  catalogCid: string; connectorId: string;
+}>;
+type Declared = Parameters<typeof rowSourceCheckEnvironment>[1] & Readonly<{catalog_cid: string}>;
+type Prepared = Readonly<{declaration: unknown; declared: Declared}>;
+type Common = Readonly<{
+  clientProgramRowSourceRestoreRelationDeclaration(connector: string, registration: string,
+    revision: string, views: string, expectedCatalogCid: string | undefined): unknown;
+  clientProgramRowSourceDeclarationJson(declaration: unknown): string;
+}>;
+type RepositoryCodec = Readonly<{githubRepositoryAccessValid(owner: string, repo: string): boolean}>;
+type PublishCodec = RepositoryCodec & Readonly<{
+  githubRequestHeadersJson(): string;
+  githubRepositoryRequest(owner: string, repo: string): string;
+  githubRepositoryResponseJson(body: Buffer, maxBytes: number): string;
+}>;
+type RepositoryReply = Readonly<{refused?: Readonly<{kind: string}>;
+  repository: Readonly<{node_id: string; database_id: number; name_with_owner: string}>}>;
+type CleanupCause = Readonly<{cleanupHandle?: unknown; cleanupPending?: unknown; code?: string}> | null | undefined;
+type Binding = Readonly<{version?: unknown; api_origin?: unknown; repository_id?: unknown; repository_node_id?: unknown;
+  owner?: unknown; repo?: unknown; catalog_cid?: unknown; resource?: unknown; fields?: unknown}> | null | undefined;
+type ActualSite = Extract<Awaited<ReturnType<typeof openRowSourceCredentialSite>>, {issueReadGrant: (...args: never[]) => unknown}>;
+type SiteAuthorization = Awaited<ReturnType<typeof installRowSourceAuthorization>>;
+type Opened = Readonly<{site: ActualSite; authorization: SiteAuthorization; connection: string}>;
+type Installation = Readonly<{responseHeaders?: readonly string[]}>;
+type OpenOptions = Readonly<{root?: string; principalId: SiteOptions['principalId']; moon: Common;
+  runtimeBundleCid: string; resolveSecret?: SiteOptions['resolveSecret']; publication?: Publication;
+  installation?: Installation; sourceInitialization?: object}>;
+type PublishOptions = Omit<OpenOptions, 'publication' | 'sourceInitialization'> &
+  Readonly<{providerMoon: PublishCodec; signal?: AbortSignal}>;
+type CredentialLimits = NonNullable<SiteOptions['runAcquisitionLimits']>;
+type ReaderLimits = Readonly<Record<typeof installedJsonSourceReaderLimitNames[number] | 'maxSecretBytes', number>>;
+type Implementation = Readonly<{runAcquisitionLimits: CredentialLimits; capacity: unknown}>;
+type ConstructedSource = Readonly<{
+  readOperation: string; physicalTarget(resource: string, fields: readonly string[]): object;
+  bindingCid: string; limits: typeof rowLimits; providerReader: Reader;
+  prepareRead(input: Sequence['preparedRead']): Promise<Sequence['preparedRead']>;
+}>;
+type Construction = Readonly<{
+  configurationReader: Readonly<{readJson: Read; readOriginalText: ReadText}>;
+  prepareDeclaration(views: string, catalogCid: string): unknown;
+  openRowSite(input: Readonly<{accountConfiguration: string; connection: string; runAcquisitionLimits: CredentialLimits;
+    profile: Site & Readonly<{resourceOrigin: string}>; resolveSecret: SiteOptions['resolveSecret'];
+    ca: SiteOptions['ca']; responseHeaders: readonly string[];
+    admitsApprovalTarget(binding: Binding, resource: string): boolean}>): PromiseLike<Readonly<{
+      site: Sequence['site']; authorization: Pick<SiteAuthorization, 'context'>;
+    }>>;
+  sourceReaderImplementation(input: Readonly<{limits: ReaderLimits; columnCount: number;
+    readSequenceConstruction: Readonly<{capacity: unknown; originalLimits: typeof readLimits; maxRequestBytes: number;
+      sequence: Readonly<{operation: string; maxUses: number; children: readonly object[]}>}>}>): Implementation;
+  createSourceReader(input: Readonly<{implementation: Implementation;
+    prepareReadSequence(input: Pick<Sequence, 'preparedRead' | 'originalAuthorization'>,
+      retireProjection: Sequence['retireProjection']): ReturnType<typeof prepareGitHubSourceReadSequence>}>): Reader;
+  createRowSource(input: ConstructedSource): unknown;
+}>;
+type InstallOptions = Omit<PublishOptions, 'providerMoon'> & Readonly<{
+  providerMoon: RepositoryCodec & Sequence['moon']; baseEnvironmentWire?: string; construction?: Construction;
+}>;
 
 export const INSTALLED_GITHUB_SOURCE_VERSION =
   'actql-installed-github-source/0.1';
@@ -53,44 +134,44 @@ const readLimits = Object.freeze({maxPages: 10, maxRows: 100,
 const rowLimits = Object.freeze({maxPages: readLimits.maxPages,
   maxPageBytes: 4_000_000, maxPageRows: 100, maxCaptureRows: 100});
 
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   const failure = Object.assign(new Error(code, {cause}), {code});
-  if (cause?.cleanupHandle !== undefined) {
-    Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
-      cleanupPending: cause.cleanupPending});
+  if ((cause as CleanupCause)?.cleanupHandle !== undefined) {
+    Object.assign(failure, {cleanupHandle: (cause as NonNullable<CleanupCause>).cleanupHandle,
+      cleanupPending: (cause as NonNullable<CleanupCause>).cleanupPending});
   }
   throw failure;
 };
-const text = value => typeof value === 'string' && value.length > 0;
-const absolute = value => text(value) && isAbsolute(value);
-const sameKeys = (value, keys) => value !== null && typeof value === 'object' &&
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const absolute = (value: unknown): value is string => text(value) && isAbsolute(value);
+const sameKeys = (value: unknown, keys: readonly string[]): value is Record<string, unknown> => value !== null && typeof value === 'object' &&
   !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
-export function checkInstalledGitHubSourceProfile(profile) {
+export function checkInstalledGitHubSourceProfile(profile: unknown): SourceProfile {
   if (!sameKeys(profile, profileKeys) ||
       profile.version !== INSTALLED_GITHUB_SOURCE_VERSION ||
       !absolute(profile.siteProfilePath) || !absolute(profile.publicationPath) ||
       !text(profile.connectorId) || !text(profile.accountConfigurationWire)) {
     fail('InvalidInstalledSourceProfile');
   }
-  return Object.freeze({...profile});
+  return Object.freeze({...profile}) as SourceProfile;
 }
 
-async function readJson(path, code, read = readSourceProfileJson) {
+async function readJson(path: string, code: string, read: Read = readSourceProfileJson) {
   try {
     return await read(path, {maxBytes: 1024 * 1024});
   } catch (cause) {
-    if (cause?.code === code) throw cause;
+    if ((cause as CleanupCause)?.code === code) throw cause;
     fail(code, cause);
   }
 }
 
-async function readSite(path, configurationReader, providerMoon) {
+async function readSite(path: string, configurationReader: unknown, providerMoon: RepositoryCodec): Promise<Site> {
   const readers = captureConfigurationReaders(configurationReader, undefined,
-    () => fail('InstalledGitHubConfigurationReaderUnavailable'));
-  const site = await readJson(path, 'InvalidInstalledGitHubSite', readers.readJson);
-  const {version, caPath, ...rest} = site ?? {};
+    () => fail('InstalledGitHubConfigurationReaderUnavailable')) as Configuration;
+  const site = await readJson(path, 'InvalidInstalledGitHubSite', readers.readJson as Read) as SiteInput | null | undefined;
+  const {version, caPath, ...rest} = (site ?? {}) as SiteInput;
   let origin;
   try { origin = new URL(rest.apiOrigin); } catch { origin = undefined; }
   if (version !== INSTALLED_GITHUB_SITE_VERSION || !sameKeys(rest, siteKeys) ||
@@ -119,12 +200,12 @@ async function readSite(path, configurationReader, providerMoon) {
   }
   return Object.freeze({...site,
     ca: caPath === undefined ? undefined : await (configurationReader === undefined
-      ? readFile(caPath) : readers.readOriginalBytes(caPath))});
+      ? readFile(caPath) : readers.readOriginalBytes!(caPath)) as SiteOptions['ca']}) as Site;
 }
 
 // The token is read from the environment variable the Site profile names;
 // the profile never holds a token value.
-const environmentSecret = name => async () => {
+const environmentSecret = (name: string) => async () => {
   const value = process.env[name];
   if (!text(value)) fail('RemoteCredentialSecretUnavailable');
   return value;
@@ -132,8 +213,8 @@ const environmentSecret = name => async () => {
 
 // The parts of this installation's identity: the Host profile with its
 // account configuration as a document, the Site profile and the publication.
-export async function installedGitHubSourceIdentityParts(profile,
-  providerProfile, read) {
+export async function installedGitHubSourceIdentityParts(profile: Readonly<{accountConfigurationWire: string}>,
+  providerProfile: unknown, read: Read) {
   const checkedProfile = checkInstalledGitHubSourceProfile(providerProfile);
   return [
     {...profile, accountConfigurationWire: JSON.parse(
@@ -145,11 +226,11 @@ export async function installedGitHubSourceIdentityParts(profile,
 
 // The published repository binding of a checked profile, without provider
 // I/O. A publication for another connector or another owner/repo is refused.
-export async function readGitHubPublication(checkedProfile, site, read = readSourceProfileJson) {
-  let publication;
+export async function readGitHubPublication(checkedProfile: Profile, site: Site, read: Read = readSourceProfileJson): Promise<Publication> {
+  let publication: Publication | undefined;
   try {
     publication = await read(checkedProfile.publicationPath,
-      {maxBytes: 1024 * 1024});
+      {maxBytes: 1024 * 1024}) as Publication;
   } catch (cause) {
     fail('GitHubPublicationMissing', cause);
   }
@@ -169,24 +250,25 @@ export async function readGitHubPublication(checkedProfile, site, read = readSou
 export {readSite as readGitHubSite, openSite as openGitHubSite,
   restore as restoreGitHubDeclaration};
 
-async function restore(moon, connectorId, expectedCatalogCid, sourceInitialization,
-  readOriginalText = path => readFile(path, 'utf8')) {
+async function restore(moon: Common, connectorId: string, expectedCatalogCid: string | undefined,
+  sourceInitialization?: object, readOriginalText: ReadText = path => readFile(path, 'utf8')): Promise<Prepared> {
   const constructor = sourceInitialization === undefined ? undefined
     : Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareDeclaration');
   if (sourceInitialization !== undefined && (!constructor || !Object.hasOwn(constructor, 'value') ||
       typeof constructor.value !== 'function')) fail('InstalledGitHubInitializationUnavailable');
   const views = await readOriginalText(viewsUrl);
-  if (constructor !== undefined) return Reflect.apply(constructor.value, sourceInitialization, [views, expectedCatalogCid]);
+  if (constructor !== undefined) return Reflect.apply(constructor.value, sourceInitialization, [views, expectedCatalogCid]) as Prepared;
   const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     connectorId, registration, revision, views, expectedCatalogCid));
   const declared = JSON.parse(
-    moon.clientProgramRowSourceDeclarationJson(declaration));
+    moon.clientProgramRowSourceDeclarationJson(declaration)) as Declared | null;
   if (declared === null) fail('InvalidGitHubDeclaration');
   return {declaration, declared};
 }
 
-async function openSite(checkedProfile, site, {root, principalId, moon,
-  runtimeBundleCid, resolveSecret, publication, installation, sourceInitialization}, installationServices) {
+async function openSite(checkedProfile: Profile, site: Site, {root, principalId, moon,
+  runtimeBundleCid, resolveSecret, publication, installation, sourceInitialization}: OpenOptions,
+  installationServices?: object): Promise<Opened> {
   // The authorization tuple names the access target (API host and
   // owner/repo); the stable repository id is pinned by the physical binding
   // an approval covers and by the installation identity.
@@ -195,14 +277,14 @@ async function openSite(checkedProfile, site, {root, principalId, moon,
     profile: Object.freeze({...site, resourceOrigin: site.apiOrigin}),
     resolveSecret: resolveSecret ?? environmentSecret(site.tokenEnvironment),
     ca: site.ca, responseHeaders: installation?.responseHeaders ?? [],
-    admitsApprovalTarget: (binding, resource) => publication !== undefined &&
+    admitsApprovalTarget: ((binding: Binding, resource: string) => publication !== undefined &&
       binding?.version === TARGET_VERSION &&
       binding.api_origin === site.apiOrigin &&
       binding.repository_id === publication.repository.id &&
       binding.repository_node_id === publication.repository.node_id &&
       binding.owner === site.owner && binding.repo === site.repo &&
       binding.catalog_cid === publication.catalogCid &&
-      binding.resource === resource && Array.isArray(binding.fields)};
+      binding.resource === resource && Array.isArray(binding.fields)) as NonNullable<SiteOptions['admitsApprovalTarget']>};
   if (installationServices !== undefined) {
     const open = Object.getOwnPropertyDescriptor(installationServices, 'openRowSite');
     if (!open || !Object.hasOwn(open, 'value') || typeof open.value !== 'function') {
@@ -211,7 +293,7 @@ async function openSite(checkedProfile, site, {root, principalId, moon,
     const opened = await Reflect.apply(open.value, installationServices, [{
       installation, accountConfiguration: checkedProfile.accountConfigurationWire,
       ...(sourceInitialization === undefined ? {} : {sourceInitialization}),
-      connection, ...configuration}]);
+      connection, ...configuration}]) as Omit<Opened, 'connection'>;
     return {...opened, connection};
   }
   const authorization = await installRowSourceAuthorization({
@@ -220,28 +302,28 @@ async function openSite(checkedProfile, site, {root, principalId, moon,
   const credentialSite = await openRowSourceCredentialSite({
     ...configuration, principalId, authorization, connection,
     connectorRegistration: registration, connectorRevision: revision,
-    runtimeBundleCid, commonMoon: moon});
+    runtimeBundleCid, commonMoon: moon}) as ActualSite;
   return {authorization, site: credentialSite, connection};
 }
 
 // The explicit publication step: observe the repository's stable identity
 // under the installed read decision and the credential resource, and record
 // it with the declaration's Catalog CID. A Host start never runs it.
-export async function publishInstalledGitHubSource(profile, options) {
+export async function publishInstalledGitHubSource(profile: unknown, options: PublishOptions) {
   return publishGitHubRepository(checkInstalledGitHubSourceProfile(profile),
     options);
 }
 
 // The publication step of a checked GitHub source or Effect profile: both
 // bind the same repository the same way.
-export async function publishGitHubRepository(checkedProfile, {root,
+export async function publishGitHubRepository(checkedProfile: Profile, {root,
   principalId, moon, providerMoon, runtimeBundleCid, resolveSecret, signal,
-  installation}) {
+  installation}: PublishOptions): Promise<Publication> {
   const site = await readSite(checkedProfile.siteProfilePath, undefined, providerMoon);
   const {declared} = await restore(moon, checkedProfile.connectorId, undefined);
   const opened = await openSite(checkedProfile, site, {root, principalId,
     moon, runtimeBundleCid, resolveSecret, installation});
-  let primaryFailure;
+  let primaryFailure: unknown;
   try {
     const decision = await opened.authorization.authorize('acquisition',
       {connection: opened.connection, resource: 'issues', operation: 'read'},
@@ -266,12 +348,12 @@ export async function publishGitHubRepository(checkedProfile, {root,
       path: GITHUB_GRAPHQL_PATH,
       headers: JSON.parse(providerMoon.githubRequestHeadersJson()),
       body: providerMoon.githubRepositoryRequest(site.owner, site.repo),
-      maxRequestBytes: 16_384, maxResponseBytes: 1_000_000, signal});
+      maxRequestBytes: 16_384, maxResponseBytes: 1_000_000, signal}) as HttpResponse;
     if (!response.accepted || response.statusCode !== 200) {
       fail('GitHubRepositoryUnavailable');
     }
     const observed = JSON.parse(providerMoon.githubRepositoryResponseJson(
-      response.body, 1_000_000));
+      response.body, 1_000_000)) as RepositoryReply;
     if (observed.refused) {
       fail(observed.refused.kind === 'RepositoryUnavailable'
         ? 'GitHubRepositoryUnavailable' : 'GitHubRepositoryUnverified');
@@ -282,7 +364,7 @@ export async function publishGitHubRepository(checkedProfile, {root,
     if (repository.name_with_owner !== `${site.owner}/${site.repo}`) {
       fail('GitHubRepositoryBindingChanged');
     }
-    const publication = {version: PUBLICATION_VERSION,
+    const publication: Publication = {version: PUBLICATION_VERSION,
       apiOrigin: site.apiOrigin, owner: site.owner, repo: site.repo,
       repository: {id: repository.database_id,
         node_id: repository.node_id},
@@ -309,9 +391,9 @@ export async function publishGitHubRepository(checkedProfile, {root,
 
 // Load one installed GitHub source: restore its declaration and repository
 // binding without provider I/O.
-export async function loadInstalledGitHubSource(profile, {root, principalId,
+export async function loadInstalledGitHubSource(profile: unknown, {root, principalId,
   moon, providerMoon, baseEnvironmentWire, runtimeBundleCid, resolveSecret,
-  installation, construction}) {
+  installation, construction}: InstallOptions) {
   if (typeof construction?.prepareDeclaration !== 'function' ||
       typeof construction.openRowSite !== 'function' ||
       typeof construction.createRowSource !== 'function' ||
@@ -328,7 +410,7 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
   construction.prepareDeclaration(viewInput, publication.catalogCid);
   const connection = `github:${new URL(site.apiOrigin).host}/${site.owner}/${site.repo}`;
   {
-    const physicalTarget = (resource, fields) => Object.freeze({
+    const physicalTarget = (resource: string, fields: readonly string[]) => Object.freeze({
       version: TARGET_VERSION, api_origin: site.apiOrigin,
       repository_id: publication.repository.id,
       repository_node_id: publication.repository.node_id,
@@ -359,10 +441,10 @@ export async function loadInstalledGitHubSource(profile, {root, principalId,
     if (typeof nativeCapacity !== 'function' || typeof readerCapacity !== 'function') {
       fail('InstalledSourceReaderRuntimeUnavailable');
     }
-    const originalBounds = Object.freeze(['maxBytes','maxNodes','maxDepth','maxRows','maxPages','maxSubjects']
+    const originalBounds = Object.freeze((['maxBytes','maxNodes','maxDepth','maxRows','maxPages','maxSubjects'] as const)
       .map(name => readLimits[name]));
     const readerBounds = Object.freeze(installedJsonSourceReaderLimitNames.map(name => readerLimits[name]));
-    const responseCapacity = (bytes, responses = 0) => {
+    const responseCapacity = (bytes: number, responses = 0) => {
       const domain = Reflect.apply(nativeCapacity,providerMoon,[...originalBounds,bytes,httpsCredentialResponseHeaderByteLimit,responses]);
       const capacity = Reflect.apply(readerCapacity,moon,[readerBounds,policy[2],policy[0],domain]);
       if (capacity === undefined || capacity === null) fail('InstalledSourceReaderCapacityUnavailable');

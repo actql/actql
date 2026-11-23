@@ -5123,7 +5123,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a1b7caed749bf03ec62fa80f58e5b5f6003dc91b555932ce4d1f4e80fc98616b",
+      "sha256": "62e85b1254c4e0bdccc024e170e95d16c01479e3f2fc39a757fe1dffa1855cb1",
       "role": "connector-semantics",
       "owner": "GitHub comment installation and Mapping/subject wiring under Common row Effect, Preview and Ledger",
       "exports": [
@@ -5338,7 +5338,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "provider-neutral installed row Effect"
               },
               {
@@ -5348,7 +5348,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "loadInstalledGitHubEffect"
               },
               {
@@ -5358,7 +5358,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "installedGitHubEffectIdentityParts"
               },
               {
@@ -5368,7 +5368,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "retainInstalledHostInitializationFailure"
               },
               {
@@ -5378,7 +5378,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "prepareGitHubCommentSubjectRequest"
               },
               {
@@ -5388,7 +5388,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "unknown"
               },
               {
@@ -5408,7 +5408,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "commentLimits"
               },
               {
@@ -5477,7 +5477,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5487,7 +5487,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5497,7 +5497,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5507,7 +5507,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5517,7 +5517,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5527,7 +5527,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5537,7 +5537,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5547,7 +5547,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5557,7 +5557,7 @@
                 "anchor": "## Original comment confirmation"
               },
               {
-                "path": "adapters/connectors/github/host/installed-github-effect.mjs",
+                "path": "adapters/connectors/github/host/installed-github-effect.mts",
                 "anchor": "function "
               }
             ],
@@ -5594,7 +5594,7 @@
     {
       "module": "adapters/connectors/github/host/installed-github-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "31e524320049843166548a2b18c146ecf2485deb8ec6419acd2f71e25cb49d77",
+      "sha256": "fdf0f44f4a4b17f8092531b039a7b6e7f45c20e07361bb8322505df7848201d9",
       "role": "connector-semantics",
       "owner": "Published stable repository identity and installed Issue Source; Host RowSource owns capture and disclosure",
       "exports": [
@@ -5854,7 +5854,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/github/host/installed-github-source.mjs",
+                "path": "adapters/connectors/github/host/installed-github-source.mts",
                 "anchor": "provider-neutral row source"
               },
               {
@@ -5872,7 +5872,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/github/host/installed-github-source.mjs",
+                "path": "adapters/connectors/github/host/installed-github-source.mts",
                 "anchor": "loadInstalledGitHubSource"
               },
               {
@@ -5882,7 +5882,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/host/installed-github-source.mjs",
+                "path": "adapters/connectors/github/host/installed-github-source.mts",
                 "anchor": "readGitHubPublication"
               },
               {
@@ -5892,7 +5892,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/github/host/installed-github-source.mjs",
+                "path": "adapters/connectors/github/host/installed-github-source.mts",
                 "anchor": "retainInstalledHostInitializationFailure"
               },
               {
@@ -5902,7 +5902,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/github/host/installed-github-source.mjs",
+                "path": "adapters/connectors/github/host/installed-github-source.mts",
                 "anchor": "publishGitHubRepository"
               },
               {
@@ -5912,7 +5912,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/github/host/installed-github-source.mjs",
+                "path": "adapters/connectors/github/host/installed-github-source.mts",
                 "anchor": "refused"
               },
               {
@@ -5922,7 +5922,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/github/host/installed-github-source.mjs",
+                "path": "adapters/connectors/github/host/installed-github-source.mts",
                 "anchor": "signal"
               },
               {
@@ -5932,7 +5932,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/github/host/installed-github-source.mjs",
+                "path": "adapters/connectors/github/host/installed-github-source.mts",
                 "anchor": "maxPageBytes"
               },
               {
