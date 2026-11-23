@@ -9254,7 +9254,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "da3d62be59a2d7aabd9ff68d15a68a128de4b769e7293de49cab23c3736b7299",
+      "sha256": "d79cc8f4e59cf8c0d0193387f4501c6f67e2ba26bc38aef54fcc67d0d8456483",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -9618,7 +9618,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9628,7 +9628,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9638,7 +9638,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9648,7 +9648,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9658,7 +9658,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9668,7 +9668,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9678,7 +9678,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9688,7 +9688,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9698,7 +9698,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9708,7 +9708,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "checkInstalledSalesforceSourceProfile"
               },
               {
@@ -9728,7 +9728,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9738,7 +9738,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9748,7 +9748,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9758,7 +9758,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9768,7 +9768,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9778,7 +9778,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9788,7 +9788,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9798,7 +9798,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9808,7 +9808,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9818,7 +9818,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "cid"
               },
               {
@@ -9838,7 +9838,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9848,7 +9848,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9858,7 +9858,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9868,7 +9868,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9878,7 +9878,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9888,7 +9888,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9898,7 +9898,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9908,7 +9908,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9918,7 +9918,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9928,7 +9928,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "fail"
               },
               {
@@ -9962,7 +9962,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -9980,7 +9980,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -9998,7 +9998,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -10016,7 +10016,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -10034,7 +10034,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -10052,7 +10052,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -10070,7 +10070,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -10088,7 +10088,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -10106,7 +10106,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -10124,7 +10124,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceAdapter"
               },
               {
@@ -10161,7 +10161,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10171,7 +10171,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10181,7 +10181,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10191,7 +10191,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10201,7 +10201,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10211,7 +10211,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10221,7 +10221,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10231,7 +10231,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10241,7 +10241,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10251,7 +10251,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -10281,7 +10281,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10295,7 +10295,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10309,7 +10309,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10323,7 +10323,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10337,7 +10337,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10351,7 +10351,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10365,7 +10365,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10379,7 +10379,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10393,7 +10393,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10407,7 +10407,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -10435,7 +10435,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10445,7 +10445,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10455,7 +10455,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10465,7 +10465,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10475,7 +10475,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10485,7 +10485,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10495,7 +10495,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10505,7 +10505,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10515,7 +10515,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10525,7 +10525,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "openSite"
               },
               {
@@ -10549,7 +10549,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10559,7 +10559,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10569,7 +10569,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10579,7 +10579,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10589,7 +10589,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10599,7 +10599,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10609,7 +10609,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10619,7 +10619,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10629,7 +10629,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10639,7 +10639,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "publishInstalledSalesforceSource"
               },
               {
@@ -10661,7 +10661,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10671,7 +10671,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10681,7 +10681,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10691,7 +10691,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10701,7 +10701,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10711,7 +10711,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10721,7 +10721,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10731,7 +10731,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10741,7 +10741,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10751,7 +10751,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "queryRuntime"
               },
               {
@@ -10775,7 +10775,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10785,7 +10785,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10795,7 +10795,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10805,7 +10805,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10815,7 +10815,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10825,7 +10825,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10835,7 +10835,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10845,7 +10845,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10855,7 +10855,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10865,7 +10865,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "recoveryArguments"
               },
               {
@@ -10885,7 +10885,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10895,7 +10895,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10905,7 +10905,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10915,7 +10915,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10925,7 +10925,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10935,7 +10935,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10945,7 +10945,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10955,7 +10955,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10965,7 +10965,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {
@@ -10975,7 +10975,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "text"
               },
               {

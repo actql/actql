@@ -1082,7 +1082,7 @@ export async function loadInstalledSalesforceSite(path: string, {commonMoon,
             maxNodes)) as string) as unknown[]);
       }, signal});
     return Object.freeze({
-      observationCid: result.currentCatalog.observationCid, resource,
+      observationCid: result.currentCatalog.observationCid!, resource,
       fields: Object.freeze([...fields]), rows: Object.freeze(rows),
       limited: rows.length === maxRows,
       order: salesforceMoon.salesforceReadProjectionOrderedById(plan)

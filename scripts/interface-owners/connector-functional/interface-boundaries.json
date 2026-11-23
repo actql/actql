@@ -3568,7 +3568,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "Acquisition planning, capture and Source Evidence"
               },
               {
@@ -3582,7 +3582,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "loadInstalledSalesforceSource"
               },
               {
@@ -3596,7 +3596,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "installedSalesforceSourceIdentityParts"
               },
               {
@@ -3610,7 +3610,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "retainSalesforceSiteCleanup"
               },
               {
@@ -3646,7 +3646,7 @@
                 "anchor": "acquisitionFailure"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "retainSalesforceSiteCleanup"
               },
               {
@@ -3660,7 +3660,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "signal"
               },
               {
@@ -3674,7 +3674,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-source.mts",
                 "anchor": "readLimits"
               },
               {
