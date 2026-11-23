@@ -27,8 +27,11 @@ test('ordinary Salesforce installation uses only shared Effect execution and ven
     assert.ok(!graph.includes(path), `Parallel execution is reachable: ${path}`);
     assert.equal(existsSync(join(root, path)), false, `Retired execution remains: ${path}`);
   }
+  const retiredCatalog = 'adapters/connectors/salesforce/site/salesforce-effect-current-catalog.mjs';
+  assert.ok(!graph.includes(retiredCatalog), 'Parallel Catalog refresh is reachable');
+  assert.equal(existsSync(join(root, retiredCatalog)), false, 'Retired Catalog refresh remains');
   const installation = installedConnectors.find(entry => entry.registration === 'salesforce');
-  assert.ok(installation);
+  assert.ok(installation?.implementationFiles);
   assert.deepEqual(installation.implementationFiles.map(file => file.path),
     graph.filter(path => path.startsWith('adapters/connectors/salesforce/')));
 });

@@ -12157,7 +12157,7 @@
                 "anchor": "a restart after a partial apply sends only the unsent rows"
               },
               {
-                "path": "adapters/connectors/salesforce/test/installed-execution-closure.test.mjs",
+                "path": "adapters/connectors/salesforce/test/installed-execution-closure.test.mts",
                 "anchor": "ordinary Salesforce installation uses only shared Effect execution and vendor request recovery"
               },
               {
