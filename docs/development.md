@@ -1204,7 +1204,10 @@ write permissions, or `pull_request_target` execution are introduced.
 ### Draft preparation and Ready verification
 
 Drafts run preparation (`select-targets`, `preflight`, `lint`, `spec`, and the
-aggregate `check`). An exact registered fixed-request test family adds
+aggregate `check`). Draft `lint` installs the pinned MoonBit toolchain and runs
+its Node-only checks, so a failure there is found before Ready starts the full
+run; its Python and Explorer build checks stay Ready-only. An exact registered
+fixed-request test family adds
 its focused JS tests. Changes to normal Python packages, producers, acceptance
 fixtures, or their CI/toolchain inputs also run the genuine macOS wheel lane
 automatically, including in Draft. Unrelated Draft changes do not start that
