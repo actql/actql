@@ -30,6 +30,6 @@ test('installed Gmail threads selector rejects foreign resources and malformed b
     assert.throws(()=>checkInstalledGmailSourceProfile({...profile,limits:{...installedThreadLimits,...patch}}));
   const emptyExtents=checkInstalledGmailSourceProfile({...profile,limits:{...installedThreadLimits,
     maxMessages:0,maxLabels:0,maxHeaders:0,maxHeaderUnits:0,maxCommentDepth:0,maxValueTextBytes:0}});
-  assert.equal(emptyExtents.limits.maxMessages,0);
+  assert.equal((emptyExtents.limits as {maxMessages: number}).maxMessages,0);
   assert.throws(()=>checkInstalledGmailSourceProfile({...profile,limits:{...installedThreadLimits,extra:1}}));
 });

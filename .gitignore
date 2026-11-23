@@ -2958,3 +2958,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/gcs/site/gcs-keyed-content.d.mts
 /adapters/connectors/gcs/host/installed-gcs-source.mjs
 /adapters/connectors/gcs/host/installed-gcs-source.d.mts
+/adapters/connectors/gmail/site/gmail-label-list-read.mjs
+/adapters/connectors/gmail/site/gmail-label-list-read.d.mts
+/adapters/connectors/gmail/site/gmail-thread-read.mjs
+/adapters/connectors/gmail/site/gmail-thread-read.d.mts
+/adapters/connectors/gmail/host/installed-gmail-source.mjs
+/adapters/connectors/gmail/host/installed-gmail-source.d.mts
+/adapters/connectors/gmail/test/installed-gmail-threads.test.mjs
+/adapters/connectors/gmail/test/installed-gmail-threads.test.d.mts

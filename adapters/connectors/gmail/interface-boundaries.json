@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
-      "sha256": "1761f7edf6907f7c9fd1960662e6b4f21c50581410b55d375797dcfc5bde6af1",
+      "sha256": "b18bb727ac184923dfaaa804fec879d402be700d65bde31691ea72f52bbf1b78",
       "exports": [
         "GMAIL_LABEL_LIST_OPERATION",
         "GmailLabelListReadFailure",
@@ -207,7 +207,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
@@ -271,18 +271,18 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
                 "anchor": "function prepareRead("
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
                 "anchor": "async function executeRead("
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/gmail-label-reader-custody.md",
@@ -291,17 +291,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
                 "anchor": "await context.callbacks.consumePage"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
                 "anchor": "throw new GmailLabelListReadFailure(cause, observations);"
               },
               {
@@ -311,12 +311,12 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mjs",
-                "anchor": "requestStop(reason)"
+                "path": "adapters/connectors/gmail/site/gmail-label-list-read.mts",
+                "anchor": "requestStop(reason: unknown)"
               }
             ]
           }
@@ -1290,7 +1290,7 @@
     },
     {
       "module": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
-      "sha256": "01ca18d3f15356d76d8f06440b3646ea09e2fa5d96c7e170d00c5b3984312e2c",
+      "sha256": "cf187ce626347c2be5a1cb82a41166c6b3ca294f351c1741b01bc50f7113cff0",
       "exports": [
         "INSTALLED_GMAIL_SITE_VERSION",
         "INSTALLED_GMAIL_SOURCE_VERSION",
@@ -1536,21 +1536,21 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
-                "anchor": "export function checkInstalledGmailSourceProfile(profile)"
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
+                "anchor": "export function checkInstalledGmailSourceProfile(profile: unknown)"
               },
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "export async function loadInstalledGmailSource("
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "mailboxBytesCid:sha(Buffer.from(installed.mailbox))"
               },
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "const admitsApprovalTarget="
               },
               {
@@ -1558,7 +1558,7 @@
                 "anchor": "Their ordinary identity parts retain a digest of the exact mailbox bytes"
               },
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "connectorRegistration:registration,connectorRevision:revision,contextCid:"
               },
               {
@@ -1572,7 +1572,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "async function loadInstalledGmailLabels("
               },
               {
@@ -1594,7 +1594,7 @@
                 "anchor": "async function readStandard(initialAuthorization: unknown, credential: Credential)"
               },
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "providerReader=services('createSourceReader'"
               },
               {
@@ -1602,17 +1602,17 @@
                 "anchor": "keeps the list grant"
               },
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "return prepareGmailThreadReadSequence({moon:provider"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "fail('InstalledGmailReaderImplementationMismatch')"
               },
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "{sourceReader:providerReader,sourceProfile:opened?.site}"
               },
               {
@@ -1632,7 +1632,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "const limitKeys="
               },
               {
@@ -1644,7 +1644,7 @@
                 "anchor": "The shared managed reader retains the original binding"
               },
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "const pem=await reads.readText"
               },
               {
@@ -1658,7 +1658,7 @@
                 "anchor": "Journal duty even after the same physical child has retired."
               },
               {
-                "path": "adapters/connectors/gmail/host/installed-gmail-source.mjs",
+                "path": "adapters/connectors/gmail/host/installed-gmail-source.mts",
                 "anchor": "return prepareGmailThreadReadSequence({moon:provider"
               }
             ],
@@ -1779,7 +1779,7 @@
     },
     {
       "module": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
-      "sha256": "c377d80face05dfea1299e66091343aab18c26621442464989ceb6f96661c2a4",
+      "sha256": "a50fc39fcd0a6b5872fff1c6d16622afb9d461c2a63a470204cfd830254b4285",
       "exports": [
         "GMAIL_THREAD_GET_OPERATION",
         "GMAIL_THREAD_LIST_OPERATION",
@@ -2113,8 +2113,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
-                "anchor": "function prepareRead(options)"
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
+                "anchor": "function prepareRead(options: ReaderOptions)"
               },
               {
                 "path": "src/connectors/gmail/host_node/pkg.generated.mbti",
@@ -2135,12 +2135,12 @@
                 "anchor": "pub fn gmail_thread_projection_matches_request"
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
-                "anchor": "const original = next[0], fields = JSON.parse(provider.gmailThreadRequestJson(original));"
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
+                "anchor": "const original = next[0], fields = JSON.parse(provider!.gmailThreadRequestJson(original)) as Fields;"
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
-                "anchor": "export function assertOriginalGmailThreadRequest(reader, request)"
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
+                "anchor": "export function assertOriginalGmailThreadRequest(reader: object, request: unknown)"
               }
             ],
             "ownership": [
@@ -2149,17 +2149,17 @@
                 "anchor": "The retained protocol includes all original pages"
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
                 "anchor": "if (fields.isList) await context.consumeObservation();"
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
                 "anchor": "await verify(input.operation);"
               },
               {
@@ -2169,7 +2169,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
                 "anchor": "export class GmailThreadReadFailure extends Error"
               },
               {
@@ -2183,8 +2183,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
-                "anchor": "requestStop(reason) {own(this).stop.abort(reason);}"
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
+                "anchor": "requestStop(reason: unknown) {own(this).stop.abort(reason);}"
               },
               {
                 "path": "adapters/connectors/gmail/test/gmail-thread-read.test.mjs",
@@ -2197,7 +2197,7 @@
                 "anchor": "holdings. Escaped projections retain the same original get;"
               },
               {
-                "path": "adapters/connectors/gmail/site/gmail-thread-read.mjs",
+                "path": "adapters/connectors/gmail/site/gmail-thread-read.mts",
                 "anchor": "bound.maxTotalResponseBytes-totalBytes"
               },
               {
