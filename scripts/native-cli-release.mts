@@ -8,8 +8,7 @@ import {chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile} from 'node:fs/
 import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState, CLIENT_PACKAGES, normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
-import {inventory, unpack, publicationPlan} from './package-release.mjs';
-import {publishPackageRelease} from './publish-package-release.mjs';
+import {inventory, unpack, publicationPlan, publishPackageRelease} from './package-release.mjs';
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
 import {releaseVersion} from './release-version.mjs';
 import {admitReleaseChannel} from './release-policy.mjs';
@@ -21,18 +20,43 @@ import {nativeCliPackageInputs, nativeCliPlatforms as platforms} from './native-
 import {admitNativeArtifact, admitInstalledNativeArtifactMaterial, requireNativePackageVersion} from './native-cli-artifact-reader.mjs';
 export {admitNativeArtifact} from './native-cli-artifact-reader.mjs';
 import {checkStagedNativeCliInterfaces} from './native-cli-interface-check.mjs';
+import type {BinaryLike, BinaryToTextEncoding} from 'node:crypto';
+
+type Cohort = {packageVersion: string; registry: string; access: string; tag: string};
+type Artifact = Awaited<ReturnType<typeof admitNativeArtifact>>;
+type ProductMembers = Awaited<ReturnType<typeof stageProductMembers>>;
+type NativePackage = Awaited<ReturnType<typeof pack>>;
+type PlatformRecord = {
+  package: string; sourceSha: string; binarySha256: string; binaryBytes: number;
+  localRuntimeSha256?: string; productMembers?: ProductMembers;
+};
+type NativeReleaseManifest = {
+  version: string; sourceSha: string; preparedAt: string; recipeSha256: string;
+  cohort: Cohort; platforms: Record<string, PlatformRecord>; artifacts: Artifact[]; packages: NativePackage[];
+};
+type LauncherMetadata = {
+  name: string; files: string[]; scripts?: Record<string, string>;
+  optionalDependencies?: Record<string, string>;
+};
+type Admission = Readonly<{verify(): Promise<NativeReleaseManifest>; assertCurrent(): void}>;
+type RetainedAdmission = {
+  source: ReturnType<typeof checkoutState>; manifest: string;
+  assertInputs: ReturnType<typeof retainNativeMockCampaignInputs>;
+  checked?: string; assertActive(): void;
+};
 
 // Same callback handle only. This binds the existing scoped admission, not a
 // second verifier, cross-campaign cache or serialized preparation authority.
-const nativeMockAdmissions = new WeakMap();
+const nativeMockAdmissions = new WeakMap<object, {directory: string}>();
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
-const exact = (v, keys) => assert.deepEqual(Object.keys(v).sort(), [...keys].sort());
+const hash = (bytes: BinaryLike, algorithm = 'sha256', encoding: BinaryToTextEncoding = 'hex') =>
+  createHash(algorithm).update(bytes).digest(encoding);
+const exact = (v: unknown, keys: readonly string[]) => assert.deepEqual(Object.keys(v as object).sort(), [...keys].sort());
 
 // The two RCs retain distinct source SHAs. Their shared Host and protocol
 // packages must agree too: generated wire and SDK code live outside src/.
-export function sharedRuntimeSourceDelta(root, hostSha, cliSha) {
+export function sharedRuntimeSourceDelta(root: string, hostSha: string, cliSha: string) {
   for (const revision of [hostSha, cliSha]) assert.match(revision, /^[a-f0-9]{40}$/u);
   return execFileSync('git', ['--no-replace-objects', 'diff', '--name-only', hostSha, cliSha, '--',
     'src', 'adapters', 'spec', 'moon.mod', 'moon.lock', 'toolchain.json', 'package-lock.json',
@@ -40,18 +64,19 @@ export function sharedRuntimeSourceDelta(root, hostSha, cliSha) {
 }
 
 
-async function pack(directory, output, productMembers) {
+async function pack(directory: string, output: string, productMembers?: ProductMembers) {
   const json = parseNpmPackJson(execFileSync('npm', normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', output,
     '--cache', join(output, '.npm-cache')]), {cwd: directory, encoding: 'utf8', timeout: 60_000,
     env: {...process.env, npm_config_ignore_scripts: 'false'}}));
-  const result = Array.isArray(json) ? json : Object.values(json); assert.equal(result.length, 1);
+  type PackItem = {name: string; version: string; filename: string};
+  const result: PackItem[] = Array.isArray(json) ? json : Object.values(json as Record<string, PackItem>); assert.equal(result.length, 1);
   const item = result[0], bytes = await readFile(join(output, item.filename));
   return {name: item.name, version: item.version, file: item.filename, bytes: bytes.length, sha256: hash(bytes),
     integrity: `sha512-${hash(bytes, 'sha512', 'base64')}`, files: await inventory(directory),
     ...(productMembers ? {productMembers} : {})};
 }
 
-export function admitNativeReleaseCohort(value) {
+export function admitNativeReleaseCohort(value: Cohort) {
   assert(value && typeof value === 'object' && !Array.isArray(value), 'Supply an explicit Native release cohort');
   exact(value, ['packageVersion', 'registry', 'access', 'tag']);
   releaseVersion(value.packageVersion);
@@ -64,7 +89,7 @@ export function admitNativeReleaseCohort(value) {
 
 // Apply only package metadata to an isolated clone; this does not choose a
 // number, modify source metadata or qualify a platform/profile for publication.
-export function nativeReleaseMetadata(original, selected) {
+export function nativeReleaseMetadata<Metadata extends LauncherMetadata>(original: Metadata, selected: Cohort) {
   const cohort = admitNativeReleaseCohort(selected);
   assert.equal(original.name, 'actql');
   assert.equal(original.scripts, undefined);
@@ -72,13 +97,13 @@ export function nativeReleaseMetadata(original, selected) {
     publishConfig: {registry: cohort.registry, access: cohort.access}};
 }
 
-export async function prepareNativeCliRelease(destination, artifacts, selected) {
+export async function prepareNativeCliRelease(destination: string, artifacts: readonly string[], selected: Cohort) {
   return prepareNativeCliProfile(destination, artifacts, selected, false);
 }
 
 // Profile selection after original artifact admission, not another receipt or
 // a substitute for installed acceptance. Generic/Remote preparation is intact.
-export function requireLinuxLocalReleaseArtifacts(records) {
+export function requireLinuxLocalReleaseArtifacts(records: readonly Pick<Artifact, 'platform' | 'localRuntime'>[]) {
   assert(Array.isArray(records));
   const linux = records.filter(record => record.platform === 'linux-x64-gnu');
   assert.equal(linux.length, 1, 'Local release selection requires one Linux x64 artifact');
@@ -88,11 +113,12 @@ export function requireLinuxLocalReleaseArtifacts(records) {
     'Every included platform in a Local release requires its admitted Local payload');
 }
 
-export async function prepareNativeCliLocalRelease(destination, artifacts, selected) {
+export async function prepareNativeCliLocalRelease(destination: string, artifacts: readonly string[], selected: Cohort) {
   return prepareNativeCliProfile(destination, artifacts, selected, true);
 }
 
-async function prepareNativeCliProfile(destination, artifacts, selected, requireLinuxLocal) {
+async function prepareNativeCliProfile(destination: string, artifacts: readonly string[], selected: Cohort,
+  requireLinuxLocal: boolean): Promise<NativeReleaseManifest> {
   const cohort = admitNativeReleaseCohort(selected);
   const source = checkoutState(repository); assert(source.clean, 'CLI release requires clean source HEAD');
   const checkedSource = await checkInterfaceOwners(repository, {manifests: ['packages/native-cli/package.json']});
@@ -104,18 +130,19 @@ async function prepareNativeCliProfile(destination, artifacts, selected, require
   for (const record of records) {
     requireNativePackageVersion(record, cohort.packageVersion);
     exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
-    for (const [filename, digest] of Object.entries(record.notices)) {
+    for (const [filename, digest] of Object.entries(record.notices as Record<string, unknown>)) {
       assert.equal(digest, hash(await readFile(join(repository, 'packages/local-node', filename))));
     }
   }
-  const cli = nativeReleaseMetadata(JSON.parse(await readFile(join(repository, 'packages/native-cli/package.json'), 'utf8')), cohort);
+  const cli = nativeReleaseMetadata(JSON.parse(await readFile(join(repository, 'packages/native-cli/package.json'), 'utf8')) as LauncherMetadata, cohort);
   destination = resolve(destination); await mkdir(destination);
-  const scratch = await mkdtemp(join(destination, '.stage-')), packages = [], mapping = {};
+  const scratch = await mkdtemp(join(destination, '.stage-')), packages: NativePackage[] = [],
+    mapping: Record<string, PlatformRecord> = {};
   try {
     for (const [index, record] of records.entries()) {
       const name = `@actql/cli-${record.platform}`, directory = join(scratch, record.platform);
       await mkdir(join(directory, 'bin'), {recursive: true});
-      const target = platforms[record.platform];
+      const target: {os: string; cpu: string; libc?: string} = platforms[record.platform as keyof typeof platforms];
       const metadata = {name, version: cli.version, description: 'ActQL Native Remote transport executable',
         license: 'Apache-2.0', os: [target.os], cpu: [target.cpu], ...(target.libc ? {libc: [target.libc]} : {}),
         files: ['bin', 'artifact.json', 'LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE', PRODUCT_MEMBERS_FILE,
@@ -126,7 +153,7 @@ async function prepareNativeCliProfile(destination, artifacts, selected, require
       await copyFile(join(resolve(artifacts[index]), 'actql-native-client'), join(directory, 'bin/actql-native-client'));
       await chmod(join(directory, 'bin/actql-native-client'), 0o755);
       await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
-      for (const filename of Object.keys(record.notices)) await copyFile(join(repository, 'packages/local-node', filename), join(directory, filename));
+      for (const filename of Object.keys(record.notices as object)) await copyFile(join(repository, 'packages/local-node', filename), join(directory, filename));
       if (record.localRuntime) {
         const root = resolve(artifacts[index]);
         const local = admitInstalledLocalRuntime({root,
@@ -149,7 +176,7 @@ async function prepareNativeCliProfile(destination, artifacts, selected, require
     const memberPlatform = launcherMemberPlatform(records);
     if (memberPlatform !== undefined) cli.files = [...new Set([...cli.files, PRODUCT_MEMBERS_FILE])];
     await mkdir(join(directory, 'lib'));
-    for (const {member, source: path} of nativeCliPackageInputs(repository).copies) await copyFile(join(repository, path), join(directory, member));
+    for (const {member, source: path} of nativeCliPackageInputs(repository)!.copies) await copyFile(join(repository, path), join(directory, member));
     await chmod(join(directory, 'bin/actql.mjs'), 0o755);
     await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
     await writeFile(join(directory, 'package.json'), `${JSON.stringify(cli, null, 2)}\n`);
@@ -168,7 +195,7 @@ async function prepareNativeCliProfile(destination, artifacts, selected, require
   } finally {await rm(scratch, {recursive: true});}
 }
 
-export function admitNativeReleaseManifest(manifest) {
+export function admitNativeReleaseManifest(manifest: NativeReleaseManifest) {
   exact(manifest, ['version', 'sourceSha', 'preparedAt', 'recipeSha256', 'cohort', 'platforms', 'artifacts', 'packages']);
   assert.equal(manifest.version, 'actql-native-cli-release/0.1'); assert.match(manifest.sourceSha, /^[a-f0-9]{40}$/u);
   admitNativeReleaseCohort(manifest.cohort);
@@ -178,15 +205,16 @@ export function admitNativeReleaseManifest(manifest) {
   return structuredClone(manifest);
 }
 
-export async function verifyNativeCliRelease(directory) {
+export async function verifyNativeCliRelease(directory: string) {
   return verifyNativeCliReleaseOriginal(directory);
 }
 
 // One lexical admission belongs to this original sequential campaign only.
 // The ordinary exported verifier never consumes it, and all Source checks still
 // run for every consumer. No serialized report or matching SHA can create it.
-export async function withNativeMockReleaseAdmission(directory, action,
-  {sourceRepository = repository, controller = repository, checkSource = checkInterfaceOwners} = {}) {
+export async function withNativeMockReleaseAdmission<Value>(directory: string, action: (admission: Admission) => Value,
+  {sourceRepository = repository, controller = repository, checkSource = checkInterfaceOwners}:
+  {sourceRepository?: string; controller?: string; checkSource?: typeof checkInterfaceOwners} = {}) {
   directory = resolve(directory);
   const manifest = admitNativeReleaseManifest(JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')));
   const source = checkoutState(sourceRepository);
@@ -196,7 +224,7 @@ export async function withNativeMockReleaseAdmission(directory, action,
       assert.equal(item.file, `${item.name.replace('@', '').replace('/', '-')}-${item.version}.tgz`);
       return join(directory, item.file);
     })]});
-  const retained = {source, manifest: JSON.stringify(manifest), assertInputs, checked: undefined};
+  const retained = {source, manifest: JSON.stringify(manifest), assertInputs, checked: undefined} as RetainedAdmission;
   let active = true, pending = false;
   retained.assertActive = () => assert(active, 'Closed Native Mock release admission');
   const assertCurrent = () => {
@@ -229,18 +257,20 @@ export async function withNativeMockReleaseAdmission(directory, action,
 
 // The consumer receives the same original callback object. A copied bag of
 // methods, matching manifest or foreign directory cannot select this entrance.
-export function originalNativeMockReleaseAdmission(admission, directory) {
-  const original = nativeMockAdmissions.get(admission);
+export function originalNativeMockReleaseAdmission(admission: unknown, directory: string): Admission {
+  const original = nativeMockAdmissions.get(admission as object);
   assert(original && original.directory === resolve(directory), 'Untrusted or foreign Native Mock release admission');
-  return admission;
+  return admission as Admission;
 }
 
-async function verifyNativeCliReleaseOriginal(directory, {repository: sourceRepository = repository, retained, checkSource = checkInterfaceOwners} = {}) {
+async function verifyNativeCliReleaseOriginal(directory: string,
+  {repository: sourceRepository = repository, retained, checkSource = checkInterfaceOwners}:
+  {repository?: string; retained?: RetainedAdmission; checkSource?: typeof checkInterfaceOwners} = {}) {
   const repository = sourceRepository;
   // Diagnostic DATA only. Ordinary calls retain full verification. Scoped
   // calls distinguish retained artifact admission from fresh Source checking;
   // unavailable timing or a failed stderr write cannot mask the primary result.
-  let observedStart, sourceWallNs, sourceCompleted = false, completed = false, reused = false;
+  let observedStart: bigint | undefined, sourceWallNs: number | undefined, sourceCompleted = false, completed = false, reused = false;
   try {if (process.env.ACTQL_CI_NATIVE_RELEASE_PHASES === '1') observedStart = process.hrtime.bigint();} catch {}
   try {
     const manifest = admitNativeReleaseManifest(JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')));
@@ -289,11 +319,12 @@ async function verifyNativeCliReleaseOriginal(directory, {repository: sourceRepo
             assert.deepEqual(JSON.parse(await readFile(join(payload, 'platforms.json'), 'utf8')), manifest.platforms);
             await checkStagedNativeCliInterfaces({repository, directory: payload, source: manifest.sourceSha, checkedSource});
           } else {
-            const key = item.name.slice('@actql/cli-'.length), target = platforms[key]; assert(target);
+            const key = item.name.slice('@actql/cli-'.length),
+              target: {os: string; cpu: string; libc?: string} = platforms[key as keyof typeof platforms]; assert(target);
             assert.deepEqual(metadata.os, [target.os]); assert.deepEqual(metadata.cpu, [target.cpu]);
             assert.deepEqual(metadata.libc, target.libc ? [target.libc] : undefined);
-            const record = JSON.parse(await readFile(join(payload, 'artifact.json'), 'utf8'));
-            assert.deepEqual(record, manifest.artifacts.find(v => v.platform === key));
+            const record = JSON.parse(await readFile(join(payload, 'artifact.json'), 'utf8')) as Artifact;
+            assert.deepEqual(record, manifest.artifacts.find(v => v.platform === key)!);
             if (item.productMembers !== undefined) await verifyStagedProductMembers(payload, {
               sourceSha: manifest.sourceSha, platform: key, packageName: item.name}, item.productMembers);
             const checked = await checkStagedNativeCliInterfaces({repository, directory: payload,
@@ -303,7 +334,8 @@ async function verifyNativeCliReleaseOriginal(directory, {repository: sourceRepo
             assert.deepEqual(await admitInstalledNativeArtifactMaterial(payload, manifest.sourceSha), checked.artifactMaterial,
               'Native artifact/runtime changed during interface verification');
             exact(record.notices, ['MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE']);
-            for (const [filename, digest] of Object.entries(record.notices)) assert.equal(digest, hash(await readFile(join(payload, filename))));
+            for (const [filename, digest] of Object.entries(record.notices as Record<string, unknown>))
+              assert.equal(digest, hash(await readFile(join(payload, filename))));
             assert.deepEqual(manifest.platforms[key], {package: item.name, sourceSha: record.sourceSha,
               binarySha256: record.binarySha256, binaryBytes: record.binaryBytes,
               ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {}),
@@ -326,11 +358,11 @@ async function verifyNativeCliReleaseOriginal(directory, {repository: sourceRepo
       if (observedStart !== undefined) {
         const total = Number(process.hrtime.bigint() - observedStart);
         if (Number.isSafeInteger(total) && total >= 0 && (!sourceCompleted ||
-          Number.isSafeInteger(sourceWallNs) && sourceWallNs >= 0 && sourceWallNs <= total)) {
+          Number.isSafeInteger(sourceWallNs) && sourceWallNs! >= 0 && sourceWallNs! <= total)) {
           console.error('ACTQL_NATIVE_RELEASE_PHASES ' + JSON.stringify({
             sourcePreparation: {state: sourceCompleted ? 'completed' : 'failed', wallNs: sourceCompleted ? sourceWallNs : total},
             artifactVerification: sourceCompleted
-              ? {state: completed ? (reused ? 'retained' : 'completed') : 'failed', wallNs: total - sourceWallNs} : {state: 'unexecuted'},
+              ? {state: completed ? (reused ? 'retained' : 'completed') : 'failed', wallNs: total - sourceWallNs!} : {state: 'unexecuted'},
           }));
         }
       }

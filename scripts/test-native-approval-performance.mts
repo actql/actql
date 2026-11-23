@@ -11,6 +11,26 @@ import {admitNativeReleaseManifest} from './native-cli-release.mjs';
 import {openNativeMockCampaign} from './native-mock-campaign.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalPhases, assertNativeApprovalAcceptanceBinding, assertNativeApprovalObservation, nativeMockWorkflowTiming, nativeReleaseVerificationTiming} from './native-approval-performance.mjs';
+import type {BinaryLike} from 'node:crypto';
+import type {ResourceSample} from './operation-performance-sample-summary.mjs';
+
+type Approval = Parameters<typeof approvalCallCounts>[0] & Parameters<typeof assertNativeApprovalObservation>[0] & {
+  args: readonly string[]; wallNs: number; acceptance: {writes: readonly unknown[]}; resources?: ResourceSample;
+};
+type Receipt = Omit<Parameters<typeof nativeMockWorkflowTiming>[0], 'scenarios'> & {
+  cliSourceSha: string; scenarios: {template: 'deal-review-mock' | 'churn-risk-mock'; commands: Approval[]}[];
+};
+type Sample = Parameters<typeof assessNativeApproval>[0]['samples'][number] & {
+  calls: ReturnType<typeof approvalCallCounts>; phases: ReturnType<typeof approvalPhases>;
+  resourceObservationIssue: unknown;
+};
+type Series = {template: string; mode: 'diagnostic' | 'final'; sourceSha: string; fixtureSha256: string;
+  runnerSha256: string; samples: Sample[]; assessment?: ReturnType<typeof assessNativeApproval>};
+type Failure = {iteration?: number; stage: string; error: string | null;
+  code?: number | null; signal?: string | null; consumerWallNs?: number; stdout?: string; stderr?: string};
+type CloseFailure = Error & {status?: number; signal?: string; stdout?: string; stderr?: string};
+type Timing = {iteration: number; consumerWallNs: number} & ReturnType<typeof nativeMockWorkflowTiming> &
+  ReturnType<typeof nativeReleaseVerificationTiming>;
 
 const {values} = parseArgs({options: {normal: {type: 'string'}, output: {type: 'string'},
   runner: {type: 'string'}, binding: {type: 'string'}, diagnostic: {type: 'boolean', default: false}}});
@@ -26,7 +46,7 @@ const manifest = admitNativeReleaseManifest(JSON.parse(readFileSync(join(directo
 const source = checkoutState(root);
 assert(source.clean && source.revision === manifest.sourceSha,
   'Performance consumer and fixed Native artifact require the same clean source');
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+const hash = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 const runner = {name: values.runner, hostname: hostname(), platform: platform(), arch: arch(),
   release: release(), samplerSha256: hash(readFileSync('/usr/bin/time')), cpuModels: [...new Set(cpus().map(cpu => cpu.model))], node: process.version};
 const runnerSha256 = hash(JSON.stringify(runner));
@@ -35,12 +55,21 @@ const fixtureSha256 = hash(Buffer.concat([
   readFileSync(new URL('../packages/native-cli/lib/project-scaffold.mjs', import.meta.url)),
 ]));
 const mode = values.diagnostic ? 'diagnostic' : 'final', count = values.diagnostic ? 3 : 30;
-const series = ['deal-review-mock', 'churn-risk-mock'].map(template => ({template, mode,
+const series: Series[] = ['deal-review-mock', 'churn-risk-mock'].map(template => ({template, mode,
   sourceSha: source.revision, fixtureSha256, runnerSha256, samples: []}));
-const report = {version: 'actql-native-approval-performance/0.1', mode, sourceSha: source.revision,
+const report: {
+  version: string; mode: Series['mode']; sourceSha: string;
+  runner: typeof runner; runnerSha256: string; fixtureSha256: string;
+  observation: string; timer: string; concurrentLoad: string; unverified: string[];
+  loadSnapshots: {iteration: number; loadAverage: number[]}[];
+  receipts: {iteration: number; path: string; sha256: string}[];
+  workflowTimings: Timing[]; series: Series[]; failures: Failure[];
+  status?: 'failed' | 'incomplete' | 'passed';
+} = {version: 'actql-native-approval-performance/0.1', mode, sourceSha: source.revision,
   runner, runnerSha256, fixtureSha256, observation: 'existing opt-in Native timings and acceptance events',
   timer: 'monotonic parent clock around the complete approve process and OS sampler through exit',
-  concurrentLoad: 'observed load averages, not an exclusive-machine reservation', loadSnapshots: [], receipts: [], workflowTimings: [], series, failures: [],
+  concurrentLoad: 'observed load averages, not an exclusive-machine reservation', loadSnapshots: [],
+  receipts: [], workflowTimings: [], series, failures: [],
   unverified: ['other runners and platforms', 'live providers', 'fault-injection campaign']};
 const output = resolve(values.output);
 writeFileSync(output, JSON.stringify(report, null, 2) + '\n', {flag: 'wx'});
@@ -54,7 +83,7 @@ try {
     let result;
     try {result = await campaign.run(iteration);}
     catch (error) {
-      report.failures.push({iteration, stage: 'original installed consumer', error: error.message});
+      report.failures.push({iteration, stage: 'original installed consumer', error: (error as Error).message});
       persist(); break;
     }
     const consumerWallNs = Number(process.hrtime.bigint() - started);
@@ -69,7 +98,8 @@ try {
     try {
       const receiptPath = realpathSync(match[1]);
       assert.equal(dirname(receiptPath), directory, 'Foreign consumer receipt');
-      const bytes = readFileSync(receiptPath), receipt = JSON.parse(bytes);
+      // Keep the same bytes for the hash and the Buffer's original JSON text coercion.
+      const bytes = readFileSync(receiptPath), receipt = JSON.parse(bytes as unknown as string) as Receipt;
       assert.equal(receipt.cliSourceSha, source.revision);
       assert.equal(receipt.scenarios.length, 2);
       report.receipts.push({iteration, path: receiptPath, sha256: hash(bytes)});
@@ -91,7 +121,7 @@ try {
       persist();
       assert.deepEqual(checkoutState(root), source, 'Performance source changed during campaign');
     } catch (error) {
-      report.failures.push({iteration, stage: 'original workflow evidence', error: error.message});
+      report.failures.push({iteration, stage: 'original workflow evidence', error: (error as Error).message});
       persist(); break;
     }
   }
@@ -99,14 +129,15 @@ try {
 finally {
   try {await campaign.close();}
   catch (error) {
-    report.failures.push({stage: 'original fixture process close', error: error.message,
-      code: error.status ?? null, signal: error.signal ?? null, stdout: error.stdout ?? '', stderr: error.stderr ?? ''});
+    report.failures.push({stage: 'original fixture process close', error: (error as CloseFailure).message,
+      code: (error as CloseFailure).status ?? null, signal: (error as CloseFailure).signal ?? null,
+      stdout: (error as CloseFailure).stdout ?? '', stderr: (error as CloseFailure).stderr ?? ''});
     persist();
   }
 }
 for (const selected of series) selected.assessment = assessNativeApproval(selected);
-report.status = report.failures.length || series.some(value => value.assessment.status === 'failed')
-  ? 'failed' : series.some(value => value.assessment.status !== 'passed') ? 'incomplete' : 'passed';
+report.status = report.failures.length || series.some(value => value.assessment!.status === 'failed')
+  ? 'failed' : series.some(value => value.assessment!.status !== 'passed') ? 'incomplete' : 'passed';
 persist();
 console.log(JSON.stringify({path: output, status: report.status,
   templates: series.map(value => ({template: value.template, ...value.assessment}))}));
