@@ -3106,3 +3106,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/hubspot/host/installed-hubspot-source.d.mts
 /adapters/connectors/hubspot/host/installed-hubspot-effect.mjs
 /adapters/connectors/hubspot/host/installed-hubspot-effect.d.mts
+/adapters/connectors/hubspot/test/hubspot-account.fixture.mjs
+/adapters/connectors/hubspot/test/hubspot-account.fixture.d.mts

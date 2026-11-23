@@ -7,10 +7,8 @@ import {createHash, generateKeyPairSync, randomUUID} from 'node:crypto';
 import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {join} from 'node:path';
-import * as common from
-  '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from
-  '../../../../_build/js/release/build/connectors/hubspot/host_node/host_node.js';
+const common = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href) as Common;
+const provider = await import(new URL('../../../../_build/js/release/build/connectors/hubspot/host_node/host_node.js', import.meta.url).href) as Provider;
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
@@ -23,13 +21,59 @@ import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
 import {observeHubSpotAccount, HUBSPOT_ACCOUNT_DETAILS_OPERATION} from
   '../site/hubspot-account-read.mjs';
+import type {IncomingMessage, ServerResponse} from 'node:http';
+import type {AddressInfo} from 'node:net';
+import type {TestContext} from 'node:test';
+
+type Observe = Parameters<typeof observeHubSpotAccount>[0];
+type Provider = Observe['moon'];
+type Binding = ReturnType<typeof openHttpsCredentialBinding>;
+type Journal = ReturnType<typeof openSqliteCredentialJournal>;
+type Boundary = Parameters<Awaited<ReturnType<typeof createLocalAuthorizationGate>>['authorize']>[0];
+type FixtureOptions = Readonly<{accounted?: boolean; accountOutcome?: 'allow' | 'deny'; rowSchema?: unknown;
+  resources?: readonly string[]; accountOperations?: readonly string[]}>;
+type State = {body: string; status: number; secret: string; resolutions: number; charges: number;
+  consumed: number; currentCalls: number; requests: Readonly<{method: string | undefined; path: string | undefined;
+    authorization: string | undefined}>[]; onRequest?(request: IncomingMessage, response: ServerResponse): unknown;
+  resolve?(): unknown};
+type Restore = (alias: string, connector: string, revision: string, wire: string, expectedCid: undefined) => unknown;
+type Common = Readonly<{
+  clientProgramRowSourceRestoreDeclaration: Restore;
+  clientProgramRowSourceRestoreRelationDeclaration: Restore;
+  clientProgramRowSourceDeclarationJson(declaration: unknown): string;
+  clientProgramCheckEnvironment(wire: string, cid: string, textTime: boolean, veca: boolean, relA: boolean,
+    sga: boolean, tea: boolean, calendar: boolean, textRank: boolean): unknown;
+  clientProgramPrepareEffectFreeWithParameters(document: string, format: string, environment: unknown, parameters: undefined): unknown;
+  clientProgramPreparationReady(outcome: unknown): unknown;
+  clientPrepareInstalledSequenceContracts(registry: string, values: string, fragment: string, ordered: string): unknown;
+  clientProgramPrepareLocalQueryRequirement(program: unknown, stage: number, source: number, contracts: unknown,
+    values: string, fragment: string, ordered: string): unknown;
+  clientProgramRowSourcePrepareAcquisition(declaration: unknown, requirement: unknown, query: string, evidence: string): unknown;
+  clientProgramAcquisitionLedger(runs: number, branches: number, transfer: bigint, retention: bigint, execution: bigint,
+    diagnostics: number): unknown;
+  clientProgramRowSourceStartAccounted(acquisition: unknown, id: string, verifyTransport: () => boolean, ledger: unknown,
+    transfer: bigint, scratch: bigint): unknown;
+  clientProgramRowSourceBegin(run: unknown, bytes: number, pages: number, rows: number, signal: undefined): unknown;
+  clientProgramRowSourceChargePage(run: unknown, bytes: Uint8Array): unknown;
+  clientProgramRowSourceAcceptChargedPage(run: unknown, charge: unknown, rows: Uint8Array): unknown;
+  clientProgramRowSourceFinish(run: unknown): unknown;
+  clientProgramRowSourceCaptureBegin(run: unknown): unknown;
+  clientProgramRowSourceCaptureAdvance(run: unknown, work: number): unknown;
+  clientProgramRowSourceCapture(run: unknown): unknown;
+  clientProgramRowSourceCaptureSource(capture: unknown): unknown;
+  clientProgramIdentifyCapturedSourceRelation(source: unknown): unknown;
+  clientProgramCapturedSourceRowCount(source: unknown): number;
+  clientProgramRowSourceConsumeObservationCharge(run: unknown, charge: unknown): unknown;
+  clientProgramMultiCapturedLedgerUsage(ledger: unknown): unknown;
+  clientProgramRowSourceCloseAccounted(run: unknown): unknown;
+}>;
 
 const repo = new URL('../../../../', import.meta.url).pathname;
 const control = runtimeCore(common).remoteCredentialControl;
-const cid = digit => `sha256:${digit.repeat(64)}`;
-const read = name => readFile(join(repo, name), 'utf8');
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+const read = (name: string) => readFile(join(repo, name), 'utf8');
 
-async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
+async function rowOwner(rowSchema: unknown, verifyOriginalTransport = () => false) {
   const schemaWire = rowSchema === undefined ? undefined : canonicalJson(rowSchema);
   const restore = rowSchema === undefined ? common.clientProgramRowSourceRestoreDeclaration
     : common.clientProgramRowSourceRestoreRelationDeclaration;
@@ -38,7 +82,7 @@ async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
       resource: 'records', resource_kind: 'record', ...(schemaWire === undefined ? {fields: [{
         name: 'id', type: 'string', nullable: false}]} : {schema_wire: schemaWire,
         schema_cid: `sha256:${createHash('sha256').update(schemaWire).digest('hex')}`})}]}), undefined));
-  const declared = JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
+  const declared = JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)) as Parameters<typeof rowSourceCheckEnvironment>[1];
   const environment = rowSourceCheckEnvironment(
     (await read('spec/local-check-environment.json')).trimEnd(), declared);
   const check = common.clientProgramCheckEnvironment(environment.wire,
@@ -72,8 +116,8 @@ async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
     acquisition, randomUUID(), verifyOriginalTransport, ledger, rowSchema === undefined ? 8192n : 24576n, rowSchema === undefined ? 4096n : 8192n));
   checked(common.clientProgramRowSourceBegin(run, 4096, 2, 2, undefined));
   return {
-    charge: bytes => checked(common.clientProgramRowSourceChargePage(run, bytes)),
-    page: (rows, charge) => checked(common.clientProgramRowSourceAcceptChargedPage(
+    charge: (bytes: Uint8Array) => checked(common.clientProgramRowSourceChargePage(run, bytes)),
+    page: (rows: readonly unknown[], charge: unknown) => checked(common.clientProgramRowSourceAcceptChargedPage(
       run, charge, Buffer.from(JSON.stringify(rows)))),
     finish: () => checked(common.clientProgramRowSourceFinish(run)),
     captureCount: () => {
@@ -84,7 +128,7 @@ async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
       return common.clientProgramCapturedSourceRowCount(checked(
         common.clientProgramIdentifyCapturedSourceRelation(source)));
     },
-    consume: charge => checked(common.clientProgramRowSourceConsumeObservationCharge(run, charge)),
+    consume: (charge: unknown) => checked(common.clientProgramRowSourceConsumeObservationCharge(run, charge)),
     usage: () => common.clientProgramMultiCapturedLedgerUsage(ledger),
     assertNoCapture: () => assert.throws(() => checked(
       common.clientProgramRowSourceCapture(run)), {code: 'MoonBitHostFailure'}),
@@ -92,18 +136,18 @@ async function rowOwner(rowSchema, verifyOriginalTransport = () => false) {
   };
 }
 
-export async function accountFixture(t, {accounted = true, accountOutcome = 'allow',
-  rowSchema, resources = ['account'], accountOperations = ['read']} = {}) {
+export async function accountFixture(t: Pick<TestContext, 'after' | 'diagnostic'>, {accounted = true, accountOutcome = 'allow',
+  rowSchema, resources = ['account'], accountOperations = ['read']}: FixtureOptions = {}) {
   const parent = join(repo, '_build', 'hubspot-account-fixtures');
   await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent, 'identity-'));
-  const openssl = args => execFileSync('openssl', args, {cwd: root, stdio: 'ignore'});
+  const openssl = (args: readonly string[]) => execFileSync('openssl', args, {cwd: root, stdio: 'ignore'});
   openssl(['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', 'server.key',
     '-out', 'server.crt', '-days', '1', '-subj', '/CN=localhost',
     '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1']);
   const [key, cert] = await Promise.all([
     readFile(join(root, 'server.key')), readFile(join(root, 'server.crt'))]);
-  const state = {body: '{"portalId":7,"accountType":"STANDARD"}', status: 200,
+  const state: State = {body: '{"portalId":7,"accountType":"STANDARD"}', status: 200,
     secret: 'provider-secret', requests: [], resolutions: 0, charges: 0, consumed: 0,
     currentCalls: 0, onRequest: undefined, resolve: undefined};
   const server = createServer({key, cert}, async (request, response) => {
@@ -113,16 +157,16 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
       if (state.onRequest && await state.onRequest(request, response)) return;
       response.writeHead(state.status, {'content-type': 'application/json'});
       response.end(state.body);
-    } catch (error) { response.destroy(error); }
+    } catch (error) { response.destroy(error as Error); }
   });
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     server.once('error', reject); server.listen(0, '127.0.0.1', resolve);
   });
-  let journal, binding, row;
+  let journal: Journal | undefined, binding: Binding | undefined, row: Awaited<ReturnType<typeof rowOwner>> | undefined;
   // Register custody before later fallible fixture construction. A failed
   // declaration must not leave its already listening test server alive.
   t.after(async () => {
-    const failures = [];
+    const failures: unknown[] = [];
     try { if (binding) assert.equal(closeHttpsCredentialBinding(binding), 'closed'); }
     catch (cause) { failures.push(cause); }
     try {
@@ -130,7 +174,7 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
       if (row) assert.deepEqual(ledgerUsageFieldsFor(row.usage(), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
     } catch (cause) { failures.push(cause); }
     try { journal?.close(); } catch (cause) { failures.push(cause); }
-    try { await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
+    try { await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())); }
     catch (cause) { failures.push(cause); }
     t.diagnostic(`Retained owned HubSpot fixture: ${root}`);
     if (failures.length) throw new AggregateError(failures, 'HubSpotFixtureCleanupUnconfirmed');
@@ -148,16 +192,16 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
   const scope = Object.freeze({issuerAuthority: 'hubspot-fixture', principal: 'operator',
     namespaceId: 'fixture', environment: 'test', siteKey: 'site', siteGeneration: 1,
     runtimeBundleCid: cid('a'), connectorRegistration: 'hubspot',
-    connectorRevision: 'hubspot/0.1', resourceOrigin: `https://127.0.0.1:${server.address().port}`,
+    connectorRevision: 'hubspot/0.1', resourceOrigin: `https://127.0.0.1:${(server.address() as AddressInfo).port}`,
     operation: HUBSPOT_ACCOUNT_DETAILS_OPERATION, runInvocationCid: cid('b'),
     taskAttempt: 1, dispatchRequestCid: cid('c'),
     expiresUnixMilliseconds: BigInt(Date.now() + 60000), maxUses: 1});
   const grant = control.prepare(scope);
-  const sign = value => signRemoteCredentialGrant(value, control,
+  const sign = (value: unknown) => signRemoteCredentialGrant(value, control,
     {keyId: 'key', privateKey: authority.privateKey});
   journal.acceptGrant(sign(grant), control);
   const accountPath = join(root, 'account.json');
-  const writeAccount = outcome => writeFile(accountPath, canonicalJson({
+  const writeAccount = (outcome: NonNullable<FixtureOptions['accountOutcome']>) => writeFile(accountPath, canonicalJson({
     version: 'actql-execution-account-config/0.1', account_id: 'fixture', entries: [{
       entry_id: 'identity-read', outcome, principal: {all: true},
       connection: {any_of: ['hubspot:fixture']}, resource: {any_of: resources},
@@ -165,7 +209,7 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
   await writeAccount(accountOutcome);
   const gate = await createLocalAuthorizationGate({accountConfig: accountPath,
     principal: 'operator', context: {principal: 'operator', contextCid: cid('d')}});
-  const current = async (resource = 'account', operation = 'read', boundary = 'acquisition') => {
+  const current = async (resource = 'account', operation = 'read', boundary: Boundary = 'acquisition') => {
     state.currentCalls++;
     const decision = await gate.authorize(boundary,
       {connection: 'hubspot:fixture', resource, operation},
@@ -182,14 +226,14 @@ export async function accountFixture(t, {accounted = true, accountOutcome = 'all
   binding = openHttpsCredentialBinding({...credential, scope, maxSecretBytes: 128});
   const ownedCredential = Object.freeze({...credential, binding});
   row = accounted ? await rowOwner(rowSchema, rowSchema === undefined ? undefined
-    : () => closeHttpsCredentialBinding(binding) === 'closed') : undefined;
+    : () => closeHttpsCredentialBinding(binding!) === 'closed') : undefined;
   const authorization = Object.freeze({grant, scope, useId: 'original-identity'});
   const options = {moon: provider, originalPortalId: '7', authorization,
     credential: ownedCredential,
     limits: {maxResponseBytes: 4096, maxNodes: 100, maxDepth: 10}, current,
     chargeResponse: body => { state.charges++; return row?.charge(body) ?? body.byteLength; },
-    consumeObservation: charge => { state.consumed++; row?.consume(charge); }};
+    consumeObservation: charge => { state.consumed++; row?.consume(charge); }} satisfies Observe;
 
   return {root, state, scope, grant, control, journal, binding, row, options,
-    current, sign, writeAccount, observe: overrides => observeHubSpotAccount({...options, ...overrides})};
+    current, sign, writeAccount, observe: (overrides?: Partial<Observe>) => observeHubSpotAccount({...options, ...overrides})};
 }
