@@ -857,6 +857,17 @@ pub fn client_program_serialization_bind_input(
 }
 
 ///|
+#export_name("clientProgramSerializationInputIsRowLimit")
+pub fn client_program_serialization_input_is_row_limit(
+  issue : @publication_host.ClientSerializationInputIssue,
+) -> Bool {
+  match issue {
+    RowLimit | Encoding(@publication.ContentRowLimit) => true
+    _ => false
+  }
+}
+
+///|
 #export_name("clientProgramSerializationInputRows")
 pub fn client_program_serialization_input_rows(
   input : @publication_host.ClientSerializationInput,
