@@ -5,23 +5,23 @@ import {mkdirSync, mkdtempSync, rmSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import test from 'node:test';
+import test, {type TestContext} from 'node:test';
 
 const capture = fileURLToPath(new URL('./initial-control-image-source.cjs', import.meta.url));
 const loader = fileURLToPath(new URL('./initial-control-image-loader.cjs', import.meta.url));
-function fixture(t, files = {'original.mjs': 'export const value = "original";\n'}, type = 'module') {
+function fixture(t: TestContext, files: Readonly<Record<string, string>> = {'original.mjs': 'export const value = "original";\n'}, type = 'module') {
   const root = mkdtempSync(join(tmpdir(), 'actql-initial-image-loader-'));
   t.after(() => rmSync(root, {recursive: true}));
   const images = join(root, 'images'); mkdirSync(images);
   const sources = {'package.json': JSON.stringify({name: 'independent-image-fixture', type}), ...files};
-  const facts = [];
+  const facts: {path: string; expected: {bytes: number; sha256: string}}[] = [];
   for (const [path, source] of Object.entries(sources)) {
     mkdirSync(dirname(join(images, path)), {recursive: true}); writeFileSync(join(images, path), source);
     const bytes = Buffer.from(source);
     facts.push({path, expected: {bytes: bytes.length, sha256: createHash('sha256').update(bytes).digest('hex')}});
   }
   const preload = join(root, 'preload.cjs'), entry = join(root, 'entry.mjs');
-  return {root, images, sources, facts, run(body, after = '', before = '') {
+  return {root, images, sources, facts, run(body: string, after = '', before = '') {
     // Disposable preloads exercise real Node hooks, not the selected ActQL
     // envelope, original Host, operational admission or normal funding.
     writeFileSync(preload, [
@@ -378,7 +378,7 @@ test('a stock load replacement cannot retain the selected loader currentness', t
   assert.equal(result.status, 0, result.stderr);
 });
 
-function eagerCommon(t, body, source = 'module.exports={value:"original-loaded"};') {
+function eagerCommon(t: TestContext, body: string, source = 'module.exports={value:"original-loaded"};') {
   const f = fixture(t, {'original.cjs': source});
   return f.run(body, [
     'globalThis.originalLoaded=require(require("node:path").join(root,"original.cjs"));',

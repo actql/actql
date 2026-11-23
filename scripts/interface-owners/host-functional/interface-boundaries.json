@@ -61336,7 +61336,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-image-loader.cjs",
-      "sha256": "f682b21b0350d506d8fb24794dfb5e7558700bfe4cbaa1a25b9a41551a97dc51",
+      "sha256": "0f8a789eaffe7a1600ae72dc1f6f817ed928e1e49bc3952db0066a6deed2ead4",
       "exports": [
         "commonjs:installInitialControlImageLoader",
         "commonjs:installOrdinaryInitialControlImageLoader"
@@ -61459,7 +61459,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// Private loader custody, not an operational admission."
               },
               {
@@ -61469,41 +61469,41 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "function installInitialControlImageLoader(groups)"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "function installInitialControlImageLoader(groups: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "function captureLoadedModules()"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "function sealJsonOriginal(original, exported)"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "function sealJsonOriginal(original: CapturedImage, exported: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "function jsonInteropRecord(value)"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "function jsonInteropRecord(value: unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "const preloading = descriptor(NodeModule.prototype,"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "const stockLoad = NodeModule._load, stockCache = NodeModule._cache;"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "const loadedModules = [];"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "const loadedModules: LoadedModule[] = [];"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "const expected = parse(nativeApply(nativeCharCodeAt, source, [0]) === 0xfeff"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "const expected: unknown = parse(nativeApply(nativeCharCodeAt, source, [0]) === 0xfeff"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "const jsonInterop = original.format === 'json'"
               },
               {
@@ -61511,49 +61511,49 @@
                 "anchor": "Instance identity, original callback and receiver correspondence prevent"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "if (original !== undefined) captured = {url, format: original.format, shortCircuit: true};"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "if (original !== undefined) captured = {url: url!, format: original.format, shortCircuit: true};"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// Actual loader registration, held Sources and native module registry remain"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "function registerHooksFence(...args)"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "function registerHooksFence(...args: Parameters<typeof registerHooks>)"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "registration through the published fence stays invalidated after deregistration"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// Only the original preload can finish this handoff, immediately after its"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// SAME captured Source before sealing any node. Preserve stock Node's JSON"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a caller cache preseed cannot replace"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "function assertCurrent()"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a captured but unevaluated CJS image does not gain post-entry module provenance"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a nested JSON value changed before capture cannot substitute captured Source metadata"
               }
             ],
@@ -61563,33 +61563,33 @@
                 "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a substituted JSON alias graph refuses before sealing any original node"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "const images = new NativeMap(), prefixes = [];"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "const images = new NativeMap<string, CapturedImage>(), prefixes: string[] = [];"
               },
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// this shallow original is not a universal export-graph certificate."
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// WeakSet and node array overlap the original Module/tree/Source; none is"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// cache shape. Its retained String alias follows the original error duty."
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "loading: loadedProperty.value === false, jsonInterop, properties"
               },
               {
@@ -61597,8 +61597,8 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits and actual owned"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "let captured;"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "let captured: ReturnType<ResolveHook> | undefined;"
               }
             ],
             "extension": [
@@ -61607,7 +61607,7 @@
                 "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// This is only a Source-handoff marker, not module/exports authentication"
               },
               {
@@ -61615,69 +61615,69 @@
                 "anchor": "Extension keeps supported ordinary options and normal factory acquisition"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "const result = captured ?? nextResolve(specifier, context);"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "actual ESM compilation uses captured Source"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "actual CommonJS compilation and original manifest type"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a stock load replacement cannot retain"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "the loader helper issues no operational admission"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "post-load capture binds the actual cache module and exports before entry"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "an original undefined export cannot be replaced by an unobserved cache getter"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "application-time post-load capture cannot resnapshot changed originals"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a retained pre-fence registration function is outside the property fence observation"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "captured JSON metadata keeps its original nested records and arrays immutable"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "JSON metadata verification refuses an accessor without invoking it"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "JSON metadata handoff preserves BOM Unicode null and negative zero without freezing prototypes"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "JSON metadata sealing is not a proof or freeze of arbitrary nested CJS library state"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "original ESM JSON interop cache records retain the same Source tree and exact record before entry"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "original ESM JSON interop refuses an equal cache preseed without Source delivery"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "original ESM JSON interop never licenses an abbreviated CommonJS cache record"
               },
               {
@@ -61685,7 +61685,7 @@
                 "anchor": "ordinary import acquires its installed prefix before original bounded input and never refills a generation"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a genuine namespace at another ESM image cannot substitute the selected module"
               }
             ]
@@ -61699,7 +61699,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// Private loader custody, not an operational admission."
               },
               {
@@ -61709,41 +61709,41 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "function installInitialControlImageLoader(groups)"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "function installInitialControlImageLoader(groups: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "function captureLoadedModules()"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "function sealJsonOriginal(original, exported)"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "function sealJsonOriginal(original: CapturedImage, exported: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "function jsonInteropRecord(value)"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "function jsonInteropRecord(value: unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "const preloading = descriptor(NodeModule.prototype,"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "const stockLoad = NodeModule._load, stockCache = NodeModule._cache;"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "const loadedModules = [];"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "const loadedModules: LoadedModule[] = [];"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "const expected = parse(nativeApply(nativeCharCodeAt, source, [0]) === 0xfeff"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "const expected: unknown = parse(nativeApply(nativeCharCodeAt, source, [0]) === 0xfeff"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "const jsonInterop = original.format === 'json'"
               },
               {
@@ -61753,43 +61753,43 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// Actual loader registration, held Sources and native module registry remain"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "function registerHooksFence(...args)"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "function registerHooksFence(...args: Parameters<typeof registerHooks>)"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "registration through the published fence stays invalidated after deregistration"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// Only the original preload can finish this handoff, immediately after its"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// SAME captured Source before sealing any node. Preserve stock Node's JSON"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a caller cache preseed cannot replace"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "function assertCurrent()"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a captured but unevaluated CJS image does not gain post-entry module provenance"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a nested JSON value changed before capture cannot substitute captured Source metadata"
               }
             ],
@@ -61799,33 +61799,33 @@
                 "anchor": "Cancellation requests stop and keeps unfinished tasks and shared native users"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a substituted JSON alias graph refuses before sealing any original node"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
-                "anchor": "const images = new NativeMap(), prefixes = [];"
+                "path": "adapters/host-node/initial-control-image-loader.cts",
+                "anchor": "const images = new NativeMap<string, CapturedImage>(), prefixes: string[] = [];"
               },
               {
                 "path": "docs/design/reference-host.md",
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// this shallow original is not a universal export-graph certificate."
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// WeakSet and node array overlap the original Module/tree/Source; none is"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// cache shape. Its retained String alias follows the original error duty."
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "loading: loadedProperty.value === false, jsonInterop, properties"
               },
               {
@@ -61839,7 +61839,7 @@
                 "anchor": "<!-- requirement-block: ordinary-host.authorization-preservation -->"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.cjs",
+                "path": "adapters/host-node/initial-control-image-loader.cts",
                 "anchor": "// This is only a Source-handoff marker, not module/exports authentication"
               },
               {
@@ -61849,63 +61849,63 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "actual ESM compilation uses captured Source"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "actual CommonJS compilation and original manifest type"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a stock load replacement cannot retain"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "the loader helper issues no operational admission"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "post-load capture binds the actual cache module and exports before entry"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "an original undefined export cannot be replaced by an unobserved cache getter"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "application-time post-load capture cannot resnapshot changed originals"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "a retained pre-fence registration function is outside the property fence observation"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "captured JSON metadata keeps its original nested records and arrays immutable"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "JSON metadata verification refuses an accessor without invoking it"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "JSON metadata handoff preserves BOM Unicode null and negative zero without freezing prototypes"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "JSON metadata sealing is not a proof or freeze of arbitrary nested CJS library state"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "original ESM JSON interop cache records retain the same Source tree and exact record before entry"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "original ESM JSON interop refuses an equal cache preseed without Source delivery"
               },
               {
-                "path": "adapters/host-node/initial-control-image-loader.test.mjs",
+                "path": "adapters/host-node/initial-control-image-loader.test.mts",
                 "anchor": "original ESM JSON interop never licenses an abbreviated CommonJS cache record"
               },
               {
