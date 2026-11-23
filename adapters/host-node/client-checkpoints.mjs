@@ -2888,15 +2888,21 @@ export async function installRemoteCheckpoints({root, namespaceId,
         installed.resumeGate.close();
       }
       decisionBudget.close();
+      const checkpointReconciliationDeferred = journal.connectionFenced;
       let retention;
-      try { retention = await evidence.settle(); }
+      try {
+        // Durable evidence deletion needs the original Journal's current view.
+        // Close the process-owned resources even when that view is fenced.
+        if (!checkpointReconciliationDeferred) retention = await evidence.settle();
+      }
       finally {
         await evidence.close();
         journal.close();
         sourceConsumerClosed = true;
       }
       sourceInventory?.custody.retire();
-      return Object.freeze({pendingRetention: retention.pending,
+      return Object.freeze({...(checkpointReconciliationDeferred
+        ? {checkpointReconciliationDeferred} : {pendingRetention: retention.pending}),
         pendingAuthorization: decisionBudget.cleanupPending()});
     },
   });

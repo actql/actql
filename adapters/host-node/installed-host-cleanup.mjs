@@ -407,7 +407,9 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
       }
     }
     return Object.freeze({storeCleanupPending,
-      pendingRetention: checkpointResult?.pendingRetention ?? [],
+      ...(checkpointResult?.checkpointReconciliationDeferred === true
+        ? {checkpointReconciliationDeferred: true}
+        : {pendingRetention: checkpointResult?.pendingRetention ?? []}),
       authorizationCleanupPending:
         checkpointResult?.pendingAuthorization ?? false});
   }
