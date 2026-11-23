@@ -223,9 +223,10 @@ async function createLocalAuthorizationGateOriginal({
     fail(ACCOUNT_CONFIG_INVALID, 'ConflictingAccountConfiguration');
   }
   if (none(accountConfig) && none(accountConfiguration)) {
-    return createNodeAuthorizationGate({...options, readConfiguration: undefined,
-      context: context ??
-      localAuthorizationContext(principal, undefined)});
+    const installedContext = context ?? localAuthorizationContext(principal, undefined);
+    const gate = await createNodeAuthorizationGate({...options, readConfiguration: undefined,
+      context: installedContext});
+    return Object.freeze({...gate, context: installedContext});
   }
   if (!none(accountConfiguration) && typeof accountConfiguration !== 'string') {
     fail(ACCOUNT_CONFIG_INVALID, 'AccountConfigurationText');

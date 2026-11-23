@@ -77670,7 +77670,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d5e346b2fe207263118e3056b78c54bcf33639d83270b3a0e13677c2cde1e937",
+      "sha256": "931c7cdbce4659feee466bd98eb66b05a1c983ab043a01cf355c6a122e38a471",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [

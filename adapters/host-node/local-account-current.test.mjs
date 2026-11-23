@@ -134,16 +134,23 @@ test('installed file-backed gate retains the exact Account wire and context for 
   assert.throws(() => gate.assertAccountCurrent(original), {code: 'AuthorizationCurrentAccountChanged'});
 });
 
-test('installed wire-backed gate preserves original context and cannot synthesize a missing Account', async () => {
+test('installed gates preserve original context without synthesizing a missing Account', async () => {
   const context = Object.freeze({principal: 'original-reader', contextCid: subjectCid});
   const gate = await createLocalAuthorizationGate({accountConfiguration: wire, context});
   const missing = await createLocalAuthorizationGate({context});
+  const defaultMissing = await createLocalAuthorizationGate({principal: 'default-reader'});
   try {
     assert.equal(gate.accountConfiguration, wire);
     assert.strictEqual(gate.context, context);
-    assert.equal(missing.accountConfiguration, undefined);
-    assert.notEqual((await missing.authorize('acquisition', tuple, {subjectCid})).action, 'dispatch');
-  } finally {gate.close(); missing.close();}
+    assert.strictEqual(missing.context, context);
+    assert.deepEqual(defaultMissing.context,
+      {principal: 'default-reader', contextCid: defaultMissing.contextCid});
+    assert.equal(Object.isFrozen(defaultMissing.context), true);
+    for (const unconfigured of [missing, defaultMissing]) {
+      assert.equal(unconfigured.accountConfiguration, undefined);
+      assert.notEqual((await unconfigured.authorize('acquisition', tuple, {subjectCid})).action, 'dispatch');
+    }
+  } finally {gate.close(); missing.close(); defaultMissing.close();}
 });
 
 // Independent published Account corpus preimage, not a CID calculated by the
