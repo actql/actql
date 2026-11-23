@@ -23,6 +23,7 @@ fn original_sdk_read_context(
   run : Int,
   current_configuration : Int,
   same_reader_census? : Bool = false,
+  reuse_proven_fence_rows? : Bool = false,
 ) -> Result[OriginalSDKReadContext, Int] {
   if value.publications.get(record.publication) is None {
     return saved_sdk_read_context(
@@ -31,6 +32,7 @@ fn original_sdk_read_context(
       run,
       current_configuration,
       same_reader_census~,
+      reuse_proven_fence_rows~,
     )
   }
   guard value.publications.get(record.publication) is Some(parent) &&
