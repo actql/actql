@@ -3,10 +3,11 @@
 // begin after the original child exits. Arguments: step, then installation path.
 import assert from 'node:assert/strict';
 import {createPrivateKey, sign} from 'node:crypto';
-import {appendFileSync, readFileSync, writeFileSync} from 'node:fs';
+import {appendFileSync, readFileSync, realpathSync, writeFileSync} from 'node:fs';
 import {DatabaseSync} from 'node:sqlite';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
+import {join} from 'node:path';
 import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import * as sdk from '../../../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from '../../../host-node/embedded-local.mjs';
@@ -15,6 +16,8 @@ import {effectBoundaryFailureData, effectCheckpointTerminalData} from
 
 const [step, installationPath] = process.argv.slice(2);
 const installation = JSON.parse(readFileSync(installationPath, 'utf8'));
+const lostFencedCloseReply = step === 'answer-fenced-lost-close';
+const fenceApproval = step === 'answer-fenced' || lostFencedCloseReply;
 // A test fault: the first close of a journal of this module fails.
 const faultModule = process.env.ACTQL_EMBEDDED_FAIL_FIRST_CLOSE;
 const closes = {attempts: 0, failed: 0};
@@ -82,6 +85,82 @@ async function waitFor(check) {
 }
 const refPath = `${installationPath}.ref.json`;
 const submissionPath = `${installationPath}.submission-ref.json`;
+
+function faultOriginalApproval(checkpointCid) {
+  const path = realpathSync(join(installation.directory, 'checkpoints', 'journal',
+    'checkpoint-journal.sqlite3'));
+  const prototype = DatabaseSync.prototype;
+  const {exec, prepare, close} = prototype;
+  const lostReply = new Error('OriginalFencedCheckpointCloseReplyLost');
+  let writer, primary, rollbacks = 0, begins = 0, closes = 0;
+  prototype.exec = function (sql) {
+    if (this === writer && sql === 'BEGIN IMMEDIATE') begins++;
+    if (this === writer && sql === 'ROLLBACK') {
+      rollbacks++;
+      assert.equal(this.isTransaction, true);
+      throw new Error('OriginalApprovalRollbackRefused');
+    }
+    if (sql !== 'COMMIT' || this.location() !== path) return exec.call(this, sql);
+    const checkpoint = prepare.call(this,
+      'SELECT closure, resolution_cid FROM checkpoints WHERE checkpoint_cid=?').get(checkpointCid);
+    if (checkpoint?.closure !== 'resolved') return exec.call(this, sql);
+    assert.equal(writer, undefined);
+    assert.equal(this.isTransaction, true);
+    const intent = prepare.call(this,
+      'SELECT state, resolution_cid FROM resume_intents WHERE checkpoint_cid=?').get(checkpointCid);
+    assert.equal(intent?.state, 'pending');
+    assert.equal(intent.resolution_cid, checkpoint.resolution_cid);
+    writer = this;
+    exec.call(this, `CREATE TEMP TABLE approval_parent(id INTEGER PRIMARY KEY);
+      CREATE TEMP TABLE approval_child(id INTEGER REFERENCES approval_parent(id)
+        DEFERRABLE INITIALLY DEFERRED);
+      INSERT INTO approval_child VALUES(99);`);
+    try { return exec.call(this, sql); }
+    catch (error) { primary = error; throw error; }
+  };
+  prototype.close = function () {
+    if (this !== writer) return close.call(this);
+    closes++;
+    const result = close.call(this);
+    assert.equal(this.isOpen, false);
+    if (lostFencedCloseReply && closes === 1) throw lostReply;
+    return result;
+  };
+  return async () => {
+    try {
+      assert.equal(primary?.code, 'ERR_SQLITE_ERROR');
+      assert.equal(primary?.errcode, 787);
+      assert.equal(writer.isTransaction, true);
+      let result;
+      if (lostFencedCloseReply) {
+        let cleanup;
+        await assert.rejects(host.close(), error => {
+          assert.strictEqual(error, lostReply);
+          assert.equal(error.cleanupPending, true);
+          cleanup = error.cleanupHandle;
+          assert.ok(cleanup.status().pending.includes('checkpoint'));
+          assert.equal(writer.isOpen, false);
+          return true;
+        });
+        result = await cleanup.retry();
+        assert.deepEqual(cleanup.status().pending, []);
+      } else {
+        result = await host.close();
+      }
+      assert.equal(result.checkpointReconciliationDeferred, true);
+      assert.equal(Object.hasOwn(result, 'pendingRetention'), false);
+      assert.equal(result.storeCleanupPending, false);
+      await host.close();
+      assert.equal(writer.isOpen, false);
+      assert.deepEqual({rollbacks, begins, closes}, {rollbacks: 1, begins: 0, closes: 1});
+      return {sqlite: primary.errcode, physicalCloses: closes, lostCloseReply: lostFencedCloseReply};
+    } finally {
+      Object.assign(prototype, {exec, close});
+    }
+  };
+}
+
+let closeFencedApproval;
 try {
   if (step === 'submit') {
     const submissionRef = client.newSubmission({nonce: installation.requestId});
@@ -111,17 +190,37 @@ try {
     });
     writeFileSync(refPath, JSON.stringify(execution.ref), {flag: 'wx', mode: 0o600});
     console.log(JSON.stringify({held: true}));
-  } else if (step === 'answer') {
+  } else if (step === 'answer' || fenceApproval) {
     const ref = JSON.parse(readFileSync(refPath, 'utf8'));
     const [checkpoint] = (await client.checkpoints()).items;
     assert.equal(checkpoint.kind, 'effect_set');
     const key = createPrivateKey(installation.reviewerPrivateKey);
-    const answer = await client.resolveCheckpoints([
+    const resolveApproval = () => client.resolveCheckpoints([
       {checkpoint, decision: 'approved'}], {signer: {keyId: 'reviewer-key',
       reviewerId: 'reviewer', authorityScopeCid: ref.authorityScopeCid,
       sign: bytes => sign(null, bytes, key)}});
-    console.log(JSON.stringify({answered: answer.results.map(item =>
-      item.status)}));
+    if (fenceApproval) closeFencedApproval = faultOriginalApproval(checkpoint.checkpointCid);
+    const answer = await resolveApproval();
+    const [result] = answer.results;
+    if (fenceApproval) {
+      assert.equal(answer.results.length, 1);
+      assert.equal(result.status, 'invalid');
+      assert.equal(result.reason, 'CheckpointJournalCommitOutcomeUnknown');
+      await assert.rejects(client.checkpoints(), {code: 'ClientHostFailure'});
+      await assert.rejects(resolveApproval, {code: 'ResolutionUnknown'});
+    } else {
+      console.log(JSON.stringify({answered: answer.results.map(item => item.status)}));
+    }
+  } else if (step === 'observe-waiting') {
+    const ref = JSON.parse(readFileSync(refPath, 'utf8'));
+    const submissionRef = JSON.parse(readFileSync(submissionPath, 'utf8'));
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, ref);
+    const state = await (await client.attach(ref)).status();
+    const ids = (await client.checkpoints()).items.map(item => item.checkpointCid);
+    console.log(JSON.stringify({ref, ids, status: state.status}));
   } else if (step === 'resume') {
     const ref = JSON.parse(readFileSync(refPath, 'utf8'));
     const submissionRef = JSON.parse(readFileSync(submissionPath, 'utf8'));
@@ -220,7 +319,8 @@ try {
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
   }
-  await host?.close();
+  if (closeFencedApproval === undefined) await host?.close();
+  else console.log(JSON.stringify(await closeFencedApproval()));
 }
 // The Host and execution owner live in this child; the parent waits for its exit.
 process.exit(0);

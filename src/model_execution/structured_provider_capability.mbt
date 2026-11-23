@@ -201,7 +201,7 @@ pub fn structured_model_async_request_plan(
   profile : @environment.ModelResponseProfile,
   installation : @environment.ModelResponseProfileInstallation,
   start : (ModelCallEntry) -> ModelPhysicalCall?,
-  read_decoded : (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?,
+  read_decoded : (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelSavedStructuredDecoded?,
   evidence? : ModelPhysicalRequestEvidence,
   attachments? : Array[ModelContentAdmission] = [],
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
@@ -237,7 +237,7 @@ pub fn bound_structured_model_async_request_plan(
   profile : @environment.ModelResponseProfile,
   installation : @environment.ModelResponseProfileInstallation,
   start : (ModelCallEntry) -> ModelPhysicalCall?,
-  read_decoded : (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?,
+  read_decoded : (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelSavedStructuredDecoded?,
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   let original = value.capability
   structured_model_async_request_plan(
