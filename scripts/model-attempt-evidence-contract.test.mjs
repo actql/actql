@@ -27,6 +27,11 @@ const accounting = {version: 'actql-model-attempt-accounting/0.1',
 const outcome = {version: 'actql-model-attempt-outcome/0.1',
   attempt_cid: machineCid(attempt), slot_cid: pin('9'),
   category: 'provider_failure', failure: 'timeout'};
+const reported = {raw_response_artifact_cid: pin('a'), response_profile_cid: pin('b'),
+  observed_at: '2026-10-12T00:00:00.000Z', provider_reported_model_id: 'reported-model',
+  provider_request_id: 'original-response', finish_reason: 'length', response_complete: false,
+  provider_metadata: {system_fingerprint: 'fp_observed'}};
+const reportedOutcome = {...outcome, failure: 'truncated', reported_response: reported};
 const attachment = {version: 'actql-model-attachment-admission/0.1',
   slot_cid: pin('9'), model_task_cid: pin('5'), fixed_request_cid: pin('6'),
   authority_evidence_cid: machineCid(authority), attachments: [{role: 'document', item: -1,
@@ -44,7 +49,8 @@ const bodies = [['model_dispatch_authority', authority],
   ['model_attempt_accounting', {...accounting, input_tokens: 1, output_tokens: 2,
     reservation: {tokens: 33, cost_units: 7, duration_ms: 19}}],
   ['model_attempt_outcome', {...outcome, category: 'contract_violation',
-    failure: 'budget_exceeded'}], ['model_attachment_admission', attachment]];
+    failure: 'budget_exceeded'}], ['model_attachment_admission', attachment],
+  ['model_attempt_outcome', reportedOutcome]];
 const corpus = {version: 'actql-model-attempt-evidence-vectors/0.1',
   cases: bodies.map(([kind, body]) => ({kind, body,
     expected_canonical_bytes: canonicalText(body), expected_cid: machineCid(body)}))};
@@ -64,6 +70,14 @@ for (const [index, fixture] of corpus.cases.entries()) {
 for (const [kind, body] of [['model_attempt_accounting', {...accounting, input_tokens: -1}],
   ['model_call_attempt', {...attempt, attempt: 0}],
   ['model_attempt_outcome', {...outcome, failure: 'invented'}],
+  ['model_attempt_outcome', {...reportedOutcome, reported_response: {...reported, provider_request_id: 'a'.repeat(257)}}],
+  ['model_attempt_outcome', {...reportedOutcome, reported_response: {...reported, raw_response_artifact_cid: null}}],
+  ['model_attempt_outcome', {...reportedOutcome, category: 'ok', failure: null}],
+  ['model_attempt_outcome', {...reportedOutcome, reported_response: {...reported,
+    provider_metadata: {first: 'one', second: 'two'}}}],
+  ['model_attempt_outcome', {...reportedOutcome, reported_response: {...reported,
+    provider_metadata: {first: {value: 'nested'}}}}],
+  ['model_attempt_outcome', {...reportedOutcome, category: 'result_unknown', failure: 'result_unknown'}],
   ['model_attempt_accounting', {...accounting,
     reservation: {tokens: -1, cost_units: 7, duration_ms: 19}}],
   ['model_attempt_accounting', {...accounting,

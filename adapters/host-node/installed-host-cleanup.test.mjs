@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import './embedded-local-lifecycle.test.mjs';
 import './embedded-local-close-public.test.mjs';
+import './installed-host-fenced-close.test.mjs';
 import test from 'node:test';
 import fsPromises, {mkdir, mkdtemp, open, readFile, rm} from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';

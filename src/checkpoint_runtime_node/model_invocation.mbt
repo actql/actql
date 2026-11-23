@@ -726,6 +726,7 @@ pub fn model_saved_call_admit(
   outcome_wire : String,
   capture_wire : String,
   observation_wire : String?,
+  raw_descriptor_wire : String?,
 ) -> String {
   try {
     let scope = model_scope_originals(request_wire)
@@ -753,11 +754,20 @@ pub fn model_saved_call_admit(
       Ok(value) => value
       Err(issue) => raise ModelBridgeFailed(@debug.to_string(issue))
     }
-    if @publication.bind_model_slot_attempt_evidence(
+    let proof = match
+      @publication.bind_model_slot_attempt_evidence(
         binding, attempt, accounting, outcome, authority, admission, definition,
-      )
+      ) {
+      Ok(value) => value
+      Err(_) => raise ModelBridgeFailed("InvalidModelSavedProof")
+    }
+    let raw = match raw_descriptor_wire {
+      Some(wire) => Some(model_evidence("model_raw_response", wire))
+      None => None
+    }
+    if @publication.verify_model_attempt_reported_raw(proof, scope, raw)
       is Err(_) {
-      raise ModelBridgeFailed("InvalidModelSavedProof")
+      raise ModelBridgeFailed("InvalidModelSavedRawObservation")
     }
     guard @publication.bound_model_slot_capture_outcome(binding) is Some(result) else {
       raise ModelBridgeFailed("InvalidModelSavedOutcome")
