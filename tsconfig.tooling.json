@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
+    "moduleDetection": "legacy",
     "paths": {
       "@duckdb/node-api": [
         "./adapters/connectors/duckdb/node/node_modules/@duckdb/node-api/lib/index.d.ts",
@@ -40,6 +41,8 @@
     "reviews/2026-10-14-carrier-peer-scope-release-matrix/public-audit.mts",
     "packages/sdk/**/*.mts",
     "packages/node/**/*.mts",
+    "packages/node/**/*.cts",
+    "packages/local-node/**/*.cts",
     "packages/native-cli/**/*.mts",
     "packages/provider-ai-sdk/**/*.mts",
     "packages/provider-http/**/*.mts",
@@ -65,6 +68,7 @@
   ],
   "exclude": [
     "**/*.typecheck.mts",
-    "**/*.d.mts"
+    "**/*.d.mts",
+    "**/*.d.cts"
   ]
 }

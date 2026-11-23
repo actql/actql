@@ -9,7 +9,7 @@ import test from 'node:test';
 const root = fileURLToPath(new URL('../', import.meta.url));
 for (const name of ['node', 'local-node']) {
   const original = fileURLToPath(new URL('../packages/' + name + '/initial-control-public-dispatch.cjs', import.meta.url));
-  function child(args) {
+  function child(args: readonly string[]) {
     const result = spawnSync(process.execPath, args, {encoding: 'utf8',
       env: {PATH: process.env.PATH}, timeout: 10000});
     assert.equal(result.error, undefined);

@@ -2366,6 +2366,16 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/process-completion-observer.d.mts
 /adapters/host-node/process-readmission.mjs
 /adapters/host-node/process-readmission.d.mts
+/packages/node/selected-infer-startup.cjs
+/packages/node/selected-infer-startup.d.cts
+/packages/node/initial-control-public-dispatch.cjs
+/packages/node/initial-control-public-dispatch.d.cts
+/packages/local-node/selected-infer-startup.cjs
+/packages/local-node/selected-infer-startup.d.cts
+/packages/local-node/initial-control-public-dispatch.cjs
+/packages/local-node/initial-control-public-dispatch.d.cts
+/scripts/initial-control-public-dispatch.test.mjs
+/scripts/initial-control-public-dispatch.test.d.mts
 /adapters/host-common/runtime-execution-control.mjs
 /adapters/host-common/runtime-execution-control.d.mts
 /adapters/host-node/dispatch-failure-observation.test.mjs
