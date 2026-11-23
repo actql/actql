@@ -26,6 +26,14 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
   ).unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
   let wire = limits.payload_wire
   let effect_limits = @run_host.client_standard_effect_computation_limits().effects
+  // The compact Values row bound is independent of the static dependency
+  // bodies and the Result Manifest. Use the existing Effect admission policy
+  // for those CREATE originals; construction still quotes their actual extent.
+  let (metadata_nodes, metadata_depth) = if self.first.is_mock_values_create() {
+    (effect_limits.max_admission_nodes, effect_limits.max_admission_depth)
+  } else {
+    (wire.max_nodes, wire.max_depth)
+  }
   let installed = @builtin.configured_local_module(
     @builtin.configured_host_modules(host),
   ).unwrap_or_else(() => stop("LocalOriginalEffectResultUnavailable"))
@@ -424,8 +432,8 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
           receipt,
           rows,
           max_bytes,
-          wire.max_nodes,
-          wire.max_depth,
+          metadata_nodes,
+          metadata_depth,
           before_body=Some((bytes, nodes, depth) => {
             construction
             .prepare_body_result(
@@ -465,14 +473,8 @@ fn LocalNativeMockEffectPlan::prepare_direct_mock_effect_proposals(
       }
     }
     let manifest = @local_values.prepare_installed_effect_model_unit_manifest(
-        run,
-        plan,
-        request,
-        local_invocation,
-        artifacts,
-        max_bytes,
-        wire.max_nodes,
-        wire.max_depth,
+        run, plan, request, local_invocation, artifacts, max_bytes, metadata_nodes,
+        metadata_depth,
       )
       .map_err(issue => {
         LocalNativeMockEffectProposalIssue::UnitPublication(issue)

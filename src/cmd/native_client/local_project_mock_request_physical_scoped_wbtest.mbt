@@ -3390,3 +3390,221 @@ test "Native Source-only mapped UPDATE retains its parameterized Query capture a
 test "Native shared-file DELETE and UPDATE Preview own their original guarded targets" {
   native_shared_file_effect_observes_and_previews(true)
 }
+
+///|
+test "Native Values CREATE captures its whole Result dependency closure under separate metadata limits" {
+  let project = native_project_mock_model_fixture(
+    "source-free-create",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  let installations = []
+  for source in project.sources {
+    for
+      installation in local_project_mock_write_installations(
+        source,
+        "sha256:" + "d".repeat(64),
+        "sha256:" + "a".repeat(64),
+      ).unwrap() {
+      installations.push(installation)
+    }
+  }
+  project.write_installations = Some(installations)
+  let (environment, intent) = native_shared_file_effect_input(
+    project,
+    program_file="file-create.program.json",
+  )
+  let (publication, _) = project
+    .prepare_source_publication(environment)
+    .unwrap()
+  let facility = native_mock_readme_request_facility()
+  facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
+  let (preparation, borrow) = @local_host.prepare_native_client_submitted_request_input(
+    facility.parent,
+    facility.input,
+    intent,
+    environment,
+    publication,
+    verify_request_value_policy=Some(subject => {
+      project.verify_static_request_policy(environment, subject)
+    }),
+  ).native_file_route_value("prepare original Values Request")
+  let first = local_effect_prefix_fixture_original(preparation)
+  assert_true(first.is_mock_values_create())
+  let compilation = first.allowed.compilation
+  let prepared = @run_host.client_effect_compilation_owner(compilation)
+  let assets = @run_host.client_local_product_assets()
+  let contracts = @local_values.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let file_limits = local_project_mock_file_limits()
+  let recipes = []
+  let plan = native_mock_effect_source_plan(
+    prepared,
+    first,
+    project,
+    contracts,
+    {
+      max_columns: 100,
+      max_order_work: file_limits.max_work,
+      max_bytes: file_limits.page.max_bytes,
+      max_nodes: file_limits.page.max_nodes,
+      max_depth: file_limits.page.max_depth,
+    },
+    file_limits.page.max_bytes,
+    recipes,
+    provider_factory=native_request_provider_factory,
+  )
+  let state = retain_native_mock_effect_plan(first, prepared, plan, recipes)
+  @local_host.return_native_client_submitted_request_body(borrow).unwrap()
+  |> ignore
+  @local_values.complete_request_effect_preparation(
+    facility.parent,
+    facility.input,
+    plan,
+  ).unwrap()
+  let run = @local_values.begin_request_effect_managed_run(
+    facility.parent,
+    first.request,
+  ).unwrap()
+  let bound = @run_host.bind_client_effect_compiled_run(
+    prepared,
+    first.allowed,
+    first.definition,
+  ).unwrap()
+  state.open_mock_effect_source_host(run, bound).unwrap()
+  let captured = state.effect_capture.unwrap()
+  let originals = @run_host.client_local_product_finite_originals(
+    "/operator/native-create-proposals", "/product/sqlite.dylib", "/product/crypto.dylib",
+    "2026-10-10T00:00:00.000Z", assets,
+  ).unwrap()
+  let installation = local_run_installation(
+    @utf8.decode(
+      originals.iter().find_first(pair => pair.0 == "run.json").unwrap().1,
+    ),
+  )
+  // The actual component uses the same original Result policy and nominal
+  // Request/Plan. Its observation is computed locally; it issues no Journal
+  // start token, Checkpoint, approval or physical write.
+  let (bytes, _) = @run_host.client_protocol_metadata_construction_bytes(
+    16384,
+    1024L,
+    copies=2,
+  ).unwrap()
+  let held = state.reserve_mock_effect_publication_metadata(run, bytes)
+  @local_values.begin_installed_effect_operation_controls(
+    run,
+    prepared,
+    first.request,
+    plan,
+  ).unwrap()
+  |> ignore
+  let invocation = @run_host.issue_client_effect_source_free_invocation_original(
+    compilation,
+    installation.source_free.unwrap().result_policy_cid,
+    16384,
+    1024,
+    20,
+  ).unwrap()
+  held._retained_values_publication = Some(invocation)
+  @local_values.bind_installed_effect_source_free_invocation(
+    run,
+    prepared,
+    first.request,
+    plan,
+    bound,
+    captured,
+    compilation,
+    @run_host.client_effect_allowed_run_admission(first.allowed),
+    first.definition,
+    invocation,
+  ).unwrap()
+  |> ignore
+  let executed = @local_values.execute_retained_effect_local_tasks_guarded(
+    state.effect_host.unwrap(),
+    captured,
+    256,
+    100000,
+    () => true,
+    require_live=Some(() => true),
+  ).unwrap()
+  state.suffix = Some(executed)
+  let primary : Ref[LocalNativeMockEffectProposalIssue?] = Ref(None)
+  state.prepare_direct_mock_effect_proposals(
+    run,
+    installation.retention,
+    native_mock_effect_record_bytes(installation),
+    issue => if primary.val is None { primary.val = Some(issue) },
+  ) catch {
+    ClientStop(message) =>
+      fail(
+        message +
+        " / " +
+        primary.val
+        .map(issue => {
+          command_preparation_cleanup_cause(
+            CommandBusinessEffectProposals(issue),
+          )
+        })
+        .unwrap_or("no typed cause"),
+      )
+  }
+  let proposals = state.proposals.unwrap()
+  assert_eq(proposals.members.length(), 1)
+  let result = proposals.unit_results[0]
+  assert_eq(@json.parse(result._retained_wire.unwrap()), [
+    { "group": "inserted", "value": null },
+  ])
+  let manifest = proposals._retained_local_manifest.unwrap()
+  let artifact = result.artifact.unwrap()
+  assert_true(
+    @run_host.client_effect_local_manifest_matches(
+      manifest,
+      prepared,
+      proposals.invocation.unwrap(),
+      [artifact],
+    ),
+  )
+  let receipt = result.receipt.unwrap()
+  let (_, schema_nodes, _) = @execution.relation_schema_usage(
+    @execution.completed_relation_export_schema_identity(receipt),
+  )
+  let limit = @local_values.installed_effect_managed_publication_limits(
+    run,
+    prepared,
+    first.request,
+    plan,
+    native_mock_effect_record_bytes(installation),
+  ).unwrap()
+  assert_true(schema_nodes > limit.payload_wire.max_nodes)
+  assert_true(
+    @run_host.client_effect_dependency_capture_matches_artifact(
+      result._retained_dependency.unwrap(),
+      artifact,
+    ),
+  )
+  assert_true(proposals.close())
+  state.proposals = None
+  state.suffix = None
+  assert_true(executed.close())
+  assert_true(
+    @local_values.retire_installed_effect_captured_consumers(run).unwrap(),
+  )
+  state.effect_host = None
+  state.effect_capture = None
+  @local_values.quiesce_installed_managed_run(run).unwrap()
+  state.retire_mock_effect_direct_sources().unwrap()
+  assert_true(
+    @local_values.retire_installed_managed_run(run)
+    is Err(@local_values.Resource(@initial_resources.Unavailable)),
+  )
+  facility.arena.leave_domain_retained_execution(facility.physical).unwrap()
+  facility.arena.close_domain_retained_execution(facility.physical).unwrap()
+  @local_values.retire_installed_managed_run(run).unwrap()
+  facility.arena.close_domain_after_owner_ack(facility.domain).unwrap()
+  facility.arena.try_close().unwrap()
+}
