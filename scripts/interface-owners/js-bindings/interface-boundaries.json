@@ -16358,7 +16358,7 @@
                 "anchor": "The selected controller checks exercise original binding, pending stop,"
               },
               {
-                "path": "scripts/workers-composition.test.mjs",
+                "path": "scripts/workers-composition.test.mts",
                 "anchor": "test('failed partial controller"
               }
             ]
@@ -16426,7 +16426,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/workers-composition.test.mjs",
+                "path": "scripts/workers-composition.test.mts",
                 "anchor": "test('completed cleanup controller retains"
               },
               {
