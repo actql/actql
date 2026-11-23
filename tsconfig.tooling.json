@@ -40,6 +40,8 @@
     "reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.mts",
     "reviews/2026-10-14-carrier-peer-scope-release-matrix/public-audit.mts",
     "packages/sdk/**/*.mts",
+    "packages/run-host-core/**/*.mts",
+    "packages/run-host-core/runtime-bridges.d.ts",
     "packages/node/**/*.mts",
     "packages/node/**/*.cts",
     "packages/local-node/**/*.cts",

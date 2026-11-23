@@ -167630,7 +167630,7 @@
     {
       "module": "packages/run-host-core/observation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
+      "sha256": "5002446121ef2fe0450514e4be9271651398d2c242d64916e85e0999412981e1",
       "role": "observation-presentation",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -167738,7 +167738,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167748,7 +167748,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167758,7 +167758,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167768,7 +167768,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167778,7 +167778,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167788,7 +167788,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167798,7 +167798,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167808,7 +167808,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167818,7 +167818,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167828,7 +167828,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "admitObservationScope"
               },
               {
@@ -167852,7 +167852,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167862,7 +167862,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167872,7 +167872,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167882,7 +167882,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167892,7 +167892,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167902,7 +167902,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167912,7 +167912,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167922,7 +167922,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167932,7 +167932,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167942,7 +167942,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "chargeObservation"
               },
               {
@@ -167962,7 +167962,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -167972,7 +167972,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -167982,7 +167982,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -167992,7 +167992,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -168002,7 +168002,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -168012,7 +168012,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -168022,7 +168022,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -168032,7 +168032,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -168042,7 +168042,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -168052,7 +168052,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "checked"
               },
               {
@@ -168072,7 +168072,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168082,7 +168082,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168092,7 +168092,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168102,7 +168102,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168112,7 +168112,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168122,7 +168122,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168132,7 +168132,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168142,7 +168142,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168152,7 +168152,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168162,7 +168162,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "integer"
               },
               {
@@ -168187,7 +168187,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168197,7 +168197,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168207,7 +168207,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168217,7 +168217,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168227,7 +168227,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168237,7 +168237,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168247,7 +168247,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168257,7 +168257,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168267,7 +168267,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168277,7 +168277,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationBudgetSnapshot"
               },
               {
@@ -168301,7 +168301,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168311,7 +168311,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168321,7 +168321,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168331,7 +168331,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168341,7 +168341,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168351,7 +168351,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168361,7 +168361,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168371,7 +168371,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168381,7 +168381,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168391,7 +168391,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "observationScopeKey"
               },
               {
@@ -168418,7 +168418,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168428,7 +168428,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168438,7 +168438,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168448,7 +168448,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168458,7 +168458,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168468,7 +168468,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168478,7 +168478,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168488,7 +168488,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168498,7 +168498,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168508,7 +168508,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "openObservationBudget"
               },
               {
@@ -168528,7 +168528,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168538,7 +168538,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168548,7 +168548,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168558,7 +168558,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168568,7 +168568,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168578,7 +168578,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168588,7 +168588,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168598,7 +168598,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168608,7 +168608,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168618,7 +168618,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "requireToken"
               },
               {
@@ -168638,7 +168638,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168648,7 +168648,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168658,7 +168658,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168668,7 +168668,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168678,7 +168678,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168688,7 +168688,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168698,7 +168698,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168708,7 +168708,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168718,7 +168718,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168728,7 +168728,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "token"
               },
               {
@@ -168750,7 +168750,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168760,7 +168760,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168770,7 +168770,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168780,7 +168780,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168790,7 +168790,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168800,7 +168800,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168810,7 +168810,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168820,7 +168820,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168830,7 +168830,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -168840,7 +168840,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {

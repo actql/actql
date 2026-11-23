@@ -9,9 +9,10 @@ import {checkpointAdmit, checkpointWaitingState, prepareRunStateObservation,
   runStateObservationKey, nextRunStateRevision, runStateObservationWire, runWaitDecision} from
   '@actql/run-host-core/checkpoints';
 import {checkpointSealBody} from './dist/checkpoint_runtime_node.js';
+import type {RunStateObservation, RunStateObservationLimits} from './checkpoints.d.ts';
 
 // Independent request facts, not a physical Effect or approval receipt.
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const body = {
   version: 'actql-execution-checkpoint/0.1',
   checkpoint_id: 'resident-effect-review', run_id: 'original-run',
@@ -88,7 +89,7 @@ test('actual Run observation Owner keeps one original token and does not advance
   const repeated = await import('@actql/run-host-core/checkpoints');
   assert.equal(repeated.runStateObservationKey(first), runStateObservationKey(first));
   for (const copied of [{}, {...first}, Object.create(first), [], null]) {
-    assert.throws(() => runStateObservationKey(copied), /ForeignRunStateObservation/u);
+    assert.throws(() => runStateObservationKey(copied as RunStateObservation), /ForeignRunStateObservation/u);
   }
   assert.throws(() => prepareRunStateObservation(JSON.stringify(observedRun()),
     'other-run', 0, runLimits), {code: 'ForeignRunStateObservation'});
@@ -121,8 +122,8 @@ test('actual Run wait Owner enforces original stable since future rejection and 
   assert.equal(runWaitDecision(running, 6, runLimits), 'pending');
   assert.throws(() => runWaitDecision(JSON.stringify(observedRun()), null, runLimits),
     {code: 'InvalidRunWaitState'});
-  assert.throws(() => runWaitDecision(running, undefined, runLimits), {code: 'InvalidWaitRevision'});
-  assert.throws(() => runWaitDecision(42, null, runLimits), {code: 'InvalidRunWaitState'});
+  assert.throws(() => runWaitDecision(running, undefined as unknown as null, runLimits), {code: 'InvalidWaitRevision'});
+  assert.throws(() => runWaitDecision(42 as unknown as string, null, runLimits), {code: 'InvalidRunWaitState'});
 });
 
 test('actual Run observation Owner refuses malformed current input and independent encoding bounds', () => {
@@ -138,7 +139,7 @@ test('actual Run observation Owner refuses malformed current input and independe
   assert.throws(() => prepareRunStateObservation(JSON.stringify(observedRun()),
     'same-run', 0, {...runLimits, maxNodes: 0}), /InvalidRunStateObservationLimits/u);
   assert.throws(() => prepareRunStateObservation(JSON.stringify(observedRun()),
-    'same-run', 0, Object.assign([], runLimits)), /InvalidRunStateObservationLimits/u);
+    'same-run', 0, Object.assign([], runLimits) as RunStateObservationLimits), /InvalidRunStateObservationLimits/u);
 });
 
 test('Run observation ABI export removal refuses before any durable caller can accept a row', async t => {
@@ -157,7 +158,7 @@ test('Run observation ABI export removal refuses before any durable caller can a
   assert.equal(runtime.split(needle).length, 2);
   writeFileSync(join(root, 'dist/checkpoint_runtime_node.js'),
     runtime.replace(needle, 'function runStateObservationPrepare('));
-  const missing = await import(pathToFileURL(join(root, 'checkpoints.mjs')).href);
+  const missing: typeof import('./checkpoints.d.ts') = await import(pathToFileURL(join(root, 'checkpoints.mjs')).href);
   let accepted = 0;
   assert.throws(() => {
     missing.prepareRunStateObservation(JSON.stringify(observedRun()), 'same-run', 0, runLimits);

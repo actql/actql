@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
 import test from 'node:test';
+import type {KeyObject} from 'node:crypto';
 import {checkpointSealBody, checkpointExpiredAt, resolutionProofPreimage,
   resolutionAdmit, resolutionDecide, verifiedAttestationPreimage,
   resumedApprovalAt, effectResumeClaimDecide, resumeFenceDecide,
@@ -8,12 +9,14 @@ import {checkpointSealBody, checkpointExpiredAt, resolutionProofPreimage,
   from '@actql/run-host-core/checkpoints';
 
 // Independent ASCII fixture identities, verified against the actual Owner.
-const canonical = value => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']' :
+type Proof = {scheme: string; key_id: string; signature: string};
+
+const canonical = (value: unknown): string => Array.isArray(value) ? '[' + value.map(canonical).join(',') + ']' :
   value !== null && typeof value === 'object' ? '{' + Object.keys(value).sort()
-    .map(key => JSON.stringify(key) + ':' + canonical(value[key])).join(',') + '}' : JSON.stringify(value);
-const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
-const fixed = character => 'sha256:' + character.repeat(64);
-const core = wire => {const value = JSON.parse(wire); assert.equal(value.ok, true, value.issue); return value;};
+    .map(key => JSON.stringify(key) + ':' + canonical((value as Record<string, unknown>)[key])).join(',') + '}' : JSON.stringify(value);
+const cid = (value: unknown) => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+const fixed = (character: string) => 'sha256:' + character.repeat(64);
+const core = (wire: string) => {const value = JSON.parse(wire); assert.equal(value.ok, true, value.issue); return value;};
 const at = '2026-09-25T11:00:00.000Z';
 const reviewer = generateKeyPairSync('ed25519');
 const host = generateKeyPairSync('ed25519');
@@ -30,10 +33,10 @@ const body = {
 const sealed = core(checkpointSealBody(JSON.stringify(body)));
 const checkpoint = JSON.parse(sealed.checkpoint_wire);
 const authorities = JSON.stringify([{key_id: 'reviewer-key', reviewer_id: 'alice'}]);
-const signature = (value, key) => sign(null, Buffer.from(value), key).toString('base64');
+const signature = (value: string, key: KeyObject) => sign(null, Buffer.from(value), key).toString('base64');
 
 function resolution(decision = 'approved', id = 'answer') {
-  const attestation = {version: 'actql-approval-attestation/0.1',
+  const attestation: Record<string, unknown> & {proof?: Proof; attestation_cid?: string} = {version: 'actql-approval-attestation/0.1',
     effect_preview_cid: body.required_artifact.artifact_cid,
     review_projection_cid: body.review_projection_cid, approver: 'alice',
     approved_at: at, authority_scope_cid: fixed('5'), claims: [...body.requirements]};
@@ -43,7 +46,7 @@ function resolution(decision = 'approved', id = 'answer') {
   const evidence = {version: 'actql-checkpoint-approval-evidence/0.1', kind: 'effect_set',
     checkpoint_cid: checkpoint.checkpoint_cid, review_projection_cid: body.review_projection_cid,
     compatibility_approval: attestation};
-  const answer = {version: 'actql-checkpoint-resolution/0.1', resolution_id: id,
+  const answer: Record<string, unknown> & {proof?: Proof; resolution_cid?: string} = {version: 'actql-checkpoint-resolution/0.1', resolution_id: id,
     checkpoint_id: body.checkpoint_id, checkpoint_cid: checkpoint.checkpoint_cid,
     run_id: body.run_id, run_definition_cid: body.run_definition_cid, decision,
     actor: 'alice', decided_at: at, required_artifact_cid: body.required_artifact.artifact_cid,
@@ -69,7 +72,7 @@ function resolution(decision = 'approved', id = 'answer') {
   return {wire, evidenceWire: decision === 'approved' ? JSON.stringify(evidence) : '', authentication};
 }
 
-function decide(answer, closure = 'open', savedCid = '', unknown = [], verifiedAt = at) {
+function decide(answer: ReturnType<typeof resolution>, closure = 'open', savedCid = '', unknown: readonly string[] = [], verifiedAt = at) {
   const admission = core(resolutionAdmit(sealed.checkpoint_wire, answer.wire,
     answer.evidenceWire, answer.authentication, authorities, verifiedAt));
   const proof = signature(admission.attestation_preimage, host.privateKey);

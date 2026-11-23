@@ -108318,11 +108318,11 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/checkpoints.test.mjs",
+                "path": "packages/run-host-core/checkpoints.test.mts",
                 "anchor": "test('formal checkpoint subpath admits the original Owner wire and rejects a changed identity', () => {"
               },
               {
-                "path": "packages/run-host-core/checkpoint-resolution.test.mjs",
+                "path": "packages/run-host-core/checkpoint-resolution.test.mts",
                 "anchor": "test('formal Resolution APIs retain the original Run and signed approval', () => {"
               },
               {
@@ -108486,11 +108486,11 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/checkpoints.test.mjs",
+                "path": "packages/run-host-core/checkpoints.test.mts",
                 "anchor": "test('formal checkpoint subpath admits the original Owner wire and rejects a changed identity', () => {"
               },
               {
-                "path": "packages/run-host-core/checkpoint-resolution.test.mjs",
+                "path": "packages/run-host-core/checkpoint-resolution.test.mts",
                 "anchor": "test('formal Resolution APIs retain the original Run and signed approval', () => {"
               },
               {
@@ -108512,7 +108512,7 @@
     {
       "module": "packages/run-host-core/checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "adc75200bae6b375a45d3debcde55c905a26e0ca0849533b62e85c8a21fb8412",
+      "sha256": "228e1b808befaafec4f6f57f65e2bbebc4782fdc627de672a3aa02d794b8caad",
       "role": "common-semantics",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -108638,7 +108638,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108652,7 +108652,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108670,7 +108670,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "resolutionProofPreimage, resolutionAdmit, resolutionDecide,"
               },
               {
@@ -108682,13 +108682,13 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
-                "anchor": "function observationValue(token)"
+                "path": "packages/run-host-core/checkpoints.mts",
+                "anchor": "function observationValue(token: RunStateObservation)"
               }
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "// Exact existing Owner calls over the portable string ABI. The Host provides"
               },
               {
@@ -108700,13 +108700,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
-                "anchor": "const runStateObservations = new WeakMap();"
+                "path": "packages/run-host-core/checkpoints.mts",
+                "anchor": "const runStateObservations = new WeakMap<object, unknown>();"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "// trusted authentication, durable transactions and physical continuation."
               },
               {
@@ -108724,7 +108724,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108736,13 +108736,13 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "function requireRunStateOwner()"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108756,7 +108756,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108768,13 +108768,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
-                "anchor": "function observationLimits(limits)"
+                "path": "packages/run-host-core/checkpoints.mts",
+                "anchor": "function observationLimits(limits: RunStateObservationLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108788,11 +108788,11 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/checkpoints.test.mjs",
+                "path": "packages/run-host-core/checkpoints.test.mts",
                 "anchor": "test('formal checkpoint subpath admits the original Owner wire and rejects a changed identity', () => {"
               },
               {
-                "path": "packages/run-host-core/checkpoint-resolution.test.mjs",
+                "path": "packages/run-host-core/checkpoint-resolution.test.mts",
                 "anchor": "test('formal Resolution APIs retain the original Run and signed approval', () => {"
               },
               {
@@ -108800,7 +108800,7 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "packages/run-host-core/checkpoints.test.mjs",
+                "path": "packages/run-host-core/checkpoints.test.mts",
                 "anchor": "test('actual Run observation Owner"
               }
             ]
@@ -108814,7 +108814,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108828,7 +108828,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108846,7 +108846,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "resolutionProofPreimage, resolutionAdmit, resolutionDecide,"
               },
               {
@@ -108858,13 +108858,13 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
-                "anchor": "function observationValue(token)"
+                "path": "packages/run-host-core/checkpoints.mts",
+                "anchor": "function observationValue(token: RunStateObservation)"
               }
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "// Exact existing Owner calls over the portable string ABI. The Host provides"
               },
               {
@@ -108876,13 +108876,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
-                "anchor": "const runStateObservations = new WeakMap();"
+                "path": "packages/run-host-core/checkpoints.mts",
+                "anchor": "const runStateObservations = new WeakMap<object, unknown>();"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "// trusted authentication, durable transactions and physical continuation."
               },
               {
@@ -108900,7 +108900,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108912,13 +108912,13 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "function requireRunStateOwner()"
               }
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108932,7 +108932,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108944,13 +108944,13 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
-                "anchor": "function observationLimits(limits)"
+                "path": "packages/run-host-core/checkpoints.mts",
+                "anchor": "function observationLimits(limits: RunStateObservationLimits)"
               }
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/checkpoints.mjs",
+                "path": "packages/run-host-core/checkpoints.mts",
                 "anchor": "export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,"
               },
               {
@@ -108964,11 +108964,11 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/checkpoints.test.mjs",
+                "path": "packages/run-host-core/checkpoints.test.mts",
                 "anchor": "test('formal checkpoint subpath admits the original Owner wire and rejects a changed identity', () => {"
               },
               {
-                "path": "packages/run-host-core/checkpoint-resolution.test.mjs",
+                "path": "packages/run-host-core/checkpoint-resolution.test.mts",
                 "anchor": "test('formal Resolution APIs retain the original Run and signed approval', () => {"
               },
               {
@@ -108976,7 +108976,7 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "packages/run-host-core/checkpoints.test.mjs",
+                "path": "packages/run-host-core/checkpoints.test.mts",
                 "anchor": "test('actual Run observation Owner"
               }
             ]
@@ -113237,7 +113237,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.test.mjs",
+                "path": "packages/run-host-core/observation.test.mts",
                 "anchor": "test('portable owner charges exact limits and preserves custody across restart', () => {"
               },
               {
@@ -113381,7 +113381,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.test.mjs",
+                "path": "packages/run-host-core/observation.test.mts",
                 "anchor": "test('portable owner charges exact limits and preserves custody across restart', () => {"
               },
               {

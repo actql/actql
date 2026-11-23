@@ -12,9 +12,11 @@ export {checkpointAdmit, checkpointWaitingState, checkpointSealBody,
 // token is DATA custody only, never a Run, current permission or cleanup ACK.
 import * as runStateOwner from './dist/checkpoint_runtime_node.js';
 import {runtimeIsOk, runtimeIsError, runtimeField} from './compiler-binding.generated.mjs';
-const runStateObservations = new WeakMap();
+import type {RunStateObservation, RunStateObservationLimits} from './checkpoints.d.ts';
+
+const runStateObservations = new WeakMap<object, unknown>();
 const runStateMethods = ['runStateObservationPrepare', 'runStateObservationKey',
-  'runStateObservationNextRevision', 'runStateObservationWire', 'runStateWaitDecision'];
+  'runStateObservationNextRevision', 'runStateObservationWire', 'runStateWaitDecision'] as const;
 
 function requireRunStateOwner() {
   if (runStateMethods.some(name => typeof runStateOwner[name] !== 'function')) {
@@ -22,27 +24,27 @@ function requireRunStateOwner() {
       {code: 'RunStateObservationRuntimeUnavailable'});
   }
 }
-function observationResult(result) {
+function observationResult(result: unknown) {
   if (runtimeIsOk(result)) return runtimeField(result, 0);
   if (runtimeIsError(result) && typeof runtimeField(result, 0) === 'string') {
-    const code = runtimeField(result, 0);
+    const code = runtimeField(result, 0) as string;
     throw Object.assign(new Error(code), {code});
   }
   throw new TypeError('InvalidRunStateOwnerResult');
 }
-function observationValue(token) {
+function observationValue(token: RunStateObservation) {
   const value = token !== null && typeof token === 'object'
     ? runStateObservations.get(token) : undefined;
   if (value === undefined) throw new TypeError('ForeignRunStateObservation');
   return value;
 }
-function observationRevision(value) {
+function observationRevision(value: number) {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw Object.assign(new Error('InvalidRunStateRevision'), {code: 'InvalidRunStateRevision'});
   }
   return BigInt(value);
 }
-function observationLimits(limits) {
+function observationLimits(limits: RunStateObservationLimits): [number, number, number] {
   if (!limits || typeof limits !== 'object' || Array.isArray(limits)) {
     throw new TypeError('InvalidRunStateObservationLimits');
   }
@@ -54,22 +56,22 @@ function observationLimits(limits) {
   return [maxWireBytes, maxNodes, maxDepth];
 }
 
-export function prepareRunStateObservation(wire, runId, currentRevision, limits) {
+export function prepareRunStateObservation(wire: string, runId: string, currentRevision: number, limits: RunStateObservationLimits) {
   requireRunStateOwner();
   if (typeof wire !== 'string' || typeof runId !== 'string') {
     throw new TypeError('InvalidRunStateObservation');
   }
   const value = observationResult(runStateOwner.runStateObservationPrepare(
     wire, runId, observationRevision(currentRevision), ...observationLimits(limits)));
-  const token = Object.freeze(Object.create(null));
+  const token = Object.freeze(Object.create(null)) as RunStateObservation;
   runStateObservations.set(token, value);
   return token;
 }
-export function runStateObservationKey(token) {
+export function runStateObservationKey(token: RunStateObservation) {
   requireRunStateOwner();
   return runStateOwner.runStateObservationKey(observationValue(token));
 }
-export function nextRunStateRevision(token, priorKey, currentRevision) {
+export function nextRunStateRevision(token: RunStateObservation, priorKey: string | null, currentRevision: number) {
   requireRunStateOwner();
   if (priorKey !== null && typeof priorKey !== 'string') {
     throw new TypeError('InvalidPriorRunStateObservation');
@@ -77,12 +79,12 @@ export function nextRunStateRevision(token, priorKey, currentRevision) {
   return Number(observationResult(runStateOwner.runStateObservationNextRevision(
     observationValue(token), priorKey !== null, priorKey ?? '', observationRevision(currentRevision))));
 }
-export function runStateObservationWire(token, revision) {
+export function runStateObservationWire(token: RunStateObservation, revision: number) {
   requireRunStateOwner();
   return observationResult(runStateOwner.runStateObservationWire(
-    observationValue(token), observationRevision(revision)));
+    observationValue(token), observationRevision(revision))) as string;
 }
-export function runWaitDecision(wire, since, limits) {
+export function runWaitDecision(wire: string, since: number | null, limits: RunStateObservationLimits) {
   requireRunStateOwner();
   if (typeof wire !== 'string') {
     throw Object.assign(new Error('InvalidRunWaitState'), {code: 'InvalidRunWaitState'});

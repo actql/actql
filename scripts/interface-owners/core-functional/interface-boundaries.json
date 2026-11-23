@@ -33281,8 +33281,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/explanation-narrative.mjs",
-                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+                "path": "packages/run-host-core/explanation-narrative.mts",
+                "anchor": "export function renderStaticExplanationNarrative(wire: string, locale: 'en' | 'ja')"
               },
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
@@ -33320,7 +33320,7 @@
             },
             "failure": [
               {
-                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "path": "packages/run-host-core/explanation-narrative.mts",
                 "anchor": "fail('InvalidStaticExplanationNarrative');"
               }
             ],
@@ -33356,7 +33356,7 @@
     {
       "module": "packages/run-host-core/explanation-narrative.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b106cc46882c8d60a88fd53d61f488d15e4a6004e7b9c4cbc8a620ecc8832464",
+      "sha256": "e103e0089fbaa717df3df9a787c413ae531eb862ff33d81168515db70f7adee8",
       "exports": [
         "renderStaticExplanationNarrative"
       ],
@@ -33391,8 +33391,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/explanation-narrative.mjs",
-                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+                "path": "packages/run-host-core/explanation-narrative.mts",
+                "anchor": "export function renderStaticExplanationNarrative(wire: string, locale: 'en' | 'ja')"
               },
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
@@ -33430,7 +33430,7 @@
             },
             "failure": [
               {
-                "path": "packages/run-host-core/explanation-narrative.mjs",
+                "path": "packages/run-host-core/explanation-narrative.mts",
                 "anchor": "fail('InvalidStaticExplanationNarrative');"
               }
             ],
@@ -38591,7 +38591,7 @@
     },
     {
       "module": "packages/run-host-core/observation.mjs",
-      "sha256": "47c5920dcd16b65be41156686e7970adfd6b998d719c4e62420b0bef5f93887c",
+      "sha256": "5002446121ef2fe0450514e4be9271651398d2c242d64916e85e0999412981e1",
       "role": "observation-presentation",
       "exports": [
         "admitObservationScope",
@@ -38712,7 +38712,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38726,7 +38726,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38736,7 +38736,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -38746,7 +38746,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -38756,7 +38756,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38766,7 +38766,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -38776,7 +38776,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38786,7 +38786,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -38796,7 +38796,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38806,7 +38806,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.test.mjs",
+                "path": "packages/run-host-core/observation.test.mts",
                 "anchor": "test('portable owner charges exact limits and preserves custody across restart', () => {"
               },
               {
@@ -38824,7 +38824,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38838,7 +38838,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38848,7 +38848,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -38858,7 +38858,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -38868,7 +38868,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38878,7 +38878,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -38888,7 +38888,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38898,7 +38898,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "// Portable MoonBit observation custody. No SDK, network, timers, or Run state."
               },
               {
@@ -38908,7 +38908,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/observation.mjs",
+                "path": "packages/run-host-core/observation.mts",
                 "anchor": "export function admitObservationScope({workspace, authorityScopeCid,"
               },
               {
@@ -38918,7 +38918,7 @@
             ],
             "verification": [
               {
-                "path": "packages/run-host-core/observation.test.mjs",
+                "path": "packages/run-host-core/observation.test.mts",
                 "anchor": "test('portable owner charges exact limits and preserves custody across restart', () => {"
               },
               {

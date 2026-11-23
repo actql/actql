@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {admitObservationScope, observationScopeKey, openObservationBudget,
   chargeObservation, observationBudgetSnapshot} from './observation.mjs';
+import type {ObservationScope, ObservationBudget, ObservationBudgetSnapshot} from './observation.d.ts';
 
-const cid = character => `sha256:${character.repeat(64)}`;
+const cid = (character: string) => `sha256:${character.repeat(64)}`;
 const scope = (workspace = 'ws_a', revision = 'collector.1') =>
   admitObservationScope({workspace, authorityScopeCid: cid('a'),
     destinationRevision: revision, disclosureRevision: 'metadata-only.1',
@@ -45,9 +46,9 @@ test('changed scope, missing custody, malformed snapshot and forged handles refu
   {code: 'ObservationCustodyRejected'});
   assert.throws(() => openObservationBudget(admitted, request,
     {maxRecords: 2, maxBytes: 8, freshRequest: false,
-      saved: {...saved, bytes: undefined}}), /InvalidObservationBudgetSnapshot/u);
-  assert.throws(() => observationBudgetSnapshot({}), /ForeignObservationHandle/u);
-  assert.throws(() => observationScopeKey({}), /ForeignObservationHandle/u);
+      saved: {...saved, bytes: undefined} as unknown as ObservationBudgetSnapshot}), /InvalidObservationBudgetSnapshot/u);
+  assert.throws(() => observationBudgetSnapshot({} as ObservationBudget), /ForeignObservationHandle/u);
+  assert.throws(() => observationScopeKey({} as ObservationScope), /ForeignObservationHandle/u);
 });
 
 test('interleaved facts remain suppressed after serialized custody restoration', () => {
@@ -73,7 +74,7 @@ test('interleaved facts remain suppressed after serialized custody restoration',
   const {factHashes, ...legacy} = saved;
   assert.throws(() => openObservationBudget(admitted, request,
     {maxRecords: 2, maxBytes: 8, freshRequest: false,
-      saved: {...legacy, lastFact: 'task.1.3.running'}}),
+      saved: {...legacy, lastFact: 'task.1.3.running'} as unknown as ObservationBudgetSnapshot}),
     /InvalidObservationBudgetSnapshot/u);
 });
 
