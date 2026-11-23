@@ -18,21 +18,38 @@ import {createPublicationContractControlFixture} from '../host-common/publicatio
 // matching producer belongs to another checkout. Never a product override or
 // ordinary installed qualification. Store codec is an explicit test fixture;
 // file/format/exclusion/initialization operations below are the real owners.
+type Prepared = NonNullable<Awaited<ReturnType<typeof prepareOrdinaryLocalAccount>>>;
+type Subjects = Parameters<Prepared['adopt']>[1];
+type Selection = NonNullable<Parameters<typeof prepareOrdinaryLocalAccount>[0]['operatorAuthorization']>;
+type ResultRuntime = Parameters<typeof createLocalResultAuthorization>[0]['moon'];
+type Runtime = Parameters<Prepared['adopt']>[0] & ResultRuntime & Readonly<{
+  executionAuthorizationEvaluationJson(value: unknown): string;
+}>;
+type TestAuthorization = Selection & Readonly<{observe?: () => void}>;
+type AccountDocument = Readonly<{
+  bootstrap: Readonly<{profile_id: string}>;
+  entries: {operation: {any_of: string[]}; outcome: string}[];
+}>;
+type TestContext = import('node:test').TestContext;
+
 const runtime = process.env.ACTQL_TEST_COMMON_RUNTIME;
-const moon = await import(runtime === undefined ? new URL(
+const moon: Runtime = await import(runtime === undefined ? new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href
   : pathToFileURL(runtime).href);
-const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+const cid = (value: string) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 const scope = cid('ordinary local account fixture');
-const subjects = {controlConnection: 'local-host', configuredConnections: ['local-files'],
+const subjects: Subjects = {controlConnection: 'local-host', configuredConnections: ['local-files'],
   modelTasks: [['provider', cid('registered Task')]], requestTarget: ['local-host', 'realization']};
 const facts = {principalId: 'person', resultName: 'answer', indexKey: {namespaceId: 'local',
   authorityScopeCid: scope, runDefinitionCid: cid('Run fixture')}};
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const parent = await mkdtemp(join(tmpdir(), 'actql-standard-account-'));
   const root = join(parent, 'host');
-  let ownership, store, prepared, creation;
+  let ownership: Awaited<ReturnType<typeof prepareLocalPublicationStoreOwnership>> | undefined,
+    store: Awaited<ReturnType<typeof openLocalPublicationStore>> | undefined,
+    prepared: Awaited<ReturnType<typeof prepareOrdinaryLocalAccount<TestAuthorization>>>,
+    creation: Awaited<ReturnType<typeof admitHostRootFormat>>;
   const close = async () => {
     if (store !== undefined) {await store.close(); store = undefined;}
     if (ownership !== undefined) {
@@ -41,7 +58,7 @@ async function fixture(t) {
     }
   };
   t.after(async () => {await close(); await rm(parent, {recursive: true, force: true});});
-  const start = async (authorization, requestedSubjects = subjects) => {
+  const start = async (authorization?: TestAuthorization, requestedSubjects = subjects) => {
     creation = await admitHostRootFormat(root);
     ownership = await prepareLocalPublicationStoreOwnership(join(root, 'publication'));
     prepared = await prepareOrdinaryLocalAccount({root, principal: 'person', preparedOriginal: ownership,
@@ -68,14 +85,14 @@ test('ordinary Local durably adopts the actual standard profile and reopens with
   const authorization = await f.start();
   const config = await readFile(f.config), intent = await readFile(f.intent), marker = await readFile(f.marker);
   assert.equal((await stat(f.config)).mode & 0o777, 0o600);
-  const parsed = JSON.parse(config);
+  const parsed = JSON.parse(config as unknown as string) as AccountDocument;
   assert.equal(parsed.bootstrap.profile_id, 'actql-local-standard');
   const authorize = createLocalResultAuthorization({moon, authorization,
     principalId: 'person', namespaceId: 'local', authorityScopeCid: scope});
   assert.equal(await authorize(facts), true);
   await f.close();
   const reopened = await f.start();
-  assert.equal(reopened.accountConfig, authorization.accountConfig);
+  assert.equal(reopened!.accountConfig, authorization!.accountConfig);
   assert.deepEqual(await readFile(f.config), config);
   assert.deepEqual(await readFile(f.intent), intent);
   assert.deepEqual(await readFile(f.marker), marker);
@@ -84,15 +101,15 @@ test('ordinary Local durably adopts the actual standard profile and reopens with
 
 test('ordinary Local adopts the complete Source and Model inventory beyond former independent counts', async t => {
   const f = await fixture(t);
-  const selected = {...subjects,
+  const selected: Subjects = {...subjects,
     configuredConnections: Array.from({length: 129}, (_, index) => `source-${index}`),
     modelTasks: Array.from({length: 65}, (_, index) => ['provider', cid(`registered Task ${index}`)])};
   const authorization = await f.start(undefined, selected);
   const original = await readFile(f.config, 'utf8');
   const account = moon.executionAuthorizationAdmit(original);
-  const document = JSON.parse(original);
+  const document = JSON.parse(original) as AccountDocument;
   assert.equal(document.entries.length, 198);
-  const outcome = (connection, resource, operation) => JSON.parse(
+  const outcome = (connection: string, resource: string, operation: string) => JSON.parse(
     moon.executionAuthorizationEvaluationJson(moon.executionAuthorizationEvaluate(
       account, 'person', connection, resource, operation))).outcome;
   for (const connection of selected.configuredConnections) {
@@ -113,7 +130,7 @@ test('ordinary Local adopts the complete Source and Model inventory beyond forme
   assert.equal(await authorize(facts), false);
   await f.close();
   const reopened = await f.start(undefined, selected);
-  assert.equal(reopened.accountConfig, authorization.accountConfig);
+  assert.equal(reopened!.accountConfig, authorization!.accountConfig);
   assert.equal(await readFile(f.config, 'utf8'), restricted,
     'Reopening the same inventory preserves actual operator restrictions');
   assert.equal(await createLocalResultAuthorization({moon, authorization: reopened,
@@ -122,7 +139,7 @@ test('ordinary Local adopts the complete Source and Model inventory beyond forme
 
 test('ordinary Local invalid Account subject preserves intent without publishing a partial configuration', async t => {
   const f = await fixture(t);
-  const selected = {controlConnection: 'local-host', modelTasks: [],
+  const selected: Subjects = {controlConnection: 'local-host', modelTasks: [],
     configuredConnections: ['']};
   await assert.rejects(f.start(undefined, selected), {code: 'MoonBitHostFailure'});
   assert.ok((await readFile(f.intent)).length > 0);
@@ -137,7 +154,7 @@ test('ordinary Local preserves current Deny on the same Host and after reopening
   const authorize = createLocalResultAuthorization({moon, authorization,
     principalId: 'person', namespaceId: 'local', authorityScopeCid: scope});
   assert.equal(await authorize(facts), true);
-  const config = JSON.parse(await readFile(f.config, 'utf8'));
+  const config = JSON.parse(await readFile(f.config, 'utf8')) as AccountDocument;
   for (const entry of config.entries) if (entry.operation.any_of.includes('read')) entry.outcome = 'deny';
   const restricted = JSON.stringify(config);
   await writeFile(f.config, restricted);
@@ -154,14 +171,14 @@ test('diagnostic-only authorization preserves standard bootstrap and current Den
   let observations = 0;
   const observe = () => { observations++; };
   const authorization = await f.start({observe});
-  assert.equal(authorization.observe, observe);
-  assert.equal(authorization.accountConfig, f.config);
+  assert.equal(authorization!.observe, observe);
+  assert.equal(authorization!.accountConfig, f.config);
   assert.equal(JSON.parse(await readFile(f.config, 'utf8')).bootstrap.profile_id,
     'actql-local-standard');
   const authorize = createLocalResultAuthorization({moon, authorization,
     principalId: 'person', namespaceId: 'local', authorityScopeCid: scope});
   assert.equal(await authorize(facts), true);
-  const restricted = JSON.parse(await readFile(f.config, 'utf8'));
+  const restricted = JSON.parse(await readFile(f.config, 'utf8')) as AccountDocument;
   for (const entry of restricted.entries) {
     if (entry.operation.any_of.includes('read')) entry.outcome = 'deny';
   }
@@ -171,7 +188,7 @@ test('diagnostic-only authorization preserves standard bootstrap and current Den
   assert.equal(observations, 0, 'Account checks do not fabricate diagnostic delivery');
   await f.close();
   const reopened = await f.start({observe});
-  assert.equal(reopened.observe, observe);
+  assert.equal(reopened!.observe, observe);
   assert.deepEqual(JSON.parse(await readFile(f.config, 'utf8')), restricted,
     'Reopening with diagnostics must not regrant the standard Account');
   assert.equal(await createLocalResultAuthorization({moon, authorization: reopened,
@@ -179,7 +196,7 @@ test('diagnostic-only authorization preserves standard bootstrap and current Den
 });
 
 test('ordinary Local missing adopted configuration or intent refuses without recreation', async t => {
-  for (const field of ['config', 'intent']) {
+  for (const field of ['config', 'intent'] as const) {
     const f = await fixture(t);
     await f.start(); await f.close();
     await rename(f[field], f[field] + '.test-owned-original');
@@ -202,7 +219,7 @@ test('ordinary Local explicit Account selection replaces bootstrap without mater
   assert.equal(await f.start({accountConfiguration: '{invalid explicit Account'}), undefined);
   await assert.rejects(stat(f.intent), {code: 'ENOENT'});
   await assert.rejects(stat(f.config), {code: 'ENOENT'});
-  assert.deepEqual(JSON.parse(await readFile(f.marker)), {
+  assert.deepEqual(JSON.parse(await readFile(f.marker) as unknown as string), {
     version: 'actql-local-host-root/0.1', isolation: 'execution-namespace'});
 });
 
@@ -231,7 +248,7 @@ test('ordinary Local confirms the same adoption after an uncertain directory com
     return result;
   };
   fs.promises.open = async function(path, flags, ...args) {
-    const handle = await Reflect.apply(original, this, [path, flags, ...args]);
+    const handle: Awaited<ReturnType<typeof open>> = await Reflect.apply(original, this, [path, flags, ...args]);
     if (adoptionRenamed && path === f.root && flags === 0 && !injected) {
       handle.sync = async function() {
         injected = true;

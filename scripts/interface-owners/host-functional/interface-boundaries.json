@@ -55344,43 +55344,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,"
+                "path": "adapters/host-node/ordinary-local-account.mts",
+                "anchor": "async function prepareOrdinaryLocalAccountOriginal<Authorization extends object>("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "adopted.initialization_cid !== initializationCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "const current = () => assertOriginalPreparedLocalPublicationStoreOwnership("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "await adoptHostRootAccount(root, preparedOriginal, record);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "if (rootCreation !== 'new') fail('LocalAccountFirstInitializationUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "Reflect.apply(originalStatus, originalStore, []).closed !== false"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "const maximum = 1_000_000;"
               }
             ],
@@ -55392,7 +55392,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-local-account.test.mjs",
+                "path": "adapters/host-node/ordinary-local-account.test.mts",
                 "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
               }
             ]
@@ -129515,7 +129515,7 @@
     {
       "module": "adapters/host-node/ordinary-local-account.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0ef984d846a7eec3a749cbbead2c7ae593be02894ab568a42b98c6743ce4dad8",
+      "sha256": "ef884e4911a1114ec84bc9d58adb7973c280f1e6b3d187576cd0c8814ebf0821",
       "role": "physical-io",
       "owner": "Existing ordinary Local Host/Account initialization and Store exclusion Owners",
       "exports": [
@@ -129625,43 +129625,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,"
+                "path": "adapters/host-node/ordinary-local-account.mts",
+                "anchor": "async function prepareOrdinaryLocalAccountOriginal<Authorization extends object>("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "adopted.initialization_cid !== initializationCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "const current = () => assertOriginalPreparedLocalPublicationStoreOwnership("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "await adoptHostRootAccount(root, preparedOriginal, record);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "if (rootCreation !== 'new') fail('LocalAccountFirstInitializationUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "Reflect.apply(originalStatus, originalStore, []).closed !== false"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "const maximum = 1_000_000;"
               }
             ],
@@ -129673,7 +129673,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-local-account.test.mjs",
+                "path": "adapters/host-node/ordinary-local-account.test.mts",
                 "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
               }
             ]
@@ -129693,43 +129693,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,"
+                "path": "adapters/host-node/ordinary-local-account.mts",
+                "anchor": "async function prepareOrdinaryLocalAccountOriginal<Authorization extends object>("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "adopted.initialization_cid !== initializationCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "const current = () => assertOriginalPreparedLocalPublicationStoreOwnership("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "await adoptHostRootAccount(root, preparedOriginal, record);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "if (rootCreation !== 'new') fail('LocalAccountFirstInitializationUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "Reflect.apply(originalStatus, originalStore, []).closed !== false"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
+                "path": "adapters/host-node/ordinary-local-account.mts",
                 "anchor": "const maximum = 1_000_000;"
               }
             ],
@@ -129741,7 +129741,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-local-account.test.mjs",
+                "path": "adapters/host-node/ordinary-local-account.test.mts",
                 "anchor": "test('ordinary Local preserves current Deny on the same Host and after reopening'"
               }
             ]
@@ -129757,14 +129757,14 @@
                 "anchor": "### Funded Account construction on the same original"
               },
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "export async function prepareOrdinaryLocalAccount({accountConstruction, ...options}) {"
+                "path": "adapters/host-node/ordinary-local-account.mts",
+                "anchor": "export async function prepareOrdinaryLocalAccount<Authorization extends object = Selection>("
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-local-account.mjs",
-                "anchor": "export async function prepareOrdinaryLocalAccount({accountConstruction, ...options}) {"
+                "path": "adapters/host-node/ordinary-local-account.mts",
+                "anchor": "export async function prepareOrdinaryLocalAccount<Authorization extends object = Selection>("
               }
             ],
             "identity": [

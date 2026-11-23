@@ -5,19 +5,55 @@ import {lstat, mkdir, open} from 'node:fs/promises';
 import {join} from 'node:path';
 import {randomUUID} from 'node:crypto';
 import {readBoundedConfigurationUtf8, withOriginalFile} from './source-profile-json.mjs';
-import {readHostRootAccountAdoption, adoptHostRootAccount} from './host-root-format.mjs';
+import {readHostRootAccountAdoption, adoptHostRootAccount, type admitHostRootFormat} from './host-root-format.mjs';
 import {assertOriginalPreparedLocalPublicationStoreOwnership} from '../store-local/publication-store.mjs';
 import {canonicalJson, contentCid, bytesCid} from './local-account-config.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {isAccountConstruction, readAccountOriginal} from './account-construction.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 
+import type {createAccountConstruction} from './account-construction.mjs';
+import type {loadExecutionAuthorizationRuntime} from './authorization.mjs';
+
+type Construction = ReturnType<typeof createAccountConstruction>;
+type Frame = ReturnType<Construction['begin']>;
+type AuthorizationRuntime = Awaited<ReturnType<typeof loadExecutionAuthorizationRuntime>>;
+type Runtime = Pick<AuthorizationRuntime, 'executionAuthorizationAdmit' | 'executionAuthorizationAccountJson'> &
+  Readonly<{
+    clientProgramLocalStandardAccountProfile(): unknown;
+    clientProgramLocalStandardAccountConfiguration(...args: AccountArguments): unknown;
+    clientProgramLocalStandardAccountConfigurationPrepared(...args: [...AccountArguments, Frame['core']]): unknown;
+  }>;
+type AccountArguments = [string, string, string, readonly string[], readonly Record<string, unknown>[],
+  Record<string, unknown> | undefined, string | undefined];
+type Selection = Readonly<{accountConfig?: string | null; accountConfiguration?: string | null}>;
+type BootstrapInputs<Authorization> = Readonly<{
+  root: string;
+  principal: string;
+  preparedOriginal: unknown;
+  rootCreation: Awaited<ReturnType<typeof admitHostRootFormat>>;
+  operatorAuthorization?: Authorization & Selection;
+}>;
+type SubjectPair = readonly [string, string];
+type TupleFields = Pick<SubjectPair, 0 | 1>;
+type Subjects = Readonly<{
+  controlConnection: string;
+  configuredConnections: readonly string[];
+  modelTasks: readonly SubjectPair[];
+  requestTarget?: SubjectPair;
+  signingKeyResource?: string;
+}>;
+type Store = Readonly<{status(): Readonly<{closed: boolean}>}>;
+type Adoption<Authorization> = Readonly<Omit<Authorization, 'accountConfig' | 'siteKey'> & {accountConfig: string; siteKey: string}>;
+type InitializationIntent = Readonly<{version: string; record_id: string; account_id: string; principal: string}>;
+
 const maximum = 1_000_000;
-const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
-const exact = (value, fields) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
+const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
+const exact = (value: unknown, fields: readonly string[]) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...fields].sort().join('\0');
 
-export async function prepareOrdinaryLocalAccount({accountConstruction, ...options}) {
+export async function prepareOrdinaryLocalAccount<Authorization extends object = Selection>(
+  {accountConstruction, ...options}: BootstrapInputs<Authorization> & Readonly<{accountConstruction?: Construction}>) {
   if (accountConstruction === undefined) return prepareOrdinaryLocalAccountOriginal(options);
   if (!isAccountConstruction(accountConstruction)) fail('ForeignAccountConstruction');
   const frame = accountConstruction.begin();
@@ -29,8 +65,9 @@ export async function prepareOrdinaryLocalAccount({accountConstruction, ...optio
   } catch (cause) {frame.failure(cause); frame.finish(false); throw cause;}
 }
 
-async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOriginal,
-  rootCreation, operatorAuthorization}, frame, construction) {
+async function prepareOrdinaryLocalAccountOriginal<Authorization extends object>(
+  {root, principal, preparedOriginal, rootCreation, operatorAuthorization}: BootstrapInputs<Authorization>,
+  frame?: Frame, construction?: Construction) {
   if (operatorAuthorization !== undefined && (operatorAuthorization === null ||
       typeof operatorAuthorization !== 'object' || Array.isArray(operatorAuthorization))) {
     fail('InvalidLocalAccountAuthorization');
@@ -46,11 +83,11 @@ async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOri
   const directory = join(root, 'account');
   const materialPath = join(directory, 'bootstrap.json');
   const configPath = join(directory, 'account.json');
-  async function readOptional(path) {
+  async function readOptional(path: string) {
     current();
     let state;
     try { state = await lstat(path); }
-    catch (cause) { if (cause?.code === 'ENOENT') return undefined; throw cause; }
+    catch (cause) { if ((cause as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') return undefined; throw cause; }
     if (!state.isFile() || state.isSymbolicLink() || (state.mode & 0o077) !== 0) {
       fail('LocalAccountInitializationExposed');
     }
@@ -59,9 +96,9 @@ async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOri
     current();
     return wire;
   }
-  const syncDirectory = path => withOriginalFile(path,
+  const syncDirectory = (path: string) => withOriginalFile(path,
     original => open(original, 'r'), original => original.sync());
-  async function createOriginal(path, wire, parent) {
+  async function createOriginal(path: string, wire: string, parent: string) {
     current();
     if (frame === undefined && Buffer.byteLength(wire, 'utf8') > maximum) fail('LocalAccountInitializationLimit');
     if (frame !== undefined) {
@@ -73,12 +110,12 @@ async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOri
         current(); await handle.writeFile(wire, 'utf8'); await handle.sync(); current();
       });
     } catch (cause) {
-      if (cause?.code !== 'EEXIST') throw cause;
+      if ((cause as NodeJS.ErrnoException | undefined)?.code !== 'EEXIST') throw cause;
       if (await readOptional(path) !== wire) fail('LocalAccountInitializationConflict', cause);
     }
     await syncDirectory(parent); current();
   }
-  const parse = wire => {
+  const parse = (wire: string): unknown => {
     frame?.nativeJson(wire);
     try { return JSON.parse(wire); } catch (cause) { fail('LocalAccountInitializationInvalid', cause); }
   };
@@ -90,13 +127,14 @@ async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOri
     // A pre-existing default-area file is not an authored selection or a
     // reason to overwrite operator material, even on this fresh Host root.
     try { await lstat(directory); fail('LocalAccountInitializationConflict'); }
-    catch (cause) { if (cause?.code !== 'ENOENT') throw cause; }
+    catch (cause) { if ((cause as NodeJS.ErrnoException | undefined)?.code !== 'ENOENT') throw cause; }
     frame?.record(BigInt(principal.length) + 256n, 16n, 3n);
     intentWire = canonicalJson({version: 'actql-local-account-initialization/0.1',
       record_id: randomUUID(), account_id: 'local-' + randomUUID(), principal});
     await createOriginal(intentPath, intentWire, root);
   }
-  const intent = parse(intentWire);
+  // The exact key and scalar checks below establish this persisted intent shape.
+  const intent = parse(intentWire) as InitializationIntent;
   if (!exact(intent, ['version', 'record_id', 'account_id', 'principal']) ||
       intent.version !== 'actql-local-account-initialization/0.1' || intent.principal !== principal ||
       ![intent.record_id, intent.account_id].every(value => typeof value === 'string' &&
@@ -110,8 +148,8 @@ async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOri
   if (adopted !== undefined && await readOptional(join(root, 'publication', 'store.json')) === undefined) {
     fail('LocalAccountAdoptedStateMissing');
   }
-  let flight;
-  return Object.freeze({adopt(moon, subjects, store) {
+  let flight: Promise<Adoption<Authorization>> | undefined;
+  return Object.freeze({adopt(moon: Runtime, subjects: Subjects, store: Store) {
     if (flight !== undefined) return flight;
     // Retain the actual Store before any current/metadata await. This does
     // not infer ownership from status: current() checks the nominal exclusion.
@@ -132,7 +170,7 @@ async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOri
         profile_cid: runtimeField(profile, 2)};
       if (identity.profile_id !== 'actql-local-standard' || identity.profile_version !== '0.1' ||
           typeof runtimeField(profile, 3) !== 'string' ||
-          contentCid(parse(runtimeField(profile, 3))) !== identity.profile_cid) {
+          contentCid(parse(runtimeField(profile, 3) as string)) !== identity.profile_cid) {
         fail('LocalAccountProfileUnavailable');
       }
       if (frame !== undefined) {
@@ -145,11 +183,12 @@ async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOri
       }
       const materialize = frame === undefined ? moon.clientProgramLocalStandardAccountConfiguration
         : moon.clientProgramLocalStandardAccountConfigurationPrepared;
-      const generated = Reflect.apply(materialize, moon, [
+      // Selection and the final reservation argument use the same frame test.
+      const generated = Reflect.apply(materialize as (...args: [...AccountArguments, Frame['core']?]) => unknown, moon, [
 
         intent.account_id, principal, subjects.controlConnection, subjects.configuredConnections,
-        subjects.modelTasks.map(runtimeTupleFromFields),
-        subjects.requestTarget === undefined ? undefined : runtimeTupleFromFields(subjects.requestTarget),
+        subjects.modelTasks.map(runtimeTupleFromFields as (fields: TupleFields) => Record<string, unknown>),
+        subjects.requestTarget === undefined ? undefined : runtimeTupleFromFields(subjects.requestTarget as TupleFields),
         subjects.signingKeyResource, ...(frame === undefined ? [] : [frame.core])]);
       frame?.assert();
       if (generated === undefined) fail('LocalAccountConstructionUnavailable');
@@ -196,7 +235,7 @@ async function prepareOrdinaryLocalAccountOriginal({root, principal, preparedOri
         fail('LocalAccountInitializationChanged');
       }
       return Object.freeze({...operatorAuthorization, accountConfig: configPath,
-        siteKey: subjects.controlConnection});
+        siteKey: subjects.controlConnection}) as Adoption<Authorization>;
       } catch (cause) {adoptionFrame?.failure(cause); throw cause;}
       finally {
         // Bootstrap values live with this same durable preparation until Host

@@ -2910,3 +2910,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/node-public-initial-control-bootstrap.d.cts
 /adapters/host-common/runtime-core.mjs
 /adapters/host-common/runtime-core.d.mts
+/adapters/host-node/ordinary-local-account.mjs
+/adapters/host-node/ordinary-local-account.d.mts
+/adapters/host-node/ordinary-local-account.test.mjs
+/adapters/host-node/ordinary-local-account.test.d.mts
+/adapters/local-node/fixture-file-source.mjs
+/adapters/local-node/fixture-file-source.d.mts

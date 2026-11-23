@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/fixture-file-source.mjs",
-      "sha256": "ebf97c73358ff889cb3ae39f11900169fcc7c552d41384ffcc33dff24c6f2fc2",
+      "sha256": "72d2f9e68344135596d29cda5a052ecb791afaad8110dc4baac0679938d358d1",
       "exports": [
         "createFixtureFileSupplier"
       ],
@@ -144,8 +144,8 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.mjs",
-                "anchor": "export function createFixtureFileSupplier("
+                "path": "adapters/local-node/fixture-file-source.mts",
+                "anchor": "export function createFixtureFileSupplier<RowRun>("
               }
             ],
             "identity": [
@@ -154,11 +154,11 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.mjs",
+                "path": "adapters/local-node/fixture-file-source.mts",
                 "anchor": "const identity = resolveResource(request.resource);"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.mjs",
+                "path": "adapters/local-node/fixture-file-source.mts",
                 "anchor": "declared_version: declared, row_version_cid: rowVersion,"
               }
             ],
@@ -174,15 +174,15 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.mjs",
+                "path": "adapters/local-node/fixture-file-source.mts",
                 "anchor": "const charge = selected.chargePage(bytes);"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.mjs",
+                "path": "adapters/local-node/fixture-file-source.mts",
                 "anchor": "const document = projectOriginalDocument(bytes, options);"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.mjs",
+                "path": "adapters/local-node/fixture-file-source.mts",
                 "anchor": "await retainRawResponse(bytes);"
               }
             ],
@@ -192,7 +192,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.mjs",
+                "path": "adapters/local-node/fixture-file-source.mts",
                 "anchor": "if (versionFor(row) !== request.version) fail('FixtureFileVersionMismatch');"
               }
             ],
@@ -208,7 +208,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/local-node/fixture-file-source.mjs",
+                "path": "adapters/local-node/fixture-file-source.mts",
                 "anchor": "if (Buffer.byteLength(rowText(row, fields.contentUtf8), 'utf8') > limits.maxContentBytes)"
               }
             ],

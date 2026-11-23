@@ -5,34 +5,91 @@ import {createHash} from 'node:crypto';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const text = value => typeof value === 'string' && value.length > 0 && value.isWellFormed();
-const integer = value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
-const callbacks = (value, names) => {
+type RelationRuntime = Readonly<{
+  clientProgramRelationObserveTarget(document: unknown, declaration: unknown, identity: string): unknown;
+  clientProgramRelationTargetRowCount(document: unknown): number | undefined;
+  clientProgramRelationTargetRowIdentity(document: unknown, index: number): string | undefined;
+  clientProgramRelationTargetText(row: unknown, field: string): string | undefined;
+  clientProgramRelationTargetTextBytes(row: unknown, field: string): Uint8Array | undefined;
+  clientProgramRelationTargetVersion(row: unknown): string | undefined;
+}>;
+type Physical = Readonly<{
+  declaration: unknown;
+  resource: string;
+  itemsPath: readonly string[];
+  keyPath: readonly string[];
+  primaryIdentity: string;
+  writableFields: readonly string[];
+}>;
+type Fields = Readonly<{identity: string; name: string; version: string; mediaType: string;
+  contentUtf8: string; path?: string}>;
+type Limits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxRows: number;
+  maxWork: number; maxPageBytes: number; maxContentBytes: number}>;
+type ResourceRef = Readonly<Record<string, string>>;
+type RetainRawResponse = (bytes: Uint8Array) => unknown;
+type ReadOptions<RowRun> = Readonly<{rowRun: RowRun; signal?: AbortSignal; retainRawResponse?: RetainRawResponse}>;
+type ReadControl<Charge> = Readonly<{
+  verifyRead(): unknown;
+  chargePage(bytes: Uint8Array): Charge;
+}>;
+type ListingOptions<RowRun, Charge> = ReadOptions<RowRun> & ReadControl<Charge> & Readonly<{
+  listing: Readonly<{
+    beginRequest(token: undefined): unknown;
+    consumePage(body: Uint8Array, received: Readonly<{charge: NonNullable<Charge>}>): unknown;
+  }>;
+}>;
+type ContentOptions<RowRun, Charge, Content> = ReadOptions<RowRun> & ReadControl<Charge> & Readonly<{
+  columns?: readonly string[];
+  requestWire: string;
+  beginRequest(bytes: Uint8Array): unknown;
+  consumeObservation(charge: NonNullable<Charge>): unknown;
+  captureContent(observed: Readonly<{bytes: Uint8Array; mediaType: string; contentCid: string}>):
+    Content | PromiseLike<Content>;
+  consumePage(rows: readonly Readonly<{resource: ResourceRef; version: string; content: Content;
+    name?: string; path?: string | null; media_type?: string}>[]): unknown;
+}>;
+type SupplierInputs<RowRun> = Readonly<{
+  moon: RelationRuntime;
+  physical: Physical;
+  fields: Fields;
+  limits: Limits;
+  readOriginalBytes(options: ReadOptions<RowRun>): Uint8Array | PromiseLike<Uint8Array>;
+  projectOriginalDocument(bytes: Uint8Array, options: ReadOptions<RowRun>): unknown;
+  issueResource(identity: string): unknown;
+  resolveResource(resource: ResourceRef): unknown;
+  assertCurrent(): unknown;
+}>;
+
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.isWellFormed();
+const integer = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && (value as number) >= 0 && (value as number) <= 2147483647;
+const callbacks = <Value, Key extends keyof Value & string>(value: Value, names: readonly Key[]):
+  Readonly<Pick<Value, Key>> => {
   const captured = Object.fromEntries(names.map(name => [name, value?.[name]]));
   if (Object.values(captured).some(method => typeof method !== 'function')) {
     fail('FixtureFileCallbacksUnavailable');
   }
-  return Object.freeze(captured);
+  return Object.freeze(captured) as Readonly<Pick<Value, Key>>;
 };
-const rawResponseRetainer = options => {
+const rawResponseRetainer = (options: object): RetainRawResponse | undefined => {
   const descriptor = Object.getOwnPropertyDescriptor(options, 'retainRawResponse');
   if (descriptor === undefined) return undefined;
   if (!Object.hasOwn(descriptor, 'value') ||
       descriptor.value !== undefined && typeof descriptor.value !== 'function') {
     fail('FixtureFileCallbacksUnavailable');
   }
-  return descriptor.value;
+  return descriptor.value as RetainRawResponse | undefined;
 };
 
-export function createFixtureFileSupplier({moon, physical, fields, limits,
-  readOriginalBytes, projectOriginalDocument, issueResource, resolveResource, assertCurrent}) {
+export function createFixtureFileSupplier<RowRun>({moon, physical, fields, limits,
+  readOriginalBytes, projectOriginalDocument, issueResource, resolveResource, assertCurrent}: SupplierInputs<RowRun>) {
   if (physical?.declaration === undefined || !text(physical.resource) ||
       !Array.isArray(physical.itemsPath) || !physical.itemsPath.every(text) ||
       !Array.isArray(physical.keyPath) || !physical.keyPath.every(text) ||
       !text(physical.primaryIdentity) || !Array.isArray(physical.writableFields) ||
       !physical.writableFields.every(text) || fields?.identity !== physical.primaryIdentity ||
-      !['identity', 'name', 'version', 'mediaType', 'contentUtf8'].every(name => text(fields?.[name])) ||
+      !(['identity', 'name', 'version', 'mediaType', 'contentUtf8'] as const).every(name => text(fields?.[name])) ||
       fields.path !== undefined && !text(fields.path) ||
       [readOriginalBytes, projectOriginalDocument, issueResource, resolveResource, assertCurrent]
         .some(value => typeof value !== 'function')) {
@@ -43,33 +100,34 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
     writableFields: Object.freeze([...physical.writableFields])});
   fields = Object.freeze({...fields});
   limits = Object.freeze({...limits});
-  if (!['maxBytes', 'maxNodes', 'maxDepth', 'maxRows', 'maxWork', 'maxPageBytes', 'maxContentBytes']
+  if (!(['maxBytes', 'maxNodes', 'maxDepth', 'maxRows', 'maxWork', 'maxPageBytes', 'maxContentBytes'] as const)
     .every(name => integer(limits[name])) ||
-      ['maxBytes', 'maxNodes', 'maxDepth', 'maxWork', 'maxPageBytes'].some(name => limits[name] === 0) ||
+      (['maxBytes', 'maxNodes', 'maxDepth', 'maxWork', 'maxPageBytes'] as const).some(name => limits[name] === 0) ||
       limits.maxBytes > limits.maxPageBytes || limits.maxContentBytes > limits.maxBytes) {
     fail('InvalidFixtureFileLimits');
   }
   const ports = callbacks(moon, ['clientProgramRelationObserveTarget', 'clientProgramRelationTargetRowCount',
     'clientProgramRelationTargetRowIdentity', 'clientProgramRelationTargetText',
     'clientProgramRelationTargetTextBytes', 'clientProgramRelationTargetVersion']);
-  const call = (name, ...args) => Reflect.apply(ports[name], moon, args);
-  const current = async (verifyRead, signal) => {
+  const call = <Name extends keyof RelationRuntime>(name: Name, ...args: Parameters<RelationRuntime[Name]>):
+    ReturnType<RelationRuntime[Name]> => Reflect.apply(ports[name], moon, args) as ReturnType<RelationRuntime[Name]>;
+  const current = async (verifyRead: ReadControl<unknown>['verifyRead'], signal?: AbortSignal) => {
     signal?.throwIfAborted();
     assertCurrent();
     await verifyRead();
     signal?.throwIfAborted();
     assertCurrent();
   };
-  const rowFor = (document, identity) => checked(call('clientProgramRelationObserveTarget',
+  const rowFor = (document: unknown, identity: string) => checked(call('clientProgramRelationObserveTarget',
     document, physical.declaration, identity));
-  const rowText = (row, field) => {
+  const rowText = (row: unknown, field: string) => {
     const value = call('clientProgramRelationTargetText', row, field);
     if (typeof value !== 'string') fail('FixtureFileFieldUnavailable');
     return value;
   };
-  const pathFor = row => fields.path === undefined ? null
+  const pathFor = (row: unknown) => fields.path === undefined ? null
     : call('clientProgramRelationTargetText', row, fields.path) ?? null;
-  const versionFor = row => {
+  const versionFor = (row: unknown) => {
     const declared = rowText(row, fields.version);
     const rowVersion = call('clientProgramRelationTargetVersion', row);
     if (!text(declared) || typeof rowVersion !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(rowVersion)) {
@@ -83,7 +141,8 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
   };
   // Charge the actual original response before any document parser or getter.
   // The physical reader remains the parent's same retained child on failure.
-  const read = async (options, selected, retainRawResponse) => {
+  const read = async <Charge,>(options: ReadOptions<RowRun>, selected: ReadControl<Charge>,
+    retainRawResponse: RetainRawResponse | undefined) => {
     await current(selected.verifyRead, options.signal);
     const bytes = await readOriginalBytes(options);
     if (!(bytes instanceof Uint8Array)) fail('FixtureFileOriginalBytesUnavailable');
@@ -104,7 +163,7 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
   };
 
   return Object.freeze({
-    async readListing(options) {
+    async readListing<Charge>(options: ListingOptions<RowRun, Charge>) {
       const selected = callbacks(options, ['verifyRead', 'chargePage']);
       const listing = callbacks(options.listing, ['beginRequest', 'consumePage']);
       const retainRawResponse = rawResponseRetainer(options);
@@ -137,7 +196,7 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
       await current(selected.verifyRead, options.signal);
     },
 
-    async readContent(options) {
+    async readContent<Charge, Content>(options: ContentOptions<RowRun, Charge, Content>) {
       const selected = callbacks(options, ['verifyRead', 'beginRequest', 'chargePage',
         'consumeObservation', 'captureContent', 'consumePage']);
       const retainRawResponse = rawResponseRetainer(options);
@@ -149,7 +208,8 @@ export function createFixtureFileSupplier({moon, physical, fields, limits,
         fail('InvalidFixtureFileContentRequest');
       }
       const selectedColumns = new Set(columns);
-      let request;
+      // The original DATA checks below establish the string fields before use.
+      let request: {resource: ResourceRef; version: string};
       try {request = JSON.parse(options.requestWire);} catch {fail('InvalidFixtureFileContentRequest');}
       if (request === null || typeof request !== 'object' || Array.isArray(request) ||
           Object.keys(request).sort().join(',') !== 'resource,version' || !text(request.version) ||
