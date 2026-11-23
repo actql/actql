@@ -4,17 +4,101 @@
 import {issueStoredGeneratedContent, retainGeneratedContentEvidence,
   consumeStoredContentOriginal, closeStoredContentReaders} from './generated-content-holding.mjs';
 
+import type {contentGenerationControl} from '../host-common/content-generation-control.mjs';
+import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import type {localOutputLimits} from './local-publication-limits.mjs';
+
+type GenerationControl = ReturnType<typeof contentGenerationControl>;
+type Family = Parameters<GenerationControl['effectFamily']>;
+type FamilyLimits = Family[3];
+type ManagedSelection = Extract<ReturnType<GenerationControl['effectFamily']>, {preparation: unknown}>;
+type Issue = Parameters<typeof issueStoredGeneratedContent>[0];
+type Evidence = Parameters<typeof retainGeneratedContentEvidence>[0];
+type RetainedEvidence = Awaited<ReturnType<typeof retainGeneratedContentEvidence>>;
+type Consume = Parameters<typeof consumeStoredContentOriginal>[0];
+type StoredOriginal = Parameters<NonNullable<Issue['retainOriginal']>>[0];
+type Writer = ReturnType<Awaited<ReturnType<typeof openLocalPublicationStore>>['createPreparedObjectWriter']>;
+type Physical = Awaited<ReturnType<Writer['seal']>>;
+type Store = Issue['store'] & Evidence['store'] & Consume['store'] &
+  Pick<Awaited<ReturnType<typeof openLocalPublicationStore>>, 'createPreparedObjectWriter' | 'retirePhysicalHolding'>;
+type Holding = Readonly<{
+  version: 'actql-local-physical-holding/0.1';
+  namespace: 'content';
+  holding_cid: string;
+  manifest_cid: string;
+  objects: readonly Readonly<{cid: string; byte_count: number}>[];
+}>;
+type Plan = Readonly<{
+  runDefinition: Readonly<{wire: string; identity: string}>;
+  compiled: unknown;
+  serializationGraph: Family[1];
+}>;
+type SourceCapacity = Readonly<{capacity: unknown; transferBytes: bigint; executionBytes: bigint}>;
+type CompletionRecord = Readonly<{binding: unknown; descriptorWire: string; rows: readonly unknown[]}>;
+type Generation = ReturnType<GenerationControl['familyComplete']>;
+type Recovery = Readonly<{
+  referenceWire: string;
+  binding: Readonly<Record<string, unknown>>;
+  byteHoldingCid: string;
+  bindings: RetainedEvidence['bindings'];
+  completion: CompletionRecord;
+}>;
+type CleanupOwner = Readonly<{close(): Promise<boolean>; cleanup(): Promise<boolean>; cleanupPending(): boolean}>;
+type CleanupHandle = Readonly<{retry(): Readonly<{pending: boolean}> | PromiseLike<Readonly<{pending: boolean}>>}>;
+type CleanupFailure = Readonly<{cleanupPending?: unknown; cleanupHandle?: CleanupHandle}> | null | undefined;
+type FamilyOptions = Readonly<{
+  moon: Readonly<{
+    clientProgramEffectAcquisitionCount?(prepared: unknown): number;
+    clientProgramEffectCommandContentMatchesIssued?(binding: unknown, issued: StoredOriginal['issued']): boolean;
+    clientProgramPrepareFamilyEffectCaptureLedger(prepared: unknown, capacity: unknown,
+      transferBytes: bigint, executionBytes: bigint, registry: Family[2]['registry'],
+      values: Family[2]['values'], fragment: Family[2]['fragment'], ordered: Family[2]['ordered'],
+      providers: readonly unknown[]): unknown;
+  }>;
+  control: Issue['control'] & Pick<GenerationControl, 'effectFamily' | 'familyPendingPiece' |
+    'familyAcknowledgePiece' | 'familyInput' | 'familyByteCompletion' | 'candidate' | 'familyComplete'>;
+  publications: Evidence['publications'] & Readonly<{
+    checkedClientSerializationGenerationLimits(compiled: unknown, graph: Family[1]): Readonly<{maxRows: number; maxBytes: number}>;
+    bindCheckedClientEffectSerializationCapture(compiled: unknown, prepared: unknown, captured: unknown, observation: unknown): unknown;
+    bindCheckedClientSerializationInputIdentity(compiled: unknown, input: unknown, receipt: unknown,
+      limits: FamilyLimits['contract'], capturedProof: unknown): unknown;
+    checkedClientSerializationByteHoldingCid(compiled: unknown, definition: Plan['runDefinition'], storeAuthorityCid: string): string;
+    exportCheckedClientContentGenerationOutput(compiled: unknown, definition: Plan['runDefinition'],
+      generation: Generation, storeAuthorityCid: string): CompletionRecord;
+  }>;
+  bodies: Family[2];
+  prepared: unknown;
+  plan: Plan;
+  store: Store;
+  principalId: string;
+  ownerPrincipal: string;
+  now(): string;
+  authorize(principal: string): unknown;
+  signal?: AbortSignal;
+  namespaceId: string;
+  authorityScopeCid: string;
+  storeAuthorityCid: string;
+  installedBinding(plan: Plan): Readonly<{graphPolicy: Readonly<{cid: string}>; binding: Readonly<Record<string, unknown>>}>;
+  referenceLimits: Issue['limits'];
+  completionLimits: Parameters<GenerationControl['familyComplete']>[7];
+  outputLimits: typeof localOutputLimits;
+  faultInjection?(event: 'effect_content_piece_appended' | 'effect_content_generation_retained', detail: unknown): unknown;
+  restored?: Readonly<{generation: Generation; completion: Family[6]; recovery: Recovery; storedOriginal?: StoredOriginal}>;
+  retainCleanup?(owner: CleanupOwner): unknown;
+  managedOriginal?: NonNullable<Family[7]> & Readonly<{inputRows?: number}>;
+}>;
+
 export function installEffectContentFamily({moon, control, publications, bodies,
   prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,
   namespaceId, authorityScopeCid, storeAuthorityCid, installedBinding,
-  referenceLimits, completionLimits, outputLimits, faultInjection, restored, retainCleanup, managedOriginal}) {
+  referenceLimits, completionLimits, outputLimits, faultInjection, restored, retainCleanup, managedOriginal}: FamilyOptions) {
   if (retainCleanup !== undefined && typeof retainCleanup !== 'function') {
     throw new TypeError('InvalidInstalledContentCleanupRetention');
   }
   if (principalId !== ownerPrincipal || store.storeAuthorityCid !== storeAuthorityCid) {
     throw new TypeError('InvalidInstalledContentFamily');
   }
-  const definition = JSON.parse(plan.runDefinition.wire);
+  const definition = JSON.parse(plan.runDefinition.wire) as {valid_until: string};
   const sourceFree = moon.clientProgramEffectAcquisitionCount?.(prepared) === 0;
   const compiledLimits = publications.checkedClientSerializationGenerationLimits(
     plan.compiled, plan.serializationGraph);
@@ -33,8 +117,11 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     maxBytes: Math.min(10000, compiledLimits.maxBytes),
     maxValueNodes: 10000, maxValueDepth: 64, maxFrames: 100});
   const contractLimits = Object.freeze({maxWireBytes: 100000, maxNodes: 10000, maxDepth: 64});
-  let active, capturedProof, writer, physical, byteHolding, retained, generation, recovery, storedOriginal;
-  let cancelled = false, cleaned = false, durable = false, flight;
+  let active: Parameters<GenerationControl['familyInput']>[0] | undefined, capturedProof: unknown,
+    writer: Writer | undefined, physical: Physical | undefined, byteHolding: Holding | undefined,
+    retained: RetainedEvidence | undefined, generation: Generation | undefined, recovery: Recovery | undefined,
+    storedOriginal: StoredOriginal | undefined;
+  let cancelled = false, cleaned = false, durable = false, flight: Promise<Readonly<{action: 'resume'}>> | undefined;
   let bound = managedOriginal === undefined;
   if (restored !== undefined) {
     if (restored.completion === undefined) throw new TypeError('ContentRecoveryCompletionMissing');
@@ -43,21 +130,21 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     storedOriginal = restored.storedOriginal;
     durable = true;
   }
-  let failureCleanup;
-  const contentReaders = new Set();
-  const retirement = new Map();
+  let failureCleanup: CleanupHandle | undefined;
+  const contentReaders: Consume['readers'] = new Set();
+  const retirement = new Map<string, Awaited<ReturnType<Store['retirePhysicalHolding']>>['cleanup']>();
   const live = () => !cancelled && store.status().closed === false &&
     Date.parse(now()) < Date.parse(definition.valid_until) && authorize(principalId) === true;
   // Keep the original issuance/confirmed holding with this generation, not a
   // wire-to-Reference index. Temporary encoder cleanup does not retire durable
   // Content; abandoned generation cleanup still owns its physical holdings.
-  const selectedForContent = binding => {
+  const selectedForContent = (binding: unknown) => {
     const original = storedOriginal;
     const current = () => durable && !cancelled && flight === undefined &&
       signal?.aborted !== true && original !== undefined && storedOriginal === original;
     if (binding === undefined || !current() || !live() || !current() ||
         typeof moon.clientProgramEffectCommandContentMatchesIssued !== 'function') return undefined;
-    const matched = moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued);
+    const matched = moon.clientProgramEffectCommandContentMatchesIssued(binding, original!.issued);
     // Both the typed matcher and Host authority may invoke a current callback.
     // A prior match cannot hand off a retired/cancelled original occurrence.
     if (!current() || !live() || !current()) return undefined;
@@ -102,8 +189,8 @@ export function installEffectContentFamily({moon, control, publications, bodies,
     // holdings; an uncertain retirement keeps those exact handles for retry.
     if (!durable) {
       for (const holding of retained?.holdings ?? []) await holding.abort();
-      for (const cid of [byteHolding?.holding_cid,
-        ...(retained?.bindings ?? []).map(binding => binding.holdingCid)].filter(Boolean)) {
+      for (const cid of ([byteHolding?.holding_cid,
+        ...(retained?.bindings ?? []).map(binding => binding.holdingCid)].filter(Boolean) as string[])) {
         let child = retirement.get(cid);
         if (child === undefined) {
           child = (await store.retirePhysicalHolding(cid)).cleanup;
@@ -132,11 +219,12 @@ export function installEffectContentFamily({moon, control, publications, bodies,
       active = step;
       return true;
     }, restored?.completion, managedOriginal);
-  const provider = managedOriginal === undefined ? selectedProvider : selectedProvider.provider;
+  const provider = managedOriginal === undefined ? selectedProvider as ManagedSelection['provider']
+    : (selectedProvider as ManagedSelection).provider;
   return Object.freeze({provider,
     ...(managedOriginal === undefined ? {} : {
-      preparation: selectedProvider.preparation,
-      bindExecution(original) {
+      preparation: (selectedProvider as ManagedSelection).preparation,
+      bindExecution(original: Readonly<{prepared: unknown; plan: Plan; store: Store; principalId: string; signal?: AbortSignal}>) {
         if (bound || cancelled || original.prepared !== prepared || original.plan !== plan ||
             original.store !== store || original.principalId !== principalId) {
           throw new TypeError('ForeignInstalledContentFamily');
@@ -144,7 +232,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
         signal = original.signal; bound = true;
       },
     }),
-    prepareLedger(sourceCapacity, additionalProviders = []) {
+    prepareLedger(sourceCapacity: SourceCapacity, additionalProviders: readonly unknown[] = []) {
       if (!Array.isArray(additionalProviders)) throw new TypeError('Invalid Content family providers');
       const ledger = moon.clientProgramPrepareFamilyEffectCaptureLedger(prepared,
         sourceCapacity.capacity, sourceCapacity.transferBytes, sourceCapacity.executionBytes,
@@ -153,13 +241,13 @@ export function installEffectContentFamily({moon, control, publications, bodies,
       if (ledger === undefined) throw new TypeError('Content acquisition capacity unavailable');
       return ledger;
     },
-    bindCapture(captured, observation) {
+    bindCapture(captured: unknown, observation: unknown) {
       if (sourceFree) throw new TypeError('ForeignSourceFreeContentCapture');
       if (capturedProof !== undefined) throw new TypeError('Content capture already bound');
       capturedProof = publications.bindCheckedClientEffectSerializationCapture(
         plan.compiled, prepared, captured, observation);
     },
-    async handlePause(boundary) {
+    async handlePause(boundary: Readonly<{status: string; slot: number}>) {
       if (restored !== undefined) throw new TypeError('RestoredContentCannotGenerate');
       if (flight !== undefined || cancelled || !live() || active === undefined ||
           (!sourceFree && capturedProof === undefined) || boundary.status !== 'settling') {
@@ -168,23 +256,23 @@ export function installEffectContentFamily({moon, control, publications, bodies,
       const operation = (async () => {
         signal?.throwIfAborted();
         if (boundary.slot === 0) {
-          const pending = control.familyPendingPiece(active);
+          const pending = control.familyPendingPiece(active!);
           if (pending === undefined) throw new Error('ContentPieceUnavailable');
           writer ??= store.createPreparedObjectWriter(generationLimits.maxBytes);
           await writer.append(pending.piece);
           await faultInjection?.('effect_content_piece_appended',
             {revision: pending.revision, byteCount: pending.piece.length, signal});
           signal?.throwIfAborted();
-          if (!live() || !control.familyAcknowledgePiece(active, pending.revision)) {
+          if (!live() || !control.familyAcknowledgePiece(active!, pending.revision)) {
             throw new Error('ContentPieceAcknowledgementRejected');
           }
-          return {action: 'resume'};
+          return {action: 'resume'} as const;
         }
         if (boundary.slot !== 1 || generation !== undefined) throw new Error('ContentCompletionMismatch');
-        const input = control.familyInput(active);
+        const input = control.familyInput(active!);
         const evidence = publications.bindCheckedClientSerializationInputIdentity(
           plan.compiled, input.input, input.receipt, contractLimits, capturedProof);
-        const completion = control.familyByteCompletion(active);
+        const completion = control.familyByteCompletion(active!);
         const {graphPolicy, binding} = installedBinding(plan);
         const candidate = control.candidate(input.encoder, binding, referenceLimits);
         const description = control.inspect(candidate);
@@ -202,7 +290,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
           authorize: () => live(), limits: referenceLimits,
           retainOriginal: original => { storedOriginal = original; }});
         signal?.throwIfAborted();
-        generation = control.familyComplete(plan.compiled, plan.runDefinition, active,
+        generation = control.familyComplete(plan.compiled, plan.runDefinition, active!,
           evidence, candidate, content, live, completionLimits);
         const completionRecord = publications.exportCheckedClientContentGenerationOutput(
           plan.compiled, plan.runDefinition, generation, storeAuthorityCid);
@@ -210,7 +298,7 @@ export function installEffectContentFamily({moon, control, publications, bodies,
           generation, signal, retainHoldings(_holdings, recovery) { retained = recovery; }});
         recovery = Object.freeze({referenceWire: description.wire,
           binding: Object.freeze({...binding}), byteHoldingCid: byteHolding.holding_cid,
-          bindings: Object.freeze(retained.bindings.map(value => Object.freeze({...value}))),
+          bindings: Object.freeze(retained!.bindings.map(value => Object.freeze({...value}))),
           completion: completionRecord});
         durable = true;
         await faultInjection?.('effect_content_generation_retained',
@@ -218,24 +306,24 @@ export function installEffectContentFamily({moon, control, publications, bodies,
             completion: completionRecord});
         if (!await releaseTemporary()) throw new Error('ContentPhysicalCleanupPending');
         cleaned = true;
-        return {action: 'resume'};
+        return {action: 'resume'} as const;
       })();
       flight = operation;
       try { return await operation; }
       catch (error) {
-        if (error?.cleanupPending === true && error.cleanupHandle !== undefined) {
-          failureCleanup = error.cleanupHandle;
+        if ((error as CleanupFailure)?.cleanupPending === true && (error as CleanupFailure)!.cleanupHandle !== undefined) {
+          failureCleanup = (error as CleanupFailure)!.cleanupHandle;
         }
         throw error;
       } finally { if (flight === operation) flight = undefined; }
     },
     generation: () => durable ? generation : undefined,
     recovery: () => durable ? recovery : undefined,
-    issuedForContent: binding => selectedForContent(binding)?.issued,
-    storageForContent: binding => selectedForContent(binding),
-    storageCurrentForContent: (original, binding) => original !== undefined &&
+    issuedForContent: (binding: unknown) => selectedForContent(binding)?.issued,
+    storageForContent: (binding: unknown) => selectedForContent(binding),
+    storageCurrentForContent: (original: StoredOriginal | undefined, binding: unknown) => original !== undefined &&
       selectedForContent(binding) === original,
-    consumeContent(binding, accept) {
+    consumeContent(binding: unknown, accept: Consume['accept']) {
       const original = selectedForContent(binding);
       if (original === undefined) throw new Error('OriginalEffectContentUnavailable');
       return consumeStoredContentOriginal({store, original, readers: contentReaders, accept,

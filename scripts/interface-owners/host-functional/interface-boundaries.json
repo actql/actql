@@ -66420,7 +66420,7 @@
     {
       "module": "adapters/host-node/installed-content-family.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d4ded9502dec20223347c5f64160d6d72ce8bf248827447526d0dac110305e3d",
+      "sha256": "2c5ba8371f82db34fa8baa35e12e5e4505f45aab8742ef2a22996e005e00b08d",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -66645,7 +66645,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "export function installEffectContentFamily({moon, control, publications, bodies,"
               },
               {
@@ -66663,7 +66663,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "export function installEffectContentFamily({moon, control, publications, bodies,"
               },
               {
@@ -66675,8 +66675,8 @@
                 "anchor": "### Content generation evidence"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "storageForContent: binding => selectedForContent(binding)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "storageForContent: (binding: unknown) => selectedForContent(binding)"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -66689,7 +66689,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "// Physical I/O for the original Effect task's common Content child. The child"
               },
               {
@@ -66701,8 +66701,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original!.issued)"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -66715,7 +66715,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "// the existing Store and retains the resulting generation evidence."
               },
               {
@@ -66741,7 +66741,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "export function installEffectContentFamily({moon, control, publications, bodies,"
               },
               {
@@ -66753,7 +66753,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "if (!current() || !live() || !current()) return undefined;"
               },
               {
@@ -66767,7 +66767,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "throw new TypeError('InvalidInstalledContentFamily');"
               },
               {
@@ -66793,7 +66793,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,"
               },
               {
@@ -66805,7 +66805,7 @@
                 "anchor": "### Content generation evidence"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
               },
               {
@@ -66823,7 +66823,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "// owns ordering, encoding and work; this port only appends its exact pieces to"
               },
               {
@@ -66849,7 +66849,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "export function installEffectContentFamily({moon, control, publications, bodies,"
               },
               {
@@ -66910,8 +66910,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -66920,8 +66920,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -66930,8 +66930,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -66940,8 +66940,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -66950,8 +66950,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -66960,8 +66960,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -66970,8 +66970,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -66980,8 +66980,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -66990,8 +66990,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "consumeContent(binding, accept)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "consumeContent(binding: unknown, accept: Consume['accept'])"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -67014,7 +67014,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "export function installEffectContentFamily({moon, control, publications, bodies,"
               },
               {
@@ -67032,7 +67032,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "export function installEffectContentFamily({moon, control, publications, bodies,"
               },
               {
@@ -67044,8 +67044,8 @@
                 "anchor": "### Content generation evidence"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "storageForContent: binding => selectedForContent(binding)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "storageForContent: (binding: unknown) => selectedForContent(binding)"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -67058,7 +67058,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "// Physical I/O for the original Effect task's common Content child. The child"
               },
               {
@@ -67070,8 +67070,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original!.issued)"
               },
               {
                 "path": "docs/design/installed-row-reader-custody.md",
@@ -67084,7 +67084,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "// the existing Store and retains the resulting generation evidence."
               },
               {
@@ -67110,7 +67110,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "export function installEffectContentFamily({moon, control, publications, bodies,"
               },
               {
@@ -67122,7 +67122,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "if (!current() || !live() || !current()) return undefined;"
               },
               {
@@ -67136,7 +67136,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "throw new TypeError('InvalidInstalledContentFamily');"
               },
               {
@@ -67162,7 +67162,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "prepared, plan, store, principalId, ownerPrincipal, now, authorize, signal,"
               },
               {
@@ -67174,7 +67174,7 @@
                 "anchor": "### Content generation evidence"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
               },
               {
@@ -67192,7 +67192,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "// owns ordering, encoding and work; this port only appends its exact pieces to"
               },
               {
@@ -67218,7 +67218,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "export function installEffectContentFamily({moon, control, publications, bodies,"
               },
               {
@@ -67279,7 +67279,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67289,7 +67289,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67299,7 +67299,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67309,7 +67309,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67319,7 +67319,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67329,7 +67329,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67339,7 +67339,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67349,7 +67349,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67359,7 +67359,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "bindExecution"
               },
               {
@@ -67897,8 +67897,8 @@
                 "anchor": "### Content generation evidence"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "storageForContent: binding => selectedForContent(binding)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "storageForContent: (binding: unknown) => selectedForContent(binding)"
               },
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
@@ -67947,8 +67947,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original!.issued)"
               },
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
@@ -68047,7 +68047,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "if (!current() || !live() || !current()) return undefined;"
               },
               {
@@ -68143,7 +68143,7 @@
                 "anchor": "### Content generation evidence"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
               },
               {
@@ -69153,8 +69153,8 @@
                 "anchor": "### Content generation evidence"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "storageForContent: binding => selectedForContent(binding)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "storageForContent: (binding: unknown) => selectedForContent(binding)"
               },
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
@@ -69203,8 +69203,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
-                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original.issued)"
+                "path": "adapters/host-node/installed-content-family.mts",
+                "anchor": "moon.clientProgramEffectCommandContentMatchesIssued(binding, original!.issued)"
               },
               {
                 "path": "adapters/host-node/installed-content-run.mjs",
@@ -69303,7 +69303,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "if (!current() || !live() || !current()) return undefined;"
               },
               {
@@ -69399,7 +69399,7 @@
                 "anchor": "### Content generation evidence"
               },
               {
-                "path": "adapters/host-node/installed-content-family.mjs",
+                "path": "adapters/host-node/installed-content-family.mts",
                 "anchor": "const current = () => durable && !cancelled && flight === undefined &&"
               },
               {
