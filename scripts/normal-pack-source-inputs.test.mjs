@@ -38,6 +38,8 @@ function fixture(t) {
   put('release/input.json', '{}\n');
   put('portability/corpus/generation.json', '{"original":true}\n');
   put('docs/spec/generation.md', 'Original normative generation input\n');
+  put('reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts', 'export {};\n');
+  put('reviews/2026-10-13-vector-scalar-installed-source/receipt.json', '{}\n');
   put('.gitignore', '_build/\n');
   execFileSync('git', ['init', '-q'], {cwd: source});
   const listed = () => repositoryFiles(source);
@@ -56,6 +58,8 @@ test('normal pack copied sources satisfy the original required interface entranc
   assert(paths.includes('release/input.json'));
   assert(paths.includes('portability/corpus/generation.json'));
   assert(paths.includes('docs/spec/generation.md'));
+  assert(paths.includes('reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts'));
+  assert(!paths.includes('reviews/2026-10-13-vector-scalar-installed-source/receipt.json'));
   assert(!paths.includes('docs/not-an-input.md'));
   f.copy(paths);
   const before = paths.map(path => readFileSync(join(f.producer, path)).toString('hex'));

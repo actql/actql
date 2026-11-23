@@ -3,7 +3,7 @@
 import {createRequire} from 'node:module';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import type {createHostObservationConnection, HostObservationConnection} from '../../../packages/local-node/observation.d.ts';
+import type {createHostObservationConnection, HostObservationConnection} from '@actql/local-node/observation';
 import type {DynamicRow, Execution, RunReference} from '../../../packages/sdk/index.d.ts';
 
 type ObservationStatus = ReturnType<HostObservationConnection['status']>;

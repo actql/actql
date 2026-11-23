@@ -69,7 +69,11 @@ function git(repository: string, args: readonly string[]) {
 // builds use. Normative generation reads also include the portability corpus
 // and specification text. Generated output and scratch are git-ignored.
 export const BUILD_INPUTS = Object.freeze(['packages', 'src', 'adapters',
-  'spec', 'scripts', 'release', 'portability', 'docs/spec']);
+  'spec', 'scripts', 'release', 'portability', 'docs/spec',
+  // These authored audits are direct imports of the maintained release scripts.
+  'reviews/2026-10-13-vector-scalar-installed-source/public-audit.mts',
+  'reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.mts',
+  'reviews/2026-10-14-carrier-peer-scope-release-matrix/public-audit.mts']);
 
 // Fresh CI producers retain the same source-input policy plus the exact
 // references read by the required, original interface validator. This is
@@ -77,7 +81,7 @@ export const BUILD_INPUTS = Object.freeze(['packages', 'src', 'adapters',
 export async function normalPackSourceInputs(repository: string, listed: readonly string[]) {
   const root = realpathSync(repository), available = new Set(listed);
   const selected = new Set(listed.filter(path => !path.includes('/') ||
-    BUILD_INPUTS.some(prefix => path.startsWith(prefix + '/'))));
+    BUILD_INPUTS.some(input => path === input || path.startsWith(input + '/'))));
   const {interfaceOwnerDeclarations} = await import('./interface-owner-discovery.mjs');
   const {assertInterfaceCoverage} = await import('./interface-inventory.mjs');
   const readReference = (path: string) => {
