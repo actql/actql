@@ -2980,3 +2980,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/sheets/site/sheets-exchange.d.mts
 /adapters/connectors/sheets/test/sheets-grid-pages.test.mjs
 /adapters/connectors/sheets/test/sheets-grid-pages.test.d.mts
+/adapters/connectors/sheets/host/sheets-range-command.mjs
+/adapters/connectors/sheets/host/sheets-range-command.d.mts
+/adapters/connectors/sheets/host/sheets-clear-command.mjs
+/adapters/connectors/sheets/host/sheets-clear-command.d.mts
+/adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs
+/adapters/connectors/sheets/test/sheets-owned-baseline.test.d.mts

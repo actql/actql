@@ -531,7 +531,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -691,7 +691,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -718,7 +718,7 @@
   {
     "module": "adapters/connectors/sheets/host/sheets-range-command.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "5394a7a5b7e35b88edc4513584829052b5f6ebb87c851fd8ac049f9d03c3090b",
+    "sha256": "5528d120c4c22a5146b438edf4223dd4e7caa0666a3e92f182ed30b42086d5df",
     "exports": [
       "createSheetsRangeDriver",
       "sheetsRangeCommand",
@@ -1034,7 +1034,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -1170,7 +1170,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -1513,7 +1513,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -1639,7 +1639,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -2055,7 +2055,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -2298,7 +2298,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -2837,7 +2837,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -2966,7 +2966,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -3449,7 +3449,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -3660,7 +3660,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -3932,7 +3932,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -4096,7 +4096,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -4491,7 +4491,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -4618,7 +4618,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -5143,7 +5143,7 @@
           ],
           "verification": [
             {
-              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mjs",
+              "path": "adapters/connectors/sheets/test/sheets-owned-baseline.test.mts",
               "anchor": "preserves the original request bytes"
             },
             {
@@ -5165,7 +5165,7 @@
   },
   {
     "module": "adapters/connectors/sheets/host/sheets-clear-command.mjs",
-    "sha256": "c8585e9239e7fa797062be9c46525b15b7c19dd2b191f65919a6ca38fc32b4b9",
+    "sha256": "55004c9c5cee378ea2700826021d4a949366d5052117ba21563fe39cd5dc8bae",
     "exports": [
       "createSheetsClearDriver",
       "sheetsClearCommand"
