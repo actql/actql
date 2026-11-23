@@ -2876,3 +2876,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/test/original-effect-property-codec.test.d.mts
 /adapters/connectors/notion/test/original-effect-property-codec.actual.test.mjs
 /adapters/connectors/notion/test/original-effect-property-codec.actual.test.d.mts
+/adapters/connectors/notion/test/remaining-row-requests.test.mjs
+/adapters/connectors/notion/test/remaining-row-requests.test.d.mts
+/adapters/connectors/notion/test/source-configuration-reader.test.mjs
+/adapters/connectors/notion/test/source-configuration-reader.test.d.mts

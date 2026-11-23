@@ -1106,7 +1106,7 @@
                 "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
               },
               {
-                "path": "adapters/connectors/notion/test/source-configuration-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/source-configuration-reader.test.mts",
                 "anchor": "test('installed Source configuration preserves same pending read failure without cleanup or fallback'"
               }
             ]

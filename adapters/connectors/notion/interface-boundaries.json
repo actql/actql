@@ -199,7 +199,7 @@
                 "anchor": "Notion constructor keeps the original implementation refusal before any Site or reader"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "Notion users delivers every declared Source cell before subset or empty user projection"
               },
               {
@@ -207,11 +207,11 @@
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
               },
               {
@@ -863,7 +863,7 @@
                 "anchor": "actual Notion current denial or stop after the awaited property selection sends no dependent request"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
@@ -1717,7 +1717,7 @@
                 "anchor": "finite provider-page publication refusal keeps its original cause and never republishes"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "Notion users delivers every declared Source cell before subset or empty user projection"
               },
               {
@@ -1725,11 +1725,11 @@
                 "anchor": "installed Notion actual SQL and AQL retain original multi-page users and close the same Host reader"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "original current refusal prevents another authorization or remaining-row request"
               },
               {

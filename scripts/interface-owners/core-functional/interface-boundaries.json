@@ -77637,7 +77637,7 @@
                 "anchor": "test \"provider page facts join the original finite cursor progress\""
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
@@ -79617,7 +79617,7 @@
                 "anchor": "test \"provider page facts join the original finite cursor progress\""
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
@@ -112715,7 +112715,7 @@
                 "anchor": "test \"provider page facts join the original finite cursor progress\""
               },
               {
-                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mjs",
+                "path": "adapters/connectors/notion/test/remaining-row-requests.test.mts",
                 "anchor": "exhausted remainder refuses before another indexed authorization or send"
               }
             ]
