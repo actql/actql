@@ -6,7 +6,15 @@ import {snapshotInstalledCalendar, installedCalendarIdentity, installedCalendarI
 import {calendarSourceArtifact, calendarSourceSelection, calendarSourceArtifactLimits}
   from '../../scripts/fixtures/calendar-source-input.mjs';
 
-const original = () => ({selection: {...calendarSourceSelection},
+type Admission = Parameters<typeof admitInstalledCalendar<object>>[0];
+type CalendarFixture = {
+  selection: typeof calendarSourceSelection;
+  tableBytes: Buffer;
+  limits: typeof calendarSourceArtifactLimits & {max_work?: number};
+  maxSelectionWork: number;
+};
+
+const original = (): CalendarFixture => ({selection: {...calendarSourceSelection},
   // File framing is removed explicitly by this fixture supplier. Admission
   // receives the exact original canonical body and performs no normalization.
   tableBytes: Buffer.from(calendarSourceArtifact.slice(0, -1)),
@@ -36,7 +44,7 @@ test('Calendar installation snapshots exact original bytes metadata and finite l
   assert(Object.isFrozen(selected.limits));
   const originalEnvironment = {}, admittedEnvironment = {};
   let calls = 0;
-  const moon = {clientProgramCheckEnvironmentWithCalendarArtifact(...args) {
+  const moon: Admission = {clientProgramCheckEnvironmentWithCalendarArtifact(...args) {
     calls += 1; assert.equal(args[0], originalEnvironment);
     assert.deepEqual(Buffer.from(args[1]), bytes);
     assert.deepEqual(args.slice(2), [1000, 100, 8, 1, 0, 10000]);
@@ -98,7 +106,7 @@ test('Calendar semantic metadata identity keeps composed and decomposed values d
 
 test('Calendar DATA accessors refuse without reading a changing value', () => {
   for (const [record, key] of [['installation', 'maxSelectionWork'],
-    ['selection', 'tzdb_version'], ['limits', 'max_nodes']]) {
+    ['selection', 'tzdb_version'], ['limits', 'max_nodes']] as const) {
     const value = original();
     const target = record === 'installation' ? value : value[record];
     let reads = 0;
@@ -112,7 +120,7 @@ test('Calendar DATA accessors refuse without reading a changing value', () => {
 });
 
 test('Calendar closed DATA records reject symbol and nonenumerable extra properties', () => {
-  for (const record of ['installation', 'selection', 'limits']) {
+  for (const record of ['installation', 'selection', 'limits'] as const) {
     for (const key of ['hidden', Symbol('extra')]) {
       const value = original();
       const target = record === 'installation' ? value : value[record];

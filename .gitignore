@@ -2690,3 +2690,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/bounded-continuation-metadata.d.mts
 /adapters/host-node/bounded-continuation-metadata.test.mjs
 /adapters/host-node/bounded-continuation-metadata.test.d.mts
+/adapters/host-node/installed-calendar.mjs
+/adapters/host-node/installed-calendar.d.mts
+/adapters/host-node/installed-calendar.test.mjs
+/adapters/host-node/installed-calendar.test.d.mts
+/scripts/fixtures/calendar-source-input.mjs
+/scripts/fixtures/calendar-source-input.d.mts
+/scripts/calendar-source-input.test.mjs
+/scripts/calendar-source-input.test.d.mts

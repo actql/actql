@@ -21,11 +21,11 @@ const bucketColumns = [...seriesColumns, {name: 'month', contract: {
   fields: {start: timestamp, end: timestamp},
 }}];
 const generator = `calendar_series(start:'${start}',end:'${end}',unit:'day',timezone:'UTC')`;
-function control(bucket) {
+function control(bucket: boolean) {
   const fields = bucket ? ['start', 'end', 'month'] : ['start', 'end'];
   const from = bucket ? 'bucketed' : 'days';
   return {version: 'actql/0.1', id: 'fixture.calendar_source', stages: [{id: 'main', inputs: {}, steps: [
-    {calendar_series: {start, end, unit: 'day', timezone: 'UTC'}, as: 'days'},
+    {calendar_series: {start, end, unit: 'day' as string | null, timezone: 'UTC'}, as: 'days'},
     ...(bucket ? [{calendar_bucket: {time: 'start', into: 'month', unit: 'month', timezone: 'UTC'}, as: 'bucketed'}] : []),
     {from, sort: [{field: 'start', dir: 'asc', nulls: 'first'}]},
     {select: fields, as: 'out'},
@@ -48,7 +48,7 @@ export const calendarSourceSuccesses = [false, true].flatMap(bucket => {
 // operation and text signature. Preserve the valid inputs and change only that
 // authored selector for independent pre-admission refusal controls.
 const nullUnitProgram = control(false);
-nullUnitProgram.stages[0].steps[0].calendar_series.unit = null;
+nullUnitProgram.stages[0].steps[0].calendar_series!.unit = null;
 const nullUnitText = `WITH days AS (calendar_series(start:'${start}',end:'${end}',unit:NULL,timezone:'UTC')) ` +
   'SELECT start,`end` FROM days ORDER BY start';
 export const calendarSourceRefusals = ['json', 'sql', 'aql-text'].map(format => ({

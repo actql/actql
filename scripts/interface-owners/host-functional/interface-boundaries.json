@@ -64509,7 +64509,7 @@
     {
       "module": "adapters/host-node/installed-calendar.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17793f9d82aec55574a6a271c26e5530b667f97cac535b7ab8fb4f0b625938d9",
+      "sha256": "59d8b1d5fc1ae0b2fb725c4f1335dc43a2e52ca83d7e99d48039feef6320c71f",
       "role": "physical-io",
       "owner": "Existing MoonBit calendar profile Owner and trusted semantic-artifact selection",
       "exports": [
@@ -64609,8 +64609,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "export function snapshotInstalledCalendar(value) {"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "export function snapshotInstalledCalendar(value: unknown) {"
               },
               {
                 "path": "docs/design/calendar-checking.md",
@@ -64623,8 +64623,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "export function snapshotInstalledCalendar(value) {"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "export function snapshotInstalledCalendar(value: unknown) {"
               },
               {
                 "path": "src/calendar_profile/pkg.generated.mbti",
@@ -64637,7 +64637,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
+                "path": "adapters/host-node/installed-calendar.mts",
                 "anchor": "// identity and boundary laws remain with the existing MoonBit profile owner."
               },
               {
@@ -64651,7 +64651,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
+                "path": "adapters/host-node/installed-calendar.mts",
                 "anchor": "// identity and boundary laws remain with the existing MoonBit profile owner."
               },
               {
@@ -64665,8 +64665,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "export function snapshotInstalledCalendar(value) {"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "export function snapshotInstalledCalendar(value: unknown) {"
               },
               {
                 "path": "docs/design/calendar-checking.md",
@@ -64679,8 +64679,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "const invalid = () => { throw new TypeError('InvalidInstalledCalendar'); };"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "const invalid: () => never = () => { throw new TypeError('InvalidInstalledCalendar'); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -64693,8 +64693,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "export function snapshotInstalledCalendar(value) {"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "export function snapshotInstalledCalendar(value: unknown) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -64707,7 +64707,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
+                "path": "adapters/host-node/installed-calendar.mts",
                 "anchor": "// Explicit semantic-artifact installation. Calendar parsing, canonical bytes,"
               },
               {
@@ -64721,7 +64721,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
+                "path": "adapters/host-node/installed-calendar.mts",
                 "anchor": "// Explicit semantic-artifact installation. Calendar parsing, canonical bytes,"
               },
               {
@@ -64735,7 +64735,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-calendar.test.mjs",
+                "path": "adapters/host-node/installed-calendar.test.mts",
                 "anchor": "test('omitted Calendar installation retains the original environment without enabling a profile', () => {"
               },
               {
@@ -64753,8 +64753,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "export function snapshotInstalledCalendar(value) {"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "export function snapshotInstalledCalendar(value: unknown) {"
               },
               {
                 "path": "docs/design/calendar-checking.md",
@@ -64767,8 +64767,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "export function snapshotInstalledCalendar(value) {"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "export function snapshotInstalledCalendar(value: unknown) {"
               },
               {
                 "path": "src/calendar_profile/pkg.generated.mbti",
@@ -64781,7 +64781,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
+                "path": "adapters/host-node/installed-calendar.mts",
                 "anchor": "// identity and boundary laws remain with the existing MoonBit profile owner."
               },
               {
@@ -64795,7 +64795,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
+                "path": "adapters/host-node/installed-calendar.mts",
                 "anchor": "// identity and boundary laws remain with the existing MoonBit profile owner."
               },
               {
@@ -64809,8 +64809,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "export function snapshotInstalledCalendar(value) {"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "export function snapshotInstalledCalendar(value: unknown) {"
               },
               {
                 "path": "docs/design/calendar-checking.md",
@@ -64823,8 +64823,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "const invalid = () => { throw new TypeError('InvalidInstalledCalendar'); };"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "const invalid: () => never = () => { throw new TypeError('InvalidInstalledCalendar'); };"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -64837,8 +64837,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
-                "anchor": "export function snapshotInstalledCalendar(value) {"
+                "path": "adapters/host-node/installed-calendar.mts",
+                "anchor": "export function snapshotInstalledCalendar(value: unknown) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -64851,7 +64851,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
+                "path": "adapters/host-node/installed-calendar.mts",
                 "anchor": "// Explicit semantic-artifact installation. Calendar parsing, canonical bytes,"
               },
               {
@@ -64865,7 +64865,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-calendar.mjs",
+                "path": "adapters/host-node/installed-calendar.mts",
                 "anchor": "// Explicit semantic-artifact installation. Calendar parsing, canonical bytes,"
               },
               {
@@ -64879,7 +64879,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-calendar.test.mjs",
+                "path": "adapters/host-node/installed-calendar.test.mts",
                 "anchor": "test('omitted Calendar installation retains the original environment without enabling a profile', () => {"
               },
               {
