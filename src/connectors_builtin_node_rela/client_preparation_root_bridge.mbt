@@ -3033,7 +3033,10 @@ pub fn client_program_request_original_static_plan_wire(
     ClientLocalPreparationInputOriginal,
   ],
 ) -> Result[String, @client_local_host.ClientOriginalExplanationCaptureIssue] {
-  @client_local_host.request_original_static_plan_wire(original)
+  @client_local_host.request_original_static_plan_wire(
+    original,
+    inspect_installed=true,
+  )
 }
 
 ///|

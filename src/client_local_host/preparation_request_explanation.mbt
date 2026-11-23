@@ -371,6 +371,7 @@ pub fn[I] prepare_request_original_explanation(
 /// The complete existing Plan/map/codec quotation remains held by this loan.
 pub fn[I] request_original_static_plan_wire(
   value : ClientRequestOriginalExplanation[I],
+  inspect_installed? : Bool = false,
 ) -> Result[String, ClientOriginalExplanationCaptureIssue] {
   guard value.original is Some((owner, input, prepared, artifact)) &&
     value.adopted is None &&
@@ -404,6 +405,7 @@ pub fn[I] request_original_static_plan_wire(
           value.bytes,
           value.nodes,
           value.depth,
+          inspect_installed~,
         ) {
         Err(issue) => return Err(Plan(issue))
         Ok(value) => value
