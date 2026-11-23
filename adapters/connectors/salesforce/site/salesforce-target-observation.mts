@@ -7,13 +7,66 @@ import {callHttpsCredentialResource, withHttpsCredentialRunResponseOriginal} fro
 import {matchesSalesforceCredentialOrg} from
   './salesforce-credential-binding.mjs';
 
-const fail = code => {
+import type {SalesforceReadAuthorization} from './salesforce-catalog-sync.mjs';
+import type {SalesforceRequestScope} from './salesforce-single-write.mjs';
+
+type RunOriginal = Parameters<typeof withHttpsCredentialRunResponseOriginal>;
+type Response = RunOriginal[0];
+type Control = RunOriginal[1];
+type Journal = RunOriginal[2];
+type Credential = NonNullable<Parameters<typeof matchesSalesforceCredentialOrg>[0]> &
+  Readonly<{control: Control; journal: Journal}>;
+type CredentialFacts = Parameters<RunOriginal[3]>[0];
+type CallResource = (input: Parameters<typeof callHttpsCredentialResource>[0]) => Response | PromiseLike<Response>;
+type TargetLimits = Readonly<{maxResponseBytes: number; maxNodes: number; maxDepth: number; maxIdentityBytes: number}>;
+type TargetRuntime = Readonly<{
+  salesforceSingleWriteRequestMethod(request: unknown): string;
+  salesforceSingleWriteRequestOrgId(request: unknown): string;
+  salesforceSingleWriteRequestGrantOperation(request: unknown): string;
+  salesforceSingleWriteRequestScopeMatches(request: unknown, ...scope: SalesforceRequestScope): boolean;
+  salesforceRecheckSingleWriteRequest(request: unknown, catalog: unknown): unknown;
+  salesforceSingleWriteRequestPath(request: unknown): string;
+  salesforcePrepareTargetObservation(request: unknown, status: number, body: Uint8Array, bytes: number,
+    nodes: number, depth: number, identityBytes: number): unknown;
+  salesforceTargetObservationVersionCid(observation: unknown): string;
+  salesforceTargetObservationBeforeValueWire(observation: unknown): string;
+}>;
+type TargetOptions = Readonly<{
+  moon: TargetRuntime; request: unknown; currentCatalog: unknown; authorization: SalesforceReadAuthorization;
+  credential: Credential; limits: TargetLimits; signal?: AbortSignal; callResource?: CallResource;
+}>;
+type Context = Omit<ReturnType<typeof ownInvocationContext>, 'authorization' | 'credential' | 'scope' | 'limits' | 'callbacks'> &
+  Readonly<{authorization: SalesforceReadAuthorization; credential: Credential;
+    scope: SalesforceReadAuthorization['scope']; limits: TargetLimits; callbacks: Readonly<{callResource: CallResource}>}>;
+type Observed = Readonly<{
+  request: unknown; useCid: string; statusCode: 200 | 404; body: Uint8Array; record: unknown;
+  versionCid: string | undefined; beforeWire: string | undefined;
+}>;
+type AccountFacts = Readonly<{request: unknown; targetObservation: unknown; versionCid: string | undefined;
+  etag: string; response: Response; credentialFacts: CredentialFacts}>;
+type AccountOriginal = {
+  moon: TargetRuntime; request: unknown; currentCatalog: unknown; control: Control; journal: Journal;
+  scope: SalesforceReadAuthorization['scope']; expectedGrantCid: unknown; expectedUseId: string;
+  useProjection: Control['useProjection'] | undefined; response: Response; signal?: AbortSignal;
+  failure: unknown; facts: AccountFacts | undefined;
+};
+type Originals = Pick<TargetOptions, 'moon' | 'request' | 'currentCatalog' | 'credential'>;
+type Member = Readonly<{
+  requests: readonly unknown[]; currentCatalog: unknown; credential: Credential; limits: TargetLimits;
+  authorizationForRow(index: number): SalesforceReadAuthorization | PromiseLike<SalesforceReadAuthorization>;
+  readChild?(authorization: SalesforceReadAuthorization, input: Parameters<CallResource>[0],
+    rowIndex: number): ReturnType<CallResource>;
+}>;
+type TargetSet = Readonly<{moon: TargetRuntime; members: readonly Member[];
+  maxMembers: number; maxRows: number; maxTotalResponseBytes: number; signal?: AbortSignal}>;
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 // Membership is issued only by the actual Account read below, never by a
 // restored Catalog, copied response, ETag string or equal content identity.
-const accountTargetOriginals = new WeakMap();
-const validLimits = limits =>
+const accountTargetOriginals = new WeakMap<Observed, AccountOriginal>();
+const validLimits = (limits: TargetLimits) =>
   Number.isSafeInteger(limits?.maxResponseBytes) &&
   limits.maxResponseBytes >= 1 && limits.maxResponseBytes <= 1_000_000 &&
   Number.isSafeInteger(limits.maxNodes) &&
@@ -30,14 +83,14 @@ const validLimits = limits =>
 async function observeSingleTarget({
   moon, request, currentCatalog, authorization, credential, limits,
   signal, callResource = callHttpsCredentialResource,
-}, accountConditional) {
+}: TargetOptions, accountConditional: boolean) {
   if (!moon || !request || !currentCatalog || !authorization?.grant ||
       !credential || typeof callResource !== 'function' ||
       !validLimits(limits)) {
     fail('InvalidSalesforceTargetObservation');
   }
   const context = ownInvocationContext({authorization, credential, limits,
-    callbacks: {callResource}});
+    callbacks: {callResource}}) as Context;
   const scope = context.scope;
   if (moon.salesforceSingleWriteRequestMethod(request) !== 'PATCH' ||
       scope.operation !== 'salesforce:record:observe' ||
@@ -62,7 +115,7 @@ async function observeSingleTarget({
   const useProjection = accountConditional ? context.credential.control.useProjection : undefined;
   const grantIdentity = accountConditional ? context.credential.control.identity : undefined;
   const expectedGrantCid = accountConditional
-    ? Reflect.apply(grantIdentity, context.credential.control, [context.authorization.grant]) : undefined;
+    ? Reflect.apply(grantIdentity!, context.credential.control, [context.authorization.grant]) : undefined;
   signal?.throwIfAborted();
   const response = await invokeScopedCredentialOperation({
     authorization: context.authorization,
@@ -77,7 +130,7 @@ async function observeSingleTarget({
     } : {}),
     maxResponseBytes: context.limits.maxResponseBytes,
     signal,
-  });
+  }) as Response;
   if (response.statusCode !== 200 && response.statusCode !== 404) {
     fail('SalesforceTargetObservationRejected');
   }
@@ -88,8 +141,8 @@ async function observeSingleTarget({
       request, response.statusCode, response.body,
       context.limits.maxResponseBytes, context.limits.maxNodes,
       context.limits.maxDepth, context.limits.maxIdentityBytes)) : undefined;
-  const observed = Object.freeze({
-    request, useCid: response.useCid, statusCode: response.statusCode,
+  const observed: Observed = Object.freeze({
+    request, useCid: response.useCid, statusCode: response.statusCode as 200 | 404,
     body: response.body, record,
     versionCid: record === undefined ? undefined :
       moon.salesforceTargetObservationVersionCid(record),
@@ -106,14 +159,14 @@ async function observeSingleTarget({
   return observed;
 }
 
-export function observeSalesforceSingleTarget(options) {
+export function observeSalesforceSingleTarget(options: TargetOptions) {
   return observeSingleTarget(options, false);
 }
 
 // A distinct physical read profile. Each call still needs its original read
 // grant and consumes one ordinary Credential use. This issues no write permit,
 // request identity, saved evidence, currentness or conditional send authority.
-export function observeSalesforceAccountConditionalTarget(options) {
+export function observeSalesforceAccountConditionalTarget(options: TargetOptions) {
   return observeSingleTarget(options, true);
 }
 
@@ -121,7 +174,8 @@ export function observeSalesforceAccountConditionalTarget(options) {
 // The existing Credential Owner checks the original received body both before
 // and after the finisher, including result inspection. An observed mutation
 // is terminal even if another alias later restores the bytes.
-export function withSalesforceAccountTargetOriginal(observed, originals, consume) {
+export function withSalesforceAccountTargetOriginal<Value>(observed: Observed, originals: Originals,
+  consume: (facts: AccountFacts) => Value) {
   const original = accountTargetOriginals.get(observed);
   if (original === undefined || original.moon !== originals?.moon ||
       original.request !== originals.request ||
@@ -139,9 +193,9 @@ export function withSalesforceAccountTargetOriginal(observed, originals, consume
       original.signal?.throwIfAborted();
       return withHttpsCredentialRunResponseOriginal(original.response,
         original.control, original.journal, credentialFacts => {
-          const use = Reflect.apply(original.useProjection, original.control, [credentialFacts.use]);
+          const use = Reflect.apply(original.useProjection!, original.control, [credentialFacts.use]) as readonly unknown[];
           const {requestRepresentation: sent, responseRepresentation: received} = credentialFacts;
-          const values = name => original.response.headers
+          const values = (name: string) => original.response.headers
             .filter(pair => pair[0] === name).map(pair => pair[1]);
           const etags = values('etag');
           const encodings = values('content-encoding');
@@ -171,12 +225,12 @@ export function withSalesforceAccountTargetOriginal(observed, originals, consume
     } catch (cause) { original.failure = cause; throw cause; }
   };
   const facts = check();
-  let primary;
+  let primary: unknown;
   let failed = false;
-  let result;
+  let result!: Value;
   try {
     result = consume(facts);
-    if (result !== null && result !== undefined && typeof result.then === 'function') {
+    if (result !== null && result !== undefined && typeof (result as {then?: unknown}).then === 'function') {
       void Promise.resolve(result).catch(() => {});
       fail('InvalidSalesforceAccountTargetConsumer');
     }
@@ -189,7 +243,7 @@ export function withSalesforceAccountTargetOriginal(observed, originals, consume
 
 // Retire this borrow only. Escaped response aliases, confirmed Credential
 // outcomes and physical child/Store cleanup remain their original owners'.
-export function retireSalesforceAccountTargetOriginal(observed) {
+export function retireSalesforceAccountTargetOriginal(observed: Observed) {
   accountTargetOriginals.delete(observed);
 }
 
@@ -198,7 +252,7 @@ export function retireSalesforceAccountTargetOriginal(observed) {
 // admission; no observation here is a write permit.
 export async function observeSalesforceTargetSet({
   moon, members, maxMembers, maxRows, maxTotalResponseBytes, signal,
-}) {
+}: TargetSet) {
   if (!moon || !Array.isArray(members) || members.length === 0 ||
       !Number.isSafeInteger(maxMembers) || maxMembers < 1 ||
       maxMembers > 1024 ||
@@ -209,7 +263,7 @@ export async function observeSalesforceTargetSet({
     fail('InvalidSalesforceTargetSet');
   }
   let totalRows = 0;
-  const owned = members.map(member => {
+  const owned = members.map((member: Member) => {
     const readChild = member?.readChild;
     if (!Array.isArray(member?.requests) ||
         member.requests.length === 0 ||
@@ -228,9 +282,9 @@ export async function observeSalesforceTargetSet({
       // Retain the original callback and receiver before the first await. The
       // shared owner still admits and retains its original physical child.
       readChild: readChild === undefined ? undefined
-        : (...args) => Reflect.apply(readChild, member, args),
+        : (...args: Parameters<NonNullable<Member['readChild']>>) => Reflect.apply(readChild, member, args),
       credential: Object.freeze({...member.credential}),
-      limits: ownInvocationLimits(member.limits),
+      limits: ownInvocationLimits(member.limits) as TargetLimits,
     });
   });
   const observations = [];
@@ -248,7 +302,7 @@ export async function observeSalesforceTargetSet({
         currentCatalog: member.currentCatalog,
         authorization, credential: member.credential,
         ...(member.readChild === undefined ? {} : {callResource: input =>
-          member.readChild(authorization, input, rowIndex)}),
+          member.readChild!(authorization, input, rowIndex)}),
         limits: {...member.limits,
           maxResponseBytes: Math.min(member.limits.maxResponseBytes,
             remaining)}, signal,

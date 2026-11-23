@@ -11693,7 +11693,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e72802cef9ff21a5b155dfec5e43345c23f8f7753e4cd7ff106bc1efaa52d7c9",
+      "sha256": "ff89bac60477752e4be88c3cc4610866755fba3d3c2241dbb81312eec003734b",
       "role": "physical-io",
       "owner": "Separately authorized prospective target reads, not Preview/apply or absence proof; original owner admits guards",
       "exports": [
@@ -11831,72 +11831,72 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "observeSalesforceTargetSet"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "withSalesforceAccountTargetOriginal"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "salesforceSingleWriteRequestScopeMatches"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "use[2] !== original.expectedUseId"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "const observations = []"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
-                "anchor": "const accountTargetOriginals = new WeakMap()"
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
+                "anchor": "const accountTargetOriginals = new WeakMap<Observed, AccountOriginal>()"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "authorizationForRow"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "const facts = check()"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "A 404"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "if (failed) throw primary"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "signal?.throwIfAborted"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "original.signal?.throwIfAborted()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "maxTotalResponseBytes"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
-                "anchor": "const values = name => original.response.headers"
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
+                "anchor": "const values = (name: string) => original.response.headers"
               }
             ],
             "extension": [
@@ -11905,7 +11905,7 @@
                 "anchor": "prepare_observed_target_preview_row"
               },
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-target-observation.mts",
                 "anchor": "SalesforceAccountConditionalProfileUnavailable"
               }
             ],

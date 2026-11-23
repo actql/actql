@@ -3162,3 +3162,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/salesforce/site/salesforce-query-read.d.mts
 /adapters/connectors/salesforce/site/salesforce-named-describe.mjs
 /adapters/connectors/salesforce/site/salesforce-named-describe.d.mts
+/adapters/connectors/salesforce/site/salesforce-target-observation.mjs
+/adapters/connectors/salesforce/site/salesforce-target-observation.d.mts
