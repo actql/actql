@@ -703,7 +703,7 @@ test('manual normal dispatch retains all full-family obligations, separate from 
   }
 });
 test('active main finishes while pending work coalesces; branches and performance are separate', () => {
-  assert.equal(workflow.concurrency.group, "${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}");
+  assert.equal(workflow.concurrency.group, "${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_model_linux && 'linux-model' || 'normal' }}");
   assert.equal(workflow.concurrency.queue, undefined);
   const expression = workflow.concurrency['cancel-in-progress'].slice(3, -2);
   for (const ref of ['refs/heads/main', 'refs/heads/feature']) {
@@ -1399,11 +1399,31 @@ test('maintenance N/A is explicit and cannot hide execution or selected check fa
 });
 
 // Exercise the real GitHub job expressions, including always() behavior.
-const scheduled = (name, needs, inputs = {}, isCancelled = false) => {
+const scheduled = (name, needs, inputs = {}, isCancelled = false, trigger = {}) => {
   const expression = jobs[name].if.slice(3, -3).replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`);
   return Function('needs', 'inputs', 'always', 'cancelled', 'vars', 'github', 'toJSON', 'fromJSON', 'contains', `return (${expression});`)(needs, inputs, () => true, () => isCancelled,
-    {}, {event: {repository: {visibility: 'public', private: false}}}, JSON.stringify, JSON.parse, (values, value) => values.includes(value));
+    {}, {...trigger, event: {repository: {visibility: 'public', private: false}}},
+    JSON.stringify, JSON.parse, (values, value) => values.includes(value));
 };
+test('one branch-scoped Model dispatch selects only the existing Linux producer', () => {
+  const branch = {event_name: 'workflow_dispatch', ref: 'refs/heads/e/ci-native-model-linux-a4d67'};
+  const input = {native_model_linux: true};
+  const skipped = {'select-targets': {result: 'skipped', outputs: {profile: ''}}};
+  const normal = {'select-targets': {result: 'success', outputs: {profile: 'full'}}};
+  assert.equal(workflow.on.workflow_dispatch.inputs.native_model_linux.default, false);
+  assert.equal(scheduled('native-cli-linux-local', skipped, input, false, branch), true);
+  assert.equal(scheduled('native-cli-linux-local', skipped, input, true, branch), false);
+  assert.equal(scheduled('native-cli-linux-local', normal, input, false, branch), false);
+  for (const foreign of [{...branch, ref: 'refs/heads/main'}, {...branch, event_name: 'pull_request'}]) {
+    assert.equal(scheduled('native-cli-linux-local', skipped, input, false, foreign), false);
+  }
+  for (const name of ['select-targets', 'preflight', 'lint', 'spec', 'check',
+    'native-cli-linux-local-installed', 'native-cli-linux-local-mock']) {
+    assert.equal(scheduled(name, skipped, input, false, branch), false, name);
+  }
+  assert.equal(scheduled('native-cli-linux-local', normal, {}, false, branch), true);
+  assert.equal(scheduled('check', normal, {}, false, branch), true);
+});
 test('pipeline evidence aggregates dependency failures but stops on workflow cancellation', () => {
   const names = jobs['pipeline-evidence'].needs;
   const healthy = Object.fromEntries(names.map(name => [name, {result: 'success'}]));

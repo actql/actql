@@ -70,6 +70,10 @@ test('preflight remains mandatory at the final gate without delaying independent
       assert.deepEqual(jobs[name].needs, ['select-targets']);
       assert(jobs[name].if.includes("always() && !cancelled() && needs.select-targets.result == 'success'"));
       assert(!jobs[name].if.includes('needs.lint') && !jobs[name].if.includes('needs.core-js'));
+    } else if (name === 'native-cli-linux-local') {
+      assert(jobs[name].if.includes("!inputs.native_model_linux && needs.select-targets.result == 'success'"));
+      assert(jobs[name].if.includes("inputs.native_model_linux &&"));
+      assert(jobs[name].if.includes("needs.select-targets.result == 'skipped'"));
     } else assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
     assert.equal(jobs[name]['continue-on-error'], undefined);
   }
