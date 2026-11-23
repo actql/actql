@@ -11,6 +11,7 @@ import {parse} from 'acorn';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureRestReadOriginals} from '../../../host-node/rest-read-original.mjs';
+import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 
 const sources = Object.fromEntries(await Promise.all(['notion', 'slack'].map(async role => [role,
   await readFile(new URL(`../../${role}/host/installed-${role}-source.mjs`, import.meta.url), 'utf8')])));
@@ -18,13 +19,6 @@ const sharedCode = await readFile(new URL('../../../host-node/source-profile-jso
 const sharedReader = parse(sharedCode, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .map(node => node.declaration ?? node).find(node => node.id?.name === 'captureConfigurationReaders');
 assert(sharedReader);
-const serviceCode = await readFile(new URL('../../../host-node/installed-host-services.mjs', import.meta.url), 'utf8');
-const serviceCapture = parse(serviceCode, {ecmaVersion: 'latest', sourceType: 'module'}).body
-  .map(node => node.declaration ?? node).find(node => node.id?.name === 'captureInstalledSourceServices');
-assert(serviceCapture);
-// Exact pure capture helper; initialization and service issuance remain explicit ports.
-const captureInstalledSourceServices = new Function('nodeTypes',
-  serviceCode.slice(serviceCapture.start, serviceCapture.end) + '\nreturn captureInstalledSourceServices;')(types);
 const readerLimits = ['maxResponseBytes', 'maxTotalResponseBytes', 'maxNodes', 'maxDepth', 'maxRows',
   'maxTotalRows', 'maxPages', 'pageSize', 'maxCursorBytes', 'maxIdentityBytes', 'maxTargetBytes',
   'maxValueNodes', 'maxValueTextBytes', 'maxRowsWireBytes', 'maxRowsWireNodes', 'maxRowsWireDepth'];
