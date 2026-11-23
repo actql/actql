@@ -47262,7 +47262,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "8fbc9d67717b0aa8dc35fd2764da156b900f7140a9bcd817877e21bc953a990a",
+      "sha256": "a1c282c0eb0c0d98204ad849575decb825db1795df20bda5256fd09d2cb7a589",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -52536,13 +52536,14 @@
     },
     {
       "module": "adapters/host-node/effect-source-stream.mjs",
-      "sha256": "b6b5fed9ac5675c6e92adbc3704de6828446eb17913c01da4cad133610274dd3",
+      "sha256": "b41e9a8dacfc04be1c78f77f384f6103ce235e077e3cdd2d6ae445fe5767cdb1",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "exports": [
         "exportPinnedEffectInput",
-        "exportPinnedEffectLocalResult"
+        "exportPinnedEffectLocalResult",
+        "exportPinnedResult"
       ],
       "operations": [
         {
@@ -52557,6 +52558,28 @@
           "parameters": [
             "resultIndex",
             "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "exportPinnedResult",
+          "parameters": [
+            "moon",
+            "execution",
+            "inputs",
+            "memberIndex",
+            "limits",
+            "onChunk",
+            "onReceipt",
+            "onCanonicalRow",
+            "canonicalRowLimits",
+            "onOriginalRow",
+            "originalRowLimits",
+            "prepareProposal",
+            "commandWorkspace",
+            "signal",
+            "advanceQuantum",
+            "localResultIndex"
           ],
           "async": true
         },
@@ -52594,13 +52617,15 @@
             "<module>",
             "exportPinnedEffectInput",
             "exportPinnedEffectLocalResult",
+            "exportPinnedResult",
             "exportPinnedResult/exportPinnedResult",
             "exportPinnedResult/exportPinnedResult#2",
             "exportPinnedResult/exportPinnedResult#3"
           ],
           "exports": [
             "exportPinnedEffectInput",
-            "exportPinnedEffectLocalResult"
+            "exportPinnedEffectLocalResult",
+            "exportPinnedResult"
           ],
           "attributes": {
             "responsibility": [

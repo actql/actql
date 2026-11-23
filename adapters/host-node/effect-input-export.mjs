@@ -6,7 +6,7 @@ import {checkedEffectPreparation} from '../host-common/effect-preparation-result
 import {types} from 'node:util';
 import {advanceEffectCommandKey} from './effect-command-key.mjs';
 import {createPinnedEffectSourceHoldings} from './effect-source-holdings.mjs';
-import {exportPinnedEffectInput, exportPinnedEffectLocalResult} from './effect-source-stream.mjs';
+import {exportPinnedEffectInput, exportPinnedEffectLocalResult, exportPinnedResult} from './effect-source-stream.mjs';
 import {releasePreparedResults, retainCompletedEffectDependencyPayloads} from
   '../host-common/completed-run-publication.mjs';
 

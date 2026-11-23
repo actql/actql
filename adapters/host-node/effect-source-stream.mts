@@ -90,7 +90,7 @@ export async function exportPinnedEffectLocalResult<Artifact>({resultIndex, ...o
     localResultIndex: resultIndex});
 }
 
-async function exportPinnedResult<Artifact>({
+export async function exportPinnedResult<Artifact>({
   moon, execution, inputs, memberIndex, limits, onChunk,
   onReceipt, onCanonicalRow, canonicalRowLimits, onOriginalRow, originalRowLimits,
   prepareProposal, commandWorkspace,
