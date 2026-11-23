@@ -8539,7 +8539,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "15a138edc077b23b9870ad6f513ba0e23f13378e2287e3b912ba2c09a471ac5f",
+      "sha256": "56eac9a9c844c6c0815ad0cbeda90a1b664d8e647cef7bbe364f9c7d59d0b464",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -9086,7 +9086,7 @@
       "role": "physical-io",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "27a272c3df5b1bbe05f045bf8d5c5ce18a4272fd5d43a8debf64547cd3768d17",
+      "sha256": "aafbb57fa32a1413850b007049e589480f4774519e78fda04f32e1dfc237233f",
       "exports": [
         "INSTALLED_KINTONE_EFFECT_VERSION",
         "checkInstalledKintoneEffectProfile",
@@ -9454,7 +9454,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "5473e58234a1e95f1e879ba312a57e4264f1b77fa2bd09a1ebbadef0cb6b8f9c",
+      "sha256": "19292af688973333ed5877ea291a6c8234d32b5558f5a27fd68eddeca354ce39",
       "exports": [
         "captureKintoneEffectPlanRecipeBuilder"
       ],

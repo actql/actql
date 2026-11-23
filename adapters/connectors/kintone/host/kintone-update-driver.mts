@@ -12,45 +12,97 @@ import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
 import {KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';
 
+import type {BinaryLike} from 'node:crypto';
+import type {RowEffectKind, RowEffectMember} from '../../../../packages/local-node/connector-installation.js';
+import type {KintoneResponse} from '../site/kintone-record-read.mjs';
+
+type RequestOptions = Parameters<typeof createKintoneUpdateRequestAdapter>[0];
+type Requests = ReturnType<typeof createKintoneUpdateRequestAdapter>;
+type PhysicalBinding = Parameters<typeof admitCheckpointPhysicalRead>[1];
+type Member = RowEffectMember<RowEffectKind>;
+type Grant = Readonly<{grant?: unknown; useId?: unknown}>;
+type Site = Readonly<{
+  issueReadGrant(facts: Readonly<{operation: string; decision: unknown; resource: string;
+    runInvocationCid: string; dispatchRequestCid: string; maxUses: number}>): Grant;
+  admitCheckpointEffectTargetRead(decision: unknown, binding: PhysicalBinding, operation: string): unknown;
+}>;
+type Authorize = (kind: 'acquisition', input: Readonly<{connection: string; resource: string; operation: 'read'}>,
+  current: Readonly<{subjectCid: string; signal?: AbortSignal}>) =>
+  Readonly<{action?: unknown}> | PromiseLike<Readonly<{action?: unknown}> | undefined> | undefined;
+type DriverOptions = RequestOptions & Readonly<{site: unknown; authorization: unknown; connection: string;
+  formResource: string; fields: readonly string[]; limits: Readonly<{maxRequestBytes: number; maxResponseBytes: number}>;
+  maxMembers: number; maxRecoveryBytes: number}>;
+type Slot = 'target' | 'schema' | 'schema-before' | 'schema-after';
+type Control = <Args extends readonly unknown[], Result>(receiver: unknown, project: (...args: Args) => Result,
+  args: Args) => Result;
+type CurrentFrame = Readonly<{member: Member; runInvocationCid: string; dispatchRequestCid: string;
+  controlConstruction?: Control; maxRows: number}>;
+type Project<Value> = (response: KintoneResponse) => Value;
+type ReadChildInput = Readonly<{grant?: unknown; useId: string; operations: ReadonlyMap<string, unknown>;
+  maxRequestBytes: number; maxResponseBytes: number; returnRejectedResponse: boolean; signal?: AbortSignal;
+  currentBeforeSend(): unknown}>;
+type Transport = Readonly<{signal?: AbortSignal;
+  readChild<Value>(authorization: Grant, input: ReadChildInput, row: number, slot: Slot,
+    project: Project<Value>): Value | PromiseLike<Value>;
+  readTarget?<Value>(row: number, request: Parameters<typeof ownHttpRequest>[0], project: Project<Value>,
+    currentBeforeSend: () => unknown): Value | PromiseLike<Value>}>;
+type Scope = CurrentFrame & Transport & Readonly<{targetAuthorization?(row: number): Grant | PromiseLike<Grant | undefined> | undefined}>;
+type Entry = Readonly<{request: object; requestCid: string}>;
+type Current = Readonly<{member: Member; current: object}>;
+type Entries = Current & Readonly<{entries: readonly Entry[]}>;
+type Observe = Entries & Transport & Readonly<{authorizationForRow: NonNullable<Scope['targetAuthorization']>}>;
+type Claims = Parameters<typeof assertInstalledRowUpdateClaim>[2];
+type Changes = Parameters<typeof assertInstalledRowUpdateClaim>[3];
+type Saved = NonNullable<Parameters<typeof unpackInstalledRowUpdateRecovery>[0]> & Readonly<{memberIndex: number}>;
+type RecoveryContext = Readonly<{members: readonly Member[]; maxRows: number;
+  recorded: Readonly<{members: readonly Readonly<{claims?: Claims}>[]}>;
+  durable: Readonly<{connectorRecovery: readonly Saved[]}>; memberIndexes?: readonly number[];
+  body?: Readonly<{effects?: readonly Readonly<{changes?: Changes}>[]}>;
+  requestTags?: readonly (readonly string[])[]}>;
+type Recovery = Readonly<{version?: unknown; binding?: unknown; member?: unknown; requests?: unknown}>;
+
 export const KINTONE_UPDATE_TARGET_VERSION = 'actql-installed-kintone-effect-target-read/0.1';
 const recoveryKind = 'kintone-update-requests';
 const recoveryVersion = 'actql-installed-kintone-update-recovery/0.1';
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const encode = value => canonicalJson(value, {dataKeys: true});
-const wireCid = wire => 'sha256:' + createHash('sha256').update(wire).digest('hex');
-const cid = value => wireCid(encode(value));
-const isCid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const encode = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const wireCid = (wire: BinaryLike) => 'sha256:' + createHash('sha256').update(wire).digest('hex');
+const cid = (value: unknown) => wireCid(encode(value));
+const isCid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2147483647;
 // Match only this fixed original DATA envelope. Do not recursively serialize
 // an unvalidated saved object merely to compare it with the bound original.
-const sameRecord = (value, expected) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
+const sameRecord = (value: unknown, expected: Readonly<Record<string, unknown>>) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).length === Object.keys(expected).length && Object.keys(expected).every(name =>
     Object.hasOwn(value, name) && (Array.isArray(expected[name])
-      ? Array.isArray(value[name]) && value[name].length === expected[name].length &&
-        expected[name].every((item, index) => value[name][index] === item)
-      : value[name] === expected[name]));
-const memberFacts = member => Object.freeze({effectId: member.effectId, memberIndex: member.memberIndex,
-  kind: member.kind, resource: member.resource, mappingRef: member.mapping?.mappingRef,
-  mappingCid: member.mapping?.mappingCid});
-const capture = (receiver, name, asynchronous = false) => {
+      ? Array.isArray((value as Record<string, unknown>)[name]) && (value as Record<string, unknown[]>)[name].length === (expected[name] as unknown[]).length &&
+        (expected[name] as unknown[]).every((item, index) => (value as Record<string, unknown[]>)[name][index] === item)
+      : (value as Record<string, unknown>)[name] === expected[name]));
+const memberFacts = (member: Member) => Object.freeze({effectId: member.effectId, memberIndex: member.memberIndex,
+  kind: member.kind, resource: member.resource, mappingRef: (member as RowEffectMember<'update'>).mapping?.mappingRef,
+  mappingCid: (member as RowEffectMember<'update'>).mapping?.mappingCid});
+const capture = <Args extends readonly unknown[], Value>(receiver: unknown, name: string, asynchronous = false) => {
   if (!receiver || nodeTypes.isProxy(receiver)) fail('InvalidKintoneUpdateDriver');
   const field = Object.getOwnPropertyDescriptor(receiver, name), method = field?.value;
   if (!field || !Object.hasOwn(field, 'value') || typeof method !== 'function' || nodeTypes.isProxy(method) ||
       !asynchronous && nodeTypes.isAsyncFunction(method)) fail('InvalidKintoneUpdateDriver');
-  return (...args) => Reflect.apply(method, receiver, args);
+  return (...args: Args): Value => Reflect.apply(method, receiver, args);
 };
 
 export class KintoneUpdateObservationFailure extends Error {
-  constructor(cause, observations) {
+  declare readonly code: unknown;
+  declare readonly observations: readonly KintoneResponse[];
+
+  constructor(cause: unknown, observations: readonly KintoneResponse[]) {
     super('KintoneUpdateObservationFailed', {cause});
-    this.code = cause?.code ?? 'KintoneUpdateObservationFailed';
+    this.code = (cause as {code?: unknown} | null | undefined)?.code ?? 'KintoneUpdateObservationFailed';
     Object.defineProperty(this, 'observations', {value: Object.freeze(observations.slice())});
   }
 }
 
 export function kintoneUpdateDriver({moon, site, authorization, connection, origin, appId, connectorId,
   resource, formResource, fields, mapping, declaration, siteBindingCid, generationCid, guestSpaceId,
-  limits, maxMembers, maxRecoveryBytes}) {
+  limits, maxMembers, maxRecoveryBytes}: DriverOptions) {
   if (typeof connection !== 'string' || !connection || typeof formResource !== 'string' || !formResource ||
       formResource === resource || !positive(maxMembers) ||
       !positive(maxRecoveryBytes) || !Array.isArray(fields) || nodeTypes.isProxy(fields) || fields.length < 1 ||
@@ -61,32 +113,33 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
     resource, siteBindingCid, generationCid, guestSpaceId, limits});
   // These are immutable DATA bounds, not a borrowed mutable policy object.
   const maxRequestBytes = limits.maxRequestBytes, maxResponseBytes = limits.maxResponseBytes;
-  const issueReadGrant = capture(site, 'issueReadGrant'),
-    admitTarget = capture(site, 'admitCheckpointEffectTargetRead'), authorize = capture(authorization, 'authorize', true);
+  const issueReadGrant = capture<Parameters<Site['issueReadGrant']>, ReturnType<Site['issueReadGrant']>>(site, 'issueReadGrant'),
+    admitTarget = capture<Parameters<Site['admitCheckpointEffectTargetRead']>, unknown>(site, 'admitCheckpointEffectTargetRead'),
+    authorize = capture<Parameters<Authorize>, ReturnType<Authorize>>(authorization, 'authorize', true);
   const prefix = guestSpaceId === undefined ? '/k/v1/' : `/k/guest/${guestSpaceId}/v1/`;
   const binding = Object.freeze({...requests.binding, formResource, fields: beforeFields});
-  const currentFrames = new WeakMap();
+  const currentFrames = new WeakMap<object, CurrentFrame>();
   let occurrence = 0;
-  const selected = member => {
+  const selected = (member: Member) => {
     if (member?.kind !== 'update' || member.resource !== resource ||
         member.mapping?.mappingRef !== requests.mappingRef || member.mapping?.mappingCid !== requests.mappingCid) {
       fail('ForeignKintoneUpdateMapping');
     }
   };
-  const frame = (member, current) => {
+  const frame = (member: Member, current: object) => {
     selected(member);
     const original = currentFrames.get(current);
     if (!original || original.member !== member) fail('ForeignKintoneUpdateCurrent');
     return original;
   };
-  const readScope = (options, observations) => {
+  const readScope = (options: Scope, observations: KintoneResponse[]) => {
     const {member, signal, runInvocationCid, dispatchRequestCid, controlConstruction, readChild, readTarget,
       targetAuthorization} = options;
     selected(member);
     if (!isCid(runInvocationCid) || !isCid(dispatchRequestCid) || typeof readChild !== 'function') {
       fail('KintoneUpdateReadChildUnavailable');
     }
-    const decision = async slot => {
+    const decision = async (slot: Slot) => {
       signal?.throwIfAborted();
       const result = await authorize('acquisition', {connection, resource: formResource, operation: 'read'}, {
         subjectCid: cid({binding, member: memberFacts(member), runInvocationCid, dispatchRequestCid, slot}), signal});
@@ -94,19 +147,19 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       if (result?.action !== 'dispatch') fail('KintoneFormReadDenied');
       return result;
     };
-    const verify = async slot => {
+    const verify = async (slot: Slot) => {
       signal?.throwIfAborted();
       // Target uses its own original row grant/current child. Form decisions
       // cannot authorize target data or stand in for those physical fences.
       if (slot !== 'target') await decision(slot);
       signal?.throwIfAborted();
     };
-    return async (slot, body, rowIndex, project) => {
+    return async <Value,>(slot: Slot, body: string, rowIndex: number, project: Project<Value>) => {
       await verify(slot);
       const request = {method: 'POST', path: prefix +
         (slot === 'target' ? 'records.json' : 'app/form/fields.json'), query: [],
         headers: [['accept', 'application/json'], ['x-http-method-override', 'GET']], body};
-      const consume = response => {
+      const consume = (response: KintoneResponse) => {
         observations.push(response);
         if (!response.accepted || response.statusCode !== 200) fail('KintoneUpdateReadRejected');
         return project(response);
@@ -116,7 +169,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         await verify(slot);
         return value;
       }
-      let authorization, useId;
+      let authorization: Grant | undefined, useId: unknown;
       const operation = slot === 'target' ? KINTONE_TARGET_READ_OPERATION : KINTONE_FORM_READ_OPERATION;
       if (slot === 'target') {
         if (typeof targetAuthorization !== 'function') fail('KintoneTargetAuthorizationUnavailable');
@@ -145,7 +198,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       return value;
     };
   };
-  const restore = context => {
+  const restore = (context: RecoveryContext) => {
     const {maxRows} = context;
     if (!Number.isSafeInteger(maxRows) || maxRows < 0 || maxRows > 2147483647) {
       fail('InvalidKintoneUpdateRecovery');
@@ -156,17 +209,17 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         const changes = body?.effects?.[index]?.changes,
           claims = recorded.members[index]?.claims;
         const value = unpackInstalledRowUpdateRecovery(saved, recoveryKind, maxRecoveryBytes,
-          changes, claims, maxRows, 'InvalidKintoneUpdateRecovery');
+          changes, claims, maxRows, 'InvalidKintoneUpdateRecovery') as Recovery | null;
         if (value === null || typeof value !== 'object' || Array.isArray(value) || value.version !== recoveryVersion ||
             Object.keys(value).sort().join(',') !== 'binding,member,requests,version' ||
             !sameRecord(value.binding, binding) || !sameRecord(value.member, memberFacts(member)) ||
-            !Array.isArray(value.requests) || value.requests.length !== changes.length ||
+            !Array.isArray(value.requests) || value.requests.length !== changes!.length ||
             value.requests.some(wire => typeof wire !== 'string' || Buffer.byteLength(wire) > maxRecoveryBytes) ||
-            encode(value) !== saved.wire) fail('InvalidKintoneUpdateRecovery');
-        return Object.freeze(value.requests.map((wire, row) => {
+            encode(value) !== saved!.wire) fail('InvalidKintoneUpdateRecovery');
+        return Object.freeze(value.requests.map((wire: unknown, row: number) => {
           const rebuilt = requests.restore({wire, requestTag: requestTags?.[index]?.[row]});
           const facts = requests.requestFacts(rebuilt.request);
-          assertInstalledRowUpdateClaim(rebuilt, facts, claims, changes, row, 'ForeignKintoneUpdateRecovery');
+          assertInstalledRowUpdateClaim(rebuilt as Readonly<{requestCid: string}>, facts, claims!, changes!, row, 'ForeignKintoneUpdateRecovery');
           return rebuilt.request;
         }));
       });
@@ -177,8 +230,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
     operation: KINTONE_RECORD_UPDATE_OPERATION,
     requestFacts: requests.requestFacts, requestCid: requests.requestCid, capabilityRequestCid: requests.capabilityRequestCid,
     finalizeRequest: requests.finalize, assertRequestFinalized: requests.assertFinalized,
-    async describe(options) {
-      const observations = [];
+    async describe(options: Scope) {
+      const observations: KintoneResponse[] = [];
       try {
         if (!Number.isSafeInteger(options.maxRows) || options.maxRows < 0 || options.maxRows > 2147483647) {
           fail('InvalidKintoneUpdateRequests');
@@ -190,8 +243,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         return current;
       } catch (cause) {throw new KintoneUpdateObservationFailure(cause, observations);}
     },
-    prepareRequest(options) {frame(options.member, options.current); return requests.prepare(options);},
-    recheckRequests({member, entries, current}) {
+    prepareRequest(options: Current & Parameters<Requests['prepare']>[0]) {frame(options.member, options.current); return requests.prepare(options);},
+    recheckRequests({member, entries, current}: Entries) {
       const original = frame(member, current);
       if (!Array.isArray(entries) || entries.length > original.maxRows) fail('InvalidKintoneUpdateRequests');
       for (const entry of entries) {
@@ -199,8 +252,8 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         requests.nativeRequest(entry.request);
       }
     },
-    async observeTargets(options) {
-      const original = frame(options.member, options.current), observations = [];
+    async observeTargets(options: Observe) {
+      const original = frame(options.member, options.current), observations: KintoneResponse[] = [];
       if (!Array.isArray(options.entries) || options.entries.length > original.maxRows) fail('InvalidKintoneUpdateRequests');
       try {
         const read = readScope({...original, readChild: options.readChild, readTarget: options.readTarget, signal: options.signal,
@@ -219,7 +272,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         return Object.freeze(rows);
       } catch (cause) {throw new KintoneUpdateObservationFailure(cause, observations);}
     },
-    admitTargetReadApproval({member, decision}) {
+    admitTargetReadApproval({member, decision}: Readonly<{member: Member; decision: unknown}>) {
       selected(member);
       const expected = {version: KINTONE_UPDATE_TARGET_VERSION, site_binding_cid: siteBindingCid,
         generation_cid: generationCid, effect_id: member.effectId, member_index: member.memberIndex,
@@ -228,12 +281,12 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       return admitCheckpointPhysicalRead(decision, expected, KINTONE_TARGET_READ_OPERATION,
         admitTarget, 'KintoneTargetReadApprovalNotAdmitted');
     },
-    footprint({member}) {
+    footprint({member}: Pick<Current, 'member'>) {
       selected(member);
       return Object.freeze({providerNamespace: 'kintone', resourceKind: 'app-record',
         boundaryCid: cid({origin, appId, guestSpaceId: guestSpaceId ?? null})});
     },
-    recoveryEntry({member, current, entries}) {
+    recoveryEntry({member, current, entries}: Entries) {
       const original = frame(member, current);
       const wires = installedRowUpdateRequestWires(entries, original.maxRows, requests,
         'InvalidKintoneUpdateRecovery', 'ForeignKintoneUpdateRequest');
@@ -241,7 +294,7 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
         member: memberFacts(member), requests: wires}, maxRecoveryBytes, 'KintoneUpdateRecoveryLimit');
     },
     recoverRequests: restore, recoverMemberRequests: restore,
-    prepareUpdateWrite(member, request, current, resourceOrigin, registration, signal) {
+    prepareUpdateWrite(member: Member, request: object, current: object, resourceOrigin: unknown, registration: unknown, signal?: AbortSignal) {
       frame(member, current);
       if (resourceOrigin !== origin || registration !== 'kintone') fail('ForeignKintoneUpdateOrigin');
       const body = requests.requestBody(request);
@@ -249,6 +302,6 @@ export function kintoneUpdateDriver({moon, site, authorization, connection, orig
       return {method: 'PUT', path: prefix + 'records.json', query: [],
         headers: [['accept', 'application/json']], body, responseHeaders: []};
     },
-    project({request, observation}) {return requests.projectResponse(request, observation);},
+    project({request, observation}: Readonly<{request: object; observation: Parameters<Requests['projectResponse']>[1]}>) {return requests.projectResponse(request, observation);},
   });
 }

@@ -13,26 +13,37 @@ import {KINTONE_FORM_READ_OPERATION} from '../site/kintone-record-read.mjs';
 import {KINTONE_TARGET_READ_OPERATION} from '../site/kintone-record-delete.mjs';
 import {KINTONE_RECORD_UPDATE_OPERATION} from '../site/kintone-record-write.mjs';
 
-const fail = () => {throw Object.assign(new Error('KintoneEffectRecipeUnavailable'), {code: 'KintoneEffectRecipeUnavailable'});};
-const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
-const data = (value, names) => {
+type Method = (...args: unknown[]) => unknown;
+type Numeric<Key extends string> = Readonly<Record<Key, number>>;
+type RecipeOptions = Readonly<{mapping: unknown; fields: readonly string[]; formResource: string;
+  bindingUnits: number; credentialSite: unknown; limits: unknown;
+  inputLimits: Readonly<{body: unknown; preview: unknown}>; maxRecoveryBytes: number; maxTargetBytes: number}>;
+type Profile = Readonly<{capacities: readonly unknown[]; output: readonly number[]}>;
+type CredentialOperation = Readonly<{phase: string; operationIndex: number; maxRequestBytes: number;
+  maxResponseBytes: number; maxTargetBytes?: number; slot?: string; resource?: string; perRow?: boolean;
+  responseExtent?(bytes: number, body: Uint8Array): unknown}>;
+type RecoveryInput = Readonly<{memberIndex?: unknown; wire?: unknown}> | undefined;
+
+const fail: () => never = () => {throw Object.assign(new Error('KintoneEffectRecipeUnavailable'), {code: 'KintoneEffectRecipeUnavailable'});};
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2147483647;
+const data = <Name extends string,>(value: unknown, names: readonly Name[]) => {
   if (!value || nodeTypes.isProxy(value)) fail();
   return Object.freeze(Object.fromEntries(names.map(name => {
     const field = Object.getOwnPropertyDescriptor(value, name);
     if (!field || !Object.hasOwn(field, 'value')) fail();
     return [name, field.value];
-  })));
+  }))) as Readonly<Record<Name, unknown>>;
 };
-const method = (receiver, name) => {
+const method = (receiver: unknown, name: string): Method => {
   const fn = data(receiver, [name])[name];
   if (typeof fn !== 'function' || nodeTypes.isProxy(fn) || nodeTypes.isAsyncFunction(fn)) fail();
-  return (...args) => Reflect.apply(fn, receiver, args);
+  return (...args) => Reflect.apply(fn as Method, receiver, args);
 };
 const names = ['maxInputBytes', 'maxRequestBytes', 'maxResponseBytes', 'maxNodes', 'maxDepth',
   'maxFields', 'maxNameUnits', 'maxColumns', 'maxCells', 'maxTableRows', 'maxValueNodes',
-  'maxValueDepth', 'maxValueTextBytes', 'maxIdentityBytes', 'maxComparisonWork', 'maxRecoveryBytes'];
+  'maxValueDepth', 'maxValueTextBytes', 'maxIdentityBytes', 'maxComparisonWork', 'maxRecoveryBytes'] as const;
 
-export function captureKintoneEffectPlanRecipeBuilder({moon}) {
+export function captureKintoneEffectPlanRecipeBuilder({moon}: Readonly<{moon: object}>) {
   const composeUpdateTarget = captureDeclaredUpdateTargetCapacity(moon);
   const original = Object.freeze(Object.fromEntries(['MutationLimits', 'PageLimits', 'ValueLimits',
     'WriteLimits', 'FormLimits', 'UpdateProposalConstructionCapacity', 'UpdateFormConstructionCapacity',
@@ -44,29 +55,29 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
   const stage = method(moon, 'clientProgramInstalledEffectOperationStagedExtentPrepare');
   const capture = method(moon, 'clientProgramInstalledEffectHostInputCaptureRecipeExtentPrepare');
   const controlBound = method(moon, 'clientProgramInstalledEffectControlWireBound');
-  const native = value => {const result = runtimeUnboxedReferenceOption(value); if (!result) fail(); return result;};
-  const add = (left, right) => native(original.UpdateAddConstructionCapacity(left, right));
+  const native = (value: unknown) => {const result = runtimeUnboxedReferenceOption(value); if (!result) fail(); return result;};
+  const add = (left: unknown, right: unknown) => native(original.UpdateAddConstructionCapacity(left, right));
   return function prepareKintoneEffectPlanRecipe({mapping, fields, formResource, bindingUnits,
-    credentialSite, limits, inputLimits, maxRecoveryBytes, maxTargetBytes}) {
-    const policy = data(limits, names);
+    credentialSite, limits, inputLimits, maxRecoveryBytes, maxTargetBytes}: RecipeOptions) {
+    const policy = data(limits, names) as Numeric<(typeof names)[number]>;
     if (!Object.values(policy).every(positive) || policy.maxValueNodes > 2147483645 ||
         policy.maxValueDepth > 2147483645 || !positive(bindingUnits) || !positive(maxRecoveryBytes) ||
         typeof formResource !== 'string' || !formResource || !Array.isArray(fields) ||
         nodeTypes.isProxy(fields) || !Object.isFrozen(fields) || fields.length < 1 || fields.length > policy.maxFields) fail();
-    const body = data(inputLimits.body, ['maxBytes', 'maxNodes', 'maxDepth']);
-    const preview = data(inputLimits.preview, ['maxWireBytes', 'maxNodes', 'maxDepth']);
+    const body = data(inputLimits.body, ['maxBytes', 'maxNodes', 'maxDepth']) as Numeric<'maxBytes' | 'maxNodes' | 'maxDepth'>;
+    const preview = data(inputLimits.preview, ['maxWireBytes', 'maxNodes', 'maxDepth']) as Numeric<'maxWireBytes' | 'maxNodes' | 'maxDepth'>;
     if (![...Object.values(body), ...Object.values(preview)].every(positive)) fail();
     const secret = data(data(credentialSite, ['construction']).construction, ['scope', 'issuer', 'limits']);
     const secretBytes = data(secret.limits, ['maxSecretBytes']).maxSecretBytes;
     if (!positive(secretBytes)) fail();
     for (const record of [secret.scope, secret.issuer]) {
-      for (const field of Object.values(Object.getOwnPropertyDescriptors(record))) {
+      for (const field of Object.values(Object.getOwnPropertyDescriptors(record as object))) {
         if (!Object.hasOwn(field, 'value')) fail();
         if (typeof field.value === 'string') bindingUnits += field.value.length;
       }
     }
     if (!positive(bindingUnits)) fail();
-    const mutation = maximum => original.MutationLimits(1, policy.maxIdentityBytes, policy.maxComparisonWork,
+    const mutation = (maximum: number) => original.MutationLimits(1, policy.maxIdentityBytes, policy.maxComparisonWork,
       maximum, policy.maxNodes, policy.maxDepth);
     const requestLimits = mutation(policy.maxRequestBytes), responseLimits = mutation(policy.maxResponseBytes);
     const writeLimits = original.WriteLimits(policy.maxFields, policy.maxNameUnits, policy.maxValueNodes,
@@ -77,13 +88,13 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
       policy.maxValueNodes, policy.maxValueDepth, policy.maxValueTextBytes);
     const formLimits = original.FormLimits(policy.maxResponseBytes, policy.maxNodes, policy.maxDepth,
       policy.maxFields, policy.maxNameUnits);
-    const parsed = (bytes, nodes = policy.maxValueNodes + 2, depth = policy.maxValueDepth + 2) =>
+    const parsed = (bytes: number, nodes = policy.maxValueNodes + 2, depth = policy.maxValueDepth + 2) =>
       [bytes, Math.min(nodes, bytes), Math.min(depth, bytes)];
     // Caller-only DATA: carrier/WeakMap entry views, exact CID preimages,
     // canonical map/join scratch, UTF8 hash input and one Base64 copy. Native
     // data and returned JSON trees are separately priced by their original
     // capacities/Core output ports. A Form Unit has no such returned material.
-    const host = (kind, bytes) => {
+    const host = (kind: 'request' | 'target' | 'form' | 'finalize', bytes: number) => {
       const b = BigInt(Math.max(1, bytes)), units = BigInt(bindingUnits), f = BigInt(fields.length);
       const input = kind === 'request' ? BigInt(body.maxBytes) : 0n;
       const base64 = kind === 'target' ? 4n * ((b + 2n) / 3n) : 0n;
@@ -101,7 +112,7 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
       writeLimits, requestLimits)), host('request', policy.maxRequestBytes));
     const finalization = add(native(original.UpdateFinalizationConstructionCapacity(mapping, requestLimits)),
       host('finalize', policy.maxRequestBytes));
-    const profile = (targetBytes, metadataBytes, responseBytes = policy.maxResponseBytes) => {
+    const profile = (targetBytes: number, metadataBytes: number, responseBytes = policy.maxResponseBytes) => {
       const target = add(native(original.UpdateTargetConstructionCapacity(mapping, targetBytes,
         pageLimits, valueLimits, responseLimits)), host('target', targetBytes));
       const form = native(original.UpdateFormConstructionCapacity(mapping, metadataBytes, formLimits));
@@ -110,7 +121,7 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
       return Object.freeze({capacities: [request, target, response, form],
         output: [...parsed(policy.maxRequestBytes), ...parsed(policy.maxResponseBytes), ...parsed(outcomeBytes, 16, 3)]});
     };
-    const controlBytes = checked(controlBound(policy.maxResponseBytes, effectLedgerImplementationBounds.maxEntryBytes));
+    const controlBytes = checked(controlBound(policy.maxResponseBytes, effectLedgerImplementationBounds.maxEntryBytes)) as number;
     const parameters = [Math.max(preview.maxWireBytes, maxRecoveryBytes), preview.maxNodes, preview.maxDepth,
       body.maxBytes, body.maxNodes, body.maxDepth, policy.maxRequestBytes, policy.maxResponseBytes,
       policy.maxRequestBytes, policy.maxResponseBytes, httpsCredentialDefaultRequestBytes, policy.maxResponseBytes,
@@ -118,7 +129,7 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
       Math.max(effectLedgerImplementationBounds.maxEntryBytes, effectLedgerImplementationBounds.maxResponseBytes),
       Math.max(effectLedgerImplementationBounds.maxNodes, effectLedgerImplementationBounds.maxOutcomeNodes),
       Math.max(effectLedgerImplementationBounds.maxDepth, effectLedgerImplementationBounds.maxOutcomeDepth)];
-    const cold = bytes => {
+    const cold = (bytes: number) => {
       const targetBytes = bytes < 0 ? policy.maxResponseBytes : Math.min(policy.maxResponseBytes, bytes);
       const wireBytes = BigInt(bytes < 0 ? maxRecoveryBytes : Math.max(1, bytes));
       // Outer member and inner row JSON parsing precede their closed-shape
@@ -130,31 +141,31 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
       return add(envelopes, add(finalization, add(native(original.UpdateTargetConstructionCapacity(mapping,
         targetBytes, pageLimits, valueLimits, responseLimits)), host('target', targetBytes))));
     };
-    const quantities = (values, hostBytes = 0, control = controlBytes, recoveryBytes = hostBytes) => checked(original.UpdateRecipeCapacities(
-      values.capacities, values.output, cold(recoveryBytes), parameters, BigInt(bindingUnits), httpsCredentialResponseReadQuantum, control, hostBytes));
+    const quantities = (values: Profile, hostBytes = 0, control = controlBytes, recoveryBytes = hostBytes) => checked(original.UpdateRecipeCapacities(
+      values.capacities, values.output, cold(recoveryBytes), parameters, BigInt(bindingUnits), httpsCredentialResponseReadQuantum, control, hostBytes)) as readonly unknown[];
     const initialProfile = profile(0, 0), initial = quantities(initialProfile);
     const maximum = quantities(profile(policy.maxResponseBytes, policy.maxResponseBytes), -1);
     const fallback = quantities(initialProfile, 0, 0);
     if ([initial, maximum, fallback].some(values => !Array.isArray(values) || values.length !== 8)) fail();
     const captureName = KINTONE_RECORD_UPDATE_OPERATION + '.capture';
-    const capturedExtent = values => checked(capture(captureName, values.slice(0, 6),
+    const capturedExtent = (values: readonly unknown[]) => checked(capture(captureName, values.slice(0, 6),
       preview.maxWireBytes, preview.maxNodes, preview.maxDepth));
-    const operationExtent = (operation, capacity, transfer = 0n, physical = false) => checked(extent(operation, capacity, transfer, physical));
+    const operationExtent = (operation: string, capacity: unknown, transfer = 0n, physical = false) => checked(extent(operation, capacity, transfer, physical));
     const memberOperations = [{operation: captureName, extent: checked(stage(capturedExtent(initial), capturedExtent(maximum)))}];
     const rowOperations = [
       {operation: KINTONE_RECORD_UPDATE_OPERATION + '.request', extent: operationExtent(KINTONE_RECORD_UPDATE_OPERATION + '.request', initial[2])},
       {operation: KINTONE_RECORD_UPDATE_OPERATION + '.finalize', extent: operationExtent(KINTONE_RECORD_UPDATE_OPERATION + '.finalize', finalization)},
     ];
-    const credentialOperations = [];
-    const physical = (phase, slot, resource, perRow, target) => {
+    const credentialOperations: CredentialOperation[] = [];
+    const physical = (phase: string, slot: string, resource: string | undefined, perRow: boolean, target: boolean) => {
       const operation = target ? KINTONE_TARGET_READ_OPERATION : KINTONE_FORM_READ_OPERATION;
       const operations = perRow ? rowOperations : memberOperations, operationIndex = operations.length;
       const transfer = BigInt(policy.maxRequestBytes) + httpsCredentialResponseWindowBytes(policy.maxResponseBytes);
-      const of = bytes => operationExtent(operation, quantities(target ? profile(bytes, 0) : profile(0, bytes))[target ? 6 : 7], transfer, true);
+      const of = (bytes: number) => operationExtent(operation, quantities(target ? profile(bytes, 0) : profile(0, bytes))[target ? 6 : 7], transfer, true);
       operations.push({operation, extent: checked(stage(of(0), of(policy.maxResponseBytes)))});
       credentialOperations.push(Object.freeze({phase, slot, ...(resource === undefined ? {} : {resource}), perRow, operationIndex,
         maxRequestBytes: policy.maxRequestBytes, maxResponseBytes: policy.maxResponseBytes,
-        responseExtent(bytes, body) {
+        responseExtent(bytes: number, body: Uint8Array) {
           if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > policy.maxResponseBytes ||
               !(body instanceof Uint8Array) || body.byteLength !== bytes) fail();
           return of(bytes);
@@ -176,7 +187,7 @@ export function captureKintoneEffectPlanRecipeBuilder({moon}) {
     return captureInstalledEffectPlanRecipe(Object.freeze({memberOperations: Object.freeze(memberOperations.map(Object.freeze)),
       rowOperations: Object.freeze(rowOperations.map(Object.freeze)), credentialOperations: Object.freeze(credentialOperations),
       captureConstruction: Object.freeze({operationIndex: 0}), recoveryConstruction: Object.freeze({operationIndex: recoveryIndex,
-        inputExtent(previewWire, recovery, memberIndex) {
+        inputExtent(previewWire: string, recovery: readonly RecoveryInput[], memberIndex: number) {
           if (typeof previewWire !== 'string' || !previewWire.isWellFormed() || !Array.isArray(recovery) ||
               !Number.isSafeInteger(memberIndex) || memberIndex < 0) fail();
           let bytes = Buffer.byteLength(previewWire);
