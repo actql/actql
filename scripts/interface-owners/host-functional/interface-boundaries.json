@@ -20844,8 +20844,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "async artifactBytes(name: string, artifactCid: string, options?: EvidenceReadLimits)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -20916,7 +20916,7 @@
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "fail('ContinuationEvidenceRetired')"
               },
               {
@@ -21122,8 +21122,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "async artifactBytes(name: string, artifactCid: string, options?: EvidenceReadLimits)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -21146,7 +21146,7 @@
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "fail('ContinuationEvidenceRetired')"
               }
             ],
@@ -21529,8 +21529,8 @@
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "async artifactBytes(name: string, artifactCid: string, options?: EvidenceReadLimits)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -21601,7 +21601,7 @@
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "fail('ContinuationEvidenceRetired')"
               },
               {
@@ -73466,8 +73466,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "async artifactBytes(name: string, artifactCid: string, options?: EvidenceReadLimits)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -73490,7 +73490,7 @@
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "fail('ContinuationEvidenceRetired')"
               }
             ],
@@ -86877,7 +86877,7 @@
     {
       "module": "adapters/host-node/local-continuation-evidence.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9ef7392307ade7c77d6e9311d97d1fed464a0eff6f31dc4b564dc03cbf556f7",
+      "sha256": "d400b49a7e626fdb9967ab666e0dcf0e8c00e4d49be3b3bf41051253978ec0f3",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -87418,7 +87418,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "export const PRIVATE_EVIDENCE_KEY_FILE = 'private-evidence.key';"
               },
               {
@@ -87444,7 +87444,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "export const PRIVATE_EVIDENCE_KEY_FILE = 'private-evidence.key';"
               },
               {
@@ -87464,13 +87464,13 @@
                 "anchor": "const originalReview = (subjectCid, claims) =>"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "export async function preparePrivateEvidenceKeyInstallation(stateDirectory,"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "export async function preparePrivateEvidenceKeyInstallation(stateDirectory: string,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// preparation's identity (a later `resume` or `status` of the same attempt"
               },
               {
@@ -87494,13 +87494,13 @@
                 "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (key.keyId !== intent.keyId) fail('PrivateEvidenceKeyGenerationMismatch');"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// still answers from it) and is retained with the journal row. There is no"
               },
               {
@@ -87512,21 +87512,21 @@
                 "anchor": "# Private storage of original Model state"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "async artifactBytes(name: string, artifactCid: string, options?: EvidenceReadLimits)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "await withOriginalFile(path, name => openFile(name, 'wx', 0o600), async handle => {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "'node:fs/promises';"
               },
               {
@@ -87546,17 +87546,17 @@
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (adoptionFlight !== undefined) return adoptionFlight;"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "await syncPrivateEvidenceInitializationPath(keyPath, current);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// waits, resumes, has an unfinished Run or is unknown to the journal. A"
               },
               {
@@ -87572,11 +87572,11 @@
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "fail('ContinuationEvidenceRetired')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (adoptedWire !== undefined) fail('PrivateEvidenceKeyUnavailable');"
               },
               {
@@ -87586,7 +87586,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// terminal Run exit, or a rejected, cancelled, expired or invalidated"
               },
               {
@@ -87612,7 +87612,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "import {createHash, randomBytes, randomUUID} from 'node:crypto';"
               },
               {
@@ -87640,13 +87640,13 @@
                 "anchor": "###### Ordinary generated Content Run"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "const bytes = randomBytes(32);"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// plaintext. It owns only Host concerns: the installation key file, the"
               },
               {
@@ -87670,8 +87670,8 @@
                 "anchor": "###### Ordinary generated Content Run"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "cause?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "(cause as PhysicalFailure | null | undefined)?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;"
               }
             ],
             "verification": [
@@ -87753,8 +87753,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "async artifactBytes(name: string, artifactCid: string, options?: EvidenceReadLimits)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -87777,7 +87777,7 @@
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "fail('ContinuationEvidenceRetired')"
               }
             ],
@@ -87858,35 +87858,35 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "export async function preparePrivateEvidenceKeyInstallation(stateDirectory,"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "export async function preparePrivateEvidenceKeyInstallation(stateDirectory: string,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (key.keyId !== intent.keyId) fail('PrivateEvidenceKeyGenerationMismatch');"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "await withOriginalFile(path, name => openFile(name, 'wx', 0o600), async handle => {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (adoptionFlight !== undefined) return adoptionFlight;"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "await syncPrivateEvidenceInitializationPath(keyPath, current);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (adoptedWire !== undefined) fail('PrivateEvidenceKeyUnavailable');"
               },
               {
@@ -87906,7 +87906,7 @@
                 "anchor": "###### Ordinary generated Content Run"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "const bytes = randomBytes(32);"
               }
             ],
@@ -87916,8 +87916,8 @@
                 "anchor": "###### Ordinary generated Content Run"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "cause?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "(cause as PhysicalFailure | null | undefined)?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;"
               }
             ],
             "verification": [
@@ -87944,7 +87944,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "export const PRIVATE_EVIDENCE_KEY_FILE = 'private-evidence.key';"
               },
               {
@@ -87970,7 +87970,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "export const PRIVATE_EVIDENCE_KEY_FILE = 'private-evidence.key';"
               },
               {
@@ -87990,13 +87990,13 @@
                 "anchor": "const originalReview = (subjectCid, claims) =>"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "export async function preparePrivateEvidenceKeyInstallation(stateDirectory,"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "export async function preparePrivateEvidenceKeyInstallation(stateDirectory: string,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// preparation's identity (a later `resume` or `status` of the same attempt"
               },
               {
@@ -88020,13 +88020,13 @@
                 "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (key.keyId !== intent.keyId) fail('PrivateEvidenceKeyGenerationMismatch');"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// still answers from it) and is retained with the journal row. There is no"
               },
               {
@@ -88038,21 +88038,21 @@
                 "anchor": "# Private storage of original Model state"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "async artifactBytes(name: string, artifactCid: string, options?: EvidenceReadLimits)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
                 "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "await withOriginalFile(path, name => openFile(name, 'wx', 0o600), async handle => {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "'node:fs/promises';"
               },
               {
@@ -88072,17 +88072,17 @@
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (adoptionFlight !== undefined) return adoptionFlight;"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "await syncPrivateEvidenceInitializationPath(keyPath, current);"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// waits, resumes, has an unfinished Run or is unknown to the journal. A"
               },
               {
@@ -88098,11 +88098,11 @@
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "fail('ContinuationEvidenceRetired')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "if (adoptedWire !== undefined) fail('PrivateEvidenceKeyUnavailable');"
               },
               {
@@ -88112,7 +88112,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// terminal Run exit, or a rejected, cancelled, expired or invalidated"
               },
               {
@@ -88138,7 +88138,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "import {createHash, randomBytes, randomUUID} from 'node:crypto';"
               },
               {
@@ -88166,13 +88166,13 @@
                 "anchor": "###### Ordinary generated Content Run"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "const bytes = randomBytes(32);"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "// plaintext. It owns only Host concerns: the installation key file, the"
               },
               {
@@ -88196,8 +88196,8 @@
                 "anchor": "###### Ordinary generated Content Run"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "cause?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "(cause as PhysicalFailure | null | undefined)?.code === 'PrivateEvidenceFirstInitializationUnavailable') return undefined;"
               }
             ],
             "verification": [

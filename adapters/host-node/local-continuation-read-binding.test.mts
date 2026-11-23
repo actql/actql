@@ -12,12 +12,17 @@ import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openContinuationEvidence} from './local-continuation-evidence.mjs';
 
+import type {TestContext} from 'node:test';
+import type {readContinuationLedgerBounded} from './bounded-continuation-metadata.mjs';
+
+type Ledger = Awaited<ReturnType<typeof readContinuationLedgerBounded>>;
+
 const wire = '{"rows":[["e\u0301",null],["é",7]],"absent":{}}';
 const firstRequest = `sha256:${'1'.repeat(64)}`;
 const secondRequest = `sha256:${'2'.repeat(64)}`;
 const keyId = `sha256:${'3'.repeat(64)}`;
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-original-binding-'));
   const configuration = {
     stateDirectory: directory, key: Buffer.alloc(32, 7), keyId,
@@ -38,8 +43,8 @@ async function fixture(t) {
   assert.equal(cid, secondCid, 'same payload may legitimately share backing');
   const path = join(directory, 'attempts', 'first-original.json');
   const secondPath = join(directory, 'attempts', 'second-original.json');
-  const original = JSON.parse(await readFile(path, 'utf8'));
-  const second = JSON.parse(await readFile(secondPath, 'utf8'));
+  const original = JSON.parse(await readFile(path, 'utf8')) as Ledger;
+  const second = JSON.parse(await readFile(secondPath, 'utf8')) as Ledger;
   assert.notEqual(original.holdings[0].holding_cid, second.holdings[0].holding_cid,
     'the two original continuation holdings are not the same custody');
   return {directory, evidence, path, original, second, cid,
@@ -50,10 +55,10 @@ async function fixture(t) {
     }};
 }
 
-async function withoutStoreRead(directory, work) {
+async function withoutStoreRead(directory: string, work: () => Promise<void>) {
   const open = fs.promises.open;
   let storeOpens = 0;
-  fs.promises.open = async (...args) => {
+  fs.promises.open = async (...args: Parameters<typeof open>) => {
     if (String(args[0]).startsWith(join(directory, 'private-store'))) storeOpens++;
     return open(...args);
   };
@@ -123,7 +128,7 @@ test('original shared payload survives Store reopen without merging holding iden
         {maxBytes: 128}), Buffer.from(wire, 'utf8'));
     }
     assert.deepEqual(await reopened.settle(), {retired: [], pending: []});
-    const current = JSON.parse(await readFile(value.path, 'utf8'));
+    const current = JSON.parse(await readFile(value.path, 'utf8')) as Ledger;
     assert.equal(current.holdings[0].state, 'held');
     assert.equal(current.holdings[0].holding_cid, value.original.holdings[0].holding_cid);
   });

@@ -30137,8 +30137,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
+                "path": "adapters/host-node/local-continuation-evidence.mts",
+                "anchor": "async artifactBytes(name: string, artifactCid: string, options?: EvidenceReadLimits)"
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -30161,7 +30161,7 @@
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "path": "adapters/host-node/local-continuation-evidence.mts",
                 "anchor": "fail('ContinuationEvidenceRetired')"
               }
             ],
