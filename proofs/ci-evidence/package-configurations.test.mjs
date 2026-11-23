@@ -119,9 +119,9 @@ test('Journal review binds the actual selector-only introduction and every sourc
 
 for (const [reviewDirectory, fixture, revision, parent] of [
   ['src/platform_native/remote_transfer_client', 'destination_receipt_recovery_native_wbtest.mbt',
-    '78790f8e01424741f96476968776215a32bc2668', 'd984547e6a8016647c7e326633a8baede8ebaede'],
+    '646eb6b9bcb830dfc51a3081c421dcf29378e28b', '6934497ab5f6e8fe5be765b74d2e9f891944419e'],
   [directory, 'journal_transaction_fault_native_wbtest.mbt',
-    'b3ce36122fd29c3dfecbd331944e5f136ab8b2fb', '97d6560fb467293c9236168fdde43c62c0726e7d'],
+    '646eb6b9bcb830dfc51a3081c421dcf29378e28b', '6934497ab5f6e8fe5be765b74d2e9f891944419e'],
 ]) {
   test(`current Transfer review binds the one Native fixture: ${fixture}`, () => {
     const manifest = `${reviewDirectory}/moon.pkg`;

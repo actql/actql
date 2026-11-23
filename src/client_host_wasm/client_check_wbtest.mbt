@@ -20,11 +20,9 @@ fn local_check_test_environment() -> @checked.CheckEnvironment {
   let original = @host.client_local_product_bootstrap_originals(
     "/local-check-fixture", "2026-10-20T00:00:00.000Z",
   ).unwrap()
-  @host.admit_client_check_environment(
+  admit_python_local_source_free_environment(
     original.environment,
     environment_body_cid(original.environment),
-    { text_time: false, veca: false, },
-    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
 }
 
@@ -62,4 +60,68 @@ test "Local public Check keeps authored syntax rejection in Common" {
   assert_eq(required_text(result, "verdict"), Some("invalid"))
   assert_eq(required_text(result, "context_ref"), Some("ctx:invalid-local"))
   assert_true(@decode.lookup(outcome, "correlation_ref") is None)
+}
+
+///|
+test "Python Local Check admits the pinned numeric profile for PIVOT SUM and COUNT" {
+  let environment = local_check_test_environment()
+  let profiles = @checked.checking_environment_profile_selection(environment)
+  assert_eq(
+    profiles.numeric_profile_cid,
+    Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+  )
+  assert_false(profiles.expressions.text_time)
+  let prefix =
+    #|WITH r AS (
+    #|  SELECT 'east' AS side, 1 AS v UNION ALL
+    #|  SELECT 'west', 2 UNION ALL SELECT 'west', 3
+    #|)
+  for
+    (document, format, verdict) in [
+      (
+        prefix + "\nFROM r |> PIVOT(SUM(v) FOR side IN ('east','west'))",
+        "aql-text",
+        "verified",
+      ),
+      (prefix + " SELECT SUM(v) AS n FROM r", "sql", "verified"),
+      (prefix + " SELECT COUNT(v) AS n FROM r", "sql", "verified"),
+      (
+        "SELECT PARSE_TIMESTAMP('yyyy-MM-dd', '2026-01-02') AS x", "sql", "undetermined",
+      ),
+    ] {
+    let writer = @encode.writer(4096, 16, 2)
+    @encode.begin_object(writer)
+    for
+      (key, text) in [
+        ("kind", "text"),
+        ("scope", "bound_input"),
+        ("document", document),
+        ("format", format),
+        ("context", "ctx:numeric-local"),
+        ("revision", "rev:" + "1".repeat(64)),
+        ("correlation", "corr:numeric-local"),
+      ] {
+      @encode.key(writer, key)
+      @encode.string_value(writer, text)
+    }
+    @encode.end_object(writer)
+    let wire = client_check_report(
+      environment,
+      local_check_test_object(@encode.finish(writer)),
+    ).unwrap()
+    let outcome = local_check_test_object(wire)
+    assert_eq(required_text(outcome, "outcome"), Some("completed"))
+    let report = @decode.open_object(
+      @decode.required(outcome, "report").unwrap(),
+    ).unwrap()
+    assert_eq(required_text(report, "verdict"), Some(verdict), msg=wire)
+    if verdict == "verified" {
+      assert_eq(
+        @decode.array_length(@decode.required(report, "requirements").unwrap()),
+        Some(0),
+      )
+    }
+  }
 }
