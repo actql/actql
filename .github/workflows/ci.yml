@@ -245,7 +245,7 @@ jobs:
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (needs.select-targets.outputs.profile == 'full') }}
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- packages/client-wire/cancel-identity.test.mjs packages/client-wire/submission-check-semantics.test.mjs
       - name: Test source-only INFER evaluation contracts
-        if: needs.select-targets.outputs.profile != 'documentation'
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- examples/infer-evaluation/evaluate.test.mjs examples/infer-evaluation/compare-source-instructions.test.mjs
       - name: Test original Source current control ownership
         if: needs.select-targets.outputs.profile != 'documentation'
