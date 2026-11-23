@@ -542,7 +542,7 @@
     },
     {
       "module": "adapters/connectors/notion/site/data-source-read.mjs",
-      "sha256": "9a26f48c179f0c7704a3e1bf5c44375491aba4e5883fb2b76e7975215613491d",
+      "sha256": "3f7359e3543771e94d37c1e96c10203fe1dcbac242530ccb9e04711708523f69",
       "exports": [
         "NOTION_DATA_SOURCE_READ_OPERATION",
         "NotionDataSourceReadFailure",
@@ -715,8 +715,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/notion/site/data-source-read.mjs",
-                "anchor": "export function createNotionDataSourceReader(options)"
+                "path": "adapters/connectors/notion/site/data-source-read.mts",
+                "anchor": "export function createNotionDataSourceReader(options:Options)"
               },
               {
                 "path": "src/connectors/notion/catalog/read_row.mbt",
@@ -763,7 +763,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/notion/site/data-source-read.mjs",
+                "path": "adapters/connectors/notion/site/data-source-read.mts",
                 "anchor": "export class NotionDataSourceReadFailure"
               },
               {
