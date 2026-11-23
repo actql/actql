@@ -11,28 +11,33 @@ from pathlib import Path
 from importlib import metadata
 import json
 import os
+from runpy import run_path
 import sys
 import time
 import traceback
 
 
-def error_chain(error):
-    result, seen = [], set()
-    while error is not None and id(error) not in seen and len(result) < 24:
+def causes(error):
+    seen = set()
+    while error is not None and id(error) not in seen and len(seen) < 24:
         seen.add(id(error))
-        result.append({
-            'type': type(error).__name__, 'module': type(error).__module__,
-            'code': getattr(error, 'code', None), 'message': str(error),
-            'frames': [{'file': frame.filename, 'line': frame.lineno, 'name': frame.name}
-                       for frame in traceback.extract_tb(error.__traceback__)],
-        })
+        yield error
         error = getattr(error, 'original_error', None) or error.__cause__ or error.__context__
-    return result
+
+
+def error_chain(error):
+    return [{
+        'type': type(cause).__name__, 'module': type(cause).__module__,
+        'code': getattr(cause, 'code', None), 'message': str(cause),
+        'frames': [{'file': frame.filename, 'line': frame.lineno, 'name': frame.name}
+                   for frame in traceback.extract_tb(cause.__traceback__)],
+    } for cause in causes(error)]
 
 
 def main():
-    if len(sys.argv) != 3:
+    if len(sys.argv) != 3 and not (len(sys.argv) == 4 and sys.argv[3] == '--without-fd-observer'):
         raise ValueError('Select the fresh fixture directory and exact wheel Source')
+    fd_observer = len(sys.argv) == 3
     directory = Path(sys.argv[1]).resolve()
     source = sys.argv[2]
     if len(source) != 40 or any(ch not in '0123456789abcdef' for ch in source):
@@ -59,8 +64,17 @@ def main():
 
     import actql
     from actql_sdk._local_core import LocalCore
+    from actql_sdk._local_distribution import installed_local_components
+    from wasmtime import Trap
+    fuel_trap_code = None
+    if not fd_observer:
+        fuel_trap_code = run_path(str(Path(__file__).with_name('ci-python-installed-fuel.py')))['fuel_trap_code']
     if not Path(actql.__file__).is_relative_to(Path(sys.prefix)):
         raise ValueError('Installed public facade required; no source overlay')
+    installed = installed_local_components()
+    if installed.source_sha != source:
+        raise ValueError('Foreign installed Saved interruption source')
+    report.update(module=installed.module_sha256, image=installed.image_sha256)
     report['versions'] = {name: metadata.version(name)
                           for name in ('actql', 'actql-sdk', 'actql-local-runtime', 'wasmtime')}
     call, current = LocalCore._call, LocalCore._journal_current
@@ -79,9 +93,10 @@ def main():
             selected[0] = False
             if entered[0] or held:
                 raise AssertionError('The same selected invocation must not repeat')
-            held.append((self, self._store))
-            if not self._ordinary_host or self._host_fuel_phase != 'operation':
+            scope = self._host_operation_scope
+            if not self._ordinary_host or self._host_fuel_phase != 'operation' or scope is None:
                 raise AssertionError('Original normal outer operation required')
+            held.append((self, self._store, scope, self._host_operation_id))
             entered[0] = True
             try:
                 return call(self, family, name, *arguments)
@@ -94,8 +109,9 @@ def main():
         if entered[0] and result == 0 and not report['injections']:
             if not held or self is not held[0][0] or self._store is not held[0][1]:
                 raise AssertionError('Foreign Core or replacement Store')
-            if not self._invoking or self._host_fuel_phase != 'operation':
-                raise AssertionError('Original saved binding is not in flight')
+            if (not self._invoking or self._host_fuel_phase != 'operation'
+                    or self._host_operation_scope is not held[0][2] or self._host_operation_id != held[0][3]):
+                raise AssertionError('Original saved binding is not in flight in the same operation')
             before = self._store.get_fuel()
             if before <= 0:
                 raise AssertionError('Counter must reduce an available original budget')
@@ -119,6 +135,9 @@ def main():
             execution.result(original['resultName']).all()
         except BaseException as error:
             report['expectedOperationFailure'] = error_chain(error)
+            if fuel_trap_code is not None:
+                trap, = [cause for cause in causes(error) if type(cause) is Trap]
+                report['originalTrapCode'] = fuel_trap_code(trap)
         else:
             raise AssertionError('Selected interruption did not fail the operation')
         if len(held) != 1 or len(report['injections']) != 1:
@@ -126,7 +145,7 @@ def main():
         if not any('all fuel consumed by WebAssembly' in e['message']
                    for e in report['expectedOperationFailure']):
             raise AssertionError('Expected actual Wasm instruction exhaustion')
-        core, store = held[0]
+        core, store, _, _ = held[0]
         if not core._closing or core._invoking or core._store is not store or store.get_fuel() != 0:
             raise AssertionError('Interrupted original did not remain fenced and quiescent')
         try:
@@ -138,7 +157,8 @@ def main():
         print('E_SAVED_INTERRUPTED:' + json.dumps({'pid': os.getpid(), 'stateDir': str(state)}),
               file=sys.stderr, flush=True)
         # Permit the independent observer to inspect the live original FDs.
-        time.sleep(2)
+        if fd_observer:
+            time.sleep(2)
         event('explicit public close of same interrupted original')
         close_attempted = True
         client.close()
@@ -150,9 +170,10 @@ def main():
             raise AssertionError('Missing same-original cleanup entrance after unwind')
         print('E_SAVED_CLOSED:' + json.dumps({'pid': os.getpid(), 'stateDir': str(state),
                                            'phase': 'interrupted'}), file=sys.stderr, flush=True)
-        time.sleep(2)
+        if fd_observer:
+            time.sleep(2)
         event('same original explicit cleanup completed')
-        report.update(passed=True, cases=1)
+        report.update(passed=True, cases=1, normalFenced=True, sameStore=True, firstClose=True)
     except BaseException as error:
         report['failure'] = error_chain(error)
     finally:

@@ -351,6 +351,67 @@ def accept_installed_fuel(run, consumer: Path, destination: Path,
         previous_pid = observed['pid']
 
 
+def accept_installed_saved(run, consumer: Path, destination: Path,
+                           source: str, cohort, env: dict[str, str]) -> dict:
+    """Qualify the existing continuation and fuel controls in one installed cohort."""
+    work = destination / 'saved-read'
+    work.mkdir(mode=0o700)
+    fuel = work / 'fuel'
+    fuel.mkdir(mode=0o700)
+    continuation = work / 'python-local-saved-continuation.py'
+    interruption = work / 'python-local-saved-read-interruption.py'
+    for fixture in (continuation, interruption, work / 'ci-python-installed-fuel.py'):
+        shutil.copyfile(ROOT / 'scripts/fixtures' / fixture.name, fixture)
+    identity = {'source': source, 'module': cohort['module_sha256'], 'image': cohort['image_sha256']}
+    pids: set[int] = set()
+
+    def observed(name, script, args, directory):
+        raw = run(name, [consumer, '-I', '-B', script, *args], cwd=directory, env=env, timeout=180)
+        lines = raw.splitlines()
+        record = json.loads(lines[-1]) if lines else None
+        if (type(record) is not dict or any(record.get(key) != value for key, value in identity.items())
+                or type(record.get('pid')) is not int or record['pid'] <= 0 or record['pid'] in pids):
+            raise ValueError('Missing exact installed Saved process and cohort')
+        pids.add(record['pid'])
+        return record
+
+    continued = observed('installed-saved-continuation', continuation,
+                         [work / 'continuation-state', '--installed-continuation', source], work)
+    core, hashed = (continued.get(name) for name in ('core_cancellation', 'hash_cancellation'))
+    reads = continued.get('successful_reads')
+    if (continued.get('first_close') is not True or continued.get('rows') != 1
+            or not core or core[-1].get('phase') != 'core'
+            or not hashed or hashed[-1].get('phase') != 'hash'
+            or type(reads) is not list or len(reads) != 2
+            or any(type(read.get('core_turns')) is not int or read['core_turns'] < 2 for read in reads)):
+        raise ValueError('Incomplete installed Saved suspension, cancellation or successful reads')
+
+    warm = observed('installed-saved-fuel-warm', continuation,
+                    [fuel, '--warm-interruption', source], fuel)
+    if warm.get('phase') != 'warm' or warm.get('first_close') is not True:
+        raise ValueError('Missing original Saved fuel fixture and first close')
+    stopped = observed('installed-saved-fuel-interruption', interruption,
+                       [fuel, source, '--without-fd-observer'], fuel)
+    injections = stopped.get('injections')
+    if (type(injections) is not list or len(injections) != 1 or type(injections[0]) is not dict
+            or type(injections[0].get('before')) is not int or injections[0]['before'] <= 0
+            or injections[0].get('after') != 0 or injections[0].get('actualCurrentResult') != 0):
+        raise ValueError('Missing one actual Saved fuel injection under current')
+    if (stopped.get('passed') is not True or stopped.get('cases') != 1
+            or stopped.get('originalTrapCode') != 12 or stopped.get('firstClose') is not True
+            or stopped.get('normalFenced') is not True or stopped.get('sameStore') is not True
+            or stopped.get('newSubmission') is not False or stopped.get('installedSourceOverlay') is not False):
+        raise ValueError('Incomplete same-original Saved fuel stop and first close')
+    recovery = observed('installed-saved-fuel-recovery', continuation,
+                        [fuel, '--recover-interruption', source], fuel)
+    if (recovery.get('phase') != 'recover' or recovery.get('first_close') is not True
+            or recovery.get('same_saved') is not True or recovery.get('replayed') is not False):
+        raise ValueError('Incomplete original Saved recovery after fuel interruption')
+    return {**identity, 'continuation_pid': continued['pid'], 'fuel_warm_pid': warm['pid'],
+            'fuel_stop_pid': stopped['pid'], 'fuel_recovery_pid': recovery['pid'],
+            'original_first_closes_returned': True}
+
+
 def require_closed_task_drive(observed) -> None:
     """Require the existing installed initial case's same-Core call witness."""
     witness = observed.get('closed_task_drive') if type(observed) is dict else None
@@ -401,6 +462,8 @@ def run_acceptance(destination: Path) -> None:
     run('builder-dependencies', [python, '-m', 'pip', '--isolated', 'install', '--only-binary=:all:',
                                 '--index-url', 'https://pypi.org/simple', *BUILD_REQUIREMENTS])
     run('platform-vm-original', [python, ROOT / 'scripts/fixtures/python-local-platform-vm-original.py'])
+    run('closed-wasm-sql', [python, '-I', '-B', ROOT / 'packages/python-sdk/tests/run.py',
+                           '--pattern', 'test_local_closed_wasm_sql.py'])
     archive = destination / 'duckdb.zip'
     with open_duckdb_release(target_platform) as response, archive.open('xb') as target:
         body = response.read(archive_bytes + 1)
@@ -469,6 +532,7 @@ def run_acceptance(destination: Path) -> None:
     accept_installed_cancellation(run, consumer, destination, version, env)
     repeated_host = accept_installed_repeated_host(run, consumer, destination, env)
     accept_installed_fuel(run, consumer, destination, source, cohort, env)
+    saved_read = accept_installed_saved(run, consumer, destination, source, cohort, env)
     audit('installed-after')
     verify_built_cohort(cohort_directory, source, version)
     clean()
@@ -478,7 +542,7 @@ def run_acceptance(destination: Path) -> None:
         'normal_wheel_install': True, 'public_local_accepted': True,
         'separate_process_saved': True, 'typed_refusal_and_health': True,
         'context_close': True, 'installed_active_cancellation': True,
-        'ordinary_repeated_host': repeated_host,
+        'ordinary_repeated_host': repeated_host, 'installed_saved_read': saved_read,
         'cancelled_saved_recovery': True, 'first_cancel_case_close': True,
         'physical_release_observed': False,
         'published': False, 'steps': steps}, indent=2) + '\n')
