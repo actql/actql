@@ -2,20 +2,34 @@ import {execFile} from 'node:child_process';
 import {performance} from 'node:perf_hooks';
 import {promisify} from 'node:util';
 
+
+import type {ExecFileOptionsWithStringEncoding} from 'node:child_process';
+
+type Invoke = (executable: string, args: readonly string[], options: ExecFileOptionsWithStringEncoding) =>
+  PromiseLike<Readonly<{stdout: string}>>;
+type Settings = Readonly<{executable?: string; timeoutMs?: number; maxOutputBytes?: number;
+  invoke?: Invoke; signal?: AbortSignal}>;
+type Connection = Readonly<{alias: string; orgId: string; username: string; instanceOrigin: string}>;
+type Scope = Readonly<{principal?: unknown; namespaceId?: unknown; environment?: unknown; siteKey?: unknown;
+  siteGeneration?: unknown; connectorRegistration?: unknown; resourceOrigin?: unknown}>;
+type ResolverSettings = Settings & Readonly<{connection?: Connection; principal?: string; namespaceId?: string;
+  environment?: string; siteKey?: string; siteGeneration?: number; tokenReuseMs?: number; monotonicNow?: () => number}>;
+type CliFailure = Readonly<{code?: unknown; killed?: unknown; signal?: unknown}> | null | undefined;
+
 const execute = promisify(execFile);
 const aliasPattern = /^[A-Za-z][A-Za-z0-9_.-]{0,255}$/u;
-const text = value => typeof value === 'string' && value.length > 0;
-const positive = value => Number.isSafeInteger(value) && value > 0;
-const sameConnection = (left, right) =>
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
+const sameConnection = (left: Connection, right: Connection) =>
   left.orgId === right.orgId && left.username === right.username &&
   left.instanceOrigin === right.instanceOrigin;
 
-function fail(code) {
+function fail(code: string): never {
   // CLI output and errors can contain an access token. Never retain them.
   throw Object.assign(new Error(code), {code});
 }
 
-function origin(value) {
+function origin(value: unknown) {
   if (!text(value)) fail('SalesforceCliInvalidConnection');
   let parsed;
   try { parsed = new URL(value); }
@@ -31,7 +45,7 @@ function origin(value) {
 // A cold `sf` start was measured at about 11 s against a live org (about 3 s
 // warm); a token refresh runs three commands in sequence.
 function options({executable = 'sf', timeoutMs = 30_000,
-  maxOutputBytes = 65_536, invoke = execute} = {}) {
+  maxOutputBytes = 65_536, invoke = execute}: Settings = {}) {
   if (!text(executable) || !positive(timeoutMs) || timeoutMs > 60_000 ||
       !positive(maxOutputBytes) || maxOutputBytes > 1_048_576 ||
       typeof invoke !== 'function') {
@@ -40,7 +54,7 @@ function options({executable = 'sf', timeoutMs = 30_000,
   return {executable, timeoutMs, maxOutputBytes, invoke};
 }
 
-async function command(args, config, signal) {
+async function command(args: readonly string[], config: ReturnType<typeof options>, signal?: AbortSignal) {
   signal?.throwIfAborted();
   let output;
   try {
@@ -51,11 +65,11 @@ async function command(args, config, signal) {
       });
   } catch (error) {
     if (signal?.aborted) fail('SalesforceCliCancelled');
-    if (error?.code === 'ENOENT') fail('SalesforceCliUnavailable');
-    if (error?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') {
+    if ((error as CliFailure)?.code === 'ENOENT') fail('SalesforceCliUnavailable');
+    if ((error as CliFailure)?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') {
       fail('SalesforceCliOutputLimit');
     }
-    if (error?.killed || error?.signal === 'SIGKILL') {
+    if ((error as CliFailure)?.killed || (error as CliFailure)?.signal === 'SIGKILL') {
       fail('SalesforceCliTimeout');
     }
     fail('SalesforceCliAuthenticationFailed');
@@ -67,7 +81,7 @@ async function command(args, config, signal) {
     fail('SalesforceCliOutputLimit');
   }
   if (output.stdout.length === 0) fail('SalesforceCliMalformedOutput');
-  let parsed;
+  let parsed: {status?: unknown; result?: Record<string, unknown>};
   try { parsed = JSON.parse(output.stdout); }
   catch { fail('SalesforceCliMalformedOutput'); }
   if (parsed?.status !== 0) fail('SalesforceCliAuthenticationFailed');
@@ -77,7 +91,7 @@ async function command(args, config, signal) {
   return parsed.result;
 }
 
-async function display(alias, config, signal) {
+async function display(alias: string, config: ReturnType<typeof options>, signal?: AbortSignal) {
   if (!aliasPattern.test(alias)) fail('SalesforceCliInvalidAlias');
   const result = await command(
     ['org', 'display', '--target-org', alias, '--json'], config, signal);
@@ -94,17 +108,17 @@ async function display(alias, config, signal) {
     username: result.username, instanceOrigin: origin(result.instanceUrl)});
 }
 
-async function accessToken(username, config, signal) {
+async function accessToken(username: string, config: ReturnType<typeof options>, signal?: AbortSignal) {
   const result = await command(['org', 'auth', 'show-access-token',
     '--target-org', username, '--json'], config, signal);
   if (!text(result.accessToken)) fail('SalesforceCliMalformedOutput');
   return result.accessToken;
 }
 
-function waitFor(promise, signal) {
+function waitFor<Value>(promise: Promise<Value>, signal?: AbortSignal) {
   if (!signal) return promise;
   if (signal.aborted) fail('SalesforceCliCancelled');
-  return new Promise((resolve, reject) => {
+  return new Promise<Value>((resolve, reject) => {
     const onAbort = () => {
       signal.removeEventListener('abort', onAbort);
       reject(Object.assign(new Error('SalesforceCliCancelled'),
@@ -123,7 +137,7 @@ function waitFor(promise, signal) {
 
 /// Resolve the non-secret binding to persist at connection admission.
 /// Calling this does not grant access to a Run or authorize an HTTP operation.
-export async function inspectSalesforceCliConnection(alias, settings = {}) {
+export async function inspectSalesforceCliConnection(alias: string, settings: Settings = {}) {
   const config = options(settings);
   return await display(alias, config, settings.signal);
 }
@@ -134,13 +148,13 @@ export function createSalesforceCliSecretResolver({
   connection, principal, namespaceId, environment, siteKey, siteGeneration,
   tokenReuseMs = 30_000, monotonicNow = () => performance.now(),
   ...settings
-} = {}) {
+}: ResolverSettings = {}) {
   const config = options(settings);
   if (!connection || !aliasPattern.test(connection.alias) ||
       !text(connection.orgId) || !text(connection.username) ||
       !text(principal) || !text(namespaceId) || !text(environment) ||
       !text(siteKey) || !Number.isSafeInteger(siteGeneration) ||
-      siteGeneration < 0 || !positive(tokenReuseMs) ||
+      siteGeneration! < 0 || !positive(tokenReuseMs) ||
       tokenReuseMs > 300_000 || typeof monotonicNow !== 'function') {
     fail('SalesforceCliInvalidConnection');
   }
@@ -148,8 +162,8 @@ export function createSalesforceCliSecretResolver({
   const expected = Object.freeze({alias: connection.alias,
     orgId: connection.orgId, username: connection.username,
     instanceOrigin: expectedOrigin});
-  let cached;
-  let refreshFlight;
+  let cached: {token: string; issuedAt: number} | undefined;
+  let refreshFlight: Promise<string> | undefined;
   let epoch = 0;
   const clock = () => {
     const value = monotonicNow();
@@ -173,7 +187,7 @@ export function createSalesforceCliSecretResolver({
     cached = {token, issuedAt: clock()};
     return token;
   }
-  async function resolveSecret(scope, signal) {
+  async function resolveSecret(scope: Scope | undefined, signal?: AbortSignal) {
     if (scope?.principal !== principal || scope?.namespaceId !== namespaceId ||
         scope?.environment !== environment ||
         scope?.siteKey !== siteKey ||
@@ -200,7 +214,7 @@ export function createSalesforceCliSecretResolver({
     }
     return await waitFor(refreshFlight, signal);
   }
-  resolveSecret.invalidate = token => {
+  resolveSecret.invalidate = (token?: string) => {
     if (token !== undefined && cached?.token !== token) return false;
     const hadCredential = cached !== undefined || refreshFlight !== undefined;
     cached = undefined;
@@ -210,5 +224,5 @@ export function createSalesforceCliSecretResolver({
   Object.defineProperty(resolveSecret, 'connectionOrgId', {
     value: expected.orgId, enumerable: true,
   });
-  return Object.freeze(resolveSecret);
+  return Object.freeze(resolveSecret) as typeof resolveSecret & Readonly<{connectionOrgId: string}>;
 }

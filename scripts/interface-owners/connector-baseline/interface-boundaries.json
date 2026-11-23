@@ -10310,7 +10310,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2bd3b0113b5aaf8b5d17533aadde93f77a40a2af7821cd466902a523c29f797e",
+      "sha256": "20db266d41706f1bff2e4ae0f15daa2309135ea014abb3214969dd2bde56797e",
       "role": "connector-semantics",
       "owner": "Bounded retained Catalog reprojection through the original MoonBit observation owner, without credentials or grants",
       "exports": [
@@ -10378,31 +10378,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mts",
                 "anchor": "recoverRetainedSalesforceCatalog"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mts",
                 "anchor": "observationCid !== expectedObservationCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mts",
                 "anchor": "listing"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mts",
                 "anchor": "salesforceRecoverCatalogObservation"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mts",
                 "anchor": "ForeignRetainedSalesforceCatalog"
               }
             ],
@@ -10411,13 +10411,13 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mts",
                 "anchor": "decodeBoundedBase64"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-catalog-recovery.mts",
                 "anchor": "outcomeCodes"
               }
             ],
@@ -10549,7 +10549,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b44be0439c55c26a5a68a1aaa998eca0941cb70c68ed3c732c13402993ce81ac",
+      "sha256": "26bf362f127ab32d83b8c6dde856e5566de0b93585b9ae32339a1ceae06670ed",
       "role": "physical-io",
       "owner": "Bounded installed sf CLI secret supplier pinned to original non-secret org/user/origin; no read or write authority",
       "exports": [
@@ -10679,49 +10679,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mts",
                 "anchor": "only to the Site credential boundary"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mts",
                 "anchor": "createSalesforceCliSecretResolver"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mts",
                 "anchor": "sameConnection"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mts",
                 "anchor": "tokenReuseMs"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mts",
                 "anchor": "waitFor"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mts",
                 "anchor": "Never retain them"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mts",
                 "anchor": "SalesforceCliCancelled"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-cli-secret.mts",
                 "anchor": "maxOutputBytes"
               }
             ],
@@ -10744,7 +10744,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "666df2e5f6d801b6d0cec60b021098c25f3c9af0f734d40950770278113865ec",
+      "sha256": "675f937936c53e33e50d5f70117157794b28d45320633cfd13fb1dc9323b58d5",
       "role": "physical-io",
       "owner": "Salesforce salesforce-collection-write physical request/response; MoonBit classifies outcomes and existing Effect Ledger owns dispatch",
       "exports": [
@@ -10805,49 +10805,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "sendRawSalesforceContinueCollection"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "ScopeMatches"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "const observation = Object.freeze"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "invokeScopedCredentialOperation"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "projectSalesforceCollectionObservation"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "maxResponseBytes"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "ownInvocationContext"
               }
             ],
@@ -10875,31 +10875,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "projectSalesforceCollectionObservation"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "request, observation"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "observation,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "checked(moon.salesforceProject"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "unclassified-response"
               }
             ],
@@ -10908,7 +10908,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-collection-write.mts",
                 "anchor": "maxResponseBytes"
               }
             ],
@@ -11502,7 +11502,7 @@
     {
       "module": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "19d626c51f306fcdfaf015dd11f56ad9e8f34d9b2bf78d73efb6181bfc9b2634",
+      "sha256": "6fc53bae84404d546712944d3dcee7dd07a4bb23c39a9163d3326fe809cb811e",
       "role": "physical-io",
       "owner": "Salesforce salesforce-single-write physical request/response; MoonBit classifies outcomes and existing Effect Ledger owns dispatch",
       "exports": [
@@ -11563,49 +11563,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "sendRawSalesforceSingleRecord"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "ScopeMatches"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "const observation = Object.freeze"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "invokeScopedCredentialOperation"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "projectSalesforceSingleObservation"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "maxResponseBytes"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "ownInvocationContext"
               }
             ],
@@ -11633,31 +11633,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "projectSalesforceSingleObservation"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "request, observation"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "observation,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "checked(moon.salesforceProject"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "unclassified-response"
               }
             ],
@@ -11666,7 +11666,7 @@
             },
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mjs",
+                "path": "adapters/connectors/salesforce/site/salesforce-single-write.mts",
                 "anchor": "maxResponseBytes"
               }
             ],

@@ -3144,3 +3144,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/kintone/test/installed-kintone-managed-loader.test.d.mts
 /adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs
 /adapters/connectors/kintone/test/kintone-managed-sequence.test.d.mts
+/adapters/connectors/salesforce/site/salesforce-catalog-recovery.mjs
+/adapters/connectors/salesforce/site/salesforce-catalog-recovery.d.mts
+/adapters/connectors/salesforce/site/salesforce-cli-secret.mjs
+/adapters/connectors/salesforce/site/salesforce-cli-secret.d.mts
+/adapters/connectors/salesforce/site/salesforce-single-write.mjs
+/adapters/connectors/salesforce/site/salesforce-single-write.d.mts
+/adapters/connectors/salesforce/site/salesforce-collection-write.mjs
+/adapters/connectors/salesforce/site/salesforce-collection-write.d.mts

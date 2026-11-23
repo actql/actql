@@ -1,6 +1,33 @@
 import {checked} from '../../../host-common/runtime-result.mjs';
 
-const fail = code => {
+
+type Bounds = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxNameUnits: number}>;
+type RetainedCatalog = Readonly<{observationJson: string; listBodyBase64: unknown;
+  describeBodyBase64: readonly (string | null)[]; maxObservationBytes: number;
+  listLimits: Bounds & Readonly<{maxResources: number; maxSelected: number}>;
+  describeLimits: Bounds & Readonly<{maxFields: number}>}>;
+type EvidenceBinding = Readonly<Record<'namespace_id' | 'principal' | 'environment' | 'connection_revision' |
+  'org_id' | 'site_key' | 'connector_registration' | 'connector_revision' | 'resource_origin' |
+  'run_invocation_cid' | 'dispatch_request_cid' | 'sync_occurrence', string> & {site_generation: number}>;
+type EvidenceResource = Readonly<{outcome?: string; use_cid?: string | null; response_sha256?: string | null}>;
+type Evidence = Readonly<{version: unknown; binding: EvidenceBinding; listing_use_cid: string;
+  listed_resources: readonly EvidenceResource[]}>;
+type Runtime = Readonly<{
+  salesforceRecoverCatalogObservation(observation: string, listing: Uint8Array,
+    describes: readonly (Uint8Array | undefined)[], outcomes: readonly number[], namespace: string,
+    principal: string, environment: string, revision: string, org: string, site: string, generation: number,
+    registration: string, connectorRevision: string, origin: string, invocation: string, dispatch: string,
+    occurrence: string, listingUse: string, describeUses: readonly (string | undefined)[],
+    responseDigests: readonly (string | undefined)[], listBytes: number, listNodes: number, listDepth: number,
+    listResources: number, listSelected: number, listNameUnits: number, describeBytes: number, describeNodes: number,
+    describeDepth: number, describeFields: number, describeNameUnits: number, observationBytes: number): unknown;
+  salesforceCatalogObservationCid(observation: unknown): string;
+  salesforceCatalogObservationJson(observation: unknown): string;
+}>;
+type Recovery = Readonly<{moon: Runtime; retained: RetainedCatalog;
+  expectedObservationCid: string; maxRetainedBytes: number}>;
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 const outcomeCodes = Object.freeze({
@@ -13,9 +40,9 @@ const outcomeCodes = Object.freeze({
   cancelled: 7,
   not_found: 8,
 });
-const positive = value => Number.isSafeInteger(value) && value > 0;
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
 
-function decodeBoundedBase64(value, remaining) {
+function decodeBoundedBase64(value: unknown, remaining: number) {
   if (typeof value !== 'string' || !positive(remaining) ||
       value.length > Math.ceil(remaining / 3) * 4 + 4 ||
       !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u
@@ -33,7 +60,7 @@ function decodeBoundedBase64(value, remaining) {
 // MoonBit Catalog owner reprojections must reproduce the exact observation;
 // this function never grants a current credential use or a write dispatch.
 export function recoverRetainedSalesforceCatalog({moon, retained,
-  expectedObservationCid, maxRetainedBytes}) {
+  expectedObservationCid, maxRetainedBytes}: Recovery) {
   if (!moon || !retained || !positive(maxRetainedBytes) ||
       typeof expectedObservationCid !== 'string' ||
       typeof retained.observationJson !== 'string' ||
@@ -42,7 +69,7 @@ export function recoverRetainedSalesforceCatalog({moon, retained,
       !positive(retained.maxObservationBytes)) {
     fail('InvalidRetainedSalesforceCatalog');
   }
-  let body;
+  let body: Evidence;
   try { body = JSON.parse(retained.observationJson); }
   catch { fail('InvalidRetainedSalesforceCatalog'); }
   if (body.version !== 'actql-salesforce-catalog-observation/0.1' ||
@@ -60,7 +87,7 @@ export function recoverRetainedSalesforceCatalog({moon, retained,
     return bytes;
   });
   const outcomes = body.listed_resources.map(entry => {
-    const code = outcomeCodes[entry?.outcome];
+    const code = outcomeCodes[entry?.outcome as keyof typeof outcomeCodes];
     if (code === undefined) fail('InvalidRetainedSalesforceCatalog');
     return code;
   });

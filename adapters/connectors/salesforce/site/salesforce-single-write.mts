@@ -5,8 +5,36 @@ import {matchesSalesforceCredentialOrg} from
 import {invokeScopedCredentialOperation, ownInvocationContext} from
   '../../../host-common/owned-invocation-context.mjs';
 
-const count = value => Number.isSafeInteger(value) && value > 0;
-const fail = code => {
+
+export type SalesforceWriteObservation = Readonly<{statusCode: number | undefined; body: Uint8Array}>;
+export type SalesforceWriteLimits = Readonly<{maxRequestBytes: number; maxResponseBytes: number; maxNodes: number; maxDepth: number}>;
+export type SalesforceWriteInvocation<Runtime, Limits> = Readonly<{moon: Runtime; request: unknown; currentObservation: unknown;
+  authorization: Readonly<{grant: unknown; useId: string; scope: object}>;
+  credential: NonNullable<Parameters<typeof matchesSalesforceCredentialOrg>[0]>;
+  limits: Limits; signal?: AbortSignal; callResource?: typeof callHttpsCredentialResource}>;
+export type SalesforceRequestScope = [namespace: unknown, principal: unknown, environment: unknown, site: unknown,
+  generation: unknown, registration: unknown, revision: unknown, origin: unknown, run: unknown, dispatch: unknown];
+export type SalesforceWriteScope = Readonly<Record<'operation' | 'namespaceId' | 'principal' | 'environment' | 'siteKey' | 'siteGeneration' |
+  'connectorRegistration' | 'connectorRevision' | 'resourceOrigin' | 'runInvocationCid' | 'dispatchRequestCid', unknown>>;
+type Runtime = Readonly<{
+  salesforceProjectSingleWriteRejection(request: unknown, status: number, body: Uint8Array,
+    bytes: number, nodes: number, depth: number): unknown;
+  salesforceProjectSingleWriteSuccess(request: unknown, status: number, body: Uint8Array,
+    bytes: number, nodes: number, depth: number): unknown;
+  salesforceSingleWriteSuccessProjection(response: unknown): unknown;
+  salesforceSingleWriteRequestGrantOperation(request: unknown): string;
+  salesforceSingleWriteRequestOrgId(request: unknown): string;
+  salesforceSingleWriteRequestMethod(request: unknown): string;
+  salesforceSingleWriteRequestPath(request: unknown): string;
+  salesforceSingleWriteRequestBody(request: unknown): string;
+  salesforceSingleWriteRequestScopeMatches(request: unknown, ...scope: SalesforceRequestScope): boolean;
+  salesforceRecheckSingleWriteRequest(request: unknown, current: unknown): unknown;
+}>;
+type Projection = Readonly<{moon: Runtime; request: unknown; observation: SalesforceWriteObservation; limits: SalesforceWriteLimits}>;
+type Write = SalesforceWriteInvocation<Runtime, SalesforceWriteLimits>;
+
+const count = (value: number) => Number.isSafeInteger(value) && value > 0;
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 
@@ -14,23 +42,23 @@ const fail = code => {
 // owns the typed Salesforce response judgment; this function never sends.
 export function projectSalesforceSingleObservation({
   moon, request, observation, limits,
-}) {
+}: Projection) {
   if (!moon || !request || !observation || !limits ||
       !count(limits.maxResponseBytes) || limits.maxResponseBytes > 1_000_000 ||
       !count(limits.maxNodes) || limits.maxNodes > 1000 ||
       !count(limits.maxDepth) || limits.maxDepth > 32 ||
       !Number.isSafeInteger(observation.statusCode) ||
-      observation.statusCode < 100 || observation.statusCode > 599 ||
+      observation.statusCode! < 100 || observation.statusCode! > 599 ||
       !(observation.body instanceof Uint8Array)) {
     fail('InvalidSalesforceSingleObservation');
   }
-  if (observation.statusCode < 200 || observation.statusCode >= 300) {
+  if (observation.statusCode! < 200 || observation.statusCode! >= 300) {
     // Only a documented rejection of this request is a definite failure.
     // Any other non-success response stays an unclassified provider
     // response, and the write stays unknown.
     try {
       const rejected = checked(moon.salesforceProjectSingleWriteRejection(
-        request, observation.statusCode, observation.body,
+        request, observation.statusCode!, observation.body,
         limits.maxResponseBytes, limits.maxNodes, limits.maxDepth));
       return Object.freeze({kind: 'typed-failure-response', observation,
         response: rejected});
@@ -40,7 +68,7 @@ export function projectSalesforceSingleObservation({
   }
   try {
     const projected = checked(moon.salesforceProjectSingleWriteSuccess(
-      request, observation.statusCode, observation.body,
+      request, observation.statusCode!, observation.body,
       limits.maxResponseBytes, limits.maxNodes, limits.maxDepth));
     return Object.freeze({
       kind: 'typed-success-response', observation,
@@ -65,7 +93,7 @@ export async function sendRawSalesforceSingleRecord({
   limits,
   signal,
   callResource = callHttpsCredentialResource,
-}) {
+}: Write) {
   if (!moon || !request || !currentObservation || !authorization?.grant ||
       typeof authorization.useId !== 'string' ||
       authorization.useId.length === 0 || !authorization.scope ||
@@ -80,7 +108,7 @@ export async function sendRawSalesforceSingleRecord({
   }
   const context = ownInvocationContext({authorization, credential, limits,
     callbacks: {callResource}});
-  const scope = context.scope;
+  const scope = context.scope as SalesforceWriteScope;
   const operation = moon.salesforceSingleWriteRequestGrantOperation(request);
   if (!matchesSalesforceCredentialOrg(credential,
       moon.salesforceSingleWriteRequestOrgId(request)) ||
@@ -102,19 +130,19 @@ export async function sendRawSalesforceSingleRecord({
     method: moon.salesforceSingleWriteRequestMethod(request),
     path: moon.salesforceSingleWriteRequestPath(request),
     body: moon.salesforceSingleWriteRequestBody(request),
-    maxRequestBytes: context.limits.maxRequestBytes,
-    maxResponseBytes: context.limits.maxResponseBytes,
+    maxRequestBytes: context.limits.maxRequestBytes as number,
+    maxResponseBytes: context.limits.maxResponseBytes as number,
     signal,
-  });
+  }) as Awaited<ReturnType<typeof callHttpsCredentialResource>>;
   const observation = Object.freeze({
     useCid: response.useCid,
     statusCode: response.statusCode,
     body: response.body,
   });
-  return Object.freeze({observation, limits: context.limits});
+  return Object.freeze({observation, limits: context.limits as SalesforceWriteLimits});
 }
 
-export async function writeSalesforceSingleRecord(options) {
+export async function writeSalesforceSingleRecord(options: Write) {
   const raw = await sendRawSalesforceSingleRecord(options);
   return projectSalesforceSingleObservation({
     moon: options.moon, request: options.request,
