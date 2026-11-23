@@ -59519,7 +59519,7 @@
     {
       "module": "adapters/host-node/infer-trusted-node-preload.cjs",
       "responsibilityFacet": "primary",
-      "sha256": "bad0aba6974c3bcd7767961886742d1b667974886d13cca48542b63fe04f7e95",
+      "sha256": "e7f08e1ad2c223e69f205a94106b64ff87525c58f9e6b2f2faaf16cc1d39e9ac",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -59739,7 +59739,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "'use strict';"
               },
               {
@@ -59765,7 +59765,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "'use strict';"
               },
               {
@@ -59811,7 +59811,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// Ordinary embedded processes importing it later retain no startup original."
               },
               {
@@ -59859,7 +59859,7 @@
                 "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "[string.prototype, 'trimEnd'],"
               },
               {
@@ -59867,8 +59867,8 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
-                "anchor": "let preparationOriginals, preparationInput, preparationIntake, preparationClosed = false;"
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
+                "anchor": "let preparationOriginals: InstallationOriginals | undefined,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -59877,7 +59877,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// Ordinary embedded processes importing it later retain no startup original."
               },
               {
@@ -59911,7 +59911,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "const promise = globalThis.Promise;"
               },
               {
@@ -59943,7 +59943,7 @@
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// Publish the same immutable callback table before synchronous namespace"
               },
               {
@@ -59963,14 +59963,14 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// before the generated inventory or any captured image is initialized."
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
-                "anchor": "const unavailable = () => {"
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
+                "anchor": "const unavailable: () => never = () => {"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -60007,7 +60007,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// managed Host/bootstrap/Run obligations. Weak/delete/GC is not a close ACK or"
               },
               {
@@ -60045,7 +60045,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// keys/value references, borrow controls, closures and check workspace remain"
               },
               {
@@ -60085,7 +60085,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// callback. The pair, descriptor and returned String overlap remain in"
               },
               {
@@ -60097,7 +60097,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// Native runtime/library identities stay with this SAME actual process/module"
               },
               {
@@ -60107,8 +60107,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
-                "anchor": "const sdkFields = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);"
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
+                "anchor": "const sdkFields: readonly PropertyKey[] = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -60141,7 +60141,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
+                "path": "adapters/host-node/infer-trusted-node-startup.test.mts",
                 "anchor": "test('late ordinary embedded import cannot issue stock-startup responsibility', () => child([], 'absent'));"
               },
               {
@@ -60217,11 +60217,11 @@
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
+                "path": "adapters/host-node/infer-trusted-node-startup.test.mts",
                 "anchor": "selected environment normalizer retains the original trailing-whitespace primitive"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
+                "path": "adapters/host-node/infer-trusted-node-startup.test.mts",
                 "anchor": "ordinary embedded import preserves application environment normalizer selection"
               },
               {
@@ -60247,7 +60247,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "'use strict';"
               },
               {
@@ -60273,7 +60273,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "'use strict';"
               },
               {
@@ -60319,7 +60319,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// Ordinary embedded processes importing it later retain no startup original."
               },
               {
@@ -60367,7 +60367,7 @@
                 "anchor": "Instance identity, original callback and receiver correspondence"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "[string.prototype, 'trimEnd'],"
               },
               {
@@ -60375,8 +60375,8 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
-                "anchor": "let preparationOriginals, preparationInput, preparationIntake, preparationClosed = false;"
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
+                "anchor": "let preparationOriginals: InstallationOriginals | undefined,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -60385,7 +60385,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// Ordinary embedded processes importing it later retain no startup original."
               },
               {
@@ -60419,7 +60419,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "const promise = globalThis.Promise;"
               },
               {
@@ -60451,7 +60451,7 @@
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// Publish the same immutable callback table before synchronous namespace"
               },
               {
@@ -60471,14 +60471,14 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// before the generated inventory or any captured image is initialized."
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
-                "anchor": "const unavailable = () => {"
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
+                "anchor": "const unavailable: () => never = () => {"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -60515,7 +60515,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// managed Host/bootstrap/Run obligations. Weak/delete/GC is not a close ACK or"
               },
               {
@@ -60553,7 +60553,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// keys/value references, borrow controls, closures and check workspace remain"
               },
               {
@@ -60593,7 +60593,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// callback. The pair, descriptor and returned String overlap remain in"
               },
               {
@@ -60605,7 +60605,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// Native runtime/library identities stay with this SAME actual process/module"
               },
               {
@@ -60615,8 +60615,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
-                "anchor": "const sdkFields = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);"
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
+                "anchor": "const sdkFields: readonly PropertyKey[] = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -60649,7 +60649,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
+                "path": "adapters/host-node/infer-trusted-node-startup.test.mts",
                 "anchor": "test('late ordinary embedded import cannot issue stock-startup responsibility', () => child([], 'absent'));"
               },
               {
@@ -60725,11 +60725,11 @@
                 "anchor": "a public Node dependency cannot substitute a distinct Local installation"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
+                "path": "adapters/host-node/infer-trusted-node-startup.test.mts",
                 "anchor": "selected environment normalizer retains the original trailing-whitespace primitive"
               },
               {
-                "path": "adapters/host-node/infer-trusted-node-startup.test.mjs",
+                "path": "adapters/host-node/infer-trusted-node-startup.test.mts",
                 "anchor": "ordinary embedded import preserves application environment normalizer selection"
               },
               {
@@ -63536,7 +63536,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// similarly shaped caller object later cannot replace this module original."
               },
               {
@@ -63668,7 +63668,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-trusted-node-preload.cjs",
+                "path": "adapters/host-node/infer-trusted-node-preload.cts",
                 "anchor": "// similarly shaped caller object later cannot replace this module original."
               },
               {

@@ -6,7 +6,7 @@ import {fileURLToPath} from 'node:url';
 const preload = fileURLToPath(new URL('./infer-trusted-node-preload.cjs', import.meta.url));
 const fixture = fileURLToPath(new URL('./infer-trusted-node-startup.fixture.mjs', import.meta.url));
 const preceding = fileURLToPath(new URL('./infer-prior-pool-mutation.fixture.cjs', import.meta.url));
-function child(args, mode, extra = {}) {
+function child(args: readonly string[], mode: string, extra: NodeJS.ProcessEnv = {}) {
   // No inherited Node loader/allocator selection or credentials enter this
   // isolated startup. This does not exercise a live Provider or stock grant.
   const result = spawnSync(process.execPath, [...args, fixture, mode], {
