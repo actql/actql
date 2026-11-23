@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {createInferOriginalReadControls} from '../host-common/runtime-infer-original-read-control.mjs';
 import {installedHostShutdown} from './embedded-local-lifecycle.mjs';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun,
   finishInstalledEffectModelScope, installedEffectModelPreparation, fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
@@ -717,24 +718,20 @@ test('plural Effect keeps a failed second original read including thrown undefin
 });
 
 test('plural restored Effect facade forwards only its same opaque output inventory and native compilation/Definition', () => {
-  const source = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
-  let method;
-  (function walk(node) {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'Property' && node.key?.name === 'openCheckedClientInstalledRestoredModelsEffectHost') method = node;
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
-    }
-  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'})); assert(method);
   const compiled = Object.freeze({kind: 'infer'}), native = {}, definition = {}, nativeDefinition = {}, parent = {}, bound = {};
   const outputs = [{}, {}], graphs = [{}, {}], sources = [{}], host = {};
   let calls = 0;
   const moon = {clientProgramInstalledEffectManagedRestoredModelsHostOpen(...actual) {
     assert.strictEqual(this, moon); same(actual, [parent, bound, sources, outputs, native, nativeDefinition, graphs]); calls++; return ok(host);
   }};
-  const control = Function('moon', 'compiledRunTokens', 'token', 'checked',
-    'return ({' + source.slice(method.start, method.end) + '});')(
-    moon, new WeakMap([[compiled, native]]), value => {assert.strictEqual(value, definition); return nativeDefinition;}, checked);
+  const control = createInferOriginalReadControls(moon, {
+    compiledRunTokens: new WeakMap([[compiled, native]]),
+    modelOriginalDocumentTokens: new WeakMap(),
+    token(value) {assert.strictEqual(value, definition); return nativeDefinition;},
+    evidenceToken: () => assert.fail('restored Host open does not take an evidence token'),
+    inspectEvidence: () => assert.fail('restored Host open does not project evidence'),
+    issuanceLimits: () => assert.fail('restored Host open does not accept issuance limits'),
+  });
   const open = value => control.openCheckedClientInstalledRestoredModelsEffectHost(value, definition,
     parent, bound, sources, outputs, graphs);
   assert.strictEqual(open(compiled), host);

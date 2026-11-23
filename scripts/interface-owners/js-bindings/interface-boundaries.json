@@ -23826,119 +23826,6 @@
           }
         },
         {
-          "operations": [
-            "inferQuantityCapacity/inferQuantityCapacity",
-            "inferQuantityCapacity/inferQuantityCapacity/inferQuantityCapacity"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "inferQuantityCapacity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mjs",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
           "operations": [],
           "exports": [
             "ledgerUsageDiagnostic",
@@ -24038,8 +23925,6 @@
             "publicationControl/init:admitSourceFreeResultPolicy/init:admitSourceFreeResultPolicy",
             "publicationControl/init:admitTablePreviewClaim/init:admitTablePreviewClaim",
             "publicationControl/init:adoptCheckedClientEffectInferRun/init:adoptCheckedClientEffectInferRun",
-            "publicationControl/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
-            "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
             "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
             "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
             "publicationControl/init:bindCheckedClientInferDispatch/init:bindCheckedClientInferDispatch",
@@ -24058,8 +23943,6 @@
             "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation",
             "publicationControl/init:captureCheckedClientInferModelObservation/init:captureCheckedClientInferModelObservation/value/value",
             "publicationControl/init:captureOriginalClientRunPlan/init:captureOriginalClientRunPlan",
-            "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
-            "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
             "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
@@ -24068,11 +23951,8 @@
             "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
             "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
             "publicationControl/init:checkedClientEffectInferInvocation/init:checkedClientEffectInferInvocation",
-            "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
-            "publicationControl/init:checkedClientInferOriginalResourceOriginField/init:checkedClientInferOriginalResourceOriginField",
             "publicationControl/init:checkedClientRunCapturedContentCandidate/init:checkedClientRunCapturedContentCandidate",
             "publicationControl/init:checkedClientStoredRunCapturedContentCandidate/init:checkedClientStoredRunCapturedContentCandidate",
-            "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
             "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
             "publicationControl/init:compiledRunResultTransformation/init:compiledRunResultTransformation",
             "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
@@ -24083,8 +23963,6 @@
             "publicationControl/init:effectComputationPreviewWire/init:effectComputationPreviewWire",
             "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
-            "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
-            "publicationControl/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
             "publicationControl/init:inspectInferInvocationEvidence/init:inspectInferInvocationEvidence",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
@@ -24153,14 +24031,10 @@
             "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
             "publicationControl/init:modelPrivateHoldingCid/init:modelPrivateHoldingCid",
             "publicationControl/init:modelScopedPrivateHoldingCid/init:modelScopedPrivateHoldingCid",
-            "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
             "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
             "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
             "publicationControl/init:prepareCheckedClientCompiledRun/init:prepareCheckedClientCompiledRun",
             "publicationControl/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
-            "publicationControl/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
-            "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
-            "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
             "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
@@ -24217,9 +24091,6 @@
             "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
             "publicationControl/init:sealRunEvidence/init:sealRunEvidence",
             "publicationControl/init:selectInstalledInitialJevDecisionProfile/init:selectInstalledInitialJevDecisionProfile",
-            "publicationControl/init:settleCheckedClientInferNodeReadState/init:settleCheckedClientInferNodeReadState",
-            "publicationControl/init:settleCheckedClientInferOriginalReadPreparation/init:settleCheckedClientInferOriginalReadPreparation",
-            "publicationControl/init:startCheckedClientInferOriginalPreparation/init:startCheckedClientInferOriginalPreparation",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
@@ -24227,8 +24098,6 @@
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#4",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
             "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
-            "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
-            "publicationControl/init:stopCheckedClientInferOriginalReadPreparation/init:stopCheckedClientInferOriginalReadPreparation",
             "publicationControl/init:tableInputMatchesSource/init:tableInputMatchesSource",
             "publicationControl/init:tableInputSchemaWire/init:tableInputSchemaWire",
             "publicationControl/init:tableInputStorageMappingWire/init:tableInputStorageMappingWire",
@@ -25165,13 +25034,9 @@
             "publicationControl/init:checkedClientRequestModelRecoveryLedger/init:checkedClientRequestModelRecoveryLedger",
             "publicationControl/init:checkedClientRequestModelRecoverySourceCoordinates/init:checkedClientRequestModelRecoverySourceCoordinates",
             "publicationControl/init:checkedClientRequestModelRecoveryUsageIsolated/init:checkedClientRequestModelRecoveryUsageIsolated",
-            "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
             "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
-            "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
             "publicationControl/init:prepareCheckedClientRequestModelRecoveryReadScopes/init:prepareCheckedClientRequestModelRecoveryReadScopes",
-            "publicationControl/init:reserveCheckedClientRequestModelRecoveryMaterials/init:reserveCheckedClientRequestModelRecoveryMaterials",
-            "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
-            "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution"
+            "publicationControl/init:reserveCheckedClientRequestModelRecoveryMaterials/init:reserveCheckedClientRequestModelRecoveryMaterials"
           ],
           "exports": [],
           "attributes": {
@@ -27588,85 +27453,6 @@
               {
                 "path": "adapters/connectors/local/site/root-filesystem-native.test.mjs",
                 "anchor": "test('Store lease rejects replacement of its exact opened anchor"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
-            "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost",
-            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
-            "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "The cold JS caller drives the same restored operation"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "Publication projects the original Source leaves"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "The private control unwraps the actual compiled and Definition tokens"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "The existing computation"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "Construction reentry remains pending"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "False or throwing retirement"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "existing stop, reverse output close and retention refresh engine"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "must still fund the simultaneous constructor"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/model-original-state-storage.md",
-                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
-                "anchor": "test('failed restored Host constructor keeps the original pin"
-              },
-              {
-                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
-                "anchor": "test('restored composed provider drives its same original operation"
-              },
-              {
-                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
-                "anchor": "captured consumer retirement retains original Result pins through same retry"
               }
             ]
           }
@@ -30204,20 +29990,6 @@
       ],
       "operations": [
         {
-          "name": "inferQuantityCapacity/inferQuantityCapacity",
-          "parameters": [
-            "scope"
-          ],
-          "async": false
-        },
-        {
-          "name": "inferQuantityCapacity/inferQuantityCapacity/inferQuantityCapacity",
-          "parameters": [
-            "quantity"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl",
           "parameters": [
             "moon"
@@ -30543,32 +30315,6 @@
             "allowed",
             "definition",
             "keyedPlan"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "writer",
-            "quantum"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "quantityCapacity",
-            "bootstrapRetainedBytes",
-            "bootstrapExecutionBytes",
-            "maxReservations",
-            "maxHoldings",
-            "maxDelegations"
           ],
           "async": false
         },
@@ -30908,35 +30654,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "park",
-            "document",
-            "layout",
-            "installation",
-            "runtimeArtifactCid",
-            "layoutArtifactCid",
-            "probability",
-            "storage"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "document",
-            "selected"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
           "parameters": [
             "compiled",
@@ -31017,33 +30734,6 @@
             "compilation",
             "definition",
             "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkedClientInferOriginalResourceOriginField/init:checkedClientInferOriginalResourceOriginField",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "layout",
-            "installation",
-            "runtimeArtifactCid",
-            "layoutArtifactCid",
-            "probability",
-            "storage",
-            "field"
           ],
           "async": false
         },
@@ -31176,33 +30866,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "read",
-            "layout",
-            "installation",
-            "runtimeArtifactCid",
-            "layoutArtifactCid",
-            "probability"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "read",
-            "readRetainedBytes",
-            "readExecutionBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:compiledInferEvaluationPolicy/init:compiledInferEvaluationPolicy",
           "parameters": [
             "compiled"
@@ -31312,27 +30975,6 @@
           "name": "publicationControl/init:executionFailureExplanation/init:executionFailureExplanation",
           "parameters": [
             "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "writer"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "originalRunCleanupComplete"
           ],
           "async": false
         },
@@ -32273,32 +31915,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
-          "parameters": [
-            "compiled",
-            "definition",
-            "managedRun",
-            "bound",
-            "sources",
-            "heldOutput",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost",
-          "parameters": [
-            "compiled",
-            "definition",
-            "managedRun",
-            "bound",
-            "sources",
-            "heldOutputs",
-            "graphs"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:openCheckedClientRequestModelRecoveryHost/init:openCheckedClientRequestModelRecoveryHost",
           "parameters": [
             "parent",
@@ -32328,13 +31944,6 @@
           "name": "publicationControl/init:originalClientDispatchFailureAvailable/init:originalClientDispatchFailureAvailable",
           "parameters": [
             "selected"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
-          "parameters": [
-            "writer"
           ],
           "async": false
         },
@@ -32405,55 +32014,6 @@
             "definition",
             "occurrence",
             "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "layout",
-            "installation",
-            "runtimeArtifactCid",
-            "layoutArtifactCid",
-            "probability"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "layout",
-            "installation",
-            "runtimeArtifactCid",
-            "layoutArtifactCid",
-            "probability",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "budget"
           ],
           "async": false
         },
@@ -33624,24 +33184,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
-          "parameters": [
-            "compiled",
-            "definition",
-            "scope",
-            "occurrence",
-            "graph"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
           "parameters": [
             "original",
@@ -33747,91 +33289,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:settleCheckedClientInferNodeReadState/init:settleCheckedClientInferNodeReadState",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "writer",
-            "physicalCleanupComplete"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:settleCheckedClientInferOriginalReadPreparation/init:settleCheckedClientInferOriginalReadPreparation",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "read",
-            "physicalCleanupComplete"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientInferOriginalPreparation/init:startCheckedClientInferOriginalPreparation",
-          "parameters": [
-            "compiled",
-            "definition",
-            "prepared",
-            "step",
-            "graph",
-            "registry",
-            "values",
-            "provider",
-            "consumer",
-            "readRetainedBytes",
-            "readExecutionBytes",
-            "modelRetainedBytes",
-            "modelExecutionBytes",
-            "fragment",
-            "ordered"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
-          "parameters": [
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "prefix",
-            "inputs",
-            "provider",
-            "consumer",
-            "readRetainedBytes",
-            "readExecutionBytes",
-            "modelRetainedBytes",
-            "modelExecutionBytes",
-            "sources",
-            "inputBodyRead"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution",
-          "parameters": [
-            "compiled",
-            "definition",
-            "occurrence",
-            "graph",
-            "prefix",
-            "provider",
-            "snapshot",
-            "custodyAvailable",
-            "savedScope",
-            "consumer",
-            "readRetainedBytes",
-            "readExecutionBytes",
-            "modelRetainedBytes",
-            "modelExecutionBytes",
-            "referenceIssuer",
-            "inputBodyRead"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput",
           "parameters": [
             "managedRun",
@@ -33918,28 +33375,6 @@
           "name": "publicationControl/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix/init:startOriginalComposedKeyedPrefix",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "writer"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:stopCheckedClientInferOriginalReadPreparation/init:stopCheckedClientInferOriginalReadPreparation",
-          "parameters": [
-            "compiled",
-            "definition",
-            "graph",
-            "scope",
-            "read"
           ],
           "async": false
         },
@@ -34143,6 +33578,7 @@
         "./runtime-content-publication-control.mjs",
         "./runtime-effect-capture-control.mjs",
         "./runtime-execution-control.mjs",
+        "./runtime-infer-original-read-control.mjs",
         "./runtime-publication-contract-control.mjs",
         "./runtime-publication-validation-control.mjs",
         "./runtime-query-time-control.mjs",
@@ -34153,7 +33589,927 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fe01a25d1bb08e4e92b75e9d80d58d490293c70e49c6cb6b2222ed780e2ac0a5"
+      "sha256": "a5b961c08c36087e43a8ac76cb113409c192b7df01ff6ad9fca8443f3ce49497"
+    },
+    {
+      "module": "adapters/host-common/runtime-infer-original-read-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Infer read preparation and restored execution custody",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createInferOriginalReadControls",
+            "createInferOriginalReadControls/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
+            "createInferOriginalReadControls/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
+            "createInferOriginalReadControls/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
+            "createInferOriginalReadControls/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
+            "createInferOriginalReadControls/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
+            "createInferOriginalReadControls/init:checkedClientInferOriginalResourceOriginField/init:checkedClientInferOriginalResourceOriginField",
+            "createInferOriginalReadControls/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
+            "createInferOriginalReadControls/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
+            "createInferOriginalReadControls/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
+            "createInferOriginalReadControls/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
+            "createInferOriginalReadControls/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
+            "createInferOriginalReadControls/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
+            "createInferOriginalReadControls/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
+            "createInferOriginalReadControls/init:settleCheckedClientInferNodeReadState/init:settleCheckedClientInferNodeReadState",
+            "createInferOriginalReadControls/init:settleCheckedClientInferOriginalReadPreparation/init:settleCheckedClientInferOriginalReadPreparation",
+            "createInferOriginalReadControls/init:startCheckedClientInferOriginalPreparation/init:startCheckedClientInferOriginalPreparation",
+            "createInferOriginalReadControls/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
+            "createInferOriginalReadControls/init:stopCheckedClientInferOriginalReadPreparation/init:stopCheckedClientInferOriginalReadPreparation"
+          ],
+          "exports": [
+            "createInferOriginalReadControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "export function createInferOriginalReadControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "moon.clientProgramPrepareInferOriginalRead(scope, value, token(definition),"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "const original = modelOriginalDocumentTokens.get(document as object);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const compiledRunTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const modelOriginalDocumentTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "moon.clientProgramSettleInferOriginalReadPreparation(read,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "throw new TypeError('Invalid original Model state Writer limits');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "moon.clientProgramStopInferNodeReadState(writer, scope, value"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity(quantityCapacity), bootstrapRetainedBytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...inferOriginalReadControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "scripts/infer-original-read-scope.test.mjs",
+                "anchor": "original read scope control uses nominal tokens and keeps failed read cleanup custody"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "inferQuantityCapacity/inferQuantityCapacity",
+            "inferQuantityCapacity/inferQuantityCapacity/inferQuantityCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/runtime-infer-original-read-control.mts",
+                "anchor": "inferQuantityCapacity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInferOriginalReadControls/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
+            "createInferOriginalReadControls/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
+            "createInferOriginalReadControls/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
+            "createInferOriginalReadControls/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-operation.mts",
+                "anchor": "const bodyRead = Object.getOwnPropertyDescriptor(originalPreparation, 'inputBodyRead');"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function prepareManagedMockModelRun("
+              },
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
+              },
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
+                "anchor": "test \"original restored input body rejects a foreign checked Read before scan construction\""
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/local-node/installed-project-mock.mjs",
+                "anchor": "function retireModelRead(model) {"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body_wbtest.mbt",
+                "case_id": "original_restored_input_capacity_cancel"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_model_body.mbt",
+                "anchor": "pub fn[I] prepare_request_model_read_scope("
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "src/client_infer_host/original_input_body.mbt",
+                "anchor": "fn grow_original_infer_identity_body_capacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Ordinary Host composition"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/mock-model-early-run-custody.test.mjs",
+                "anchor": "test('Mock read refusal retains the already issued Scope and its original admission'"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "###### Effect Request adoption and retired Mock entry points"
+              },
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "test('Local Model retains the exact Request carrier before the actual Host constructor and never issues a standalone Run'"
+              },
+              {
+                "path": "adapters/host-node/ordinary-project-source-managed.test.mjs",
+                "anchor": "test('Project Source distinguishes same-declaration occurrences and preserves pending child custody'"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "A cold composed Model selects the same installed preparation's explicit"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation.mbt",
+                "anchor": "pub fn start_original_restored_composed("
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed read uses its explicit cold port and same nominal original before saved input'"
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed entry refuses a foreign saved Run before consuming read\""
+              },
+              {
+                "path": "src/client_infer_host/original_composed_preparation_wbtest.mbt",
+                "anchor": "test \"original restored composed input refusal retains entered read without replacement or send\""
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('original restored composed body Read refuses foreign DATA and accessors before claim'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "restoring caller forwards the same checked `inputBodyRead` through its existing"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createInferOriginalReadControls/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
+            "createInferOriginalReadControls/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost",
+            "createInferOriginalReadControls/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
+            "createInferOriginalReadControls/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The cold JS caller drives the same restored operation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Publication projects the original Source leaves"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The private control unwraps the actual compiled and Definition tokens"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "The existing computation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "Construction reentry remains pending"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "False or throwing retirement"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "existing stop, reverse output close and retention refresh engine"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "must still fund the simultaneous constructor"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "a saved non-keyed Plan keeps its existing Host entrance"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-computation.test.mjs",
+                "anchor": "test('failed restored Host constructor keeps the original pin"
+              },
+              {
+                "path": "adapters/host-node/infer-original-composed-operation.test.mjs",
+                "anchor": "test('restored composed provider drives its same original operation"
+              },
+              {
+                "path": "src/query_integration/result_publication_custody_wbtest.mbt",
+                "anchor": "captured consumer retirement retains original Result pins through same retry"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createInferOriginalReadControls"
+      ],
+      "operations": [
+        {
+          "name": "createInferOriginalReadControls",
+          "parameters": [
+            "moon",
+            "compiledRunTokens",
+            "modelOriginalDocumentTokens",
+            "token",
+            "evidenceToken",
+            "inspectEvidence",
+            "issuanceLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:advanceCheckedClientInferNodeReadState/init:advanceCheckedClientInferNodeReadState",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "writer",
+            "quantum"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:beginCheckedClientInferOriginalReadScope/init:beginCheckedClientInferOriginalReadScope",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "quantityCapacity",
+            "bootstrapRetainedBytes",
+            "bootstrapExecutionBytes",
+            "maxReservations",
+            "maxHoldings",
+            "maxDelegations"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:checkCheckedClientInferOriginalParkedStorageOrigin/init:checkCheckedClientInferOriginalParkedStorageOrigin",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "park",
+            "document",
+            "layout",
+            "installation",
+            "runtimeArtifactCid",
+            "layoutArtifactCid",
+            "probability",
+            "storage"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:checkCheckedClientInferOriginalPreRestoreOrigin/init:checkCheckedClientInferOriginalPreRestoreOrigin",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "document",
+            "selected"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:checkedClientInferOriginalReadScopeLive/init:checkedClientInferOriginalReadScopeLive",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:checkedClientInferOriginalResourceOriginField/init:checkedClientInferOriginalResourceOriginField",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "layout",
+            "installation",
+            "runtimeArtifactCid",
+            "layoutArtifactCid",
+            "probability",
+            "storage",
+            "field"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:claimCheckedClientInferNodePreparationLayout/init:claimCheckedClientInferNodePreparationLayout",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "read",
+            "layout",
+            "installation",
+            "runtimeArtifactCid",
+            "layoutArtifactCid",
+            "probability"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:claimCheckedClientInferOriginalComposedPreparation/init:claimCheckedClientInferOriginalComposedPreparation",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "read",
+            "readRetainedBytes",
+            "readExecutionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "writer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "originalRunCleanupComplete"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:openCheckedClientInstalledRestoredModelEffectHost/init:openCheckedClientInstalledRestoredModelEffectHost",
+          "parameters": [
+            "compiled",
+            "definition",
+            "managedRun",
+            "bound",
+            "sources",
+            "heldOutput",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:openCheckedClientInstalledRestoredModelsEffectHost/init:openCheckedClientInstalledRestoredModelsEffectHost",
+          "parameters": [
+            "compiled",
+            "definition",
+            "managedRun",
+            "bound",
+            "sources",
+            "heldOutputs",
+            "graphs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
+          "parameters": [
+            "writer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "layout",
+            "installation",
+            "runtimeArtifactCid",
+            "layoutArtifactCid",
+            "probability"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "layout",
+            "installation",
+            "runtimeArtifactCid",
+            "layoutArtifactCid",
+            "probability",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:prepareCheckedClientInferOriginalRead/init:prepareCheckedClientInferOriginalRead",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "budget"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
+          "parameters": [
+            "compiled",
+            "definition",
+            "scope",
+            "occurrence",
+            "graph"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals/init:restoredInferSourceOriginals",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:settleCheckedClientInferNodeReadState/init:settleCheckedClientInferNodeReadState",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "writer",
+            "physicalCleanupComplete"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:settleCheckedClientInferOriginalReadPreparation/init:settleCheckedClientInferOriginalReadPreparation",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "read",
+            "physicalCleanupComplete"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:startCheckedClientInferOriginalPreparation/init:startCheckedClientInferOriginalPreparation",
+          "parameters": [
+            "compiled",
+            "definition",
+            "prepared",
+            "step",
+            "graph",
+            "registry",
+            "values",
+            "provider",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes",
+            "fragment",
+            "ordered"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:startCheckedClientOriginalComposedInferExecution/init:startCheckedClientOriginalComposedInferExecution",
+          "parameters": [
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "prefix",
+            "inputs",
+            "provider",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes",
+            "sources",
+            "inputBodyRead"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution",
+          "parameters": [
+            "compiled",
+            "definition",
+            "occurrence",
+            "graph",
+            "prefix",
+            "provider",
+            "snapshot",
+            "custodyAvailable",
+            "savedScope",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes",
+            "referenceIssuer",
+            "inputBodyRead"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:stopCheckedClientInferNodeReadState/init:stopCheckedClientInferNodeReadState",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "writer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInferOriginalReadControls/init:stopCheckedClientInferOriginalReadPreparation/init:stopCheckedClientInferOriginalReadPreparation",
+          "parameters": [
+            "compiled",
+            "definition",
+            "graph",
+            "scope",
+            "read"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferQuantityCapacity/inferQuantityCapacity",
+          "parameters": [
+            "scope"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferQuantityCapacity/inferQuantityCapacity/inferQuantityCapacity",
+          "parameters": [
+            "quantity"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "b96b69db186f81b05e8309c5867c2db6cbe4545d71dc6e5631cee89388153ce3"
     },
     {
       "module": "adapters/host-common/runtime-captured-publication-control.mjs",

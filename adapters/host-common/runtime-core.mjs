@@ -24,6 +24,7 @@ import {createContentInferenceControls} from './runtime-content-inference-contro
 import {createEffectCaptureControls} from './runtime-effect-capture-control.mjs';
 import {createPublicationValidationControls} from './runtime-publication-validation-control.mjs';
 import {createCapturedPublicationControls} from './runtime-captured-publication-control.mjs';
+import {createInferOriginalReadControls} from './runtime-infer-original-read-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -36,28 +37,6 @@ export {contentCaptureControl, contentGenerationControl};
 export {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources};
 const publicationControls = new WeakMap();
-
-// Translate the installed Node envelope only; Common owns contract ceilings.
-function inferQuantityCapacity(value) {
-  if (value === undefined) return undefined;
-  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).sort().join(',') !== 'limits,perAttempt' ||
-      ['limits', 'perAttempt'].some(scope => {
-        const amount = value[scope];
-        return amount === null || typeof amount !== 'object' || Array.isArray(amount) ||
-          Object.keys(amount).sort().join(',') !== 'costUnits,durationMs,tokens' ||
-          Object.values(amount).some(quantity => typeof quantity !== 'bigint' ||
-            quantity < 0n || quantity > BigInt(Number.MAX_SAFE_INTEGER));
-      })) {
-    throw new TypeError('InvalidInstalledInferQuantityCapacity');
-  }
-  return {
-    limits: {tokens: value.limits.tokens, cost_units: value.limits.costUnits,
-      duration_ms: value.limits.durationMs},
-    per_attempt: {tokens: value.perAttempt.tokens, cost_units: value.perAttempt.costUnits,
-      duration_ms: value.perAttempt.durationMs},
-  };
-}
 
 function publicationControl(moon) {
   let control = publicationControls.get(moon);
@@ -341,6 +320,9 @@ function publicationControl(moon) {
   const publicationValidationControls = createPublicationValidationControls(moon, {
     capturedComputationPreparations, recoveredEffectCaptures, computationPreviewTokens,
     token, issuanceLimits, capturedPreparationLimits,
+  });
+  const inferOriginalReadControls = createInferOriginalReadControls(moon, {
+    compiledRunTokens, modelOriginalDocumentTokens, token, evidenceToken, inspectEvidence, issuanceLimits,
   });
   control = Object.freeze({
     executionFailureExplanation(cause) {
@@ -1918,272 +1900,7 @@ function publicationControl(moon) {
         prepared, value, token(definition), occurrence, graph, declarations,
         query, evidence, transport, scratch, registry, values, fragment, ordered));
     },
-    prepareCheckedClientInferOriginalRead(compiled, definition, graph, scope, budget) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramPrepareInferOriginalRead(scope, value, token(definition),
-        graph, budget.readRetainedBytes, budget.readExecutionBytes));
-    },
-    // Installation-only original bootstrap: caller custody must keep this
-    // same scope on failure/recovery, never issue a replacement Ledger.
-    // Initial allocation and the full preset projection require pre-funding
-    // by the trusted installation; supplied numbers do not prove a layout.
-    beginCheckedClientInferOriginalReadScope(compiled, definition, graph,
-      {quantityCapacity, bootstrapRetainedBytes, bootstrapExecutionBytes,
-        maxReservations, maxHoldings, maxDelegations}) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramBeginInferOriginalReadScope(value,
-        token(definition), graph, inferQuantityCapacity(quantityCapacity), bootstrapRetainedBytes,
-        bootstrapExecutionBytes, maxReservations, maxHoldings, maxDelegations));
-    },
-    checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer' ||
-          typeof moon.clientProgramInferOriginalReadScopeLive !== 'function') {
-        throw new TypeError('InferTrustedRuntimeScopeUnavailable');
-      }
-      // This lifetime observation neither exposes a Ledger nor substitutes
-      // for allocation/current authority/egress or confirmed park invalidation.
-      return moon.clientProgramInferOriginalReadScopeLive(scope, value,
-        token(definition), graph) === true;
-    },
-    prepareCheckedClientInferNodeReadLayout(compiled, definition, graph, scope,
-      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramPrepareInferNodeReadLayout(scope, value,
-        token(definition), graph, layout, installation,
-        runtimeArtifactCid, layoutArtifactCid, probability));
-    },
-    // Data-only origin selection from the original checked Owner, before
-    // park. Storage must be the same actual port's rechecked binding evidence;
-    // matching strings/configuration cannot substitute for its opaque custody.
-    checkedClientInferOriginalResourceOriginField(compiled, definition, graph, scope,
-      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}, storage, field) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramInferOriginalResourceOriginField(scope,
-        value, token(definition), graph, layout, installation,
-        runtimeArtifactCid, layoutArtifactCid, probability, evidenceToken(storage), field));
-    },
-    checkCheckedClientInferOriginalParkedStorageOrigin(compiled, definition, graph, scope,
-      park, document, {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}, storage) {
-      const value = compiledRunTokens.get(compiled);
-      const original = modelOriginalDocumentTokens.get(document);
-      if (value === undefined || compiled.kind !== 'infer' || original === undefined) {
-        throw new TypeError('Foreign Client original Model document');
-      }
-      return checked(moon.clientProgramCheckInferOriginalParkedStorageOrigin(scope,
-        value, token(definition), graph, park, original, layout, installation,
-        runtimeArtifactCid, layoutArtifactCid, probability, evidenceToken(storage)));
-    },
-    // DATA-only comparison before a Scope exists. The existing Common Owner
-    // reads expected origins from the checked Run/Plan, not this document.
-    // Storage custody, funding and atomic original admission remain separate.
-    checkCheckedClientInferOriginalPreRestoreOrigin(compiled, definition, graph, document, selected) {
-      const value = compiledRunTokens.get(compiled);
-      const original = modelOriginalDocumentTokens.get(document);
-      if (value === undefined || compiled.kind !== 'infer' || original === undefined) {
-        throw new TypeError('Foreign Client original Model document');
-      }
-      const originalDefinition = token(definition);
-      if (typeof moon.clientProgramCheckInferOriginalPreRestoreOrigin !== 'function') {
-        throw Object.assign(new Error('ClientOperationUnavailable'), {code: 'ClientOperationUnavailable'});
-      }
-      const {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability} = selected;
-      return checked(moon.clientProgramCheckInferOriginalPreRestoreOrigin(value,
-        originalDefinition, graph, original, layout, installation,
-        runtimeArtifactCid, layoutArtifactCid, probability));
-    },
-    // Explicit alternative to the normal descriptor issuer, not a fallback.
-    // Bootstrap must already cover the dedicated Writer and finish-text borrow.
-    prepareCheckedClientInferNodeReadState(compiled, definition, graph, scope,
-      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}, limits) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      issuanceLimits(limits, 'Original Model state Writer');
-      if (['maxWireBytes', 'maxNodes', 'maxDepth'].some(key =>
-        !Number.isSafeInteger(limits[key]) || limits[key] < 0 || limits[key] > 2147483647) ||
-        limits.maxNodes === 0) {
-        throw new TypeError('Invalid original Model state Writer limits');
-      }
-      return checked(moon.clientProgramPrepareInferNodeReadState(scope, value,
-        token(definition), graph, layout, installation, runtimeArtifactCid,
-        layoutArtifactCid, probability, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-    },
-    originalClientInferNodeReadStateRead(writer) {
-      return checked(moon.clientProgramInferNodeReadStateRead(writer));
-    },
-    advanceCheckedClientInferNodeReadState(compiled, definition, graph, writer, quantum) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647) {
-        throw new TypeError('Invalid original Model state Writer quantum');
-      }
-      const poll = moon.clientProgramInferNodeReadStatePoll(
-        moon.clientProgramAdvanceInferNodeReadState(writer, value, token(definition), graph, quantum));
-      return Object.freeze({kind: runtimeField(poll, 0), work: runtimeField(poll, 1), issue: runtimeField(poll, 2)});
-    },
-    finishCheckedClientInferNodeReadState(compiled, definition, graph, writer) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramFinishInferNodeReadState(writer, value, token(definition), graph));
-    },
-    stopCheckedClientInferNodeReadState(compiled, definition, graph, scope, writer) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramStopInferNodeReadState(writer, scope, value, token(definition), graph));
-    },
-    settleCheckedClientInferNodeReadState(compiled, definition, graph, writer, physicalCleanupComplete) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      if (typeof physicalCleanupComplete !== 'boolean') {
-        throw new TypeError('Invalid original read cleanup observation');
-      }
-      return checked(moon.clientProgramSettleInferNodeReadState(writer, value,
-        token(definition), graph, physicalCleanupComplete));
-    },
-    // Do not derive whole-Run cleanup from read refusal, AbortSignal or a
-    // saved response. The original census also checks every live child.
-    finishCheckedClientInferOriginalReadScope(compiled, definition, graph,
-      scope, originalRunCleanupComplete) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      if (typeof originalRunCleanupComplete !== 'boolean') {
-        throw new TypeError('Invalid original Run cleanup observation');
-      }
-      return checked(moon.clientProgramFinishInferOriginalReadScope(scope,
-        value, token(definition), graph, originalRunCleanupComplete));
-    },
-    settleCheckedClientInferOriginalReadPreparation(compiled, definition, graph,
-      read, physicalCleanupComplete) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      if (typeof physicalCleanupComplete !== 'boolean') {
-        throw new TypeError('Invalid original read cleanup observation');
-      }
-      return checked(moon.clientProgramSettleInferOriginalReadPreparation(read,
-        value, token(definition), graph, physicalCleanupComplete));
-    },
-    stopCheckedClientInferOriginalReadPreparation(compiled, definition, graph,
-      scope, read) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramStopInferOriginalReadPreparation(scope,
-        read, value, token(definition), graph));
-    },
-    claimCheckedClientInferOriginalComposedPreparation(compiled, definition, graph,
-      read, readRetainedBytes, readExecutionBytes) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramClaimInferOriginalPreparation(read,
-        value, token(definition), graph, readRetainedBytes, readExecutionBytes));
-    },
-    startCheckedClientOriginalComposedInferExecution(compiled, definition,
-      occurrence, graph, prefix, inputs, provider, consumer, readRetainedBytes,
-      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, sources, inputBodyRead) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramStartOriginalComposedInferExecution(
-        occurrence, graph, prefix, inputs, provider, value, token(definition),
-        consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
-        modelExecutionBytes, sources, inputBodyRead));
-    },
-    startCheckedClientOriginalRestoredComposedInferExecution(compiled, definition,
-      occurrence, graph, prefix, provider, snapshot, custodyAvailable, savedScope,
-      consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes,
-      modelExecutionBytes, referenceIssuer, inputBodyRead) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramStartOriginalRestoredComposedInferExecution(
-        occurrence, graph, prefix, provider, snapshot.binding, snapshot.descriptorWire,
-        snapshot.rows, custodyAvailable, savedScope, value, token(definition), consumer,
-        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes,
-        referenceIssuer, inputBodyRead));
-    },
-    openCheckedClientInstalledRestoredModelEffectHost(compiled, definition,
-      managedRun, bound, sources, heldOutput, graph) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramInstalledEffectManagedRestoredModelHostOpen(
-        managedRun, bound, sources, heldOutput, value, token(definition), graph));
-    },
-    openCheckedClientInstalledRestoredModelsEffectHost(compiled, definition,
-      managedRun, bound, sources, heldOutputs, graphs) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramInstalledEffectManagedRestoredModelsHostOpen(
-        managedRun, bound, sources, heldOutputs, value, token(definition), graphs));
-    },
-    restoredInferSourceOriginals(compiled, definition, scope, occurrence, graph) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return Object.freeze(checked(moon.clientProgramRestoredInferSourceOriginals(
-        scope, value, token(definition), occurrence, graph)).map(original =>
-        Object.freeze({source: inspectEvidence(runtimeField(original, 0)),
-          logicalRelationCid: moon.strategyRunEvidenceIdentity(runtimeField(original, 1))})));
-    },
-    // Reuse the original compiled/definition token domains. A public wrapper
-    // object cannot be passed as a nominal MoonBit compiled Run or contract.
-    claimCheckedClientInferNodePreparationLayout(compiled, definition, graph, read,
-      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramClaimInferNodePreparationLayout(read,
-        value, token(definition), graph, layout, installation,
-        runtimeArtifactCid, layoutArtifactCid, probability));
-    },
-    startCheckedClientInferOriginalPreparation(compiled, definition, prepared,
-      step, graph, registry, values, provider, consumer, readRetainedBytes,
-      readExecutionBytes, modelRetainedBytes, modelExecutionBytes, fragment, ordered) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || compiled.kind !== 'infer') {
-        throw new TypeError('Foreign Client compiled Infer preparation');
-      }
-      return checked(moon.clientProgramStartOriginalInferExecution(prepared,
-        step, graph, registry, values, provider, value, token(definition), consumer,
-        readRetainedBytes, readExecutionBytes, modelRetainedBytes,
-        modelExecutionBytes, fragment, ordered));
-    },
+    ...inferOriginalReadControls,
     // Private installed Node inputs only. Canonical/body admission does not
     // issue capture authority, funded capacity or public async support.
     selectInstalledInitialJevDecisionProfile() {
