@@ -24206,24 +24206,16 @@
             "publicationControl/init:originalClientInferNodeReadStateRead/init:originalClientInferNodeReadStateRead",
             "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
             "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
-            "publicationControl/init:prepareCheckedClientAcquiredSerializationComponent/init:prepareCheckedClientAcquiredSerializationComponent",
-            "publicationControl/init:prepareCheckedClientAcquiredSerializationGraph/init:prepareCheckedClientAcquiredSerializationGraph",
             "publicationControl/init:prepareCheckedClientCompiledRun/init:prepareCheckedClientCompiledRun",
             "publicationControl/init:prepareCheckedClientEffectModelDemand/init:prepareCheckedClientEffectModelDemand",
             "publicationControl/init:prepareCheckedClientInferNodeReadLayout/init:prepareCheckedClientInferNodeReadLayout",
             "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
             "publicationControl/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState/init:prepareCheckedClientInferNodeReadState",
             "publicationControl/init:prepareCheckedClientNodeEffectModelDemand/init:prepareCheckedClientNodeEffectModelDemand",
-            "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
-            "publicationControl/init:prepareCheckedClientRequestSerializationGraph/init:prepareCheckedClientRequestSerializationGraph",
-            "publicationControl/init:prepareCheckedClientSerializationComponent/init:prepareCheckedClientSerializationComponent",
-            "publicationControl/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
-            "publicationControl/init:prepareCheckedClientSerializedInferGraph/init:prepareCheckedClientSerializedInferGraph",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
             "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#3",
-            "publicationControl/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
             "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2",
@@ -24279,17 +24271,7 @@
             "publicationControl/init:selectInstalledInitialJevDecisionProfile/init:selectInstalledInitialJevDecisionProfile",
             "publicationControl/init:settleCheckedClientInferNodeReadState/init:settleCheckedClientInferNodeReadState",
             "publicationControl/init:settleCheckedClientInferOriginalReadPreparation/init:settleCheckedClientInferOriginalReadPreparation",
-            "publicationControl/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation",
-            "publicationControl/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation/originals/originals",
-            "publicationControl/init:startCheckedClientGeneratedInferExecution/init:startCheckedClientGeneratedInferExecution",
-            "publicationControl/init:startCheckedClientGeneratedInferInputs/init:startCheckedClientGeneratedInferInputs",
             "publicationControl/init:startCheckedClientInferOriginalPreparation/init:startCheckedClientInferOriginalPreparation",
-            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
-            "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
-            "publicationControl/init:startCheckedClientOriginalGeneratedInferExecution/init:startCheckedClientOriginalGeneratedInferExecution",
-            "publicationControl/init:startCheckedClientOriginalGeneratedInferInputs/init:startCheckedClientOriginalGeneratedInferInputs",
-            "publicationControl/init:startCheckedClientRestoredGeneratedInferExecution/init:startCheckedClientRestoredGeneratedInferExecution",
-            "publicationControl/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix#2",
@@ -24310,8 +24292,6 @@
             "publicationControl/inspectEffectSource/inspectEffectSource",
             "publicationControl/localEffectContext/localEffectContext/localEffectContext",
             "publicationControl/localEffectSourceToken/localEffectSourceToken",
-            "publicationControl/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
-            "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
             "publicationControl/snapshotToken/snapshotToken",
             "publicationControl/sourceAdvanceToken/sourceAdvanceToken",
             "publicationControl/token/token",
@@ -33391,22 +33371,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareCheckedClientAcquiredSerializationComponent/init:prepareCheckedClientAcquiredSerializationComponent",
-          "parameters": [
-            "checkedProgram",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientAcquiredSerializationGraph/init:prepareCheckedClientAcquiredSerializationGraph",
-          "parameters": [
-            "checkedProgram",
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:prepareCheckedClientCompiledRun/init:prepareCheckedClientCompiledRun",
           "parameters": [
             "checkedProgram",
@@ -33489,19 +33453,6 @@
             "graph",
             "selected",
             "installation"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
-          "parameters": [
-            "parent",
-            "input",
-            "contracts",
-            "checkedProgram",
-            "options",
-            "intermediate",
-            "modelOccurrence"
           ],
           "async": false
         },
@@ -33900,19 +33851,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareCheckedClientRequestSerializationGraph/init:prepareCheckedClientRequestSerializationGraph",
-          "parameters": [
-            "parent",
-            "input",
-            "contracts",
-            "checkedProgram",
-            "options",
-            "intermediate",
-            "modelOccurrence"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:prepareCheckedClientRequestSerializationPlan/init:prepareCheckedClientRequestSerializationPlan",
           "parameters": [
             "parent",
@@ -33922,31 +33860,6 @@
             "definition",
             "limits",
             "workspace"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientSerializationComponent/init:prepareCheckedClientSerializationComponent",
-          "parameters": [
-            "checkedProgram",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
-          "parameters": [
-            "checkedProgram",
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedClientSerializedInferGraph/init:prepareCheckedClientSerializedInferGraph",
-          "parameters": [
-            "occurrence",
-            "selected",
-            "execution"
           ],
           "async": false
         },
@@ -33994,18 +33907,6 @@
             "executionOwner",
             "definition",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
-          "parameters": [
-            "parent",
-            "input",
-            "occurrence",
-            "selected",
-            "execution",
-            "contracts"
           ],
           "async": false
         },
@@ -34915,46 +34816,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation",
-          "parameters": [
-            "compiled",
-            "executions",
-            "generations",
-            "ledger",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation/originals/originals",
-          "parameters": [
-            "generation"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientGeneratedInferExecution/init:startCheckedClientGeneratedInferExecution",
-          "parameters": [
-            "compiled",
-            "generation",
-            "prepared",
-            "graph",
-            "provider"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientGeneratedInferInputs/init:startCheckedClientGeneratedInferInputs",
-          "parameters": [
-            "compiled",
-            "generation",
-            "graph",
-            "inputs",
-            "provider"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:startCheckedClientInferOriginalPreparation/init:startCheckedClientInferOriginalPreparation",
           "parameters": [
             "compiled",
@@ -34996,57 +34857,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
-          "parameters": [
-            "executions",
-            "generations",
-            "capacity",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
-          "parameters": [
-            "generation"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientOriginalGeneratedInferExecution/init:startCheckedClientOriginalGeneratedInferExecution",
-          "parameters": [
-            "compiled",
-            "generation",
-            "prepared",
-            "graph",
-            "provider",
-            "definition",
-            "consumer",
-            "readRetainedBytes",
-            "readExecutionBytes",
-            "modelRetainedBytes",
-            "modelExecutionBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientOriginalGeneratedInferInputs/init:startCheckedClientOriginalGeneratedInferInputs",
-          "parameters": [
-            "compiled",
-            "generation",
-            "graph",
-            "inputs",
-            "provider",
-            "definition",
-            "consumer",
-            "readRetainedBytes",
-            "readExecutionBytes",
-            "modelRetainedBytes",
-            "modelExecutionBytes"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:startCheckedClientOriginalRestoredComposedInferExecution/init:startCheckedClientOriginalRestoredComposedInferExecution",
           "parameters": [
             "compiled",
@@ -35065,35 +34875,6 @@
             "modelExecutionBytes",
             "referenceIssuer",
             "inputBodyRead"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientRestoredGeneratedInferExecution/init:startCheckedClientRestoredGeneratedInferExecution",
-          "parameters": [
-            "compiled",
-            "definition",
-            "generation",
-            "prepared",
-            "graph",
-            "provider",
-            "bodies",
-            "snapshot",
-            "available"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
-          "parameters": [
-            "compiled",
-            "definition",
-            "generation",
-            "graph",
-            "inputs",
-            "provider",
-            "snapshot",
-            "available"
           ],
           "async": false
         },
@@ -35329,20 +35110,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/queryTimeControls/queryTimeControls",
           "parameters": [],
           "async": false
@@ -35404,6 +35171,7 @@
         "./remote-standard-source-control.mjs",
         "./remote-transfer-control.mjs",
         "./result-output-limits.mjs",
+        "./runtime-content-inference-control.mjs",
         "./runtime-content-publication-control.mjs",
         "./runtime-execution-control.mjs",
         "./runtime-publication-contract-control.mjs",
@@ -35416,7 +35184,352 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "8d47c14514f6786ba47310869be5d717a8556245af903882ccecef00143cc1e3"
+      "sha256": "dec805b860d3a4c6e9a442ac5b1b8e857fe2dbaab0855cb0593e2ee90b530739"
+    },
+    {
+      "module": "adapters/host-common/runtime-content-inference-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Content graph selection and inference",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createContentInferenceControls",
+            "createContentInferenceControls/init:prepareCheckedClientAcquiredSerializationComponent/init:prepareCheckedClientAcquiredSerializationComponent",
+            "createContentInferenceControls/init:prepareCheckedClientAcquiredSerializationGraph/init:prepareCheckedClientAcquiredSerializationGraph",
+            "createContentInferenceControls/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
+            "createContentInferenceControls/init:prepareCheckedClientRequestSerializationGraph/init:prepareCheckedClientRequestSerializationGraph",
+            "createContentInferenceControls/init:prepareCheckedClientSerializationComponent/init:prepareCheckedClientSerializationComponent",
+            "createContentInferenceControls/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
+            "createContentInferenceControls/init:prepareCheckedClientSerializedInferGraph/init:prepareCheckedClientSerializedInferGraph",
+            "createContentInferenceControls/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
+            "createContentInferenceControls/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation",
+            "createContentInferenceControls/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation/originals/originals",
+            "createContentInferenceControls/init:startCheckedClientGeneratedInferExecution/init:startCheckedClientGeneratedInferExecution",
+            "createContentInferenceControls/init:startCheckedClientGeneratedInferInputs/init:startCheckedClientGeneratedInferInputs",
+            "createContentInferenceControls/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
+            "createContentInferenceControls/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
+            "createContentInferenceControls/init:startCheckedClientOriginalGeneratedInferExecution/init:startCheckedClientOriginalGeneratedInferExecution",
+            "createContentInferenceControls/init:startCheckedClientOriginalGeneratedInferInputs/init:startCheckedClientOriginalGeneratedInferInputs",
+            "createContentInferenceControls/init:startCheckedClientRestoredGeneratedInferExecution/init:startCheckedClientRestoredGeneratedInferExecution",
+            "createContentInferenceControls/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
+            "createContentInferenceControls/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
+            "createContentInferenceControls/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph"
+          ],
+          "exports": [
+            "createContentInferenceControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-content-inference-control.mts",
+                "anchor": "export function createContentInferenceControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-content-inference-control.mts",
+                "anchor": "prepareClientRequestSerializedInferGraph("
+              },
+              {
+                "path": "adapters/host-common/runtime-content-inference-control.mts",
+                "anchor": "limits.maxSlots, limits.maxWireBytes, limits.maxWork"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-content-inference-control.mts",
+                "anchor": "const graph = serializationPlanTokens.get(selected as object);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const serializationPlanTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const serializationGenerationTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-content-inference-control.mts",
+                "anchor": "return Reflect.apply(prepare, moon, [parent, input, occurrence, graph, execution, contracts]);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-content-inference-control.mts",
+                "anchor": "throw new TypeError('Foreign Client Content generation');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-content-inference-control.mts",
+                "anchor": "typeof available !== 'function'"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-content-inference-control.mts",
+                "anchor": "readRetainedBytes: bigint, readExecutionBytes: bigint"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...contentInferenceControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-content-graph-resources.test.mts",
+                "anchor": "actual Content Graph caller forwards same parent/input/contracts"
+              },
+              {
+                "path": "adapters/host-node/infer-original-publication-caller.test.mjs",
+                "anchor": "original generated publication unwraps the SAME Content facade for its native issuer"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createContentInferenceControls"
+      ],
+      "operations": [
+        {
+          "name": "createContentInferenceControls",
+          "parameters": [
+            "moon",
+            "serializationPlanTokens",
+            "serializationGenerationTokens",
+            "compiledContent",
+            "compiledRunResult",
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:prepareCheckedClientAcquiredSerializationComponent/init:prepareCheckedClientAcquiredSerializationComponent",
+          "parameters": [
+            "checkedProgram",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:prepareCheckedClientAcquiredSerializationGraph/init:prepareCheckedClientAcquiredSerializationGraph",
+          "parameters": [
+            "checkedProgram",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:prepareCheckedClientRequestAcquiredSerializationGraph/init:prepareCheckedClientRequestAcquiredSerializationGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "contracts",
+            "checkedProgram",
+            "options",
+            "intermediate",
+            "modelOccurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:prepareCheckedClientRequestSerializationGraph/init:prepareCheckedClientRequestSerializationGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "contracts",
+            "checkedProgram",
+            "options",
+            "intermediate",
+            "modelOccurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:prepareCheckedClientSerializationComponent/init:prepareCheckedClientSerializationComponent",
+          "parameters": [
+            "checkedProgram",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:prepareCheckedClientSerializationGraph/init:prepareCheckedClientSerializationGraph",
+          "parameters": [
+            "checkedProgram",
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:prepareCheckedClientSerializedInferGraph/init:prepareCheckedClientSerializedInferGraph",
+          "parameters": [
+            "occurrence",
+            "selected",
+            "execution"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:prepareClientRequestSerializedInferGraph/init:prepareClientRequestSerializedInferGraph",
+          "parameters": [
+            "parent",
+            "input",
+            "occurrence",
+            "selected",
+            "execution",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation",
+          "parameters": [
+            "compiled",
+            "executions",
+            "generations",
+            "ledger",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientContentInferObservation/init:startCheckedClientContentInferObservation/originals/originals",
+          "parameters": [
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientGeneratedInferExecution/init:startCheckedClientGeneratedInferExecution",
+          "parameters": [
+            "compiled",
+            "generation",
+            "prepared",
+            "graph",
+            "provider"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientGeneratedInferInputs/init:startCheckedClientGeneratedInferInputs",
+          "parameters": [
+            "compiled",
+            "generation",
+            "graph",
+            "inputs",
+            "provider"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation",
+          "parameters": [
+            "executions",
+            "generations",
+            "capacity",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientOriginalContentInferObservation/init:startCheckedClientOriginalContentInferObservation/originals/originals",
+          "parameters": [
+            "generation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientOriginalGeneratedInferExecution/init:startCheckedClientOriginalGeneratedInferExecution",
+          "parameters": [
+            "compiled",
+            "generation",
+            "prepared",
+            "graph",
+            "provider",
+            "definition",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientOriginalGeneratedInferInputs/init:startCheckedClientOriginalGeneratedInferInputs",
+          "parameters": [
+            "compiled",
+            "generation",
+            "graph",
+            "inputs",
+            "provider",
+            "definition",
+            "consumer",
+            "readRetainedBytes",
+            "readExecutionBytes",
+            "modelRetainedBytes",
+            "modelExecutionBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientRestoredGeneratedInferExecution/init:startCheckedClientRestoredGeneratedInferExecution",
+          "parameters": [
+            "compiled",
+            "definition",
+            "generation",
+            "prepared",
+            "graph",
+            "provider",
+            "bodies",
+            "snapshot",
+            "available"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/init:startCheckedClientRestoredGeneratedInferInputs/init:startCheckedClientRestoredGeneratedInferInputs",
+          "parameters": [
+            "compiled",
+            "definition",
+            "generation",
+            "graph",
+            "inputs",
+            "provider",
+            "snapshot",
+            "available"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph/prepareAcquiredSerializationGraph",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentInferenceControls/prepareSerializationGraph/prepareSerializationGraph/prepareSerializationGraph",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "3c03bdf9eae5ffe8bb2009c387c871cf96c28ca2c6fe5eeff9ad09ad76fe48f3"
     },
     {
       "module": "adapters/host-common/runtime-query-time-control.mjs",

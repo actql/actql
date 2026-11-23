@@ -21,6 +21,7 @@ import {createRunStateControls} from './runtime-run-state-control.mjs';
 import {createPublicationContractControls} from './runtime-publication-contract-control.mjs';
 import {createQueryTimeControls} from './runtime-query-time-control.mjs';
 import {createContentPublicationControls} from './runtime-content-publication-control.mjs';
+import {createContentInferenceControls} from './runtime-content-inference-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -112,35 +113,6 @@ function publicationControl(moon) {
     }
     return value;
   };
-  const prepareSerializationGraph = (checkedProgram, options, intermediate, request) => {
-    const original = options?.resultDataPolicy;
-    if (original?.kind !== 'data_policy' || typeof original.cid !== 'string' ||
-        typeof original.wire !== 'string' ||
-        !['task', 'step', 'maxRows', 'maxBytes'].every(key =>
-          Number.isInteger(options[key]) && options[key] >= 0 &&
-          options[key] <= 2147483647)) {
-      throw new TypeError('Invalid Content compilation options');
-    }
-    let graph;
-    if (request === undefined) {
-      const issue = intermediate ? moon.clientProgramSerializationPlanComponent
-        : moon.clientProgramSerializationPlanGraph;
-      graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
-        original.cid, original.wire, options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
-    } else {
-      const issue = request.modelOccurrence === undefined ? moon.clientProgramPrepareRequestSerializationGraph
-        : moon.clientProgramPrepareRequestModelSerializationGraph;
-      if (typeof issue !== 'function') throw new TypeError('Request Content Graph constructor unavailable');
-      graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
-        ...(request.modelOccurrence === undefined ? [] : [request.modelOccurrence]),
-        options.task, options.step, original.cid, original.wire, options.maxRows,
-        options.maxBytes, !intermediate, request.contracts]), 'RunHostContentPlanRejected');
-    }
-    const selected = Object.freeze({task: options.task, step: options.step,
-      wire: moon.clientProgramSerializationPlanGraphWire(graph)});
-    serializationPlanTokens.set(selected, graph);
-    return selected;
-  };
   const contentCaptures = values => {
     if (values === undefined) return [];
     if (!Array.isArray(values)) throw new TypeError('Invalid Content capture inventory');
@@ -150,31 +122,6 @@ function publicationControl(moon) {
       return compiledRunResult(moon.clientProgramSerializationCapture(generation),
         'Client Content capture unavailable');
     });
-  };
-  const prepareAcquiredSerializationGraph = (checkedProgram, options, intermediate, request) => {
-    if (!['task', 'step', 'maxRows', 'maxBytes'].every(key =>
-      Number.isInteger(options?.[key]) && options[key] >= 0 && options[key] <= 2147483647)) {
-      throw new TypeError('Invalid acquired Content compilation options');
-    }
-    let graph;
-    if (request === undefined) {
-      const issue = intermediate ? moon.clientProgramAcquiredSerializationPlanComponent
-        : moon.clientProgramAcquiredSerializationPlanGraph;
-      graph = compiledRunResult(issue(checkedProgram, options.task, options.step,
-        options.maxRows, options.maxBytes), 'RunHostContentPlanRejected');
-    } else {
-      const issue = request.modelOccurrence === undefined ? moon.clientProgramPrepareRequestAcquiredSerializationGraph
-        : moon.clientProgramPrepareRequestModelAcquiredSerializationGraph;
-      if (typeof issue !== 'function') throw new TypeError('Request acquired Content Graph constructor unavailable');
-      graph = compiledRunResult(Reflect.apply(issue, moon, [request.parent, request.input,
-        ...(request.modelOccurrence === undefined ? [] : [request.modelOccurrence]),
-        options.task, options.step, options.maxRows, options.maxBytes,
-        !intermediate, request.contracts]), 'RunHostContentPlanRejected');
-    }
-    const selected = Object.freeze({task: options.task, step: options.step,
-      wire: moon.clientProgramSerializationPlanGraphWire(graph)});
-    serializationPlanTokens.set(selected, graph);
-    return selected;
   };
   const snapshotTokens = new WeakMap();
   const effectSourceTokens = new WeakMap();
@@ -571,6 +518,9 @@ function publicationControl(moon) {
   const queryTimeControls = createQueryTimeControls(moon, {
     compiledRunTokens, token, currentControl: () => control,
   });
+  const contentInferenceControls = createContentInferenceControls(moon, {
+    serializationPlanTokens, serializationGenerationTokens, compiledContent, compiledRunResult, token,
+  });
   control = Object.freeze({
     executionFailureExplanation(cause) {
       if (typeof cause !== 'string' || cause.length > 96 ||
@@ -686,129 +636,7 @@ function publicationControl(moon) {
       }
       return inspectAdmission(admission);
     },
-    prepareCheckedClientSerializationGraph(checkedProgram, options) {
-      return prepareSerializationGraph(checkedProgram, options, false);
-    },
-    prepareCheckedClientSerializationComponent(checkedProgram, options) {
-      return prepareSerializationGraph(checkedProgram, options, true);
-    },
-    prepareCheckedClientRequestSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate, modelOccurrence) {
-      return prepareSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts, modelOccurrence});
-    },
-    // Keep the selected facade outside Core. Only this existing private map
-    // supplies the SAME opaque Content original to the Request constructor.
-    // Return its original Result to the manager's existing error projection.
-    prepareClientRequestSerializedInferGraph(parent, input, occurrence, selected, execution, contracts) {
-      const graph = serializationPlanTokens.get(selected);
-      if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
-      const prepare = moon.clientProgramPrepareRequestSerializedModelGraph;
-      if (typeof prepare !== 'function') throw new TypeError('Request serialized Model Graph constructor unavailable');
-      return Reflect.apply(prepare, moon, [parent, input, occurrence, graph, execution, contracts]);
-    },
-    prepareCheckedClientSerializedInferGraph(occurrence, selected, execution) {
-      const graph = serializationPlanTokens.get(selected);
-      if (graph === undefined) throw new TypeError('Foreign Content compilation graph');
-      return compiledRunResult(moon.clientProgramSerializedInferPlanGraph(
-        occurrence, graph, execution), 'RunHostContentInferPlanRejected');
-    },
-    startCheckedClientGeneratedInferExecution(compiled, generation, prepared, graph, provider) {
-      const run = compiledContent(compiled);
-      const original = serializationGenerationTokens.get(generation);
-      if (original === undefined) throw new TypeError('Foreign Client Content generation');
-      return compiledRunResult(moon.clientProgramStartGeneratedInferExecution(
-        prepared, run, original, graph, provider), 'RunHostContentInferInputRejected');
-    },
-    startCheckedClientGeneratedInferInputs(compiled, generation, graph, inputs, provider) {
-      const run = compiledContent(compiled);
-      const original = serializationGenerationTokens.get(generation);
-      if (original === undefined) throw new TypeError('Foreign Client Content generation');
-      return compiledRunResult(moon.clientProgramStartGeneratedInferInputs(
-        run, original, graph, inputs, provider), 'RunHostContentInferInputRejected');
-    },
-    startCheckedClientOriginalGeneratedInferExecution(compiled, generation, prepared, graph, provider,
-      definition, consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes) {
-      const run = compiledContent(compiled);
-      const original = serializationGenerationTokens.get(generation);
-      if (original === undefined) throw new TypeError('Foreign Client Content generation');
-      return compiledRunResult(moon.clientProgramStartOriginalGeneratedInferExecution(
-        prepared, run, original, graph, provider, token(definition), consumer,
-        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes),
-      'RunHostContentInferInputRejected');
-    },
-    startCheckedClientOriginalGeneratedInferInputs(compiled, generation, graph, inputs, provider,
-      definition, consumer, readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes) {
-      const run = compiledContent(compiled);
-      const original = serializationGenerationTokens.get(generation);
-      if (original === undefined) throw new TypeError('Foreign Client Content generation');
-      return compiledRunResult(moon.clientProgramStartOriginalGeneratedInferInputs(
-        run, original, graph, inputs, provider, token(definition), consumer,
-        readRetainedBytes, readExecutionBytes, modelRetainedBytes, modelExecutionBytes),
-      'RunHostContentInferInputRejected');
-    },
-    startCheckedClientRestoredGeneratedInferExecution(compiled, definition, generation,
-      prepared, graph, provider, bodies, snapshot, available) {
-      const run = compiledContent(compiled);
-      const original = serializationGenerationTokens.get(generation);
-      if (original === undefined || typeof available !== 'function') {
-        throw new TypeError('Foreign Client Content generation');
-      }
-      return compiledRunResult(moon.clientProgramStartRestoredGeneratedInferInput(
-        prepared, run, token(definition), original, graph, bodies.registry, bodies.values,
-        provider, snapshot.binding, snapshot.descriptorWire, snapshot.rows, available,
-        bodies.fragment, bodies.ordered), 'RunHostContentInferInputRejected');
-    },
-    startCheckedClientRestoredGeneratedInferInputs(compiled, definition, generation,
-      graph, inputs, provider, snapshot, available) {
-      const run = compiledContent(compiled);
-      const original = serializationGenerationTokens.get(generation);
-      if (original === undefined || typeof available !== 'function') {
-        throw new TypeError('Foreign Client Content generation');
-      }
-      return compiledRunResult(moon.clientProgramStartRestoredGeneratedInferInputs(
-        run, token(definition), original, graph, inputs, provider, snapshot.binding,
-        snapshot.descriptorWire, available), 'RunHostContentInferInputRejected');
-    },
-    startCheckedClientOriginalContentInferObservation(executions, generations, capacity, limits) {
-      if (!Array.isArray(generations)) throw new TypeError('Invalid Content capture inventory');
-      const originals = generations.map(generation => {
-        const original = serializationGenerationTokens.get(generation);
-        if (original === undefined) throw new TypeError('Foreign Client Content generation');
-        return original;
-      });
-      // Project the SAME private generation tokens as the input constructor.
-      // The existing typed issuer alone checks Run/Scope/current/complete
-      // inventory; this projection adds no callbackful evidence recheck.
-      return compiledRunResult(executions.length === 1
-        ? moon.clientProgramStartOriginalInferObservationIssuance(executions[0],
-          capacity, limits.maxSlots, limits.maxWireBytes, limits.maxWork, originals)
-        : moon.clientProgramStartCompleteOriginalInferObservationIssuance(executions,
-          capacity, limits.maxSlots, limits.maxWireBytes, limits.maxWork, originals),
-      'RunHostContentInferObservationRejected');
-    },
-    startCheckedClientContentInferObservation(compiled, executions, generations, ledger, limits) {
-      const run = compiledContent(compiled);
-      if (!Array.isArray(generations)) throw new TypeError('Invalid Content capture inventory');
-      const originals = generations.map(generation => {
-        const original = serializationGenerationTokens.get(generation);
-        if (original === undefined ||
-            moon.clientProgramSerializationGenerationEvidence(original, run) === undefined) {
-          throw new TypeError('Foreign Client Content generation');
-        }
-        return original;
-      });
-      return compiledRunResult(moon.clientProgramStartContentInferObservationIssuance(
-        executions, originals, ledger, limits.maxSlots, limits.maxWireBytes, limits.maxWork),
-      'RunHostContentInferObservationRejected');
-    },
-    prepareCheckedClientAcquiredSerializationGraph(checkedProgram, options) {
-      return prepareAcquiredSerializationGraph(checkedProgram, options, false);
-    },
-    prepareCheckedClientAcquiredSerializationComponent(checkedProgram, options) {
-      return prepareAcquiredSerializationGraph(checkedProgram, options, true);
-    },
-    prepareCheckedClientRequestAcquiredSerializationGraph(parent, input, contracts, checkedProgram, options, intermediate, modelOccurrence) {
-      return prepareAcquiredSerializationGraph(checkedProgram, options, intermediate, {parent, input, contracts, modelOccurrence});
-    },
+    ...contentInferenceControls,
     readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
       if (typeof moon.clientProgramCurrentRunView !== 'function') {
         throw Object.assign(new Error('ClientOperationUnavailable'),

@@ -58,6 +58,7 @@ const runtimeCoreModules = [
   'adapters/host-common/remote-standard-source-control.mjs',
   'adapters/host-common/remote-transfer-control.mjs',
   'adapters/host-common/runtime-execution-control.mjs',
+  'adapters/host-common/runtime-content-inference-control.mjs',
   'adapters/host-common/runtime-content-publication-control.mjs',
   'adapters/host-common/runtime-publication-contract-control.mjs',
   'adapters/host-common/runtime-query-time-control.mjs',

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createContentInferenceControls} from '../host-common/runtime-content-inference-control.mjs';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
@@ -1101,20 +1102,6 @@ test('configured source-free Host binds the retained module provider without con
 
 // Exercise the actual facade -> Host -> manager path. A facade carries no
 // native owner; only the existing runtime-core WeakMap can supply that original.
-const graphCoreSource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
-const acquiredGraphStart = graphCoreSource.indexOf('  const prepareAcquiredSerializationGraph =');
-const acquiredGraphEnd = graphCoreSource.indexOf('  const snapshotTokens =', acquiredGraphStart);
-const graphCoreProperties = new Map();
-function findGraphCoreMethods(node) {
-  if (!node || typeof node !== 'object') return;
-  if (node.type === 'Property' && node.method && ['prepareCheckedClientRequestAcquiredSerializationGraph',
-    'prepareClientRequestSerializedInferGraph'].includes(node.key.name)) graphCoreProperties.set(node.key.name, node);
-  for (const value of Object.values(node)) {
-    if (Array.isArray(value)) value.forEach(findGraphCoreMethods);
-    else if (value && typeof value === 'object') findGraphCoreMethods(value);
-  }
-}
-findGraphCoreMethods(parse(graphCoreSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const requestGraphHostStart = hostSource.indexOf('    prepareManagedModelGraph(runtime,');
 const requestGraphHostEnd = hostSource.indexOf('    prepareManagedModelCompilation(', requestGraphHostStart);
 function originalFacadeGraphFixture() {
@@ -1139,10 +1126,12 @@ function originalFacadeGraphFixture() {
       return {value: modelGraph};
     },
   };
-  const properties = [...graphCoreProperties.values()].map(node => graphCoreSource.slice(node.start, node.end));
-  const control = Function('moon', 'compiledRunResult',
-    'const serializationPlanTokens=new WeakMap();' + graphCoreSource.slice(acquiredGraphStart, acquiredGraphEnd) +
-    'return {' + properties.join(',') + '};')(moon, result => result.value);
+  const control = createContentInferenceControls(moon, {
+    serializationPlanTokens: new WeakMap(), serializationGenerationTokens: new WeakMap(),
+    compiledRunResult: result => result.value,
+    compiledContent() {assert.fail('unexpected compiled Content lookup');},
+    token() {assert.fail('unexpected definition lookup');},
+  });
   const selected = control.prepareCheckedClientRequestAcquiredSerializationGraph(parent, input,
     admission, prepared, {task: 0, step: 2, maxRows: 1, maxBytes: 128}, true);
   assert.notStrictEqual(selected, rawContent);
