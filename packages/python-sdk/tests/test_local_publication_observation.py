@@ -10,7 +10,8 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_storage import (
-    ByteFence, ByteWrite, CapacityReservation, LocalByteStore, LocalStorageError, StoredBytes,
+    ByteFence, ByteWrite, CapacityReservation, LocalByteStore, LocalStorageCommitUnknown,
+    LocalStorageError, StoredBytes,
 )
 import test_local_storage_publication_batch as batch
 
@@ -136,6 +137,8 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
                 self.assertIsNone(reader.read_exchange_many_attached(self.writes(), originals))
 
     def test_lost_commit_ack_requires_only_read_observation_without_a_second_batch(self):
+        lost_ack = OSError('Original batch ACK lost')
+
         class LostAck(sqlite3.Connection):
             armed = False
             writes = 0
@@ -145,7 +148,7 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
                 result = super().execute(sql, *args, **kwargs)
                 if sql == 'COMMIT' and self.armed:
                     self.armed = False
-                    raise OSError('Original batch ACK lost')
+                    raise lost_ack
                 return result
         physical = sqlite3.connect
         with TemporaryDirectory() as directory, patch('actql_sdk._local_storage.sqlite3.connect',
@@ -153,8 +156,10 @@ with LocalByteStore(Path(sys.argv[1]),max_records=8,max_record_bytes=256,max_pay
             with self.store(Path(directory) / 'core.sqlite') as store:
                 originals = self.originals(store)
                 store._connection.armed = True
-                with self.assertRaisesRegex(OSError, 'ACK lost'):
+                with self.assertRaises(LocalStorageCommitUnknown) as failed:
                     store.compare_exchange_many_attached(self.writes(), originals)
+                self.assertIs(failed.exception.__cause__, lost_ack)
+                self.assertIs(failed.exception.cleanup_store, store)
                 self.assertEqual(store.read_exchange_many_attached(self.writes(), originals), self.expected())
                 self.assertEqual(store.read_exchange_many_attached(self.writes(), originals), self.expected())
                 self.assertEqual(store._connection.writes, 3)

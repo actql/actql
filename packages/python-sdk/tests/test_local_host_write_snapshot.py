@@ -1,12 +1,13 @@
 """Actual fenced SQLite/current loans with scalar Core, not product acceptance."""
 import copy
+from contextlib import closing
 import sqlite3
 import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_storage import (
-    ByteWrite, LocalStorageCommitUnknown, LocalStorageError, StoredBytes,
+    ByteWrite, LocalStorageCommitUnknown, LocalStorageError, LocalStorageWriteCleanupPending, StoredBytes,
 )
 from test_local_host_binding import OriginalHostBindingTests
 
@@ -154,26 +155,32 @@ class OriginalHostWriteSnapshotTests(unittest.TestCase):
         self.assertIsNone(core._journal_callbacks(binding._current.ticket).reader)
 
     def test_rollback_failure_retains_same_connection_and_binding_for_explicit_cleanup(self):
+        rollback_failure = OSError('Original physical rollback failed')
+
         class PendingCleanup(sqlite3.Connection):
             refuse = False
             attempts = 0
             def execute(self, sql, *args, **kwargs):
                 if sql == 'ROLLBACK' and self.refuse:
                     self.attempts += 1
-                    raise OSError('Original physical rollback failed')
+                    raise rollback_failure
                 return super().execute(sql, *args, **kwargs)
         connect = sqlite3.connect
         with patch('actql_sdk._local_storage.sqlite3.connect',
                    side_effect=lambda *a, **k: connect(*a, **(k | {'factory': PendingCleanup}))):
-            _, store, core, _, _, _, _, _, _, _, binding = self.fixture()
+            path, store, core, _, _, _, _, _, _, _, binding = self.fixture()
         original_connection = store._connection
         original_connection.refuse = True
         failure = OSError('Original consumer failed')
         with binding.fenced() as fences:
-            with self.assertRaisesRegex(OSError, 'rollback failed'):
+            with self.assertRaises(LocalStorageWriteCleanupPending) as failed:
                 store.compare_exchange_many_inspected((ByteWrite('candidate', None, b'candidate'),),
                     fences, inspect=lambda reader: binding.inspect_reader(reader,
                         lambda _: (_ for _ in ()).throw(failure)), current=binding.current)
+        self.assertIs(failed.exception.__cause__, failure)
+        self.assertIs(failed.exception.cleanup_error, rollback_failure)
+        self.assertEqual(failed.exception._cleanup_phase, 'rollback')
+        self.assertIs(failed.exception.cleanup_store, store)
         self.assertTrue(original_connection.in_transaction)
         self.assertEqual(original_connection.attempts, 1)
         self.assertIs(store._connection, original_connection)
@@ -184,8 +191,13 @@ class OriginalHostWriteSnapshotTests(unittest.TestCase):
         self.assertEqual(original_connection.attempts, 1)
         original_connection.refuse = False
         original_connection.execute('ROLLBACK')  # Explicit same physical handle cleanup.
-        self.assertIsNone(store.read('candidate'))
+        with self.assertRaisesRegex(LocalStorageError, 'cleanup is pending'):
+            store.read('candidate')
         self.assertTrue(binding.close())
+        failed.exception.cleanup_store.close()
+        with closing(connect((path / 'state' / 'client.sqlite3').as_uri() + '?mode=ro', uri=True)) as reopened:
+            self.assertIsNone(reopened.execute('SELECT 1 FROM core_bytes WHERE key = ?',
+                                               ('candidate',)).fetchone())
 
 
 if __name__ == '__main__':
