@@ -2540,6 +2540,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/client-captured-context-original.test.d.mts
 /adapters/host-node/client-snapshot-output-envelope.test.mjs
 /adapters/host-node/client-snapshot-output-envelope.test.d.mts
+/adapters/host-node/request-model-recovery.test.mjs
+/adapters/host-node/request-model-recovery.test.d.mts
 /adapters/host-node/local-query-invocation.mjs
 /adapters/host-node/local-query-invocation.d.mts
 /adapters/host-node/query-evaluation-clock.mjs

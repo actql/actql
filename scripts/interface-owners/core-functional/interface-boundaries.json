@@ -100084,7 +100084,7 @@
                 "anchor": "test \"saved Model constructors share original restoration reservation"
               },
               {
-                "path": "adapters/host-node/request-model-recovery.test.mjs",
+                "path": "adapters/host-node/request-model-recovery.test.mts",
                 "anchor": "test('same recovery finish waits for its actual dispatch reclamation"
               },
               {
