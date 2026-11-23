@@ -12,8 +12,12 @@ type Payload = Parameters<typeof storeCompletedResultPublicationPayload>;
 type PayloadPublication = Payload[5];
 type CompletedExecution = Parameters<typeof publishCompletedEffectFreeRun>[0]['execution'];
 type StoredResult = Awaited<ReturnType<CompletedExecution['storePublicationResult']>>;
-// The installed publication owner issues the complete original contracts.
-type PublishedPayload = Awaited<ReturnType<typeof storeCompletedResultPublicationPayload>> & Omit<StoredResult, 'occurrence'>;
+// resultStart checks the same selected output limits for shape and finite quantities.
+type CheckedOutputLimits = Payload[4];
+// The installed owners issue artifact, derivation, ordering and durable binding.
+// exportCompletedRunResultSet checks all four contract shapes before publication.
+type PublishedPayload = Awaited<ReturnType<typeof storeCompletedResultPublicationPayload>> &
+  Readonly<{publication: StoredResult['publication']}>;
 type ContentControl = ReturnType<typeof contentGenerationControl>;
 type Publication = Pick<PayloadPublication, 'runDefinition' | 'invocation' | 'retention' | 'evidenceContext'> &
   Readonly<{outputLimits: unknown; contractLimits: Parameters<ContentControl['resultOccurrence']>[3]}>;
@@ -97,7 +101,7 @@ export function serializationPublicationExecution({moon, core, compiled,
           await yieldToHost();
         }
         const stored = await storeCompletedResultPublicationPayload(store,
-          core.outputExportControl, undefined, index, publication.outputLimits as Payload[4],
+          core.outputExportControl, undefined, index, publication.outputLimits as CheckedOutputLimits,
           {control: core.publicationControl, definition: occurrence.definitionContract,
             runDefinition: publication.runDefinition, invocation: publication.invocation,
             retention: publication.retention, evidenceContext: publication.evidenceContext,

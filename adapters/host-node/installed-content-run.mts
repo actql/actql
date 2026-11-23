@@ -157,8 +157,7 @@ type EffectSelection = Readonly<{
   plan: Family['plan'] & Readonly<{kind: 'effect'}>;
   preparation: ReturnType<typeof installEffectContentFamily>['preparation'];
 }>;
-type ContentRun = Readonly<{
-  (options: ExecuteOptions): Promise<Generated | undefined>;
+type ContentRun = ((options: ExecuteOptions) => Promise<Generated | undefined>) & Readonly<{
   prepareRun(options: PreparationInputs): void;
   prepareModelRun(options: PreparationInputs & Readonly<{model: ModelPreparation}>): void;
   generate(options: ExecuteOptions): Promise<Generated | undefined>;
