@@ -2612,6 +2612,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-common/runtime-run-state-control.d.mts
 /adapters/host-common/runtime-content-publication-control.mjs
 /adapters/host-common/runtime-content-publication-control.d.mts
+/adapters/host-common/runtime-query-time-control.mjs
+/adapters/host-common/runtime-query-time-control.d.mts
 /scripts/connector.mjs
 /scripts/connector.d.mts
 /scripts/connector-authoring.mjs

@@ -19,6 +19,7 @@ import {publicationProgressControl} from './publication-progress-control.mjs';
 import {createResultDeliveryControls} from './runtime-result-delivery-control.mjs';
 import {createRunStateControls} from './runtime-run-state-control.mjs';
 import {createPublicationContractControls} from './runtime-publication-contract-control.mjs';
+import {createQueryTimeControls} from './runtime-query-time-control.mjs';
 import {createContentPublicationControls} from './runtime-content-publication-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
@@ -565,6 +566,9 @@ function publicationControl(moon) {
   const contentPublicationControls = createContentPublicationControls(moon, {
     compiledRunTokens, serializationGenerationTokens, compiledContent, compiledRunResult, token,
     inspectEvidence, inspect, captureContractLimits,
+  });
+  const queryTimeControls = createQueryTimeControls(moon, {
+    compiledRunTokens, token, currentControl: () => control,
   });
   control = Object.freeze({
     executionFailureExplanation(cause) {
@@ -1641,57 +1645,7 @@ function publicationControl(moon) {
         moon.clientProgramCompiledRunResultTransformation(
           value, checkedProgram, result), 'RunHostResultSelectionRejected');
     },
-    clientRequiresQueryTime(prepared) {
-      if (typeof moon.clientProgramRequiresQueryTime !== 'function') return false;
-      const value = checked(moon.clientProgramRequiresQueryTime(prepared, 100000, 100000));
-      if (typeof value !== 'boolean') throw new TypeError('Invalid Client query-time requirement');
-      return value;
-    },
-    prepareClientQueryTime(prepared, request, createdAt) {
-      if (typeof moon.clientProgramPrepareQueryTime !== 'function') {
-        throw new TypeError('Client query-time preparation unavailable');
-      }
-      return checked(moon.clientProgramPrepareQueryTime(prepared, request, createdAt));
-    },
-    bindClientQueryTime(original, prepared, compiled, definition, request) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || typeof moon.clientProgramBindQueryTime !== 'function') {
-        throw new TypeError('Foreign Client query-time compilation');
-      }
-      return checked(moon.clientProgramBindQueryTime(original, prepared, value, token(definition), request));
-    },
-    clientQueryTimeInvocationOriginal(original, prepared) {
-      const project = moon.clientProgramQueryTimeInvocationOriginal;
-      if (typeof project !== 'function') throw new TypeError('Client query-time original unavailable');
-      // Opaque Option from the matching Core; never synthesize a JS tuple.
-      return Reflect.apply(project, moon, [original, prepared]);
-    },
-    checkedClientManagedQueryInvocationOriginal(run, prepared, original) {
-      const project = moon.clientProgramInstalledManagedRunInvocationOriginal;
-      if (typeof project !== 'function') throw new TypeError('Client query-time original unavailable');
-      const retained = Reflect.apply(project, moon, [run, prepared]);
-      const compiled = compiledRunTokens.get(original.compiled);
-      if (compiled === undefined || original.preparedProgram !== prepared ||
-          runtimeOptionalField(retained, 0) !== original.queryTimePreparation ||
-          runtimeOptionalField(retained, 1) !== original.requestIdentity ||
-          runtimeOptionalField(retained, 2) !== compiled ||
-          runtimeOptionalField(retained, 3) !== token(original.runDefinition) ||
-          moon.clientProgramQueryTimeContext(original.queryTimePreparation) !== original.queryTime) {
-        throw new TypeError('Foreign Client original query-time invocation');
-      }
-      control.checkClientCompiledRunOwner(original.compiled, prepared);
-      return original;
-    },
-    restoreClientQueryTime(prepared, compiled, definition, request) {
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined || typeof moon.clientProgramRestoreQueryTimePreparation !== 'function') {
-        throw new TypeError('Foreign Client query-time compilation');
-      }
-      const preparation = checked(moon.clientProgramRestoreQueryTimePreparation(prepared, value, token(definition), request));
-      const context = moon.clientProgramQueryTimeContext(preparation);
-      if (context === undefined) throw new TypeError('Client query-time context unavailable');
-      return Object.freeze({queryTimePreparation:preparation,queryTime:context});
-    },
+    ...queryTimeControls,
     defineCheckedClientCompiledRun(compiled, {namespaceId, runId,
       createdAt, validUntil, retainedDefinitionWire}) {
       const value = compiledRunTokens.get(compiled);

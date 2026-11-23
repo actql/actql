@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
+import {createQueryTimeControls} from '../host-common/runtime-query-time-control.mjs';
 import {acquiredTaskRunAdmission, sourceFreePlanOriginal} from './local-values-plan.mjs';
 
 function method(file, name, context) {
@@ -130,7 +131,10 @@ test('Request Serialization consumes its original TaskCompilation and rejects co
 test('timed original projection forwards the Core Option without a JavaScript tuple constructor',()=>{
  const q={},prepared={},opaque=new Proxy({}, {get(){assert.fail('opaque Option inspected');}});
  const moon={clientProgramQueryTimeInvocationOriginal:function(...args){assert.equal(this,moon);assert.deepEqual(args,[q,prepared]);return opaque;}};
- const project=method('../host-common/runtime-core.mjs','clientQueryTimeInvocationOriginal',{moon});
+ const {clientQueryTimeInvocationOriginal: project} = createQueryTimeControls(moon, {
+  compiledRunTokens: new WeakMap(), token() {assert.fail('unexpected token lookup');},
+  currentControl() {assert.fail('unexpected owner check');},
+ });
  assert.equal(project(q,prepared),opaque);moon.clientProgramQueryTimeInvocationOriginal=undefined;assert.throws(()=>project(q,prepared),/unavailable/);
 });
 
@@ -140,7 +144,10 @@ test('timed original adopted getter checks all first tokens and refuses retired 
  let output={_0:q,_1:request,_2:compiledToken,_3:definitionToken},checks=0;
  const moon={clientProgramInstalledManagedRunInvocationOriginal:function(r,p){assert.equal(this,moon);assert.equal(r,run);assert.equal(p,prepared);return output;},clientProgramQueryTimeContext:actual=>{assert.equal(actual,q);return context;}};
  const control={checkClientCompiledRunOwner(c,p){assert.equal(c,compiled);assert.equal(p,prepared);checks++;}};
- const get=method('../host-common/runtime-core.mjs','checkedClientManagedQueryInvocationOriginal',{moon,compiledRunTokens,token:d=>{assert.equal(d,definition);return definitionToken;},runtimeOptionalField:(v,i)=>v?.['_'+i],control});
+ const {checkedClientManagedQueryInvocationOriginal: get} = createQueryTimeControls(moon, {
+  compiledRunTokens, token(d) {assert.equal(d,definition);return definitionToken;},
+  currentControl: () => control,
+ });
  assert.equal(get(run,prepared,expected),expected);assert.equal(checks,1);
  const valid=output;
  for(let i=0;i<4;i++){output={...valid,['_'+i]:{}};assert.throws(()=>get(run,prepared,expected),/Foreign Client original/);}
