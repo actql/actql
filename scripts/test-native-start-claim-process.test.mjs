@@ -3,31 +3,34 @@ import {execFile} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {existsSync, readFileSync, realpathSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {isAbsolute, join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {test} from 'node:test';
 import {setTimeout as delay} from 'node:timers/promises';
-import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
 const execute = promisify(execFile);
-const repository = fileURLToPath(new URL('../', import.meta.url));
 const filename = 'journal_native_wbtest.mbt';
 const testName = 'native competing processes authorize one physical start for the same revision';
 
 test('separate Native processes contend for one durable start revision', async () => {
-  const root = await createOwnedScratch({parent: realpathSync(tmpdir()),
-    prefix: 'actql-native-start-claim-', label: testName});
-  const folder = join(repository, '_build/native/debug/test/platform_native/remote_journal');
-  const binary = join(folder, 'remote_journal.whitebox_test.exe');
-  const metadata = JSON.parse(readFileSync(join(folder, '__whitebox_test_info.json'), 'utf8'));
+  const binary = process.env.ACTQL_TEST_NATIVE_START_CLAIM_EXECUTABLE;
+  const metadataPath = process.env.ACTQL_TEST_NATIVE_START_CLAIM_METADATA;
+  assert.ok(binary && isAbsolute(binary) && metadataPath && isAbsolute(metadataPath),
+    'Use the executable and test metadata from the original Native Core build');
+  const metadata = JSON.parse(readFileSync(metadataPath, 'utf8'));
   const selected = metadata.tests[filename].filter(item => item.name === testName);
   assert.equal(selected.length, 1);
-  const {index} = selected[0];
+  const {attrs, index} = selected[0];
+  assert.deepEqual(attrs, []);
+  assert(Number.isSafeInteger(index) && index >= 0);
   const args = [`${filename}:${index}-${index + 1}`];
   const library = process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY;
   assert.ok(library, 'Use the original selected Native SQLite library');
+  const root = await createOwnedScratch({
+    parent: realpathSync(process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ?? tmpdir()),
+    prefix: 'actql-native-start-claim-', label: testName});
   const run = phase => execute(binary, args, {cwd: root.path, timeout: 15000,
     maxBuffer: 1024 * 1024, env: {...process.env,
       ACTQL_TEST_NATIVE_SQLITE_ROOT: root.path,
