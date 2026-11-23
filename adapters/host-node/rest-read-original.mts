@@ -120,7 +120,7 @@ export function captureRestReadOriginals(moon: unknown) {
 // Post-Core transport construction ONLY. Core already owns the page/tuple
 // vectors and page-size decimal; do not retain the replaced JS copies twice.
 // These remain the existing Host logical allowance units and query ceiling.
-export function restReadTransportConstructionUnits(original: Pick<RestReadOriginal, 'pairs' | 'headers' | 'path'>): RestConstructionUnits {
+export function restReadTransportConstructionUnits(original: Pick<RestReadOriginal, 'pairs' | 'headers' | 'path'>): [...RestConstructionUnits] {
   if (!original || types.isProxy(original) || !Object.isFrozen(original)) fail('InvalidRestReadOriginal');
   const pairs = BigInt(original.pairs), headers = BigInt(original.headers);
   const path = BigInt(original.path.length), query = BigInt(exchangeLimits.maxQueryBytes);

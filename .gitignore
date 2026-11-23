@@ -2788,3 +2788,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/calendar/test/installed-calendar-capture.test.d.mts
 /adapters/connectors/calendar/test/installed-calendar.fixture.mjs
 /adapters/connectors/calendar/test/installed-calendar.fixture.d.mts
+/adapters/connectors/notion/site/user-list-read.mjs
+/adapters/connectors/notion/site/user-list-read.d.mts
+/adapters/connectors/notion/host/installed-notion-source.mjs
+/adapters/connectors/notion/host/installed-notion-source.d.mts

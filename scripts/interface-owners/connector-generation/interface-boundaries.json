@@ -386,11 +386,11 @@
                 "anchor": "issueOriginalCollectionReference(pair, maxWork)"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
-                "anchor": "export function checkInstalledNotionSourceProfile(profile)"
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
+                "anchor": "export function checkInstalledNotionSourceProfile(profile: unknown)"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "export async function loadInstalledNotionSource("
               },
               {
@@ -444,15 +444,15 @@
                 "anchor": "actual_catalog != expected_catalog"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "originalStringsCid:sha(JSON.stringify("
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "const admitsApprovalTarget="
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "runtimeBundleCid,...binding,site:siteProfile"
               },
               {
@@ -606,7 +606,7 @@
                 "anchor": "the same credential Site invalidates reference currentness before failed close"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "fail('NotionSourceInitializationUnavailable')"
               },
               {
@@ -706,11 +706,11 @@
                 "anchor": "Additional declarations/trees/strings"
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "const limitKeys="
               },
               {
-                "path": "adapters/connectors/notion/host/installed-notion-source.mjs",
+                "path": "adapters/connectors/notion/host/installed-notion-source.mts",
                 "anchor": "const pem=await reads.readText"
               },
               {

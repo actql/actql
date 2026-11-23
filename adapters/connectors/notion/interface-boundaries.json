@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/notion/site/user-list-read.mjs",
-      "sha256": "83178dadc15b2c7ad40ffe2de5dd42e508a41b885e76f48435b5ba8d0e1d761d",
+      "sha256": "f333209b01861a7637363b49c68c4c24584e8a432e3739f331c6b73804d5d31d",
       "exports": [
         "NOTION_USER_LIST_API_VERSION",
         "NOTION_USER_LIST_OPERATION",
@@ -1448,7 +1448,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/installed-notion-source.mjs",
-      "sha256": "2a12b3e2fe0b0839345ba398cd27d58ee9e1abcc81613b2754d84475c8cd8fc1",
+      "sha256": "ed60e3051a68c6a557061b7967b0771376ce7bd9ba743514de826a115fc187cf",
       "exports": [
         "INSTALLED_NOTION_SITE_VERSION",
         "INSTALLED_NOTION_SOURCE_VERSION",
