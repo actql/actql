@@ -7174,6 +7174,7 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
             "publicationControl/modelPreparationControls/modelPreparationControls",
             "publicationControl/contentCaptures/contentCaptures",
             "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
@@ -7189,7 +7190,6 @@
             "publicationControl/effectSourceToken/effectSourceToken",
             "publicationControl/evidenceToken/evidenceToken",
             "publicationControl/init:admit/init:admit",
-            "publicationControl/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
             "publicationControl/init:admitCheckedClientRunPublication/init:admitCheckedClientRunPublication",
             "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
             "publicationControl/init:admitLocalEffectSourceEvidence/init:admitLocalEffectSourceEvidence",
@@ -7222,7 +7222,6 @@
             "publicationControl/init:checkClientCompiledEffectRunOwner/init:checkClientCompiledEffectRunOwner",
             "publicationControl/init:checkClientCompiledRunDefinition/init:checkClientCompiledRunDefinition",
             "publicationControl/init:checkClientCompiledRunOwner/init:checkClientCompiledRunOwner",
-            "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
             "publicationControl/init:checkRecoveredTableSchemaWire/init:checkRecoveredTableSchemaWire",
             "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities",
             "publicationControl/init:checkSourceFreeLocalEffectPreviewIdentities/init:checkSourceFreeLocalEffectPreviewIdentities/owned/owned",
@@ -7242,26 +7241,12 @@
             "publicationControl/init:inspectInferInvocationEvidence/init:inspectInferInvocationEvidence",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
-            "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence",
-            "publicationControl/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#2",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originalArguments/originalArguments#3",
             "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation/originals/originals",
-            "publicationControl/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
-            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation",
-            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued",
-            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#2",
-            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#3",
-            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#4",
-            "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#5",
             "publicationControl/init:issueCheckedClientInferRawCapturePolicy/init:issueCheckedClientInferRawCapturePolicy",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
-            "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
-            "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
             "publicationControl/init:issueDependentLocalEffectResultArtifact/init:issueDependentLocalEffectResultArtifact",
             "publicationControl/init:issueDependentLocalEffectTableArtifact/init:issueDependentLocalEffectTableArtifact",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
@@ -7310,16 +7295,6 @@
             "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
             "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
             "publicationControl/init:prepareCheckedClientCompiledRun/init:prepareCheckedClientCompiledRun",
-            "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
-            "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
-            "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
-            "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#3",
-            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
-            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
-            "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
-            "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
-            "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
-            "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2",
             "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput",
             "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput",
             "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput/originals/originals",
@@ -10305,28 +10280,8 @@
           "operations": [
             "publicationControl/init:adoptCheckedClientEffectKeyedRun/init:adoptCheckedClientEffectKeyedRun",
             "publicationControl/init:bindCheckedClientRequestEffectKeyedOriginal/init:bindCheckedClientRequestEffectKeyedOriginal",
-            "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
-            "publicationControl/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
             "publicationControl/init:finishGenericEffectKeyedLookupPublicationInput/init:finishGenericEffectKeyedLookupPublicationInput",
-            "publicationControl/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
-            "publicationControl/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
-            "publicationControl/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
-            "publicationControl/init:issueCheckedInstalledEffectKeyedInvocation/init:issueCheckedInstalledEffectKeyedInvocation",
-            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
-            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
-            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
-            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#3",
-            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#4",
-            "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#5",
-            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation",
-            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
-            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
-            "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
-            "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
             "publicationControl/init:prepareGenericEffectKeyedLookupSourceMetadata/init:prepareGenericEffectKeyedLookupSourceMetadata",
-            "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit",
-            "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/bodies/bodies",
-            "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/value/value",
             "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput",
             "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput",
             "publicationControl/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput/init:startInstalledEffectKeyedCaptureInput#2"
@@ -10335,16 +10290,16 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -10353,16 +10308,16 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -10375,16 +10330,16 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -10397,16 +10352,16 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -10415,16 +10370,16 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -10433,16 +10388,16 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -10455,16 +10410,16 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -10473,16 +10428,16 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -10491,16 +10446,16 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "originalCheckedClientEffectPublication(allowed, definition, limits)"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
               },
               {
                 "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
                 "anchor": "pub fn bind_installed_effect_source_free_invocation("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent, prepared, request, plan, host,"
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -12710,151 +12665,6 @@
         },
         {
           "operations": [
-            "publicationControl/init:rebindInstalledEffectResultRetention/init:rebindInstalledEffectResultRetention"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Source retention policy on the same publication owner"
-              },
-              {
-                "path": "src/client_local_host/installed_effect_retention_js_wbtest.mbt",
-                "anchor": "test \"original retention rebind preserves the full independent wire and equal-policy original\""
-              },
-              {
-                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
-                "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:issueInstalledEffectInitialRetention/init:issueInstalledEffectInitialRetention",
-            "publicationControl/init:issueProgramInitialRetention/init:issueProgramInitialRetention"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/local-input-preparation.md",
-                "anchor": "### Initial retention construction on existing Program and Effect owners"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "publicationControl/init:observeOriginalClientDispatchFailure/init:observeOriginalClientDispatchFailure"
           ],
           "exports": [],
@@ -13183,17 +12993,6 @@
             "name",
             "completeWire",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
-          "parameters": [
-            "checkedEffect",
-            "template",
-            "prepared",
-            "authorization",
-            "compiledPlan"
           ],
           "async": false
         },
@@ -13554,35 +13353,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
-          "parameters": [
-            "parent",
-            "prepared",
-            "request",
-            "plan",
-            "host",
-            "compilation",
-            "admission",
-            "definition",
-            "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
-          "parameters": [
-            "parent",
-            "prepared",
-            "request",
-            "plan",
-            "host",
-            "admission",
-            "definition",
-            "original"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:bindInferOriginalResultArtifact/init:bindInferOriginalResultArtifact",
           "parameters": [
             "active",
@@ -13787,15 +13557,6 @@
           "parameters": [
             "compiled",
             "checkedProgram"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
-          "parameters": [
-            "checkedProgram",
-            "admission",
-            "definition"
           ],
           "async": false
         },
@@ -14075,40 +13836,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence",
-          "parameters": [
-            "checkedEffect",
-            "capturedSource",
-            "identity",
-            "requirement",
-            "input",
-            "observation",
-            "authorityScopeCid",
-            "dataPolicyCid",
-            "retention",
-            "limits",
-            "unit",
-            "publicationRetention",
-            "deferCatalogs"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
-          "parameters": [
-            "checkedEffect",
-            "capturedSource",
-            "identity",
-            "requirement",
-            "input",
-            "observation",
-            "authorityScopeCid",
-            "dataPolicyCid",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueCheckedClientCompiledInvocation/init:issueCheckedClientCompiledInvocation",
           "parameters": [
             "compiled",
@@ -14199,76 +13926,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
-          "parameters": [
-            "checkedEffect",
-            "compilation",
-            "admission",
-            "definition",
-            "capturedSource",
-            "source",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation",
-          "parameters": [
-            "checkedEffect",
-            "compilation",
-            "admission",
-            "definition",
-            "sources",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
-          "parameters": [
-            "compilation",
-            "policy",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueCheckedClientInferRawCapturePolicy/init:issueCheckedClientInferRawCapturePolicy",
           "parameters": [
             "compiled",
@@ -14288,205 +13945,6 @@
             "deleteBy",
             "extensionCeilingAt",
             "metadataDeleteBy"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
-          "parameters": [
-            "parent",
-            "prepared",
-            "request",
-            "plan",
-            "host",
-            "compilation",
-            "admission",
-            "definition",
-            "capturedSource",
-            "source",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
-          "parameters": [
-            "parent",
-            "prepared",
-            "request",
-            "plan",
-            "host",
-            "compilation",
-            "admission",
-            "definition",
-            "compiled",
-            "generation",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
-          "parameters": [
-            "plan",
-            "checkedEffect",
-            "request",
-            "compilation",
-            "admission",
-            "definition",
-            "sources",
-            "sourceEvidence",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectKeyedInvocation/init:issueCheckedInstalledEffectKeyedInvocation",
-          "parameters": [
-            "parent",
-            "prepared",
-            "request",
-            "plan",
-            "host",
-            "compilation",
-            "admission",
-            "definition",
-            "lookup",
-            "started",
-            "completed",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
-          "parameters": [
-            "parent",
-            "prepared",
-            "request",
-            "plan",
-            "host",
-            "compilation",
-            "admission",
-            "definition",
-            "sources",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#5",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation",
-          "parameters": [
-            "parent",
-            "prepared",
-            "request",
-            "plan",
-            "host",
-            "compilation",
-            "admission",
-            "definition",
-            "sources",
-            "sourceEvidence",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
-          "parameters": [
-            "plan",
-            "prepared",
-            "request",
-            "slot",
-            "captured",
-            "identity",
-            "capacity",
-            "input",
-            "observation",
-            "authorityScopeCid",
-            "retention",
-            "limits",
-            "deferCatalogs"
           ],
           "async": false
         },
@@ -14651,19 +14109,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueInstalledEffectInitialRetention/init:issueInstalledEffectInitialRetention",
-          "parameters": [
-            "owner",
-            "prepared",
-            "request",
-            "plan",
-            "policy",
-            "selection",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueLocalEffectResultManifest/init:issueLocalEffectResultManifest",
           "parameters": [
             "owner",
@@ -14730,19 +14175,6 @@
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/value/value#4",
           "parameters": [
             "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueProgramInitialRetention/init:issueProgramInitialRetention",
-          "parameters": [
-            "owner",
-            "prepared",
-            "request",
-            "policy",
-            "selection",
-            "contracts",
-            "limits"
           ],
           "async": false
         },
@@ -14967,15 +14399,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
-          "parameters": [
-            "allowed",
-            "definition",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:originalClientDispatchFailureAvailable/init:originalClientDispatchFailureAvailable",
           "parameters": [
             "selected"
@@ -15041,74 +14464,12 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
-          "parameters": [
-            "plan",
-            "checkedEffect",
-            "request",
-            "compilation",
-            "admission",
-            "definition",
-            "sources",
-            "sourceEvidence",
-            "context",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#3",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:prepareClientLogicalObservation/init:prepareClientLogicalObservation",
           "parameters": [
             "run",
             "executionOwner",
             "definition",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
-          "parameters": [
-            "publication",
-            "unit",
-            "retention",
-            "limits",
-            "deferCatalogs"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
-          "parameters": [
-            "body"
           ],
           "async": false
         },
@@ -15156,64 +14517,6 @@
             "sources",
             "selection",
             "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit",
-          "parameters": [
-            "parent",
-            "prepared",
-            "request",
-            "plan",
-            "host",
-            "original",
-            "lookup",
-            "retention",
-            "limits",
-            "deferCatalogs"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/bodies/bodies",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/value/value",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
-          "parameters": [
-            "managedRun",
-            "plan",
-            "request",
-            "inputs",
-            "unit",
-            "retention",
-            "limits",
-            "deferCatalogs"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2",
-          "parameters": [
-            "body"
           ],
           "async": false
         },
@@ -15551,19 +14854,6 @@
           "name": "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
           "parameters": [
             "field"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:rebindInstalledEffectResultRetention/init:rebindInstalledEffectResultRetention",
-          "parameters": [
-            "managedRun",
-            "prepared",
-            "request",
-            "plan",
-            "retention",
-            "policy",
-            "limits"
           ],
           "async": false
         },
@@ -16030,6 +15320,16 @@
           "async": false
         },
         {
+          "name": "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
+          "parameters": [
+            "issued",
+            "publicationRetention",
+            "limits",
+            "deferCatalogs"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
           "parameters": [
             "pair"
@@ -16171,6 +15471,7 @@
         "./runtime-content-inference-control.mjs",
         "./runtime-content-publication-control.mjs",
         "./runtime-effect-capture-control.mjs",
+        "./runtime-effect-preparation-control.mjs",
         "./runtime-execution-control.mjs",
         "./runtime-infer-original-read-control.mjs",
         "./runtime-model-preparation-control.mjs",
@@ -16184,7 +15485,1036 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "e3f2fa4db5a19690eac60f3dede8e045c361558321279b7675569277a9dae1b6"
+      "sha256": "6cfb378a7b14e216c25f50c1e861958e5504c4f35b90429cb16638bfa36296ed"
+    },
+    {
+      "module": "adapters/host-common/runtime-effect-preparation-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Effect invocation, retention and Source preparation",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createEffectPreparationControls",
+            "createEffectPreparationControls/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
+            "createEffectPreparationControls/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
+            "createEffectPreparationControls/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence",
+            "createEffectPreparationControls/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
+            "createEffectPreparationControls/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
+            "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation",
+            "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued",
+            "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#2",
+            "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#3",
+            "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#4",
+            "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#5",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
+            "createEffectPreparationControls/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
+            "createEffectPreparationControls/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
+            "createEffectPreparationControls/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
+            "createEffectPreparationControls/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
+            "createEffectPreparationControls/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#3",
+            "createEffectPreparationControls/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
+            "createEffectPreparationControls/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
+            "createEffectPreparationControls/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
+            "createEffectPreparationControls/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
+            "createEffectPreparationControls/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
+            "createEffectPreparationControls/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2"
+          ],
+          "exports": [
+            "createEffectPreparationControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "export function createEffectPreparationControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "moon.clientProgramIssueInstalledEffectCapturedInvocation("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "const retained = inferInvocationTokens.get(issued as object);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const localEffectDependencyTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const compiledRunTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "moon.clientProgramEffectKeyedCachedDependencyBodies(original, lookup, token(retention))"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "throw new TypeError('Foreign Effect Infer Invocation');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-run-state-control.mts",
+                "anchor": "runCancellationConfirmed(facts: RunCancellationFacts)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "moon.clientProgramIssueProgramInitialRetention(owner, prepared, request,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...effectPreparationControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-model-publication.test.mjs",
+                "anchor": "Whole Source Unit runtime facade forwards the original typed tuple and registers only the issued dependency"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectPreparationControls/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
+            "createEffectPreparationControls/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
+            "createEffectPreparationControls/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectKeyedInvocation/init:issueCheckedInstalledEffectKeyedInvocation",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#3",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#4",
+            "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#5",
+            "createEffectPreparationControls/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation",
+            "createEffectPreparationControls/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
+            "createEffectPreparationControls/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
+            "createEffectPreparationControls/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
+            "createEffectPreparationControls/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
+            "createEffectPreparationControls/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit",
+            "createEffectPreparationControls/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/bodies/bodies",
+            "createEffectPreparationControls/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/value/value"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              },
+              {
+                "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
+                "anchor": "test('keyed Source borrows the actual boxed Some inventory"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              },
+              {
+                "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
+                "anchor": "test('keyed Source preserves original Core refusal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              },
+              {
+                "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
+                "anchor": "test('keyed Source rejects None malformed Some"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "originalCheckedClientEffectPublication(allowed: unknown, definition: unknown, limits: Limits)"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_publication_invocation.mbt",
+                "anchor": "pub fn bind_installed_effect_source_free_invocation("
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preparation-control.mts",
+                "anchor": "prepareInstalledEffectKeyedSourceUnit(parent: unknown, prepared: unknown, request: unknown,"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "prepareGenericEffectKeyedLookupSourceMetadata(parent, lookup, captures, sources, selection, limits) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/effect-publication-binding.test.mjs",
+                "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only keyed publication retains both original Sources and one combined Unit'"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-prefix.test.mjs",
+                "anchor": "test('generic Source-only keyed publication uses original metadata and completion without Native history'"
+              },
+              {
+                "path": "adapters/host-common/keyed-effect-definition-original.test.mjs",
+                "anchor": "test('keyed invocation unwraps the same original checked Definition view and preserves the Core refusal'"
+              },
+              {
+                "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
+                "anchor": "test('keyed Source borrows the actual boxed Some inventory"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectPreparationControls/init:rebindInstalledEffectResultRetention/init:rebindInstalledEffectResultRetention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Source retention policy on the same publication owner"
+              },
+              {
+                "path": "src/client_local_host/installed_effect_retention_js_wbtest.mbt",
+                "anchor": "test \"original retention rebind preserves the full independent wire and equal-policy original\""
+              },
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual runtime retention projection preserves the original token and rejects a foreign control"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectPreparationControls/init:issueInstalledEffectInitialRetention/init:issueInstalledEffectInitialRetention",
+            "createEffectPreparationControls/init:issueProgramInitialRetention/init:issueProgramInitialRetention"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Initial retention construction on existing Program and Effect owners"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createEffectPreparationControls"
+      ],
+      "operations": [
+        {
+          "name": "createEffectPreparationControls",
+          "parameters": [
+            "moon",
+            "admissionToken",
+            "token",
+            "evidenceToken",
+            "inspectAdmission",
+            "inspect",
+            "inspectEvidence",
+            "issuanceLimits",
+            "captureContractLimits",
+            "localEffectDependencyTokens",
+            "inferInvocationTokens",
+            "compiledRunTokens",
+            "serializationGenerationTokens",
+            "inspectAcquiredEffectEvidence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
+          "parameters": [
+            "checkedEffect",
+            "template",
+            "prepared",
+            "authorization",
+            "compiledPlan"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:bindCheckedInstalledEffectModelInvocation/init:bindCheckedInstalledEffectModelInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "issued"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:bindCheckedInstalledEffectSourceFreeInvocation/init:bindCheckedInstalledEffectSourceFreeInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "admission",
+            "definition",
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:checkClientRunDefinitionBinding/init:checkClientRunDefinitionBinding",
+          "parameters": [
+            "checkedProgram",
+            "admission",
+            "definition"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedAcquiredEffectEvidence/init:issueCheckedAcquiredEffectEvidence",
+          "parameters": [
+            "checkedEffect",
+            "capturedSource",
+            "identity",
+            "requirement",
+            "input",
+            "observation",
+            "authorityScopeCid",
+            "dataPolicyCid",
+            "retention",
+            "limits",
+            "unit",
+            "publicationRetention",
+            "deferCatalogs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedAcquiredLocalEffectInvocation/init:issueCheckedAcquiredLocalEffectInvocation",
+          "parameters": [
+            "checkedEffect",
+            "capturedSource",
+            "identity",
+            "requirement",
+            "input",
+            "observation",
+            "authorityScopeCid",
+            "dataPolicyCid",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedClientEffectCapturedInvocation/init:issueCheckedClientEffectCapturedInvocation",
+          "parameters": [
+            "checkedEffect",
+            "compilation",
+            "admission",
+            "definition",
+            "capturedSource",
+            "source",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation",
+          "parameters": [
+            "checkedEffect",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedClientEffectMultiCapturedInvocation/init:issueCheckedClientEffectMultiCapturedInvocation/issued/issued#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedClientEffectSourceFreeInvocationOriginal/init:issueCheckedClientEffectSourceFreeInvocationOriginal",
+          "parameters": [
+            "compilation",
+            "policy",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectCapturedInvocation/init:issueCheckedInstalledEffectCapturedInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "capturedSource",
+            "source",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectContentInvocation/init:issueCheckedInstalledEffectContentInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "compiled",
+            "generation",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation",
+          "parameters": [
+            "plan",
+            "checkedEffect",
+            "request",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "sourceEvidence",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectDirectSourcesInvocation/init:issueCheckedInstalledEffectDirectSourcesInvocation/issued/issued#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectKeyedInvocation/init:issueCheckedInstalledEffectKeyedInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "lookup",
+            "started",
+            "completed",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedInstalledEffectMultiCapturedInvocation/init:issueCheckedInstalledEffectMultiCapturedInvocation/issued/issued#5",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "sourceEvidence",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedOriginalEffectDirectSourcesInvocation/init:issueCheckedOriginalEffectDirectSourcesInvocation/issued/issued#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueCheckedWholeEffectSourceUnit/init:issueCheckedWholeEffectSourceUnit",
+          "parameters": [
+            "plan",
+            "prepared",
+            "request",
+            "slot",
+            "captured",
+            "identity",
+            "capacity",
+            "input",
+            "observation",
+            "authorityScopeCid",
+            "retention",
+            "limits",
+            "deferCatalogs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueInstalledEffectInitialRetention/init:issueInstalledEffectInitialRetention",
+          "parameters": [
+            "owner",
+            "prepared",
+            "request",
+            "plan",
+            "policy",
+            "selection",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:issueProgramInitialRetention/init:issueProgramInitialRetention",
+          "parameters": [
+            "owner",
+            "prepared",
+            "request",
+            "policy",
+            "selection",
+            "contracts",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:originalCheckedClientEffectPublication/init:originalCheckedClientEffectPublication",
+          "parameters": [
+            "allowed",
+            "definition",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
+          "parameters": [
+            "plan",
+            "checkedEffect",
+            "request",
+            "compilation",
+            "admission",
+            "definition",
+            "sources",
+            "sourceEvidence",
+            "context",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#2",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits/init:prepareCheckedInstalledEffectSourceUnits#3",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit",
+          "parameters": [
+            "publication",
+            "unit",
+            "retention",
+            "limits",
+            "deferCatalogs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareCombinedEffectSourceUnit/init:prepareCombinedEffectSourceUnit/value/value#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit",
+          "parameters": [
+            "parent",
+            "prepared",
+            "request",
+            "plan",
+            "host",
+            "original",
+            "lookup",
+            "retention",
+            "limits",
+            "deferCatalogs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/bodies/bodies",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareInstalledEffectKeyedSourceUnit/init:prepareInstalledEffectKeyedSourceUnit/value/value",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit",
+          "parameters": [
+            "managedRun",
+            "plan",
+            "request",
+            "inputs",
+            "unit",
+            "retention",
+            "limits",
+            "deferCatalogs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:prepareInstalledEffectModelSourceUnit/init:prepareInstalledEffectModelSourceUnit/value/value#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreparationControls/init:rebindInstalledEffectResultRetention/init:rebindInstalledEffectResultRetention",
+          "parameters": [
+            "managedRun",
+            "prepared",
+            "request",
+            "plan",
+            "retention",
+            "policy",
+            "limits"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "428d484e7d0fe4fa0fabb0d1283531bbbc557fe6a95f35fba5ea05328478b0a8"
     },
     {
       "module": "adapters/host-common/runtime-model-preparation-control.mjs",

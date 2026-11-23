@@ -7,7 +7,7 @@ import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 
 // Execute the actual private Runtime forwarding methods with explicit ports.
 // Core original authority and cleanup are exercised by the genuine Core tests.
-const source = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+const source = readFileSync(new URL('../host-common/runtime-effect-preparation-control.mjs', import.meta.url), 'utf8');
 const properties = new Map();
 (function visit(node) {
   if (!node || typeof node !== 'object') return;

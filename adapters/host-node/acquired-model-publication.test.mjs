@@ -571,7 +571,7 @@ test('Model projection refusal keeps original cause and releases same binding af
 });
 
 test('Whole Source Unit runtime facade forwards the original typed tuple and registers only the issued dependency',()=>{
-  const text=readFileSync(new URL('../host-common/runtime-core.mjs',import.meta.url),'utf8');
+  const text=readFileSync(new URL('../host-common/runtime-effect-preparation-control.mjs',import.meta.url),'utf8');
   let method;
   (function walk(node){
     if(!node||typeof node!=='object')return;
