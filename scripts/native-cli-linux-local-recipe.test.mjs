@@ -274,3 +274,12 @@ test('Darwin recipe refuses foreign source/profile, changed license, wrong image
     tool === 'otool' && args[0] === '-l' ? f.execute(tool, args) + 'cmd LC_RPATH\n' : f.execute(tool, args)));
   assert(!existsSync(f.options.outputDirectory));
 });
+
+test('the optional Model HTTP preparation must match the recipe platform before output is created', t => {
+  const f = fixture(t);
+  const modelHttpPreparation = join(f.root, 'model-http/preparation.json');
+  f.put(modelHttpPreparation, wire({source: sourceSha, target: 'darwin-arm64'}));
+  assert.throws(() => assembleNativeLinuxLocalRecipe({...f.options, modelHttpPreparation}, f.execute),
+    /HTTP preparation target differs from the selected original/u);
+  assert(!existsSync(f.options.outputDirectory));
+});

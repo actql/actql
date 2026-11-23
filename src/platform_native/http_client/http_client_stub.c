@@ -4,6 +4,7 @@
 
 #include "moonbit.h"
 #include "../filesystem/private_file_projection.h"
+#include "../filesystem/observed_component_member.h"
 #include "component_tls_lifetime.h"
 
 #include <dlfcn.h>
@@ -12,6 +13,7 @@
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,11 +26,13 @@
 #endif
 
 typedef void CURL;
+typedef void CURLM;
 typedef int CURLcode;
 typedef int CURLoption;
 typedef int CURLINFO;
 typedef int64_t curl_off_t;
 typedef struct curl_slist curl_slist;
+typedef struct curl_waitfd curl_waitfd;
 typedef struct actql_read_context actql_read_context;
 typedef struct actql_owned_capacity actql_owned_capacity;
 #if defined(ACTQL_SCOPED_READ_ALLOCATOR)
@@ -50,7 +54,35 @@ typedef CURLcode (*actql_curl_global_init_fn)(long);
 typedef CURLcode (*actql_curl_global_init_mem_fn)(long, void *(*)(size_t),
   void (*)(void *), void *(*)(void *, size_t), char *(*)(const char *), void *(*)(size_t, size_t));
 typedef void (*actql_curl_global_cleanup_fn)(void);
-typedef struct { int age; const char *version; unsigned int version_num; const char *host; int features; } actql_curl_version_info;
+// Public curl_version_info_data prefix through CURLVERSION_ELEVENTH.
+typedef struct {
+  int age;
+  const char *version;
+  unsigned int version_num;
+  const char *host;
+  int features;
+  const char *ssl_version;
+  long ssl_version_num;
+  const char *libz_version;
+  const char *const *protocols;
+  const char *ares;
+  int ares_num;
+  const char *libidn;
+  int iconv_ver_num;
+  const char *libssh_version;
+  unsigned int brotli_ver_num;
+  const char *brotli_version;
+  unsigned int nghttp2_ver_num;
+  const char *nghttp2_version;
+  const char *quic_version;
+  const char *cainfo;
+  const char *capath;
+  unsigned int zstd_ver_num;
+  const char *zstd_version;
+  const char *hyper_version;
+  const char *gsasl_version;
+  const char *const *feature_names;
+} actql_curl_version_info;
 typedef const actql_curl_version_info *(*actql_curl_version_info_fn)(int);
 typedef const char *(*actql_curl_version_fn)(void);
 typedef CURL *(*actql_curl_easy_init_fn)(void);
@@ -61,13 +93,33 @@ typedef void (*actql_curl_easy_cleanup_fn)(CURL *);
 typedef const char *(*actql_curl_easy_strerror_fn)(CURLcode);
 typedef curl_slist *(*actql_curl_slist_append_fn)(curl_slist *, const char *);
 typedef void (*actql_curl_slist_free_all_fn)(curl_slist *);
+typedef struct {
+  int kind;
+  CURL *easy;
+  union {
+    void *pointer;
+    CURLcode result;
+  } data;
+} actql_curl_multi_message;
+
+typedef struct {
+  CURLM *(*init)(void);
+  int (*add)(CURLM *, CURL *);
+  int (*perform)(CURLM *, int *);
+  int (*poll)(CURLM *, curl_waitfd *, unsigned int, int, int *);
+  actql_curl_multi_message *(*info_read)(CURLM *, int *);
+  int (*remove)(CURLM *, CURL *);
+  int (*cleanup)(CURLM *);
+} actql_curl_multi_api;
 
 enum {
   ACTQL_CURLE_OK = 0,
   ACTQL_CURLE_WRITE_ERROR = 23,
+  ACTQL_CURLE_OPERATION_TIMEDOUT = 28,
   ACTQL_CURLE_ABORTED_BY_CALLBACK = 42,
   ACTQL_CURLOPT_WRITEDATA = 10001,
   ACTQL_CURLOPT_URL = 10002,
+  ACTQL_CURLOPT_PROXY = 10004,
   ACTQL_CURLOPT_ERRORBUFFER = 10010,
   ACTQL_CURLOPT_WRITEFUNCTION = 20011,
   ACTQL_CURLOPT_POSTFIELDS = 10015,
@@ -80,6 +132,7 @@ enum {
   ACTQL_CURLOPT_SSL_VERIFYPEER = 64,
   ACTQL_CURLOPT_CAINFO = 10065,
   ACTQL_CURLOPT_SSL_VERIFYHOST = 81,
+  ACTQL_CURLOPT_HTTP_VERSION = 84,
   ACTQL_CURLOPT_SSLKEY = 10087,
   ACTQL_CURLOPT_NOSIGNAL = 99,
   ACTQL_CURLOPT_POSTFIELDSIZE_LARGE = 30120,
@@ -87,15 +140,44 @@ enum {
   ACTQL_CURLOPT_HTTPGET = 80,
   ACTQL_CURLOPT_TIMEOUT_MS = 155,
   ACTQL_CURLOPT_CONNECTTIMEOUT_MS = 156,
+  ACTQL_CURLOPT_HTTP_CONTENT_DECODING = 158,
+  ACTQL_CURLOPT_TRANSFER_ENCODING = 207,
   ACTQL_CURLOPT_XFERINFOFUNCTION = 20219,
+  ACTQL_CURLOPT_DNS_SERVERS = 10211,
   ACTQL_CURLOPT_PROTOCOLS = 181,
   ACTQL_CURLOPT_QUICK_EXIT = 322,
   ACTQL_CURLINFO_RESPONSE_CODE = 0x200002,
+  ACTQL_CURLINFO_SIZE_UPLOAD_T = 0x600007,
+  ACTQL_CURLINFO_SIZE_DOWNLOAD_T = 0x600008,
   ACTQL_CURL_ERROR_SIZE = 256,
+  ACTQL_CURL_HTTP_VERSION_1_1 = 2,
   ACTQL_CURL_GLOBAL_ALL = 3,
   ACTQL_CURL_VERSION_SSL = 1U << 2,
+  ACTQL_CURL_VERSION_ASYNCHDNS = 1U << 7,
   ACTQL_CURL_VERSION_THREADSAFE = 1U << 30
 };
+
+enum {
+  ACTQL_HTTP_INCREMENTAL_UNAVAILABLE = 7,
+  ACTQL_HTTP_INCREMENTAL_PENDING = 8,
+  ACTQL_CURLMSG_DONE = 1,
+};
+
+typedef struct {
+  CURLM *multi;
+  CURL *easy;
+  curl_slist *headers;
+  char *method;
+  char *url;
+  moonbit_bytes_t body;
+  int64_t expires_at;
+  pthread_t thread;
+  char error_buffer[ACTQL_CURL_ERROR_SIZE];
+  bool attached;
+  bool done;
+  bool retirement_unknown;
+  int32_t result;
+} actql_native_http_transfer;
 
 typedef struct {
   void *dynamic_library;
@@ -131,6 +213,11 @@ typedef struct {
   actql_curl_easy_strerror_fn easy_strerror;
   actql_curl_slist_append_fn slist_append;
   actql_curl_slist_free_all_fn slist_free_all;
+  actql_curl_multi_api multi;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  actql_native_command_platform_load *command_load;
+  pthread_t command_thread;
+#endif
 } actql_native_http_library;
 
 typedef struct {
@@ -155,10 +242,14 @@ typedef struct {
   atomic_flag lifecycle;
   bool holder_counted;
   bool capacity_exceeded;
+  actql_native_http_transfer *transfer;
+  bool incremental_started;
+  bool projected_bearer_only;
   bool constructor_failed;
   bool constructor_metadata_retired;
   int32_t test_retire_failures;
   int32_t test_retire_reply_losses;
+  uint16_t test_dns_port;
 } actql_native_http_client;
 
 // Only realloc's original length is stored here. The existing Read/provider
@@ -311,9 +402,25 @@ static void actql_http_library_lock(actql_native_http_library *library) {
 static void actql_http_library_unlock(actql_native_http_library *library) {
   atomic_flag_clear_explicit(&library->lifecycle, memory_order_release);
 }
+static bool actql_http_command_thread(actql_native_http_library *library) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  return !library->command_load || pthread_equal(library->command_thread, pthread_self());
+#else
+  (void)library;
+  return true;
+#endif
+}
+
 static bool actql_http_library_current(actql_native_http_library *library) {
-  return library && library->original_process == getpid() && library->dynamic_library && !library->load_failed &&
-    !library->closing && !library->released && !library->load_close_unknown && actql_http_read_current(library);
+  if (!library || library->original_process != getpid() || !library->dynamic_library ||
+      library->load_failed || library->closing || library->released ||
+      library->load_close_unknown || !actql_http_read_current(library))
+    return false;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  if (library->command_load)
+    return actql_native_command_platform_load_current(library->command_load);
+#endif
+  return true;
 }
 static bool actql_http_retain_child(actql_native_http_library *library) {
   if (!library) return false;
@@ -338,6 +445,7 @@ static bool actql_http_begin_request(actql_native_http_client *client) {
   if (!library) { atomic_flag_clear_explicit(&client->lifecycle, memory_order_release); return false; }
   actql_http_library_lock(library);
   bool current = !client->closed && !client->constructor_failed &&
+    !client->incremental_started &&
     !atomic_load_explicit(&client->credential_close_unknown, memory_order_relaxed) &&
     client->holder_counted && actql_http_library_current(library);
   actql_http_library_unlock(library);
@@ -384,11 +492,32 @@ static void actql_http_cleanup_easy(actql_native_http_client *client, CURL *easy
   library->live_easy_handles--;
   actql_http_library_unlock(library);
 }
+// Called only after the module's own component cleanup permits unloading.
+static bool actql_http_release_module(actql_native_http_library *library) {
+  void *module = library->dynamic_library;
+  if (module && dlclose(module) != 0) {
+    library->load_close_unknown = true;
+    return false;
+  }
+  library->dynamic_library = NULL;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  if (library->command_load) {
+    if (!actql_native_command_platform_module_released(library->command_load, module)) {
+      library->load_close_unknown = true;
+      return false;
+    }
+    library->command_load = NULL;
+  }
+#endif
+  return true;
+}
+
 static int32_t actql_http_close_library(actql_native_http_library *library) {
   if (!library || library->original_process != getpid()) return -1;
   actql_http_library_lock(library);
   int32_t status = 0;
-  if (library->load_close_unknown) status = -3;
+  if (!actql_http_command_thread(library)) status = -1;
+  else if (library->load_close_unknown) status = -3;
   else if (library->released) status = 0;
   else if (library->load_failed || !library->dynamic_library) status = -1;
   else {
@@ -415,13 +544,8 @@ static int32_t actql_http_close_library(actql_native_http_library *library) {
         }
       }
       if (status != 0) { /* Keep the same init/module custody on uncertainty. */ }
-      else if (dlclose(library->dynamic_library) != 0) {
-        library->load_close_unknown = true;
-        status = -3;
-      } else {
-        library->dynamic_library = NULL;
-        library->released = true;
-      }
+      else if (!actql_http_release_module(library)) status = -3;
+      else library->released = true;
     }
   }
   if (status == 0 && library->released) {
@@ -511,6 +635,8 @@ static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) 
   return actql_copy_bytes(text, length);
 }
 
+static bool actql_http_same_image(void *left, void *right);
+
 static bool actql_load_symbol(
   actql_native_http_library *library,
   void **target,
@@ -519,7 +645,17 @@ static bool actql_load_symbol(
   dlerror();
   *target = dlsym(library->dynamic_library, name);
   const char *error = dlerror();
-  if (error == NULL && *target != NULL) return true;
+  if (error == NULL && *target != NULL) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (library->command_load &&
+        !actql_http_same_image(*target, (void *)library->global_init)) {
+      actql_replace_error(library, &library->error, library->diagnostic_ceiling,
+        "HTTP symbol differs from the selected image");
+      return false;
+    }
+#endif
+    return true;
+  }
   actql_replace_error(library, &library->error, library->diagnostic_ceiling, error == NULL ? name : error);
   return false;
 }
@@ -661,23 +797,61 @@ static bool actql_http_same_image(void *left, void *right) {
   return dladdr(left, &a) != 0 && dladdr(right, &b) != 0 && a.dli_fbase == b.dli_fbase;
 }
 
+// Both ordinary resolver threads and c-ares advertise AsynchDNS. Hybrid
+// builds also report a c-ares version, but use a worker for A/AAAA lookups.
+static bool actql_http_uses_cares_for_addresses(const actql_curl_version_info *info) {
+  if (!info || (info->features & ACTQL_CURL_VERSION_ASYNCHDNS) == 0 ||
+      info->age < 1 || !info->ares || !info->ares[0] || info->ares_num <= 0)
+    return false;
+  if (info->version_num < 0x080c00) return true; // Before the hybrid resolver.
+  if (info->age < 10 || !info->feature_names) return false;
+  for (size_t i = 0; i < 128; ++i) {
+    const char *feature = info->feature_names[i];
+    if (!feature) return true;
+    if (strcmp(feature, "asyn-rr") == 0) return false;
+  }
+  return false;
+}
+
+static void actql_http_load_incremental_port(actql_native_http_library *library) {
+  actql_curl_multi_api port = {0};
+#define ACTQL_MULTI(field) \
+  do { \
+    void *symbol = dlsym(library->dynamic_library, "curl_multi_" #field); \
+    if (!symbol || !actql_http_same_image(symbol, (void *)library->global_init)) return; \
+    *(void **)&port.field = symbol; \
+  } while (0)
+  ACTQL_MULTI(init);
+  ACTQL_MULTI(perform);
+  ACTQL_MULTI(poll);
+  ACTQL_MULTI(info_read);
+  ACTQL_MULTI(cleanup);
+#undef ACTQL_MULTI
+  void *add = dlsym(library->dynamic_library, "curl_multi_add_handle");
+  void *remove = dlsym(library->dynamic_library, "curl_multi_remove_handle");
+  if (!add || !remove || !actql_http_same_image(add, (void *)library->global_init) ||
+      !actql_http_same_image(remove, (void *)library->global_init)) return;
+  *(void **)&port.add = add;
+  *(void **)&port.remove = remove;
+  library->multi = port;
+}
+
 // The issue-only loader still owns its exact module reference on rejection.
 // Losing that close observation must not let later failed cleanup return the
 // parent Read. The consumed handle is never retried on uncertainty.
 static void actql_http_close_rejected_loader_reference(
   actql_native_http_library *library
 ) {
-  if (dlclose(library->dynamic_library) != 0)
-    library->load_close_unknown = true;
-  else
-    library->dynamic_library = NULL;
+  (void)actql_http_release_module(library);
 }
 
 static void *actql_native_http_load_library_impl(
   moonbit_bytes_t path,
   int32_t length,
   int32_t diagnostic_ceiling,
-  bool retain_failed
+  bool retain_failed,
+  bool select_model_member,
+  actql_native_observed_component_member *member
 ) {
   actql_native_http_library *library = moonbit_make_external_object(
     actql_native_http_library_finalize,
@@ -694,18 +868,46 @@ static void *actql_native_http_load_library_impl(
   if (!library->original_read || actql_read_context_retain(library->original_read) != 0)
     return library;
   library->read_retained = true;
+  if (select_model_member) {
+    const char *original_path = actql_native_observed_component_member_path(member);
+    if (original_path) {
+      library->command_load = actql_native_command_platform_begin_load(
+        actql_native_command_platform_current(), ACTQL_NATIVE_COMMAND_MODEL_HTTP_COMPONENT, member);
+    }
+    if (!library->command_load) {
+      actql_replace_error(library, &library->error, library->diagnostic_ceiling, "Model HTTP command member unavailable");
+      return library;
+    }
+    library->command_thread = pthread_self();
+    path = (moonbit_bytes_t)original_path;
+    length = (int32_t)strlen(original_path);
+  }
+#else
+  (void)member;
+  if (select_model_member) return library;
 #endif
   char *path_text = actql_copy_text(library, path, length);
   if (path_text == NULL) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (library->command_load)
+      (void)actql_native_command_platform_observe_load(library->command_load, NULL);
+#endif
     actql_replace_error(library, &library->error, library->diagnostic_ceiling, "HTTP library path is invalid");
     return library;
   }
   library->dynamic_library = dlopen(path_text, RTLD_NOW | RTLD_LOCAL);
-  actql_http_free(library, path_text);
-  if (library->dynamic_library == NULL) {
+  if (library->dynamic_library == NULL)
     actql_replace_error(library, &library->error, library->diagnostic_ceiling, dlerror());
+  actql_http_free(library, path_text);
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  if (library->command_load &&
+      !actql_native_command_platform_observe_load(library->command_load, library->dynamic_library)) {
+    if (library->dynamic_library)
+      actql_replace_error(library, &library->error, library->diagnostic_ceiling, "Model HTTP member changed during load");
     return library;
   }
+#endif
+  if (library->dynamic_library == NULL) return library;
   if (!ACTQL_LOAD(library, global_init, "curl_global_init") ||
       !ACTQL_LOAD(library, version, "curl_version") ||
       !ACTQL_LOAD(library, easy_init, "curl_easy_init") ||
@@ -721,6 +923,18 @@ static void *actql_native_http_load_library_impl(
     }
     return library;
   }
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  if (library->command_load) {
+    Dl_info origin;
+    if (!dladdr((void *)library->global_init, &origin) ||
+        !actql_native_observed_component_member_image(member, origin.dli_fname) ||
+        !actql_native_command_platform_load_current(library->command_load)) {
+      actql_replace_error(library, &library->error, library->diagnostic_ceiling, "Model HTTP image differs from the original member");
+      return library;
+    }
+    if (!ACTQL_LOAD(library, global_cleanup, "curl_global_cleanup")) return library;
+  }
+#endif
   actql_http_component_tls_api_fn tls_api = (actql_http_component_tls_api_fn)dlsym(
     library->dynamic_library, "curl_actql_native_tls_api_v3");
   if (tls_api) {
@@ -775,6 +989,13 @@ static void *actql_native_http_load_library_impl(
   }
 #endif
   library->init_attempted = true;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+  if (library->command_load &&
+      !actql_native_command_platform_load_current(library->command_load)) {
+    actql_replace_error(library, &library->error, library->diagnostic_ceiling, "Model HTTP member changed during initialization");
+    return library;
+  }
+#endif
   actql_curl_global_init_mem_fn init_mem = (actql_curl_global_init_mem_fn)dlsym(
     library->dynamic_library, "curl_global_init_mem");
   CURLcode code = library->tls_owned
@@ -796,15 +1017,28 @@ static void *actql_native_http_load_library_impl(
   } else {
     library->load_failed = false;
     library->init_owned = true;
-    library->global_cleanup = (actql_curl_global_cleanup_fn)dlsym(library->dynamic_library, "curl_global_cleanup");
+    if (!select_model_member)
+      library->global_cleanup = (actql_curl_global_cleanup_fn)dlsym(library->dynamic_library, "curl_global_cleanup");
     actql_curl_version_info_fn version_info = (actql_curl_version_info_fn)dlsym(library->dynamic_library, "curl_version_info");
-    const actql_curl_version_info *info = version_info ? version_info(0) : NULL;
+    bool selected_info = version_info &&
+      actql_http_same_image((void *)version_info, (void *)library->global_init);
+    const actql_curl_version_info *info =
+      version_info && (!select_model_member || selected_info) ? version_info(0) : NULL;
     // An acquired TLS original always owes its own release. Unknown capability
     // or an SSL image without that original remains pending; a known no-SSL
     // image has no TLS backend to retire after its actual global cleanup.
     library->tls_backend_pending = library->tls_owned || !info ||
       (info->features & ACTQL_CURL_VERSION_SSL) != 0;
     library->cleanup_threadsafe = info && (info->features & ACTQL_CURL_VERSION_THREADSAFE) != 0;
+    // No unresolved getaddrinfo thread may be joined by either timeout
+    // completion or remove/cleanup on a bounded incremental poll.
+    if (selected_info && actql_http_uses_cares_for_addresses(info))
+      actql_http_load_incremental_port(library);
+    if (select_model_member && (!library->cleanup_threadsafe || !library->multi.init ||
+        !actql_http_library_current(library))) {
+      library->load_failed = true;
+      actql_replace_error(library, &library->error, library->diagnostic_ceiling, "Model HTTP image is unavailable");
+    }
   }
   return library;
 }
@@ -813,33 +1047,41 @@ static void *actql_native_http_load_library_impl(
 void *actql_native_http_load_library(
   moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling
 ) {
-  return actql_native_http_load_library_impl(path, length, diagnostic_ceiling, false);
+  return actql_native_http_load_library_impl(path, length, diagnostic_ceiling, false, false, NULL);
 }
 
 void *actql_native_http_load_library_with_custody(
   moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling
 ) {
-  return actql_native_http_load_library_impl(path, length, diagnostic_ceiling, true);
+  return actql_native_http_load_library_impl(path, length, diagnostic_ceiling, true, false, NULL);
+}
+
+void *actql_native_http_load_command_model_library_with_custody(
+  actql_native_observed_component_member *member, int32_t diagnostic_ceiling
+) {
+  return actql_native_http_load_library_impl(NULL, 0, diagnostic_ceiling, true, true, member);
 }
 
 // Only a rejected load, before successful runtime admission. This does not
 // close a usable Library or infer resolver-thread/global-init retirement.
 static int32_t actql_native_http_retire_failed_library_owned(actql_native_http_library *library) {
-  if (library == NULL || library->original_process != getpid() || !library->load_failed) return -1;
+  if (library == NULL || library->original_process != getpid() || !library->load_failed ||
+      !actql_http_command_thread(library)) return -1;
   if (library->load_close_unknown) return -2;
   if (library->dynamic_library != NULL) {
+    if (library->init_owned) {
+      if (!library->global_cleanup) return -2;
+      library->global_cleanup();
+      library->init_owned = false;
+    }
     if (library->init_attempted && !library->failed_init_cleanup_confirmed &&
         library->tls_owned && library->tls_api->release() == 0) {
       library->tls_owned = false;
       library->failed_init_cleanup_confirmed = true;
     }
     if (library->init_attempted && !library->failed_init_cleanup_confirmed) return -2;
-    if (dlclose(library->dynamic_library) != 0) {
-      library->load_close_unknown = true;
-      return -2;
-    }
-    library->dynamic_library = NULL;
   }
+  if (!actql_http_release_module(library)) return -2;
   actql_http_free(library, library->error);
   library->error = NULL;
   return actql_http_release_read(library) ? 0 : -2;
@@ -893,6 +1135,22 @@ int64_t actql_native_http_test_live_children(actql_native_http_library *library)
 
 // Test expectation DATA from this exact admitted image, not a cleanup result
 // or permission to unload a different/system TLS backend.
+int32_t actql_native_http_library_has_incremental_post(actql_native_http_library *library) {
+  if (!library) return false;
+  actql_http_library_lock(library);
+  bool available = actql_http_library_current(library) && library->multi.init != NULL;
+  actql_http_library_unlock(library);
+  return available;
+}
+
+// Native white-box test only. The production configuration cannot override
+// DNS. The selected c-ares image sends actual queries to this loopback peer.
+void actql_native_http_test_dns_port(actql_native_http_client *client, int32_t port) {
+  if (port <= 0 || port > UINT16_MAX || !actql_http_begin_request(client)) abort();
+  client->test_dns_port = (uint16_t)port;
+  actql_http_end_request(client);
+}
+
 int32_t actql_native_http_test_has_tls_cleanup(actql_native_http_library *library) {
   if (!library || library->original_process != getpid()) return false;
   actql_http_library_lock(library);
@@ -1148,7 +1406,7 @@ void *actql_native_http_create_client(
 
 // A client authenticated by a client certificate, by a per-request bearer
 // credential file, or by both. The server is always verified against the CA.
-void *actql_native_http_create_authenticated_client(
+static void *actql_http_create_authenticated_client(
   actql_native_http_library *library,
   moonbit_bytes_t ca_path,
   int32_t ca_path_length,
@@ -1160,7 +1418,8 @@ void *actql_native_http_create_authenticated_client(
   int32_t bearer_path_length,
   int64_t max_response_bytes,
   int32_t connect_timeout_ms,
-  int32_t operation_timeout_ms
+  int32_t operation_timeout_ms,
+  bool projected_bearer_only
 ) {
   actql_native_http_client *client = moonbit_make_external_object(
     actql_native_http_client_finalize,
@@ -1176,6 +1435,7 @@ void *actql_native_http_create_authenticated_client(
   client->diagnostic_ceiling = library == NULL ? 0 : library->diagnostic_ceiling;
   if (library != NULL) moonbit_incref(library);
   client->max_response_bytes = max_response_bytes;
+  client->projected_bearer_only = projected_bearer_only;
   client->connect_timeout_ms = connect_timeout_ms;
   client->operation_timeout_ms = operation_timeout_ms;
   bool mutual = certificate_path_length > 0 || key_path_length > 0;
@@ -1183,7 +1443,7 @@ void *actql_native_http_create_authenticated_client(
   if (!client->holder_counted ||
       max_response_bytes < 0 || max_response_bytes > INT32_MAX ||
       connect_timeout_ms <= 0 || operation_timeout_ms < connect_timeout_ms ||
-      (!mutual && !bearer) ||
+      (projected_bearer_only ? (!library->multi.init || mutual || bearer) : (!mutual && !bearer)) ||
       (mutual && (certificate_path_length <= 0 || key_path_length <= 0))) {
     actql_set_client_constructor_error(client, "invalid HTTP client configuration");
     return client;
@@ -1206,6 +1466,37 @@ void *actql_native_http_create_authenticated_client(
     actql_set_client_constructor_error(client, "HTTP credential path allocation failed");
   }
   return client;
+}
+
+void *actql_native_http_create_authenticated_client(
+  actql_native_http_library *library,
+  moonbit_bytes_t ca_path,
+  int32_t ca_path_length,
+  moonbit_bytes_t certificate_path,
+  int32_t certificate_path_length,
+  moonbit_bytes_t key_path,
+  int32_t key_path_length,
+  moonbit_bytes_t bearer_path,
+  int32_t bearer_path_length,
+  int64_t max_response_bytes,
+  int32_t connect_timeout_ms,
+  int32_t operation_timeout_ms
+) {
+  return actql_http_create_authenticated_client(library, ca_path, ca_path_length,
+    certificate_path, certificate_path_length, key_path, key_path_length,
+    bearer_path, bearer_path_length, max_response_bytes, connect_timeout_ms,
+    operation_timeout_ms, false);
+}
+
+// This constructor retains only the CA path. Authentication must arrive
+// through the checked incremental POST with its original file projection.
+void *actql_native_http_create_projected_bearer_client(
+  actql_native_http_library *library, moonbit_bytes_t ca_path, int32_t ca_path_length,
+  int64_t max_response_bytes, int32_t connect_timeout_ms, int32_t operation_timeout_ms
+) {
+  return actql_http_create_authenticated_client(library, ca_path, ca_path_length,
+    NULL, 0, NULL, 0, NULL, 0, max_response_bytes, connect_timeout_ms,
+    operation_timeout_ms, true);
 }
 
 int32_t actql_native_http_client_ready(actql_native_http_client *client) {
@@ -1237,6 +1528,7 @@ static int32_t actql_native_http_client_post_json_owned(
 ) {
   actql_native_http_library *library = client ? client->library : NULL;
   if (client == NULL || client->closed) return 3;
+  if (client->projected_bearer_only) return 6;
   if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
   actql_clear_response(client);
   char *url_text = actql_copy_text(library, url, url_length);
@@ -1430,6 +1722,90 @@ static bool actql_http_credential_deadline_current(int64_t expires_at) {
     observed_time.tv_sec * 1000 + observed_time.tv_nsec / 1000000 < expires_at;
 }
 
+// One step of this Client's original transfer. The optional wait belongs to
+// the outer driver; the Model's poll supplies zero. The finish message, not
+// running == 0 by itself, establishes the observed transport result.
+static void actql_http_advance_transfer(
+  actql_native_http_client *client, int wait_milliseconds
+) {
+  actql_native_http_transfer *transfer = client->transfer;
+  if (transfer->done) return;
+  actql_native_http_library *library = client->library;
+  bool cancelled = atomic_load_explicit(&client->cancelled, memory_order_relaxed);
+  if (!cancelled && wait_milliseconds > 0 &&
+      library->multi.poll(transfer->multi, NULL, 0, wait_milliseconds, NULL) != 0) {
+    actql_set_client_error(client, "wait for original HTTP request failed");
+    transfer->result = -1;
+    transfer->done = true;
+    return;
+  }
+  if (atomic_load_explicit(&client->cancelled, memory_order_relaxed) ||
+      !actql_http_transport_entry(client)) {
+    transfer->result = 2;
+    transfer->done = true;
+    return;
+  }
+  if (!actql_http_credential_deadline_current(transfer->expires_at)) {
+    transfer->result = 4;
+    transfer->done = true;
+    return;
+  }
+  int running = 0;
+  if (library->multi.perform(transfer->multi, &running) != 0) {
+    actql_set_client_error(client, "advance original HTTP request failed");
+    transfer->result = -1;
+    transfer->done = true;
+    return;
+  }
+  int queued = 0;
+  actql_curl_multi_message *message = library->multi.info_read(transfer->multi, &queued);
+  if (!message && running == 1) return;
+
+  transfer->done = true;
+  if (!message || message->kind != ACTQL_CURLMSG_DONE || message->easy != transfer->easy) {
+    actql_set_client_error(client, "missing original HTTP completion");
+    transfer->result = -1;
+    return;
+  }
+  CURLcode code = message->data.result;
+  if (code == ACTQL_CURLE_OK)
+    code = library->easy_getinfo(transfer->easy, ACTQL_CURLINFO_RESPONSE_CODE, &client->status);
+  if (client->capacity_exceeded) transfer->result = 1;
+  else if (code == ACTQL_CURLE_ABORTED_BY_CALLBACK) transfer->result = 2;
+  else if (code == ACTQL_CURLE_OPERATION_TIMEDOUT) transfer->result = 4;
+  else if (code == ACTQL_CURLE_OK) transfer->result = 0;
+  else {
+    if (!client->error_present)
+      actql_set_client_error(client, transfer->error_buffer[0] ?
+        transfer->error_buffer : library->easy_strerror(code));
+    transfer->result = -1;
+  }
+}
+
+static bool actql_http_retire_transfer(actql_native_http_client *client) {
+  actql_native_http_transfer *transfer = client->transfer;
+  actql_native_http_library *library = client->library;
+  if (!transfer->done || transfer->retirement_unknown) return false;
+  if ((transfer->attached && library->multi.remove(transfer->multi, transfer->easy) != 0) ||
+      library->multi.cleanup(transfer->multi) != 0) {
+    // The operation supplied no reliable retirement observation. Avoid using
+    // a possibly consumed handle again and keep the same Client and Read.
+    transfer->retirement_unknown = true;
+    return false;
+  }
+  actql_http_cleanup_easy(client, transfer->easy);
+  library->slist_free_all(transfer->headers);
+  actql_http_free(library, transfer->method);
+  actql_http_free(library, transfer->url);
+  moonbit_decref(transfer->body);
+  client->transfer = NULL;
+  actql_http_free(library, transfer);
+  // The poll still borrows the actual Client on the caller's stack. Return
+  // only its extra native custody reference, after the actual curl cleanup.
+  moonbit_decref(client);
+  return true;
+}
+
 static int32_t actql_native_http_client_request_owned(
   actql_native_http_client *client,
   moonbit_bytes_t method,
@@ -1441,12 +1817,14 @@ static int32_t actql_native_http_client_request_owned(
   moonbit_bytes_t body,
   int32_t body_length,
   const char *bearer_path,
-  actql_native_private_file_projection *preparation_projection,
+  actql_native_private_file_projection *credential_projection,
   bool require_deadline,
-  int64_t expires_at_milliseconds
+  int64_t expires_at_milliseconds,
+  bool incremental
 ) {
   actql_native_http_library *library = client ? client->library : NULL;
   if (client == NULL || client->closed) return 3;
+  if (client->projected_bearer_only && (!incremental || !credential_projection)) return 6;
   if (atomic_load_explicit(&client->cancelled, memory_order_relaxed)) return 2;
   actql_clear_response(client);
   char *method_text = actql_copy_text(library, method, method_length);
@@ -1457,7 +1835,8 @@ static int32_t actql_native_http_client_request_owned(
   bool is_patch = method_text != NULL && strcmp(method_text, "PATCH") == 0;
   if (url_text == NULL || (!is_get && !is_post && !is_put && !is_patch) ||
       body_length < 0 || (is_get && body_length != 0) ||
-      (preparation_projection != NULL && (!is_get || !require_deadline))) {
+      (credential_projection != NULL && (!require_deadline ||
+        (incremental ? !is_post : !is_get)))) {
     actql_http_free(library, method_text);
     actql_http_free(library, url_text);
     actql_set_client_error(client, "invalid HTTPS request");
@@ -1468,7 +1847,7 @@ static int32_t actql_native_http_client_request_owned(
     client,
     headers_block,
     headers_length,
-    bearer_path != NULL || preparation_projection != NULL,
+    bearer_path != NULL || credential_projection != NULL,
     &headers_valid
   );
   if (!headers_valid) {
@@ -1476,14 +1855,14 @@ static int32_t actql_native_http_client_request_owned(
     actql_http_free(library, url_text);
     return 6;
   }
-  if (bearer_path != NULL || preparation_projection != NULL) {
+  if (bearer_path != NULL || credential_projection != NULL) {
     char *authorization = NULL;
     size_t authorization_length = 0;
     if (!actql_read_bearer_authorization(client,
           bearer_path,
-          preparation_projection,
+          credential_projection,
           require_deadline ? 8192 : ACTQL_BEARER_FILE_MAX_BYTES,
-          preparation_projection != NULL || !require_deadline,
+          credential_projection != NULL || !require_deadline,
           &authorization,
           &authorization_length
         )) {
@@ -1527,9 +1906,12 @@ static int32_t actql_native_http_client_request_owned(
     actql_set_client_error(client, "initialize HTTP request failed");
     return -1;
   }
-  char error_buffer[ACTQL_CURL_ERROR_SIZE];
-  memset(error_buffer, 0, sizeof(error_buffer));
-  bool configured = true;
+  actql_native_http_transfer *transfer = incremental ?
+    actql_http_allocate(library, sizeof(actql_native_http_transfer)) : NULL;
+  if (transfer) memset(transfer, 0, sizeof(*transfer));
+  char sync_error[ACTQL_CURL_ERROR_SIZE] = {0};
+  char *error_buffer = transfer ? transfer->error_buffer : sync_error;
+  bool configured = !incremental || transfer != NULL;
 #define ACTQL_SET(option, value) \
   do { \
     if (configured && !actql_option( \
@@ -1546,6 +1928,23 @@ static int32_t actql_native_http_client_request_owned(
     if (is_put || is_patch) ACTQL_SET(ACTQL_CURLOPT_CUSTOMREQUEST, method_text);
     ACTQL_SET(ACTQL_CURLOPT_POSTFIELDS, body);
     ACTQL_SET(ACTQL_CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)body_length);
+  }
+  if (incremental) {
+    // One new HTTP/1.1 connection avoids pooled reuse and HTTP/2 stream
+    // replacement. The installed destination does not use ambient proxies.
+    ACTQL_SET(ACTQL_CURLOPT_HTTP_VERSION, (long)ACTQL_CURL_HTTP_VERSION_1_1);
+    ACTQL_SET(ACTQL_CURLOPT_PROXY, "");
+    // The write callback owns the HTTP body representation counted by curl.
+    // Keep HTTP framing removal but do not decompress content before Raw.
+    ACTQL_SET(ACTQL_CURLOPT_HTTP_CONTENT_DECODING, 0L);
+    ACTQL_SET(ACTQL_CURLOPT_TRANSFER_ENCODING, 0L);
+    if (client->test_dns_port) {
+      char dns_server[sizeof("127.0.0.1:65535")];
+      (void)snprintf(dns_server, sizeof(dns_server), "127.0.0.1:%u",
+        (unsigned int)client->test_dns_port);
+      // libcurl copies the option before this scope ends.
+      ACTQL_SET(ACTQL_CURLOPT_DNS_SERVERS, dns_server);
+    }
   }
   ACTQL_SET(ACTQL_CURLOPT_HTTPHEADER, headers);
   ACTQL_SET(ACTQL_CURLOPT_CAINFO, client->ca_path);
@@ -1569,10 +1968,10 @@ static int32_t actql_native_http_client_request_owned(
 #undef ACTQL_SET
   // Recheck the original installation after configuration, immediately before
   // entering transport. This never adopts a newly replaced credential file.
-  if (configured && preparation_projection != NULL) {
+  if (configured && credential_projection != NULL) {
     int descriptor = -1;
     bool current_installation = actql_native_private_file_projection_open_with_custody(
-      preparation_projection, &descriptor
+      credential_projection, &descriptor
     );
     if (descriptor >= 0 && close(descriptor) != 0) {
       // This second original credential descriptor has the same physical
@@ -1590,6 +1989,7 @@ static int32_t actql_native_http_client_request_owned(
       actql_http_cleanup_easy(client, curl);
       actql_http_free(library, method_text);
       actql_http_free(library, url_text);
+      actql_http_free(library, transfer);
       actql_set_client_error(client, !current_installation
         ? "bearer credential unavailable" : !current_deadline
         ? "credential deadline expired" : "HTTP request cancelled");
@@ -1597,6 +1997,32 @@ static int32_t actql_native_http_client_request_owned(
     }
   }
   if (configured && !actql_http_transport_entry(client)) configured = false;
+  if (incremental && configured) {
+    transfer->multi = library->multi.init();
+    if (transfer->multi) {
+      transfer->easy = curl;
+      transfer->headers = headers;
+      transfer->method = method_text;
+      transfer->url = url_text;
+      transfer->body = body;
+      transfer->expires_at = expires_at_milliseconds;
+      transfer->thread = pthread_self();
+      transfer->attached = library->multi.add(transfer->multi, curl) == 0;
+      if (!transfer->attached) {
+        actql_set_client_error(client, "attach original HTTP request failed");
+        transfer->done = true;
+        transfer->result = -1;
+      }
+      moonbit_incref(body);
+      moonbit_incref(client);
+      client->transfer = transfer;
+      client->incremental_started = true;
+      actql_http_advance_transfer(client, 0);
+      return 0;
+    }
+    actql_set_client_error(client, "initialize incremental HTTP request failed");
+    configured = false;
+  }
   CURLcode code = configured
     ? client->library->easy_perform(curl)
     : ACTQL_CURLE_WRITE_ERROR;
@@ -1619,6 +2045,7 @@ static int32_t actql_native_http_client_request_owned(
   actql_http_cleanup_easy(client, curl);
   actql_http_free(library, method_text);
   actql_http_free(library, url_text);
+  actql_http_free(library, transfer);
   if (client->capacity_exceeded) return 1;
   if (atomic_load_explicit(&client->cancelled, memory_order_relaxed) ||
       code == ACTQL_CURLE_ABORTED_BY_CALLBACK) return 2;
@@ -1644,7 +2071,7 @@ int32_t actql_native_http_client_request(
 ) {
   if (!actql_http_begin_request(client)) return 3;
   int32_t result = actql_native_http_client_request_owned(client, method, method_length,
-    url, url_length, headers, headers_length, body, body_length, client->bearer_path, NULL, false, 0);
+    url, url_length, headers, headers_length, body, body_length, client->bearer_path, NULL, false, 0, false);
   actql_http_end_request(client);
   return result;
 }
@@ -1660,12 +2087,116 @@ int32_t actql_native_http_client_request_bearer_file(
 ) {
   actql_native_http_library *library = client ? client->library : NULL;
   if (!actql_http_begin_request(client)) return 3;
+  if (client->projected_bearer_only) {
+    actql_http_end_request(client);
+    return 6;
+  }
   char *path = actql_copy_text(library, secret_path, secret_path_length);
   int32_t result = path ? actql_native_http_client_request_owned(client, method, method_length,
-    url, url_length, headers, headers_length, body, body_length, path, NULL, true, expires_at_milliseconds) : 6;
+    url, url_length, headers, headers_length, body, body_length, path, NULL, true, expires_at_milliseconds, false) : 6;
   actql_http_free(library, path);
   actql_http_end_request(client);
   return result;
+}
+
+int32_t actql_native_http_client_start_bearer_post(
+  actql_native_http_client *client,
+  moonbit_bytes_t method, int32_t method_length,
+  moonbit_bytes_t url, int32_t url_length,
+  moonbit_bytes_t headers, int32_t headers_length,
+  moonbit_bytes_t body, int32_t body_length,
+  moonbit_bytes_t secret_path, int32_t secret_path_length,
+  int64_t expires_at_milliseconds
+) {
+  if (!actql_http_begin_request(client)) return 3;
+  if (client->projected_bearer_only) {
+    actql_http_end_request(client);
+    return 6;
+  }
+  actql_native_http_library *library = client->library;
+  int32_t result = ACTQL_HTTP_INCREMENTAL_UNAVAILABLE;
+  if (library->multi.init) {
+    char *path = actql_copy_text(library, secret_path, secret_path_length);
+    result = path ? actql_native_http_client_request_owned(client, method, method_length,
+      url, url_length, headers, headers_length, body, body_length, path, NULL,
+      true, expires_at_milliseconds, true) : 6;
+    actql_http_free(library, path);
+  }
+  actql_http_end_request(client);
+  return result;
+}
+
+int32_t actql_native_http_client_start_projected_bearer_post(
+  actql_native_http_client *client,
+  moonbit_bytes_t url, int32_t url_length,
+  moonbit_bytes_t body, int32_t body_length,
+  actql_native_private_file_projection *projection, int64_t expires_at_milliseconds
+) {
+  if (!actql_http_begin_request(client)) return 3;
+  int32_t result = ACTQL_HTTP_INCREMENTAL_UNAVAILABLE;
+  if (client->library->multi.init) {
+    // Both literals are borrowed for this setup only. request_owned keeps the
+    // exact managed body through transfer retirement and copies other inputs.
+    const char method[] = "POST";
+    const char headers[] = "content-type: application/json\n";
+    result = projection ? actql_native_http_client_request_owned(client,
+      (moonbit_bytes_t)method, sizeof(method) - 1, url, url_length,
+      (moonbit_bytes_t)headers, sizeof(headers) - 1, body, body_length,
+      NULL, projection, true, expires_at_milliseconds, true) : 5;
+  }
+  actql_http_end_request(client);
+  return result;
+}
+
+static int32_t actql_http_poll_bearer_post(
+  actql_native_http_client *client, int32_t wait_milliseconds, int64_t *sizes
+) {
+  if (wait_milliseconds < 0 || wait_milliseconds > 50) return 6;
+  if (!client || !client->library || client->library->original_process != getpid()) return 3;
+  if (atomic_flag_test_and_set_explicit(&client->lifecycle, memory_order_acquire))
+    return ACTQL_HTTP_INCREMENTAL_PENDING;
+  int32_t result = 3;
+  actql_native_http_transfer *transfer = client->transfer;
+  if (transfer) {
+    result = ACTQL_HTTP_INCREMENTAL_PENDING;
+    if (pthread_equal(transfer->thread, pthread_self()) && actql_http_read_current(client->library)) {
+      actql_http_advance_transfer(client, wait_milliseconds);
+      int32_t observed = transfer->result;
+      curl_off_t uploaded = -1;
+      curl_off_t downloaded = -1;
+      bool measured = sizes && transfer->done && !transfer->retirement_unknown &&
+        observed == 0 && client->status >= 200 && client->status <= 599 &&
+        client->library->easy_getinfo(transfer->easy,
+          ACTQL_CURLINFO_SIZE_UPLOAD_T, &uploaded) == ACTQL_CURLE_OK &&
+        client->library->easy_getinfo(transfer->easy,
+          ACTQL_CURLINFO_SIZE_DOWNLOAD_T, &downloaded) == ACTQL_CURLE_OK &&
+        uploaded >= 0 && downloaded >= 0 &&
+        (uint64_t)downloaded == client->response_length;
+      if (actql_http_retire_transfer(client)) {
+        result = observed;
+        if (measured) {
+          sizes[0] = uploaded;
+          sizes[1] = downloaded;
+        }
+      }
+    }
+  }
+  actql_http_end_request(client);
+  return result;
+}
+
+int32_t actql_native_http_client_poll_bearer_post(
+  actql_native_http_client *client, int32_t wait_milliseconds
+) {
+  return actql_http_poll_bearer_post(client, wait_milliseconds, NULL);
+}
+
+int32_t actql_native_http_client_poll_measured_bearer_post(
+  actql_native_http_client *client, int32_t wait_milliseconds, int64_t *sizes
+) {
+  sizes[0] = -1;
+  sizes[1] = -1;
+  return actql_http_poll_bearer_post(client, wait_milliseconds, sizes);
 }
 
 int32_t actql_native_http_client_get_local_preparation(
@@ -1678,9 +2209,16 @@ int32_t actql_native_http_client_get_local_preparation(
 ) {
   if (!actql_http_begin_request(client)) return 3;
   int32_t result = projection ? actql_native_http_client_request_owned(client, method, method_length,
-    url, url_length, headers, headers_length, body, body_length, NULL, projection, true, expires_at_milliseconds) : 5;
+    url, url_length, headers, headers_length, body, body_length, NULL, projection, true, expires_at_milliseconds, false) : 5;
   actql_http_end_request(client);
   return result;
+}
+
+int32_t actql_native_http_client_uses_library(
+  actql_native_http_client *client, actql_native_http_library *library
+) {
+  return client && library && client->library == library &&
+    library->original_process == getpid();
 }
 
 int64_t actql_native_http_client_response_limit(actql_native_http_client *client) {
@@ -1708,6 +2246,30 @@ moonbit_bytes_t actql_native_http_client_body(actql_native_http_client *client) 
   return result;
 }
 
+// Original physical cleanup may run in the captured Read's cleanup frame.
+// It discards the transport without performing I/O or returning response data.
+int32_t actql_native_http_client_stop_bearer_post(actql_native_http_client *client) {
+  if (!client || !client->library || client->library->original_process != getpid() ||
+      client->constructor_failed || !actql_http_read_current(client->library) ||
+      atomic_flag_test_and_set_explicit(&client->lifecycle, memory_order_acquire))
+    return -1;
+  int32_t status = 0;
+  actql_native_http_transfer *transfer = client->transfer;
+  if (transfer && (!pthread_equal(transfer->thread, pthread_self()) ||
+                   transfer->retirement_unknown)) {
+    status = -1;
+  } else {
+    atomic_store_explicit(&client->cancelled, true, memory_order_relaxed);
+    if (transfer) {
+      transfer->done = true;
+      transfer->result = 2;
+      if (!actql_http_retire_transfer(client)) status = -1;
+    }
+  }
+  actql_http_end_request(client);
+  return status;
+}
+
 int32_t actql_native_http_client_cancel(actql_native_http_client *client) {
   if (client == NULL || client->closed) return false;
   return !atomic_exchange_explicit(
@@ -1722,7 +2284,7 @@ int32_t actql_native_http_client_close(actql_native_http_client *client) {
   if (!client || !client->library || client->library->original_process != getpid() || client->constructor_failed) return false;
   atomic_store_explicit(&client->cancelled, true, memory_order_relaxed);
   if (atomic_flag_test_and_set_explicit(&client->lifecycle, memory_order_acquire)) return false;
-  if (atomic_load_explicit(&client->credential_close_unknown, memory_order_relaxed)) {
+  if (client->transfer || atomic_load_explicit(&client->credential_close_unknown, memory_order_relaxed)) {
     atomic_flag_clear_explicit(&client->lifecycle, memory_order_release);
     return false;
   }

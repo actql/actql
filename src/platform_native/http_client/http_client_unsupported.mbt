@@ -56,6 +56,11 @@ pub fn Library::version(_self : Library) -> String {
 }
 
 ///|
+pub fn Library::incremental_bearer_post_supported(_self : Library) -> Bool {
+  false
+}
+
+///|
 pub fn Library::create_client(
   _self : Library,
   ca_path : String,
@@ -135,7 +140,61 @@ pub fn Client::get_bearer_file(
 }
 
 ///|
+pub fn Client::start_bearer_post(
+  _self : Client,
+  _url : String,
+  _headers : Array[NativeHttpHeader],
+  _body : Bytes,
+  _secret_path : String,
+  _expires_at_milliseconds : Int64,
+) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Client::start_projected_bearer_post(
+  _self : Client,
+  _url : String,
+  _body : Bytes,
+  _credential : @filesystem.PrivateFileProjection,
+  _expires_at_milliseconds : Int64,
+) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Client::close_bearer_post_in_original_scope(
+  _self : Client,
+) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Client::poll_bearer_post(
+  _self : Client,
+  wait_milliseconds? : Int = 0,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  ignore(wait_milliseconds)
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Client::poll_measured_bearer_post(
+  _self : Client,
+  _sizes : FixedArray[Int64],
+  wait_milliseconds? : Int = 0,
+) -> Result[NativeHttpResponse?, NativeHttpIssue] {
+  ignore(wait_milliseconds)
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Client::cancel(_self : Client) -> Bool {
+  false
+}
+
+///|
+pub fn Client::uses_library(_self : Client, _library : Library) -> Bool {
   false
 }
 
@@ -161,6 +220,14 @@ pub fn load_library_with_custody(
 }
 
 ///|
+pub fn load_command_model_library_with_custody(
+  _member : @filesystem.NativeObservedComponentMember,
+  _diagnostic_ceiling : Int,
+) -> Result[Library, NativeHttpLibraryLoadError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
 pub fn Library::create_client_with_custody(
   _self : Library,
   _ca_path : String,
@@ -178,6 +245,17 @@ pub fn Library::create_authenticated_client_with_custody(
   _self : Library,
   _ca_path : String,
   _authentication : NativeHttpAuthentication,
+  _max_response_bytes : Int64,
+  _connect_timeout_ms : Int,
+  _operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpClientCreateError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn Library::create_projected_bearer_client_with_custody(
+  _self : Library,
+  _ca_path : String,
   _max_response_bytes : Int64,
   _connect_timeout_ms : Int,
   _operation_timeout_ms : Int,

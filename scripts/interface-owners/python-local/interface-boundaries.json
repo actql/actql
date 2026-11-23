@@ -885,7 +885,7 @@
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "85294bba60e7fadf509568d3efcbca07d2d7415cd238b2ba5a03c1ffba7ffd1a",
+      "sha256": "60629559a28b10118b054f2e5e703935b5d72c99dd1739848112505831e5af4b",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
         "admitInstalledLocalRuntime",
@@ -893,6 +893,7 @@
         "admitLocalRuntimePlatform",
         "installedLocalRuntimeEnvironment",
         "localRuntimeHash",
+        "nativeModelHttpLibraryName",
         "nativeRemoteHttpLibraryName",
         "nativeRemoteHttpSystemDependency",
         "readLocalRuntimeMember",
@@ -962,6 +963,13 @@
           "name": "localRuntimeHash/localRuntimeHash",
           "parameters": [
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeModelHttpLibraryName",
+          "parameters": [
+            "platform"
           ],
           "async": false
         },
@@ -2456,12 +2464,14 @@
             "validateLocalRuntimeManifest/validateLocalRuntimeManifest",
             "validateLocalRuntimeManifest/validateLocalRuntimeManifest/validateLocalRuntimeManifest",
             "nativeRemoteHttpLibraryName",
-            "nativeRemoteHttpSystemDependency"
+            "nativeRemoteHttpSystemDependency",
+            "nativeModelHttpLibraryName"
           ],
           "exports": [
             "validateLocalRuntimeManifest",
             "nativeRemoteHttpLibraryName",
-            "nativeRemoteHttpSystemDependency"
+            "nativeRemoteHttpSystemDependency",
+            "nativeModelHttpLibraryName"
           ],
           "attributes": {
             "responsibility": [
@@ -82511,7 +82521,7 @@
     },
     {
       "module": "src/cmd/native_client/local_adoption.mbt",
-      "sha256": "0d73078b315ac7dfd21475f7b07728f575eb0fa4593d1d75063d4808419ac81a",
+      "sha256": "cb2992b055ad8b95a64b0d06f1cca40a3a8ca22b99aae849f1b2b45304f73082",
       "exports": [],
       "operations": [
         {
@@ -82541,6 +82551,10 @@
         {
           "name": "local_journal_migration_issue",
           "declaration": "local_journal_migration_issue ( issue : @ local_host . NativeClientRunJournalIssue , ) - > String"
+        },
+        {
+          "name": "local_model_http_installation_settings",
+          "declaration": "local_model_http_installation_settings ( cursor : @ decode . Cursor , installation_files : Array [ String ] , ) - > LocalModelHttpInstallationSettings raise ClientStop"
         },
         {
           "name": "local_original_run_reference",
@@ -82586,7 +82600,8 @@
             "local_submission_lookup",
             "local_submission_lookup_reply",
             "local_submission_lookup_selected",
-            "local_host_journal_record_limit"
+            "local_host_journal_record_limit",
+            "local_model_http_installation_settings"
           ],
           "exports": [],
           "attributes": {
@@ -82854,7 +82869,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "7e13c5a807b84f6b20d1965b4a66eec75446a5de04c8b2533e01889fbe2d6e02",
+      "sha256": "1a2c006c93f11152971bd87f781ebe7ee754c76fc36f6b7b1e061e1a923767fb",
       "exports": [],
       "operations": [
         {
@@ -87272,7 +87287,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "a8a6e69305348a75d8186f0fc3b7fc4bb1658a61ee4c5a9850d456c4b49cb345",
+      "sha256": "be978392877d6599eafcb683af51654956e9866ab141cc7f6f63fd11e5f510af",
       "exports": [],
       "operations": [
         {
@@ -87566,7 +87581,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "662ff588d112809c76d9079e275cb62dbf77c3ae84e84f91d36d1586c0dd9198",
+      "sha256": "3dfa1ba6f2470fe05e8ee6afd6c699c99a71c8f39daa08fa3515f4d90c09adfe",
       "exports": [],
       "operations": [
         {
@@ -87623,7 +87638,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_adoption",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , ) - > Result [ @ local_host . NativeLocalAdoptionSession , LocalCommandPreparationIssue , ]"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configuration ? : @ local_host . NativeLocalModelConfigurationSelection ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::read_command",
@@ -87831,7 +87846,7 @@
     },
     {
       "module": "src/cmd/native_client/local_host_settings_preparation.mbt",
-      "sha256": "2e5e691394b8fda52f93c901799cc3fad80a997f6108d821645ea3a47f9f8327",
+      "sha256": "e23acc41294861ce9210af2398024d575e18baeb62107037477fa78ff01d62c5",
       "exports": [],
       "operations": [
         {

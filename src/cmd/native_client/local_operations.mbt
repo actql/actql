@@ -102,6 +102,22 @@ fn local_original_run_selection(
     @local_host.native_client_run_definition(run),
     scope,
   )
+  let original = local_require_same_run_reference(input_root, child, reference)
+  {
+    request,
+    submission,
+    reference,
+    namespace_id: json_text(original, "namespaceId").unwrap(),
+    run_definition_cid: json_text(original, "runDefinitionCid").unwrap(),
+  }
+}
+
+///|
+fn local_require_same_run_reference(
+  input_root : String,
+  child : @argparse.Matches,
+  reference : Json,
+) -> Map[String, Json] raise ClientStop {
   guard reference is Object(original) else {
     stop("LocalOriginalRunUnavailable")
   }
@@ -111,13 +127,7 @@ fn local_original_run_selection(
     same_cancellation_target(supplied, original) else {
     stop("LocalOriginalRunReferenceMismatch")
   }
-  {
-    request,
-    submission,
-    reference,
-    namespace_id: json_text(original, "namespaceId").unwrap(),
-    run_definition_cid: json_text(original, "runDefinitionCid").unwrap(),
-  }
+  original
 }
 
 ///|

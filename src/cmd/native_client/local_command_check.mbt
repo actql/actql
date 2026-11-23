@@ -56,7 +56,9 @@ fn command_preparation_cleanup_kind(
     CommandSavedEffectCompletion(_) => "saved-effect-completion"
     CommandBusinessSource(_) => "business-source"
     CommandBusinessModel(_) => "business-model"
+    CommandBusinessModelHttp(_) => "business-model-http"
     CommandBusinessModelGraph(_) => "business-model-graph"
+    CommandBusinessModelPlan(_) => "business-model-plan"
     CommandBusinessQueryPlan(_) => "business-query-plan"
     CommandBusinessQueryRequirement(_) => "business-query-requirement"
     CommandBusinessQueryRow(_) => "business-query-row"
@@ -235,13 +237,7 @@ fn local_command_preparation_operation_selected(
     business_selected
   ) ||
   local_checkpoint_action_selected(matches, operation) ||
-  (
-    operation == "status" &&
-    matches.subcommand is Some(("status", child)) &&
-    (optional(child, "run") is Some(_) || optional(child, "run-id") is Some(_)) &&
-    optional(child, "ref-file") is None &&
-    optional(child, "submission-ref-file") is None
-  ) ||
+  (operation == "status" && local_command_status_selected(matches)) ||
   (
     operation == "result" &&
     matches.subcommand is Some(("result", child)) &&
@@ -546,6 +542,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
         local_quick_query_requested(operation, child) &&
         self.initial_product_selected
       ),
+      model_configuration=settings.model_http_installation.map(selected => {
+        provider_id: selected.provider_id,
+        files: selected.files,
+        execution: selected.execution_file,
+        policy: selected.policy_file,
+        limits: local_project_mock_task_limits().bodies,
+      }),
     ),
     stage=Some("adoption-open"),
   )
@@ -589,7 +592,7 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     stage=Some("journal-open"),
   )
   |> ignore
-  if operation == "status" ||
+  if (operation == "status" && !local_status_uses_reference_files(child)) ||
     operation == "cancel" ||
     operation == "approve" ||
     operation == "reject" ||
@@ -924,6 +927,29 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             child,
           )
           local_host_result(capture.check_current_in_original_read())
+          // Adoption is the closed writer of the configured projection.
+          // Return the prepared reply after its commit. No later operation
+          // in this callback consumes the invalidated installation snapshot.
+          if operation == "adopt" &&
+            settings.model_http_installation is Some(selected) {
+            let model_configuration = match
+              capture.read_model_http_configuration_in_original_read(
+                selected.files,
+                selected.provider_id,
+                selected.response_profile_cid,
+                local_project_mock_task_limits(),
+                execution_file=selected.execution_file,
+              ) {
+              Ok(value) => value
+              Err(Original(issue)) => stop(local_host_issue(issue))
+              Err(_) => stop("LocalModelHttpInstallationRefused")
+            }
+            local_host_result(
+              capture.adopt_model_http_configuration_in_original_read(
+                model_configuration,
+              ),
+            )
+          }
           body
         }
         Ok(

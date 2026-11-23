@@ -9,8 +9,9 @@ import {join, basename} from 'node:path';
 import {
   LOCAL_RUNTIME_MAX_BYTES, localRuntimeHash, validateLocalRuntimeManifest,
   admitLocalLibraryBytes, admitInstalledLocalRuntime, nativeRemoteHttpSystemDependency,
+  nativeRemoteHttpLibraryName, nativeModelHttpLibraryName,
 } from '../packages/native-cli/lib/local-runtime.mjs';
-import {verifiedNativeRemoteHttpPackage} from './native-preparation-originals.mjs';
+import {verifiedNativeRemoteHttpPackage, verifiedNativeModelHttpPackage} from './native-preparation-originals.mjs';
 
 function original(input, maxBytes) {
   assert.deepEqual(Object.keys(input).sort(), ['bytes', 'path', 'sha256']);
@@ -42,10 +43,13 @@ function original(input, maxBytes) {
 export function inspectLocalLibrary(path, platform, names, execute = execFileSync, role) {
   const inspect = args => execute(platform === 'darwin-arm64' ? 'otool' : 'readelf', args,
     {encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024});
+  const httpName = role === 'remote-http' ? nativeRemoteHttpLibraryName(platform)
+    : role === 'model-http' ? nativeModelHttpLibraryName(platform) : undefined;
   let dependencies, abi;
   if (platform === 'darwin-arm64') {
     const ids = inspect(['-D', path]).split('\n').slice(1).map(s => s.trim()).filter(Boolean);
     assert.equal(ids.length, 1, 'Selected dylib must have one install identity');
+    if (httpName !== undefined) assert.equal(ids[0], `@rpath/${httpName}`, 'HTTP install identity differs');
     const loads = inspect(['-l', path]);
     const minimum = /\bcmd LC_BUILD_VERSION\s+cmdsize \d+\s+platform 1\s+minos (\d+\.\d+(?:\.\d+)?)/u.exec(loads)?.[1]
       ?? /\bcmd LC_VERSION_MIN_MACOSX\s+cmdsize \d+\s+version (\d+\.\d+(?:\.\d+)?)/u.exec(loads)?.[1];
@@ -57,8 +61,8 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
       const match = /^\s*(\S+) \(compatibility version [^\n]+\)$/u.exec(s);
       assert(match, 'Malformed dylib dependency observation'); return match[1];
     }).filter(s => s !== ids[0]).map(s => {
-      if (role === 'remote-http') {
-        assert(nativeRemoteHttpSystemDependency(platform, s), 'Unselected Remote HTTP dependency');
+      if (role === 'remote-http' || role === 'model-http') {
+        assert(nativeRemoteHttpSystemDependency(platform, s), 'Unselected HTTP dependency');
         return s;
       }
       if (s.startsWith('@loader_path/')) {
@@ -72,10 +76,15 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
   } else {
     assert.equal(platform, 'linux-x64-gnu');
     const dynamic = inspect(['-d', path]);
+    if (httpName !== undefined) assert.deepEqual(
+      [...dynamic.matchAll(/\(SONAME\).*?\[([^\]]+)\]/gu)].map(match => match[1]),
+      [httpName], 'HTTP SONAME differs');
     const needed = [...dynamic.matchAll(/\(NEEDED\).*?\[([^\]]+)\]/gu)].map(v => v[1]);
     const paths = [...dynamic.matchAll(/\((?:RPATH|RUNPATH)\).*?\[([^\]]*)\]/gu)].map(v => v[1]);
     assert(paths.every(s => s === '$ORIGIN'), 'Unbundled shared-library search path');
-    if (role === 'remote-http') assert.equal(paths.length, 0, 'Remote HTTP cannot use a loader search path');
+    if (role === 'remote-http' || role === 'model-http') {
+      assert.equal(paths.length, 0, 'HTTP members cannot use a loader search path');
+    }
     if (needed.some(s => names.has(s))) assert(paths.length > 0, 'Bundled dependency needs its own loader-relative path');
     dependencies = needed;
     const versionInfo = inspect(['--version-info', path]);
@@ -93,9 +102,12 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
 }
 
 export async function prepareNativeLocalRuntime(directory, options, execute = execFileSync) {
-  const hasRemotePreparation = Object.hasOwn(options, 'remoteHttpPreparation');
   const optionKeys = ['assets', 'libraries', 'licenses', 'platform', 'sourceSha'];
-  if (hasRemotePreparation) optionKeys.push('remoteHttpPreparation');
+  const httpProfiles = [
+    ['remote-http', 'remoteHttpPreparation', verifiedNativeRemoteHttpPackage],
+    ['model-http', 'modelHttpPreparation', verifiedNativeModelHttpPackage],
+  ];
+  for (const [, key] of httpProfiles) if (Object.hasOwn(options, key)) optionKeys.push(key);
   assert.deepEqual(Object.keys(options).sort(), optionKeys.sort());
   const {sourceSha, platform, libraries, assets, licenses} = options;
   assert(Array.isArray(libraries) && libraries.length >= 2 && libraries.length <= 8);
@@ -111,18 +123,20 @@ export async function prepareNativeLocalRuntime(directory, options, execute = ex
   for (const item of libraries) assert.deepEqual(Object.keys(item).sort(), ['dependencies', 'license', 'name', 'original', 'role']);
   for (const item of assets) assert.deepEqual(Object.keys(item).sort(), ['original', 'role']);
   for (const item of licenses) assert.deepEqual(Object.keys(item).sort(), ['name', 'original']);
-  const remoteHttp = libraries.find(item => item.role === 'remote-http');
-  assert.equal(remoteHttp !== undefined, hasRemotePreparation,
-    'Remote HTTP requires its original file-backed preparation receipt');
-  let remoteHttpNotice;
-  if (remoteHttp) {
-    const preparation = options.remoteHttpPreparation;
-    const target = platform === 'darwin-arm64' ? platform : 'linux-x64';
-    const verified = verifiedNativeRemoteHttpPackage(preparation, {source: sourceSha, target});
-    assert.deepEqual(remoteHttp.original, verified.library, 'Remote HTTP runtime original differs');
-    assert.deepEqual([...remoteHttp.dependencies].sort(), [...verified.dependencies].sort(),
-      'Remote HTTP preparation dependency census differs');
-    remoteHttpNotice = verified.notice;
+  const target = platform === 'darwin-arm64' ? platform : 'linux-x64';
+  for (const [role, key, verify] of httpProfiles) {
+    const item = libraries.find(item => item.role === role);
+    assert.equal(item !== undefined, Object.hasOwn(options, key),
+      `${role} requires its original file-backed preparation receipt`);
+    if (item === undefined) continue;
+    const verified = verify(options[key], {source: sourceSha, target});
+    assert.deepEqual(item.original, verified.library, `${role} runtime original differs`);
+    assert.deepEqual([...item.dependencies].sort(), [...verified.dependencies].sort(),
+      `${role} preparation dependency census differs`);
+    const recorded = licenses.find(license => license.name === item.license);
+    assert(recorded, `${role} requires its original combined notice`);
+    assert.deepEqual(original(recorded.original, 1024 * 1024), verified.notice,
+      `${role} combined notice differs from its original preparation`);
   }
   const libraryBytes = libraries.map(item => {
     const bytes = original(item.original, LOCAL_RUNTIME_MAX_BYTES);
@@ -132,12 +146,6 @@ export async function prepareNativeLocalRuntime(directory, options, execute = ex
     new Set(libraries.map(v => v.name)), execute, item.role));
   for (const [index, item] of libraries.entries()) assert.deepEqual(
     [...item.dependencies].sort(), [...observations[index].dependencies].sort(), 'Declared and physical loader dependencies differ');
-  if (remoteHttp) {
-    const recorded = licenses.find(item => item.name === remoteHttp.license);
-    assert(recorded, 'Remote HTTP requires its original combined notice');
-    assert.deepEqual(original(recorded.original, 1024 * 1024), remoteHttpNotice,
-      'Remote HTTP combined notice differs from its original preparation');
-  }
   const manifest = {
     sourceSha, platform,
     libraries: libraries.map((item, index) => ({role: item.role, path: `lib/${item.name}`,

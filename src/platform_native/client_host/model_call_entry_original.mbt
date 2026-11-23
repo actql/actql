@@ -123,26 +123,69 @@ fn native_model_entry_body(
 }
 
 ///|
-/// Persist the exact original entry for the installed single-attempt Mock
-/// caller. This observes durable entry only: it neither acknowledges Core nor
+// Select the durable prerequisites from the trusted installed Work. The
+// standalone path adopts the existing compiled Result policy and Store
+// binding. The existing Effect path retains its own material requirement.
+fn NativeClientMockModelWork::matches_model_call_journal_run(
+  self : Self,
+  record : NativeClientRunRecord,
+) -> Bool {
+  if !record.dispatch_reserved ||
+    !record.physical_start_claimed ||
+    @host.client_request_scope_cid(record.request) !=
+    @host.client_request_scope_cid(self.request) ||
+    @publication.publication_contract_identity(record.definition) !=
+    @publication.publication_contract_identity(self.definition) {
+    return false
+  }
+  match self.provider_role {
+    Mock(_) => record.effect_material_originals is Some(_)
+    PortableHttp(_) => {
+      guard record.effect_material_originals is None &&
+        record.checkpoint is None &&
+        record.publication_policy_originals is Some(_) &&
+        record.publication_binding is Some(_) &&
+        self.compiled.compilation is @host.Tasks(compilation) &&
+        @host.prepared_client_acquisition_count(compilation.owner) == 0 &&
+        compilation.serialization is None &&
+        @host.client_compiled_run_has_original_definition(
+          self.compiled,
+          self.definition,
+        ) else {
+        return false
+      }
+      for plan in compilation.infers {
+        if physical_equal(plan, self.graph) {
+          return true
+        }
+      }
+      false
+    }
+  }
+}
+
+///|
+/// Persist the exact original entry for the installed single-attempt Model.
+/// This observes durable entry only: it neither acknowledges Core nor
 /// supplies current dispatch permission. The caller retains the committed
 /// outcome BEFORE returning the captured Read, then issues Core's same-entry
 /// saved acknowledgement only back inside its original Model execution frame.
 /// Existing/ambiguous entries never imply a new save or resend permission.
-pub fn NativeLocalJournalCapture::persist_model_call_entry_in_original_read(
-  self : NativeLocalJournalCapture,
-  request : @host.ClientRequestIdentity,
-  compiled : @host.ClientCompiledRun,
-  definition : @publication.PublicationContract,
+fn NativeClientMockModelWork::persist_model_entry_original(
+  self : Self,
   prepared : @model.ModelPreparedCallSet,
   admission : @host.ClientInferDispatchAdmission,
   entry : @model.ModelCallEntry,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
-  match self.prepare_model_entry_construction(None) {
+  let request = self.request
+  let compiled = self.compiled
+  let definition = self.definition
+  let capture = self.capture
+  match capture.prepare_model_entry_construction(None) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  self.with_current_adoption_material_in_original_read((
+  capture.with_current_adoption_material_in_original_read((
     host,
     _material,
     operations,
@@ -171,10 +214,10 @@ pub fn NativeLocalJournalCapture::persist_model_call_entry_in_original_read(
       is Some(bound) &&
       bound > 0L &&
       bound < 2147483519L &&
-      bound <= self.max_snapshot_bytes else {
+      bound <= capture.max_snapshot_bytes else {
       return Err(Journal(CapacityExceeded))
     }
-    match self.prepare_model_entry_construction(Some(bound.to_int())) {
+    match capture.prepare_model_entry_construction(Some(bound.to_int())) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }
@@ -203,12 +246,12 @@ pub fn NativeLocalJournalCapture::persist_model_call_entry_in_original_read(
           Ok(None) => return Err(CustodyLost)
           Err(issue) => return Err(issue)
         }
-        if !record.dispatch_reserved ||
-          !record.physical_start_claimed ||
-          record.effect_material_originals is None ||
+        if !self.matches_model_call_journal_run(record) ||
           record.checkpoint is Some(_) ||
-          @publication.publication_contract_identity(record.definition) !=
-          @publication.publication_contract_identity(definition) {
+          (
+            self.provider_role is PortableHttp(_) &&
+            record.cancellation_requested
+          ) {
           return Err(ForeignRun)
         }
         // No historical equality/absence shortcut can issue a fresh ACK.
@@ -236,7 +279,7 @@ pub fn NativeLocalJournalCapture::persist_model_call_entry_in_original_read(
           Err(@sqlite.NotFound) => return Err(CustodyLost)
           Err(issue) => return Err(Physical(issue))
         }
-        // The original synchronous Mock owner enters its finite slots in order.
+        // The original Model component enters its finite slots in order.
         // Lost counters, another entry for a past slot and reentry cannot renew
         // consumed calls or recreate accounting from absent metadata.
         if usage.reserved_objects != slot.to_int64() * 2L ||
@@ -256,7 +299,7 @@ pub fn NativeLocalJournalCapture::persist_model_call_entry_in_original_read(
             usage,
             body.length().to_int64(),
             1L,
-            self.max_snapshot_bytes,
+            capture.max_snapshot_bytes,
             count.to_int64() * 2L,
             Some(operations),
           ) {

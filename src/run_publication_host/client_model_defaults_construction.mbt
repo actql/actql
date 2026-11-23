@@ -163,7 +163,25 @@ pub fn client_model_provider_defaults_construction_extent(
 pub fn client_model_provider_defaults_retained_extent(
   original : ClientModelProviderDefaults,
 ) -> @environment.RegistryConstructionExtent? {
-  let n = original.nodes
+  let wire = @publication.run_evidence_value_json(original.binding)
+  client_model_provider_defaults_retained_bound(
+    original.bytes,
+    original.nodes,
+    wire.length(),
+  )
+}
+
+///|
+/// Bound the escaping configuration before construction from its original
+/// bytes, a node upper bound and the measured binding writer upper bound.
+pub fn client_model_provider_defaults_retained_bound(
+  bytes : Int,
+  n : Int,
+  binding_units : Int,
+) -> @environment.RegistryConstructionExtent? {
+  if bytes <= 0 || n <= 0 || binding_units <= 0 {
+    return None
+  }
   // Any nonempty original JSON tree has at most nodes-1 field edges. Its
   // complete actual UTF8 input bounds total decoded UTF16 units (escapes and
   // multibyte scalars cannot expand that count); this is a bound, not a text
@@ -171,7 +189,7 @@ pub fn client_model_provider_defaults_retained_extent(
   guard @source.json_index_borrowed_construction_extent(
       n,
       n - 1,
-      original.bytes.to_int64(),
+      bytes.to_int64(),
       keep_spans=true,
     )
     is Some(source) &&
@@ -191,8 +209,7 @@ pub fn client_model_provider_defaults_retained_extent(
     map_entries: 0L,
   }).unwrap()
   // The binding's closed six-String body and its tiny canonical tree remain
-  // with the original profile. Its actual retained wire is measured once.
-  let wire = @publication.run_evidence_value_json(original.binding)
+  // with the original profile.
   Some({
     record_headers: source.record_headers +
     index.indexed.record_headers +
@@ -206,8 +223,8 @@ pub fn client_model_provider_defaults_retained_extent(
     index.indexed.scalar_words +
     typed.scalar_words +
     12L,
-    owned_utf16_units: source.owned_utf16_units + 3L * wire.length().to_int64(),
-    owned_wire_bytes: original.bytes.to_int64(),
+    owned_utf16_units: source.owned_utf16_units + 3L * binding_units.to_int64(),
+    owned_wire_bytes: bytes.to_int64(),
   })
 }
 

@@ -283,23 +283,23 @@ fn local_host_settings_object(
 }
 
 ///|
-// Call-expanded fixed schema work:31 lookup/element wrappers,18 text and
+// Call-expanded fixed schema work:32 lookup/element wrappers,18 text and
 // six numeric Result alternatives, the number closure, four allowed-key
-// arrays(27 entries) and the optional signing validation array(3 entries).
+// arrays(28 entries) and the optional signing validation array(3 entries).
 fn local_host_settings_fields_prepare() -> Unit raise ClientStop {
   if command_preparation_invocation.val is None {
     return
   }
   let calls = @shape.scale_collection_construction_extent(
     @decode.indexed_child_construction_extent(),
-    31L,
+    32L,
   ).unwrap()
   let body = @shape.collection_construction_extent({
     records: 25L,
     record_references: 25L,
     record_words: 24L,
     reference_arrays: 5L,
-    reference_items: 30L,
+    reference_items: 31L,
     scalar_arrays: 0L,
     scalar_items: 0L,
     maps: 0L,
@@ -328,7 +328,7 @@ fn local_host_settings_array_prepare(count : Int) -> Unit raise ClientStop {
   let n = count.to_int64()
   let retained = @shape.collection_construction_extent({
     records: 9L,
-    record_references: 27L,
+    record_references: 28L,
     record_words: 9L,
     reference_arrays: 1L,
     reference_items: n,
@@ -339,7 +339,7 @@ fn local_host_settings_array_prepare(count : Int) -> Unit raise ClientStop {
   }).unwrap()
   let working = @shape.collection_construction_extent({
     records: 9L,
-    record_references: 27L,
+    record_references: 28L,
     record_words: 9L,
     reference_arrays: 2L,
     reference_items: 2L * n,
