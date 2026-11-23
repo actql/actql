@@ -126,6 +126,7 @@ fn product_assemble_common(
     Array[(String, String)],
     (@authorization.AccountConfigurationConstruction) -> Bool,
   )? = None,
+  original_result_read? : Bool = false,
 ) -> Result[ProductCommonAssembly, ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
   if !product_absolute_location(configuration_root) {
     return Err(InvalidLocation)
@@ -255,10 +256,28 @@ fn product_assemble_common(
               "entries",
               Json::array([
                 product_object([
-                  ("entry_id", Json::string("local-result-read")),
+                  (
+                    "entry_id",
+                    Json::string(
+                      if original_result_read {
+                        @authorization.local_original_result_read_entry_id
+                      } else {
+                        "local-result-read"
+                      },
+                    ),
+                  ),
                   ("principal", product_selector(principal)),
                   ("connection", product_selector(connection)),
-                  ("resource", product_selector("result/answer")),
+                  (
+                    "resource",
+                    product_selector(
+                      if original_result_read {
+                        @authorization.local_original_result_read_resource
+                      } else {
+                        "result/answer"
+                      },
+                    ),
+                  ),
                   ("operation", product_selector("read")),
                   ("outcome", Json::string("allow")),
                   ("exclusions", Json::array([])),
@@ -425,6 +444,7 @@ fn product_assemble_originals(
     sqlite_library == signature_library {
     return Err(InvalidLocation)
   }
+  let original_result_read = finite_run_profile && mock is None
   let common = product_require(
     product_assemble_common(
       configuration_root,
@@ -432,6 +452,7 @@ fn product_assemble_originals(
       assets,
       mock~,
       mock_preparation~,
+      original_result_read~,
     ),
   )
   let profile = if finite_run_profile {
@@ -509,9 +530,16 @@ fn product_assemble_originals(
                 if finite_run_profile {
                   (
                     "result_selection",
-                    product_object([
-                      ("kind", Json::string("requested_original_result")),
-                    ]),
+                    product_object(
+                      if original_result_read {
+                        [
+                          ("authority", Json::string("original_result_read")),
+                          ("kind", Json::string("requested_original_result")),
+                        ]
+                      } else {
+                        [("kind", Json::string("requested_original_result"))]
+                      },
+                    ),
                   )
                 } else {
                   ("result_names", product_texts(["answer"]))
@@ -761,9 +789,29 @@ pub fn client_local_product_common_originals(
   ClientLocalProductCommonOriginals,
   ClientLocalProductConfigurationIssue,
 ] {
+  product_common_bootstrap_originals(
+    configuration_root, observed_at, assets, false,
+  )
+}
+
+///|
+fn product_common_bootstrap_originals(
+  configuration_root : String,
+  observed_at : String,
+  assets : ClientLocalProductAssets,
+  original_result_read : Bool,
+) -> Result[
+  ClientLocalProductCommonOriginals,
+  ClientLocalProductConfigurationIssue,
+] {
   try {
     let common = product_require(
-      product_assemble_common(configuration_root, observed_at, assets),
+      product_assemble_common(
+        configuration_root,
+        observed_at,
+        assets,
+        original_result_read~,
+      ),
     )
     Ok({
       account: @utf8.encode(common.account),
