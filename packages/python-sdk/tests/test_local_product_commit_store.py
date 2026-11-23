@@ -3,6 +3,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+from actql_sdk._local_check import OriginalLocalCheck
 from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_product import InstalledLocalHost
 from actql_sdk._local_run import _RunConfiguration
@@ -27,14 +28,20 @@ class ProductCommitStoreTests(unittest.TestCase):
                 self.assertIsNotNone(core._journal_callbacks(binding._current.ticket).reader)
                 if name == 'count': return 8
                 if name == 'result_count': return 1
+                if name == 'reserve_bounded' and args[2] not in (64, 71):
+                    self.assertEqual(len(args), 4)
+                    self.assertGreaterEqual(args[3], 2 * args[2])
+                    return 200 + args[1]
                 if name in ('produce_material', 'produce_schema'):
                     ordinal, field = args[2:]
                     if name == 'produce_schema':
-                        body = (b'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513'
-                                if field == 0 else b'{"id":{"nullable":false,"type":"number"}}')
+                        identity = b'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513'
+                        wire = b'{"id":{"nullable":false,"type":"number"}}'
+                        body = identity + b':' + str(len(wire)).encode('ascii') if field == 2 else identity if field == 0 else wire
                     else:
-                        body = ((refs.get(ordinal) or b'sha256:' + b'1' * 62 + f'{ordinal:02x}'.encode())
-                                if field == 3 else bodies.get(ordinal, b'original-Core-material-' + str(ordinal).encode()))
+                        identity = refs.get(ordinal) or b'sha256:' + b'1' * 62 + f'{ordinal:02x}'.encode()
+                        wire = bodies.get(ordinal, b'original-Core-material-' + str(ordinal).encode())
+                        body = identity + b':' + str(len(wire)).encode('ascii') if field == 4 else identity if field == 3 else wire
                     core._inputs[args[0] - 200].payload = body
                     return 0
             return previous(family, name, *args)
@@ -55,6 +62,10 @@ class ProductCommitStoreTests(unittest.TestCase):
         host._physical_work = []
         host._uncertain_ticket = None
         host._response_streams = set()
+        host._state_observing = False
+        host._run_state_custody = {}
+        host._saved_result_reads = []
+        host._client_check = OriginalLocalCheck(host)
         return host, store, binding, projection, facts, publisher, originals, frames, scope
 
     def test_original_fields_and_publisher_enter_same_write_frame_but_do_not_ack_run(self):

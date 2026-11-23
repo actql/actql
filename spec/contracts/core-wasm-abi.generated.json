@@ -3834,6 +3834,36 @@
       }
     },
     {
+      "name": "actql_publication_commit_export_emit_sdk_run_state",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state.handle"
+        },
+        {
+          "name": "first_handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state.first_handle"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_emit_sdk_run_state.current_configuration"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/sdk_run_state.mbt",
+        "symbol": "emit_publication_sdk_run_state"
+      }
+    },
+    {
       "name": "actql_publication_commit_export_length",
       "parameters": [
         {
@@ -3851,6 +3881,41 @@
       "source": {
         "path": "src/client_host_wasm/publication_commit_export.mbt",
         "symbol": "publication_commit_export_length"
+      }
+    },
+    {
+      "name": "actql_publication_commit_export_measure_sdk_run_state",
+      "parameters": [
+        {
+          "name": "nonce",
+          "type": "i64",
+          "unit": "positive instance nonce; identity only, not authority"
+        },
+        {
+          "name": "handle",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_measure_sdk_run_state.handle"
+        },
+        {
+          "name": "run",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_measure_sdk_run_state.run"
+        },
+        {
+          "name": "input",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_measure_sdk_run_state.input"
+        },
+        {
+          "name": "current_configuration",
+          "type": "i32",
+          "unit": "same-instance original handle of actql_publication_commit_export_measure_sdk_run_state.current_configuration"
+        }
+      ],
+      "result": "i32",
+      "source": {
+        "path": "src/client_host_wasm/sdk_run_state.mbt",
+        "symbol": "measure_publication_sdk_run_state"
       }
     },
     {
