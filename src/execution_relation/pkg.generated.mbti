@@ -1074,6 +1074,8 @@ pub fn[T] managed_producer_read_same_binding(ManagedProducerRead[T], ManagedProd
 
 pub fn[T] managed_producer_read_schema(ManagedProducerRead[T]) -> @relation_schema.Schema
 
+pub fn[T] managed_producer_read_wire_transfer_bound(ManagedProducerRead[T], Int, Int) -> Int64?
+
 pub fn[T] managed_publication_bridge_fixed_entries(ManagedCompletedOutput[T]) -> Int
 
 pub fn[T] managed_publication_bridge_import_geometry(ManagedCompletedOutput[T], ManagedRetainedOutput[T], Int, Int) -> ManagedPublicationBridgeLimits?

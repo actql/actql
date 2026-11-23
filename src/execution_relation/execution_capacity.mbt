@@ -791,6 +791,14 @@ pub fn generated_bounded_sequence_capacity(
       return generated_sequence_capacity(generated, limits, measurement)
     }
     { retained_bytes: full.retained_bytes, execution_bytes: execution, }
+  } else if borrowed_string_group {
+    guard operation is @lower.RowStep(kernel) &&
+      bounded_string_group_cast_capacity(kernel, limits) is Some(staged) &&
+      checked_preparation_add_product(ordinary.execution_bytes, staged, 1L)
+      is Some(execution) else {
+      return generated_sequence_capacity(generated, limits, measurement)
+    }
+    { ..ordinary, execution_bytes: execution, }
   } else {
     ordinary
   }

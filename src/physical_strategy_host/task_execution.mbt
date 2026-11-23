@@ -224,6 +224,7 @@ pub fn[I, T] start_captured_managed_execution(
   run : CapturedDAG,
   task : Int,
   prepared : @connector.PreparedManagedExecution[I, T, RunIssue],
+  transfer_limit? : Int64,
 ) -> Result[(T, TaskExecution), RunIssue] {
   if run.stopped {
     return Err(Stopped)
@@ -275,11 +276,14 @@ pub fn[I, T] start_captured_managed_execution(
     return Err(ForeignCandidate)
   }
   let capacity = @connector.prepared_managed_execution_capacity(prepared)
-  let transfer = capacity.transfer_bytes
+  // An installed row transport may bound this exact attempt more tightly.
+  // The original prepared capacity still limits the reservation.
+  let transfer = transfer_limit.unwrap_or(capacity.transfer_bytes)
   let retention = capacity.retained_bytes
   let scratch = capacity.scratch_bytes
   let execution_capacity = capacity.execution_bytes
   if transfer < 0L ||
+    transfer > capacity.transfer_bytes ||
     retention < 0L ||
     scratch < 0L ||
     execution_capacity < scratch {

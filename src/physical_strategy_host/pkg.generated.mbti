@@ -1015,7 +1015,7 @@ pub fn start_captured_effect_local_result_export(CapturedEffectInputs, Int, @exe
 
 pub fn start_captured_effect_local_unit_result_export(CapturedEffectLocalUnitInputs, Int, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
 
-pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
+pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue], transfer_limit? : Int64) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 

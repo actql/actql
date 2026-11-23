@@ -26,5 +26,6 @@ import {
 
 import {
   "actql/actql/canonical_json" @identity,
+  "moonbitlang/core/debug",
   "moonbitlang/core/json",
 } for "wbtest"
