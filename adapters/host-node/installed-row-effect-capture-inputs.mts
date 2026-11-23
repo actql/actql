@@ -10,13 +10,15 @@ import type {InstalledEffectPlanRecipe} from './installed-effect-recipe.mjs';
 import type {createInstalledRowEffectPhysicalOperation} from './installed-row-effect-physical-read.mjs';
 import type {createInstalledRowEffectCaptureRows} from './installed-row-effect-capture-rows.mjs';
 import type {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
+import type {preparePinnedEffectSourceSet} from './effect-input-export.mjs';
 
 type MemberRef = Readonly<{kind: string; memberIndex: number; resource: string}>;
 type Operation<Member extends MemberRef> = Parameters<ReturnType<typeof createInstalledRowEffectPhysicalOperation<Member>>>[0];
 type PhysicalRun = NonNullable<Operation<MemberRef>['managedEffect']>;
 type NativeRun = Parameters<typeof prepareInstalledEffectRequestChild<undefined>>[0]['run'];
 type Construction = ReturnType<typeof prepareInstalledEffectControlConstruction>;
-type Runtime = (PhysicalRun & NativeRun)['runtime'] & Readonly<{
+type SourceInput = Parameters<typeof preparePinnedEffectSourceSet>[0];
+type Runtime = (PhysicalRun & NativeRun)['runtime'] & SourceInput['moon'] & Readonly<{
   clientProgramPinEffectSources(host: unknown, maxPinnedResults: number): unknown;
   clientProgramInstalledEffectDependencySourcesPin(parent: unknown, prepared: unknown, identity: unknown,
     plan: unknown, host: unknown, maxPinnedResults: number): unknown;
@@ -47,37 +49,31 @@ type Limits = Readonly<{
   maxPinnedResults: number; maxRows: number; maxRowsPerMember: number; maxFields: number; maxWork: number;
   body: Readonly<{maxBytes: number; maxNodes: number; maxDepth: number}>;
 }>;
-type Control = ReleaseOptions['control'] & Readonly<{
+type Control = ReleaseOptions['control'] & SourceInput['control'] & Readonly<{
   bindCheckedInstalledEffectSourceFreeInvocation(parent: unknown, prepared: unknown, identity: unknown, plan: unknown,
     host: unknown, admission: unknown, definition: unknown, invocation: unknown): unknown;
   prepareEffectCommandContentArtifact(prepared: unknown, inputs: unknown, memberIndex: number, artifact: unknown, limits: Limits): unknown;
   releaseEffectCommandContentArtifact(artifact: unknown, maxWork: number): boolean;
 }>;
 type Plan<Output> = Readonly<{
-  outputLimits: Output; admission?: unknown; runDefinition: unknown; invocation: unknown;
-  sourceFreeInvocationOriginal?: unknown; effectInputRetention: unknown; contractLimits: unknown; localEvidenceContext?: unknown;
+  outputLimits: Output; admission?: unknown; runDefinition: SourceInput['localEvidenceContext']['runDefinition'];
+  invocation: SourceInput['invocation']; sourceFreeInvocationOriginal?: unknown;
+  effectInputRetention: SourceInput['retention']; contractLimits: SourceInput['contractLimits'];
+  localEvidenceContext: SourceInput['localEvidenceContext'];
 }>;
 type Owner<Member> = Readonly<{
   owned: Readonly<{recoveryEntry?(facts: Readonly<{member: Member; current: unknown; entries: readonly Entry[]}>): RecoveryEntry | undefined}>;
   profile: Readonly<{source: string}>;
   issueOriginalCollectionReference?(pair: unknown, maxWork: number): unknown;
 }>;
-type Store = Readonly<{storeAuthorityCid: string}>;
-type ExportInputs = Readonly<{
-  moon: Runtime; dependencyConstruction?: Construction;
-  commandWorkspaces?: readonly unknown[]; publishedTargets?: readonly unknown[];
+type Store = SourceInput['store'];
+type ExportInputs = SourceInput & Readonly<{
   onCommandKey(memberIndex: number, key: unknown): void;
-  checkedOwner: unknown; execution: unknown; inputs: unknown; maxMembers: number; maxGroupingWork: number;
-  limits: unknown; store: Store; maxBytes: number; control: Control;
-  invocation: unknown; retention: unknown; memberSourceBindings?: readonly Readonly<{memberIndex: number; sourceBindingCid: string}>[];
-  sourceBindingCid?: string; contractLimits: unknown; localEvidenceContext?: unknown;
-  proposalLimits: Readonly<{maxFields: number; maxWork: number; maxBytes: number; maxNodes: number; maxDepth: number; maxUtf16Units: number}>;
   onOriginalArtifact(artifact: unknown, memberIndex: number): void;
   onProposalRow(memberIndex: number, rowIndex: number, proposal: Proposal): void;
-  signal?: AbortSignal;
 }>;
 type Options<Member extends MemberRef, Output extends {maxWireBytes: number}, Sources extends SourceSet, RunLimits extends Limits> = Readonly<{
-  moon: Runtime; control: Control; store: Store; execution: unknown; checkedHost: unknown;
+  moon: Runtime; control: Control; store: Store; execution: SourceInput['execution']; checkedHost: unknown;
   prepared: unknown; identity: unknown; plan: Plan<Output>; members: readonly Member[];
   runInvocationCid: string; signal?: AbortSignal; managedEffect?: Run; assertCurrent?: Current;
   ownInputs(release: () => Promise<void>, finish: () => void): void;

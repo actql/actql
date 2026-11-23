@@ -2,7 +2,6 @@
 // owner. This is a trusted Host connection, not a public Table installer, a
 // second approval/Run owner, or authority derived from operation content.
 import {authorizationDispatchFacts} from '../host-common/authorization-gate.mjs';
-// @ts-expect-error TS7016: Effect input export still has a JavaScript entry.
 import {readPinnedEffectTableInput} from './effect-input-export.mjs';
 import {readRecoveredTableInput, assertRecoveredTableInputAvailable}
   from './table-capture-recovery.mjs';
@@ -50,7 +49,8 @@ type PreparePorts = Readonly<{
 }>;
 type CapturedInput = PreparePorts & Readonly<{
   control: CapturedControl; store: Parameters<typeof prepareRecoveredTableInput>[0]['store'];
-  holding: object; tableInput: Readonly<{wire: string}>; identity: object;
+  holding: Parameters<typeof readPinnedEffectTableInput>[0]['holding'];
+  tableInput: Readonly<{wire: string}>; identity: object;
   tablePreview: TablePreview; limits: Settlement['limits'];
 }>;
 type RecoveredInput = PreparePorts & Readonly<{

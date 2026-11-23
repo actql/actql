@@ -17,7 +17,8 @@ type Limits = Parameters<Retention['control']['admit']>[2];
 type Body = Readonly<{kind: string; wire: string; cid?: string}>;
 type Wire = Readonly<{identity: string; wire: string}>;
 type Stream = Parameters<typeof exportPinnedResult<Contract | undefined>>[0];
-type ProposalBounds = Readonly<Limits & {maxFields: number; maxWork: number; maxBytes: number; maxUtf16Units: number}>;
+type ProposalBounds = Readonly<Pick<Limits, 'maxNodes' | 'maxDepth'> &
+  {maxFields: number; maxWork: number; maxBytes: number; maxUtf16Units: number}>;
 type Store = Pick<Awaited<ReturnType<typeof openLocalPublicationStore>>, 'createPreparedObjectWriter' | 'storeAuthorityCid'>;
 type Writer = ReturnType<Store['createPreparedObjectWriter']>;
 type Sealed = Awaited<ReturnType<Writer['seal']>>;

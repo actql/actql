@@ -120,7 +120,6 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from
   '../../packages/sdk/host-port.mjs';
-// @ts-expect-error TS7016: the pinned Source export owner is still authored in JavaScript.
 import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet, retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';

@@ -12955,7 +12955,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "7e7382a5b72b351eb16ea958f7aef094a28cb931962f69d1594cc64bbe68238c",
+      "sha256": "4275ee4daaa4618b70a71740d91d7790c27fbdbdd8cd18482699345dd5274439",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -25994,7 +25994,7 @@
     },
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
-      "sha256": "be87202b68a3972048821b9bf68ca0c491d56581544fa09102a5a83eece3bac1",
+      "sha256": "3a1845c3d363f7859093c6fa32677b8ad30daa942ecae7f507cee64c28457c5e",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing whole-Relation Table Effect hook; original common Run/Checkpoint/capture/Ledger/apply and publication owners govern it",

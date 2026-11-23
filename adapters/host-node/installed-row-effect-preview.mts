@@ -119,7 +119,7 @@ type PreviewInput<Member> = Readonly<{
   rowsOf: readonly (readonly PreviewRow[])[];
   capabilities: readonly HeldResult[];
   footprints: readonly unknown[];
-  payloads: readonly Readonly<{summary: Readonly<{artifact: unknown}>; localResultArtifact: HeldResult}>[];
+  payloads: readonly Readonly<{summary: Readonly<{artifact?: unknown}>; localResultArtifact: HeldResult}>[];
 }>;
 type PreviewControls<Member extends PreviewMember> = Readonly<{
   moon: PreviewRuntime;

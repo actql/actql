@@ -6353,7 +6353,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "6ee038201e3a4968d1e5801b34d48d2852a98fe7eedaa6d42626e92833b8da7a",
+      "sha256": "3ef369364c43adedd5b307e39fa18c6e694d7f6f53f9f26213f53418ce24b8b5",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -6561,7 +6561,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -6609,7 +6609,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "All prepared payloads stay under the existing publication cleanup owner"
               },
               {
@@ -6631,7 +6631,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -6653,7 +6653,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "Pending owners escape on error"
               },
               {
@@ -6701,7 +6701,7 @@
                 "anchor": "EffectDependencyEntryLimit"
               },
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "EffectDependencyBodyByteLimit"
               },
               {
@@ -6825,7 +6825,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -6873,7 +6873,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "All prepared payloads stay under the existing publication cleanup owner"
               },
               {
@@ -6895,7 +6895,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -6917,7 +6917,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "Pending owners escape on error"
               },
               {
@@ -6965,7 +6965,7 @@
                 "anchor": "EffectDependencyEntryLimit"
               },
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "EffectDependencyBodyByteLimit"
               },
               {

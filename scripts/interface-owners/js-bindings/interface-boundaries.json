@@ -47262,7 +47262,7 @@
     {
       "module": "adapters/host-node/effect-input-export.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "6ee038201e3a4968d1e5801b34d48d2852a98fe7eedaa6d42626e92833b8da7a",
+      "sha256": "3ef369364c43adedd5b307e39fa18c6e694d7f6f53f9f26213f53418ce24b8b5",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -47420,7 +47420,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47430,7 +47430,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47440,7 +47440,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47450,7 +47450,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47460,7 +47460,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47470,7 +47470,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47480,7 +47480,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47490,7 +47490,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47500,7 +47500,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47510,7 +47510,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "commitPinnedEffectSourceHolding"
               },
               {
@@ -47763,7 +47763,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47781,7 +47781,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47799,7 +47799,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47817,7 +47817,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47835,7 +47835,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47853,7 +47853,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47871,7 +47871,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47889,7 +47889,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47907,7 +47907,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -47925,7 +47925,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "prepareDependentEffectSourceSet"
               },
               {
@@ -48079,7 +48079,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48089,7 +48089,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48099,7 +48099,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48109,7 +48109,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48119,7 +48119,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48129,7 +48129,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48139,7 +48139,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48149,7 +48149,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48159,7 +48159,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48169,7 +48169,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceHoldings"
               },
               {
@@ -48313,7 +48313,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48331,7 +48331,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48349,7 +48349,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48367,7 +48367,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48385,7 +48385,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48403,7 +48403,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48421,7 +48421,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48439,7 +48439,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48457,7 +48457,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48475,7 +48475,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "preparePinnedEffectSourceSet"
               },
               {
@@ -48517,7 +48517,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48527,7 +48527,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48537,7 +48537,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48547,7 +48547,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48557,7 +48557,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48567,7 +48567,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48577,7 +48577,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48587,7 +48587,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48597,7 +48597,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48607,7 +48607,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readPinnedEffectTableInput"
               },
               {
@@ -48629,7 +48629,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48639,7 +48639,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48649,7 +48649,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48659,7 +48659,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48669,7 +48669,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48679,7 +48679,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48689,7 +48689,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48699,7 +48699,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48709,7 +48709,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48719,7 +48719,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "readRecoveredEffectTableInput"
               },
               {
@@ -48853,7 +48853,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48867,7 +48867,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48881,7 +48881,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48895,7 +48895,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48909,7 +48909,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48923,7 +48923,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48937,7 +48937,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48951,7 +48951,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48965,7 +48965,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -48979,7 +48979,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/effect-input-export.mjs",
+                "path": "adapters/host-node/effect-input-export.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -96077,7 +96077,7 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7e7382a5b72b351eb16ea958f7aef094a28cb931962f69d1594cc64bbe68238c",
+      "sha256": "4275ee4daaa4618b70a71740d91d7790c27fbdbdd8cd18482699345dd5274439",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -111258,7 +111258,7 @@
     {
       "module": "adapters/host-node/installed-table-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "be87202b68a3972048821b9bf68ca0c491d56581544fa09102a5a83eece3bac1",
+      "sha256": "3a1845c3d363f7859093c6fa32677b8ad30daa942ecae7f507cee64c28457c5e",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [

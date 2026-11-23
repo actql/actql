@@ -104543,7 +104543,7 @@
     {
       "module": "adapters/host-node/table-commit-apply.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5123b4277b8e85f939890a93dca72c0f6830791a1eebc9c105d8f26844282828",
+      "sha256": "68c2a6ac572fd62fb2e06c61b3ce7055778b158cd7ee17f107f7bfac23fd1eca",
       "role": "physical-io",
       "owner": "Existing captured Effect/typed Table outcome Owners and physical Catalog port",
       "exports": [

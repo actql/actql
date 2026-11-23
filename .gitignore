@@ -2356,6 +2356,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/effect-source-holdings.d.mts
 /adapters/host-node/effect-source-dependencies.mjs
 /adapters/host-node/effect-source-dependencies.d.mts
+/adapters/host-node/effect-input-export.mjs
+/adapters/host-node/effect-input-export.d.mts
 /adapters/host-node/effect-source-payload.mjs
 /adapters/host-node/effect-source-payload.d.mts
 /adapters/host-node/effect-source-stream.mjs

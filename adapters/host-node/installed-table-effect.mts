@@ -21,7 +21,6 @@ import {prepareInstalledPhysicalWritePlanRecipe} from './installed-effect-recipe
 import {prepareInstalledEffectManagedPlan} from './installed-effect-managed-plan.mjs';
 import {preparePinnedEffectSourceSet, preparePinnedEffectSourceHoldings,
   retainPinnedEffectDependencyPayloads}
-  // @ts-expect-error TS7016: the Effect source export owner still has a JavaScript entry.
   from './effect-input-export.mjs';
 import {authorTableOperationPreview} from './table-operation-preview.mjs';
 import {capturedTableRecoveryRecord, prepareRecoveredTableInput}
@@ -43,6 +42,9 @@ import type {applyCapturedEffectSet} from './effect-run-apply.mjs';
 type PreviewOptions = Parameters<typeof authorTableOperationPreview>[0];
 type PreviewContext = Omit<PreviewOptions['context'], 'storeAuthorityCid'>;
 type CaptureResult = Parameters<typeof storeCompletedRunResultSet>[0];
+type SourceInputs = Parameters<typeof preparePinnedEffectSourceSet>[0];
+type SourceHolding = Parameters<typeof preparePinnedEffectSourceHoldings>[0];
+type DependencyRetention = Parameters<typeof retainPinnedEffectDependencyPayloads>[0];
 type IssueCapture = Parameters<typeof issueCompletedEffectfulComputationEvidence>[0];
 type DurableOptions = Parameters<typeof prepareRecoveredTableInput>[0];
 type DispatchOwner = Parameters<typeof bindApprovedTableCommitDispatch>[0];
@@ -66,6 +68,7 @@ type Keys = NonNullable<ReturnType<typeof authorTableOperationPreview>['keys']>;
 type Binding = Parameters<typeof capturedTableRecoveryRecord>[0];
 type Control = CaptureResult['control'] & IssueCapture['control'] & DurableOptions['control'] &
   PreviewOptions['control'] & DispatchOwner['control'] & PhysicalOptions['control'] & Binding['control'] &
+  SourceInputs['control'] & SourceHolding['control'] & DependencyRetention['control'] &
   Readonly<{
     effectComputationPreviewWire(preview: IssueCapture['preview']): string;
     bindCheckedInstalledEffectSourceFreeInvocation(parent: unknown, prepared: unknown,
@@ -81,7 +84,8 @@ type Ledger = DispatchOwner['ledger'] & ReconcileOptions['ledger'] & Apply['ledg
 }>;
 type PlanBuilder = Parameters<typeof prepareInstalledEffectManagedPlan>[0];
 type PhysicalPlanBuilder = Parameters<typeof prepareInstalledPhysicalWritePlanRecipe>[0];
-type Runtime = PreviewOptions['moon'] & Apply['moon'] & PlanBuilder['moon'] & PhysicalPlanBuilder['moon'] & Readonly<{
+type Runtime = PreviewOptions['moon'] & Apply['moon'] & PlanBuilder['moon'] & PhysicalPlanBuilder['moon'] &
+  SourceInputs['moon'] & Readonly<{
   clientProgramEffectCompilationPlanWire(compilation: unknown): string;
   clientProgramEffectCompilationCompiledPlanWire(compilation: unknown): string;
   clientProgramEffectInputExportLimits(...limits: number[]): unknown;
@@ -116,15 +120,17 @@ type InstallOptions = Readonly<{
 type Plan = Pick<CaptureResult, 'runDefinition' | 'invocation' | 'results' | 'contractLimits'> &
   Pick<IssueCapture, 'admission' | 'observation' | 'normalizationJournal' | 'receiptEvidence' | 'captureEvidence'> &
   Pick<Publication, 'request' | 'attempt' | 'now'> & Readonly<{
-    outputLimits: OutputLimits; invocationOwner: unknown; effectInputRetention: Readonly<{identity: string}>;
-    localEvidenceContext?: unknown; sourceFreeInvocationOriginal?: unknown;
+    outputLimits: OutputLimits; invocationOwner: unknown; effectInputRetention: SourceInputs['retention'];
+    localEvidenceContext: SourceInputs['localEvidenceContext']; sourceFreeInvocationOriginal?: unknown;
   }>;
-type TableStore = CaptureResult['store'] & Parameters<typeof prepareRecoveredTableInput>[0]['store'];
+type TableStore = CaptureResult['store'] & Parameters<typeof prepareRecoveredTableInput>[0]['store'] &
+  SourceInputs['store'] & SourceHolding['store'];
 type CapturedFacts = Readonly<{
-  moon: Runtime; control: Control; store: TableStore; execution: CaptureResult['execution'];
+  moon: Runtime; control: Control; store: TableStore; execution: CaptureResult['execution'] & SourceInputs['execution'];
   checkedHost: unknown; prepared: unknown; identity: unknown; compilation: unknown; unit?: Unit;
   definition?: unknown; publicationPlan?: Plan; plan?: Plan; previewContext?: PreviewContext;
-  managedEffect?: Parameters<typeof prepareInstalledEffectResultProgress>[0] & Readonly<{controlConstruction?: unknown}>;
+  managedEffect?: Parameters<typeof prepareInstalledEffectResultProgress>[0] &
+    Readonly<{controlConstruction?: SourceInputs['dependencyConstruction']}>;
   signal?: AbortSignal;
 }>;
 type StoredProvider = Readonly<{
@@ -163,15 +169,8 @@ type Stage<Results extends StagedResults> = Pick<Publication, 'request' | 'attem
   preview: IssueCapture['preview']; applyPreview: unknown; ledger: Ledger; body: PreviewBody;
   members: readonly Member[]; scopes: DispatchOwner['scopes']; owner: CleanupOwner; continuationWire: string;
 }>;
-type SourceInventory = Readonly<{
-  members: readonly Readonly<{payload: PreviewOptions['members'][number]['payload']}>[];
-  payloads: readonly Readonly<{prepared: Schema}>[];
-  dependencies?: unknown;
-}>;
-type RetainedSources = Readonly<{
-  holdings: IssueCapture['effectSourceHoldings'];
-  commit(): Promise<IssueCapture['effectSourceHoldings']>;
-}>;
+type SourceInventory = Awaited<ReturnType<typeof preparePinnedEffectSourceSet>>;
+type RetainedSources = ReturnType<typeof preparePinnedEffectSourceHoldings>;
 type OperationSlot = Readonly<{operation: string; extent: unknown}>;
 type ManagedRecipe = Readonly<{memberOperations: readonly OperationSlot[]; rowOperations: readonly OperationSlot[]}>;
 
@@ -542,7 +541,7 @@ export async function createInstalledTableEffect({moon, environmentWire, sourceI
         retention: plan.effectInputRetention, contractLimits: plan.contractLimits,
         localEvidenceContext: plan.localEvidenceContext,
         sourceBindingCid: hash({version: 'actql-installed-local-table-source/0.1',
-          run_invocation_cid: plan.invocation.identity, store_authority_cid: store.storeAuthorityCid}), signal}) as SourceInventory;
+          run_invocation_cid: plan.invocation.identity, store_authority_cid: store.storeAuthorityCid}), signal});
       if (sources.dependencies !== undefined) retainPinnedEffectDependencyPayloads({sources,
         execution, store, storedResults, control, runDefinition: plan.runDefinition});
       const authored = authorTableOperationPreview({moon, control, prepared, inputs, bridge,

@@ -17,6 +17,8 @@ import type {createInstalledRowEffectReadOperations} from './installed-row-effec
 import type {createInstalledRowEffectFootprint, createInstalledRowEffectPreview,
   createInstalledRowEffectPreviewContext} from './installed-row-effect-preview.mjs';
 import type {createInstalledRowEffectMembers, createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
+import type {preparePinnedEffectSourceSet, preparePinnedEffectSourceHoldings,
+  retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 
 type Requests = ReturnType<typeof createInstalledRowEffectRequests>;
 type RequestMember = Parameters<Requests['requestEntry']>[0];
@@ -38,11 +40,14 @@ type PreviewInput = Parameters<Preview>[0];
 type Ledger = RouteInput['ledger'];
 type ReadOperations = ReturnType<typeof createInstalledRowEffectReadOperations<Member>>;
 type BaseCapture = Parameters<typeof prepareInstalledRowEffectCaptureInputs>[0];
+type SourceInputs = Parameters<typeof preparePinnedEffectSourceSet>[0];
+type SourceHolding = Parameters<typeof preparePinnedEffectSourceHoldings>[0];
+type DependencyRetention = Parameters<typeof retainPinnedEffectDependencyPayloads>[0];
 type Entry = ReturnType<Requests['requestEntry']> & ClaimInput['entries'][number][number];
 type Entries = readonly (readonly Entry[])[];
 type Limits = ReturnType<BaseCapture['runLimits']> & PreviewInput['limits'] & Readonly<{maxFrontierWork: number}>;
 type Control = BaseCapture['control'] & EffectCapture['control'] & PreviewInput['control'] &
-  Parameters<Values['commandContentBorrower']>[0]['control'];
+  Parameters<Values['commandContentBorrower']>[0]['control'] & SourceHolding['control'] & DependencyRetention['control'];
 type Runtime = BaseCapture['moon'] & RowOptions['moon'] & VerifyPlan['moon'] & Readonly<{
   clientProgramEffectInputAt(inputs: unknown, index: number): unknown;
   clientProgramEffectInputStage(input: unknown): number;
@@ -53,11 +58,7 @@ type Runtime = BaseCapture['moon'] & RowOptions['moon'] & VerifyPlan['moon'] & R
     stage: number, wire: string, authoringCid: string, limits: unknown): unknown;
   clientProgramEffectApplySubjectCid(previewInputs: unknown): string | undefined;
 }>;
-type Payload = PreviewInput['payloads'][number];
-type SourceSet = NonNullable<ReturnType<BaseCapture['readSourceSet']>> & Readonly<{
-  members: readonly Readonly<{payload: Payload}>[];
-  dependencies?: readonly unknown[];
-}>;
+type SourceSet = Awaited<ReturnType<typeof preparePinnedEffectSourceSet>>;
 type CaptureOptions = Parameters<typeof prepareInstalledRowEffectCaptureInputs<Member, BaseCapture['plan']['outputLimits'],
   SourceSet, Limits>>[0];
 type StageOwner = Omit<ReturnType<BaseCapture['ownerOf']>, 'owned' | 'profile'> & Readonly<{
@@ -73,9 +74,9 @@ type StageOwner = Omit<ReturnType<BaseCapture['ownerOf']>, 'owned' | 'profile'> 
 type EffectIntent = Pick<EffectCapture, 'runDefinition' | 'invocation' | 'admission' | 'observation' |
   'normalizationJournal' | 'receiptEvidence' | 'captureEvidence' | 'contractLimits'> & Readonly<{
   outputLimits: BaseCapture['plan']['outputLimits'];
-  effectInputRetention: Readonly<{identity: string}>;
+  effectInputRetention: SourceInputs['retention'];
   runDefinition: EffectCapture['runDefinition'] & Readonly<{identity: string}>;
-  sourceFreeInvocationOriginal?: unknown; localEvidenceContext?: unknown;
+  sourceFreeInvocationOriginal?: unknown; localEvidenceContext: SourceInputs['localEvidenceContext'];
   request: unknown; attempt: unknown; now?: unknown;
 }>;
 type PreflightEffect = Parameters<Context['basePreflight']>[0]['effects'][number];
@@ -84,8 +85,8 @@ type BodyEffect = Omit<ClaimInput['body']['effects'][number] & PreflightEffect, 
   Readonly<{changes: readonly BodyRow[]}>;
 type Body = Readonly<{run_identity_cid: string; authoring_context: unknown; effects: readonly BodyEffect[]}>;
 type StageInputs = Readonly<{
-  control: Control; store: BaseCapture['store'] & EffectCapture['store'];
-  execution: EffectCapture['execution'] & VerifyPlan['execution'];
+  control: Control; store: BaseCapture['store'] & EffectCapture['store'] & SourceHolding['store'];
+  execution: EffectCapture['execution'] & VerifyPlan['execution'] & SourceInputs['execution'];
   checkedHost: unknown; prepared: unknown; identity: unknown; plan: EffectIntent;
   previewContext: Omit<PreviewInput['context'], 'storeAuthorityCid'>;
   unit: Parameters<Context['continuationOf']>[1] & ClaimInput['unit'];
@@ -103,17 +104,13 @@ type StageControls = Readonly<{
   prepareCredentialOperation: CaptureOptions['prepareCredentialOperation'];
   recipeOf: BaseCapture['recipeOf']; singular?: StageOwner;
   cid: BaseCapture['cid']; exportLimits: BaseCapture['exportLimits'];
-  preparePinnedEffectSourceSet(options: Parameters<BaseCapture['preparePinnedEffectSourceSet']>[0]): Promise<SourceSet>;
+  preparePinnedEffectSourceSet: typeof preparePinnedEffectSourceSet;
   guarded: RowOptions['guarded']; targeted: RowOptions['targeted']; checkSubject(runInvocationCid: string, member: Member): string;
   decideTargetRead: ReturnType<typeof createInstalledRowEffectTargetAuthorization<Member>>;
   resourceFields: RowOptions['resourceFields']; sameEffectValue(kind: Member['kind'], left: unknown, right: unknown): boolean;
   sameValue(left: unknown, right: unknown): boolean;
-  retainPinnedEffectDependencyPayloads(options: Pick<StageInputs, 'execution' | 'store' | 'storedResults' | 'control'> &
-    Readonly<{sources: SourceSet; runDefinition: EffectIntent['runDefinition']}>): unknown;
-  preparePinnedEffectSourceHoldings(options: Pick<StageInputs, 'store' | 'control'> & Readonly<{
-    sources: SourceSet; preview: EffectCapture['preview']; invocation: EffectIntent['invocation'];
-    resultArtifacts: readonly Payload['localResultArtifact'][];
-  }>): Readonly<{commit(): Promise<EffectCapture['effectSourceHoldings']>}>;
+  retainPinnedEffectDependencyPayloads: typeof retainPinnedEffectDependencyPayloads;
+  preparePinnedEffectSourceHoldings: typeof preparePinnedEffectSourceHoldings;
   effect: Effect; openLedger(identity: unknown, construction: RowOptions['controlConstruction']): Ledger;
   physicalRoute: Route; authorPreview: Preview; footprintOf: ReturnType<typeof createInstalledRowEffectFootprint<Member>>;
   scopes: ReturnType<typeof createInstalledRowEffectMembers>['scopes'];

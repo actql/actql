@@ -30,7 +30,7 @@ type Runtime = Readonly<{
   clientProgramEffectRequestScope(prepared: unknown, identity: unknown): unknown;
 }>;
 type CaptureFacts<Control, Plan> = Readonly<{
-  moon: Runtime; control: Control; store: ResultsInput['store']; execution: ActualStage['execution'];
+  moon: Runtime; control: Control; store: ActualStage['store']; execution: ActualStage['execution'];
   checkedHost: unknown; prepared: unknown; identity: unknown; definition?: unknown; compilation?: unknown;
   signal?: AbortSignal; targetReads?: RouteOptions['targetReads']; contentOwner?: unknown;
   publicationPlan?: Plan; plan?: Plan; previewContext?: PreviewContext; unit?: EffectUnit;

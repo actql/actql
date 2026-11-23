@@ -60,7 +60,7 @@ type Target = Parameters<typeof verifyTableWriteBinding>[0] & Readonly<{
   catalogCid: string; namespace: readonly string[]; tableName: string; footprint: unknown;
 }>;
 type Member = Readonly<{stageIndex: number; effectId: string; target: Target;
-  payload: Readonly<{localResultArtifact: WireIdentity; summary: Readonly<{artifact: unknown}>}>}>;
+  payload: Readonly<{localResultArtifact: WireIdentity; summary: Readonly<{artifact?: unknown}>}>}>;
 type PreviewInputs = Readonly<{
   moon: Runtime; control: Control; prepared: unknown; inputs: unknown; checkedHost: unknown; requestScope: unknown;
   context: Readonly<{runDefinition: unknown; runInvocation: unknown; compiledPlan: unknown; storeAuthorityCid: string}>;
