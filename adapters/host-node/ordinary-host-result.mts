@@ -1,34 +1,62 @@
-import {validOriginalResultPublicationExtent} from './host-result-service-recipe.cjs';
+import resultServiceRecipe from './host-result-service-recipe.cjs';
 import {join} from 'node:path';
 import {ordinaryHostJournalInstallation} from './ordinary-host-journal.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+// @ts-expect-error TS7016: The private evidence installation owner still uses authored JavaScript.
 import {preparePrivateEvidenceKeyInstallation} from './local-continuation-evidence.mjs';
+
+import type {HostJournalOriginals} from './ordinary-host-journal.mjs';
+
+type Store = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type Subject = Readonly<{
+  root: string; control: object; storeAuthorityCid: string; privateEvidenceKey?: Uint8Array;
+}>;
+type StoreOptions = Readonly<{
+  directory: string; storeAuthorityCid: string; privateEvidenceKey?: Uint8Array;
+  capacityBytes: number; maxObjectBytes: number; maxObjects: number;
+  maxContractNodes: number; maxContractDepth: number;
+}>;
+type RunExtent = Readonly<{resultCount: number; maxRows: number; maxContractBytes: number}>;
+type ReadRunExtent = (originals: HostJournalOriginals, prepared: object) => RunExtent;
+type RunKind = 'pure' | 'effect';
+type Admission = RunExtent & Readonly<{kind: RunKind;
+  capacity: Readonly<{retainedBytes: bigint; workspaceBytes: bigint}>}>;
+type CloseStatus = Readonly<{pending: boolean; storePending: boolean; constructorCleanupPending: boolean}>;
+type Cleanup = Readonly<{status?: unknown; retry?: unknown}>;
+type OpenFailure = Readonly<{cleanupHandle?: Cleanup; cleanupPending?: unknown}>;
+type KeyInstallation = Readonly<{key: Buffer; adoptStore(store: Store): Promise<void>}>;
+
+const {validOriginalResultPublicationExtent} = resultServiceRecipe;
 
 // Ordinary resource acquisition in the existing Result/Store responsibility.
 // Same-Host identities and typed control remain, but a trusted in-process
 // constructor does not need a whole-runtime/preload provenance certificate.
-export function prepareOrdinaryHostResult(originals, subject, requirements, effectRequirements) {
+export function prepareOrdinaryHostResult(originals: HostJournalOriginals,
+  subject: Subject | undefined, requirements: ReadRunExtent | undefined, effectRequirements?: ReadRunExtent) {
   const journal = ordinaryHostJournalInstallation(originals);
-  let closing = false, closed = false, attempted = false, store, storeClose;
-  let openFlight, keyFlight, closeFlight, cleanup, cleanupStatus, cleanupRetry, failure;
-  let keyInstallation;
-  let contentEvidenceStore;
+  let closing = false, closed = false, attempted = false,
+    store: Store | undefined, storeClose: Store['close'] | undefined;
+  let openFlight: Promise<Store> | undefined, keyFlight: Promise<void> | undefined,
+    closeFlight: Promise<CloseStatus> | undefined, cleanup: Cleanup | undefined,
+    cleanupStatus: unknown, cleanupRetry: unknown, failure: unknown;
+  let keyInstallation: KeyInstallation | undefined;
+  let contentEvidenceStore: Store | undefined;
   let keyOperationPending = false;
   const keyDuty = Object.freeze({status: () => Object.freeze({pending: keyOperationPending})});
   let keyDutyRetained = false;
-  let admittedRuns = new WeakMap();
+  let admittedRuns = new WeakMap<object, Admission>();
   const current = () => {
     if (closing || closed) throw Object.assign(new Error('HostResultPublicationUnavailable'),
       {code: 'HostResultPublicationUnavailable'});
     journal.assertCurrent();
   };
-  const ack = value => {
+  const ack = (value: unknown) => {
     const field = value !== null && typeof value === 'object'
       ? Object.getOwnPropertyDescriptor(value, 'pending') : undefined;
     return field !== undefined && Object.hasOwn(field, 'value') && field.value === false;
   };
   const status = () => Object.freeze({pending: !closed, storePending: store !== undefined && !store.status().closed,
-    constructorCleanupPending: cleanup !== undefined || failure?.cleanupPending === true});
+    constructorCleanupPending: cleanup !== undefined || (failure as OpenFailure | undefined)?.cleanupPending === true});
   async function close() {
     if (closed) return status();
     if (closeFlight !== undefined) return closeFlight;
@@ -37,9 +65,9 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
       if (keyFlight !== undefined) {try {await keyFlight;} catch {}}
       if (openFlight !== undefined) {try {await openFlight;} catch {}}
       if (failure !== undefined && cleanup === undefined) {
-        cleanup = failure.cleanupHandle;
+        cleanup = (failure as OpenFailure).cleanupHandle;
         if (cleanup !== undefined) {cleanupStatus = cleanup.status; cleanupRetry = cleanup.retry;}
-        else if (failure.cleanupPending === true) return status();
+        else if ((failure as OpenFailure).cleanupPending === true) return status();
       }
       if (cleanup !== undefined) {
         if (typeof cleanupStatus !== 'function' || typeof cleanupRetry !== 'function') return status();
@@ -64,12 +92,13 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
     closeFlight = flight;
     try {return await flight;} finally {if (closeFlight === flight) closeFlight = undefined;}
   }
-  function retainFailure(cause) {
-    if (cause?.cleanupHandle === undefined && cause?.cleanupPending !== true) keyOperationPending = false;
+  function retainFailure(cause: unknown) {
+    if ((cause as OpenFailure | undefined)?.cleanupHandle === undefined && (cause as OpenFailure | undefined)?.cleanupPending !== true) keyOperationPending = false;
     // Keep the acquired child's original carrier, not this view's wrapper;
     // otherwise its cleanup would recursively wait for itself.
     failure ??= cause;
-    const error = Object.assign(new Error('HostResultPublicationCleanupPending', {cause}),
+    const error: Error & {code: string; cleanupPending: boolean; cleanupHandle?: Cleanup} =
+      Object.assign(new Error('HostResultPublicationCleanupPending', {cause}),
       {code: 'HostResultPublicationCleanupPending', cleanupPending: true});
     error.cleanupHandle = Object.freeze({status, retry: close});
     return error;
@@ -79,14 +108,14 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
     keyFlight = Promise.resolve().then(async () => {
       try {
         current();
-        if (subject.privateEvidenceKey !== undefined) return;
+        if (subject!.privateEvidenceKey !== undefined) return;
         const originalOwnership = journal.privateEvidenceInitializationOwnership();
         if (!keyDutyRetained) {
           journal.retainPrivateEvidenceInitialization(keyDuty); keyDutyRetained = true;
         }
         keyOperationPending = true;
-        keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject.root, 'checkpoints'), {
-          storeDirectory: join(subject.root, 'publication'), storeAuthorityCid: subject.storeAuthorityCid,
+        keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject!.root, 'checkpoints'), {
+          storeDirectory: join(subject!.root, 'publication'), storeAuthorityCid: subject!.storeAuthorityCid,
           preparedOwnership: originalOwnership,
           assertCurrent: () => {current(); journal.assertInitializationCurrent();},
           assertFirstInitialization: () => journal.assertPrivateEvidenceFirstInitialization(),
@@ -94,14 +123,14 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
         keyOperationPending = false;
         current();
       } catch (cause) {
-        if (cause?.cleanupHandle === undefined && cause?.cleanupPending !== true) keyOperationPending = false;
+        if ((cause as OpenFailure | undefined)?.cleanupHandle === undefined && (cause as OpenFailure | undefined)?.cleanupPending !== true) keyOperationPending = false;
         failure ??= cause;
         throw cause;
       }
     });
     return keyFlight;
   }
-  function admitSelectedRun(prepared, value, kind) {
+  function admitSelectedRun(prepared: object, value: RunExtent, kind: RunKind) {
     // A terminal Effect may publish no Named Result. Its own publication
     // purpose still owns the checked command outcome; Pure requires a Result.
     const minimumResults = kind === 'effect' ? 0 : 1;
@@ -147,16 +176,16 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
     beforeOperation() {
       current();
     },
-    admitRun(prepared) {
+    admitRun(prepared: object) {
       current();
-      admitSelectedRun(prepared, requirements(originals, prepared), 'pure');
+      admitSelectedRun(prepared, requirements!(originals, prepared), 'pure');
     },
-    admitEffectRun(prepared) {
+    admitEffectRun(prepared: object) {
       current();
       if (typeof effectRequirements !== 'function') throw new TypeError('HostEffectResultPublicationUnavailable');
       admitSelectedRun(prepared, effectRequirements(originals, prepared), 'effect');
     },
-    modelPublicationCapacity(prepared) {
+    modelPublicationCapacity(prepared: object) {
       if (this !== view) throw new TypeError('ForeignInstalledHostPublicationStore');
       current();
       const admitted = admittedRuns.get(prepared);
@@ -165,12 +194,12 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
       }
       return admitted.capacity;
     },
-    openStore(options, control) {
+    openStore(options: StoreOptions, control: object) {
       current();
       if (openFlight !== undefined) return openFlight;
-      if (attempted || control !== subject.control || options.directory !== join(subject.root, 'publication') ||
-          options.storeAuthorityCid !== subject.storeAuthorityCid ||
-          options.privateEvidenceKey !== subject.privateEvidenceKey) {
+      if (attempted || control !== subject!.control || options.directory !== join(subject!.root, 'publication') ||
+          options.storeAuthorityCid !== subject!.storeAuthorityCid ||
+          options.privateEvidenceKey !== subject!.privateEvidenceKey) {
         throw new TypeError('ForeignInstalledHostPublicationStore');
       }
       attempted = true;
@@ -181,7 +210,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
           await initializeKey();
           current();
           store = await openLocalPublicationStore({...options,
-            privateEvidenceKey: subject.privateEvidenceKey ?? keyInstallation?.key}, control, undefined, undefined,
+            privateEvidenceKey: subject!.privateEvidenceKey ?? keyInstallation?.key}, control, undefined, undefined,
             originalOwnership, current);
           storeClose = store.close;
           if (typeof storeClose !== 'function') throw new TypeError('HostResultPublicationCleanupPending');
@@ -190,7 +219,7 @@ export function prepareOrdinaryHostResult(originals, subject, requirements, effe
             await keyInstallation.adoptStore(store);
             keyOperationPending = false;
           }
-          if (subject.privateEvidenceKey !== undefined || keyInstallation !== undefined) {
+          if (subject!.privateEvidenceKey !== undefined || keyInstallation !== undefined) {
             contentEvidenceStore = store;
           }
           keyInstallation?.key.fill(0);

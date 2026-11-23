@@ -7,7 +7,9 @@ import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
 import {prepareOrdinaryHostResult} from './ordinary-host-result.mjs';
 import {observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 
-async function fixture(effectRequirements) {
+type EffectRequirements = Parameters<typeof prepareOrdinaryHostResult>[3];
+
+async function fixture(effectRequirements?: EffectRequirements) {
   const root = await mkdtemp(join(tmpdir(), 'actql-ordinary-result-'));
   const originals = Object.freeze({host: {}, installation: {root}, generation: {},
     supplier() {}, moduleLifetime: import.meta});
@@ -65,7 +67,7 @@ test('ordinary Result keeps the same live service after more than 5000 operation
 
 test('ordinary Result keeps current cancellation and original failure checks after long operation history', async () => {
   const f = await fixture();
-  let currentFailure;
+  let currentFailure: unknown;
   // The original Journal reads this installation on every current check.
   // A caller cancellation is not a retirement or a replacement installation.
   Object.defineProperty(f.originals.installation, 'root', {get() {
@@ -237,7 +239,7 @@ test('ordinary command-only Effect retains its Result purpose with zero requeste
 });
 
 test('ordinary command-only Effect preserves finite result, row and contract limits', async () => {
-  let value;
+  let value: ReturnType<NonNullable<EffectRequirements>>;
   const f = await fixture(() => value);
   try {
     const valid = {resultCount: 0, maxRows: 100, maxContractBytes: 1000000};

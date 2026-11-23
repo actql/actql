@@ -91483,7 +91483,7 @@
     },
     {
       "module": "adapters/host-node/node-host-result-installation.mjs",
-      "sha256": "05a3621e0cd3cd2c7b49239c1ef50254845fa2db5f5ecc9eec2802ad78ae372b",
+      "sha256": "4423dc7764e79deaf7615ae883cf9432914550fac0005b48f4c45c0c3b83edd8",
       "exports": [
         "prepareHostResultPublicationInstallation"
       ],
@@ -91613,11 +91613,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "export async function prepareHostResultPublicationInstallation("
               },
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "const original = prepareOrdinaryHostResult(originals,"
               }
             ],
@@ -91631,7 +91631,7 @@
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
               },
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements,"
               }
             ],
@@ -91645,7 +91645,7 @@
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
               },
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "await original.initialize();"
               }
             ],
@@ -91659,7 +91659,7 @@
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               },
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "return original;"
               }
             ],
@@ -91673,7 +91673,7 @@
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "failure ??= cause;"
               }
             ],
@@ -91687,7 +91687,7 @@
                 "anchor": "entry.closedObservation = resultStatus(entry);"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (keyFlight !== undefined) {try {await keyFlight;} catch {}}"
               }
             ],
@@ -91757,11 +91757,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "export async function prepareHostResultPublicationInstallation("
               },
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "const original = prepareOrdinaryHostResult(originals,"
               }
             ],
@@ -91775,7 +91775,7 @@
                 "anchor": "selected.storeAuthorityCid !== field(entry.subject, 'storeAuthorityCid')"
               },
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "readHostResultPublicationPreparation(originals), readHostResultPublicationRunRequirements,"
               }
             ],
@@ -91789,7 +91789,7 @@
                 "anchor": "same duty before its returned view observes it, that view receives the retained"
               },
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "await original.initialize();"
               }
             ],
@@ -91803,7 +91803,7 @@
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               },
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "return original;"
               }
             ],
@@ -91817,7 +91817,7 @@
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "failure ??= cause;"
               }
             ],
@@ -91831,7 +91831,7 @@
                 "anchor": "entry.closedObservation = resultStatus(entry);"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (keyFlight !== undefined) {try {await keyFlight;} catch {}}"
               }
             ],
@@ -117164,7 +117164,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-host-result.mjs",
-      "sha256": "d1500367a2bc8721cb00125343c62416a5480a1acfe088187e06b25697608d51",
+      "sha256": "4b7e3fa974183dd3ce088b60f86b088ae3db0b51fcb7bf598a3fb942760936c4",
       "exports": [
         "prepareOrdinaryHostResult"
       ],
@@ -117309,43 +117309,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "export function prepareOrdinaryHostResult("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "control !== subject.control"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "control !== subject!.control"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "store = await openLocalPublicationStore("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (openFlight !== undefined)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "failure ??= cause;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "closing = true;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "retainedBytes: BigInt(value.maxContractBytes)"
               }
             ],
@@ -117357,7 +117357,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "path": "adapters/host-node/ordinary-host-result.test.mts",
                 "anchor": "test('ordinary"
               }
             ]
@@ -117381,49 +117381,49 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "admitRun(prepared) {"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "admitRun(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "modelPublicationCapacity(prepared) {"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "modelPublicationCapacity(prepared: object) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "const admitted = admittedRuns.get(prepared);"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "const originalOwnership = journal.publicationOwnership();"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "async function close() {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (openFlight !== undefined) return openFlight;"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "modelPublicationCapacity(prepared) {"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "modelPublicationCapacity(prepared: object) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "throw new TypeError('HostResultPublicationRunUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "async function close() {"
               }
             ],
@@ -117439,17 +117439,17 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/node-host-result-installation.mjs",
+                "path": "adapters/host-node/node-host-result-installation.mts",
                 "anchor": "const original = prepareOrdinaryHostResult(originals,"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "path": "adapters/host-node/ordinary-host-result.test.mts",
                 "anchor": "test('ordinary Model publication uses the same admitted Run and live Store, not copied limits'"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "path": "adapters/host-node/ordinary-host-result.test.mts",
                 "anchor": "test('ordinary Result keeps current cancellation and original failure checks after long operation history'"
               }
             ]
@@ -117469,37 +117469,37 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject.root, 'checkpoints'), {"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject!.root, 'checkpoints'), {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "preparedOwnership: originalOwnership,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "journal.retainPrivateEvidenceInitialization(keyDuty); keyDutyRetained = true;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (openFlight !== undefined) return openFlight;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "else if (failure.cleanupPending === true) return status();"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "else if ((failure as OpenFailure).cleanupPending === true) return status();"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (!ack(Reflect.apply(cleanupStatus, cleanup, []))) return status();"
               }
             ],
@@ -117546,53 +117546,53 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject.root, 'checkpoints'), {"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "keyInstallation = await preparePrivateEvidenceKeyInstallation(join(subject!.root, 'checkpoints'), {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "preparedOwnership: originalOwnership,"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (store === undefined || store !== contentEvidenceStore || store.status().closed) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "journal.retainPrivateEvidenceInitialization(keyDuty); keyDutyRetained = true;"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "contentEvidenceStore = store;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (keyFlight !== undefined) return keyFlight;"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (openFlight !== undefined) return openFlight;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "else if (failure.cleanupPending === true) return status();"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "else if ((failure as OpenFailure).cleanupPending === true) return status();"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "throw new TypeError('InstalledContentEvidenceUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (!ack(Reflect.apply(cleanupStatus, cleanup, []))) return status();"
               }
             ],
@@ -117690,11 +117690,11 @@
                 "anchor": "Verification distinguishes the real Row Effect factory's original-binding and"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "path": "adapters/host-node/ordinary-host-result.test.mts",
                 "anchor": "test('ordinary command-only Effect retains its Result purpose with zero requested Named Results'"
               },
               {
-                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "path": "adapters/host-node/ordinary-host-result.test.mts",
                 "anchor": "test('ordinary command-only Effect preserves finite result, row and contract limits'"
               }
             ]
@@ -117714,43 +117714,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "export function prepareOrdinaryHostResult("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
-                "anchor": "control !== subject.control"
+                "path": "adapters/host-node/ordinary-host-result.mts",
+                "anchor": "control !== subject!.control"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "store = await openLocalPublicationStore("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "if (openFlight !== undefined)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "failure ??= cause;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "closing = true;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-host-result.mjs",
+                "path": "adapters/host-node/ordinary-host-result.mts",
                 "anchor": "retainedBytes: BigInt(value.maxContractBytes)"
               }
             ],
@@ -117762,7 +117762,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-host-result.test.mjs",
+                "path": "adapters/host-node/ordinary-host-result.test.mts",
                 "anchor": "test('ordinary"
               }
             ]
