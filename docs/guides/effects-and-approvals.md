@@ -71,33 +71,30 @@ part of the Program (see [Local and remote Hosts](hosts.md#policy-who-may-do-wha
 
 1. The execution-account configuration routes the Effect to `allow`, `deny`
    or `delegate`.
-2. A delegated Effect goes to the decider — `effect_policy` in a Local Host,
-   your own decision code in an embedded Host, or an approval service behind
-   a remote Host. The decider answers permit, reject or defer.
+2. The delegated decision follows the Host's policy. For example,
+   `effect_policy` configures Local Host decisions. A remote Host can route
+   decisions through an approval service.
 
 `allow` and an immediate permit apply the Effect without a pause. `deny` and
 an immediate reject stop the Run with the Effect undispatched. **Defer** is
 what creates a Checkpoint.
 
-Routing by what is being written is the normal pattern. In an embedded Host
-the decider is the `decide` option of `connect()`:
+For an embedded Node application, configure the Host policy or request an
+explicit stop on submission with `stopBefore: 'commit'`. Pass the Program's
+parameter declarations and values if it takes parameters.
 
 ```ts
-const client = await connect({
-  mode: 'local', installation: {directory: '.actql'},
-  decide: async (decision) => {
-    if (decision.kind !== 'effect_set') return 'permit';
-    const touchesAmounts = decision.preview.fields.includes('Amount');
-    if (!touchesAmounts && decision.preview.items.length <= 100) return 'permit';
-    return 'defer';
-  },
+const execution = await client.startSource(source, {
+  format: 'aql',
+  parameterDeclarations,
+  parameters,
+  stopBefore: 'commit',
 });
 ```
 
-Low-impact writes go straight through; the rest wait for a person. As a
-Program proves itself, the rule can widen. The decider only answers whether
-the write proceeds: it cannot edit the Preview, and a decider that fails to
-answer dispatches nothing.
+Review the resulting Checkpoint and use the original Run's decision API.
+The top-level `decide` connection option is unavailable in the installed
+Node client.
 
 ## The Checkpoint
 
@@ -143,13 +140,11 @@ Checkpoint ckpt_…  rejected
 Run run_…  cancelled
 ```
 
-From code, the same two calls:
-
-```ts
-const state = await execution.wait();            // 'waiting_checkpoint'
-await client.approve(state.checkpoint.id);        // or client.reject(...)
-const done = await execution.wait();              // 'succeeded'
-```
+In a Node application, use `reviewCheckpoint(id)` to read the sealed
+review, then explicitly approve or reject the same ID. To defer, leave the
+Checkpoint waiting and send no resolution. The
+[Node example](node.md#checkpoints) shows all three choices and waits for
+the Run state after the committed decision.
 
 ```python
 state = execution.wait()

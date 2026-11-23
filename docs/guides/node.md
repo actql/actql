@@ -150,75 +150,48 @@ coerced. The same argument works on `db.sql(…).all(schema)`.
 
 ## Checkpoints
 
-When policy defers a write (or you passed `stopBefore: 'commit'`), `wait()`
-resolves with `status: 'waiting_checkpoint'` and the Checkpoint:
+When policy defers a write, or you request `stopBefore: 'commit'` in
+`startSource()`, `wait()` returns `waiting_checkpoint`. Read the sealed
+review before making a decision. This example takes the decision from the
+application and uses the configured client's authorized signer.
 
 ```ts
-const state = await execution.wait();
-if (state.status === 'waiting_checkpoint') {
-  const ckpt = state.checkpoint;
-  console.log(ckpt.id, ckpt.effect.target, ckpt.items.length);
-  for (const change of ckpt.preview.changes) {
-    console.log(change.id, change.field, change.before, '→', change.after);
+import type {Client, Execution} from '@actql/node';
+
+async function reviewEffect(
+  client: Client,
+  execution: Execution,
+  choose: (preview: unknown) => Promise<'defer' | 'approve' | 'reject'>,
+) {
+  const state = await execution.wait();
+  if (state.status !== 'waiting_checkpoint' || !state.checkpoint) return state;
+  const checkpointId = state.checkpoint.id;
+  const review = await client.reviewCheckpoint(checkpointId);
+  const preview: unknown = JSON.parse(new TextDecoder().decode(review.bytes));
+  const decision = await choose(preview);
+  if (decision === 'defer') return state;
+
+  const answer = decision === 'approve'
+    ? await client.approve(checkpointId)
+    : await client.reject(checkpointId);
+  if (answer.results.length !== 1 || answer.results[0].status !== 'committed') {
+    throw new Error('The Checkpoint decision was not committed.');
   }
+  return execution.wait({since: state.revision});
 }
 ```
 
-The preview is the exact set of changes the approval would cover. Decide from
-code, or ask a person while keeping the owning embedded Host open:
+Choosing `defer` leaves the original Checkpoint waiting without sending the
+Effect. An accepted approval lets that same Run proceed under its sealed
+Preview. An accepted rejection cancels the pending Effect. Inspect the Run
+state returned by `wait()` for its actual outcome.
 
-```ts
-if (ckpt.items.length <= 100) {
-  await client.approve(ckpt.id);
-  const final = await execution.wait({since: state.revision});
-} else {
-  await notifyReviewer({runRef: execution.ref, checkpoint: ckpt.id});
-  // This only sends a notification. Keep the owning client open; the
-  // application applies the later decision through that configured client.
-}
-```
-
-`approve(id)` and `reject(id)` sign the decision with the signer the client is
-configured with and bind it to that preview. Approving continues the same Run;
-rejecting ends it as `cancelled` with nothing sent. A review UI or bot can
-deliver a decision to this application's configured client. Other clients
-need a supported connection to the same running Host and their own approval
-authorization. The code-started Run to CLI approval handoff remains separate
-interoperability work; sharing a state-directory path does not provide it.
-
-### Deciding from code
-
-**Current implementation status:** the current Node Client does not yet expose the
-`decide` connection option. The example below is v0.1 target behavior,
-not a currently type-checking or runnable Node configuration. This status
-note does not change the target decision semantics.
-
-Instead of waiting for the Checkpoint and approving it afterwards, the client
-can be the decider: `connect()` takes a `decide` function that the Host calls
-with the Preview before it stops. It answers `'permit'`, `'reject'` or
-`'defer'`; only `'defer'` creates a Checkpoint.
-
-```ts
-const client = await connect({
-  mode: 'local', installation: {directory: '.actql-node'},
-  decide: async (decision) => {
-    if (decision.kind !== 'effect_set') return 'permit';          // reads, model calls, the Run itself
-    return decision.preview.items.length <= 100 ? 'permit' : 'defer';
-  },
-});
-```
-
-`decision.kind` says what is being decided: `'run'` (admission of the Run),
-`'read'`, `'infer'`, `'egress'` or `'effect_set'`. Only an `effect_set`
-decision carries a `preview`: `preview.items` are the records that would
-change, `preview.fields` the fields written, and `preview.target` the
-resource. The function only decides; it cannot change the Preview, and if it
-throws, nothing is dispatched.
-
-For review workflows that need to list and read Checkpoints across many Runs,
-`client.checkpoints()`, `client.reviewCheckpoint(ckpt)` and
-`client.resolveCheckpoints(items, {signer})` expose the same operations with
-explicit signing and paging.
+The installed Node client accepts decisions through the Checkpoint APIs.
+A configured application signer can be passed as `{signer}` to
+`approve()` or `reject()`. Use `client.checkpoints()` and
+`client.resolveCheckpoints()` to list and resolve Checkpoints across Runs.
+See [Effects and approvals](effects-and-approvals.md#approving-and-rejecting)
+for the Host policy and signer requirements.
 
 ## Attaching to a Run
 
@@ -261,9 +234,15 @@ const execution = await client.startSource(source, {format: 'aql', requestId: 'n
 report of reasons and their locations:
 
 ```ts
-const outcome = await client.check(source, {kind: 'text', format: 'aql', scope: 'template_only'});
-if (outcome.report.verdict !== 'valid') {
+const outcome = await client.check('SELECT 1 AS n', {
+  kind: 'text', format: 'sql', scope: 'template_only',
+});
+if (outcome.outcome === 'completed' && outcome.report.verdict === 'verified') {
+  console.log('Verified');
+} else if (outcome.outcome === 'completed') {
   for (const reason of outcome.report.reasons) console.log(reason.code, reason.location);
+} else {
+  console.log(outcome.outcome);
 }
 ```
 
@@ -283,7 +262,7 @@ Every failure is a `ClientError` with a stable `code`. The ones worth handling:
 | `RequestHeld` | Policy deferred the Run before it started (a pre-Run Checkpoint); resolve it like any other Checkpoint, then `attach` to the Run |
 | `RequestConflict` | The `requestId` was used before with a different Program, parameters, inputs or scope |
 | `SubmissionUnknown` | The reply to a start was lost. Do not start again with a new request ID; look the request up |
-| `ResolutionUnknown` | The reply to an approval was lost; resend the same items — the Host recognises the repeat and does not apply it twice |
+| `ResolutionUnknown` | The reply to an approval was lost; pass the same signed items to `resolveCheckpoints()` without signing again |
 | `ClientClosed` | The client was closed |
 
 The rule behind them: a lost reply never means nothing happened. Look the
