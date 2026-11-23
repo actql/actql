@@ -962,7 +962,7 @@
                 "anchor": "Calendar Events Source request schema is one closed required object"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-events-request-pages.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-events-request-pages.test.mts",
                 "anchor": "Calendar request page entry consumes one exact original request"
               }
             ]
@@ -1031,7 +1031,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]
@@ -1644,7 +1644,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]
@@ -2033,7 +2033,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]
@@ -2043,7 +2043,7 @@
     },
     {
       "module": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-      "sha256": "f0cb7c4141f93985c8c24b515b506ae4db44c7ec8275b9d1f8ce34dedcf08294",
+      "sha256": "785f4a0b48fcf48d3f56cb7956c8461ecb7f7c4595e8178184264d214b863334",
       "exports": [
         "CALENDAR_FREE_BUSY_OPERATION",
         "CalendarFreeBusyReadFailure",
@@ -2177,28 +2177,28 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "function prepare({moon, query, names"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "async function execute(original, received)"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "async function execute(original: Prepared, received?"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2207,17 +2207,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
               },
               {
@@ -2227,17 +2227,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "requestStop(reason: unknown) {originalReader(this).stop.abort(reason);}"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "const limitFields = ["
               },
               {
@@ -2285,28 +2285,28 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "function prepare({moon, query, names"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "async function execute(original, received)"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "async function execute(original: Prepared, received?"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2315,17 +2315,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
               },
               {
@@ -2335,17 +2335,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "requestStop(reason: unknown) {originalReader(this).stop.abort(reason);}"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "const limitFields = ["
               },
               {
@@ -2395,28 +2395,28 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "function prepare({moon, query, names"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "async function execute(original, received)"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "async function execute(original: Prepared, received?"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2425,17 +2425,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
               },
               {
@@ -2445,17 +2445,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "requestStop(reason: unknown) {originalReader(this).stop.abort(reason);}"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "const limitFields = ["
               },
               {
@@ -2501,28 +2501,28 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "function prepare({moon, query, names"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "async function execute(original, received)"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "async function execute(original: Prepared, received?"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2531,17 +2531,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
               },
               {
@@ -2551,17 +2551,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "requestStop(reason: unknown) {originalReader(this).stop.abort(reason);}"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "const limitFields = ["
               },
               {
@@ -3499,7 +3499,7 @@
     },
     {
       "module": "adapters/connectors/calendar/site/calendar-events-pages.mjs",
-      "sha256": "dff3e92803fcd32abb739249b70e08cedd459cad4c175f72d0bdd8c96d715796",
+      "sha256": "4aaa95c51354d222708b3ae661511f270c8cae2a3092b65ed5df6fb5d3054292",
       "exports": [
         "CALENDAR_EVENTS_OPERATION",
         "CalendarEventsReadFailure",
@@ -3656,7 +3656,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-events-pages.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-events-pages.mts",
                 "anchor": "export function prepareCalendarEventsPages"
               }
             ],
@@ -3724,7 +3724,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-events-pages.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-events-pages.mts",
                 "anchor": "export function prepareCalendarEventsRequestPages"
               }
             ],
@@ -3860,7 +3860,7 @@
                 "anchor": "Calendar Events Source request schema is one closed required object"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-events-request-pages.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-events-request-pages.test.mts",
                 "anchor": "Calendar request page entry consumes one exact original request"
               }
             ]
@@ -4211,7 +4211,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]
@@ -4221,7 +4221,7 @@
     },
     {
       "module": "adapters/connectors/calendar/site/calendar-free-busy-pages.mjs",
-      "sha256": "e9c4a7e9b43494bbdce365ea392dfe19eece7307e4687f5cd06ffcab78969f74",
+      "sha256": "e0993383274c21e75c1bf85f52818e9a4293084f3636f5c1934edd14d9c0554d",
       "exports": [
         "CALENDAR_FREE_BUSY_PAGES_OPERATION",
         "CalendarFreeBusyPagesFailure",
@@ -4341,7 +4341,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-pages.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-pages.mts",
                 "anchor": "export function prepareCalendarFreeBusyRequestPages"
               }
             ],
@@ -4386,7 +4386,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]

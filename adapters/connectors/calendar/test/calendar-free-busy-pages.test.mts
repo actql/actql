@@ -3,17 +3,23 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {prepareCalendarFreeBusyRequestPages,CalendarFreeBusyPagesFailure} from '../site/calendar-free-busy-pages.mjs';
+import type {FreeBusyLimits} from '../site/calendar-free-busy-pages.mjs';
+import type {CalendarListProjection} from '../site/calendar-list-read.mjs';
 
-const limits=Object.freeze({maxResponseBytes:4096,maxNodes:512,maxDepth:16,maxCalendars:4,maxRows:3,
+const limits: FreeBusyLimits=Object.freeze({maxResponseBytes:4096,maxNodes:512,maxDepth:16,maxCalendars:4,maxRows:3,
   maxRequestBytes:4096,maxBodyBytes:2048,maxValueNodes:100,maxValueTextBytes:4096,
   maxRowsWireBytes:8192,maxRowsWireNodes:512,maxRowsWireDepth:16});
 const originalRequest='{"calendar_id":"calendar/é@example.test","time_min":"2026-10-17T00:00:00.0001Z","time_max":"2026-10-17T00:00:00.0002Z"}';
 const body='{"timeMin":"2026-10-17T00:00:00.0001Z","timeMax":"2026-10-17T00:00:00.0002Z","timeZone":"UTC","calendarExpansionMax":1,"items":[{"id":"calendar/é@example.test"}]}';
-const ok=value=>({$tag:1,_0:value}); // Explicit pinned ABI only, no opaque issuer.
-function fixture(options={}){
-  const query=Object.freeze({port:'original query'}),page=Object.freeze({port:'original page'}),calls=[];
-  const columns=['calendar_id','start','end'],originalLimits={...limits},selected=[];
-  const provider={
+const ok=(value: unknown)=>({$tag:1,_0:value}); // Explicit pinned ABI only, no opaque issuer.
+type Options = Readonly<{body?: string; matches?: boolean; metadata?: string; rowCount?: number;
+  rows?: string; names?: readonly string[]}>;
+type Provider = Required<NonNullable<Parameters<typeof prepareCalendarFreeBusyRequestPages>[0]['moon']>>;
+
+function fixture(options: Options={}){
+  const query=Object.freeze({port:'original query'}),page=Object.freeze({port:'original page'}),calls: {value?: unknown; bounds: number[]}[]=[];
+  const columns=['calendar_id','start','end'],originalLimits={...limits},selected: (readonly string[])[]=[];
+  const provider: Provider={
     calendarPrepareFreeBusyRequest(wire,...bounds){assert.equal(this,provider);assert.equal(wire,originalRequest);calls.push({bounds});return ok(query);},
     calendarFreeBusyRequestWire(value){assert.equal(this,provider);assert.equal(value,query);return options.body??body;},
     calendarFreeBusyColumnNames(){assert.equal(this,provider);return columns;},
@@ -39,7 +45,7 @@ test('Calendar free busy pure pages preserve original request receiver complete 
 
 test('Calendar free busy pure pages retain original methods limits and columns before later mutation',()=>{
   const f=fixture();f.originalLimits.maxRows=0;f.columns.length=0;
-  for(const name of Object.keys(f.provider))f.provider[name]=()=>{throw new Error('replaced method');};
+  for(const name of Object.keys(f.provider) as (keyof Provider)[])(f.provider as Record<keyof Provider, () => unknown>)[name]=()=>{throw new Error('replaced method');};
   assert.equal(f.hooks.fetchPage(frame).body,body);assert.equal(f.hooks.decodePage(response,frame).rowCount,1);
   assert.deepEqual(f.selected[0],['calendar_id','start','end']);
   const cause=new Error('original refusal'),wrapped=f.hooks.onError(cause);
@@ -60,7 +66,7 @@ test('Calendar free busy pure pages refuse foreign incomplete status and exhaust
 });
 
 test('Calendar free busy pure request entrance rejects missing ports invalid wire limits and duplicate selections',()=>{
-  const project=(method,receiver,args)=>Reflect.apply(method,receiver,args);
+  const project: CalendarListProjection=(method,receiver,args)=>Reflect.apply(method,receiver,args);
   for(const patch of [{requestWire:undefined},{requestWire:'\ud800'},{limits:{...limits,maxCalendars:51}},
     {limits:{...limits,maxBodyBytes:1}},{names:['start','start']},{moon:{}}]){
     assert.throws(()=>prepareCalendarFreeBusyRequestPages({moon:{},requestWire:originalRequest,names:['start'],limits,...patch},project));

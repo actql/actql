@@ -2754,3 +2754,15 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/calendar/host/installed-calendar-source.d.mts
 /adapters/connectors/calendar/site/calendar-list-read.mjs
 /adapters/connectors/calendar/site/calendar-list-read.d.mts
+/adapters/connectors/calendar/site/calendar-events-pages.mjs
+/adapters/connectors/calendar/site/calendar-events-pages.d.mts
+/adapters/connectors/calendar/site/calendar-free-busy-pages.mjs
+/adapters/connectors/calendar/site/calendar-free-busy-pages.d.mts
+/adapters/connectors/calendar/site/calendar-free-busy-read.mjs
+/adapters/connectors/calendar/site/calendar-free-busy-read.d.mts
+/adapters/connectors/calendar/test/calendar-events-request-pages.test.mjs
+/adapters/connectors/calendar/test/calendar-events-request-pages.test.d.mts
+/adapters/connectors/calendar/test/calendar-free-busy-pages.test.mjs
+/adapters/connectors/calendar/test/calendar-free-busy-pages.test.d.mts
+/adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs
+/adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.d.mts
