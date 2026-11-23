@@ -2486,6 +2486,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/local-source-free-effect-publication.d.mts
 /adapters/host-node/local-values-plan.mjs
 /adapters/host-node/local-values-plan.d.mts
+/adapters/host-node/generated-content-write.mjs
+/adapters/host-node/generated-content-write.d.mts
 /adapters/host-node/local-values-retention-original.test.mjs
 /adapters/host-node/local-values-retention-original.test.d.mts
 /adapters/host-node/original-effect-query-time.test.mjs

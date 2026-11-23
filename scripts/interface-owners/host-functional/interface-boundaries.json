@@ -52681,7 +52681,7 @@
     {
       "module": "adapters/host-node/generated-content-write.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "08c95815401ffb8925b65863ee58316ae85b4a085ac0a2c4b994f236f68fe35b",
+      "sha256": "413010ef04aec45d6a68a0757268c18b045c2397eb37e7df490556b720841c60",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -52768,8 +52768,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "export function stopGeneratedContentPrefix({control, prefix, chargeWork}) {"
+                "path": "adapters/host-node/generated-content-write.mts",
+                "anchor": "export function stopGeneratedContentPrefix({control, prefix, chargeWork}: PrefixStop) {"
               },
               {
                 "path": "docs/design/execution-completion-storage.md",
@@ -52782,8 +52782,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "export function stopGeneratedContentPrefix({control, prefix, chargeWork}) {"
+                "path": "adapters/host-node/generated-content-write.mts",
+                "anchor": "export function stopGeneratedContentPrefix({control, prefix, chargeWork}: PrefixStop) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -52796,7 +52796,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// Ledger before calling. No cleanup owner, encoder, row codec or CID is added."
               },
               {
@@ -52810,7 +52810,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// Physical sink transport for an exact common-owned completed Relation borrow."
               },
               {
@@ -52824,8 +52824,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));"
+                "path": "adapters/host-node/generated-content-write.mts",
+                "anchor": "const yieldToHost = () => new Promise<void>(resolve => setTimeout(resolve, 0));"
               },
               {
                 "path": "docs/design/execution-completion-storage.md",
@@ -52838,8 +52838,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "const failure = (code, cause) => Object.assign(new Error(code, {cause}), {code});"
+                "path": "adapters/host-node/generated-content-write.mts",
+                "anchor": "const failure = (code: string, cause?: unknown) => Object.assign(new Error(code, {cause}), {code});"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -52852,7 +52852,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// Ledger before calling. No cleanup owner, encoder, row codec or CID is added."
               },
               {
@@ -52866,7 +52866,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// Stop work is observed even after the ordinary Compute allowance is exhausted."
               },
               {
@@ -52880,7 +52880,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// The installed caller reserves and retains the existing Store writer and Run"
               },
               {
@@ -52912,8 +52912,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "export function stopGeneratedContentPrefix({control, prefix, chargeWork}) {"
+                "path": "adapters/host-node/generated-content-write.mts",
+                "anchor": "export function stopGeneratedContentPrefix({control, prefix, chargeWork}: PrefixStop) {"
               },
               {
                 "path": "docs/design/execution-completion-storage.md",
@@ -52926,8 +52926,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "export function stopGeneratedContentPrefix({control, prefix, chargeWork}) {"
+                "path": "adapters/host-node/generated-content-write.mts",
+                "anchor": "export function stopGeneratedContentPrefix({control, prefix, chargeWork}: PrefixStop) {"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -52940,7 +52940,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// Ledger before calling. No cleanup owner, encoder, row codec or CID is added."
               },
               {
@@ -52954,7 +52954,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// Physical sink transport for an exact common-owned completed Relation borrow."
               },
               {
@@ -52968,8 +52968,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));"
+                "path": "adapters/host-node/generated-content-write.mts",
+                "anchor": "const yieldToHost = () => new Promise<void>(resolve => setTimeout(resolve, 0));"
               },
               {
                 "path": "docs/design/execution-completion-storage.md",
@@ -52982,8 +52982,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
-                "anchor": "const failure = (code, cause) => Object.assign(new Error(code, {cause}), {code});"
+                "path": "adapters/host-node/generated-content-write.mts",
+                "anchor": "const failure = (code: string, cause?: unknown) => Object.assign(new Error(code, {cause}), {code});"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -52996,7 +52996,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// Ledger before calling. No cleanup owner, encoder, row codec or CID is added."
               },
               {
@@ -53010,7 +53010,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// Stop work is observed even after the ordinary Compute allowance is exhausted."
               },
               {
@@ -53024,7 +53024,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/generated-content-write.mjs",
+                "path": "adapters/host-node/generated-content-write.mts",
                 "anchor": "// The installed caller reserves and retains the existing Store writer and Run"
               },
               {

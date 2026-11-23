@@ -1,13 +1,48 @@
 // Physical sink transport for an exact common-owned completed Relation borrow.
 // The installed caller reserves and retains the existing Store writer and Run
 // Ledger before calling. No cleanup owner, encoder, row codec or CID is added.
-const yieldToHost = () => new Promise(resolve => setTimeout(resolve, 0));
-const failure = (code, cause) => Object.assign(new Error(code, {cause}), {code});
+import type {contentGenerationControl} from '../host-common/content-generation-control.mjs';
+
+type GenerationControl = ReturnType<typeof contentGenerationControl>;
+type ChargeWork = (work: number) => unknown;
+type WorkBudget = Readonly<{
+  remainingWork(): number;
+  chargeWork: ChargeWork;
+  signal?: AbortSignal;
+  quantum?: number;
+}>;
+type PrefixStop = Readonly<{
+  control: Pick<GenerationControl, 'prefixCancel' | 'prefixCleanup' | 'prefixWork' | 'prefixAdvance'>;
+  prefix: Parameters<GenerationControl['prefixCancel']>[0];
+  chargeWork: ChargeWork;
+}>;
+type PrefixRun = WorkBudget & Readonly<{
+  control: Pick<GenerationControl, 'prefixWork' | 'prefixAdvance'>;
+  prefix: Parameters<GenerationControl['prefixWork']>[0];
+}>;
+type IdentityScan = WorkBudget & Readonly<{
+  control: Pick<GenerationControl, 'inputIdentityStart' | 'inputIdentityAdvance' |
+    'inputIdentityFinish' | 'inputIdentityCancel'>;
+  compiled: Parameters<GenerationControl['inputIdentityFinish']>[0];
+  input: Parameters<GenerationControl['inputIdentityStart']>[0];
+  limits: Parameters<GenerationControl['inputIdentityStart']>[1];
+  identityLimits: Parameters<GenerationControl['inputIdentityFinish']>[2];
+  maxWorkspaceSlots: number;
+  captured?: Parameters<GenerationControl['inputIdentityFinish']>[3];
+}>;
+type ContentWrite = WorkBudget & Readonly<{
+  control: Pick<GenerationControl, 'inputRows' | 'inputRow' | 'inputAdvance' | 'inputFinish' | 'inputCancel'>;
+  input: Parameters<GenerationControl['inputRows']>[0];
+  writer: Readonly<{append(piece: string): unknown}>;
+}>;
+
+const yieldToHost = () => new Promise<void>(resolve => setTimeout(resolve, 0));
+const failure = (code: string, cause?: unknown) => Object.assign(new Error(code, {cause}), {code});
 
 // Cancellation remains sticky in the original managed provider. A retry makes
 // at most one stop-only poll; only the same owner's cleanup confirms release.
 // Stop work is observed even after the ordinary Compute allowance is exhausted.
-export function stopGeneratedContentPrefix({control, prefix, chargeWork}) {
+export function stopGeneratedContentPrefix({control, prefix, chargeWork}: PrefixStop) {
   control.prefixCancel(prefix);
   if (control.prefixCleanup(prefix) === true) return true;
   let before, result, accountingError, executionError;
@@ -44,7 +79,7 @@ export function stopGeneratedContentPrefix({control, prefix, chargeWork}) {
 // The caller already reserved the same Run Ledger and retains this prefix for
 // stopping/cleanup; this transport neither releases it nor restarts Compute.
 export async function runGeneratedContentPrefix({control, prefix,
-  remainingWork, chargeWork, signal, quantum = 32}) {
+  remainingWork, chargeWork, signal, quantum = 32}: PrefixRun) {
   if (typeof remainingWork !== 'function' || typeof chargeWork !== 'function' ||
       !Number.isInteger(quantum) || quantum < 1 || quantum > 64) {
     throw new TypeError('InvalidGeneratedContentPrefixTransport');
@@ -80,7 +115,7 @@ export async function runGeneratedContentPrefix({control, prefix,
       catch (accountingError) {
         // Neither failure converts the original execution into success. The
         // existing dispatch custody still stops/reclaims its exact prefix.
-        accountingError.executionFailure = error;
+        (accountingError as {executionFailure?: unknown}).executionFailure = error;
         throw accountingError;
       }
       throw error;
@@ -104,7 +139,7 @@ export async function runGeneratedContentPrefix({control, prefix,
 // failure never closes the borrowed input or refunds consumed work.
 export async function identifyGeneratedContentInput({control, compiled, input,
   limits, identityLimits, maxWorkspaceSlots, remainingWork, chargeWork,
-  signal, quantum = 32, captured}) {
+  signal, quantum = 32, captured}: IdentityScan) {
   if (typeof remainingWork !== 'function' || typeof chargeWork !== 'function' ||
       !Number.isInteger(quantum) || quantum < 1 || quantum > 64) {
     throw new TypeError('InvalidGeneratedContentIdentityTransport');
@@ -140,7 +175,7 @@ export async function identifyGeneratedContentInput({control, compiled, input,
 }
 
 export async function writeGeneratedContent({control, input, writer,
-  remainingWork, chargeWork, signal, quantum = 32}) {
+  remainingWork, chargeWork, signal, quantum = 32}: ContentWrite) {
   if (typeof writer?.append !== 'function' || typeof remainingWork !== 'function' ||
       typeof chargeWork !== 'function' || !Number.isInteger(quantum) ||
       quantum < 1 || quantum > 64) {
