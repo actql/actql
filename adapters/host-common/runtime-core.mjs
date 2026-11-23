@@ -1,4 +1,3 @@
-import {installedEffectDependencyOriginal} from './installed-effect-dependency-original.mjs';
 import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {outputExportControl} from './output-export-control.mjs';
@@ -31,6 +30,7 @@ import {createEffectUnitResultControls} from './runtime-effect-unit-result-contr
 import {createEffectArtifactControls} from './runtime-effect-artifact-control.mjs';
 import {createEffectRecoveryControls} from './runtime-effect-recovery-control.mjs';
 import {createEffectPreviewControls} from './runtime-effect-preview-control.mjs';
+import {createEffectPublicationControls} from './runtime-effect-publication-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -359,6 +359,10 @@ function publicationControl(moon) {
       computationPreviewTokens, computationPreviewWires, issuanceLimits, token,
       evidenceToken, inspectEvidence, inspectSourceAdvance,
     });
+  const effectPublicationControls = createEffectPublicationControls(moon, {
+    localEffectArtifactTokens, computationPreviewTokens, recoveredEffectCaptures,
+    issuanceLimits, captureContractLimits, token, inspect,
+  });
   control = Object.freeze({
     executionFailureExplanation(cause) {
       if (typeof cause !== 'string' || cause.length > 96 ||
@@ -1850,184 +1854,7 @@ function publicationControl(moon) {
     ...effectPreviewControls,
     ...inventoryControls,
     ...effectfulCaptureControls,
-    prepareLocalEffectDependencyInventory(artifacts, bodies, limits, construction, originalArtifacts = []) {
-      issuanceLimits(limits, 'Effect dependency inventory');
-      if (!Array.isArray(artifacts) || construction === undefined && artifacts.length > 4096 ||
-          !Array.isArray(bodies) || construction === undefined && bodies.length > 4096) {
-        throw new TypeError('Invalid Effect dependency inventory');
-      }
-      if (construction !== undefined) {
-        const original=installedEffectDependencyOriginal(construction,moon);
-        const kinds=[], identities=[], wires=[], roots=[], originals=[];
-        for (const artifact of artifacts) {
-          const owned=localEffectArtifactTokens.get(artifact);
-          if(owned===undefined)throw new TypeError('Foreign Effect dependency root');
-          roots.push(owned);
-        }
-        if (!Array.isArray(originalArtifacts)) throw new TypeError('Invalid Effect dependency originals');
-        for (const artifact of originalArtifacts) {
-          const owned=localEffectArtifactTokens.get(artifact);
-          if(owned===undefined)throw new TypeError('Foreign Effect dependency original');
-          originals.push(owned);
-        }
-        for(const body of bodies){
-          if(body===null||typeof body!=='object')throw new TypeError('Invalid Effect dependency body');
-          const kind=Object.getOwnPropertyDescriptor(body,'kind'),
-            wire=Object.getOwnPropertyDescriptor(body,'wire'),cid=Object.getOwnPropertyDescriptor(body,'cid');
-          if(!kind||!wire||!Object.hasOwn(kind,'value')||!Object.hasOwn(wire,'value')||
-              cid!==undefined&&!Object.hasOwn(cid,'value')||typeof kind.value!=='string'||
-              typeof wire.value!=='string'||cid!==undefined&&typeof cid.value!=='string')
-            throw new TypeError('Invalid Effect dependency body');
-          kinds.push(kind.value);identities.push(cid?.value);wires.push(wire.value);
-        }
-        const value=checked(moon.clientProgramInstalledEffectDependencyInventoryPrepare(
-          original.parent,original.prepared,original.request,original.plan,kinds,identities,wires,roots,
-          limits.maxWireBytes,limits.maxNodes,limits.maxDepth,originals));
-        original.current();
-        return value;
-      }
-      const roots = new Map();
-      for (const artifact of artifacts) {
-        const owned = localEffectArtifactTokens.get(artifact);
-        if (owned === undefined) {
-          throw new TypeError('Foreign Effect dependency root');
-        }
-        roots.set(artifact.identity, owned);
-      }
-      let remaining = Math.min(limits.maxWireBytes, 16 * 1024 * 1024);
-      const entries = new Map();
-      const encoder = new TextEncoder();
-      for (const body of bodies) {
-        const {kind, wire, cid} = body ?? {};
-        if (typeof kind !== 'string' || typeof wire !== 'string' ||
-            (cid !== undefined && typeof cid !== 'string')) {
-          throw new TypeError('Invalid Effect dependency body');
-        }
-        // Check the aggregate input before parsing or retaining another
-        // admitted body. Encoding/envelope limits are checked again by MoonBit.
-        if (wire.length > remaining) {
-          throw new RangeError('EffectDependencyBodyByteLimit');
-        }
-        const bytes = encoder.encode(wire).byteLength;
-        if (bytes > remaining) {
-          throw new RangeError('EffectDependencyBodyByteLimit');
-        }
-        remaining -= bytes;
-        const admitted = checked(moon.clientProgramAdmitEffectDependencyBody(
-          kind, cid, wire, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-        const identity = moon.clientProgramEffectDependencyBodyCid(admitted);
-        const key = `${kind}\0${identity}`;
-        const previous = entries.get(key);
-        if (previous !== undefined && previous.wire !== wire) {
-          throw new TypeError('Conflicting Effect dependency body');
-        }
-        if (previous === undefined) entries.set(key, {wire, admitted});
-      }
-      return checked(moon.clientProgramIssueEffectDependencyInventory(
-        [...entries.values()].map(value => value.admitted), [...roots.values()],
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-    },
-    beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts) {
-      if (typeof issue !== 'boolean' || !Array.isArray(args) ||
-          args.length !== (issue ? 4 : 7)) {
-        throw new TypeError('Invalid Effectful publication construction');
-      }
-      const chain = args[0], receipts = args[2];
-      const limits = captureContractLimits(args[args.length - 1], 'Effectful publication construction');
-      // This bound belongs to the original completed Read's prepaid metadata.
-      // Inspect lengths before allocating flattened token or receipt arrays.
-      const inputLimit = checked(moon.clientProgramInstalledEffectCapturePublicationInputLimit(owner));
-      if (!Number.isSafeInteger(inputLimit) || inputLimit < 5 ||
-          chain === null || typeof chain !== 'object' ||
-          receipts === null || typeof receipts !== 'object' ||
-          typeof receipts.setWire !== 'string' || !Array.isArray(receipts.memberWires) ||
-          issue && !Array.isArray(additionalContracts) ||
-          !issue && typeof receipts.finalWire !== 'string') {
-        throw new TypeError('Invalid Effectful publication construction');
-      }
-      let contractCount = 5;
-      for (const name of ['definitions', 'artifacts', 'derivations', 'orderings', 'retentions', 'durableBindings']) {
-        const values = chain[name];
-        if (!Array.isArray(values) || values.length > inputLimit - contractCount) {
-          throw new RangeError('EffectfulPublicationMetadataLimit');
-        }
-        contractCount += values.length;
-      }
-      const extraCount = issue ? additionalContracts.length : 3;
-      if (extraCount > inputLimit - contractCount ||
-          receipts.memberWires.length > inputLimit - contractCount - extraCount - (issue ? 1 : 2)) {
-        throw new RangeError('EffectfulPublicationMetadataLimit');
-      }
-      const contracts = [token(chain.capturedRun), token(chain.computationReceipt),
-        token(chain.runDefinition), token(chain.invocation), token(chain.manifest)];
-      for (const name of ['definitions', 'artifacts', 'derivations', 'orderings', 'retentions', 'durableBindings']) {
-        for (const contract of chain[name]) contracts.push(token(contract));
-      }
-      if (issue) {
-        for (const contract of additionalContracts) contracts.push(token(contract));
-      } else {
-        for (let index = 3; index < 6; index++) contracts.push(token(args[index]));
-      }
-      const wires = [receipts.setWire];
-      for (const wire of receipts.memberWires) {
-        if (typeof wire !== 'string') throw new TypeError('Invalid Effectful publication Receipt');
-        wires.push(wire);
-      }
-      if (!issue) wires.push(receipts.finalWire);
-      return checked(moon.clientProgramBeginInstalledEffectCapturePublication(owner, issue,
-        contracts, wires, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
-    },
-    issueEffectfulFinalRunReceipt(chain, preview, receipts, limits) {
-      limits = captureContractLimits(limits, 'final Effectful Run Receipt');
-      if (chain === null || typeof chain !== 'object' ||
-          !Array.isArray(chain.definitions) ||
-          !Array.isArray(chain.artifacts) ||
-          receipts === null || typeof receipts !== 'object' ||
-          typeof receipts.setWire !== 'string' ||
-          !Array.isArray(receipts.memberWires) ||
-          receipts.memberWires.some(wire => typeof wire !== 'string')) {
-        throw new TypeError('Invalid final Effectful Run Receipt');
-      }
-      const ownedPreview = computationPreviewTokens.get(preview);
-      if (ownedPreview === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      const prepared = recoveredEffectCaptures.get(chain.capturedRun);
-      return inspect(checked(prepared === undefined ? moon.strategyIssueEffectfulFinalRunReceipt(
-        token(chain.runDefinition), token(chain.invocation),
-        chain.definitions.map(token), chain.artifacts.map(token),
-        token(chain.manifest), token(chain.computationReceipt),
-        token(chain.capturedRun), ownedPreview, receipts.setWire,
-        receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth,
-      ) : moon.clientProgramIssuePreparedEffectfulFinalRunReceipt(
-        token(chain.runDefinition), token(chain.invocation),
-        chain.definitions.map(token), chain.artifacts.map(token),
-        token(chain.manifest), token(chain.computationReceipt),
-        token(chain.capturedRun), prepared, ownedPreview, receipts.setWire,
-        receipts.memberWires, limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth,
-      )), limits);
-    },
-    issueEffectSetApplyReceiptFromMembers(preview, members, replayed, limits) {
-      limits = captureContractLimits(limits, 'Effect Set Apply Receipt');
-      if (!Array.isArray(members) ||
-          members.some(member => typeof member?.wire !== 'string') ||
-          !Array.isArray(replayed) ||
-          replayed.some(value => typeof value !== 'boolean')) {
-        throw new TypeError('Invalid Effect Set Apply Receipt request');
-      }
-      const ownedPreview = computationPreviewTokens.get(preview);
-      if (ownedPreview === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      return inspect(checked(
-        moon.strategyIssueEffectSetApplyReceiptFromMembers(
-          ownedPreview, members.map(member => member.wire), replayed,
-          limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
-        ),
-      ), limits);
-    },
+    ...effectPublicationControls,
     ...effectRunStateControls,
     ...transitionControls,
     ...publicationProgressControl(moon, token),

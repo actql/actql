@@ -23640,7 +23640,6 @@
             "publicationControl/init:admitRunPublication/init:admitRunPublication",
             "publicationControl/init:admitSourceFreeResultPolicy/init:admitSourceFreeResultPolicy",
             "publicationControl/init:adoptCheckedClientEffectInferRun/init:adoptCheckedClientEffectInferRun",
-            "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
             "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
             "publicationControl/init:bindCheckedClientInferDispatch/init:bindCheckedClientInferDispatch",
             "publicationControl/init:bindCheckedClientInferInvocation/init:bindCheckedClientInferInvocation",
@@ -23675,12 +23674,6 @@
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt",
             "publicationControl/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt/init:issueEffectFreeRunReceipt#2",
-            "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
-            "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
-            "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#2",
-            "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-            "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/direct/direct",
             "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence/lookupBodies/lookupBodies",
@@ -23708,8 +23701,6 @@
             "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
             "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/exported/exported",
             "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
-            "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
-            "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -23804,8 +23795,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "inputsOutputs": [
@@ -23866,8 +23857,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "identity": [
@@ -23928,8 +23919,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "ownership": [
@@ -23994,8 +23985,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "synchronization": [
@@ -24060,8 +24051,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "failure": [
@@ -24122,8 +24113,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "cancellation": [
@@ -24180,8 +24171,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "resources": [
@@ -24250,8 +24241,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "extension": [
@@ -24312,8 +24303,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "verification": [
@@ -26244,8 +26235,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -26310,8 +26301,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "identity": [
@@ -26372,8 +26363,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "ownership": [
@@ -26438,8 +26429,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -26508,8 +26499,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "failure": [
@@ -26570,8 +26561,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "cancellation": [
@@ -26628,8 +26619,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "resources": [
@@ -26698,8 +26689,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               },
               {
                 "path": "src/client_local_host/preparation_request_explanation_read.mbt",
@@ -26764,8 +26755,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "verification": [
@@ -26948,8 +26939,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -27014,8 +27005,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "identity": [
@@ -27076,8 +27067,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "ownership": [
@@ -27142,8 +27133,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               },
               {
                 "path": "docs/design/interactive-run-control.md",
@@ -27212,8 +27203,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "failure": [
@@ -27274,8 +27265,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "cancellation": [
@@ -27332,8 +27323,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "resources": [
@@ -27402,8 +27393,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               },
               {
                 "path": "src/client_local_host/preparation_request_explanation_read.mbt",
@@ -27468,8 +27459,8 @@
                 "anchor": "test('registered Query and Whole scheduling preserves typed issuers and defers only Catalog wires'"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "beginEffectfulPublicationConstruction(owner, issue, args, additionalContracts)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "beginEffectfulPublicationConstruction(owner: unknown, issue: boolean, args: ConstructionArgs,"
               }
             ],
             "verification": [
@@ -28183,16 +28174,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
-          "parameters": [
-            "owner",
-            "issue",
-            "args",
-            "additionalContracts"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:bindCheckedClientEffectRun/init:bindCheckedClientEffectRun",
           "parameters": [
             "checkedEffect",
@@ -28736,54 +28717,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-          "parameters": [
-            "chain",
-            "preview",
-            "receipts",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
-          "parameters": [
-            "wire"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
-          "parameters": [
-            "preview",
-            "members",
-            "replayed",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#2",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
-          "parameters": [
-            "member"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:issueOriginalModelEffectEvidence/init:issueOriginalModelEffectEvidence",
           "parameters": [
             "model",
@@ -29140,24 +29073,6 @@
           "parameters": [
             "captured",
             "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
-          "parameters": [
-            "artifacts",
-            "bodies",
-            "limits",
-            "construction",
-            "originalArtifacts"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
-          "parameters": [
-            "value"
           ],
           "async": false
         },
@@ -29612,7 +29527,6 @@
         "./content-generation-control.mjs",
         "./effect-application-control.mjs",
         "./installation-preparation-metadata.mjs",
-        "./installed-effect-dependency-original.mjs",
         "./ledger-usage.mjs",
         "./local-signing-metadata.mjs",
         "./output-export-control.mjs",
@@ -29630,6 +29544,7 @@
         "./runtime-effect-capture-control.mjs",
         "./runtime-effect-preparation-control.mjs",
         "./runtime-effect-preview-control.mjs",
+        "./runtime-effect-publication-control.mjs",
         "./runtime-effect-recovery-control.mjs",
         "./runtime-effect-unit-result-control.mjs",
         "./runtime-execution-control.mjs",
@@ -29645,7 +29560,201 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "37f0f2e988e83d3ebc00b7650774e65eec9a6e39dec615e6630485537dedc2ee"
+      "sha256": "dc96523eaf97fd53b14ad80e9f077a672f145749971bef9a0b16c795d9afcf13"
+    },
+    {
+      "module": "adapters/host-common/runtime-effect-publication-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Effect dependency inventory, publication construction and final receipt",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createEffectPublicationControls",
+            "createEffectPublicationControls/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
+            "createEffectPublicationControls/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
+            "createEffectPublicationControls/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
+            "createEffectPublicationControls/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#2",
+            "createEffectPublicationControls/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
+            "createEffectPublicationControls/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "createEffectPublicationControls/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+            "createEffectPublicationControls/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
+            "createEffectPublicationControls/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory"
+          ],
+          "exports": [
+            "createEffectPublicationControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "export function createEffectPublicationControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "moon.clientProgramBeginInstalledEffectCapturePublication(owner, issue,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "roots.set(artifact.identity, owned);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const recoveredEffectCaptures = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const localEffectArtifactTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "original.current();"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "throw new RangeError('EffectfulPublicationMetadataLimit');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "if (wire.length > remaining)"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...effectPublicationControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-program-bridge.test.mjs",
+                "anchor": "fresh original inventory captures and restores durable dependencies"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createEffectPublicationControls"
+      ],
+      "operations": [
+        {
+          "name": "createEffectPublicationControls",
+          "parameters": [
+            "moon",
+            "localEffectArtifactTokens",
+            "computationPreviewTokens",
+            "recoveredEffectCaptures",
+            "issuanceLimits",
+            "captureContractLimits",
+            "token",
+            "inspect"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:beginEffectfulPublicationConstruction/init:beginEffectfulPublicationConstruction",
+          "parameters": [
+            "owner",
+            "issue",
+            "args",
+            "additionalContracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+          "parameters": [
+            "chain",
+            "preview",
+            "receipts",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt/init:issueEffectfulFinalRunReceipt",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
+          "parameters": [
+            "preview",
+            "members",
+            "replayed",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#2",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers/init:issueEffectSetApplyReceiptFromMembers#3",
+          "parameters": [
+            "member"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
+          "parameters": [
+            "artifacts",
+            "bodies",
+            "limits",
+            "construction",
+            "originalArtifacts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPublicationControls/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./installed-effect-dependency-original.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "3a0d51c53e319d4a646fed37eb79604a69fa265e8b43d45407cd8aea3e4e3104"
     },
     {
       "module": "adapters/host-common/runtime-effect-preview-control.mjs",
@@ -30400,8 +30509,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "computationPreviewTokens.get(preview)"
+                "path": "adapters/host-common/runtime-effect-publication-control.mts",
+                "anchor": "computationPreviewTokens.get(preview as object)"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
