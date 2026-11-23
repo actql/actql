@@ -24,7 +24,7 @@ import type {TestContext} from 'node:test';
 import type {createInstallationPreparationMetadata} from '../../../host-common/installation-preparation-metadata.mjs';
 import type {OriginalPublication} from '../../../host-node/installed-source-publication.mjs';
 import type {NotionReadObservation} from '../site/property-item-read.mjs';
-import type {NotionMetadataBounds} from './catalog-bindings.fixture.mjs';
+import type {NotionDeclarationBounds,NotionMetadataBounds} from './catalog-bindings.fixture.mjs';
 import type {NotionPropertyFixtureBindings} from './property-item-read.fixture.mjs';
 
 type ReaderOptions = Parameters<typeof createNotionDatabaseDiscovery>[0];
@@ -37,7 +37,12 @@ type MetadataScope = ReturnType<MetadataView['prepareScope']>;
 type Journal = ReturnType<typeof openSqliteCredentialJournal>;
 type Charge = Readonly<{originalBody:NotionReadObservation['body']}>;
 export type MetadataFixtureBindings = NotionPropertyFixtureBindings &
-  Required<NonNullable<ReaderOptions['moon']>>;
+  Required<NonNullable<ReaderOptions['moon']>> & {
+    notionReadDatabaseReadSnapshot(bytes:Uint8Array,cid:string,...limits:[...NotionDeclarationBounds,number,number,number]):unknown;
+    notionDatabaseReadSnapshotDeclaration(snapshot:unknown):unknown;
+    notionDatabaseReadSnapshotSource(snapshot:unknown):unknown;
+    notionDatabaseReadSnapshotContracts(snapshot:unknown):unknown;
+  };
 
 type FixtureState = {
   requests:{path:string|undefined;method:string|undefined;version:string|string[]|undefined;originalMaterial:boolean}[];
@@ -53,7 +58,7 @@ type MetadataState = {
   root:string;state:FixtureState;journal:Journal|undefined;declaration:unknown;origin:string;
   profilePath:string;accountPath:string;provider:MetadataFixtureBindings;
 };
-type Fixture<Run> = MetadataState & {run(callback:(original:Run)=>unknown):Promise<unknown>};
+type Fixture<Run> = MetadataState & {run<Result>(callback:(original:Run)=>Result):Promise<Awaited<Result>>};
 export type MetadataRunReaderOptions = Pick<ReaderOptions,'authorizationFor'|'current'|'limits'> & {
   moon:MetadataFixtureBindings;declaration:unknown;initialAuthorization:Readonly<{grant:unknown;scope:MetadataScope;useId:string}>;
   credential:unknown;sourceAuthorizationFor(selection:MetadataSelection):unknown;
@@ -69,11 +74,12 @@ type MetadataViewRun = MetadataState & {
   authorize(scope:MetadataScope,useId:string):MetadataRunReaderOptions['initialAuthorization'];
   reader(changes?:Partial<ReaderOptions>):Reader;
 };
-type MetadataPublicationInput = MetadataState & {
+export type MetadataPublicationInput = MetadataState & {
   profile:FixtureProfile;options:PublishInput;resolveSecret:()=>Promise<string>;
   gate:Awaited<ReturnType<typeof createLocalAuthorizationGate>>;cert:Buffer;declarationBytes:Buffer;
 };
-type DelegatedPublication<Run> = (input:MetadataPublicationInput,callback:(original:Run)=>unknown)=>unknown;
+type DelegatedPublication<Run> = <Result>(input:MetadataPublicationInput,
+  callback:(original:Run)=>Result)=>Result|Promise<Awaited<Result>>;
 
 const common:unknown=await import(new URL(
   '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href);
@@ -137,7 +143,7 @@ export async function metadataDiscoveryFixture<Run>(t:TestContext,
       secretResolutions:state.secrets,currentChecks:state.current,cleanupConfirmed:false}),{mode:0o600});
     t.diagnostic('Retained original Notion metadata fixture: '+root);
   });
-  f.run=async(callback)=>{
+  f.run=async <Result,>(callback:(original:Run)=>Result):Promise<Awaited<Result>>=>{
     const module={check:(profile:FixtureProfile)=>Object.freeze({...profile}),
       identityParts(){assert.fail('Metadata publication cannot recompute identity');},
       load(){assert.fail('Metadata publication cannot create a query Run');},
@@ -191,9 +197,10 @@ export async function metadataDiscoveryFixture<Run>(t:TestContext,
       }};
     const connectorTable=createInstalledConnectorTable([{name:'notion',registration:'notion',revision:'notion/0.1',
       source:{profileVersion:version,load:async()=>module}}]);
+    // The selected fixture module returns its invocation of this same callback.
     return publishInstalledSourceProfile(profilePath,{root,principalId:'operator',moon:common,
       runtimeUrl:new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url),
-      resolveSecret,connectorTable});
+      resolveSecret,connectorTable}) as Promise<Awaited<Result>>;
   };
   return f;
 }

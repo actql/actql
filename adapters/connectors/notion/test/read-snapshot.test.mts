@@ -7,10 +7,13 @@ import test from 'node:test';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {metadataDiscoveryFixture} from './installation-metadata-discovery.fixture.mjs';
 
-const readLimits=[16384,1024,20,8,8,128,128,256,16,4096,16,100000];
-const snapshotLimits=[65536,8192,32];
-const hash=bytes=>'sha256:'+createHash('sha256').update(bytes).digest('hex');
-const restore=(p,bytes,cid)=>checked(p.notionReadDatabaseReadSnapshot(bytes,cid,...readLimits,...snapshotLimits));
+import type {NotionDeclarationBounds} from './catalog-bindings.fixture.mjs';
+import type {MetadataFixtureBindings} from './installation-metadata-discovery.fixture.mjs';
+
+const readLimits:NotionDeclarationBounds=[16384,1024,20,8,8,128,128,256,16,4096,16,100000];
+const snapshotLimits=[65536,8192,32] as const;
+const hash=(bytes:string|Uint8Array)=>'sha256:'+createHash('sha256').update(bytes).digest('hex');
+const restore=(p:MetadataFixtureBindings,bytes:Uint8Array,cid:string)=>checked(p.notionReadDatabaseReadSnapshot(bytes,cid,...readLimits,...snapshotLimits));
 
 // Explicit private fixture persistence, not a normal installed publication or
 // an authenticated Run material issuer. The production codec has no file I/O.
@@ -20,7 +23,7 @@ test('actual observed Notion schema snapshot survives bounded cold data admissio
     const reader=x.reader({systemColumns:true}),original=await reader.read(),p=x.provider;
     const snapshot=checked(p.notionCaptureDatabaseReadSnapshot(original.selection,original.source,original.readContracts,...snapshotLimits));
     assert.equal(p.notionDatabaseReadSnapshotMatches(snapshot,original.selection,original.source,original.readContracts),true);
-    const wire=checked(p.notionDatabaseReadSnapshotWire(snapshot)),cid=checked(p.notionDatabaseReadSnapshotSourceCid(snapshot));
+    const wire=(checked(p.notionDatabaseReadSnapshotWire(snapshot)) as string),cid=(checked(p.notionDatabaseReadSnapshotSourceCid(snapshot)) as string);
     assert.equal(hash(wire),cid);assert.equal(JSON.parse(wire).system_columns,true);
     const path=join(f.root,'saved-read-snapshot.json');await writeFile(path,wire,{mode:0o600});
     const restored=restore(p,await readFile(path),cid);
@@ -50,7 +53,7 @@ test('actual Notion saved material refuses substituted identity schema and flags
   await f.run(async x=>{
     const reader=x.reader(),original=await reader.read(),p=x.provider;
     const snapshot=checked(p.notionCaptureDatabaseReadSnapshot(original.selection,original.source,original.readContracts,...snapshotLimits));
-    const wire=checked(p.notionDatabaseReadSnapshotWire(snapshot)),cid=checked(p.notionDatabaseReadSnapshotSourceCid(snapshot));
+    const wire=(checked(p.notionDatabaseReadSnapshotWire(snapshot)) as string),cid=(checked(p.notionDatabaseReadSnapshotSourceCid(snapshot)) as string);
     assert.throws(()=>restore(p,Buffer.from(' '+wire),cid));
     const body=JSON.parse(wire);
     for(const change of [{schema_wire:'{}'},{schema_cid:'sha256:'+'0'.repeat(64)},

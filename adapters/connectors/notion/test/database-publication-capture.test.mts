@@ -6,8 +6,10 @@ import {captureNotionDatabaseDiscoveryPublication as capture,
   notionDatabaseDiscoveryPublicationOriginals as originals} from '../site/database-discovery.mjs';
 import {siteMetadataDiscoveryFixture} from './site-metadata-discovery.fixture.mjs';
 
+import type {NotionFixtureCause} from './property-item-read.fixture.mjs';
+
 const limits=Object.freeze({maxBytes:131072,maxNodes:16384,maxDepth:32});
-const hash=value=>'sha256:'+createHash('sha256').update(value).digest('hex');
+const hash=(value:string)=>'sha256:'+createHash('sha256').update(value).digest('hex');
 
 test('live publication capture retains actual Host request Catalog snapshot and both original Site use observations',async t=>{
   const f=await siteMetadataDiscoveryFixture(t);
@@ -15,11 +17,11 @@ test('live publication capture retains actual Host request Catalog snapshot and 
     const reader=x.reader(),result=await reader.read(),token=await capture(reader,result,limits),view=originals(token);
     assert(Object.isFrozen(token));assert(Object.isFrozen(view));assert.equal(originals(token),view);
     assert.equal(view.publicationRequest,x.options.publication.request);
-    for(const[name,value]of Object.entries(view.publicationOriginals))assert.equal(value,x.options.publication.originals[name]);
+    for(const[name,value]of Object.entries(view.publicationOriginals))assert.equal(value,(x.options.publication.originals as Record<string,unknown>)[name]);
     assert.equal(Object.hasOwn(view.publicationOriginals,'publicationRequest'),false);
     assert.equal(view.subject,x.control.projection(x.options.initialAuthorization.grant).subject);
     assert.equal(view.control,x.control);assert.equal(view.credentialJournal,x.journal);
-    for(const name of ['declaration','database','selection','source','readContracts','schemaWire','observations','responseCharges'])assert.equal(view[name],result[name]);
+    for(const name of ['declaration','database','selection','source','readContracts','schemaWire','observations','responseCharges'] as const)assert.equal(view[name],result[name]);
     assert.equal(x.provider.notionDatabaseReadSnapshotMatches(view.snapshot,result.selection,result.source,result.readContracts),true);
     assert.equal(hash(view.snapshotWire),view.snapshotSourceCid);assert.equal(hash(view.declarationWire),view.declarationSourceCid);
     assert.deepEqual(view.operations.map(x=>[x.index,x.operation,x.method,x.path,x.metadataOccurrenceId]),[
@@ -42,7 +44,7 @@ test('publication capture refuses copies mixed reader results and another captur
   const f=await siteMetadataDiscoveryFixture(t);
   await f.run(async x=>{
     const reader=x.reader(),other=x.reader(),result=await reader.read();
-    for(const[r,value]of[[reader,{...result}],[other,result]])await assert.rejects(capture(r,value,limits),{code:'ForeignNotionDiscoveryPublicationResult'});
+    for(const[r,value]of[[reader,{...result}],[other,result]] as const)await assert.rejects(capture(r,value,limits),{code:'ForeignNotionDiscoveryPublicationResult'});
     const token=await capture(reader,result,limits);
     assert.throws(()=>originals({...token}),{code:'ForeignNotionDiscoveryPublication'});
     await assert.rejects(capture(reader,result,limits),{code:'NotionDiscoveryPublicationAlreadyCaptured'});
@@ -76,7 +78,7 @@ test('live capture rechecks actual publication Account and Site after read and n
       if(kind==='account')document.entries[0].outcome='deny';
       if(kind==='site')document.siteGeneration++;
       await writeFile(path,JSON.stringify(document));
-      let failure;await assert.rejects(capture(reader,result,limits),cause=>{
+      let failure;await assert.rejects(capture(reader,result,limits),(cause:NotionFixtureCause)=>{
         failure=cause;assert.notEqual(cause.code,'InvalidNotionDiscoveryPublication');
         if(kind==='profile')assert.equal(cause.code,'InstalledSourcePublicationChanged');return true;});
       assert.equal(f.state.requests.length,2);assert.equal(reader.observe().cleanupConfirmed,false);

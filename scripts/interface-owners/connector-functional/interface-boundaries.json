@@ -19796,7 +19796,7 @@
                 "anchor": "same publication, Account and original issuer"
               },
               {
-                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/site-metadata-discovery.test.mts",
                 "anchor": "actual original Site signs and claims separate database and dependent schema uses through Notion discovery"
               },
               {

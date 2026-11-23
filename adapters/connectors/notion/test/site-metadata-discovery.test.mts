@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import test from 'node:test';
 import {siteMetadataDiscoveryFixture} from './site-metadata-discovery.fixture.mjs';
+import type {NotionDatabaseDiscoveryFailure} from '../site/database-discovery.mjs';
+import type {NotionFixtureCause} from './property-item-read.fixture.mjs';
+
+type DiscoveryFailure = NotionDatabaseDiscoveryFailure & {cause:NotionFixtureCause};
 
 test('actual original Site signs and claims separate database and dependent schema uses through Notion discovery',async t=>{
   const f=await siteMetadataDiscoveryFixture(t);
@@ -35,10 +39,10 @@ test('actual metadata Site prevents a changed original publication or Account ac
         if(kind==='site')document.siteGeneration++;
         await writeFile(path,JSON.stringify(document));
       };
-      const reader=x.reader();let failure;
-      await assert.rejects(reader.read(),cause=>{failure=cause;return cause.code==='NotionDatabaseDiscoveryFailed';});
+      const reader=x.reader();let failure:DiscoveryFailure|undefined;
+      await assert.rejects(reader.read(),(cause:DiscoveryFailure)=>{failure=cause;return cause.code==='NotionDatabaseDiscoveryFailed';});
       assert.equal(f.state.requests.length,1);assert.equal(f.state.secrets,1);
-      assert.equal(failure.observations.length,1);assert.deepEqual(failure.responseCharges,f.state.charges);
+      assert.equal(failure!.observations.length,1);assert.deepEqual(failure!.responseCharges,f.state.charges);
       assert.equal(reader.observe().cleanupConfirmed,false);
       await assert.rejects(reader.read(),{code:'NotionDiscoveryAlreadyStarted'});
       throw failure;
@@ -53,10 +57,10 @@ test('actual metadata Site retains lost dependent reply Unknown and refuses same
     return{object:'database',id:'db',data_sources:[{id:'s',name:'tasks'}]};
   };
   await f.run(async x=>{
-    const reader=x.reader();let failure;
-    await assert.rejects(reader.read(),cause=>{failure=cause;return cause.code==='NotionDatabaseDiscoveryFailed';});
+    const reader=x.reader();let failure:DiscoveryFailure|undefined;
+    await assert.rejects(reader.read(),(cause:DiscoveryFailure)=>{failure=cause;return cause.code==='NotionDatabaseDiscoveryFailed';});
     assert.equal(f.state.requests.length,2);assert.equal(f.state.secrets,2);
-    assert.equal(failure.observations.length,1);assert.deepEqual(failure.responseCharges,f.state.charges);
+    assert.equal(failure!.observations.length,1);assert.deepEqual(failure!.responseCharges,f.state.charges);
     assert.equal(reader.observe().cleanupConfirmed,false);
     assert.equal(x.journal.recover().some(use=>use.outcome==='unknown'),true);
     await assert.rejects(reader.read(),{code:'NotionDiscoveryAlreadyStarted'});

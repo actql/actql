@@ -1344,15 +1344,15 @@
                 "anchor": "actual Notion current and stop after awaited schema issuer retain the same database charge without schema I/O"
               },
               {
-                "path": "adapters/connectors/notion/test/installation-metadata-discovery.test.mjs",
+                "path": "adapters/connectors/notion/test/installation-metadata-discovery.test.mts",
                 "anchor": "test('actual Notion pre-schema discovery consumes one original Host metadata Subject without a fake Program Run'"
               },
               {
-                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mts",
                 "anchor": "live publication capture retains actual Host request Catalog snapshot"
               },
               {
-                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mts",
                 "anchor": "capture binds retained Catalog bytes to the response"
               }
             ]
@@ -1434,11 +1434,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mts",
                 "anchor": "live publication capture retains actual Host request Catalog snapshot"
               },
               {
-                "path": "adapters/connectors/notion/test/database-publication-capture.test.mjs",
+                "path": "adapters/connectors/notion/test/database-publication-capture.test.mts",
                 "anchor": "capture binds retained Catalog bytes to the response"
               }
             ]

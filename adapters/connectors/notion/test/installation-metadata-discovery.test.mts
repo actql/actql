@@ -3,6 +3,10 @@ import test from 'node:test';
 import {metadataDiscoveryFixture} from './installation-metadata-discovery.fixture.mjs';
 import {NOTION_DATABASE_RETRIEVE_OPERATION as databaseOperation,
   NOTION_DATA_SOURCE_RETRIEVE_OPERATION as sourceOperation} from '../site/database-discovery.mjs';
+import type {NotionDatabaseDiscoveryFailure} from '../site/database-discovery.mjs';
+import type {NotionFixtureCause} from './property-item-read.fixture.mjs';
+
+type DiscoveryFailure = NotionDatabaseDiscoveryFailure & {cause:NotionFixtureCause};
 
 test('actual Notion pre-schema discovery consumes one original Host metadata Subject without a fake Program Run',async t=>{
   const f=await metadataDiscoveryFixture(t);
@@ -50,11 +54,11 @@ test('actual Notion dependent metadata rejects copied scopes wrong operations an
           {resourceOrigin:'https://foreign.example.test'})});
         return x.authorize(scope,'wrong-selected-'+kind);
       }});
-      let failure;await assert.rejects(reader.read(),cause=>{failure=cause;
+      let failure:DiscoveryFailure|undefined;await assert.rejects(reader.read(),(cause:DiscoveryFailure)=>{failure=cause;
         assert.equal(cause.code,'NotionDatabaseDiscoveryFailed');
         assert.equal(cause.cause.code,kind==='copy'?'ForeignInstallationPreparationMetadata':'ForeignNotionDiscoveryAuthorization');return true;});
       assert.equal(f.state.requests.length,1);assert.equal(f.state.secrets,1);
-      assert.equal(failure.observations.length,1);assert.deepEqual(failure.responseCharges,f.state.charges);
+      assert.equal(failure!.observations.length,1);assert.deepEqual(failure!.responseCharges,f.state.charges);
       assert.equal(f.state.observations.length,0);assert.equal(reader.observe().cleanupConfirmed,false);
       await assert.rejects(reader.read(),{code:'NotionDiscoveryAlreadyStarted'});assert.equal(f.state.requests.length,1);
     });
@@ -69,10 +73,10 @@ test('actual Notion physical metadata scope checks the exact selected path and o
       return x.authorize(x.view.prepareScope(x.subject,{...x.control.scopeFields(original.scope),
         requestPath:'/v1/data_sources/other'}),'wrong-path');
     }});
-    let failure;await assert.rejects(reader.read(),cause=>{failure=cause;
+    let failure:DiscoveryFailure|undefined;await assert.rejects(reader.read(),(cause:DiscoveryFailure)=>{failure=cause;
       assert.equal(cause.code,'NotionDatabaseDiscoveryFailed');assert.equal(cause.cause.code,'InvalidRemoteCredentialOperation');return true;});
     assert.equal(f.state.requests.length,1);assert.equal(f.state.secrets,1);
-    assert.equal(failure.observations.length,1);assert.deepEqual(failure.responseCharges,f.state.charges);
+    assert.equal(failure!.observations.length,1);assert.deepEqual(failure!.responseCharges,f.state.charges);
     assert.equal(reader.observe().cleanupConfirmed,false);
   });
 });
@@ -90,13 +94,13 @@ test('actual Notion original publication and Account remain current through the 
           await writeFile(f.accountPath,JSON.stringify(document));});
         if(kind==='abort')stop.abort();return original;
       }});
-      let failure;await assert.rejects(reader.read(),cause=>{failure=cause;return cause.code==='NotionDatabaseDiscoveryFailed';});
+      let failure:DiscoveryFailure|undefined;await assert.rejects(reader.read(),(cause:DiscoveryFailure)=>{failure=cause;return cause.code==='NotionDatabaseDiscoveryFailed';});
       assert.equal(f.state.requests.length,1);assert.equal(f.state.secrets,1);
-      assert.equal(failure.observations.length,1);assert.deepEqual(failure.responseCharges,f.state.charges);
+      assert.equal(failure!.observations.length,1);assert.deepEqual(failure!.responseCharges,f.state.charges);
       assert.equal(reader.observe().cleanupConfirmed,false);
-      if(kind==='profile')assert.equal(failure.cause.code,'InstalledSourcePublicationChanged');
-      if(kind==='account')assert.equal(failure.cause.code,'AuthorizationCurrentAccountChanged');
-      if(kind==='abort')assert.equal(failure.cause.name,'AbortError');
+      if(kind==='profile')assert.equal(failure!.cause.code,'InstalledSourcePublicationChanged');
+      if(kind==='account')assert.equal(failure!.cause.code,'AuthorizationCurrentAccountChanged');
+      if(kind==='abort')assert.equal(failure!.cause.name,'AbortError');
       // Propagate the actual reader failure through the Host. Swallowing it
       // would cause a second publication-current check after retirement.
       throw failure;
@@ -111,9 +115,9 @@ test('actual Notion lost dependent metadata reply retains the original journal U
     return{object:'database',id:'db',data_sources:[{id:'s',name:'tasks'}]};
   };
   await f.run(async x=>{
-    const reader=x.reader();let failure;
-    await assert.rejects(reader.read(),cause=>{failure=cause;return cause.code==='NotionDatabaseDiscoveryFailed';});
-    assert.equal(f.state.requests.length,2);assert.equal(failure.observations.length,1);
+    const reader=x.reader();let failure:DiscoveryFailure|undefined;
+    await assert.rejects(reader.read(),(cause:DiscoveryFailure)=>{failure=cause;return cause.code==='NotionDatabaseDiscoveryFailed';});
+    assert.equal(f.state.requests.length,2);assert.equal(failure!.observations.length,1);
     assert.equal(f.journal.recover().filter(row=>row.outcome==='unknown').length,1);
     assert.equal(reader.observe().cleanupConfirmed,false);
     const resolutions=f.state.secrets;await assert.rejects(reader.read(),{code:'NotionDiscoveryAlreadyStarted'});
