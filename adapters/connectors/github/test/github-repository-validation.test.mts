@@ -10,7 +10,8 @@ import {loadInstalledGitHubEffect} from '../host/installed-github-effect.mjs';
 test('GitHub actual scalar repository rule gates Source Effect and publication before credentials', async t => {
   // Only this provider package is compiled. No Common/Host, Site, Account,
   // credential, network, request issuer or installed-runtime substitute runs.
-  const native = await import('../../../../_build/js/release/build/connectors/github/host_node/host_node.js');
+  const native = await import(new URL('../../../../_build/js/release/build/connectors/github/host_node/host_node.js', import.meta.url).href) as
+    Parameters<typeof readGitHubSite>[2];
   const boundary = 'a'.repeat(100);
   for (const [owner, repo] of [['octo', 'hello.js'], ['A_0-', '...'], [boundary, boundary]]) {
     assert.equal(native.githubRepositoryAccessValid(owner, repo), true);
@@ -30,14 +31,14 @@ test('GitHub actual scalar repository rule gates Source Effect and publication b
   await writeFile(path, JSON.stringify(site));
   assert.deepEqual(await readGitHubSite(path, undefined, native), {...site, ca: undefined});
   const unreachable = () => assert.fail('Repository refusal must precede credentials/declaration/publication');
-  const configurationReader = {readJson: async selected => {
+  const configurationReader = {readJson: async (selected: string) => {
     assert.equal(selected, path);return JSON.parse(await readFile(path, 'utf8'));
   }, readText: unreachable, readOriginalText: unreachable};
   const construction = {configurationReader, prepareDeclaration: unreachable,
     openRowSite: unreachable, createRowSource: unreachable,
     sourceReaderImplementation: unreachable, createSourceReader: unreachable};
   let nativeCalls = 0;
-  const provider = Object.freeze({githubRepositoryAccessValid(owner, repo) {
+  const provider = Object.freeze({githubRepositoryAccessValid(owner: string, repo: string) {
     nativeCalls++;return native.githubRepositoryAccessValid(owner, repo);
   },
   // Explicit immutable fixture metadata for the unrelated CREATE preparer.
@@ -51,9 +52,9 @@ test('GitHub actual scalar repository rule gates Source Effect and publication b
   const options = {providerMoon: provider, configurationReader, construction,
     baseEnvironmentWire: 'unused', ledgerRoot: join(root, 'MUST-NOT-OPEN-ledger'), resolveSecret: unreachable};
   for (const caller of [
-    () => loadInstalledGitHubSource(sourceProfile, options),
-    () => loadInstalledGitHubEffect(effectProfile, options),
-    () => publishInstalledGitHubSource(sourceProfile, options),
+    () => loadInstalledGitHubSource(sourceProfile, options as unknown as Parameters<typeof loadInstalledGitHubSource>[1]),
+    () => loadInstalledGitHubEffect(effectProfile, options as unknown as Parameters<typeof loadInstalledGitHubEffect>[1]),
+    () => publishInstalledGitHubSource(sourceProfile, options as unknown as Parameters<typeof publishInstalledGitHubSource>[1]),
   ]) {
     await writeFile(path, JSON.stringify({...site, repo: '..', caPath: join(root, 'MUST-NOT-READ-ca')}));
     const before = nativeCalls;

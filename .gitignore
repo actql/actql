@@ -3042,3 +3042,17 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/github/host/installed-github-source.d.mts
 /adapters/connectors/github/host/installed-github-effect.mjs
 /adapters/connectors/github/host/installed-github-effect.d.mts
+/adapters/connectors/github/test/github-graphql.fixture.mjs
+/adapters/connectors/github/test/github-graphql.fixture.d.mts
+/adapters/connectors/github/test/github-installed-comment-outcome.test.mjs
+/adapters/connectors/github/test/github-installed-comment-outcome.test.d.mts
+/adapters/connectors/github/test/github-milestone-title.test.mjs
+/adapters/connectors/github/test/github-milestone-title.test.d.mts
+/adapters/connectors/github/test/github-milestone-declaration.test.mjs
+/adapters/connectors/github/test/github-milestone-declaration.test.d.mts
+/adapters/connectors/github/test/github-repository-validation.test.mjs
+/adapters/connectors/github/test/github-repository-validation.test.d.mts
+/adapters/connectors/github/test/github-publication-cleanup.test.mjs
+/adapters/connectors/github/test/github-publication-cleanup.test.d.mts
+/adapters/connectors/github/test/github-comment-mapping.test.mjs
+/adapters/connectors/github/test/github-comment-mapping.test.d.mts

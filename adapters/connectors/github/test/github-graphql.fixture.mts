@@ -7,14 +7,51 @@
 // from a subject table, recording each created comment.
 // Expected rows are written by hand in each test; nothing here is derived
 // from the product.
-const encode = index => Buffer.from(`cursor:${index}`).toString('base64');
-const decode = cursor => {
+import type {Exchange, openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
+
+type Server = Awaited<ReturnType<typeof openHttpsExchangeFixture>>;
+type Reply = {status?: number; headers?: Record<string, string>; body?: unknown};
+type Person = Readonly<{login: string}> | null;
+type Comment = Readonly<{id: string | number; nodeId: string; author: Person; body: string; createdAt: string; updatedAt: string}>;
+type Issue = Readonly<{
+  number: number; id?: string; title?: string; state?: string; stateReason?: unknown; body?: unknown;
+  author?: Person; assignees?: readonly string[]; labels?: readonly string[]; url?: string;
+  comments?: number; milestone?: unknown; createdAt?: string; updatedAt?: string; closedAt?: string | null;
+  commentRows?: readonly Comment[];
+}>;
+type Pull = Issue & Readonly<{
+  baseRefName?: string; headRefName?: string; isDraft?: boolean; mergeable?: string; mergedAt?: string | null;
+  mergedBy?: Person; reviewDecision?: string | null;
+}>;
+type Repository = Readonly<{databaseId: number; nameWithOwner: string; answerId?: string;
+  issues: readonly Issue[]; pullRequests?: readonly Pull[]}>;
+type Subject = Readonly<{type: string; repository: string; number: number}>;
+type Created = Readonly<{subjectId: string; databaseId: number; body: string}>;
+type Field = 'assignees' | 'labels';
+type Variables = Readonly<{
+  id: string; number?: number; owner?: string; name?: string; first: number; after: string | null;
+  states?: readonly string[]; labels?: readonly string[]; subjectId: string; body: string;
+}>;
+type Answer = (variables: Variables) => Reply | PromiseLike<Reply>;
+type Child = (field: Field, variables: Variables) => Reply | PromiseLike<Reply>;
+type SubjectAnswer = (query: string, variables: Variables) => Reply | PromiseLike<Reply>;
+type World = {
+  repositories: ReadonlyMap<string, Repository>;
+  names: ReadonlyMap<string, string>;
+  pageSize?: number; fieldPageSize?: number; commentPageSize?: number;
+  subjects?: ReadonlyMap<string, Subject>; comments?: Created[];
+  answer?: Answer; pullAnswer?: Answer; commentReply?: Answer; childAnswer?: Child; pullChildAnswer?: Child;
+  commentSubjectsAnswer?: SubjectAnswer; commentReadAnswer?: SubjectAnswer; commentConfirmationAnswer?: SubjectAnswer;
+};
+type Recorded = Readonly<{query: string; variables: Variables}>;
+const encode = (index: number) => Buffer.from(`cursor:${index}`).toString('base64');
+const decode = (cursor: string) => {
   const text = Buffer.from(cursor, 'base64').toString('utf8');
   return text.startsWith('cursor:') ? Number(text.slice(7)) : NaN;
 };
 
 // One GraphQL Issue node from a test Issue.
-const textConnection = (field, all, first = 100, after = null, pageSize = 100) => {
+const textConnection = (field: Field, all: readonly string[], first = 100, after: string | null = null, pageSize = 100) => {
   const start = after === null ? 0 : decode(after) + 1;
   const values = all.slice(start, start + Math.min(first, pageSize));
   const key = field === 'assignees' ? 'login' : 'name';
@@ -24,7 +61,7 @@ const textConnection = (field, all, first = 100, after = null, pageSize = 100) =
     nodes: values.map(value => ({[key]: value}))};
 };
 
-export const graphqlIssue = (issue, fieldPageSize = 100) => ({number: issue.number,
+export const graphqlIssue = (issue: Issue, fieldPageSize = 100) => ({number: issue.number,
   id: issue.id ?? `I_${issue.number}`, title: issue.title ?? `Issue ${issue.number}`,
   state: issue.state ?? 'OPEN', stateReason: issue.stateReason ?? null,
   body: issue.body ?? '',
@@ -40,7 +77,7 @@ export const graphqlIssue = (issue, fieldPageSize = 100) => ({number: issue.numb
 
 // PullRequest has no Issue stateReason. Its own native fields are observed,
 // including ref names when a corresponding Ref object no longer exists.
-export const graphqlPullRequest = (pull, fieldPageSize = 100) => {
+export const graphqlPullRequest = (pull: Pull, fieldPageSize = 100) => {
   const {stateReason, ...common} = graphqlIssue({...pull,
     id: pull.id ?? `PR_${pull.number}`,
     title: pull.title ?? `Pull request ${pull.number}`,
@@ -58,13 +95,13 @@ export const graphqlPullRequest = (pull, fieldPageSize = 100) => {
 //  subjects?: Map(nodeId -> {type, repository, number}),
 //  commentReply?(variables), comments?: [{subjectId, body, databaseId}]}.
 // `answer`, when present, overrides the node response for misbehaviour.
-export function graphqlRoute(world) {
-  return {method: 'POST', pathname: '/graphql', handle(exchange) {
-    let request;
+export function graphqlRoute(world: () => World) {
+  return {method: 'POST', pathname: '/graphql', handle(exchange: Pick<Exchange, 'body'>) {
+    let request: Readonly<{query?: unknown; variables?: Variables}>;
     try { request = JSON.parse(exchange.body); }
     catch { return {status: 400, body: {message: 'Problems parsing JSON'}}; }
     const state = world();
-    const {query, variables = {}} = request;
+    const {query, variables = {} as Variables} = request;
     if (typeof query !== 'string') return {status: 400, body: {}};
     if (query.startsWith('query ActqlRepository(')) {
       const nodeId = state.names.get(`${variables.owner}/${variables.name}`);
@@ -128,8 +165,8 @@ export function graphqlRoute(world) {
         subject.type === 'PullRequest' ? {__typename: subject.type,
         id: variables.id, number: subject.number,
         repository: {__typename: 'Repository', id: subject.repository,
-          databaseId: repository.databaseId,
-          nameWithOwner: repository.nameWithOwner}}
+          databaseId: repository!.databaseId,
+          nameWithOwner: repository!.nameWithOwner}}
         : {__typename: subject.type}}}};
     }
     if (query.startsWith('query ActqlConfirmComment(')) {
@@ -237,18 +274,18 @@ export function graphqlRoute(world) {
 }
 
 // The requests a fixture saw for the Issue read, with their variables.
-export const issueReads = fixture => fixture.seen()
+export const issueReads = (fixture: Pick<Server, 'seen'>) => fixture.seen()
   .filter(entry => entry.pathname === '/graphql')
-  .map(entry => JSON.parse(entry.body))
+  .map(entry => JSON.parse(entry.body) as Recorded)
   .filter(request => request.query.startsWith('query ActqlIssues('));
 
-export const pullRequestReads = fixture => fixture.seen()
+export const pullRequestReads = (fixture: Pick<Server, 'seen'>) => fixture.seen()
   .filter(entry => entry.pathname === '/graphql')
-  .map(entry => JSON.parse(entry.body))
+  .map(entry => JSON.parse(entry.body) as Recorded)
   .filter(request => request.query.startsWith('query ActqlPullRequests('));
 
 // The comment mutations a fixture saw, with their variables.
-export const commentSends = fixture => fixture.seen()
+export const commentSends = (fixture: Pick<Server, 'seen'>) => fixture.seen()
   .filter(entry => entry.pathname === '/graphql')
-  .map(entry => JSON.parse(entry.body))
+  .map(entry => JSON.parse(entry.body) as Recorded)
   .filter(request => request.query.startsWith('mutation ActqlAddComment('));

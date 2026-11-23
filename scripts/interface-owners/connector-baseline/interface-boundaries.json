@@ -5432,7 +5432,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/github/test/github-comment-mapping.test.mjs",
+                "path": "adapters/connectors/github/test/github-comment-mapping.test.mts",
                 "anchor": "the declared GitHub comment write yields a Mapping a Program can target"
               },
               {
@@ -5444,7 +5444,7 @@
                 "anchor": "GitHub Source and Effect identity"
               },
               {
-                "path": "adapters/connectors/github/test/github-installed-comment-outcome.test.mjs",
+                "path": "adapters/connectors/github/test/github-installed-comment-outcome.test.mts",
                 "anchor": "installed comment Created remains provider evidence pending actual confirmation"
               },
               {
@@ -5960,7 +5960,7 @@
                 "anchor": "a same-name B"
               },
               {
-                "path": "adapters/connectors/github/test/github-publication-cleanup.test.mjs",
+                "path": "adapters/connectors/github/test/github-publication-cleanup.test.mts",
                 "anchor": "GitHub publication retains its original journal after successful publication close fails"
               },
               {
@@ -5968,7 +5968,7 @@
                 "anchor": "GitHub Source and Effect identity"
               },
               {
-                "path": "adapters/connectors/github/test/github-milestone-declaration.test.mjs",
+                "path": "adapters/connectors/github/test/github-milestone-declaration.test.mts",
                 "anchor": "the PullRequest declaration keeps native read types and an inapplicable nullable reason"
               },
               {
@@ -5988,7 +5988,7 @@
                 "anchor": "test('GitHub native Source joins bounded POST original child charge growth and shared Reader retirement'"
               },
               {
-                "path": "adapters/connectors/github/test/github-repository-validation.test.mjs",
+                "path": "adapters/connectors/github/test/github-repository-validation.test.mts",
                 "anchor": "GitHub actual scalar repository rule gates Source Effect and publication before credentials"
               }
             ]

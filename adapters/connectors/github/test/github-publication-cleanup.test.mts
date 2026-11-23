@@ -5,15 +5,22 @@ import {tmpdir, userInfo} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import test from 'node:test';
-import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as providerMoon from '../../../../_build/js/release/build/connectors/github/host_node/host_node.js';
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {publishInstalledGitHubSource, INSTALLED_GITHUB_SITE_VERSION,
   INSTALLED_GITHUB_SOURCE_VERSION} from '../host/installed-github-source.mjs';
 import {graphqlRoute} from './github-graphql.fixture.mjs';
+import type {TestContext} from 'node:test';
 
-async function setup(t, outcome) {
+type Options = Parameters<typeof publishInstalledGitHubSource>[1];
+type Failure = Readonly<{
+  code: string; primaryFailure: Readonly<{code: string}>; cleanupPending?: boolean;
+  cleanupHandle?: Readonly<{status(): Readonly<{owners: readonly string[]; pending: boolean}>; retry(): Promise<unknown>}>;
+}>;
+const moon = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href) as Options['moon'];
+const providerMoon = await import(new URL('../../../../_build/js/release/build/connectors/github/host_node/host_node.js', import.meta.url).href) as Options['providerMoon'];
+
+async function setup(t: TestContext, outcome: 'allow' | 'deny') {
   const world = {repositories: new Map([['R_original', {databaseId: 1296269,
     nameWithOwner: 'octocat/hello', issues: []}]]),
   names: new Map([['octocat/hello', 'R_original']])};
@@ -43,11 +50,11 @@ async function setup(t, outcome) {
 
 // Inject before the real close, preserving the exact original DatabaseSync
 // object and every product journal operation. Retry must close that same DB.
-function failOriginalClose(t, times) {
+function failOriginalClose(t: TestContext, times: number) {
   const close = DatabaseSync.prototype.close;
   const cause = Object.assign(new Error('FixtureSqliteClosePending'), {code: 'FixtureSqliteClosePending'});
-  let original, calls = 0, physicalClosed = false;
-  DatabaseSync.prototype.close = function(...args) {
+  let original: DatabaseSync | undefined, calls = 0, physicalClosed = false;
+  DatabaseSync.prototype.close = function(this: DatabaseSync, ...args: Parameters<typeof close>) {
     original ??= this;
     assert.equal(this, original);
     calls++;
@@ -69,35 +76,35 @@ function failOriginalClose(t, times) {
 test('GitHub publication retains its original journal after successful publication close fails', async t => {
   const fixture = await setup(t, 'allow');
   const close = failOriginalClose(t, 2);
-  const failure = await fixture.publish().then(() => assert.fail('close must not be acknowledged'), error => error);
+  const failure = await fixture.publish().then(() => assert.fail('close must not be acknowledged'), (error: unknown) => error as Failure);
   assert.equal(failure.code, 'InstalledHostInitializationFailed');
   assert.equal(failure.primaryFailure, close.cause);
   assert.equal(failure.cleanupPending, true);
-  assert.deepEqual(failure.cleanupHandle.status().owners, ['source-profile']);
+  assert.deepEqual(failure.cleanupHandle!.status().owners, ['source-profile']);
   assert.equal(close.physicalClosed(), false);
   const saved = await readFile(fixture.profile.publicationPath);
-  assert.equal(JSON.parse(saved).repository.node_id, 'R_original');
+  assert.equal(JSON.parse(saved.toString('utf8')).repository.node_id, 'R_original');
   assert.equal(fixture.api.seen().length, 1);
-  await failure.cleanupHandle.retry();
+  await failure.cleanupHandle!.retry();
   assert.equal(close.physicalClosed(), true);
-  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(failure.cleanupHandle!.status().pending, false);
   assert.equal(fixture.api.seen().length, 1, 'cleanup never repeats repository discovery');
   assert.deepEqual(await readFile(fixture.profile.publicationPath), saved);
   const count = close.calls();
-  await failure.cleanupHandle.retry();
+  await failure.cleanupHandle!.retry();
   assert.equal(close.calls(), count, 'the confirmed physical close is not repeated');
 });
 
 test('GitHub publication keeps authorization refusal primary while original cleanup is pending', async t => {
   const fixture = await setup(t, 'deny');
   const close = failOriginalClose(t, 2);
-  const failure = await fixture.publish().then(() => assert.fail('denied read must fail'), error => error);
+  const failure = await fixture.publish().then(() => assert.fail('denied read must fail'), (error: unknown) => error as Failure);
   assert.equal(failure.code, 'InstalledHostInitializationFailed');
   assert.equal(failure.primaryFailure.code, 'ExecutionAuthorizationDenied');
   assert.equal(failure.cleanupPending, true);
   assert.equal(fixture.api.seen().length, 0);
-  await failure.cleanupHandle.retry();
-  assert.equal(failure.cleanupHandle.status().pending, false);
+  await failure.cleanupHandle!.retry();
+  assert.equal(failure.cleanupHandle!.status().pending, false);
   assert.equal(close.physicalClosed(), true);
   assert.equal(fixture.api.seen().length, 0, 'cleanup never retries the denied operation');
 });
@@ -107,7 +114,7 @@ test('GitHub publication still returns its durable original after confirmed clos
   const close = failOriginalClose(t, 0);
   const publication = await fixture.publish();
   assert.equal(publication.repository.node_id, 'R_original');
-  assert.deepEqual(JSON.parse(await readFile(fixture.profile.publicationPath)), publication);
+  assert.deepEqual(JSON.parse(await readFile(fixture.profile.publicationPath, 'utf8')), publication);
   assert.equal(close.physicalClosed(), true);
   assert.equal(close.calls(), 1);
   assert.equal(fixture.api.seen().length, 1);
@@ -116,7 +123,7 @@ test('GitHub publication still returns its durable original after confirmed clos
 test('GitHub publication leaves an ordinary authorization refusal unchanged after confirmed close', async t => {
   const fixture = await setup(t, 'deny');
   const close = failOriginalClose(t, 0);
-  const failure = await fixture.publish().then(() => assert.fail('denied read must fail'), error => error);
+  const failure = await fixture.publish().then(() => assert.fail('denied read must fail'), (error: unknown) => error as Failure);
   assert.equal(failure.code, 'ExecutionAuthorizationDenied');
   assert.equal(failure.cleanupHandle, undefined);
   assert.equal(close.physicalClosed(), true);

@@ -1,10 +1,17 @@
 // Milestone is the provider's title observation, never its numeric or node ID.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from
-  '../../../../_build/js/release/build/connectors/github/host_node/host_node.js';
+type Provider = Readonly<{
+  githubIssuesPageJson(body: Uint8Array, maxBytes: number, maxNodes: number, maxDepth: number,
+    maxRows: number, nodeId: string, databaseId: number, name: string): string;
+  githubIssuePageJson(body: Uint8Array, maxBytes: number, maxNodes: number, maxDepth: number, maxRows: number): string;
+  githubIssuesRequestJson(nodeId: string, first: number, hasAfter: boolean, after: string,
+    state: string, labels: readonly string[], hasSince: boolean, since: string): string;
+}>;
+type PageReply = Readonly<{page: Readonly<{rows: readonly Readonly<{milestone: unknown; node_id: string}>[]}>; refused?: unknown}>;
+const moon = await import(new URL('../../../../_build/js/release/build/connectors/github/host_node/host_node.js', import.meta.url).href) as Provider;
 
-const issue = milestone => ({number: 1, id: 'I_1', node_id: 'I_1',
+const issue = (milestone?: unknown) => ({number: 1, id: 'I_1', node_id: 'I_1',
   title: 'issue', state: 'OPEN', stateReason: null,
   assignees: {totalCount: 0, pageInfo: {hasNextPage: false, endCursor: null}, nodes: []},
   labels: {totalCount: 0, pageInfo: {hasNextPage: false, endCursor: null}, nodes: []},
@@ -12,20 +19,20 @@ const issue = milestone => ({number: 1, id: 'I_1', node_id: 'I_1',
   comments: {totalCount: 0}, milestone,
   createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z',
   closedAt: null});
-const graph = value => JSON.parse(moon.githubIssuesPageJson(Buffer.from(
+const graph = (value: ReturnType<typeof issue>) => JSON.parse(moon.githubIssuesPageJson(Buffer.from(
   JSON.stringify({data: {node: {__typename: 'Repository', id: 'R_A',
     databaseId: 17, nameWithOwner: 'octo/repo', issues: {
       pageInfo: {hasNextPage: false, endCursor: null}, nodes: [value]}}}})),
-  100_000, 10_000, 32, 100, 'R_A', 17, 'octo/repo'));
-const rest = value => {
+  100_000, 10_000, 32, 100, 'R_A', 17, 'octo/repo')) as PageReply;
+const rest = (value: ReturnType<typeof issue>) => {
   const node = {...value, state: 'open', state_reason: null, user: value.author, comments: 0,
     assignees: [], labels: [], html_url: value.url,
     created_at: value.createdAt, updated_at: value.updatedAt, closed_at: null};
   return JSON.parse(moon.githubIssuePageJson(Buffer.from(JSON.stringify([node])),
-    100_000, 10_000, 32, 100));
+    100_000, 10_000, 32, 100)) as PageReply;
 };
 
-for (const [name, project] of [['GraphQL', graph], ['REST', rest]]) {
+for (const [name, project] of [['GraphQL', graph], ['REST', rest]] as const) {
   test(`${name} milestone preserves title separately from every provider ID`, () => {
     for (const title of ['2', '*', 'none', 'null', '', '  release β / 日本語  ']) {
       const result = project(issue({title, number: 71, databaseId: 805, id: 'M_X'}));
@@ -39,7 +46,7 @@ for (const [name, project] of [['GraphQL', graph], ['REST', rest]]) {
       assert.ok(project(issue(value)).refused, JSON.stringify(value));
     }
     const missing = issue(null);
-    delete missing.milestone;
+    delete (missing as {milestone?: unknown}).milestone;
     assert.ok(project(missing).refused);
   });
 }
