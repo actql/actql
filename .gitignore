@@ -2552,3 +2552,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-common/publication-global-capacity.test.d.mts
 /adapters/host-common/publication-capacity.test.mjs
 /adapters/host-common/publication-capacity.test.d.mts
+/adapters/host-common/run-publication-preflight-capacity.test.mjs
+/adapters/host-common/run-publication-preflight-capacity.test.d.mts

@@ -3198,7 +3198,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/run-publication-preflight-capacity.test.mjs",
+                "path": "adapters/host-common/run-publication-preflight-capacity.test.mts",
                 "anchor": "test('preflight owns the input-CID inventory used by its narrowed derivation quote',()=>{"
               },
               {
@@ -11536,7 +11536,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/run-publication-preflight-capacity.test.mjs",
+                "path": "adapters/host-common/run-publication-preflight-capacity.test.mts",
                 "anchor": "test('preflight owns the input-CID inventory used by its narrowed derivation quote',()=>{"
               }
             ]

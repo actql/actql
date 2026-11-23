@@ -1,25 +1,29 @@
 import {createHash} from 'node:crypto';
+// @ts-expect-error TS7016: The original Local Values planner is still authored JavaScript.
 import {sourceFreeValuesPlan, sourceFreeTaskPlan, sourceFreePlanOriginal} from '../host-node/local-values-plan.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {prepareCompletedEffectFreeRunPublication} from './run-publication-preflight.mjs';
 import {resultOutputLimitFields} from './result-output-limits.mjs';
-function optionsFor(inputs) {
- const c=name=>Object.freeze({name,identity:name,wire:JSON.stringify({name})});
+type ReceiptBinding = {name: string; sha256: string};
+type InterceptedArray = {map: () => unknown; [Symbol.iterator](): Iterator<unknown>};
+
+function optionsFor<Inputs>(inputs: Inputs) {
+ const c=(name: string)=>Object.freeze({name,identity:name,wire:JSON.stringify({name})});
  const context={inputRelationCids:inputs};
  const plan={admission:{},runDefinition:c('run'),invocation:c('invocation'),observation:{},normalizationJournal:{},authoringContext:{},
-  results:[{retention:c('retention'),evidenceContext:context}],receiptEvidence:{bindings:[],sourceEvidence:[],modelEvidence:[],barrierAttemptReceiptCids:[]},captureEvidence:{pendingSourceStateAdvances:[],modelEvidence:[]},request:{},attempt:{},outputLimits:Object.fromEntries(resultOutputLimitFields.map(k=>[k,1000])),contractLimits:{maxWireBytes:1000,maxNodes:1000,maxDepth:100},now:()=>''};
- return {store:{publicationCapacitySupports:()=>true},control:{issuePublicationRequest:()=>c('request'),issuePublicationAttempt:()=>c('attempt'),publicationPreflightValid:()=>true,resultPublicationContractByteBounds:ids=>[10,ids.length*74,10,10]},publicationInventory:{occurrences:[{definitionContract:c('definition')}],programDefinitionCid:'program'},plan};
+  results:[{retention:c('retention'),evidenceContext:context}],receiptEvidence:{bindings:[] as ReceiptBinding[],sourceEvidence:[] as unknown[],modelEvidence:[] as unknown[],barrierAttemptReceiptCids:[]},captureEvidence:{pendingSourceStateAdvances:[] as unknown[],modelEvidence:[] as unknown[]},request:{},attempt:{},outputLimits:Object.fromEntries(resultOutputLimitFields.map(k=>[k,1000])),contractLimits:{maxWireBytes:1000,maxNodes:1000,maxDepth:100},now:()=>''};
+ return {store:{publicationCapacitySupports:()=>true},control:{issuePublicationRequest:()=>c('request'),issuePublicationAttempt:()=>c('attempt'),publicationPreflightValid:()=>true,resultPublicationContractByteBounds:(ids: readonly unknown[])=>[10,ids.length*74,10,10]},publicationInventory:{occurrences:[{definitionContract:c('definition')}],programDefinitionCid:'program'},plan};
 }
 test('preflight owns the input-CID inventory used by its narrowed derivation quote',()=>{
  const inputs=['input0'],options=optionsFor(inputs),context=options.plan.results[0].evidenceContext;
- let originalQuoted;
+ let originalQuoted!: readonly unknown[];
  options.control.resultPublicationContractByteBounds=ids=>{originalQuoted=ids;return [10,ids.length*74,10,10];};
  const prepared=prepareCompletedEffectFreeRunPublication(options);
  const quote=prepared.capacity;inputs.push('input1');context.inputRelationCids=['replacement'];
  assert.deepEqual(prepared.plan.results[0].evidenceContext.inputRelationCids,['input0']);
  assert.equal(prepared.plan.results[0].evidenceContext.inputRelationCids,originalQuoted);
  assert.ok(Object.isFrozen(originalQuoted));assert.equal(prepared.capacity,quote);
- assert.throws(()=>originalQuoted.push('mutation'),TypeError);
+ assert.throws(()=>(originalQuoted as unknown[]).push('mutation'),TypeError);
 });
 
 test('malformed CID containers fail with coded preflight error; empty arrays remain valid',()=>{
@@ -54,7 +58,7 @@ test('unstable accessor bags are rejected without invoking semantic getters',()=
  for(const path of ['binding','context','limit','plan']){
   const options=optionsFor([]);let reads=0;
   const accessor={enumerable:true,get(){reads++;return 'unstable';}};
-  if(path==='binding')options.plan.receiptEvidence.bindings.push(Object.defineProperty({sha256:'0'.repeat(64)},'name',accessor));
+  if(path==='binding')options.plan.receiptEvidence.bindings.push(Object.defineProperty({sha256:'0'.repeat(64)},'name',accessor) as ReceiptBinding);
   if(path==='context')Object.defineProperty(options.plan.results[0].evidenceContext,'inputRelationCids',accessor);
   if(path==='limit')Object.defineProperty(options.plan.outputLimits,'maxRows',accessor);
   if(path==='plan')Object.defineProperty(options.plan,'authoringContext',accessor);
@@ -69,7 +73,7 @@ test('caller map and iterator overrides cannot retain mutable binding or Result 
  const result=options.plan.results[0];let calls=0;
  options.plan.receiptEvidence.bindings=[binding];
  for(const array of [options.plan.receiptEvidence.bindings,options.plan.results,
-   result.evidenceContext.inputRelationCids,options.publicationInventory.occurrences]){
+   result.evidenceContext.inputRelationCids,options.publicationInventory.occurrences] as unknown as InterceptedArray[]){
   array.map=()=>{calls++;return array;};
   array[Symbol.iterator]=function*(){calls++;yield binding;};
  }
@@ -85,7 +89,7 @@ test('caller map and iterator overrides cannot retain mutable binding or Result 
 test('array index accessors and inherited/sparse indices fail coded without evaluation',()=>{
  for(const kind of ['accessor','inherited','sparse']){
   const options=optionsFor([]);let reads=0;
-  const bindings=[];bindings.length=1;
+  const bindings: ReceiptBinding[]=[];bindings.length=1;
   if(kind==='accessor')Object.defineProperty(bindings,'0',{enumerable:true,get(){reads++;return {name:'x',sha256:'0'.repeat(64)};}});
   if(kind==='inherited')Object.setPrototypeOf(bindings,{0:{name:'x',sha256:'0'.repeat(64)},map(){throw Error('untrusted map');}});
   options.plan.receiptEvidence.bindings=bindings;
@@ -99,14 +103,14 @@ test('array index accessors and inherited/sparse indices fail coded without eval
  binding.name='mutated';assert.equal(prepared.plan.receiptEvidence.bindings[0].name,'safe');
 });
 
-const cid = digit => `sha256:${digit.repeat(64)}`;
-const hash = body => `sha256:${createHash('sha256').update(JSON.stringify(body)).digest('hex')}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+const hash = (body: unknown) => `sha256:${createHash('sha256').update(JSON.stringify(body)).digest('hex')}`;
 
 // Actual planner and preflight consumers, with explicit opaque control/Store
 // ports. These cases establish their shared data contract, not physical backing.
 for (const kind of ['values', 'tasks']) {
 test(`timed ${kind} publication reaches the existing preflight with original contracts`, () => {
-  const contract = name => Object.freeze({name, identity: hash({name}), wire: JSON.stringify({name})});
+  const contract = (name: string) => Object.freeze({name, identity: hash({name}), wire: JSON.stringify({name})});
   const prepared = {}, request = {}, time = {}, context = {}, originalPlan = {};
   const definition = contract('run_definition');
   const compiled = Object.freeze({kind, admission: {}, compiledPlan: contract('compiled_plan'),
@@ -118,33 +122,33 @@ test(`timed ${kind} publication reaches the existing preflight with original con
     validUntil: '2026-11-01T00:00:00.000Z', queryTimePreparation: time, queryTime: context});
   let captured = 0, issued = 0, supported = 0;
   const control = {
-    checkClientCompiledRunOwner(value, owner) {assert.equal(value, compiled); assert.equal(owner, prepared);},
-    checkClientCompiledRunDefinition(value, run) {assert.equal(value, compiled); assert.equal(run, definition);},
+    checkClientCompiledRunOwner(value: unknown, owner: unknown) {assert.equal(value, compiled); assert.equal(owner, prepared);},
+    checkClientCompiledRunDefinition(value: unknown, run: unknown) {assert.equal(value, compiled); assert.equal(run, definition);},
     prepareCheckedClientCompiledRun() {assert.fail('original compilation must not be repeated');},
     defineCheckedClientCompiledRun() {assert.fail('original Run must not be reissued');},
     prepareClientQueryTime() {assert.fail('original time must not be sampled again');},
-    issueCheckedClientCompiledInvocation(value, run) {
+    issueCheckedClientCompiledInvocation(value: unknown, run: unknown) {
       assert.equal(value, compiled); assert.equal(run, definition);
       return {observation: contract('observation'), invocation: contract('invocation')};
     },
-    preparedClientNormalizationEvidence(value) {
+    preparedClientNormalizationEvidence(value: unknown) {
       assert.equal(value, prepared); assert.equal(authoringOriginal.requestIdentity, request);
       return normalization;
     },
-    preparedClientAuthoringContextEvidence(value, original) {
+    preparedClientAuthoringContextEvidence(value: unknown, original: typeof authoringOriginal) {
       assert.equal(value, prepared); assert.equal(original, authoringOriginal);
       assert.equal(original.preparedProgram, prepared); assert.equal(original.requestIdentity, request);
       return authoring;
     },
-    seal: name => contract(name), sealRunEvidence: name => contract(name),
+    seal: (name: string) => contract(name), sealRunEvidence: (name: string) => contract(name),
     compiledRunResultTransformation: () => undefined,
-    captureOriginalClientRunPlan(value, owner, run) {
+    captureOriginalClientRunPlan(value: unknown, owner: unknown, run: unknown) {
       assert.equal(value, compiled); assert.equal(owner, prepared); assert.equal(run, definition);
       captured++; return originalPlan;
     },
-    issuePublicationRequest(run) {assert.equal(run, definition); issued++; return contract('request');},
-    issuePublicationAttempt(_request, run) {assert.equal(run, definition); return contract('attempt');},
-    publicationPreflightValid(admission, run) {
+    issuePublicationRequest(run: unknown) {assert.equal(run, definition); issued++; return contract('request');},
+    issuePublicationAttempt(_request: unknown, run: unknown) {assert.equal(run, definition); return contract('attempt');},
+    publicationPreflightValid(admission: unknown, run: unknown) {
       assert.equal(admission, compiled.admission); assert.equal(run, definition); return true;
     },
     resultPublicationContractByteBounds: () => [10, 10, 10, 10],
@@ -152,7 +156,7 @@ test(`timed ${kind} publication reaches the existing preflight with original con
   const publicationOriginal = {};
   const moon = {
     clientProgramDefinitionCid: () => cid('b'), clientProgramResultCount: () => 1,
-    clientProgramPreparedLocalPublicationLimits(value, owner) {
+    clientProgramPreparedLocalPublicationLimits(value: unknown, owner: unknown) {
       assert.equal(value, publicationOriginal); assert.equal(owner, prepared);
       return resultOutputLimitFields.map(() => 1000);
     },
