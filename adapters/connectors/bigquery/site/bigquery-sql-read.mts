@@ -11,17 +11,71 @@ import {ownInvocationAuthorization, ownInvocationLimits, invocationBindingsMatch
 import {callHttpsCredentialResource, openHttpsCredentialBinding,
   closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
 
-export const BIGQUERY_SQL_READ_OPERATION = 'bigquery:sql:read';
-const fail = code => { throw Object.assign(new Error(code), {code}); };
-const count = value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
-const sha = bytes => createHash('sha256').update(bytes).digest('hex');
+type LimitName = 'maxBytes' | 'maxNodes' | 'maxDepth' | 'maxFields' | 'maxNameBytes' | 'maxSchemaBytes' |
+  'maxRows' | 'maxValueNodes' | 'maxValueTextBytes' | 'maxJobBytes' | 'maxPageTokenBytes' |
+  'maxPages' | 'maxResults' | 'timeoutMs' | 'maxRequests' | 'maxRequestBytes' | 'maxSecretBytes' | 'pollDelayMs';
+type BigQueryLimits = Readonly<Record<LimitName, number> & {maxTotalRows: bigint; maximumBytesBilled: bigint}>;
+type Runtime = Readonly<{
+  clientProgramBigQueryDescriptionLimits(bytes: number, nodes: number, depth: number, fields: number, nameBytes: number, schemaBytes: number): unknown;
+  clientProgramBigQueryQueryLimits(description: unknown, maxRows: number, maxTotalRows: bigint,
+    valueNodes: number, valueTextBytes: number, jobBytes: number, pageTokenBytes: number): unknown;
+  clientProgramBigQueryReadAcquisition(prepared: unknown): object;
+  clientProgramBigQueryBorrowRead(prepared: unknown, run: unknown, job: unknown, admitted: unknown, pages: number): unknown;
+  clientProgramBigQueryBindReadTransport(read: unknown, stop: () => boolean): unknown;
+  clientProgramBigQueryPrepareJob(read: unknown, maximumBilled: bigint, results: number, timeout: number, requests: number, requestBytes: number): unknown;
+  clientProgramBigQueryJobRecordLimits(bytes: number, nodes: number, depth: number, jobBytes: number, materialBytes: number): unknown;
+  clientProgramBigQueryJobOriginalRecord(read: unknown, limits: unknown): unknown;
+  clientProgramBigQueryJobOriginalRecordWire(record: unknown): string;
+  clientProgramBigQueryRequestMaterial(request: unknown): unknown;
+  clientProgramBigQueryAttemptRequest(read: unknown, request: unknown): unknown;
+  clientProgramBigQueryRecordResponseLoss(read: unknown, request: unknown): unknown;
+  clientProgramBigQueryChargeResponse(read: unknown, request: unknown, status: number, body: Uint8Array): unknown;
+  clientProgramBigQueryRecordDecoderRefusal(read: unknown, ticket: unknown): unknown;
+  clientProgramBigQueryAcceptResponse(read: unknown, ticket: unknown, decoded: Uint8Array): unknown;
+  clientProgramBigQueryNextRequest(read: unknown): unknown;
+  clientProgramBigQueryJobOriginalRecordMatchesRequest(read: unknown, request: unknown, record: unknown): boolean;
+  clientProgramBigQueryJobComplete(read: unknown): boolean;
+  clientProgramBigQueryJobOriginal(read: unknown): unknown;
+  clientProgramBigQueryReadUsage(read: unknown): unknown;
+  clientProgramBigQueryInterruptRead(read: unknown): void;
+  clientProgramBigQueryRetireReadBorrow(read: unknown): unknown;
+  clientProgramBigQueryJobRemoteDone(read: unknown): boolean;
+}>;
+type Frame = Readonly<{
+  run: unknown; acquisition: object; requestId: string; runInvocationCid: string; dispatchRequestCid: string;
+}>;
+type OwnedAuthorization = ReturnType<typeof ownInvocationAuthorization>;
+type InvocationScope = OwnedAuthorization['scope'] & Readonly<{
+  operation?: string; connectorRegistration?: string; runInvocationCid?: string; dispatchRequestCid?: string;
+}>;
+type BindingOptions = Parameters<typeof openHttpsCredentialBinding>[0];
+type Binding = ReturnType<typeof openHttpsCredentialBinding>;
+type Credential = Omit<BindingOptions, 'scope' | 'maxSecretBytes'> & Readonly<{binding?: unknown}>;
+type ResourceResponse = Awaited<ReturnType<typeof callHttpsCredentialResource>>;
+type JobIdentity = Readonly<{project: string; jobId: string; location: string}>;
+type Exchange = Readonly<{sequence: number; method: string; path: string; statusCode: ResourceResponse['statusCode']; useCid: string;
+  wireSha256: string; decodedSha256: string}>;
+type ReadResult = JobIdentity & Readonly<{pages: number; rows: bigint; exchanges: number; wireBytes: bigint;
+  decodedBytes: bigint; lastExchange?: Exchange}>;
+type OriginalJob = Readonly<{jobRead: unknown; request: unknown; record: unknown; wire: string; frame: Frame}>;
+type ReadOptions = Readonly<{
+  moon: Runtime; prepared: unknown; rowRun: Frame; job: unknown; limits: BigQueryLimits;
+  authorizationFor(sequence: number): unknown;
+  credential: Credential; verifyRead(): unknown; withOriginalJob(job: OriginalJob, send: () => Promise<void>): unknown;
+  signal?: AbortSignal; callResource?: typeof callHttpsCredentialResource;
+}>;
 
-function queryLimits(moon, limits) {
+export const BIGQUERY_SQL_READ_OPERATION = 'bigquery:sql:read';
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
+const count = (value: number) => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
+const sha = (bytes: Uint8Array) => createHash('sha256').update(bytes).digest('hex');
+
+function queryLimits(moon: Runtime, limits: BigQueryLimits) {
   for (const name of ['maxBytes', 'maxNodes', 'maxDepth', 'maxFields',
     'maxNameBytes', 'maxSchemaBytes', 'maxRows', 'maxValueNodes',
     'maxValueTextBytes', 'maxJobBytes', 'maxPageTokenBytes', 'maxPages',
     'maxResults', 'timeoutMs', 'maxRequests', 'maxRequestBytes', 'maxSecretBytes',
-    'pollDelayMs']) {
+    'pollDelayMs'] as const) {
     if (!count(limits[name]) || limits[name] === 0 &&
         !['maxRows', 'timeoutMs', 'pollDelayMs'].includes(name)) {
       fail('InvalidBigQueryReadLimits');
@@ -38,8 +92,8 @@ function queryLimits(moon, limits) {
     limits.maxValueTextBytes, limits.maxJobBytes, limits.maxPageTokenBytes);
 }
 
-function authorizeRead(value, frame, original) {
-  const owned = ownInvocationAuthorization(value);
+function authorizeRead(value: unknown, frame: Frame, original?: InvocationScope) {
+  const owned = ownInvocationAuthorization(value) as OwnedAuthorization & Readonly<{scope: InvocationScope}>;
   if (owned.scope.operation !== BIGQUERY_SQL_READ_OPERATION ||
       owned.scope.connectorRegistration !== 'bigquery' ||
       owned.scope.runInvocationCid !== frame.runInvocationCid ||
@@ -50,7 +104,7 @@ function authorizeRead(value, frame, original) {
   return owned;
 }
 
-function decodeResponse(response, limit) {
+function decodeResponse(response: ResourceResponse, limit: number) {
   const encoding = response.headers?.find(pair => pair[0] === 'content-encoding')?.[1];
   if (encoding === undefined || encoding.toLowerCase() === 'identity') return response.body;
   if (encoding.toLowerCase() !== 'gzip') fail('UnsupportedBigQueryResponseEncoding');
@@ -59,13 +113,13 @@ function decodeResponse(response, limit) {
 
 export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
   authorizationFor, credential, verifyRead, withOriginalJob, signal,
-  callResource = callHttpsCredentialResource}) {
+  callResource = callHttpsCredentialResource}: ReadOptions) {
   // This private trusted assembly port must bind the same accepted Run/task,
   // Store epoch and actual prepared occurrence. It confirms the original CAS
   // before invoking sendOriginal once. A record, function or equal CID cannot
   // supply a missing production issuer, credential or current authorization.
   if (typeof withOriginalJob !== 'function') fail('BigQueryOriginalOperationUnavailable');
-  const bounds = ownInvocationLimits(limits);
+  const bounds = ownInvocationLimits(limits) as BigQueryLimits;
   const frame = Object.freeze({...rowRun});
   const physicalCredential = Object.freeze({...credential});
   if (!moon || !prepared || !job || !frame.run || !frame.acquisition ||
@@ -77,13 +131,14 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
     fail('ForeignBigQueryReadPreparation');
   }
   const admitted = queryLimits(moon, bounds);
-  let read, jobRead, binding, originalScope, bound = false, processing = true;
+  let read: unknown, jobRead: unknown, binding: Binding | undefined, originalScope: InvocationScope | undefined, bound = false, processing = true;
   let attempted = 0, exchanges = 0, wireBytes = 0n, decodedBytes = 0n;
   let firstOperationEntered = false, firstOperationOpen = false, firstSendEntered = false;
-  let firstSendPromise;
-  let transportLost = false, recordingFailure, lastObservation, lastExchange, failure, result;
-  let failed = false, recordingFailed = false, sendFailed = false, sendFailure;
-  let cleanupFailed = false, cleanupFailure;
+  let firstSendPromise: Promise<void> | undefined;
+  let transportLost = false, recordingFailure: unknown, lastObservation: ResourceResponse | undefined,
+    lastExchange: Exchange | undefined, failure: unknown, result: ReadResult | undefined;
+  let failed = false, recordingFailed = false, sendFailed = false, sendFailure: unknown;
+  let cleanupFailed = false, cleanupFailure: unknown;
   try {
     signal?.throwIfAborted();
     await verifyRead();
@@ -94,13 +149,13 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
     signal?.throwIfAborted();
     originalScope = initial.scope;
     binding = openHttpsCredentialBinding({...physicalCredential,
-      scope: originalScope, maxSecretBytes: bounds.maxSecretBytes});
+      scope: originalScope, maxSecretBytes: bounds.maxSecretBytes} as BindingOptions);
     read = checked(moon.clientProgramBigQueryBorrowRead(prepared, frame.run, job,
       admitted, bounds.maxPages));
     // The same original stop observer must exist before Common admits any Job
     // preparation. Opening this binding neither resolves a secret nor sends.
     checked(moon.clientProgramBigQueryBindReadTransport(read, () =>
-      closeHttpsCredentialBinding(binding) === 'closed' && !processing));
+      closeHttpsCredentialBinding(binding!) === 'closed' && !processing));
     bound = true;
     jobRead = checked(moon.clientProgramBigQueryPrepareJob(read, bounds.maximumBytesBilled,
       bounds.maxResults, bounds.timeoutMs, bounds.maxRequests, bounds.maxRequestBytes));
@@ -108,10 +163,10 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
       bounds.maxNodes, bounds.maxDepth, bounds.maxJobBytes, bounds.maxRequestBytes);
     const record = checked(moon.clientProgramBigQueryJobOriginalRecord(jobRead, recordLimits));
     const wire = moon.clientProgramBigQueryJobOriginalRecordWire(record);
-    const send = async request => {
+    const send = async (request: unknown) => {
       const material = moon.clientProgramBigQueryRequestMaterial(request);
-      const method = runtimeField(material, 0), path = runtimeField(material, 1);
-      const body = runtimeField(material, 2), sequence = runtimeField(material, 3);
+      const method = runtimeField(material, 0) as string, path = runtimeField(material, 1) as string;
+      const body = runtimeField(material, 2), sequence = runtimeField(material, 3) as number;
       const authorization = sequence === 0 ? initial :
         authorizeRead(await authorizationFor(sequence), frame, originalScope);
       signal?.throwIfAborted();
@@ -119,14 +174,14 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
       signal?.throwIfAborted();
       checked(moon.clientProgramBigQueryAttemptRequest(jobRead, request));
       attempted++;
-      let response;
+      let response: ResourceResponse;
       try {
         response = await invokeScopedCredentialOperation({authorization,
           credential: Object.freeze({...physicalCredential, binding, currentBeforeSend: verifyRead}),
           callResource, operation: BIGQUERY_SQL_READ_OPERATION, method, path,
           ...(body === undefined || body === null ? {} : {body}),
           headers: [['user-agent', 'actql-bigquery/0.1']], responseHeaders: ['content-encoding'],
-          maxRequestBytes: bounds.maxRequestBytes, maxResponseBytes: bounds.maxBytes, signal});
+          maxRequestBytes: bounds.maxRequestBytes, maxResponseBytes: bounds.maxBytes, signal}) as ResourceResponse;
       } catch (error) {
         transportLost = true;
         try { checked(moon.clientProgramBigQueryRecordResponseLoss(jobRead, request)); }
@@ -135,7 +190,7 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
       }
       lastObservation = response;
       const ticket = checked(moon.clientProgramBigQueryChargeResponse(jobRead, request,
-        response.statusCode, response.body));
+        response.statusCode!, response.body));
       exchanges++;
       wireBytes += BigInt(response.body.byteLength);
       await verifyRead();
@@ -163,7 +218,7 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
           fail('ForeignBigQueryOriginalJob');
         }
         firstOperationEntered = firstOperationOpen = true;
-        let originalOperationFailure;
+        let originalOperationFailure: unknown;
         let originalOperationFailed = false;
         try {
           await withOriginalJob(Object.freeze({jobRead, request, record, wire, frame}), () => {
@@ -203,8 +258,8 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
     if (!moon.clientProgramBigQueryJobComplete(jobRead)) fail('BigQueryReadIncomplete');
     const original = moon.clientProgramBigQueryJobOriginal(jobRead);
     const usage = moon.clientProgramBigQueryReadUsage(read);
-    result = Object.freeze({project: runtimeField(original, 0), jobId: runtimeField(original, 1),
-      location: runtimeField(original, 2), pages: runtimeField(usage, 0), rows: runtimeField(usage, 1),
+    result = Object.freeze({project: runtimeField(original, 0) as string, jobId: runtimeField(original, 1) as string,
+      location: runtimeField(original, 2) as string, pages: runtimeField(usage, 0) as number, rows: runtimeField(usage, 1) as bigint,
       exchanges, wireBytes, decodedBytes, lastExchange});
   } catch (error) {
     // Any JavaScript value, including undefined, is a legitimate rejection.
@@ -240,15 +295,15 @@ export async function readBigQuerySqlApi({moon, prepared, rowRun, job, limits,
     const remoteDone = jobRead !== undefined && moon.clientProgramBigQueryJobRemoteDone(jobRead);
     const outcome = !stopped || transportLost || firstOperationEntered && !firstSendEntered ||
       attempted !== 0 && !remoteDone ? 'unknown' : attempted === 0 ? 'not_started' : 'stopped';
-    const error = new AcquisitionOpenError(failure, outcome);
+    const error = new AcquisitionOpenError(failure, outcome) as AcquisitionOpenError & {originalJob?: JobIdentity};
     if (lastObservation !== undefined) Object.defineProperty(error, 'observation', {value: lastObservation});
     if (recordingFailed) Object.defineProperty(error, 'recordingFailure', {value: recordingFailure});
     if (sendFailed) Object.defineProperty(error, 'sendFailure', {value: sendFailure});
     if (cleanupFailed) Object.defineProperty(error, 'cleanupFailure', {value: cleanupFailure});
     if (jobRead !== undefined) {
       const original = moon.clientProgramBigQueryJobOriginal(jobRead);
-      error.originalJob = Object.freeze({project: runtimeField(original, 0),
-        jobId: runtimeField(original, 1), location: runtimeField(original, 2)});
+      error.originalJob = Object.freeze({project: runtimeField(original, 0) as string,
+        jobId: runtimeField(original, 1) as string, location: runtimeField(original, 2) as string});
     }
     throw error;
   }

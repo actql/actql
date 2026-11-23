@@ -8,34 +8,97 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {readSourceProfileJson, readBoundedConfigurationText, captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
 import {readBigQuerySqlApi, BIGQUERY_SQL_READ_OPERATION} from '../site/bigquery-sql-read.mjs';
 
+type ReadOptions = Parameters<typeof readBigQuerySqlApi>[0];
+type ReadLimits = ReadOptions['limits'];
+type InstalledLimits = Omit<ReadLimits, 'maxTotalRows' | 'maximumBytesBilled'> & Readonly<{
+  maxTotalRows: number; maximumBytesBilled: string;
+  maxDeclarationBytes: number; maxDeclarationNodes: number; maxCaBytes: number;
+}>;
+type TargetIdentity = Readonly<{
+  connectorId: string; resource: string; project: string; dataset: string; table: string; location: string;
+}>;
+type SourceProfile = TargetIdentity & Readonly<{
+  version: typeof INSTALLED_BIGQUERY_SOURCE_VERSION; metadataPath: string; siteProfilePath: string;
+  accountConfigurationWire: string; limits: InstalledLimits;
+}>;
+type SiteProfile = Readonly<{
+  version: typeof INSTALLED_BIGQUERY_SITE_VERSION; apiOrigin: string; credentialAuthorityId: string;
+  credentialKeyId: string; credentialPrivateKeyPath: string; environment: string; journalRoot: string;
+  namespaceId: string; siteGeneration: number; siteKey: string; tokenEnvironment: string; caPath?: string;
+}>;
+type Metadata = TargetIdentity & Readonly<{version: string; apiOrigin: string; body: string}>;
+type Reader = Readonly<{
+  readJson(path: string): unknown;
+  readText(path: string, limits: Readonly<{maxBytes: number}>): string | PromiseLike<string>;
+}>;
+type Runtime = ReadOptions['moon'] & Readonly<{
+  clientProgramBigQueryOriginalJob(project: string, jobId: string, location: string, maxJobBytes: number): unknown;
+}>;
+type Declaration = Readonly<{catalog_cid: string; views: readonly Readonly<{fields: readonly string[]}>[]}>;
+type Material = Readonly<{
+  body: Uint8Array; description: unknown; descriptionLimits: unknown; declarationLimits: unknown; metadataCid: string;
+}>;
+type PhysicalTarget = (resource: string, fields: readonly string[]) => Readonly<{fields: readonly string[]}>;
+type ApprovalBinding = Readonly<{fields?: readonly string[]}>;
+type SiteOptions = Readonly<{
+  profile: SiteProfile & Readonly<{resourceOrigin: string}>; accountConfiguration: string; connection: string;
+  ca?: Buffer; admitsApprovalTarget(binding: unknown, resource: string): boolean;
+  responseHeaders: readonly string[]; resolveSecret: ReadOptions['credential']['resolveSecret'];
+}>;
+type RowAcquisition = Readonly<{declaration: unknown; requirement: unknown; queryContract: unknown; evidenceContract: unknown}>;
+type ReadPages = Omit<ReadOptions, 'moon' | 'prepared' | 'job' | 'limits' | 'credential' | 'callResource'>;
+type SourceOptions = Readonly<{
+  readOperation: string; physicalTarget: PhysicalTarget; bindingCid: string;
+  limits: Readonly<{maxPages: number; maxPageBytes: number; maxPageRows: number; maxCaptureRows: number}>;
+  prepareAcquisition(options: RowAcquisition): object;
+  readPages(options: ReadPages): Promise<void>;
+}>;
+type Construction = Readonly<{
+  configurationReader: Reader;
+  prepareNativeDeclaration(input: Readonly<{
+    capacity(): unknown; project(): Readonly<{declaration: unknown; material: Material}>;
+  }>): Readonly<{declaration: unknown; declared: Declaration; material: Material}>;
+  openRowSite(options: SiteOptions): PromiseLike<Readonly<{
+    site: Readonly<{credential: ReadOptions['credential']; callResource: NonNullable<ReadOptions['callResource']>}>;
+    authorization: Readonly<{context: Readonly<{contextCid: string}>}>;
+  }>>;
+  createRowSource(options: SourceOptions): unknown;
+}>;
+type Installation = Readonly<{
+  root?: string; principalId?: string; moon: Runtime; runtimeBundleCid: string;
+  resolveSecret?: ReadOptions['credential']['resolveSecret']; installation?: Readonly<{responseHeaders?: readonly string[]}>;
+  construction?: Construction;
+}>;
+type NativeBinding = (...args: unknown[]) => unknown;
+
 export const INSTALLED_BIGQUERY_SOURCE_VERSION = 'actql-installed-bigquery-source/0.1';
 export const INSTALLED_BIGQUERY_SITE_VERSION = 'actql-installed-bigquery-site/0.1';
 const registration = 'bigquery', revision = 'bigquery/0.1';
-const fail = code => {throw Object.assign(new TypeError(code), {code});};
-const text = value => typeof value === 'string' && value.length > 0 && value.isWellFormed() &&
+const fail: (code: string) => never = code => {throw Object.assign(new TypeError(code), {code});};
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.isWellFormed() &&
   !/[\u0000-\u001f\u007f]/u.test(value);
-const absolute = value => text(value) && isAbsolute(value);
-const canonical = value => canonicalJson(value, {dataKeys: true});
-const cid = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
-const own = (value, required, optional, code) => {
+const absolute = (value: unknown): value is string => text(value) && isAbsolute(value);
+const canonical = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const cid = (value: unknown) => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+const own = (value: unknown, required: readonly string[], optional: readonly string[], code: string): Record<string, unknown> => {
   if (value === null || typeof value !== 'object' || Array.isArray(value) || nodeTypes.isProxy(value)) fail(code);
   const entries = Object.getOwnPropertyDescriptors(value), keys = Reflect.ownKeys(entries);
   if (required.some(name => !Object.hasOwn(entries[name] ?? {}, 'value')) || keys.some(name =>
     typeof name !== 'string' || ![...required, ...optional].includes(name) || !Object.hasOwn(entries[name], 'value'))) fail(code);
-  return Object.fromEntries(keys.map(name => [name, entries[name].value]));
+  return Object.fromEntries(keys.map(name => [name, entries[name as string].value]));
 };
 const limitKeys = ['maxBytes', 'maxNodes', 'maxDepth', 'maxFields', 'maxNameBytes', 'maxSchemaBytes',
   'maxRows', 'maxTotalRows', 'maxValueNodes', 'maxValueTextBytes', 'maxJobBytes', 'maxPageTokenBytes',
   'maxPages', 'maxResults', 'timeoutMs', 'maxRequests', 'maxRequestBytes', 'maxSecretBytes', 'pollDelayMs',
-  'maximumBytesBilled', 'maxDeclarationBytes', 'maxDeclarationNodes', 'maxCaBytes'];
+  'maximumBytesBilled', 'maxDeclarationBytes', 'maxDeclarationNodes', 'maxCaBytes'] as const;
 
-export function checkInstalledBigQuerySourceProfile(value) {
+export function checkInstalledBigQuerySourceProfile(value: unknown) {
   const code = 'InvalidInstalledBigQuerySourceProfile';
   const profile = own(value, ['version', 'connectorId', 'resource', 'project', 'dataset', 'table', 'location',
-    'metadataPath', 'siteProfilePath', 'accountConfigurationWire', 'limits'], [], code);
-  const limits = own(profile.limits, limitKeys, [], code);
+    'metadataPath', 'siteProfilePath', 'accountConfigurationWire', 'limits'], [], code) as SourceProfile;
+  const limits = own(profile.limits, limitKeys, [], code) as InstalledLimits;
   if (profile.version !== INSTALLED_BIGQUERY_SOURCE_VERSION ||
-      !['connectorId', 'resource', 'project', 'dataset', 'table', 'location', 'accountConfigurationWire'].every(name => text(profile[name])) ||
+      !(['connectorId', 'resource', 'project', 'dataset', 'table', 'location', 'accountConfigurationWire'] as const).every(name => text(profile[name])) ||
       !absolute(profile.metadataPath) || !absolute(profile.siteProfilePath) ||
       !limitKeys.filter(name => name !== 'maximumBytesBilled').every(name =>
         Number.isSafeInteger(limits[name]) && limits[name] >= (['timeoutMs', 'pollDelayMs'].includes(name) ? 0 : 1) &&
@@ -45,13 +108,13 @@ export function checkInstalledBigQuerySourceProfile(value) {
   return Object.freeze({...profile, limits: Object.freeze(limits)});
 }
 
-export function checkInstalledBigQuerySiteProfile(value) {
+export function checkInstalledBigQuerySiteProfile(value: unknown) {
   const code = 'InvalidInstalledBigQuerySite';
   const site = own(value, ['version', 'apiOrigin', 'credentialAuthorityId', 'credentialKeyId', 'credentialPrivateKeyPath',
-    'environment', 'journalRoot', 'namespaceId', 'siteGeneration', 'siteKey', 'tokenEnvironment'], ['caPath'], code);
+    'environment', 'journalRoot', 'namespaceId', 'siteGeneration', 'siteKey', 'tokenEnvironment'], ['caPath'], code) as SiteProfile;
   let origin;try {origin = new URL(site.apiOrigin);} catch { /* Reject below. */ }
   if (site.version !== INSTALLED_BIGQUERY_SITE_VERSION || origin?.protocol !== 'https:' || origin.origin !== site.apiOrigin ||
-      !['credentialAuthorityId', 'credentialKeyId', 'environment', 'namespaceId', 'siteKey'].every(name => text(site[name])) ||
+      !(['credentialAuthorityId', 'credentialKeyId', 'environment', 'namespaceId', 'siteKey'] as const).every(name => text(site[name])) ||
       !absolute(site.credentialPrivateKeyPath) || !absolute(site.journalRoot) ||
       (Object.hasOwn(site, 'caPath') && !absolute(site.caPath)) ||
       !Number.isSafeInteger(site.siteGeneration) || site.siteGeneration < 0 ||
@@ -59,18 +122,19 @@ export function checkInstalledBigQuerySiteProfile(value) {
   return Object.freeze(site);
 }
 
-async function readInputs(value, readJson = readSourceProfileJson, readText = readBoundedConfigurationText, decode = true) {
+async function readInputs(value: unknown, readJson: Reader['readJson'] = readSourceProfileJson,
+  readText: Reader['readText'] = readBoundedConfigurationText, decode = true) {
   const installed = checkInstalledBigQuerySourceProfile(value);
   const site = checkInstalledBigQuerySiteProfile(await readJson(installed.siteProfilePath));
   const metadata = own(await readJson(installed.metadataPath), ['version', 'connectorId', 'resource',
-    'project', 'dataset', 'table', 'location', 'apiOrigin', 'body'], [], 'InvalidInstalledBigQueryMetadata');
+    'project', 'dataset', 'table', 'location', 'apiOrigin', 'body'], [], 'InvalidInstalledBigQueryMetadata') as Metadata;
   if (metadata.version !== 'actql-bigquery-read-metadata/0.1' ||
-      !['connectorId', 'resource', 'project', 'dataset', 'table', 'location'].every(name => metadata[name] === installed[name]) ||
+      !(['connectorId', 'resource', 'project', 'dataset', 'table', 'location'] as const).every(name => metadata[name] === installed[name]) ||
       metadata.apiOrigin !== site.apiOrigin || typeof metadata.body !== 'string' ||
       metadata.body.length > Math.ceil(installed.limits.maxBytes / 3) * 4) fail('InvalidInstalledBigQueryMetadata');
   metadataBodyBytes(metadata.body, installed.limits.maxBytes);
   const body = decode ? decodeMetadataBody(metadata.body, installed.limits.maxBytes) : undefined;
-  let ca;
+  let ca: Buffer | undefined;
   if (site.caPath !== undefined) {
     const pem = await readText(site.caPath, {maxBytes: installed.limits.maxCaBytes});
     if (/[^\x09\x0a\x0d\x20-\x7e]/u.test(pem) || !pem.includes('-----BEGIN CERTIFICATE-----') ||
@@ -80,7 +144,7 @@ async function readInputs(value, readJson = readSourceProfileJson, readText = re
   return {installed, site, metadata, body, ca};
 }
 
-function metadataBodyBytes(encoded, maxBytes) {
+function metadataBodyBytes(encoded: string, maxBytes: number) {
   if (!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(encoded)) fail('InvalidInstalledBigQueryMetadata');
   const padding = encoded.endsWith('==') ? 2 : encoded.endsWith('=') ? 1 : 0;
   const bytes = encoded.length / 4 * 3 - padding;
@@ -94,27 +158,29 @@ function metadataBodyBytes(encoded, maxBytes) {
   return bytes;
 }
 
-function decodeMetadataBody(encoded, maxBytes) {
+function decodeMetadataBody(encoded: string, maxBytes: number) {
   const body = Buffer.from(encoded, 'base64');
   if (body.byteLength > maxBytes || body.toString('base64') !== encoded) fail('InvalidInstalledBigQueryMetadata');
   return body;
 }
 
-export async function installedBigQuerySourceIdentityParts(profile, providerProfile, readJson, _entry, {configurationReader} = {}) {
+export async function installedBigQuerySourceIdentityParts(profile: Readonly<{accountConfigurationWire: string}>, providerProfile: unknown,
+  readJson: unknown, _entry: unknown, {configurationReader}: Readonly<{configurationReader?: unknown}> = {}) {
   const readers = captureConfigurationReaders(configurationReader, readJson, () => fail('BigQuerySourceConstructionUnavailable'));
-  const {installed, site, metadata, ca} = await readInputs(providerProfile, readers.readJson, readers.readText, false);
+  const {installed, site, metadata, ca} = await readInputs(providerProfile,
+    readers.readJson as Reader['readJson'], readers.readText as Reader['readText'], false);
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)}, site,
     {metadataCid: cid(metadata), exactTargetCid: cid({project: installed.project, dataset: installed.dataset,
       table: installed.table, location: installed.location, resource: installed.resource}),
     ...(ca === undefined ? {} : {caSha256: `sha256:${createHash('sha256').update(ca).digest('hex')}`})}];
 }
 
-export async function loadInstalledBigQuerySource(value, {root, principalId, moon,
-  runtimeBundleCid, resolveSecret, installation, construction}) {
+export async function loadInstalledBigQuerySource(value: unknown, {root, principalId, moon,
+  runtimeBundleCid, resolveSecret, installation, construction}: Installation) {
   if (construction === undefined || typeof construction.prepareNativeDeclaration !== 'function' ||
       typeof construction.createRowSource !== 'function' || typeof construction.openRowSite !== 'function' ||
       construction.configurationReader === undefined) fail('BigQuerySourceConstructionUnavailable');
-  const method = (receiver, name, code) => {
+  const method = (receiver: object, name: string, code: string): NativeBinding => {
     if (!receiver || nodeTypes.isProxy(receiver)) fail(code);
     const field = Object.getOwnPropertyDescriptor(receiver, name);
     if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
@@ -122,22 +188,22 @@ export async function loadInstalledBigQuerySource(value, {root, principalId, moo
     return field.value;
   };
   const readers = construction.configurationReader;
-  const {installed, site: siteProfile, metadata, ca} = await readInputs(value, readers.readJson, readers.readText, false);
+  const {installed, site: siteProfile, metadata, ca} = await readInputs(value, readers.readJson, readers.readText as Reader['readText'], false);
   const {limits} = installed;
   const names = ['ReadDeclarationConstructionCapacity', 'DescriptionLimits', 'DeclarationLimits', 'DescribeTable', 'GenerateReadDeclaration',
     'PrepareRead', 'ReadAcquisition', 'OriginalJob', 'BorrowRead', 'QueryLimits', 'PrepareJob', 'NextRequest',
     'RequestMaterial', 'AttemptRequest', 'ChargeResponse', 'AcceptResponse', 'RecordDecoderRefusal',
     'RecordResponseLoss', 'JobComplete', 'JobRemoteDone', 'JobOriginal', 'ReadUsage', 'InterruptRead',
     'RetireReadBorrow', 'BindReadTransport', 'JobRecordLimits', 'JobOriginalRecord', 'JobOriginalRecordWire',
-    'JobOriginalRecordMatchesRequest', 'JobReadMatchesRowRun'];
+    'JobOriginalRecordMatchesRequest', 'JobReadMatchesRowRun'] as const;
   if (names.some(name => typeof Object.getOwnPropertyDescriptor(moon ?? {}, `clientProgramBigQuery${name}`)?.value !== 'function') ||
       typeof Object.getOwnPropertyDescriptor(moon ?? {}, 'clientProgramRowSourceDeclarationJson')?.value !== 'function') {
     fail('BigQueryOriginalReadUnavailable');
   }
   const originals = Object.freeze(Object.fromEntries(names.map(name => {
     const fn = method(moon, `clientProgramBigQuery${name}`, 'BigQueryOriginalReadUnavailable');
-    return [name, (...args) => Reflect.apply(fn, moon, args)];
-  })));
+    return [name, (...args: unknown[]) => Reflect.apply(fn, moon, args)];
+  }))) as Readonly<Record<typeof names[number], NativeBinding>>;
   const descriptionLimits = originals.DescriptionLimits(limits.maxBytes, limits.maxNodes,
     limits.maxDepth, limits.maxFields, limits.maxNameBytes, limits.maxSchemaBytes);
   const declarationLimits = originals.DeclarationLimits(limits.maxDeclarationBytes,
@@ -159,15 +225,16 @@ export async function loadInstalledBigQuerySource(value, {root, principalId, moo
     },
   }));
   const connection = `bigquery:${installed.connectorId}`;
-  const target = (resource, fields) => Object.freeze({version: 'actql-installed-bigquery-target/0.1',
+  const target = (resource: string, fields: readonly string[]) => Object.freeze({version: 'actql-installed-bigquery-target/0.1',
     apiOrigin: siteProfile.apiOrigin, project: installed.project, dataset: installed.dataset,
     table: installed.table, location: installed.location, resource, metadataCid,
     catalogCid: declared.catalog_cid, fields: Object.freeze([...fields])});
   const allFields = declared.views[0].fields;
-  const admitsApprovalTarget = (binding, resource) => resource === installed.resource &&
-    binding !== null && typeof binding === 'object' && Array.isArray(binding.fields) &&
-    new Set(binding.fields).size === binding.fields.length && binding.fields.every(field => allFields.includes(field)) &&
-    canonical(binding) === canonical(target(resource, binding.fields));
+  const admitsApprovalTarget = (binding: unknown, resource: string) => resource === installed.resource &&
+    binding !== null && typeof binding === 'object' && Array.isArray((binding as ApprovalBinding).fields) &&
+    new Set((binding as ApprovalBinding).fields!).size === (binding as ApprovalBinding).fields!.length &&
+    (binding as ApprovalBinding).fields!.every(field => allFields.includes(field)) &&
+    canonical(binding) === canonical(target(resource, (binding as ApprovalBinding).fields!));
   const {site, authorization} = await construction.openRowSite({
     profile: Object.freeze({...siteProfile, resourceOrigin: siteProfile.apiOrigin}),
     accountConfiguration: installed.accountConfigurationWire, connection, ca, admitsApprovalTarget,
@@ -176,7 +243,7 @@ export async function loadInstalledBigQuerySource(value, {root, principalId, moo
       if (!text(token)) fail('RemoteCredentialSecretUnavailable');return token;
     })});
   {
-    const preparedReads = new WeakMap();
+    const preparedReads = new WeakMap<object, unknown>();
     const readLimits = Object.freeze({...limits, maxTotalRows: BigInt(limits.maxTotalRows),
       maximumBytesBilled: BigInt(limits.maximumBytesBilled)});
     return await construction.createRowSource({readOperation: BIGQUERY_SQL_READ_OPERATION, physicalTarget: target,
