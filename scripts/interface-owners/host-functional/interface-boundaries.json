@@ -67390,7 +67390,7 @@
     {
       "module": "adapters/host-node/installed-content-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c202e74fea9a09d8af3e820d4e6df4cca190c7265ceb7094cd6dc450b4f48d92",
+      "sha256": "20d66a773e3e79367c331d097187cc5d68db0ccc7cc42284b575e1e67ce726fb",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -67535,16 +67535,6 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/current/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installNodeContentRun/installNodeContentRun/init:cleanup/init:cleanup",
           "parameters": [],
           "async": true
@@ -67590,25 +67580,20 @@
         },
         {
           "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
           "parameters": [
             "row"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
           "parameters": [
             "name"
           ],
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#6",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
           "parameters": [
             "value",
             "index"
@@ -67616,7 +67601,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#7",
+          "name": "installNodeContentRun/installNodeContentRun/installNodeContentRun#6",
           "parameters": [
             "value",
             "index"
@@ -67638,30 +67623,12 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun/sourceConstruction/sourceConstruction",
-          "parameters": [
-            "receiver",
-            "method",
-            "args",
-            "bindingWire",
-            "role"
-          ],
-          "async": false
-        },
-        {
           "name": "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
           "parameters": [],
           "async": true
         },
         {
           "name": "installNodeContentRun/installNodeContentRun#10",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeContentRun/installNodeContentRun#11",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -67670,7 +67637,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#12",
+          "name": "installNodeContentRun/installNodeContentRun#11",
           "parameters": [
             "preparedProgram",
             "plan",
@@ -67682,7 +67649,7 @@
           "async": false
         },
         {
-          "name": "installNodeContentRun/installNodeContentRun#13",
+          "name": "installNodeContentRun/installNodeContentRun#12",
           "parameters": [
             "preparedProgram",
             "preparedEffect",
@@ -67828,10 +67795,8 @@
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#3",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#4",
             "installNodeContentRun/installNodeContentRun/installNodeContentRun#5",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun#6",
             "installNodeContentRun/installNodeContentRun/live/live",
             "installNodeContentRun/installNodeContentRun/verifyRead/verifyRead",
-            "installNodeContentRun/installNodeContentRun#10",
             "installNodeContentRun/installNodeContentRun#2",
             "installNodeContentRun/installNodeContentRun#3",
             "installNodeContentRun/installNodeContentRun#5",
@@ -68329,7 +68294,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#11"
+            "installNodeContentRun/installNodeContentRun#10"
           ],
           "exports": [],
           "attributes": {
@@ -68533,7 +68498,7 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun#12"
+            "installNodeContentRun/installNodeContentRun#11"
           ],
           "exports": [],
           "attributes": {
@@ -69586,7 +69551,7 @@
         {
           "operations": [
             "installNodeContentRun/installNodeContentRun/managedOriginal/init:prepare/init:prepare",
-            "installNodeContentRun/installNodeContentRun#13"
+            "installNodeContentRun/installNodeContentRun#12"
           ],
           "exports": [],
           "attributes": {
@@ -69694,17 +69659,14 @@
         },
         {
           "operations": [
-            "installNodeContentRun/installNodeContentRun/current/current",
-            "installNodeContentRun/installNodeContentRun/current/current/current",
-            "installNodeContentRun/installNodeContentRun/installNodeContentRun#7",
-            "installNodeContentRun/installNodeContentRun/sourceConstruction/sourceConstruction"
+            "installNodeContentRun/installNodeContentRun/installNodeContentRun#6"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69713,8 +69675,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69723,8 +69685,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69733,8 +69695,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69743,8 +69705,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69753,8 +69715,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69763,8 +69725,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69773,8 +69735,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69783,8 +69745,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-content-run.mjs",
-                "anchor": "const sourceConstruction = (receiver, method, args, bindingWire"
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -69813,18 +69775,282 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/completed-run-publication.mjs",
         "../host-common/runtime-result.mjs",
+        "./content-recovery-dispatch.mjs",
         "./generated-content-holding.mjs",
         "./generated-content-write.mjs",
         "./installed-content-family.mjs",
         "./installed-keyed-content-capture.mjs",
         "./local-account-config.mjs",
         "./local-values-plan.mjs",
-        "./recovered-command-content.mjs",
-        "./recovered-source-command-content.mjs",
         "./serialization-result-publication.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/content-recovery-dispatch.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "47b34a39042a0f1d2eb61d797dec23b3350fe6d390773c3448363982f3f8854d",
+      "role": "physical-io",
+      "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
+      "exports": [
+        "createContentRecoveryDispatch"
+      ],
+      "operations": [
+        {
+          "name": "createContentRecoveryDispatch",
+          "parameters": [
+            "moon",
+            "core",
+            "publications",
+            "control",
+            "ownerPrincipal",
+            "storeAuthorityCid",
+            "authorityScopeCid",
+            "namespaceId",
+            "now",
+            "authorize",
+            "installedBinding",
+            "referenceLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentRecoveryDispatch/createContentRecoveryDispatch",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createContentRecoveryDispatch/createContentRecoveryDispatch/createContentRecoveryDispatch",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createContentRecoveryDispatch/createContentRecoveryDispatch/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createContentRecoveryDispatch/createContentRecoveryDispatch/current/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createContentRecoveryDispatch/createContentRecoveryDispatch/sourceConstruction/sourceConstruction",
+          "parameters": [
+            "receiver",
+            "method",
+            "args",
+            "bindingWire",
+            "role"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createContentRecoveryDispatch",
+            "createContentRecoveryDispatch/createContentRecoveryDispatch",
+            "createContentRecoveryDispatch/createContentRecoveryDispatch/createContentRecoveryDispatch"
+          ],
+          "exports": [
+            "createContentRecoveryDispatch"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "export function createContentRecoveryDispatch("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "return (options: RecoveryOptions) => {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "managed.controlConstruction !== construct"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceOriginal = publications.installedEffectKeyedOriginal(managed, prepared);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const result = Reflect.apply(construct, undefined, [receiver, method, args, quote]);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "throw new TypeError('RecoveredSourceContentBindingMismatch');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const quote = publications.recoveredSourceContentConstructionCapacity("
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "if (kind === 'content_derivation') {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-recovery-dispatch.test.mjs",
+                "anchor": "test('installed Content chooses each actual Reference family even in the same mixed Program'"
+              },
+              {
+                "path": "adapters/host-node/installed-content-recovery-dispatch.test.mjs",
+                "anchor": "test('installed Content preserves parser and funding refusals without selecting another family'"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createContentRecoveryDispatch/createContentRecoveryDispatch/current/current",
+            "createContentRecoveryDispatch/createContentRecoveryDispatch/current/current/current",
+            "createContentRecoveryDispatch/createContentRecoveryDispatch/sourceConstruction/sourceConstruction"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/content-recovery-dispatch.mts",
+                "anchor": "const sourceConstruction = <Args extends unknown[], Result>(receiver: unknown, method: (...args: Args) => Result,"
+              },
+              {
+                "path": "docs/design/published-store-target-custody.md",
+                "anchor": "## Saved Source Command Content"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-common/recovered-source-content-control.test.mts",
+                "anchor": "Source recovery facades borrow only the current managed original and exact Core reference family"
+              },
+              {
+                "path": "adapters/host-node/recovered-source-command-content.test.mts",
+                "anchor": "Source child retains failed reader close and never substitutes or reissues the reference"
+              },
+              {
+                "path": "src/run_publication_host/client_recovered_source_command_content_wbtest.mbt",
+                "anchor": "recovered Source candidate refuses copied Request foreign Source changed wire policy and lifetime"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [
+        "./local-account-config.mjs",
+        "./recovered-command-content.mjs",
+        "./recovered-source-command-content.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "rationale": "Recovered Command Content selects the saved Reference family and its original native construction within the installed Content Run owner."
     },
     {
       "module": "adapters/host-node/installed-duckdb-profile.mjs",
