@@ -4,11 +4,70 @@
 import {restoreStoredGeneratedContentOriginal, consumeStoredContentOriginal,
   closeStoredContentReaders} from './generated-content-holding.mjs';
 
+import type {contentGenerationControl} from '../host-common/content-generation-control.mjs';
+
+type Restore = Parameters<typeof restoreStoredGeneratedContentOriginal>[0];
+type Consume = Parameters<typeof consumeStoredContentOriginal>[0];
+type Original = Parameters<Restore['retainOriginal']>[0];
+type GenerationControl = ReturnType<typeof contentGenerationControl>;
+export type RecoveredContentBorrow = Readonly<{
+  binding: unknown;
+  current(): boolean;
+  matchesIssued(value: Original['issued']): boolean;
+  wire(): unknown;
+  release(): void;
+}>;
+export type RecoveredContentArguments = Readonly<{
+  prepared: unknown;
+  definition: Readonly<{wire: string; identity: string}>;
+  captured: unknown;
+  preview: unknown;
+  invocation: unknown;
+  source: unknown;
+  storeAuthorityCid: string;
+  memberIndex: number;
+  row: number;
+  inputName: string;
+  limits: Readonly<{maxFields: number; maxWork: number; maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+}>;
+export type RecoveredContentContext = RecoveredContentArguments & Readonly<{
+  principalId: string;
+  ownerPrincipal: string;
+  authorityScopeCid: string;
+  now(): string;
+  authorize(principalId: string): unknown;
+  referenceWire: string;
+  referenceLimits: Restore['limits'];
+  assertCurrent(): unknown;
+  signal?: AbortSignal;
+}>;
+type GeneratedArgument = RecoveredContentArguments & Readonly<{
+  compiled: unknown;
+  generationIndex: number;
+  candidate: Restore['candidate'];
+  issued: Original['issued'];
+}>;
+type RecoveredCommandOptions = RecoveredContentContext & Readonly<{
+  moon?: unknown;
+  compiled: unknown;
+  store: Restore['store'] & Consume['store'];
+  publications: Restore['publications'] & Readonly<{
+    recoverEffectCommandContent(input: GeneratedArgument): RecoveredContentBorrow;
+  }>;
+  control: Restore['control'] & Pick<GenerationControl, 'recoveryCandidate'>;
+  installedBinding(plan: Readonly<{compiled: unknown; runDefinition: RecoveredContentArguments['definition']}>):
+    Readonly<{graphPolicy: Readonly<{cid: string}>; binding: unknown}>;
+  recoveryResources?: Readonly<{
+    constructCaptured(captured: unknown, receiver: undefined, method: (input: GeneratedArgument) => RecoveredContentBorrow,
+      argument: GeneratedArgument): unknown;
+  }>;
+}>;
+
 export function prepareRecoveredCommandContent({moon, publications, control,
   prepared, compiled, definition, captured, preview, invocation, source, store,
   principalId, ownerPrincipal, storeAuthorityCid, authorityScopeCid, now, authorize,
   installedBinding, referenceLimits, memberIndex, row, inputName, referenceWire,
-  assertCurrent, signal, limits, recoveryResources}) {
+  assertCurrent, signal, limits, recoveryResources}: RecoveredCommandOptions) {
   if (principalId !== ownerPrincipal || store.storeAuthorityCid !== storeAuthorityCid ||
       typeof assertCurrent !== 'function' || typeof referenceWire !== 'string') {
     throw new TypeError('InvalidRecoveredCommandContent');
@@ -16,8 +75,9 @@ export function prepareRecoveredCommandContent({moon, publications, control,
   const plan = {compiled, runDefinition: definition};
   const expiresAt = JSON.parse(definition.wire).valid_until;
   const {graphPolicy, binding} = installedBinding(plan);
-  let stopping = false, released = false, attempted = false, flight, original, borrow;
-  const readers = new Set();
+  let stopping = false, released = false, attempted = false, flight: Promise<unknown> | undefined,
+    original: Original | undefined, borrow: RecoveredContentBorrow | undefined;
+  const readers: Consume['readers'] = new Set();
   const live = () => !stopping && !released && store.status().closed === false &&
     Date.parse(now()) < Date.parse(expiresAt) && authorize(principalId) === true;
   const current = () => {
@@ -29,7 +89,7 @@ export function prepareRecoveredCommandContent({moon, publications, control,
     }
     if (!live()) throw new Error('RecoveredContentUnavailable');
   };
-  const selected = value => {
+  const selected = (value: unknown) => {
     current();
     const retained = original, retainedBorrow = borrow;
     if (retained === undefined || retainedBorrow === undefined || value !== retainedBorrow.binding ||
@@ -44,8 +104,8 @@ export function prepareRecoveredCommandContent({moon, publications, control,
   };
   const contentOwner = Object.freeze({
     storageForContent: selected,
-    storageCurrentForContent: (value, binding) => selected(binding) === value,
-    consumeContent(value, accept) {
+    storageCurrentForContent: (value: unknown, binding: unknown) => selected(binding) === value,
+    consumeContent(value: unknown, accept: Consume['accept']) {
       const retained = selected(value);
       return consumeStoredContentOriginal({store, original: retained, readers, accept,
         assertCurrent() {
@@ -89,7 +149,7 @@ export function prepareRecoveredCommandContent({moon, publications, control,
         // Re-enter that SAME original for this inverse, then cut only after
         // the synchronous validator returns. Legacy explicit ports keep their
         // original bounded path; an installed recovery always supplies it.
-        const recoverOriginal = value => {
+        const recoverOriginal = (value: GeneratedArgument) => {
           // Retain the returned view BEFORE the Read's success/current cut.
           // A failed cut still leaves its original release on this child.
           borrow = publications.recoverEffectCommandContent(value);
@@ -99,7 +159,7 @@ export function prepareRecoveredCommandContent({moon, publications, control,
         else recoveryResources.constructCaptured(captured, undefined,
           recoverOriginal, argument);
         current();
-        selected(borrow.binding);
+        selected(borrow!.binding);
         return Object.freeze({borrow, contentOwner});
       })();
       flight = operation;

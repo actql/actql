@@ -2492,6 +2492,10 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/generated-content-holding.d.mts
 /adapters/host-node/captured-content-holding.mjs
 /adapters/host-node/captured-content-holding.d.mts
+/adapters/host-node/recovered-command-content.mjs
+/adapters/host-node/recovered-command-content.d.mts
+/adapters/host-node/recovered-source-command-content.mjs
+/adapters/host-node/recovered-source-command-content.d.mts
 /adapters/host-node/local-values-retention-original.test.mjs
 /adapters/host-node/local-values-retention-original.test.d.mts
 /adapters/host-node/original-effect-query-time.test.mjs

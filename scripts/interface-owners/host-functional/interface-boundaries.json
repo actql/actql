@@ -128230,7 +128230,7 @@
     {
       "module": "adapters/host-node/recovered-command-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "18f059c1763f758eb907ea749ae8513a202246776bf474dfc4fece371dbcb669",
+      "sha256": "9e008cdbccc8e4e76995b00d4a6440cb0481cb2f87a9ec0c2c04f1a0c99a04ba",
       "role": "physical-io",
       "owner": "Existing Command input/Content restoration and physical Store reader lifetime",
       "exports": [
@@ -128384,7 +128384,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "export function prepareRecoveredCommandContent("
               },
               {
@@ -128394,7 +128394,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "publications.recoverEffectCommandContent("
               },
               {
@@ -128404,7 +128404,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "generationIndex = index;"
               },
               {
@@ -128414,8 +128414,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
-                "anchor": "readers = new Set()"
+                "path": "adapters/host-node/recovered-command-content.mts",
+                "anchor": "readers: Consume['readers'] = new Set()"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -128424,7 +128424,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "const issued = await restoreStoredGeneratedContentOriginal("
               },
               {
@@ -128434,7 +128434,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "RecoveredContentAlreadyAttempted"
               },
               {
@@ -128444,7 +128444,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "stopping = true;"
               },
               {
@@ -128454,7 +128454,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "count > 32"
               },
               {
@@ -128464,7 +128464,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "installedBinding(plan)"
               },
               {
@@ -128488,7 +128488,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "export function prepareRecoveredCommandContent("
               },
               {
@@ -128498,7 +128498,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "publications.recoverEffectCommandContent("
               },
               {
@@ -128508,7 +128508,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "generationIndex = index;"
               },
               {
@@ -128518,8 +128518,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
-                "anchor": "readers = new Set()"
+                "path": "adapters/host-node/recovered-command-content.mts",
+                "anchor": "readers: Consume['readers'] = new Set()"
               },
               {
                 "path": "docs/design/published-store-target-custody.md",
@@ -128528,7 +128528,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "const issued = await restoreStoredGeneratedContentOriginal("
               },
               {
@@ -128538,7 +128538,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "RecoveredContentAlreadyAttempted"
               },
               {
@@ -128548,7 +128548,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "stopping = true;"
               },
               {
@@ -128558,7 +128558,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "count > 32"
               },
               {
@@ -128568,7 +128568,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/recovered-command-content.mjs",
+                "path": "adapters/host-node/recovered-command-content.mts",
                 "anchor": "installedBinding(plan)"
               },
               {
@@ -146443,7 +146443,7 @@
     {
       "module": "adapters/host-node/recovered-source-command-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bb714c1c54e9380d05e2daefe963c22a7469433196209a0c93ead9f6aa142d51",
+      "sha256": "8e62320e18c0c7426c1b4969a5fe5090b0ebfd97cec312a5a956ab6a48f44f0f",
       "role": "physical-io",
       "owner": "Existing keyed Source original, authenticated Command input and physical Store reader owners",
       "exports": [
@@ -146643,7 +146643,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146653,7 +146653,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146663,7 +146663,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146673,7 +146673,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146683,7 +146683,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146693,7 +146693,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146703,7 +146703,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146713,7 +146713,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146723,7 +146723,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146755,7 +146755,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146765,7 +146765,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146775,7 +146775,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146785,7 +146785,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146795,7 +146795,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146805,7 +146805,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146815,7 +146815,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146825,7 +146825,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
@@ -146835,7 +146835,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/recovered-source-command-content.mjs",
+                "path": "adapters/host-node/recovered-source-command-content.mts",
                 "anchor": "export function prepareRecoveredSourceCommandContent("
               },
               {
