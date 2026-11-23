@@ -9,6 +9,10 @@ pub fn local_component(
   retain_completed? : (Execution) -> Bool = _ => true,
   allow_cleanup? : (Execution) -> Bool = _ => true,
   host_await_io? : Bool = false,
+  original_step? : (
+    (Execution) -> Result[Unit, @connector.FixedComputeIssue],
+    (Execution, Bool) -> Result[Unit, @connector.FixedComputeIssue],
+  )? = None,
 ) -> Result[@local.ManagedProviderExecution, Issue] {
   if active.reclaimed ||
     active.cancelled ||
@@ -29,9 +33,26 @@ pub fn local_component(
   Ok(
     @local.managed_provider_execution_with_retained_completion(
       quantum => {
-        let poll = match advance(active, quantum) {
+        // A stopped original does not need an Account snapshot to advance
+        // cancellation. For regular polls Core still performs the one advance.
+        let original = if active.cancelled { None } else { original_step }
+        if original is Some((enter, _)) {
+          match enter(active) {
+            Err(issue) => return Err(issue)
+            Ok(_) => ()
+          }
+        }
+        let polled = advance(active, quantum)
+        let returned = match original {
+          Some((_, leave)) => leave(active, polled is Ok(_))
+          None => Ok(())
+        }
+        let poll = match polled {
           Ok(value) => value
           Err(issue) => return Err(project_issue(issue))
+        }
+        if returned is Err(issue) {
+          return Err(issue)
         }
         let total = match poll {
           Continue(work~)

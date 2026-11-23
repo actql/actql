@@ -134,6 +134,10 @@ fn open_native_client_local_values_work(
   original_access? : NativeLocalValuesOriginalAccess? = None,
   requirements? : @local.ClientLocalRequirements? = None,
   managed? : @local.ClientInstalledManagedRun? = None,
+  drive_task? : ((Int, @local_driver.LocalManagedDispatchOperations[Int]) -> Result[
+    Unit,
+    @local.LocalValuesExecutionIssue,
+  ])? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   if !current() {
     return Err(
@@ -142,7 +146,18 @@ fn open_native_client_local_values_work(
       ),
     )
   }
-  if !native_client_local_values_profile_supported(prepared) ||
+  let model = match (drive_task, managed, original_access, requirements) {
+    (Some(_), Some(owner), Some(_), Some(requirements)) =>
+      requirements.matches(
+        prepared, installed_contracts, values_body, fragment_body, ordered_body,
+      ) &&
+      @local.installed_managed_run_compilation_original(owner, prepared)
+      is Some(@host.Tasks(compilation)) &&
+      !compilation.infers.is_empty()
+    _ => false
+  }
+  if (drive_task is Some(_) && !model) ||
+    (!model && !native_client_local_values_profile_supported(prepared)) ||
     finalization_quantum <= 0 ||
     max_finalization_rounds <= 0 {
     return Err(local_values_work_failure(UnsupportedProfile))
@@ -210,7 +225,7 @@ fn open_native_client_local_values_work(
           values_body,
           fragment_body,
           ordered_body,
-          false,
+          model,
           backing=Some(backing),
         ) {
         Err(_) => return Err(local_values_work_failure(Configuration))
@@ -281,6 +296,12 @@ fn open_native_client_local_values_work(
           original_access, start, journal, request, current,
         )
         is Ok(_)
+      },
+      drive_task~,
+      cleanup_ready=if model {
+        Some(() => values_original_cleanup_entered(original_access))
+      } else {
+        None
       },
       require_live=original_access.map(access => {
         () => access.poll_execution_original(start)

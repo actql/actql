@@ -152,13 +152,7 @@ fn local_command_preparation_selected(
       matches.subcommand is Some(("result", child)) &&
       optional(child, "run") is Some(_)
     ) ||
-    (
-      matches.subcommand is Some(("status", child)) &&
-      (
-        optional(child, "run") is Some(_) ||
-        optional(child, "run-id") is Some(_)
-      )
-    ) ||
+    local_command_status_selected(matches) ||
     matches.subcommand is Some(("adopt", _))) {
     return false
   }

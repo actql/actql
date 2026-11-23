@@ -244,6 +244,7 @@ fn native_original_call_fixture() -> NativeOriginalCallFixture raise {
     _ => abort("native original must await its actual entered call")
   }
   assert_eq(sent.val, 1)
+  assert_false(@model.prepared_model_awaits_portable_http(prepared))
   assert_eq(views.length(), 2)
   {
     active,

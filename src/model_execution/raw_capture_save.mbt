@@ -173,6 +173,23 @@ pub fn model_raw_capture_save_binding(
 }
 
 ///|
+/// Keep the trusted Store adapter on the exact compiled Run of this Call.
+/// Neither a copied descriptor nor a matching public Run CID can replace it.
+pub fn model_raw_capture_save_matches_run(
+  value : ModelRawCaptureSave,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+) -> Bool {
+  model_raw_capture_call_owned(value.call) &&
+  value.call.entry is Some(entry) &&
+  @publication_host.client_infer_dispatch_matches_run(
+    entry.admission,
+    compiled,
+    definition,
+  )
+}
+
+///|
 /// Exact original dependency bodies for the trusted installed Store port.
 pub fn model_raw_capture_save_originals(
   value : ModelRawCaptureSave,

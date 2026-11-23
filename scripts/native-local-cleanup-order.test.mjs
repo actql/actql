@@ -33,7 +33,10 @@ test('Native Model local observation retains partial exports before issuer retir
   writeFileSync(join(root, 'src/counts/counts.mbt'), readFileSync(new URL('../src/capacity_arithmetic/preparation_counts.mbt', import.meta.url), 'utf8'));
   writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/infer" @infer, "actql/model-observation-order-probe/publication" @publication } for "wbtest"\n');
   writeFileSync(join(root, 'src/infer/moon.pkg'), 'supported_targets = "js"\nimport { "actql/model-observation-order-probe/execution" @execution, "actql/model-observation-order-probe/publication" @publication }\n');
-  writeFileSync(join(root, 'src/publication/ports.mbt'), 'pub(all) struct CapturedEffectDependencyBody { marker : Int }\n');
+  writeFileSync(join(root, 'src/publication/ports.mbt'), `
+pub(all) struct CapturedEffectDependencyBody { marker : Int }
+pub(all) struct RunEvidenceValue { marker : Int }
+`);
   writeFileSync(join(root, 'src/execution/ports.mbt'), `
 pub(all) enum Issue { Refused } derive(Eq, Debug)
 pub(all) struct ExecutionCapacity { retained : Int64; execution : Int64 } derive(Eq, Debug)
@@ -118,6 +121,7 @@ struct NativeClientMockModelWork {
   mut observation : @infer.ObservationIssuance?; active : @infer.Execution?
   mut local_use : @infer.OutputUse?; mut local_scan : @execution.CompletedRelationIdentityScan?
   mut local_receipt : @execution.CompletedRelationExportReceipt?; mut local_observation : @infer.LocalModelObservation?
+  mut publication_inputs : (Array[String], Array[@publication.RunEvidenceValue])?
   compiled : Int; definition : Int; graph : Int; _retained_limits : Limits
 }
 fn NativeClientMockModelWork::observation_issuer_capacity(_self : Self) -> @execution.ExecutionCapacity? { Some({retained: 10L, execution: 10L}) }
@@ -135,6 +139,7 @@ test "same production partial constructor and retirement matrix" {
       publication_capacity: Some(capacity), publication_retained: 10L, publication_execution: 10L,
       observation: Some(issuer), active: Some({output: {events, mode}}), local_use: None, local_scan: None,
       local_receipt: None, local_observation: None, compiled: 1, definition: 2, graph: 3,
+      publication_inputs: Some((["original-input"], [{marker: 41}])),
       _retained_limits: {output_rows: 2, output_values: (), identity: {wire: (), logical_wire: (), schema: (), work: 1000, workspace: 1000}},
     }
     assert_true(work.local_observation_dependency_bodies() is None)
@@ -168,7 +173,9 @@ test "same production partial constructor and retirement matrix" {
     assert_eq(events.filter(value => value == "grow").length(),
       if mode == 6 { 0 } else if mode == 0 || mode == 3 || mode == 5 || mode == 8 { 2 } else { 1 })
     events.clear()
+    assert_true(work.publication_inputs is Some(_))
     assert_eq(work.close_observation(), Ok(mode != 5))
+    assert_true(work.publication_inputs is None)
     assert_true(work.local_observation_dependency_bodies() is None)
     let expected : Array[String] = []
     if mode != 1 && mode != 6 { expected.push("scan") }
@@ -644,7 +651,10 @@ test('Native Host settings runs original staged decoding only after same Read co
         writeFileSync(join(root, 'src', name, file), read(`src/${name}/${file}`));
     }
   }
-  for (const name of ['execution', 'arena']) mkdirSync(join(root, 'src', name));
+  for (const name of ['execution', 'arena', 'local_host']) mkdirSync(join(root, 'src', name));
+  writeFileSync(join(root, 'src/local_host/moon.pkg'), 'supported_targets = "js"\n');
+  writeFileSync(join(root, 'src/local_host/settings.mbt'),
+    pick('src/platform_native/client_host/model_http_call.mbt', 'pub(all) struct NativeModelHttpConfigurationFiles {'));
   writeFileSync(join(root, 'src/execution/moon.pkg'), 'supported_targets = "js"\nimport { "actql/actql/capacity_arithmetic" @preparation_counts }\n');
   const representation = read('src/execution_relation/preparation_representation.mbt');
   writeFileSync(join(root, 'src/execution/representation.mbt'), representation.slice(0,
@@ -660,10 +670,11 @@ pub fn InstalledArenaHost::prepare_domain_original_read_construction(self : Self
   if r > self.ceiling || e > self.ceiling { Err(Refused) } else { Ok(()) }
 }
 `);
-  writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/actql/arena" @initial_arena, "actql/actql/execution" @execution, "actql/actql/source_value" @source, "actql/actql/decode_core" @decode, "actql/actql/decode_shape" @shape, "moonbitlang/core/encoding/utf8" } for "wbtest"\n');
+  writeFileSync(join(root, 'src/moon.pkg'), 'supported_targets = "js"\nimport { "actql/actql/arena" @initial_arena, "actql/actql/execution" @execution, "actql/actql/local_host" @local_host, "actql/actql/source_value" @source, "actql/actql/decode_core" @decode, "actql/actql/decode_shape" @shape, "moonbitlang/core/encoding/utf8" } for "wbtest"\n');
   const preparation = blocks('src/cmd/native_client/local_host_settings_preparation.mbt')
     .filter(body => !body.includes('fn local_host_configuration_text_file(')).join('///|');
-  const settings = ['priv struct LocalHostSettings {', 'fn local_settings_text(',
+  const settings = ['priv struct LocalHostSettings {', 'priv struct LocalModelHttpInstallationSettings {',
+    'fn local_settings_text(', 'fn local_model_http_installation_settings(',
     'fn local_host_journal_record_limit(', 'fn local_host_settings(']
     .map(marker => pick('src/cmd/native_client/local_adoption.mbt', marker)).join('\n');
   const input = pick('src/cmd/native_client/local.mbt', 'fn local_input_cursor(');
@@ -674,6 +685,20 @@ pub fn InstalledArenaHost::prepare_domain_original_read_construction(self : Self
     submission_ttl_ms:1000, journal_record_limit:1025, journal_snapshot_bytes:4096,
     installation_files:Array.from({length:9},(_,i)=>`original-${i}.json`),
   }}});
+  const withModel = responseProfile => {
+    const settings = JSON.parse(wire);
+    settings.native.local.model_http_installation = {
+      provider_id: 'models/fixture',
+      credential_installation: 'original-0.json',
+      installation_revision: 'original-1.json',
+      configuration_contract: 'original-2.json',
+      response_profile: responseProfile,
+      response_profile_cid: 'sha256:' + '1'.repeat(64),
+      execution_file: 'original-4.json',
+      run_policy_file: 'original-5.json',
+    };
+    return JSON.stringify(settings);
+  };
   writeFileSync(join(root, 'src/probe_wbtest.mbt'), `
 priv suberror ClientStop { ClientStop(String) }
 fn[T] stop(value : String) -> T raise ClientStop { raise ClientStop(value) }
@@ -712,6 +737,25 @@ test "same staged parser accepts padded original Host settings and nine exact na
   assert_eq(host.calls[0].0, 0L)
   assert_true(value.metadata_retained > 0L)
 }
+test "configured Model HTTP selects only the original admitted installation files" {
+  let (value, host) = original(16000000L)
+  command_preparation_invocation.val = Some(value)
+  defer { command_preparation_invocation.val = None }
+  let selected = local_host_settings(${JSON.stringify(withModel('original-3.json'))})
+  let model = selected.model_http_installation.unwrap()
+  assert_eq(model.files.setting, "original-0.json")
+  assert_eq(model.files.installation_revision, "original-1.json")
+  assert_eq(model.files.configuration_contract, "original-2.json")
+  assert_eq(model.files.response_profile, "original-3.json")
+  assert_eq(model.execution_file, Some("original-4.json"))
+  assert_eq(model.policy_file, Some("original-5.json"))
+  assert_true(host.calls.length() >= 6)
+  let refused = try {
+    ignore(local_host_settings(${JSON.stringify(withModel('foreign.json'))}))
+    ""
+  } catch { ClientStop(reason) => reason }
+  assert_eq(refused, "LocalModelHttpOriginalNotSelected")
+}
 test "same original budget refuses before parsed settings can escape" {
   let (value, host) = original(1L)
   command_preparation_invocation.val = Some(value)
@@ -737,5 +781,5 @@ test "duplicate schema fields and late duplicate installation names remain refus
   });
   assert.equal(result.error, undefined, result.error?.message);
   assert.equal(result.status, 0, result.stdout + result.stderr);
-  assert.match(result.stdout + result.stderr, /Total tests: 3, passed: 3, failed: 0/);
+  assert.match(result.stdout + result.stderr, /Total tests: 4, passed: 4, failed: 0/);
 });

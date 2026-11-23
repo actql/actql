@@ -500,6 +500,46 @@ pub fn mark_transfer_uncertain(
 }
 
 ///|
+/// Settle an entered port's intact transfer envelope once. The original
+/// execution authenticates exact bytes before supplying them. If that
+/// observation cannot be made, retain the full historical uncertainty.
+/// An unused or already settled reservation has nothing to reconcile.
+pub fn settle_entered_transfer(
+  ledger : Ledger,
+  reservation : Reservation,
+  ceiling : Int64,
+  observed : Int64?,
+) -> Result[Bool, LedgerIssue] {
+  match reservation_check(ledger, reservation) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if reservation.completed_output is Some(_) {
+    return Err(ClosedReservation)
+  }
+  if ceiling <= 0L ||
+    (observed is Some(bytes) && (bytes < 0L || bytes > ceiling)) {
+    return Err(InvalidCharge)
+  }
+  if !reservation.attempt_started || reservation.transfer == 0L {
+    return Ok(false)
+  }
+  if reservation.transfer != ceiling {
+    return Err(TransferLimit)
+  }
+  reservation.transfer = 0L
+  let usage = ledger.usage
+  ledger.usage = {
+    ..usage,
+    transferred_bytes: usage.transferred_bytes + observed.unwrap_or(0L),
+    uncertain_transfer_bytes: usage.uncertain_transfer_bytes +
+    (if observed is None { ceiling } else { 0L }),
+    reserved_transfer_bytes: usage.reserved_transfer_bytes - ceiling,
+  }
+  Ok(true)
+}
+
+///|
 /// Commit reserved capacity to one retained allocation before exposing it.
 /// Copying its handle does not allocate a new buffer or create a second charge.
 pub fn retain_allocation(

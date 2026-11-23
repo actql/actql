@@ -34,6 +34,16 @@ async function until(read,accept) {
 test('original HTTP Common caller saves and settles one real loopback response before same-owner cleanup',
   {timeout:15000}, t => originalHttpSettlement(t, false));
 
+test('direct Chat HTTP saves a complete non-JSON refusal on the original attempt',
+  {timeout:15000}, t => originalHttpSettlement(t, false, {
+    status:503, contentType:'text/plain', wire:'Controlled provider unavailable', outcome:'provider_error',
+  }));
+
+test('direct Chat HTTP retains an incomplete non-JSON refusal as the original unknown attempt',
+  {timeout:15000}, t => originalHttpSettlement(t, false, {
+    status:503, contentType:'text/plain', wire:'Controlled provider unavailable', loseResponse:true,
+  }));
+
 test('selected structured SDK settles the original verified Raw through Common and the journal',
   {timeout:15000}, t => originalHttpSettlement(t, 'registered'));
 
@@ -76,14 +86,14 @@ test('selected structured SDK keeps a truncated provider response unknown',
   {timeout:15000}, t => originalHttpSettlement(t, true, {loseResponse:true}));
 
 async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseResponse=false,
-  status=200, outcome, wire=responseWire, usage=[3,2], foreignRegisteredProfile=false} = {}) {
+  status=200, contentType='application/json', outcome, wire=responseWire, usage=[3,2], foreignRegisteredProfile=false} = {}) {
     const calls=[],sockets=new Set();
     const server=createServer(async(request,response)=>{
       let body='';
       for await(const chunk of request)body+=chunk.toString('utf8');
       calls.push({method:request.method,path:request.url,body});
       response.sendDate=false;
-      response.setHeader('content-type','application/json');
+      response.setHeader('content-type',contentType);
       response.setHeader('connection','close');
       response.statusCode=status;
       if (loseResponse) {
