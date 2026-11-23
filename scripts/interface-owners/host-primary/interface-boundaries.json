@@ -6353,7 +6353,7 @@
     },
     {
       "module": "adapters/host-node/effect-input-export.mjs",
-      "sha256": "22b5c759c384f52d3355cd1fa067b956a8fb79f7ced78a7dfa0e02cbf27a1758",
+      "sha256": "6ee038201e3a4968d1e5801b34d48d2852a98fe7eedaa6d42626e92833b8da7a",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -6428,123 +6428,6 @@
         {
           "name": "prepareDependentEffectSourceSet/staticSelection/staticSelection",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayload",
-          "parameters": [
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#4",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#5",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#6",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
-          "parameters": [
-            "owner"
-          ],
-          "async": false
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
-          "parameters": [
-            "chunk"
-          ],
-          "async": true
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/summary/summary",
-          "parameters": [
-            "index",
-            "row"
-          ],
-          "async": true
-        },
-        {
-          "name": "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
-          "parameters": [
-            "input",
-            "receipt",
-            "importing"
-          ],
           "async": false
         },
         {
@@ -6631,24 +6514,6 @@
             "prepareDependentEffectSourceSet/result/result",
             "prepareDependentEffectSourceSet/result/result#2",
             "prepareDependentEffectSourceSet/staticBodies/staticBodies",
-            "preparePinnedEffectSourcePayload",
-            "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
-            "preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#4",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#5",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#6",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
-            "preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
-            "preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
-            "preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
-            "preparePinnedEffectSourcePayloadOwned/summary/summary",
-            "preparePinnedEffectSourcePayloadOwned/summary/summary#2",
             "preparePinnedEffectSourceSet",
             "preparePinnedEffectSourceSet/already/already",
             "preparePinnedEffectSourceSet/group/group",
@@ -7302,14 +7167,12 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
-        "../host-common/effect-preparation-result.mjs",
         "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-result.mjs",
-        "./effect-command-key.mjs",
         "./effect-source-dependencies.mjs",
         "./effect-source-holdings.mjs",
-        "./effect-source-stream.mjs",
-        "node:crypto"
+        "./effect-source-payload.mjs",
+        "./effect-source-stream.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -8855,6 +8718,307 @@
               {
                 "path": "adapters/host-node/table-durable-capture.test.mjs",
                 "anchor": "semantic Preview in a new process"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "adapters/host-node/effect-source-payload.mjs",
+      "sha256": "09dd3b133aa28705434f7eb3b2f002a18ae136fe87eb45685619f4fd55dd658f",
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "exports": [
+        "createPinnedEffectSourcePayloads"
+      ],
+      "operations": [
+        {
+          "name": "createPinnedEffectSourcePayloads",
+          "parameters": [
+            "preparedEffectSourceOwners"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayload",
+          "parameters": [
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned",
+          "parameters": [
+            "moon",
+            "checkedOwner",
+            "execution",
+            "inputs",
+            "memberIndex",
+            "limits",
+            "store",
+            "maxBytes",
+            "control",
+            "invocation",
+            "retention",
+            "sourceBindingCid",
+            "contractLimits",
+            "signal",
+            "localEvidenceContext",
+            "onProposalRow",
+            "proposalMemberIndexes",
+            "proposalLimits",
+            "onOriginalArtifact",
+            "commandWorkspace",
+            "onCommandKey",
+            "publishedTarget",
+            "manifestSet",
+            "local"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#4",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#5",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
+          "parameters": [
+            "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
+          "parameters": [
+            "chunk"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/summary/summary",
+          "parameters": [
+            "index",
+            "row"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/summary/summary#2",
+          "parameters": [
+            "input",
+            "receipt",
+            "importing"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
+        "../host-common/effect-preparation-result.mjs",
+        "../host-common/installed-effect-dependency-original.mjs",
+        "../host-common/runtime-result.mjs",
+        "./effect-command-key.mjs",
+        "./effect-source-stream.mjs",
+        "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPinnedEffectSourcePayloads",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayload",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/init:retry/init:retry",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/init:retry/init:retry/init:retry",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#10",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#2",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#3",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#4",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#5",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#6",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#7",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#8",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/preparePinnedEffectSourcePayloadOwned#9",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/summary/init:onChunk/init:onChunk",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/summary/init:prepareProposal/init:prepareProposal",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/summary/summary",
+            "createPinnedEffectSourcePayloads/preparePinnedEffectSourcePayloadOwned/summary/summary#2"
+          ],
+          "exports": [
+            "createPinnedEffectSourcePayloads"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "async function preparePinnedEffectSourcePayloadOwned"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "const summary = await exportPinnedResult"
+              },
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "const payload = Object.freeze("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "Error('EffectSourcePhysicalIdentityMismatch')"
+              },
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "control.reuseOriginalEffectUnitArtifact("
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "preparedEffectSourceOwners.set(payload"
+              },
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "prepared: sealed.prepared"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "sealed = await writer.seal(physicalCid)"
+              },
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "await writer.append(chunk)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "Error('EffectSourceCleanupPending'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "await writer.cancel()"
+              },
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "moon.clientProgramEffectProposalCancel(plan)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "RangeError('EffectSourceByteLimit')"
+              },
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "RangeError('EffectDependencyBodyByteLimit')"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "control.issueDependentLocalEffectTableArtifact("
+              },
+              {
+                "path": "adapters/host-node/effect-source-payload.mts",
+                "anchor": "await onProposalRow("
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-program-bridge.test.mjs",
+                "anchor": "admitted source-free Effect Run computes through the installed Host"
+              },
+              {
+                "path": "adapters/host-node/client-program-bridge.test.mjs",
+                "anchor": "Effect source set shares exact owners and retains failed cleanup"
               }
             ]
           }

@@ -6,9 +6,7 @@ import {retainCompletedEffectDependencyPayloads} from '../host-common/completed-
 type Retention = Parameters<typeof retainCompletedEffectDependencyPayloads>[0];
 type Limits = Parameters<Retention['control']['admit']>[2];
 type Construction = Retention['dependencyConstruction'];
-type Artifact = Retention['dependencies'][number]['artifact'] & Readonly<{
-  derivationWire: string; orderingWire: string;
-}>;
+type Artifact = Retention['dependencies'][number]['artifact'];
 type Body = Readonly<{kind: string; wire: string}>;
 type Payload = Readonly<{
   localResultArtifact: Artifact;

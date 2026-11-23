@@ -107,7 +107,8 @@ type ConnectorRecoveryInput = Readonly<{memberIndex: number; kind: string | unde
 type EffectPlanWire = Pick<Contract, 'name' | 'wire'>;
 type DependencyFacts = Readonly<{artifact_cid: string; physical_cid: string; byte_count: number}>;
 type DependencyBinding = Readonly<{artifactCid: string; physicalCid: string; byteCount: number}>;
-type DependencyPayload = Readonly<{artifact: Contract; physical: Physical; prepared: PreparedPhysical}>;
+type LocalEffectArtifact = Readonly<{identity: string; wire: string; derivationWire: string; orderingWire: string}>;
+type DependencyPayload = Readonly<{artifact: LocalEffectArtifact; physical: Physical; prepared: PreparedPhysical}>;
 type CaptureControl = CommonPublicationControl & Readonly<{
   capturedEffectSourceHoldingCid(source: Source): string;
   capturedEffectSourceArtifactCid(source: Source): string;
@@ -130,7 +131,7 @@ type CaptureControl = CommonPublicationControl & Readonly<{
     captured: Contract, authorityCid: string, limits: Limits): boolean;
   admitCapturedEffectSourceFromCapture(preview: Preview, memberIndex: number, invocation: Contract, artifact: Contract,
     captured: Contract, authorityCid: string, limits: Limits): Source;
-  localEffectResultPayloadBinding(artifact: Contract, run: Contract): DependencyBinding;
+  localEffectResultPayloadBinding(artifact: LocalEffectArtifact, run: Contract): DependencyBinding;
   issueEffectfulCapturedRun(chain: EvidenceChain, evidence: CapturedFacts & Readonly<{
     effectSources: readonly Source[]; localEffectSources: readonly LocalSource[];
     dependencyInventoryWire?: string; dependencyConstruction?: CommonObject;
