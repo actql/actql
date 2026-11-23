@@ -2,6 +2,7 @@ import base64
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import os
+import signal
 import sqlite3
 import subprocess
 import sys
@@ -51,6 +52,31 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
                 self.assertEqual(store.read(key), StoredBytes(1, b'original-next-bytes'))
                 self.assertIsNone(store.compare_exchange(key, 0, b'stale'))
                 self.assertEqual(store.read(key), StoredBytes(1, b'original-next-bytes'))
+
+    def test_committed_generation_survives_a_killed_writer(self) -> None:
+        source = str(Path(__file__).resolve().parents[1] / 'src')
+        child = '''import os, signal, sys
+sys.path.insert(0, sys.argv[1])
+from pathlib import Path
+from actql_sdk._local_storage import LocalByteStore
+store = LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_payload_bytes=256)
+assert store._connection.execute('PRAGMA main.synchronous').fetchone() == (3,)
+assert store.compare_exchange('original', None, b'confirmed before interruption') == 0
+store._physical.begin_immediate()
+assert store._physical.write_record('original', 0, b'uncommitted newer bytes') == 1
+assert store._physical.write_record('uncommitted', None, b'uncommitted sibling') == 0
+print('original commit returned; replacement is uncommitted', flush=True)
+os.kill(os.getpid(), signal.SIGKILL)
+'''
+        with TemporaryDirectory(prefix='actql-python-crashed-writer-') as directory:
+            path = Path(directory) / 'core.sqlite'
+            result = subprocess.run([sys.executable, '-I', '-c', child, source, str(path)],
+                                    capture_output=True, timeout=10)
+            self.assertEqual(result.returncode, -signal.SIGKILL, result.stderr.decode())
+            self.assertEqual(result.stdout, b'original commit returned; replacement is uncommitted\n')
+            with self.store(path) as reopened:
+                self.assertEqual(reopened.read('original'), StoredBytes(0, b'confirmed before interruption'))
+                self.assertIsNone(reopened.read('uncommitted'))
 
     def test_two_connections_cannot_replace_another_generation(self) -> None:
         with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:
@@ -178,6 +204,25 @@ with LocalByteStore(Path(sys.argv[2]), max_records=4, max_record_bytes=128, max_
             with sqlite3.connect(path) as foreign:
                 self.assertEqual(foreign.execute('SELECT payload FROM original').fetchone(),
                                  (b'original',))
+
+    def test_foreign_format_is_identified_without_a_write_transaction(self) -> None:
+        with TemporaryDirectory(prefix='actql-python-unknown-format-') as directory:
+            path = Path(directory) / 'foreign.sqlite'
+            foreign = sqlite3.connect(path, isolation_level=None)
+            try:
+                foreign.execute('CREATE TABLE original(payload BLOB)')
+                foreign.execute('INSERT INTO original VALUES (?)', (b'foreign',))
+                path.chmod(0o600)
+                before = path.read_bytes()
+                foreign.execute('BEGIN IMMEDIATE')
+                with self.assertRaisesRegex(LocalStorageError, 'Unknown Local physical storage format'):
+                    self.store(path)
+                self.assertTrue(foreign.in_transaction)
+                self.assertEqual(foreign.execute('SELECT payload FROM original').fetchone(), (b'foreign',))
+                self.assertEqual(path.read_bytes(), before)
+                foreign.execute('ROLLBACK')
+            finally:
+                foreign.close()
 
     def test_symlink_and_nonprivate_file_are_refused(self) -> None:
         with TemporaryDirectory(prefix='actql-python-local-bytes-') as directory:

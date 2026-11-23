@@ -65065,6 +65065,13 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_configure_durability",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_exchange_write_keys",
           "parameters": [
             "self",
@@ -65917,7 +65924,7 @@
           "parameters": []
         }
       ],
-      "sha256": "c46bac9170be921703d3700d5fd4ed009ae12fcd99094630dd00e72b0a5d236c",
+      "sha256": "10aeb6ea7307f17c24123d04d715dd161b03353b7321cdaca57f975a84726e98",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66469,6 +66476,7 @@
             "LocalByteStore/_classify_failed_write",
             "LocalByteStore/_close_descriptor",
             "LocalByteStore/_compare_exchange_many",
+            "LocalByteStore/_configure_durability",
             "LocalByteStore/_exchange_write_keys",
             "LocalByteStore/_fenced_current",
             "LocalByteStore/_fences_match_locked",
@@ -67089,6 +67097,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_terminal_reader_pair_refuses_cas_from_its_effect("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_durable_profile_precedes_owned_schema_and_is_verified_on_reopen("
               }
             ]
           }

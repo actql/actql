@@ -205,9 +205,16 @@ class LocalByteStore:
                     self._close_descriptor()
                 except BaseException as original:
                     raise LocalStorageInitializationError(self) from original
+        # SQLite transactions are owned by explicit SQL. Keep CPython's
+        # legacy isolation_level=None semantics when autocommit is available.
+        transaction_mode = {}
+        legacy_mode = getattr(sqlite3, 'LEGACY_TRANSACTION_CONTROL', None)
+        if legacy_mode is not None:
+            transaction_mode['autocommit'] = legacy_mode
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False,
-                                           factory=_TrackedSQLiteConnection, cached_statements=0)
+                                           factory=_TrackedSQLiteConnection, cached_statements=0,
+                                           **transaction_mode)
         try:
             database = _SQLiteByteDatabase(self._connection)
             self._physical = database
@@ -218,7 +225,13 @@ class LocalByteStore:
             # Changing it later discards TEMP while SQLite may retain prepared
             # schema observations from this same connection's constructor.
             self._connection.execute('PRAGMA temp_store = FILE')
-            self._connection.execute('BEGIN IMMEDIATE')
+            if self._created:
+                self._configure_durability()
+                self._connection.execute('BEGIN IMMEDIATE')
+            else:
+                # Identify the existing format in one read snapshot before
+                # asking SQLite to set a persistent journal mode.
+                self._connection.execute('BEGIN')
             try:
                 schema = self._connection.execute('''SELECT 1 FROM main.sqlite_schema
                     WHERE name NOT LIKE 'sqlite_%' LIMIT 1''').fetchone()
@@ -260,8 +273,8 @@ class LocalByteStore:
                 if self._physical.in_transaction:
                     self._connection.execute('ROLLBACK')
                 raise
-            self._connection.execute('PRAGMA journal_mode = DELETE')
-            self._connection.execute('PRAGMA synchronous = FULL')
+            if not self._created:
+                self._configure_durability()
             self._connection.execute('PRAGMA cache_size = -64')
             self._connection.execute('PRAGMA mmap_size = 0')
             self._observe_generation()
@@ -272,6 +285,13 @@ class LocalByteStore:
             except BaseException:
                 raise LocalStorageInitializationError(self) from original
             raise
+
+    def _configure_durability(self) -> None:
+        if self._connection.execute('PRAGMA main.journal_mode = DELETE').fetchone() != ('delete',):
+            raise LocalStorageError('Original Local Store journal mode is unavailable')
+        self._connection.execute('PRAGMA main.synchronous = EXTRA')
+        if self._connection.execute('PRAGMA main.synchronous').fetchone() != (3,):
+            raise LocalStorageError('Original Local Store synchronous mode is unavailable')
 
     def _prepare_physical_path(self, path: Path, *, max_records: int,
                                max_record_bytes: int, max_payload_bytes: int,
