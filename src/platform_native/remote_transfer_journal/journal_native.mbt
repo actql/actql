@@ -1105,6 +1105,11 @@ pub fn Journal::commit_destination_receipt(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  // Refuse a receipt for another request before it can occupy this key.
+  let admitted = match admit_stored_receipt(body, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   match self.database.begin_journal_write() {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue.issue))
@@ -1118,7 +1123,7 @@ pub fn Journal::commit_destination_receipt(
       if value.revision != 0L || value.body != body {
         return Err(StateCollision)
       }
-      admit_stored_receipt(value.body, request)
+      Ok(admitted)
     }
     Err(@sqlite.NotFound) => {
       match
@@ -1129,7 +1134,7 @@ pub fn Journal::commit_destination_receipt(
         Err(issue) => return self.abort_write(Err(Physical(issue)))
       }
       match self.database.commit_journal_write() {
-        Ok(_) => admit_stored_receipt(body, request)
+        Ok(_) => Ok(admitted)
         Err(issue) => Err(TransactionCommit(issue))
       }
     }
