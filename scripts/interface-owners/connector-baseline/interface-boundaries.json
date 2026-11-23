@@ -9439,7 +9439,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fbb26208d578cfe13b1d5e92a170e7246338655e53dbcadabcc4daf110f9f55d",
+      "sha256": "a2f0748b029c9cf4ff3f9e8875855c902da236114bd6d2d11dc029f615087d3a",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [
@@ -9618,7 +9618,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "A restored generation is not current authority"
               },
               {
@@ -9628,7 +9628,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "publishSalesforceGeneration"
               },
               {
@@ -9638,7 +9638,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "generationCid: bytesCid(body)"
               },
               {
@@ -9648,7 +9648,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "replacePublicationFile"
               },
               {
@@ -9658,7 +9658,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "await rename"
               },
               {
@@ -9668,7 +9668,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "SalesforcePublicationMissing"
               },
               {
@@ -9678,7 +9678,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "signal"
               },
               {
@@ -9688,7 +9688,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "maxGenerationBytes"
               },
               {
@@ -9698,7 +9698,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-publication.mts",
                 "anchor": "SALESFORCE_PUBLICATION_VERSION"
               },
               {

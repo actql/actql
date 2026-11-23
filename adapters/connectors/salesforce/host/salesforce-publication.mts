@@ -11,8 +11,44 @@ import {dirname, isAbsolute, join} from 'node:path';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
 import {readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
-import {observeInstalledSalesforcePublicationCurrent,
-  withInstalledSalesforceDeclarationOriginals} from './installed-salesforce-site.mjs';
+// @ts-expect-error TS7016 The Site implementation is still authored JavaScript in this migration stage.
+import {observeInstalledSalesforcePublicationCurrent, withInstalledSalesforceDeclarationOriginals} from './installed-salesforce-site.mjs';
+
+import type {recoverNamedSalesforceObservation, withSalesforceNamedDescribeOriginals}
+  from '../site/salesforce-named-describe.mjs';
+import type {withHttpsCredentialRunResponseOriginal} from '../../../site-node/https-credential-resource.mjs';
+import type {ResourceBinding} from './salesforce-resource-resolver.mjs';
+
+type NamedEvidence = Parameters<typeof recoverNamedSalesforceObservation>[0]['evidence'];
+type NamedOriginals = Parameters<Parameters<typeof withSalesforceNamedDescribeOriginals>[2]>[0];
+type CredentialOriginal = Parameters<typeof withHttpsCredentialRunResponseOriginal>;
+type SiteFacts = NamedOriginals & Readonly<{site: Site; declared: Declared; declaration: unknown;
+  declarationWire: string; control: CredentialOriginal[1]; journal: CredentialOriginal[2]}>;
+type PublishedFacts = SiteFacts & Readonly<{generationText: string; generationCid: string}>;
+type Declared = Readonly<{observationCid: string; evidence: NamedEvidence; catalog_cid: string;
+  declaration: unknown; catalog: string; source_views: readonly string[]; contracts: readonly string[]; manifest_entry: string}>;
+type Targets = Readonly<{connectorId: string; resources: readonly string[]; signal?: AbortSignal}>;
+type Site = Readonly<{
+  declareCatalog(options: Targets & Readonly<{retainPublicationOriginals?: boolean}>): Promise<Declared>;
+  restoreDeclaration(options: Pick<Targets, 'connectorId' | 'resources'> & Readonly<{evidence: NamedEvidence;
+    observationCid: string; catalogCid: string; construction?: unknown}>): Declared;
+}>;
+type Observe = Targets & Readonly<{site: Site; retainPublicationOriginals?: boolean}>;
+type Publish = Targets & Readonly<{site: Site; path: string}>;
+type Restore = Pick<Targets, 'connectorId' | 'resources'> & Readonly<{site: Site;
+  generation: PublicationGeneration | null; construction?: unknown}>;
+type PublicationGeneration = Readonly<{
+  version: typeof SALESFORCE_PUBLICATION_VERSION; binding: ResourceBinding; catalog_cid: string;
+  complete: false; connector_id: string; evidence: NamedEvidence; observation_cid: string;
+  resource_states: readonly Readonly<{name: string; state: string}>[]; resources: readonly string[];
+}>;
+type ReadText = (path: string, options: Readonly<{maxBytes: number}>) => string | PromiseLike<string>;
+type PublicationFailure = Readonly<{code?: unknown; message?: unknown;
+  cleanupHandle?: unknown; cleanupPending?: unknown}>;
+type CheckBase = Record<string, unknown> & Readonly<{
+  version: unknown; mapping_contracts?: readonly unknown[]; connector_catalogs: readonly unknown[];
+  schema_snapshots: readonly unknown[]; connector_capabilities: readonly unknown[];
+}>;
 
 export const SALESFORCE_PUBLICATION_VERSION =
   'actql-salesforce-publication/0.1';
@@ -26,23 +62,23 @@ const outcomeNames = Object.freeze(new Map([[1, 'described'],
 const maxGenerationBytes = 16_000_000;
 // Only an original live generation gets this correspondence. Reading a saved
 // file and restoring a Catalog never registers or reconstructs it.
-const liveGenerations = new WeakMap();
+const liveGenerations = new WeakMap<Declared, Readonly<{site: Site; body: string}>>();
 
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   const failure = Object.assign(new Error(code, {cause}), {code});
-  if (cause?.cleanupHandle !== undefined) {
-    Object.assign(failure, {cleanupHandle: cause.cleanupHandle,
-      cleanupPending: cause.cleanupPending});
+  if ((cause as PublicationFailure | null | undefined)?.cleanupHandle !== undefined) {
+    Object.assign(failure, {cleanupHandle: (cause as PublicationFailure).cleanupHandle,
+      cleanupPending: (cause as PublicationFailure).cleanupPending});
   }
   throw failure;
 };
-const text = value => typeof value === 'string' && value.length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 // The generation is stored as the exact JSON text it was published as (the
 // retained provider bytes are not renormalized) and identified by it.
-const bytesCid = body => `sha256:${createHash('sha256').update(body, 'utf8')
+const bytesCid = (body: string) => `sha256:${createHash('sha256').update(body, 'utf8')
   .digest('hex')}`;
 
-function targetSet(connectorId, resources) {
+function targetSet(connectorId: string, resources: readonly string[]) {
   if (!text(connectorId) || !Array.isArray(resources) ||
       resources.length === 0 || !resources.every(text) ||
       new Set(resources).size !== resources.length) {
@@ -53,7 +89,7 @@ function targetSet(connectorId, resources) {
 
 // Replace `path` with `body` so a reader sees the previous or the new
 // generation, never a mixture.
-export async function replacePublicationFile(path, body) {
+export async function replacePublicationFile(path: string, body: string) {
   if (Buffer.byteLength(body, 'utf8') > maxGenerationBytes) {
     fail('SalesforcePublicationTooLarge');
   }
@@ -79,15 +115,15 @@ export async function replacePublicationFile(path, body) {
 
 // The exact published text at `path` and its identity. A missing file is
 // `SalesforcePublicationMissing`; nothing is repaired or regenerated.
-export async function readPublicationFile(path, readText = readBoundedConfigurationText) {
+export async function readPublicationFile(path: string, readText: ReadText = readBoundedConfigurationText) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidSalesforcePublication');
   }
-  let body;
+  let body: string;
   try { body = await readText(path, {maxBytes: maxGenerationBytes}); }
   catch (error) {
-    if (error?.code === 'ENOENT') fail('SalesforcePublicationMissing', error);
-    if (error?.message === 'InvalidInstalledSourceProfile') {
+    if ((error as PublicationFailure | null | undefined)?.code === 'ENOENT') fail('SalesforcePublicationMissing', error);
+    if ((error as PublicationFailure | null | undefined)?.message === 'InvalidInstalledSourceProfile') {
       fail('InvalidSalesforcePublication', error);
     }
     throw error;
@@ -104,7 +140,7 @@ export async function readPublicationFile(path, readText = readBoundedConfigurat
 // publishing it. A denied Resource refuses the whole generation before any
 // provider I/O; an interrupted describe yields nothing.
 export async function describeSalesforceGeneration({site, connectorId,
-  resources, signal, retainPublicationOriginals = false}) {
+  resources, signal, retainPublicationOriginals = false}: Observe) {
   if (typeof site?.declareCatalog !== 'function' ||
       typeof retainPublicationOriginals !== 'boolean') {
     fail('InvalidSalesforcePublication');
@@ -114,7 +150,7 @@ export async function describeSalesforceGeneration({site, connectorId,
     resources: targets, signal,
     ...(retainPublicationOriginals ? {retainPublicationOriginals: true} : {})});
   const {evidence} = declared;
-  const generation = {
+  const generation: PublicationGeneration = {
     binding: JSON.parse(evidence.observationJson).binding,
     catalog_cid: declared.catalog_cid,
     // Named observations are never complete: nothing outside the targets
@@ -138,7 +174,7 @@ export async function describeSalesforceGeneration({site, connectorId,
   return Object.freeze({generation, declared});
 }
 
-function originalGeneration(site, declared, generationText) {
+function originalGeneration(site: Site, declared: Declared, generationText: string) {
   const original = liveGenerations.get(declared);
   if (original === undefined || original.site !== site ||
       typeof generationText !== 'string' || generationText !== original.body) {
@@ -149,26 +185,27 @@ function originalGeneration(site, declared, generationText) {
 
 // This local bounded current observation is not a metadata retry or a new
 // grant. Its original error/custody is returned to the existing Host caller.
-export async function observeSalesforcePublicationOriginals(site, declared, generationText) {
+export async function observeSalesforcePublicationOriginals(site: Site, declared: Declared, generationText: string) {
   originalGeneration(site, declared, generationText);
   await observeInstalledSalesforcePublicationCurrent(site, declared);
 }
 
 // The exact retained generation text and live Credential originals reach a
 // synchronous trusted finisher. They are not authenticated cold storage.
-export function withSalesforcePublicationOriginals(site, declared, generationText, consume) {
+export function withSalesforcePublicationOriginals<Value>(site: Site, declared: Declared, generationText: string,
+  consume: (facts: PublishedFacts) => Value): Value {
   const original = originalGeneration(site, declared, generationText);
   if (typeof consume !== 'function') fail('InvalidSalesforcePublicationConsumer');
-  return withInstalledSalesforceDeclarationOriginals(site, declared, facts =>
+  return withInstalledSalesforceDeclarationOriginals(site, declared, (facts: SiteFacts) =>
     consume(Object.freeze({...facts, generationText: original.body,
-      generationCid: bytesCid(original.body)})));
+      generationCid: bytesCid(original.body)}))) as Value;
 }
 
 // Describe the target Resources and publish them as the Site's generation
 // at `path`. A denied Resource refuses the whole publication before any
 // provider I/O; an interrupted describe publishes nothing.
 export async function publishSalesforceGeneration({site, path, connectorId,
-  resources, signal}) {
+  resources, signal}: Publish) {
   if (typeof path !== 'string' || !isAbsolute(path)) {
     fail('InvalidSalesforcePublication');
   }
@@ -184,7 +221,7 @@ export async function publishSalesforceGeneration({site, path, connectorId,
 // connector and target Resources and must be bound to the Site as installed
 // now.
 export function restoreSalesforceGeneration({site, generation, connectorId,
-  resources, construction}) {
+  resources, construction}: Restore) {
   if (typeof site?.restoreDeclaration !== 'function') {
     fail('InvalidSalesforcePublication');
   }
@@ -218,12 +255,12 @@ export function restoreSalesforceGeneration({site, generation, connectorId,
 // I/O. The generation must name the Host profile's connector and target
 // Resources and must be bound to the Site as installed now.
 export async function loadSalesforceGeneration({site, path, connectorId,
-  resources}) {
+  resources}: Omit<Publish, 'signal'>) {
   if (typeof site?.restoreDeclaration !== 'function') {
     fail('InvalidSalesforcePublication');
   }
   const {body, generationCid} = await readPublicationFile(path);
-  let generation;
+  let generation: PublicationGeneration | null;
   try { generation = JSON.parse(body); }
   catch (error) { fail('InvalidSalesforcePublication', error); }
   if (JSON.stringify(generation) !== body) {
@@ -234,7 +271,7 @@ export async function loadSalesforceGeneration({site, path, connectorId,
   return Object.freeze({generationCid, ...restored});
 }
 
-const byCid = values => values.map(value => JSON.parse(value))
+const byCid = (values: readonly string[]) => values.map(value => JSON.parse(value))
   .sort((a, b) => {
     const left = contentCid(a);
     const right = contentCid(b);
@@ -248,9 +285,9 @@ const byCid = values => values.map(value => JSON.parse(value))
 // texts), and the execution Mapping bodies generated from it for the Host's
 // installed writes (`mappings`). Built only from the published generation;
 // Check never describes or regenerates anything.
-export function salesforceCheckEnvironment(baseWire, declared, members,
-  mappings = []) {
-  const base = JSON.parse(baseWire);
+export function salesforceCheckEnvironment(baseWire: string, declared: Declared,
+  members: Readonly<{schemas: readonly string[]; capabilities: readonly string[]}>, mappings: readonly string[] = []) {
+  const base = JSON.parse(baseWire) as CheckBase;
   const {evidence_bundle_cid: _, ...body} = base;
   if (body.version !== 'actql-check-environment/0.1' ||
       !Array.isArray(mappings) ||
