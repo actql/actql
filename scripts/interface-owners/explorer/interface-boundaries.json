@@ -594,7 +594,7 @@
     {
       "module": "packages/explorer-ui/checkpoint-panel.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "c573b4e38b4185aafb71fa300d6e95576e1532db28b1e179b856ac0aa78d7348",
+      "sha256": "b62d7e631e1a4e3b6897933e712af66e636e631dc7f108fb628a58c4bdaeb2e2",
       "exports": [
         "CheckpointPanel"
       ],
@@ -4294,14 +4294,24 @@
     {
       "module": "packages/explorer-ui/run-observation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "841c247db8ee9509561daa78010a93301ee1104a9bbfc29979b42eee1b86b01b",
+      "sha256": "3b22916884c4791174f87053a05a20a5df3d82e4ba2882ec1f172ca673e01f5d",
       "exports": [
         "RunObservationModel",
+        "observedPlanStep",
         "readRunObservation",
         "runObservationLimits",
         "runObservationModel"
       ],
       "operations": [
+        {
+          "name": "observedPlanStep",
+          "parameters": [
+            "observation: RunObservationModel | undefined",
+            "ref: RunReference | undefined",
+            "plan: PlanReadModel | undefined"
+          ],
+          "result": "Readonly<{\n    stepId: string; position: NonNullable<Run['boundary']>['position']; number: number;\n  }> | undefined"
+        },
         {
           "name": "readRunObservation",
           "parameters": [
@@ -4335,13 +4345,15 @@
           "operations": [
             "<module>",
             "readRunObservation",
-            "runObservationModel"
+            "runObservationModel",
+            "observedPlanStep"
           ],
           "exports": [
             "RunObservationModel",
             "readRunObservation",
             "runObservationLimits",
-            "runObservationModel"
+            "runObservationModel",
+            "observedPlanStep"
           ],
           "attributes": {
             "responsibility": [
@@ -4434,6 +4446,10 @@
               {
                 "path": "packages/explorer-ui/run-observation.test.mjs",
                 "anchor": "cancellation acceptance is separate from physical stop"
+              },
+              {
+                "path": "packages/explorer-ui/run-observation.test.mjs",
+                "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
               }
             ]
           }
@@ -4443,8 +4459,9 @@
     {
       "module": "packages/explorer-ui/run-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0ae3d82c88f037fd5d73db8a7345cf1195de981318945394c0ebabd53bfb03b4",
+      "sha256": "03486d33a979b4c568b4ec95ebe61eac4637777f547189157efecbf0472193a3",
       "exports": [
+        "observedPlanStep",
         "readRunObservation",
         "runObservationLimits",
         "runObservationModel"
@@ -4468,6 +4485,22 @@
           "name": "historyModel/histories/histories/vector/vector",
           "parameters": [
             "v"
+          ],
+          "async": false
+        },
+        {
+          "name": "observedPlanStep",
+          "parameters": [
+            "observation",
+            "ref",
+            "plan"
+          ],
+          "async": false
+        },
+        {
+          "name": "observedPlanStep/index/index",
+          "parameters": [
+            "node"
           ],
           "async": false
         },
@@ -4558,12 +4591,15 @@
             "runObservationModel",
             "runObservationModel/resultAvailability/resultAvailability",
             "runObservationModel/runObservationModel",
-            "sameRef/sameRef/sameRef"
+            "sameRef/sameRef/sameRef",
+            "observedPlanStep",
+            "observedPlanStep/index/index"
           ],
           "exports": [
             "readRunObservation",
             "runObservationLimits",
-            "runObservationModel"
+            "runObservationModel",
+            "observedPlanStep"
           ],
           "attributes": {
             "responsibility": [
@@ -4656,6 +4692,10 @@
               {
                 "path": "packages/explorer-ui/run-observation.test.mjs",
                 "anchor": "cancellation acceptance is separate from physical stop"
+              },
+              {
+                "path": "packages/explorer-ui/run-observation.test.mjs",
+                "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
               }
             ]
           }
@@ -4665,7 +4705,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "616791a9323f6410c7e2cff7558deaec31b6f71053190bc9beaa5c8fa191ac9d",
+      "sha256": "1b39a0b43554e63c1c3974c4d08dcc3ef6aa22614421a491c5eb608134d241e4",
       "exports": [],
       "operations": [
         {
@@ -4786,9 +4826,7 @@
         },
         {
           "name": "App/<call>#18",
-          "parameters": [
-            "event"
-          ],
+          "parameters": [],
           "result": null
         },
         {
@@ -4812,6 +4850,13 @@
         },
         {
           "name": "App/<call>#21",
+          "parameters": [
+            "event"
+          ],
+          "result": null
+        },
+        {
+          "name": "App/<call>#22",
           "parameters": [
             "event"
           ],
@@ -5113,6 +5158,62 @@
             "text: string"
           ],
           "result": "unknown"
+        },
+        {
+          "name": "planNodeTitle",
+          "parameters": [
+            "node: PlanNode",
+            "locale: 'en' | 'ja'"
+          ],
+          "result": null
+        },
+        {
+          "name": "planNodeTitle/<call>",
+          "parameters": [
+            "char"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps",
+          "parameters": [
+            "{map, boundary, selection, select, graph, locale}: {\n  map: PlanReadModel; boundary?: {stepId: string; state: StepState}; selection?: string;\n  select(id: string): void; graph: boolean; locale: 'en' | 'ja';\n}"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>",
+          "parameters": [
+            "node",
+            "index"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>/<call>",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>/<call>#2",
+          "parameters": [
+            "name"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/<call>/<call>#3",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "PlanSteps/select",
+          "parameters": [
+            "id: string"
+          ],
+          "result": "void"
         },
         {
           "name": "sameRun",
@@ -5571,7 +5672,16 @@
             "App/lookupStart",
             "App/lookupStart/<call>",
             "App/startDraft",
-            "App/startDraft/<call>"
+            "App/startDraft/<call>",
+            "App/<call>#22",
+            "planNodeTitle",
+            "planNodeTitle/<call>",
+            "PlanSteps",
+            "PlanSteps/<call>",
+            "PlanSteps/<call>/<call>",
+            "PlanSteps/<call>/<call>#2",
+            "PlanSteps/<call>/<call>#3",
+            "PlanSteps/select"
           ],
           "exports": [],
           "attributes": {
@@ -5673,6 +5783,10 @@
               {
                 "path": "packages/explorer/gateway.test.mjs",
                 "anchor": "test('Explorer sends one ordinary start and looks up the original after a lost reply'"
+              },
+              {
+                "path": "packages/explorer-ui/run-observation.test.mjs",
+                "anchor": "test('a Step observation requires the same Run, compiled Plan, Map and original step'"
               }
             ]
           }
@@ -6533,7 +6647,7 @@
     {
       "module": "packages/explorer/browser-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df8bc9f1a4635f88e8ebe6df29e504a425e12e0c45fd8bc7a868ea0437eec95f",
+      "sha256": "a49b08a68d3352d58715d0f26a0a2744aa53b122a6ec666e448d0a47a9c80ed5",
       "exports": [
         "createExplorerBrowserSource"
       ],

@@ -90,6 +90,16 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
         answer.scopeEpoch !== original.scopeEpoch) refused('ExplorerInvalidReply');
     return answer.data;
   };
+  const readRunProjection = async (kind, ref) => {
+    const original = Object.freeze({...ref});
+    if (!validRunRef(original)) refused('ExplorerInvalidReply');
+    const value = await read(kind, {ref: original});
+    const response = value?.runRef;
+    if (!validRunRef(response) || response.namespaceId !== original.namespaceId ||
+        response.authorityScopeCid !== original.authorityScopeCid ||
+        response.runDefinitionCid !== original.runDefinitionCid) refused('ExplorerInvalidReply');
+    return value;
+  };
   return Object.freeze({
     async connect(bootstrap) {
       invalidate();
@@ -155,8 +165,8 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       return view;
     },
     inspect(ref) {return read('run', {ref});},
-    observe(ref) {return read('observation', {ref});},
-    runPlan(ref) {return read('run-plan', {ref});},
+    observe(ref) {return readRunProjection('observation', ref);},
+    runPlan(ref) {return readRunProjection('run-plan', ref);},
     async explain(ref) {
       const original = Object.freeze({...ref});
       if (!validRunRef(original)) refused('ExplorerInvalidReply');

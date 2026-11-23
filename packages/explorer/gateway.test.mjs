@@ -705,3 +705,34 @@ test('Explorer sends one ordinary start and looks up the original after a lost r
     await client.close();
   }
 });
+
+test('browser original Plan and observation reads refuse a foreign Run reply', async () => {
+  const h = harness({client: {async attach(original) {
+    assert.deepEqual(original, ref);
+    return {plan() {return {version: 'actql-run-plan-view/0.1', run_ref: ref,
+      plan_view: gatewayLaunchPlanFixture()};}, inspect() {
+      return {...runObservationFixture(), run_ref: ref};
+    }};
+  }}});
+  let cookie, foreign;
+  const source = createExplorerBrowserSource({origin, async fetch(url, options) {
+    const response = await h.send(new URL(url).pathname, options.body, {...options.headers, Cookie: cookie});
+    cookie = response.headers.get('set-cookie')?.split(';')[0] ?? cookie;
+    if (foreign && !url.endsWith('/api/session')) {
+      assert.equal(response.status, 200);
+      const answer = await response.json();
+      answer.data.runRef = {...ref, runDefinitionCid: `sha256:${'f'.repeat(64)}`};
+      return Response.json(answer);
+    }
+    return response;
+  }});
+  try {
+    await source.connect(h.gateway.issueBootstrap().bootstrap);
+    for (const kind of ['runPlan', 'observe']) {
+      foreign = false;
+      assert.deepEqual((await source[kind](ref)).runRef, ref);
+      foreign = true;
+      await assert.rejects(source[kind](ref), {code: 'ExplorerInvalidReply'});
+    }
+  } finally {source.close(); await h.gateway.close();}
+});

@@ -89,6 +89,18 @@ export function runObservationModel(view, owners, ref) {
   });
 }
 
+// Join only the reported boundary to the independently authorized original
+// Plan. The number identifies its presentation position, never an operation.
+export function observedPlanStep(observation, ref, plan) {
+  const boundary = observation?.run.boundary;
+  if (!plan || !ref || !boundary?.step_id || !sameRef(observation.runRef, ref) ||
+      observation.planBinding.compiledPlanCid !== plan.compiledPlanCid ||
+      observation.planBinding.logicalMapCid !== plan.logicalMapCid) return undefined;
+  const index = plan.nodes.findIndex(node => node.id === boundary.step_id);
+  if (index < 0) return undefined;
+  return {stepId: boundary.step_id, position: boundary.position, number: index + 1};
+}
+
 // Manual refresh and polling both retain this exact Run reference. No start,
 // wait, cancellation, reconciliation, sample acquisition or payload read occurs.
 export async function readRunObservation(client, ref, ticket) {

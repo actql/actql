@@ -6,7 +6,7 @@ import type {OriginalCancellation, CancellationObservation} from '@actql/explore
 import {validCancellationRef, validOperationAttemptRef, validRunRef} from '@actql/client-wire';
 import type {RunReference} from '@actql/sdk';
 import type {WireCancellationLookup, WireSubmissionRef} from '@actql/client-wire';
-import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
+import {observedPlanStep, type RunObservationModel} from '@actql/explorer-ui/run-observation';
 import type {PlanReadModel, StaticExplanationReadModel, OriginalRunPlanReadModel, OriginalRunPresentationReadModel, SavedExplanationReadModel, ExplanationStoryModel} from '@actql/explorer-ui/read-model';
 import {createExplorerBrowserSource, type ExplorerStartObservation} from '@actql/explorer/browser-source';
 import '@actql/explorer-ui/styles.css';
@@ -131,6 +131,45 @@ function StoryCard({ordinal, label, title, detail, system, state, open, selected
       <div className="step-details">{children}</div>
     </details>
   </li>;
+}
+
+type PlanNode = PlanReadModel['nodes'][number];
+
+function planNodeTitle(node: PlanNode, locale: 'en' | 'ja') {
+  return node.operator?.replaceAll('_', ' ').replace(/^./u, char => char.toUpperCase()) ??
+    (locale === 'ja' ? '入出力' : 'Input / output');
+}
+
+function PlanSteps({map, boundary, selection, select, graph, locale}: {
+  map: PlanReadModel; boundary?: {stepId: string; state: StepState}; selection?: string;
+  select(id: string): void; graph: boolean; locale: 'en' | 'ja';
+}) {
+  const [collapsed, setCollapsed] = useState<string>();
+  const ja = locale === 'ja';
+  return <section aria-label={graph ? 'Selected Step' : 'Original steps'}>
+    <ol className="story-steps">
+      {map.nodes.map((node, index) => {
+        const selected = selection === node.id;
+        if (graph && !selected) return null;
+        const open = graph || selected && collapsed !== node.id;
+        return <StoryCard key={node.id} ordinal={index + 1} label={ja ? '論理工程' : 'Logical step'}
+          title={planNodeTitle(node, locale)} selected={selected}
+          state={node.id === boundary?.stepId ? boundary.state : undefined}
+          open={open} onToggle={() => {
+            select(node.id);
+            setCollapsed(open && !graph ? node.id : undefined);
+          }}>
+          <details><summary>{ja ? '元の工程とポート' : 'Original step and ports'}</summary>
+            {node.names.length > 0 && <p>{node.names.map(name => <code key={name}>{name}</code>)}</p>}
+            <code>{node.id}</code>
+            <ul>{node.ports.map(port => <li key={port.port_id}>
+              {port.role} · {port.carrier} · <code>{port.port_id}</code>
+            </li>)}</ul>
+          </details>
+        </StoryCard>;
+      })}
+    </ol>
+  </section>;
 }
 
 function StepOrigin({step, label, select}: {step: Step; label?: string; select?(): void}) {
@@ -554,7 +593,7 @@ function App() {
         const view = await source.runPlan(original);
         if (!current()) return;
         adopt();
-        showOriginalPlan(view); showGraph(true);
+        showOriginalPlan(view);
       } else {
         const observation = await source.observe(original);
         if (!current()) return;
@@ -629,17 +668,21 @@ function App() {
     : staticExplanation?.context ?? [];
   const map = selectedRef ? originalPresentation?.plan ?? originalPlan?.plan : plan;
   const graphLabels = useMemo(()=>graphStepLabels(story, context, map?.stageResultLinks), [story, context, map]);
+  const planOnly = selectedRef && !story ? map : undefined;
+  const originalStep = observedPlanStep(run, selectedRef, map);
+  const boundary = originalStep ? {stepId: originalStep.stepId, state: 'Observed' as const} : undefined;
   const scopeKey = JSON.stringify([epoch.current, selectedRef, map?.compiledPlanCid, map?.logicalMapCid, story?.factsCid]);
+  const stepScope = JSON.stringify([scopeKey, originalStep?.stepId, originalStep?.position]);
   const edited = analyzedDraft !== undefined &&
     (analyzedDraft.text !== programText || analyzedDraft.format !== programFormat);
-  const alignedRun = run && map && run.planBinding.compiledPlanCid === map.compiledPlanCid &&
-    run.planBinding.logicalMapCid === map.logicalMapCid ? run : undefined;
-  const boundaryId = alignedRun?.run.boundary?.step_id;
-  const boundary = boundaryId ? {stepId: boundaryId, state: 'Observed' as const} : undefined;
-  const selection = selectedStep?.scope === scopeKey ? selectedStep.id : boundaryId ?? (graph ? map?.nodes[0]?.id : undefined);
-  const setSelection = (id: string) => selectStep({scope: scopeKey, id});
+  const selection = selectedStep?.scope === stepScope ? selectedStep.id :
+    boundary?.stepId ?? (graph || planOnly ? map?.nodes[0]?.id : undefined);
+  const setSelection = (id: string) => selectStep({scope: stepScope, id});
   const status = run ? run.run.status.replaceAll('_', ' ') : selectedRef ? 'Current status unavailable' :
     map ? 'Plan checked · not run' : 'No Run selected';
+  const observedStep = originalStep && (locale === 'ja'
+    ? `元工程 ${originalStep.number} の${originalStep.position === 'before' ? '前' : '後'}を観測`
+    : `Observed ${originalStep.position} original step ${originalStep.number}`);
   const supportedCheckpoint = connected && (checkpointCapabilities.list || checkpointCapabilities.read);
   const fileLabel = draftName ?? 'Query draft';
   const independentDraft = !!selectedRef || launcherProgram;
@@ -719,10 +762,13 @@ function App() {
           <button className="small" type="button" disabled={!connected || pending} onClick={()=>openDrawer('open-run')}>Open Run</button>
           {selectedRef && !originalPresentation && <button className="small" type="button" disabled={pending}
             onClick={()=>readOriginal(selectedRef, 'run-explanation-context')}>Read Story</button>}
+          {selectedRef && !map && <button className="small" type="button" disabled={pending}
+            onClick={()=>readOriginal(selectedRef, 'run-plan')}>Read Saved Plan</button>}
           {selectedRef && <button className="small" type="button" disabled={pending}
             onClick={()=>readOriginal(selectedRef, 'inspect')}>Inspect status</button>}
           <span className="run-status" role="status" data-known={!!run || !selectedRef}><span className="status-dot"/>
-            {pending ? 'Reading…' : !connected ? 'Local disconnected' : status}</span>
+            {pending ? 'Reading…' : !connected ? 'Local disconnected' : status}
+            {!pending && connected && observedStep && <> · {observedStep}</>}</span>
           {selectedRef && <details className="toolbar-menu terminal-menu"><summary>Terminal</summary>
             <div className="panel terminal-card"><p>Original reference for an authorized CLI on this Host.</p>
               <pre aria-label="Original Run reference">{JSON.stringify(selectedRef, null, 2)}</pre></div>
@@ -751,10 +797,12 @@ function App() {
           workspace={{stepId: selection, select: setSelection,
             label: id=>({state: stepState(id, !!selectedRef, boundary),
               ...graphLabels.get(id)})}}/>}
+        {planOnly && <PlanSteps key={stepScope} map={planOnly} boundary={boundary} selection={selection}
+          select={setSelection} graph={graph} locale={locale}/>}
         {story && <StorySteps key={scopeKey} story={story} context={context} boundary={boundary}
           saved={!!selectedRef} selectedStep={selection} selectStep={setSelection} graph={graph} labels={graphLabels} stageResultLinks={map?.stageResultLinks}/>}
         {graph && !map && <p className="workspace-note">Read a Plan or open an original Run to see its Graph.</p>}
-        {!graph && !story && map && <p className="workspace-note">This read supplies a logical map. Choose Graph to inspect it.</p>}
+        {!graph && !story && !planOnly && map && <p className="workspace-note">This read supplies a logical map. Choose Graph to inspect it.</p>}
         {run && <details className="workspace-tools panel"><summary>Current Run observations</summary><RunInspector model={run}/></details>}
         {result !== undefined && <details className="workspace-tools panel"><summary>Named Result metadata</summary><pre>{JSON.stringify(result, null, 2)}</pre></details>}
         {(supportedCheckpoint || run?.run.status === 'waiting_checkpoint') &&
