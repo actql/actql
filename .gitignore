@@ -2924,3 +2924,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/mock-file-target.test.d.mts
 /adapters/host-node/ordinary-mock-account.mjs
 /adapters/host-node/ordinary-mock-account.d.mts
+/adapters/local-node/installed-mock-row-effect.mjs
+/adapters/local-node/installed-mock-row-effect.d.mts

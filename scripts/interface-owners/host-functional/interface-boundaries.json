@@ -126923,7 +126923,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "76bda90eb96241b289b2c8c002519e0a32b8c0ce21e23be6b3cae2b30a2669a0",
+      "sha256": "1416cde72aed2b8af47849aba23032a9039dad770490fc4e6c10c62455c07284",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -127586,7 +127586,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
               },
               {
@@ -127596,7 +127596,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "export async function installPreparedProjectMockEffects({moon, mockPreparation,"
               },
               {
@@ -127610,11 +127610,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "const original = installations.get(effect);"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal,"
               },
               {
@@ -127628,11 +127628,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "installations.set(installed, resourceObservation);"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "const resources = Object.freeze(Object.fromEntries(Object.entries(resourceMethods)"
               },
               {
@@ -127646,7 +127646,7 @@
                 "anchor": "const bindRunResources = (facts: unknown, members: readonly StageMember[])"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "synchronous(resources.assertCurrent(runOriginal));"
               },
               {
@@ -127660,11 +127660,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "cleanupHandle: Object.freeze({status: child.status, retry: child.retry})});"
               },
               {
@@ -127678,12 +127678,12 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "const child = file.updateChild({signal, runOriginal,"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "function retainRun(runOriginal) {"
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
+                "anchor": "function retainRun(runOriginal: RunOriginal) {"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -127692,12 +127692,12 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "const targetLimits = Object.freeze({maxFileBytes: 1048576, maxRows: 100,"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "statusFor(runOriginal) {return file.statusFor(retainRun(runOriginal));},"
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
+                "anchor": "statusFor(runOriginal: RunOriginal) {return file.statusFor(retainRun(runOriginal));},"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -127710,7 +127710,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "// approval, replacement Run or permission derived from a profile is supplied."
               },
               {
@@ -127762,7 +127762,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
               },
               {
@@ -127772,7 +127772,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "export async function installPreparedProjectMockEffects({moon, mockPreparation,"
               },
               {
@@ -127786,11 +127786,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "const original = installations.get(effect);"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "descriptions.set(value, Object.freeze({runInvocationCid, dispatchRequestCid, runOriginal,"
               },
               {
@@ -127804,11 +127804,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "installations.set(installed, resourceObservation);"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "const resources = Object.freeze(Object.fromEntries(Object.entries(resourceMethods)"
               },
               {
@@ -127822,7 +127822,7 @@
                 "anchor": "const bindRunResources = (facts: unknown, members: readonly StageMember[])"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "synchronous(resources.assertCurrent(runOriginal));"
               },
               {
@@ -127836,11 +127836,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "cleanupHandle: Object.freeze({status: child.status, retry: child.retry})});"
               },
               {
@@ -127854,12 +127854,12 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "const child = file.updateChild({signal, runOriginal,"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "function retainRun(runOriginal) {"
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
+                "anchor": "function retainRun(runOriginal: RunOriginal) {"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -127868,12 +127868,12 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "const targetLimits = Object.freeze({maxFileBytes: 1048576, maxRows: 100,"
               },
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
-                "anchor": "statusFor(runOriginal) {return file.statusFor(retainRun(runOriginal));},"
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
+                "anchor": "statusFor(runOriginal: RunOriginal) {return file.statusFor(retainRun(runOriginal));},"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -127886,7 +127886,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/installed-mock-row-effect.mjs",
+                "path": "adapters/local-node/installed-mock-row-effect.mts",
                 "anchor": "// approval, replacement Run or permission derived from a profile is supplied."
               },
               {
