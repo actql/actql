@@ -31,7 +31,7 @@ import {createEffectArtifactControls} from './runtime-effect-artifact-control.mj
 import {createEffectRecoveryControls} from './runtime-effect-recovery-control.mjs';
 import {createEffectPreviewControls} from './runtime-effect-preview-control.mjs';
 import {createEffectPublicationControls} from './runtime-effect-publication-control.mjs';
-import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
+import {createRunPlanControls} from './runtime-run-plan-control.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
 import {
@@ -363,6 +363,11 @@ function publicationControl(moon) {
     localEffectArtifactTokens, computationPreviewTokens, recoveredEffectCaptures,
     issuanceLimits, captureContractLimits, token, inspect,
   });
+  const runPlanControls = createRunPlanControls(moon, {
+    compiledRunTokens, originalRunPlanTokens, compiledRunResult, issuanceLimits, token, evidenceToken,
+    captureRequestExplanation, originalExplanationPlanWire, originalExplanationFactsWire, returnExplanationCapture,
+    acknowledgeExplanationCapture, observeOriginalDispatchFailure, prepareLogicalObservation, currentControl: () => control,
+  });
   control = Object.freeze({
     executionFailureExplanation(cause) {
       if (typeof cause !== 'string' || cause.length > 96 ||
@@ -479,235 +484,7 @@ function publicationControl(moon) {
       return inspectAdmission(admission);
     },
     ...contentInferenceControls,
-    readCurrentClientRunView(runDefinition, prepared, authorization, ref, state, snapshotCid, limits) {
-      if (typeof moon.clientProgramCurrentRunView !== 'function') {
-        throw Object.assign(new Error('ClientOperationUnavailable'),
-          {code: 'ClientOperationUnavailable'});
-      }
-      return compiledRunResult(moon.clientProgramCurrentRunView(
-        token(runDefinition), evidenceToken(prepared), evidenceToken(authorization),
-        JSON.stringify(ref), JSON.stringify(state), snapshotCid,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
-      'RunHostInspectRejected');
-    },
-    readCheckedClientStaticPlan(checkedProgram, kind, limits) {
-      if (!['values', 'tasks', 'effects'].includes(kind) ||
-          !Number.isSafeInteger(limits?.maxWireBytes) || limits.maxWireBytes < 1 ||
-          !Number.isSafeInteger(limits?.maxNodes) || limits.maxNodes < 1 ||
-          !Number.isSafeInteger(limits?.maxDepth) || limits.maxDepth < 1) {
-        throw new TypeError('InvalidClientStaticPlanRequest');
-      }
-      const compile = kind === 'effects' ? moon.clientProgramCompileLocalEffects
-        : kind === 'values' ? moon.clientProgramCompileLocalValues
-          : moon.clientProgramCompileLocalTasks;
-      const project = kind === 'effects' ? moon.clientProgramEffectfulStaticPlanView
-        : kind === 'values' ? moon.clientProgramValuesStaticPlanView
-          : moon.clientProgramTaskStaticPlanView;
-      if (typeof compile !== 'function' || typeof project !== 'function') {
-        throw Object.assign(new Error('ClientOperationUnavailable'),
-          {code: 'ClientOperationUnavailable'});
-      }
-      // Compile the original checked owner only. In particular, do not issue
-      // an allowed Run, allocate a request identity or open an execution.
-      const compiled = compiledRunResult(compile(checkedProgram),
-        'RunHostCompilationRejected');
-      return compiledRunResult(project(checkedProgram, compiled,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
-      'RunHostStaticPlanRejected');
-    },
-    prepareClientLogicalObservation(run, executionOwner, definition, limits) {
-      issuanceLimits(limits, 'Original logical boundary');
-      const compiled = compiledRunTokens.get(executionOwner?.compiled);
-      const prepared = executionOwner?.program;
-      if (compiled === undefined || prepared === undefined ||
-          !moon.clientProgramCompiledRunMatches(compiled, prepared) ||
-          !moon.clientProgramCheckCompiledRunDefinition(compiled, token(definition))) {
-        throw new TypeError('Foreign Client logical boundary original');
-      }
-      if (typeof prepareLogicalObservation !== 'function') {
-        throw new TypeError('ClientLogicalObservationUnavailable');
-      }
-      // Keep this actual typed Result intact so the receiving owner can take
-      // its original failed-constructor cleanup token without parsing Errors.
-      return Reflect.apply(prepareLogicalObservation, moon,
-        [run, prepared, compiled, token(definition), limits.maxWireBytes,
-          limits.maxNodes, limits.maxDepth]);
-    },
-    captureOriginalClientRunPlan(compiled, original, definition, limits, explanation) {
-      issuanceLimits(limits, 'Original Run plan');
-      if (limits.maxWireBytes < 1 || limits.maxNodes < 1 || limits.maxDepth < 1) {
-        throw new TypeError('Invalid Original Run plan issuance limits');
-      }
-      const value = compiledRunTokens.get(compiled);
-      if (value === undefined ||
-          !moon.clientProgramCompiledRunMatches(value, original) ||
-          !moon.clientProgramCheckCompiledRunDefinition(value, token(definition))) {
-        throw new TypeError('Foreign Client original plan compilation');
-      }
-      if (typeof moon.clientProgramCompiledRunStaticPlanView !== 'function') {
-        throw Object.assign(new Error('ClientOperationUnavailable'), {code: 'ClientOperationUnavailable'});
-      }
-      let wire;
-      if (explanation === undefined) {
-        wire = compiledRunResult(moon.clientProgramCompiledRunStaticPlanView(
-          value, original, limits.maxWireBytes, limits.maxNodes, limits.maxDepth),
-        'RunHostOriginalPlanRejected');
-      } else {
-        if (explanation.preparation === undefined || explanation.scope !== undefined ||
-            typeof captureRequestExplanation !== 'function' ||
-            typeof originalExplanationPlanWire !== 'function' ||
-            typeof originalExplanationFactsWire !== 'function' ||
-            typeof returnExplanationCapture !== 'function') {
-          throw new TypeError('Foreign Client original explanation preparation');
-        }
-        // Retain in the SAME managed Run before another current getter can
-        // fail. The Core issuer validates the actual Request/Run/compiler;
-        // neither this record nor equal wires supplies admission authority.
-        explanation.scope = compiledRunResult(Reflect.apply(captureRequestExplanation, moon, [
-          explanation.preparation, value, token(definition)]), 'RunHostOriginalExplanationRejected');
-        explanation.preparation = undefined;
-        wire = compiledRunResult(Reflect.apply(originalExplanationPlanWire, moon, [
-          explanation.scope]), 'RunHostOriginalExplanationRejected');
-        explanation.factsWire = compiledRunResult(Reflect.apply(originalExplanationFactsWire, moon, [
-          explanation.scope]), 'RunHostOriginalExplanationRejected');
-        if (typeof explanation.factsWire !== 'string' ||
-            Buffer.byteLength(explanation.factsWire) > limits.maxWireBytes) {
-          throw new TypeError('Invalid Client original explanation evidence');
-        }
-      }
-      if (typeof compiled.compiledPlan.wire !== 'string' || typeof wire !== 'string' ||
-          Buffer.byteLength(compiled.compiledPlan.wire) > limits.maxWireBytes ||
-          Buffer.byteLength(wire) > limits.maxWireBytes) {
-        throw new TypeError('Invalid Client original plan evidence');
-      }
-      const originalBytes = Object.freeze({compiledPlanWire: compiled.compiledPlan.wire,
-        planViewWire: wire});
-      const programCid = moon.clientProgramDefinitionCid(original);
-      // The nominal compiler projection already bound its map to this Plan
-      // and Program. Capture those immutable outputs, not a second stored-input
-      // admission. Independent durable reads still use the full reader below.
-      const selected = Object.freeze({});
-      const retained = {original: originalBytes,
-        runDefinitionCid: definition.identity, programCid,
-        prepared: compiled.preparedEvidence.wire, authorization: compiled.authorization.wire};
-      if (explanation !== undefined) retained.explanation = explanation;
-      originalRunPlanTokens.set(selected, Object.freeze(retained));
-      return selected;
-    },
-    captureOriginalEffectRunPlan(explanation, definition, prepared, evidence) {
-      token(definition);
-      if (explanation.scope === undefined || explanation.plan === undefined ||
-          moon.strategyPublicationContractIdentity(explanation.definition) !== definition.identity ||
-          moon.strategyPublicationContractJson(explanation.definition) !== definition.wire) {
-        throw new TypeError('Foreign Client original Effect plan admission');
-      }
-      const selected = Object.freeze({});
-      originalRunPlanTokens.set(selected, Object.freeze({explanation,
-        runDefinitionCid: definition.identity, programCid: moon.clientProgramEffectDefinitionCid(prepared),
-        prepared: evidence.prepared, authorization: evidence.authorization}));
-      return selected;
-    },
-    originalRunPlanAdmissionEvidence(selected, definition, programCid, evidence) {
-      const retained = originalRunPlanTokens.get(selected);
-      // Exact first-admission provenance is independent of current read or
-      // control permission. A copied wire/CID cannot create this selection.
-      token(definition);
-      if (retained === undefined || retained.runDefinitionCid !== definition.identity ||
-          retained.programCid !== programCid || retained.prepared !== evidence?.prepared ||
-          retained.authorization !== evidence?.authorization) {
-        throw new TypeError('Foreign Client original plan admission');
-      }
-      return retained.original ?? retained.explanation?.plan;
-    },
-    originalRunExplanationAdmissionEvidence(selected, definition, programCid, evidence) {
-      // Reuse the existing nominal original-Plan selection, not another
-      // identity registry or a caller's structural wire/CID.
-      control.originalRunPlanAdmissionEvidence(selected, definition, programCid, evidence);
-      const explanation = originalRunPlanTokens.get(selected).explanation;
-      if (explanation === undefined || explanation.acknowledged ||
-          typeof explanation.factsWire !== 'string' || explanation.scope === undefined) {
-        throw new TypeError('Foreign Client original explanation admission');
-      }
-      explanation.offered = true;
-      return Object.freeze(explanation.definition === undefined ? {factsWire: explanation.factsWire} : {
-        factsWire: explanation.factsWire, contextWire: explanation.contextWire,
-        invocationTemplateWire: explanation.invocationTemplateWire,
-      });
-    },
-    originalRunExplanationAdmissionAcknowledged(selected, definition, programCid, evidence) {
-      control.originalRunPlanAdmissionEvidence(selected, definition, programCid, evidence);
-      const explanation = originalRunPlanTokens.get(selected).explanation;
-      if (explanation === undefined || !explanation.offered) {
-        throw new TypeError('Foreign Client original explanation acknowledgement');
-      }
-      if (explanation.acknowledged && (explanation.scope === undefined || explanation.dispatchReady)) return;
-      if (explanation.returning) throw new TypeError('RunHostOriginalExplanationCleanupPending');
-      // The Journal has already dropped its transient Facts aliases after
-      // actual COMMIT. Cut the last new managed payload BEFORE lower return
-      // can settle/refund; retain the exact cleanup token on a declined return.
-      explanation.factsWire = undefined;
-      explanation.journal = undefined;
-      explanation.acknowledged = true;
-      explanation.returning = true;
-      try {
-        if (explanation.definition !== undefined) {
-          explanation.contextWire = explanation.invocationTemplateWire = explanation.plan = undefined;
-          compiledRunResult(explanation.methods.returnCapture(explanation.scope, explanation.definition, false),
-            'RunHostOriginalExplanationCleanupPending');
-          explanation.scope = undefined;
-        } else if (typeof acknowledgeExplanationCapture === 'function') {
-          // The existing manager owns this SAME borrow through execution.
-          // Journal ACK drops only committed payload aliases, not that owner.
-          compiledRunResult(Reflect.apply(acknowledgeExplanationCapture, moon, [
-            explanation.scope]), 'RunHostOriginalExplanationCleanupPending');
-          explanation.dispatchReady = true;
-        } else {
-          // Old namespaces cannot supply a post-ACK original observation.
-          compiledRunResult(Reflect.apply(returnExplanationCapture, moon, [
-            explanation.scope]), 'RunHostOriginalExplanationCleanupPending');
-          explanation.scope = undefined;
-        }
-      } finally {explanation.returning = false;}
-    },
-    originalClientDispatchFailureAvailable(selected) {
-      // Facility DATA only: the actual read still checks current and the SAME
-      // Core owners. Unselected/old profiles allocate no observation callback.
-      const explanation = originalRunPlanTokens.get(selected)?.explanation;
-      return explanation?.dispatchReady === true && !explanation.returning &&
-        explanation.scope !== undefined && typeof observeOriginalDispatchFailure === 'function';
-    },
-    observeOriginalClientDispatchFailure(selected, host) {
-      const explanation = originalRunPlanTokens.get(selected)?.explanation;
-      if (explanation?.dispatchReady !== true || explanation.returning ||
-          explanation.scope === undefined || typeof observeOriginalDispatchFailure !== 'function') return undefined;
-      return checked(Reflect.apply(observeOriginalDispatchFailure, moon, [explanation.scope, host]));
-    },
-    readStoredRunPlanOriginal(original, definition, programCid, limits) {
-      token(definition);
-      issuanceLimits(limits, 'Original Run plan');
-      if (original === null || typeof original !== 'object' || Array.isArray(original) ||
-          Object.keys(original).sort().join(',') !== 'compiledPlanWire,planViewWire' ||
-          limits.maxWireBytes < 1 || limits.maxNodes < 1 || limits.maxDepth < 1 ||
-          ['compiledPlanWire', 'planViewWire'].some(field =>
-            typeof original[field] !== 'string' || Buffer.byteLength(original[field]) > limits.maxWireBytes)) {
-        throw new TypeError('Invalid Client original plan evidence');
-      }
-      const plan = control.admit('compiled_plan', original.compiledPlanWire, limits);
-      const view = JSON.parse(original.planViewWire);
-      if (!validWirePlanViewShape(view) ||
-          plan.identity !== JSON.parse(definition.wire).compiled_plan_cid ||
-          view.compiled_plan_cid !== plan.identity ||
-          JSON.parse(plan.wire).program_definition_cid !== programCid) {
-        throw new TypeError('Foreign Client original plan evidence');
-      }
-      if (typeof moon.clientProgramCheckLogicalMapBinding !== 'function') {
-        throw Object.assign(new Error('ClientOperationUnavailable'), {code: 'ClientOperationUnavailable'});
-      }
-      const map = control.admitRunEvidence('logical_map', JSON.stringify(view.logical_map), limits);
-      compiledRunResult(moon.clientProgramCheckLogicalMapBinding(evidenceToken(map), token(plan),
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostOriginalMapRejected');
-      return original.planViewWire;
-    },
+    ...runPlanControls,
     // First admission retains only the actual compiler owner and its original
     // Result policy. A copied wire cannot supply the journal's original ticket.
     captureOriginalClientInferRun(compiled, checkedProgram, definition, request, environment, parameters, funded) {
