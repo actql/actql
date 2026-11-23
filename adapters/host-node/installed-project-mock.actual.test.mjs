@@ -10,7 +10,9 @@ import {prepareOrdinaryMockAccountSubjects} from './ordinary-mock-account.mjs';
 import {createInstalledHostServices, installedAccountConstruction,
   closeInstalledAccountConstruction, retireInstalledSourceInitialization} from './installed-host-services.mjs';
 import {createDeclaredFileInstallationInventory} from '../local-node/declared-file-installation.mjs';
-import {mixedDeleteUpdateMockProject, multipleTargetMockProjectFiles} from './fixtures/mock-multiple-targets.fixture.mjs';
+import {projectDeclaredProjectWritableInventory} from '../local-node/declared-project-catalog.mjs';
+import {mixedDeleteUpdateMockProject, multipleTargetMockProjectFiles,
+  sameResourceMixedMockProject} from './fixtures/mock-multiple-targets.fixture.mjs';
 import {loadInstalledProjectConfiguration} from './installed-project-configuration.mjs';
 import {selectInstalledProjectProfile} from './installed-project-profile.mjs';
 import {inspectProjectMockDeclarations, prepareInstalledProjectMock,
@@ -95,6 +97,81 @@ test('installed Mock keeps DELETE mapping and permissions distinct from a siblin
   files['mock/catalog.json'] = JSON.stringify(catalog);
   await assert.rejects(withMockCatalog(() => assert.fail('DELETE admitted a field list'), files),
     {code: 'InvalidInstalledMockCatalog'});
+});
+
+test('installed Mock binds UPDATE and DELETE to the same original table with distinct mappings', async () => {
+  const fixture = sameResourceMixedMockProject();
+  await withMockCatalog(async ({directory, assertCurrent, bundle}) => {
+    const [remove, update] = bundle.writables;
+    assert.equal(remove.write.operation, 'delete');
+    assert.equal(update.write.operation ?? 'update', 'update');
+    assert.strictEqual(remove.physical, update.physical);
+    assert.equal(remove.source.physical.length, 1);
+    assert.notEqual(remove.mapping.mappingCid, update.mapping.mappingCid);
+    const deleteBody = JSON.parse(remove.mapping.body), updateBody = JSON.parse(update.mapping.body);
+    assert.equal(deleteBody.resource_identity_cid, updateBody.resource_identity_cid);
+    assert.deepEqual(deleteBody.target_schema, updateBody.target_schema);
+    assert.deepEqual(deleteBody.permission_rules[0].permissions, ['salesforce:record:delete']);
+    assert.deepEqual(updateBody.permission_rules[0].permissions, ['salesforce:record:update']);
+    for (const target of [remove, update]) assert.equal(target.mapping.body, target.write.mappingWire);
+    const foreignWrite = {...remove.write, mappingWire: JSON.stringify({...deleteBody,
+      target_ref: 'connector://salesforce/Contact'})};
+    assert.throws(() => projectDeclaredProjectWritableInventory([
+      {...remove.source, writes: [update.write, foreignWrite]},
+    ]), {code: 'InvalidInstalledMockCatalog'});
+    const bindingCid = 'sha256:' + 'a'.repeat(64);
+    const footprint = (target, id) => mockFileRowFootprint({bindingCid, target, selectors: [id]});
+    assert.deepEqual(footprint(remove, 'a1'), footprint(update, 'a1'));
+    assert.notDeepEqual(footprint(remove, 'a1'), footprint(update, 'a2'));
+    const conflicts = (updateId, removeId) => {
+      const first = footprint(update, updateId), second = footprint(remove, removeId);
+      return runtimeCore(moon).effectApplicationControl.checkSetFootprintConflicts(
+        ['update', 'delete'], [0, 0], [first.provider_namespace, second.provider_namespace],
+        [first.provider_boundary_cid, second.provider_boundary_cid],
+        [first.resource_identity_scheme_cid, second.resource_identity_scheme_cid],
+        [first.resource_kind, second.resource_kind],
+        [[...first.provider_object_identity_cids], [...second.provider_object_identity_cids]], 16, 100, 10000);
+    };
+    assert.equal(conflicts('a2', 'a1'), true);
+    assert.throws(() => conflicts('a1', 'a1'), {code: 'MoonBitHostFailure'});
+
+    const methods = {admit: 'clientProgramRelationAdmitDocument', project: 'clientProgramRelationProjectTargetDocument',
+      observe: 'clientProgramRelationObserveTarget', before: 'clientProgramRelationTargetBefore',
+      version: 'clientProgramRelationTargetVersion', update: 'clientProgramRelationPrepareTargetUpdate',
+      delete: 'clientProgramRelationPrepareTargetDelete'};
+    const codec = createMockFileRowCodec({bundle, original: remove.source,
+      call: (name, ...args) => Reflect.apply(moon[methods[name]], moon, args)});
+    const path = join(directory, 'mock/data.json'), original = await readFile(path);
+    const mutation = (target, id, fields = {}) => {
+      const observed = codec.observe(codec.admit(original, target), id);
+      return {target: id, version: observed.versionCid, before: observed.before, ...fields};
+    };
+    let replacements = 0;
+    const file = createMockFileTarget({dataPath: path, maxBytes: 1048576, assertCurrent,
+      observeWrite: () => {replacements++;}});
+    const runOriginal = Object.freeze({purpose: 'same-resource locked file component'});
+    const updated = mutation(update, 'a2', {value: {value: 'A2-new'}});
+    const deleted = mutation(remove, 'a1');
+    const prepare = (kind, target, record, authorize) => file.updateChild({runOriginal, authorize,
+      replace: bytes => codec.replace(kind, bytes, target, record, {chargeBytes() {}})});
+    const denied = prepare('update', update, updated, () => {throw new Error('write denied');});
+    try {
+      await assert.rejects(denied.prepare(), /write denied/u);
+      assert.equal((await denied.release()).pending, false);
+      assert.equal((await readFile(path, 'utf8')), fixture.before);
+      assert.equal(replacements, 0);
+      for (const [kind, target, record] of [['update', update, updated], ['delete', remove, deleted]]) {
+        const child = prepare(kind, target, record, () => {});
+        try {await child.prepare();}
+        finally {assert.equal((await child.release()).pending, false);}
+      }
+      assert.deepEqual(JSON.parse(await readFile(path, 'utf8')), JSON.parse(fixture.after));
+      assert.equal(replacements, 2);
+      await assert.rejects(lstat(path + '.actql-write.lock'), {code: 'ENOENT'});
+    } finally {
+      assert.equal((await file.close()).pending, false);
+    }
+  }, fixture.files);
 });
 
 test('plural Mock exact footprints retain one boundary and reject same-row aliases and duplicates', async () => {
@@ -334,7 +411,8 @@ test('Mock subject construction hashes borrowed wires on the same real Account R
         {resource: 'first', mappingCid: 'sha256:' + '1'.repeat(64)},
         {resource: 'second', mappingCid: 'sha256:' + '2'.repeat(64)}]}};
     const bundle = {sources: [source], writables: ['first', 'second'].slice(0, count).map(resource => ({
-      source, write: {resource}, physical: {itemsPath: [resource], keyPath: ['id'], primaryIdentity: 'id'}}))};
+      source, write: {resource}, mapping: source.effectPrepared.mappings.find(value => value.resource === resource),
+      physical: {itemsPath: [resource], keyPath: ['id'], primaryIdentity: 'id'}}))};
     const frame = construction.begin();
     let result = prepareOrdinaryMockAccountSubjects(frame, bundle, [], '/original/project',
       configurationWire, 'original-request');

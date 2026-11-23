@@ -304,11 +304,6 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   // that field exists. This is not global inventory funding or authority.
   const targetDescriptionCapacity = targets.length === 1 ? undefined
     : checked(call('construction', 1n, 0n, 0n, 1n, 0n, 0n));
-  function targetForResource(resource) {
-    const target = targets.find(value => value.write.resource === resource);
-    if (target === undefined) fail('ForeignMockEffectMember');
-    return target;
-  }
   function targetForRecord(record) {
     const target = targets.find(value => value.mapping.mappingCid === record?.mapping);
     if (target === undefined) fail('InvalidMockEffectRequest');
@@ -335,9 +330,10 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   function memberCurrent(member) {
     current();
     if (member === null || typeof member !== 'object') fail('ForeignMockEffectMember');
-    const target = targetForResource(member.resource);
-    if (member.kind !== operationOf(target) || member.mapping?.mappingCid !== target.mapping.mappingCid ||
-        member.mapping?.mappingRef !== target.mapping.mappingRef) fail('ForeignMockEffectMember');
+    const target = targets.find(value => member.resource === value.write.resource &&
+      member.kind === operationOf(value) && member.mapping?.mappingCid === value.mapping.mappingCid &&
+      member.mapping?.mappingRef === value.mapping.mappingRef);
+    if (target === undefined) fail('ForeignMockEffectMember');
     return target;
   }
   function description(value, runOriginal, target) {
@@ -368,12 +364,12 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
     if (typeof controlConstruction !== 'function') fail('InstalledMockTargetConstructionUnavailable');
     return controlConstruction(undefined, construct, [], targetDescriptionCapacity);
   }
-  function decisionCurrent(decision, kind, target) {
+  function decisionCurrent(decision, kind, resource) {
     current();
     const facts = authorizationDispatchFacts(decision);
     if (facts?.principal !== principalId || facts.configurationCid !== authorization.configurationCid ||
         decision.action !== 'dispatch' || decision.tuple?.connection !== catalogue.connection ||
-        decision.tuple?.resource !== target.write.resource ||
+        decision.tuple?.resource !== resource ||
         decision.tuple?.operation !== (kind === 'read' ? 'read' : 'effect') ||
         decision.boundary !== (kind === 'read' ? 'acquisition' : 'effect_commit') ||
         (kind === 'write' && (decision.basis !== 'resumed' ||
@@ -385,28 +381,29 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   }
   function issue(kind, {operation, decision, resource, runInvocationCid,
     dispatchRequestCid, subjectCid, maxUses}) {
-    const target = targetForResource(resource);
-    const expected = kind === 'read' ? target.write.observe_permission : target.write.permission;
-    if (operation !== expected || !cid(runInvocationCid) ||
+    if (!targets.some(target => target.write.resource === resource &&
+        operation === (kind === 'read' ? target.write.observe_permission : target.write.permission)) ||
+        !cid(runInvocationCid) ||
         !cid(dispatchRequestCid) || (kind === 'read' && maxUses !== 1) ||
         (kind === 'write' && (!cid(subjectCid) || decision?.subjectCid !== subjectCid))) {
       fail('MockTargetNotAuthorized');
     }
-    decisionCurrent(decision, kind, target);
+    decisionCurrent(decision, kind, resource);
     const proof = Object.freeze({});
-    grants.set(proof, {kind, decision, runInvocationCid, dispatchRequestCid, subjectCid, used: false});
+    grants.set(proof, {operation, decision, runInvocationCid, dispatchRequestCid, subjectCid, used: false});
     return Object.freeze({proof});
   }
   function consume(kind, supplied, selected, target) {
     const grant = grants.get(supplied?.proof), original = description(selected, undefined, target);
-    if (grant === undefined || grant.kind !== kind || grant.used ||
+    if (grant === undefined || grant.used ||
+        grant.operation !== (kind === 'read' ? target.write.observe_permission : target.write.permission) ||
         grant.runInvocationCid !== original.runInvocationCid ||
         grant.dispatchRequestCid !== original.dispatchRequestCid ||
         grant.decision.tuple.resource !== target.write.resource ||
         typeof supplied.useId !== 'string' || Buffer.byteLength(supplied.useId) > 4096) {
       fail('ForeignMockTargetUse');
     }
-    decisionCurrent(grant.decision, kind, target);
+    decisionCurrent(grant.decision, kind, target.write.resource);
     grant.used = true;
     return Object.freeze({grant,
       useCid: hash({kind: 'mock-file-' + kind, binding_cid: bindingCid,
@@ -416,8 +413,9 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
         checkpoint_cid: grant.decision.checkpointCid ?? null,
         resolution_cid: grant.decision.resolutionCid ?? null})});
   }
-  const useCurrent = use => {if (use !== undefined) decisionCurrent(use.grant.decision,
-    use.grant.kind, targetForResource(use.grant.decision.tuple.resource));};
+  const useCurrent = (use, kind, target) => {
+    if (use !== undefined) decisionCurrent(use.grant.decision, kind, target.write.resource);
+  };
   function own(request, runOriginal) {
     current();
     const record = requests.get(request);
@@ -454,7 +452,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
     runCurrent(runOriginal);
     let use, output;
     const child = file.readChild({signal, runOriginal,
-      assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
+      assertCurrent: () => {runCurrent(runOriginal); useCurrent(use, 'read', target);},
       async authorize() {use = consume('read', await authorizationForRow(), selected, target);},
       consume(bytes) {
         const document = admit(bytes, target), observed = observe(document, selector);
@@ -562,7 +560,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
         let use, primary, observed, retainedWire, failed = false;
         const constructChild = () => {
           const child = file.readChild({signal, runOriginal,
-          assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
+          assertCurrent: () => {runCurrent(runOriginal); useCurrent(use, 'read', target);},
           async authorize() {use = consume('read', await authorizationForRow(index), selected, target);},
           consume(bytes) {const value = observe(admit(bytes, target), record.target);
             // Reuse the already emitted native before wire. Only the two
@@ -615,7 +613,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
       if (targetForRecord(record) !== target) fail('ForeignMockEffectRequest');
       let use, primary, failed = false;
       const child = file.updateChild({signal, runOriginal,
-        assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
+        assertCurrent: () => {runCurrent(runOriginal); useCurrent(use, 'write', target);},
         authorize() {use = consume('write', supplied, selected, target);},
         replace(bytes) {
           return codec.replace(member.kind, bytes, target, record, physicalOperation);
