@@ -256,3 +256,83 @@ test "packaged Local task activation retains the completed producer through a qu
   assert_eq(usage.reserved_retention_bytes, 0L)
   assert_eq(usage.reserved_transfer_bytes, 0L)
 }
+
+///|
+test "ordinary Python numeric PIVOT configures on the finite original root" {
+  let assets = @host.client_local_product_assets()
+  guard @json.parse(assets.environment) is Object(fields) &&
+    fields.get("evidence_bundle_cid") is Some(String(cid)) else {
+    fail("packaged Environment evidence missing")
+  }
+  let environment = @host.admit_client_check_environment(
+    assets.environment,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+  ).unwrap()
+  let document =
+    #|WITH r AS (
+    #|  SELECT 'east' AS side, 1 AS v UNION ALL
+    #|  SELECT 'west', 2 UNION ALL SELECT 'west', 3
+    #|)
+    #|FROM r |> PIVOT(SUM(v) FOR side IN ('east','west'))
+  let input = @input.prepare_local_input_material(
+    Aql(document),
+    environment,
+    None,
+    Some(
+      @input.bind_local_input_context(environment, [], "python.local").unwrap(),
+    ),
+    @host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let original = plan(input, "ordinary-python-numeric-pivot")
+  let installed = @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_true(
+    @local.prepare_source_free_local_requirements(
+      original.prepared,
+      installed,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is None,
+  )
+  let root = @resources.create_ledger({
+    planning_work: 1000000,
+    attempts: 4096,
+    holdings: 4096,
+    transfer_bytes: 67108864L,
+    retained_bytes: 536870912L,
+    execution_bytes: 603979776L,
+  }).unwrap()
+  let wasm = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
+  let before = @resources.ledger_usage(root)
+  let host = configure_source_free_local_compute_on_ledger(
+    original,
+    root,
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let run = local_compute_run(host)
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), root))
+  assert_true(@strategy.captured_task_activation_required(run))
+  let setup = @resources.ledger_usage(root)
+  assert_eq(setup.attempts, before.attempts)
+  @strategy.stop_captured_dag(run)
+  @strategy.refresh_captured_retention(run)
+  @resources.close_shared_capacity(wasm).unwrap()
+  @resources.settle_shared_capacity(wasm).unwrap()
+  let closed = @resources.ledger_usage(root)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
+}
