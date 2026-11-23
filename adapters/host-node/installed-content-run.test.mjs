@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {execFile} from 'node:child_process';
-import {readFile, writeFile} from 'node:fs/promises';
+import {readFile, readdir, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {join} from 'node:path';
@@ -204,6 +204,59 @@ for (const entrance of ['Local', 'HTTPS']) {
       scratch.passed();
     });
   }
+}
+
+for (const [option, message] of [
+  ['max_rows', 'SERIALIZE row limit exceeded (serialize.row_limit). Reduce input rows or increase SERIALIZE OPTIONS max_rows.'],
+  ['max_bytes', 'Run ended before publication'],
+]) {
+  test(`SERIALIZE ${option} failure preserves the original Run without partial Content`, async () => {
+    const scratch = await createOwnedScratch({parent: new URL('../../_build/', import.meta.url).pathname,
+      prefix: 'content-bound-', label: 'public SERIALIZE bound diagnostics'});
+    const installation = {directory: join(scratch.path, 'host'), authorization: authorization()};
+    const options = {mode: 'local', owner: 'local', durability: 'durable', installation};
+    let original, originalState;
+    const client = await connectEmbeddedLocal(options);
+    try {
+      const query = `WITH r AS (SELECT 2 AS id UNION ALL SELECT 1)
+FROM r |> SERIALIZE FORMAT JSONL ORDER BY id
+OPTIONS (name = 'rows.jsonl', ${option} = 1)`;
+      await assert.rejects(client.aql(query).all(), error => {
+        original = error.execution;
+        assert.ok(original);
+        return true;
+      });
+      originalState = await original.status();
+      assert.equal(originalState.status, 'failed');
+      assert.equal(originalState.result_available, false);
+      assert.equal(originalState.result_availability.main.reason, 'not_published');
+      assert.deepEqual(originalState.terminal_error, {code: 'ACTQL_E_UNPUBLISHED_RUN', message});
+    } finally {
+      await client.close();
+    }
+    const cold = await connectEmbeddedLocal(options);
+    try {
+      const restored = await cold.attach(original.ref);
+      assert.deepEqual(restored.ref, original.ref);
+      const restoredState = await restored.status();
+      assert.equal(restoredState.run_id, originalState.run_id);
+      assert.equal(restoredState.revision, originalState.revision);
+      assert.equal(restoredState.status, 'failed');
+      assert.deepEqual(restoredState.control, originalState.control);
+      assert.equal(restoredState.result_available, false);
+      assert.equal(restoredState.result_availability.main.reason, 'not_published');
+      assert.deepEqual(restoredState.terminal_error, originalState.terminal_error);
+    } finally {
+      await cold.close();
+    }
+    const objects = await readdir(join(installation.directory, 'publication', 'objects'))
+      .catch(error => {
+        if (error.code !== 'ENOENT') throw error;
+        return [];
+      });
+    assert.deepEqual(objects, []);
+    scratch.passed();
+  });
 }
 
 test('a new process reads the original public Content without reserializing', async () => {

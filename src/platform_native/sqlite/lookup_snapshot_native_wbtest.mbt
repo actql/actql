@@ -26,7 +26,7 @@ test "fenced lost COMMIT lends one pinned original payload generation and reserv
   .unwrap()
   |> ignore
   usage_test_lose_commit_reply(database, 1)
-  assert_true(database.commit() is Err(BodyTooLarge))
+  assert_true(database.commit() is Err(Physical(_)))
   database.fence_transactions()
   let snapshot = lookup_ready(database)
   assert_true(database.owns_lookup_read(snapshot))

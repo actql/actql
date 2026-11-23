@@ -89,3 +89,261 @@ test "capacity release collision and absent reservation never finish caller tran
   assert_eq(usage.reserved_objects, 1L)
   database.close_checked().unwrap()
 }
+
+///|
+test "fenced autocommit refuses self-owned capacity and ordinal mutations before lookup" {
+  let (library, root, path) = existing_database_fixture()
+  let selected = path + "/capacity-fenced-autocommit.sqlite3"
+  let database = library.open_database_with_custody(selected, 64L).unwrap()
+  let observer = library
+    .open_existing_database_with_custody(selected, 64L)
+    .unwrap()
+  assert_true(
+    database.reserve_capacity("original", "held", 8L, 1L, 64L, 2L).unwrap(),
+  )
+  assert_true(
+    database.claim_ordinal_action("original", "first", 2L) is Ok(Fresh(1L)),
+  )
+  database.fence_transactions()
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+
+  assert_true(
+    database.reserve_capacity("original", "extra", 3L, 1L, 64L, 2L)
+    is Err(Physical(_)),
+  )
+  assert_true(
+    database.release_capacity("original", "held", 8L, 1L) is Err(Physical(_)),
+  )
+  assert_true(
+    database.claim_ordinal_action("original", "second", 2L) is Err(Physical(_)),
+  )
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+  assert_true(database.transaction_fenced())
+  let holding = observer.read_capacity("original", "held").unwrap()
+  assert_eq(holding.reserved_bytes, 8L)
+  assert_eq(holding.reserved_objects, 1L)
+  assert_true(observer.read_capacity("original", "extra") is Err(NotFound))
+  assert_true(
+    observer.lookup_claim_ordinal("original", "first") is Ok(Some(1L)),
+  )
+  assert_true(observer.lookup_claim_ordinal("original", "second") is Ok(None))
+  observer.close_checked().unwrap()
+  database.close_checked().unwrap()
+  root.close().unwrap()
+}
+
+///|
+test "fenced caller transaction refuses capacity changes but retains original rollback" {
+  let (library, root, path) = existing_database_fixture()
+  let selected = path + "/capacity-fenced-active.sqlite3"
+  let database = library.open_database_with_custody(selected, 64L).unwrap()
+  assert_true(
+    database.reserve_capacity("original", "held", 8L, 1L, 64L, 2L).unwrap(),
+  )
+  database.begin_immediate().unwrap()
+  database.insert("original", "input", b"private").unwrap() |> ignore
+  database.fence_transactions()
+
+  assert_true(
+    database.reserve_capacity_in_transaction(
+      "original", "extra", 3L, 1L, 64L, 2L,
+    )
+    is Err(Physical(_)),
+  )
+  assert_true(
+    database.release_capacity_in_transaction("original", "held", 8L, 1L)
+    is Err(Physical(_)),
+  )
+  assert_true(
+    database.grow_key_capacity_in_transaction(
+      "original",
+      "held",
+      { reserved_bytes: 8L, reserved_objects: 1L, },
+      3L,
+      1L,
+      64L,
+      2L,
+    )
+    is Err(Physical(_)),
+  )
+  assert_true(
+    database.claim_ordinal_action_in_transaction("original", "claim", 2L)
+    is Err(Physical(_)),
+  )
+  assert_true(database.transaction_state() is Ok(ActiveSqliteTransaction))
+  assert_true(database.prepare_lookup_read() is Err(Physical(_)))
+  assert_eq(
+    database.read_capacity("original", "held").unwrap().reserved_bytes,
+    8L,
+  )
+  assert_true(database.read_capacity("original", "extra") is Err(NotFound))
+  assert_true(database.lookup_claim_ordinal("original", "claim") is Ok(None))
+  assert_eq(database.read("original", "input").unwrap().body, b"private")
+
+  database.rollback().unwrap()
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+  assert_true(database.transaction_fenced())
+  let child = match database.prepare_lookup_read().unwrap() {
+    ReadyLookupRead(child) => child
+    PendingLookupRead(_, _) =>
+      abort("expected the original reconciliation snapshot")
+  }
+  assert_true(
+    child.read_with_body_limit("original", "input", 64L) is Err(NotFound),
+  )
+  assert_eq(child.read_capacity("original", "held").unwrap().reserved_bytes, 8L)
+  assert_true(child.read_capacity("original", "extra") is Err(NotFound))
+  child.finish().unwrap()
+  database.close_checked().unwrap()
+  root.close().unwrap()
+}
+
+///|
+#borrow(database)
+extern "C" fn capacity_test_finish_fault(
+  database : Database,
+  commit_fault : Int,
+  rollback_fault : Int,
+) -> Unit = "actql_native_sqlite_test_capacity_finish_fault"
+
+///|
+test "capacity COMMIT preserves the actual extended code across failed rollback" {
+  let (library, root, path) = existing_database_fixture()
+  let selected = path + "/capacity-rollback-failed.sqlite3"
+  let database = library.open_database_with_custody(selected, 64L).unwrap()
+  let observer = library
+    .open_existing_database_with_custody(selected, 64L)
+    .unwrap()
+
+  // Stage a deferred foreign key violation, then fail the original rollback.
+  capacity_test_finish_fault(database, 3, 1)
+  guard database.reserve_capacity("original", "input", 8L, 1L, 64L, 2L)
+    is Err(Physical(primary)) else {
+    abort("the unconfirmed capacity change cannot return an ACK")
+  }
+  assert_eq(
+    primary, "SQLite capacity COMMIT failure: primary 787, rollback -5, state 1: FOREIGN KEY constraint failed",
+  )
+  assert_true(database.transaction_fenced())
+  assert_true(database.transaction_state() is Ok(ActiveSqliteTransaction))
+  assert_true(database.prepare_lookup_read() is Err(Physical(_)))
+  assert_eq(
+    database.read_capacity("original", "input").unwrap().reserved_bytes,
+    8L,
+  )
+  assert_true(observer.read_capacity("original", "input") is Err(NotFound))
+  assert_true(
+    database.reserve_capacity("original", "input", 8L, 1L, 64L, 2L)
+    is Err(Physical(_)),
+  )
+
+  database.rollback().unwrap()
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+  assert_true(database.transaction_fenced())
+  assert_true(observer.read_capacity("original", "input") is Err(NotFound))
+  observer.close_checked().unwrap()
+  database.close_checked().unwrap()
+  root.close().unwrap()
+}
+
+///|
+test "capacity release loses the reply after real COMMIT and cannot return false success on retry" {
+  let (library, root, path) = existing_database_fixture()
+  let selected = path + "/capacity-lost-release.sqlite3"
+  let database = library.open_database_with_custody(selected, 64L).unwrap()
+  assert_true(
+    database.reserve_capacity("original", "held", 8L, 1L, 64L, 2L).unwrap(),
+  )
+  assert_true(
+    database.reserve_capacity("original", "other", 3L, 1L, 64L, 2L).unwrap(),
+  )
+  capacity_test_finish_fault(database, 2, 0)
+  guard database.release_capacity("original", "held", 8L, 1L)
+    is Err(Physical(primary)) else {
+    abort("the release cannot acknowledge a lost reply")
+  }
+  assert_eq(
+    primary, "SQLite capacity COMMIT failure: primary -3, rollback -1, state 0",
+  )
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+  assert_true(database.transaction_fenced())
+  assert_true(
+    database.release_capacity("original", "held", 8L, 1L) is Err(Physical(_)),
+  )
+  database.close_checked().unwrap()
+  let observer = library
+    .open_existing_database_with_custody(selected, 64L)
+    .unwrap()
+  assert_true(observer.read_capacity("original", "held") is Err(NotFound))
+  let original = observer.read_capacity("original", "other").unwrap()
+  assert_eq(original.reserved_bytes, 3L)
+  assert_eq(original.reserved_objects, 1L)
+  observer.close_checked().unwrap()
+  root.close().unwrap()
+}
+
+///|
+test "ordinal capacity exhaustion preserves the primary when cleanup is unconfirmed" {
+  let (library, root, path) = existing_database_fixture()
+  let database = library
+    .open_database_with_custody(path + "/ordinal-rollback-failed.sqlite3", 64L)
+    .unwrap()
+  assert_true(
+    database.claim_ordinal_action("original", "first", 1L) is Ok(Fresh(1L)),
+  )
+  capacity_test_finish_fault(database, 0, 1)
+  guard database.claim_ordinal_action("original", "second", 1L)
+    is Err(Physical(primary)) else {
+    abort("the unconfirmed rollback cannot return an ordinary capacity denial")
+  }
+  assert_eq(
+    primary, "SQLite capacity body failure: primary 6, rollback -5, state 1",
+  )
+  assert_true(database.transaction_fenced())
+  assert_true(database.transaction_state() is Ok(ActiveSqliteTransaction))
+  database.rollback().unwrap()
+  assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+  assert_true(
+    database.lookup_claim_ordinal("original", "first") is Ok(Some(1L)),
+  )
+  assert_true(database.lookup_claim_ordinal("original", "second") is Ok(None))
+  database.close_checked().unwrap()
+  root.close().unwrap()
+}
+
+///|
+#borrow(database)
+extern "C" fn capacity_test_refuse_insert(database : Database) -> Int = "actql_native_sqlite_test_refuse_capacity_insert"
+
+///|
+test "real capacity body refusal keeps its whole SQLite reason after failed rollback" {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let sqlite = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  // The whole primary reason fits 32 bytes. The combined report cannot fit.
+  for ceiling in [32, 128] {
+    let library = load_library(sqlite, diagnostic_ceiling=Some(ceiling)).unwrap()
+    let selected = path + "/capacity-trigger-\{ceiling}.sqlite3"
+    let database = library.open_database_with_custody(selected, 64L).unwrap()
+    assert_eq(capacity_test_refuse_insert(database), 0)
+    capacity_test_finish_fault(database, 0, 1)
+    guard database.reserve_capacity("original", "input", 8L, 1L, 64L, 2L)
+      is Err(Physical(primary)) else {
+      abort("original capacity statement refusal lost")
+    }
+    assert_eq(
+      primary,
+      if ceiling == 32 {
+        "capacity fixture refused"
+      } else {
+        "SQLite capacity body failure: primary -1, rollback -5, state 1: capacity fixture refused"
+      },
+    )
+    assert_true(database.transaction_fenced())
+    assert_true(database.transaction_state() is Ok(ActiveSqliteTransaction))
+    database.rollback().unwrap()
+    assert_true(database.transaction_fenced())
+    assert_true(database.transaction_state() is Ok(NoActiveSqliteTransaction))
+    assert_true(database.read_capacity("original", "input") is Err(NotFound))
+    database.close_checked().unwrap()
+  }
+}

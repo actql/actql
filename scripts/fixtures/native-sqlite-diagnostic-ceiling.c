@@ -104,9 +104,10 @@ int main(void) {
   // The existing injected lost commit reply is a failure, even though COMMIT
   // succeeded. Diagnostics do not clear an adapter's transaction fence.
   db.test_commit_reply_failures = 1;
+  assert(actql_native_sqlite_database_commit(&db) == ACTQL_TRANSACTION_REPLY_LOST);
   actql_native_sqlite_database_fence_transactions(&db);
-  assert(actql_native_sqlite_database_commit(&db) == 4 && commits == 1);
-  assert(actql_native_sqlite_database_transaction_fenced(&db) == 1);
+  assert(actql_native_sqlite_database_commit(&db) == ACTQL_TRANSACTION_NOT_ISSUED);
+  assert(actql_native_sqlite_database_transaction_fenced(&db) == 1 && commits == 1);
   expect_bytes(actql_native_sqlite_database_error(&db), "");
   puts("commit reply loss retains fence: PASS");
   actql_replace_error_for(NULL, &library.error, library.diagnostic_ceiling, "longer");

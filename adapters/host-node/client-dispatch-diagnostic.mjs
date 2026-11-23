@@ -218,6 +218,8 @@ const rowFailureHeaderUnits =
   'Execution failed: phase=local_managed_advance; task=2147483647; step=2147483647; cause='.length +
   96 + '. Original execution failure; resource quantities were not retained.'.length;
 const rowFailureExplanationUnits = 512 - rowFailureHeaderUnits - 1;
+const serializationRowLimitMessage =
+  'SERIALIZE row limit exceeded (serialize.row_limit). Reduce input rows or increase SERIALIZE OPTIONS max_rows.';
 function failureCauseExplanation(cause, describeCause) {
   if (typeof describeCause !== 'function') return undefined;
   try {
@@ -229,6 +231,7 @@ function failureCauseExplanation(cause, describeCause) {
 
 export function publicBudgetFailureMessage(error, describeCause) {
   const data = dispatchFailureSnapshot(error)?.primaryDiagnostic;
+  if (data?.phase === 'serialization_input' && data.kind === 'row_limit') return serializationRowLimitMessage;
   if (data?.phase !== 'local_managed_advance') return undefined;
   if (data.kind === 'logical_work') {
     return `Budget exceeded: phase=${data.phase}; task=${data.task}; step=${data.step}; dimension=logical_work; requested_delta=unavailable; remaining=unavailable; policy=${data.workLimit}; unit=work_units; setting=${data.setting}. ` +
@@ -274,6 +277,7 @@ export function retainedBudgetFailureMessage(key, state, runId, control, describ
       Object.keys(control).some(name => previous.control[name] !== control[name])) return undefined;
   const message = previous.terminal_error.message;
   if (typeof message !== 'string') return undefined;
+  if (message === serializationRowLimitMessage) return message;
   const cause = message.length <= 512 &&
     /^Execution failed: phase=local_managed_advance; task=(0|[1-9][0-9]{0,9}); (?:step=(0|[1-9][0-9]{0,9}); )?cause=([a-z_]+(?:\.[a-z_]+)*)\. Original execution failure; resource quantities were not retained\.(?: (.*))?$/u.exec(message);
   if (cause && Number(cause[1]) <= 2147483647 &&
