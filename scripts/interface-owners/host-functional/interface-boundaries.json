@@ -3497,8 +3497,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "inputsOutputs": [
@@ -3507,8 +3507,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "identity": [
@@ -3517,8 +3517,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "ownership": [
@@ -3527,8 +3527,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "synchronization": [
@@ -3537,8 +3537,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "failure": [
@@ -3547,8 +3547,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "cancellation": [
@@ -3557,8 +3557,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "resources": [
@@ -3567,8 +3567,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "extension": [
@@ -3577,8 +3577,8 @@
                 "anchor": "async function withCaptureRecoveryResources<Value>("
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveDecoded(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveDecoded(wire: string)"
               }
             ],
             "verification": [
@@ -142542,7 +142542,7 @@
     {
       "module": "adapters/host-node/effect-capture-resources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5e266299e07bdfcc680c9d6bd4d3b401cdec94e489b693af95491c05f173830b",
+      "sha256": "8afd67ae95bebb0cc40b8053c835b8e75f0fd09da631caec3033b9759171097b",
       "role": "physical-io",
       "owner": "Existing Request preparation and same adopted Effect Run resource/cleanup ownership through the installed Node Host; no independent grant, Ledger or semantic issuer",
       "exports": [
@@ -142721,7 +142721,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "path": "adapters/host-node/effect-capture-resources.mts",
                 "anchor": "// Fixed adapter to the existing Request preparation or SAME adopted Run."
               },
               {
@@ -142731,7 +142731,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "path": "adapters/host-node/effect-capture-resources.mts",
                 "anchor": "export function prepareEffectCaptureResources({moon, control, request, runDefinition,"
               },
               {
@@ -142741,7 +142741,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "path": "adapters/host-node/effect-capture-resources.mts",
                 "anchor": "managed.value, managed.prepared, managed.request, managed.definitionOriginal.definition,"
               },
               {
@@ -142751,7 +142751,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "path": "adapters/host-node/effect-capture-resources.mts",
                 "anchor": "retain(view);"
               },
               {
@@ -142761,7 +142761,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "path": "adapters/host-node/effect-capture-resources.mts",
                 "anchor": "if (state.closeFlight !== undefined) return state.closeFlight;"
               },
               {
@@ -142771,7 +142771,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "path": "adapters/host-node/effect-capture-resources.mts",
                 "anchor": "state.failure ??= error;"
               },
               {
@@ -142781,7 +142781,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "path": "adapters/host-node/effect-capture-resources.mts",
                 "anchor": "state.closing = true;"
               },
               {
@@ -142791,8 +142791,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "const reserve = state.context.runtime.clientProgramReserveInstalledEffectCaptureEncrypted"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "const reserve = state.context!.runtime.clientProgramReserveInstalledEffectCaptureEncrypted"
               },
               {
                 "path": "docs/design/effect-constructor-frames.md",
@@ -142801,7 +142801,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
+                "path": "adapters/host-node/effect-capture-resources.mts",
                 "anchor": "typeof control?.reserveEffectCaptureRecovery !== 'function') fail('EffectCaptureResourceUnavailable');"
               },
               {
@@ -142834,56 +142834,56 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "reserveEnvelope(wire)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "reserveEnvelope(wire: string)"
               }
             ],
             "verification": [
@@ -142916,8 +142916,8 @@
                 "anchor": "### Completed capture-recovery Definition construction"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "inputsOutputs": [
@@ -142930,8 +142930,8 @@
                 "anchor": "## Saved Source Command Content"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "identity": [
@@ -142944,8 +142944,8 @@
                 "anchor": "## Saved Source Command Content"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "ownership": [
@@ -142962,8 +142962,8 @@
                 "anchor": "### Completed capture-recovery Definition construction"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "synchronization": [
@@ -142976,8 +142976,8 @@
                 "anchor": "## Saved Source Command Content"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "failure": [
@@ -142990,8 +142990,8 @@
                 "anchor": "## Saved Source Command Content"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "cancellation": [
@@ -143004,8 +143004,8 @@
                 "anchor": "## Saved Source Command Content"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "resources": [
@@ -143022,8 +143022,8 @@
                 "anchor": "### Completed capture-recovery Definition construction"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "extension": [
@@ -143036,8 +143036,8 @@
                 "anchor": "## Saved Source Command Content"
               },
               {
-                "path": "adapters/host-node/effect-capture-resources.mjs",
-                "anchor": "constructCapturedForPublication(captured, receiver, method, args, additionalContracts)"
+                "path": "adapters/host-node/effect-capture-resources.mts",
+                "anchor": "constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>"
               }
             ],
             "verification": [
