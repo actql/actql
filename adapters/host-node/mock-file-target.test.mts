@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {open, lstat, unlink, rename, writeFile, readFile, symlink} from 'node:fs/promises';
+import {open, lstat, unlink, rename, writeFile, readFile, symlink, type FileHandle} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
@@ -8,9 +8,14 @@ import {createMockFileTarget} from './mock-file-target.mjs';
 
 // Actual filesystem/FD/rename/sync tests. The projection callbacks below are
 // explicit test ports, not Common declaration admission, authority or a Run.
+type Target = ReturnType<typeof createMockFileTarget>;
+type TargetOptions = Parameters<typeof createMockFileTarget>[0];
+type UpdateOptions = Partial<Parameters<Target['updateChild']>[0]>;
+type CloseFaultHandle = Omit<FileHandle, 'close'> & {close(): Promise<void | false>};
+
 const original = '{"a":"old","b":"old","exact":9007199254740993}\n';
 const io = {open, lstat, unlink, rename};
-async function fixture(options = {}) {
+async function fixture(options: Partial<TargetOptions> = {}) {
   const scratch = await createOwnedScratch({parent: tmpdir(),
     prefix: 'actql-mock-file-target-', label: 'Mock physical target'});
   const dataPath = join(scratch.path, 'data.json');
@@ -24,7 +29,7 @@ async function fixture(options = {}) {
       scratch.passed();
     }};
 }
-const update = (target, from, to, options = {}) => target.updateChild({
+const update = (target: Target, from: string, to: string, options: UpdateOptions = {}) => target.updateChild({
   authorize() {}, replace(bytes) {
     const text = bytes.toString('utf8');
     assert.equal(text.includes(from), true);
@@ -143,7 +148,7 @@ test('Mock target authorization refusal opens no FD and never changes the file',
 });
 
 test('Mock physical target refuses an original changed during replacement preparation', async () => {
-  let changed;
+  let changed: Promise<void> | undefined;
   const f = await fixture({io: {...io, async open(path, ...args) {
     if (path.endsWith('.tmp')) await changed;
     return open(path, ...args);
@@ -181,13 +186,13 @@ test('Mock write reply loss keeps the same failure and never repeats replacement
 });
 
 test('Mock cleanup keeps writer exclusion and calls only the captured original close', async () => {
-  let held, closes = 0, replacements = 0;
+  let held: FileHandle | undefined, closes = 0, replacements = 0;
   const f = await fixture({io: {...io, async open(path, ...args) {
     const file = await open(path, ...args);
     if (path.endsWith('/data.json')) {
       held = file;
       const close = file.close;
-      file.close = async function () {
+      (file as CloseFaultHandle).close = async function () {
         closes++;
         if (closes === 1) return false;
         return Reflect.apply(close, this, []);
@@ -197,7 +202,7 @@ test('Mock cleanup keeps writer exclusion and calls only the captured original c
   }}});
   const child = update(f.target, '"a":"old"', '"a":"new"');
   await child.prepare();
-  held.close = () => {replacements++; assert.fail('ReplacementMustNotAcknowledgeOriginalFD');};
+  held!.close = () => {replacements++; assert.fail('ReplacementMustNotAcknowledgeOriginalFD');};
   assert.equal((await child.release()).pending, true);
   assert.equal((await lstat(f.dataPath + '.actql-write.lock')).isFile(), true);
   assert.equal((await child.retry()).pending, false);
@@ -253,7 +258,7 @@ test('Mock failed initial close getter retains the same FD until close-only retr
     const file = await open(...args), close = file.close;
     Object.defineProperty(file, 'close', {configurable: true, get() {
       if (++getters === 1) throw failure;
-      return function () {closes++; return Reflect.apply(close, this, []);};
+      return function (this: FileHandle) {closes++; return Reflect.apply(close, this, []);};
     }});
     return file;
   }}});
@@ -276,7 +281,7 @@ test('Mock lock-path replacement stays pending and never unlinks a foreign inode
   await writeFile(lock, 'foreign', {flag: 'wx'});
   assert.equal((await child.release()).pending, true);
   assert.equal(await readFile(lock, 'utf8'), 'foreign');
-  assert.equal(child.status().errors[0].code, 'MockFileTargetPathChanged');
+  assert.equal((child.status().errors[0] as NodeJS.ErrnoException).code, 'MockFileTargetPathChanged');
   // Restore only this fixture's exact original inode for its close-only retry.
   // Production never deletes/replaces another writer or repairs an old lock.
   await unlink(lock);
@@ -317,7 +322,7 @@ test('Mock file Run close retires only its original children and keeps a sibling
   // These are explicit scope identities for this physical-owner test, not
   // admitted Common Run handles, an Account decision or resource issuers.
   const firstRun = Object.freeze({}), secondRun = Object.freeze({});
-  const makeRead = runOriginal => f.target.readChild({runOriginal,
+  const makeRead = (runOriginal: object) => f.target.readChild({runOriginal,
     authorize() {}, consume: bytes => bytes.toString('utf8')});
   const first = makeRead(firstRun), second = makeRead(secondRun);
   assert.equal(await first.prepare(), original);
@@ -338,7 +343,7 @@ test('Mock file Run close retires only its original children and keeps a sibling
 });
 
 test('Mock per-Run pending original close is independent and survives current loss', async () => {
-  let held, closes = 0, replacements = 0, current = true;
+  let held: FileHandle | undefined, closes = 0, replacements = 0, current = true;
   const f = await fixture({assertCurrent() {
     if (!current) throw new Error('OriginalHostNoLongerCurrent');
   }, io: {...io, async open(...args) {
@@ -346,7 +351,7 @@ test('Mock per-Run pending original close is independent and survives current lo
     if (held === undefined) {
       held = file;
       const close = file.close;
-      file.close = async function () {
+      (file as CloseFaultHandle).close = async function () {
         if (++closes === 1) return false;
         return Reflect.apply(close, this, []);
       };
@@ -354,11 +359,11 @@ test('Mock per-Run pending original close is independent and survives current lo
     return file;
   }}});
   const firstRun = Object.freeze({}), secondRun = Object.freeze({});
-  const makeRead = runOriginal => f.target.readChild({runOriginal,
+  const makeRead = (runOriginal: object) => f.target.readChild({runOriginal,
     authorize() {}, consume: bytes => bytes.toString('utf8')});
   const first = makeRead(firstRun), second = makeRead(secondRun);
   await first.prepare(); await second.prepare();
-  held.close = () => {replacements++; assert.fail('ReplacementIsNotOriginalAck');};
+  held!.close = () => {replacements++; assert.fail('ReplacementIsNotOriginalAck');};
   current = false;
   await assert.rejects(f.target.closeFor(firstRun), {code: 'MockFileCleanupPending'});
   assert.equal(f.target.statusFor(firstRun).pending, true);
@@ -371,9 +376,9 @@ test('Mock per-Run pending original close is independent and survives current lo
 });
 
 test('Mock Run close waits for the original late FD acquisition before its physical ACK', async () => {
-  let start, release, closes = 0;
-  const started = new Promise(resolve => {start = resolve;});
-  const paused = new Promise(resolve => {release = resolve;});
+  let start!: () => void, release!: () => void, closes = 0;
+  const started = new Promise<void>(resolve => {start = resolve;});
+  const paused = new Promise<void>(resolve => {release = resolve;});
   const f = await fixture({io: {...io, async open(...args) {
     const file = await open(...args), close = file.close;
     file.close = function () {closes++; return Reflect.apply(close, this, []);};

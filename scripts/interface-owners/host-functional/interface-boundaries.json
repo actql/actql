@@ -81637,7 +81637,7 @@
                 "anchor": "plural Mock pre-signing refusal retains the original Read before keys or Account creation"
               },
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
               }
             ]
@@ -126139,7 +126139,7 @@
                 "anchor": "plural Mock pre-signing refusal retains the original Read before keys or Account creation"
               },
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
               }
             ]
@@ -126804,11 +126804,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "test('Mock file Run close retires only its original children and keeps a sibling usable'"
               },
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "test('Mock Run close waits for the original late FD acquisition before its physical ACK'"
               }
             ]
@@ -126908,11 +126908,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "test('Mock file Run close retires only its original children and keeps a sibling usable'"
               },
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "test('Mock Run close waits for the original late FD acquisition before its physical ACK'"
               }
             ]
@@ -127732,7 +127732,7 @@
                 "anchor": "test "
               },
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "test('Mock target authorization refusal opens no FD and never changes the file'"
               },
               {
@@ -127908,7 +127908,7 @@
                 "anchor": "test "
               },
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "test('Mock target authorization refusal opens no FD and never changes the file'"
               },
               {
@@ -128070,7 +128070,7 @@
                 "anchor": "plural Mock pre-signing refusal retains the original Read before keys or Account creation"
               },
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
               },
               {

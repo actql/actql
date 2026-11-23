@@ -26933,7 +26933,7 @@
                 "anchor": "plural Mock pre-signing refusal retains the original Read before keys or Account creation"
               },
               {
-                "path": "adapters/host-node/mock-file-target.test.mjs",
+                "path": "adapters/host-node/mock-file-target.test.mts",
                 "anchor": "one Mock physical owner preserves both disjoint collections across original sibling writes"
               }
             ]
