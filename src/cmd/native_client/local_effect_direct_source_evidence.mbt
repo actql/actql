@@ -10,6 +10,7 @@ priv struct LocalNativeMockEffectDirectSources {
   observations : Array[@publication.RunEvidenceValue]
   mut scan : @query.CapturedSourceCellIdentityScan?
   mut _retained_publication : @run_host.ClientEffectDirectSourcesPublication?
+  mut _retained_values_publication : @run_host.ClientEffectSourceFreeInvocationOriginal?
   mut retained : Int64
   mut reserved_r : Int64
   mut reserved_e : Int64
@@ -28,6 +29,45 @@ fn[T] direct_source_original(
     Ok(original) => original
     Err(issue) => raise LocalDirectSourceEvidenceStop(issue)
   }
+}
+
+///|
+fn LocalNativeMockEffectPlan::reserve_mock_effect_publication_metadata(
+  self : Self,
+  run : @local_values.ClientInstalledManagedRun,
+  bytes : Int64,
+) -> LocalNativeMockEffectDirectSources raise LocalDirectSourceEvidenceStop {
+  guard self.direct_sources is None else {
+    raise LocalDirectSourceEvidenceStop(Coverage)
+  }
+  let ledger = direct_source_original(
+    @local_values.installed_effect_managed_sources_ledger(
+      run,
+      self._retained_prepared,
+      self.first.request,
+    ).map_err(issue => Installed(issue)),
+  )
+  let capacity = direct_source_original(
+    @initial_resources.reserve_capacity(ledger, bytes, bytes).map_err(issue => {
+      Ledger(issue)
+    }),
+  )
+  let held : LocalNativeMockEffectDirectSources = {
+    ledger,
+    capacity,
+    captures: [],
+    identities: [],
+    logicals: [],
+    observations: [],
+    scan: None,
+    _retained_publication: None,
+    _retained_values_publication: None,
+    retained: bytes,
+    reserved_r: bytes,
+    reserved_e: bytes,
+  }
+  self.direct_sources = Some(held)
+  held
 }
 
 ///|
@@ -195,32 +235,7 @@ fn LocalNativeMockEffectPlan::issue_mock_effect_direct_sources(
       is Some((metadata, _)) else {
       return Err(Coverage)
     }
-    let ledger = direct_source_original(
-      @local_values.installed_effect_managed_sources_ledger(
-        run,
-        prepared,
-        first.request,
-      ).map_err(issue => Installed(issue)),
-    )
-    let capacity = direct_source_original(
-      @initial_resources.reserve_capacity(ledger, metadata, metadata).map_err(issue => {
-        Ledger(issue)
-      }),
-    )
-    let held : LocalNativeMockEffectDirectSources = {
-      ledger,
-      capacity,
-      captures: [],
-      identities: [],
-      logicals: [],
-      observations: [],
-      scan: None,
-      _retained_publication: None,
-      retained: metadata,
-      reserved_r: metadata,
-      reserved_e: metadata,
-    }
-    self.direct_sources = Some(held)
+    let held = self.reserve_mock_effect_publication_metadata(run, metadata)
     let scope = @run_host.client_request_authority_scope_cid(first.request)
     let graph = @strategy.captured_dag_graph(
       @strategy.captured_effect_run_dag(captured),
@@ -354,6 +369,73 @@ fn LocalNativeMockEffectPlan::issue_mock_effect_direct_sources(
 }
 
 ///|
+// The actual managed Run receives the Common no-external-source Observation
+// Set. Its pinned compilation and same checked DAG must agree before binding.
+fn LocalNativeMockEffectPlan::issue_mock_effect_values_publication(
+  self : Self,
+  run : @local_values.ClientInstalledManagedRun,
+  bound : @run_host.PreparedClientEffectRun,
+) -> Result[Unit, LocalNativeMockSourceIdentityIssue] {
+  let first = self.first
+  let prepared = self._retained_prepared
+  let plan = self._retained_plan
+  guard first.is_mock_values_create() &&
+    self.source_start is Some(_) &&
+    self.captured_inputs.is_empty() &&
+    self.effect_capture is Some(captured) &&
+    @run_host.prepared_client_effect_publication_data_policy_cid(prepared)
+    is Some(policy) &&
+    @run_host.client_protocol_metadata_construction_bytes(
+      16384,
+      1024L,
+      copies=2,
+    )
+    is Some((metadata, _)) else {
+    return Err(Coverage)
+  }
+  try {
+    let held = self.reserve_mock_effect_publication_metadata(run, metadata)
+    direct_source_original(
+      @local_values.begin_installed_effect_operation_controls(
+        run,
+        prepared,
+        first.request,
+        plan,
+      ).map_err(issue => Installed(issue)),
+    )
+    |> ignore
+    let original = direct_source_original(
+      @run_host.issue_client_effect_source_free_invocation_original(
+        first.allowed.compilation,
+        policy,
+        16384,
+        1024,
+        20,
+      ).map_err(issue => Invocation(PublicationInvocation(issue))),
+    )
+    held._retained_values_publication = Some(original)
+    direct_source_original(
+      @local_values.bind_installed_effect_source_free_invocation(
+        run,
+        prepared,
+        first.request,
+        plan,
+        bound,
+        captured,
+        first.allowed.compilation,
+        @run_host.client_effect_allowed_run_admission(first.allowed),
+        first.definition,
+        original,
+      ).map_err(issue => Invocation(issue)),
+    )
+    |> ignore
+    Ok(())
+  } catch {
+    LocalDirectSourceEvidenceStop(issue) => Err(issue)
+  }
+}
+
+///|
 fn LocalNativeMockEffectPlan::stop_mock_effect_direct_source_scan(
   self : Self,
 ) -> Bool {
@@ -376,6 +458,7 @@ fn LocalNativeMockEffectPlan::retire_mock_effect_direct_sources(
     return Err(Coverage)
   }
   held._retained_publication = None
+  held._retained_values_publication = None
   held.captures.clear()
   held.captures.shrink_to_fit()
   held.identities.clear()

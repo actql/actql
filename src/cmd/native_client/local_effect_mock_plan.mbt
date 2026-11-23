@@ -571,7 +571,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
       (
         first._retained_models.is_empty() &&
         first.model_compiled is None &&
-        !first._retained_sources.is_empty()
+        (!first._retained_sources.is_empty() || first.is_mock_values_create())
       )
     ) &&
     self.original.project is Some(project) &&
@@ -581,7 +581,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_plan(
   // Borrow the immutable protocol bodies while the original Journal Read is
   // entered. Request entry suspends that Read, so only the borrowed DATA may
   // cross into the Request. Common still selects the route from the Program.
-  let query_contracts = if first._retained_models.is_empty() {
+  let query_contracts = if first._retained_models.is_empty() &&
+    !first._retained_sources.is_empty() {
     guard self.original.runtime is Some(runtime) else {
       stop("PackagedLocalRuntimeChanged")
     }

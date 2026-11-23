@@ -149,7 +149,12 @@ fn LocalCommandBusinessPreparation::capture_mock_effect_sources(
           stop("LocalOriginalEffectHostUnavailable")
         }
       }
-      match state.issue_mock_effect_direct_sources(run, bound) {
+      let issue = if state.first.is_mock_values_create() {
+        state.issue_mock_effect_values_publication(run, bound)
+      } else {
+        state.issue_mock_effect_direct_sources(run, bound)
+      }
+      match issue {
         Ok(_) => ()
         Err(issue) => {
           self.original.retain_primary(CommandBusinessSourceIdentity(issue))
@@ -168,7 +173,7 @@ fn LocalNativeMockEffectPlan::open_mock_effect_source_host(
 ) -> Result[Unit, @local_values.ClientInstalledManagedRunIssue] {
   guard self.first._retained_models.is_empty() &&
     self.captured_inputs.length() == self.first._retained_sources.length() &&
-    self.captured_inputs.length() > 0 &&
+    (!self.captured_inputs.is_empty() || self.first.is_mock_values_create()) &&
     self.effect_host is None &&
     self.effect_capture is None else {
     return Err(ForeignOriginal)
