@@ -230,7 +230,8 @@ jobs:
       - run: npm ci
         if: ${{ needs.select-targets.outputs.profile == 'documentation' || startsWith(needs.select-targets.outputs.profile, 'draft') }}
       # Draft runs the Node-only checks below, so a failure there is found before
-      # Ready starts the full run. Python and Explorer build checks stay Ready-only.
+      # Ready starts the full run. Checks that need Python, the DuckDB transport or
+      # the Explorer build stay Ready-only.
       - name: Install pinned MoonBit for Draft checks
         if: startsWith(needs.select-targets.outputs.profile, 'draft')
         run: |
@@ -331,7 +332,7 @@ jobs:
           python3 -m pip install --disable-pip-version-check -e ./packages/python-sdk
           python3 -B packages/python-sdk/tests/run.py --pattern test_release_packaging_target.py
       - name: Test lightweight cross-language Checkpoint candidates
-        if: needs.select-targets.outputs.profile != 'documentation'
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/local-checks.mjs test node -- scripts/checkpoint-answer-construction.test.mjs
       - name: Check the Python source-caller CI selection
         if: needs.select-targets.outputs.profile != 'documentation'
@@ -361,7 +362,7 @@ jobs:
         if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/portable-core.test.mjs
       - name: Test dependency isolation scratch ownership
-        if: needs.select-targets.outputs.profile != 'documentation'
+        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/dependency-isolation-scratch.test.mjs
       # Source-only process/filesystem checks need no Client package or runtime.
       - name: Test owned scratch without Client runtime preparation
