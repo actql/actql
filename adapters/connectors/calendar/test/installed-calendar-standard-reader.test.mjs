@@ -10,14 +10,10 @@ import {parse} from 'acorn';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {captureConfigurationReaders} from '../../../host-node/source-profile-json.mjs';
+import {captureInstalledSourceServices} from '../../../host-node/installed-host-services.mjs';
 
 const source=await readFile(new URL('../host/installed-calendar-source.mjs',import.meta.url),'utf8');
-const servicesSource=await readFile(new URL('../../../host-node/installed-host-services.mjs',import.meta.url),'utf8');
 const declarations=code=>parse(code,{ecmaVersion:'latest',sourceType:'module'}).body.map(node=>node.declaration??node);
-const capture=declarations(servicesSource).find(node=>node.id?.name==='captureInstalledSourceServices');
-assert(capture);
-const captureInstalledSourceServices=Function('nodeTypes',servicesSource.slice(capture.start,capture.end)+
-  '\nreturn captureInstalledSourceServices;')(nodeTypes);
 const body=declarations(source).filter(node=>['VariableDeclaration','FunctionDeclaration'].includes(node.type))
   .map(node=>source.slice(node.start,node.end)).join('\n');
 const ok=value=>({$tag:1,_0:value});
