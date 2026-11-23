@@ -818,7 +818,7 @@ fn cancel_native_state_validation(
 ///|
 priv enum NativeRunStateCandidateOriginal {
   EffectFree(NativePreparedCapturedRunPublication)
-  Effectful(NativePreparedEffectfulRunPublication)
+  Effectful(NativeEffectfulRunStateOriginal)
 }
 
 ///|
@@ -847,7 +847,7 @@ fn NativeRunStateCandidateOriginal::cancelled(
 ) -> Bool {
   match self {
     EffectFree(value) => value.cancelled
-    Effectful(value) => value.cancelled || value.closing
+    Effectful(value) => !(value.still_current)()
   }
 }
 

@@ -230,6 +230,23 @@ pub fn verified_resolution_attestation_preimage(
 }
 
 ///|
+/// Recover the signed Resolution carried by the original Verified wrapper.
+/// The returned bytes carry no permission. The consumer still authenticates
+/// both the Reviewer proof and the original Host attestation.
+pub fn signed_resolution_from_verified(
+  verified_wire : String,
+  limits : WireLimits,
+) -> Result[String, ResolutionIssue] {
+  guard parse_wire(verified_wire, limits) is Some(wrapper) &&
+    string_field(wrapper, "version") == Some(VERIFIED_VERSION) &&
+    @json.object_field(wrapper, "resolution") is Some(original) &&
+    wire_of(original, limits) is Some(wire) else {
+    return Err(ResolutionInvalidWire)
+  }
+  Ok(wire)
+}
+
+///|
 fn resolution_fields() -> Array[String] {
   [
     "version", "resolution_id", "checkpoint_id", "checkpoint_cid", "decision", "actor",

@@ -3,6 +3,7 @@ pub(all) enum NativeLocalSavedEffectPublicationIssue {
   Original(NativeLocalInitialHostAttestationIssue)
   Journal(NativeClientRunJournalIssue)
   Service(@native_publication.NativeRunPublicationIssue)
+  Observation(NativeLocalObservedRunStateIssue)
   Construction
   Publisher(NativeLocalPublisherBindingIssue)
 }
@@ -106,12 +107,27 @@ pub fn NativeLocalEffectResumeOriginal::install_saved_publication_service_in_ori
   @native_publication.NativeRunPublicationService,
   NativeLocalSavedEffectPublicationIssue,
 ] {
+  guard !self.settlement_only && self.action is Some(Claimed(_)) else {
+    return Err(Construction)
+  }
+  self.saved_publication_service(publisher, store, namespace_id)
+}
+
+///|
+fn NativeLocalEffectResumeOriginal::saved_publication_service(
+  self : Self,
+  publisher : NativeLocalPublisherBinding,
+  store : @publication_store.Store,
+  namespace_id : String,
+) -> Result[
+  @native_publication.NativeRunPublicationService,
+  NativeLocalSavedEffectPublicationIssue,
+] {
   let original = match self.application_original_in_original_read() {
     Ok(value) => value
     Err(issue) => return Err(Original(issue))
   }
   guard self.subject is Some(SavedSigningSubject(read)) &&
-    self.action is Some(Claimed(claim)) &&
     physical_equal(publisher.authority.host, self.host) &&
     publisher.authority.capture is Some(capture) &&
     physical_equal(capture, read.owner.capture) &&
@@ -156,6 +172,9 @@ pub fn NativeLocalEffectResumeOriginal::install_saved_publication_service_in_ori
       publisher.authorize_request(context, facts)
     }),
     bind_original=Some(binding => {
+      if self.settlement_only {
+        return Err(Construction)
+      }
       publisher
       .with_original_journal_read((host, operations) => {
         if !physical_equal(host, self.host) {
@@ -173,6 +192,9 @@ pub fn NativeLocalEffectResumeOriginal::install_saved_publication_service_in_ori
       .map_err(issue => NativeLocalSavedEffectPublicationIssue::Publisher(issue))
     }),
     fence_original=Some((binding, commit) => {
+      guard !self.settlement_only && self.action is Some(Claimed(claim)) else {
+        return Err(@native_publication.CommitFenceUnavailable)
+      }
       // Retain a real committed/lost reply before the original Read return.
       // An outer return failure is never evidence that commit did not happen.
       let output : Ref[

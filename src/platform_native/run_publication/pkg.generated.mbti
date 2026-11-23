@@ -35,6 +35,8 @@ pub fn prepare_effectful_run_publication_native(NativeRunPublicationService, Nat
 
 pub fn prepare_exported_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy_host.CapturedDAG, NativeEffectFreeRunContext, Array[@run_publication_host.PublicationOutputExport], Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, publication? : @client_local_host.ClientProgramPublication?) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
 
+pub fn prepare_recovered_effectful_run_state_candidate(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, @actql/actql/run_publication.PublicationContract, String, Int, Int, Int) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue]
+
 pub fn prepare_retained_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation) -> Result[NativePreparedEffectfulRunPublication, NativeRunPublicationIssue]
 
 pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
