@@ -260,6 +260,9 @@ fn test_observe_journal(
       }
       test_observe_journal(p1, emit, depth - 1)
     }
+    TransactionFenced => emit(609)
+    TransactionCommit(_) => emit(610)
+    TransactionStop(_, _) => emit(611)
   }
 }
 

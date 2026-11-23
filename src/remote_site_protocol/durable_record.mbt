@@ -545,3 +545,11 @@ pub fn durable_dispatch_record_execution_cancelled(
 ) -> Bool {
   record.execution_code == 5
 }
+
+///|
+/// Observe the durable release without restoring a runnable record into a Site
+/// journal. The caller still verifies the exact request and physical revision.
+pub fn durable_dispatch_record_released(record : DurableDispatchRecord) -> Bool {
+  cleanup_state_from_code(record.cleanup_code) == Ok(CleanupReleased) &&
+  !record.material_available
+}

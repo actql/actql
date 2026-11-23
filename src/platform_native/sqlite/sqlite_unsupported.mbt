@@ -196,6 +196,14 @@ pub fn Library::initialize_owned_journal_database_with_custody(
 }
 
 ///|
+pub fn Database::transaction_step(
+  _self : Database,
+  step : NativeSqliteTransactionStep,
+) -> Result[Unit, NativeSqliteTransactionFailure] {
+  Err({ step, reply: SqlNotIssued, issue: UnsupportedTarget, })
+}
+
+///|
 pub fn Database::transaction_state(
   _self : Database,
 ) -> Result[NativeSqliteTransactionState, NativeSqliteIssue] {

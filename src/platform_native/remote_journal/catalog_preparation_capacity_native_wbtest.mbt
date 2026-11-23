@@ -40,12 +40,17 @@ test "Catalog preparation uses its original token rather than spare Ledger capac
   )
   assert_eq(@resources.ledger_usage(ledger), before)
   journal.require_initial_catalog_use(request, 0L).unwrap() |> ignore
+  journal.claim_funded_initial_catalog_use(custody).unwrap() |> ignore
+  journal.read_catalog_preparation_capacity(custody, envelope).unwrap()
+  assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(journal.close())
 }
 
 ///|
 test "Catalog preparation of a lost claim reply never recreates initial eligibility" {
-  let (_, _, journal) = initial_catalog_fixture("preparation-claim-loss")
+  let (library, path, journal) = initial_catalog_fixture(
+    "preparation-claim-loss",
+  )
   let request = test_request("preparation-claim-loss")
   let ledger = initial_catalog_test_ledger()
   let envelope = initial_catalog_test_envelope()
@@ -56,20 +61,28 @@ test "Catalog preparation of a lost claim reply never recreates initial eligibil
   let before = @resources.ledger_usage(ledger)
   test_fail_cancel_commit_reply(journal.database, 1)
   assert_true(journal.claim_funded_initial_catalog_use(custody) is Err(_))
-  let original = journal.require_initial_catalog_use(request, 1L).unwrap()
-  journal.read_catalog_preparation_capacity(custody, envelope).unwrap()
   assert_true(
-    journal.read_funded_initial_catalog_use(custody) is Err(StateCollision),
+    journal.read_catalog_preparation_capacity(custody, envelope)
+    is Err(Journal(TransactionFenced)),
   )
   assert_true(
-    journal.claim_funded_initial_catalog_use(custody) is Err(StateCollision),
+    journal.read_funded_initial_catalog_use(custody) is Err(TransactionFenced),
   )
-  let after = journal.require_initial_catalog_use(request, 1L).unwrap()
-  assert_eq(after.body, original.body)
-  assert_eq(after.revision, original.revision)
+  assert_true(
+    journal.claim_funded_initial_catalog_use(custody) is Err(TransactionFenced),
+  )
+  assert_true(journal.close())
+  let exact = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  let original = exact.require_initial_catalog_use(request, 1L).unwrap()
+  assert_eq(
+    original.body,
+    @utf8.encode(@remote.dispatch_request_json(request).unwrap()),
+  )
+  assert_eq(original.revision, 1L)
+  assert_true(exact.claim_initial_catalog_use(request) is Err(StateCollision))
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(initial_catalog_use_custody_pending(custody))
-  assert_true(journal.close())
+  assert_true(exact.close())
 }
 
 ///|

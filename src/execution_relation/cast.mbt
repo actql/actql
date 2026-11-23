@@ -126,6 +126,12 @@ fn cast_decimal_scale(
 }
 
 ///|
+let scalar_cast_work : Int = 64
+
+///|
+let scalar_cast_text_growth_bytes : Int = 64
+
+///|
 /// Conversion is demanded inside the existing expression frame. Preflight
 /// variable-size work against its physical control budget before allocating;
 /// the caller retains ordinary logical operand/result charging and root leases.
@@ -174,7 +180,7 @@ fn cast_expression_value(
       Ok(_) => ()
     }
   }
-  if !spend_control(budget, 64) {
+  if !spend_control(budget, scalar_cast_work) {
     return Err({ kind: ControlLimit, expression, })
   }
   let converted = match @lower.expression_contract(expression).shape {
