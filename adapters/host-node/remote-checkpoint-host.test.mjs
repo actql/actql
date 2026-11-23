@@ -2797,8 +2797,12 @@ test('terminal Checkpoints retire captured Effect payloads after restart',
         const submissionClient = await first.as('owner-token');
         const run = await submissionClient.startSource(fixture.document, {format: 'json',
           submissionRef: submissionClient.newSubmission({nonce: `effect-retire-${outcome}`})});
-        await waitFor(async () => (await run.status()).status ===
-          'waiting_checkpoint');
+        await waitFor(async () => {
+          const state = await run.status();
+          // The original physical stop advances the Run's control revision.
+          return state.status === 'waiting_checkpoint' &&
+            (outcome === 'reject' || state.control?.physical_stop === 'confirmed');
+        });
         const publication = join(directory, 'state', 'publication');
         const holdings = join(publication, 'physical-holdings');
         assert.ok((await readdir(holdings)).length > 0);
@@ -2813,7 +2817,12 @@ test('terminal Checkpoints retire captured Effect payloads after restart',
           assert.deepEqual(answered.results.map(item => item.status),
             ['committed']);
         }
-        if (outcome !== 'reject') await run.cancel();
+        if (outcome !== 'reject') {
+          const cancelled = await run.cancel();
+          assert.equal(cancelled.kind, 'accepted');
+          assert.equal(cancelled.cancellation.kind, 'accepted');
+          assert.deepEqual(cancelled.cancellation.ref, run.ref);
+        }
         await waitFor(async () => ['failed', 'cancelled'].includes(
           (await run.status()).status));
         await first.close();

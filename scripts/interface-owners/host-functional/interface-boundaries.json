@@ -93862,7 +93862,7 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "05a6d1aea333cd9e3de88c3f74ec7ae40c95657eb25d581ca75f1fb8c60a8990",
+      "sha256": "9e2f483858c08bae587b91369caf324f93cb107e228d0f0836c20a3212273c7a",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [

@@ -63,11 +63,22 @@ fn bounded_string_group_scalar_filter(expression : @lower.Expression) -> Bool {
 }
 
 ///|
+fn bounded_string_group_number_cast(expression : @lower.Expression) -> Bool {
+  @lower.expression_view_entries(expression) == 0 &&
+  @lower.expression_contract(expression).shape is @contract.Text(_) &&
+  @lower.expression_body(expression) is @lower.Cast(child) &&
+  @lower.expression_view_entries(child) == 0 &&
+  @lower.expression_contract(child).shape is @contract.Number &&
+  @lower.expression_body(child) is @lower.Field(_, @relation.InputField(_))
+}
+
+///|
 // Parameter lowering retains the same checked literal. Its existing Fragment
 // evaluation captures that immutable Text (or Null), without constructing a
 // Text payload or an input forest. The full Fragment snapshot, roots and
-// frame quote remains selected by bounded_group_step_supported.
-fn bounded_string_group_borrowed_argument(
+// frame quote remains selected by bounded_group_step_supported. A cast of
+// an original Number field borrows the input and funds its new Text below.
+fn bounded_string_group_argument(
   kernel : @lower.PreparedKernel,
   argument : @lower.PreparedAggregateArgument,
 ) -> Bool {
@@ -85,6 +96,7 @@ fn bounded_string_group_borrowed_argument(
         @lower.Literal(checked) =>
           checked.value is @admitted.Text(_) || checked.value is @admitted.Null
         @lower.TypedNull => true
+        @lower.Cast(_) => bounded_string_group_number_cast(expression)
         _ => false
       }
     }
@@ -98,8 +110,9 @@ fn bounded_string_group_borrowed_argument(
 // RowWorkspace before allocation, including the builder/to_string overlap.
 // Complete output Text DATA remains independently charged by the row limits.
 // DISTINCT keeps its complete charged index/sorter. A closed scalar filter
-// keeps the same Fragment context, logical roots and work. Constructed Text,
-// recursive or mixed aggregate arguments retain the full generic recipe.
+// keeps the same Fragment context, logical roots and work. The selected
+// Number cast keeps an additional Text holding through the contributor sort.
+// Other constructed Text and recursive arguments keep the full recipe.
 pub fn bounded_string_group_borrows_input(
   kernel : @lower.PreparedKernel,
 ) -> Bool {
@@ -110,7 +123,7 @@ pub fn bounded_string_group_borrows_input(
     bounded_number_group_scalar_schema(@lower.kernel_output_schema(kernel)) &&
     @lower.group_aggregate_at(group, 0) is Some(aggregate) &&
     @lower.group_aggregate_function(aggregate) is @relation.StringAgg &&
-    bounded_string_group_borrowed_argument(
+    bounded_string_group_argument(
       kernel,
       @lower.group_aggregate_argument(aggregate),
     ) &&
@@ -133,6 +146,44 @@ pub fn bounded_string_group_borrows_input(
     }
   }
   true
+}
+
+///|
+/// A Number cast can detach one bounded Text value per contributor. The
+/// contributor arrays keep that value through ordering and reduction on
+/// the same nonrefilling control budget. The Fragment's transient root,
+/// sorting slots, builder and final output keep their existing quotes.
+fn bounded_string_group_cast_capacity(
+  kernel : @lower.PreparedKernel,
+  limits : SequenceExecutionLimits,
+) -> Int64? {
+  guard @lower.kernel_group(kernel) is Some(group) &&
+    @lower.group_aggregate_at(group, 0) is Some(aggregate) &&
+    @lower.group_aggregate_argument(aggregate)
+    is @lower.AggregateExpression(expression) &&
+    bounded_string_group_number_cast(expression) else {
+    return Some(0L)
+  }
+  // The group can consume more rows than it emits. Each completed cast
+  // retained beyond its Fragment keeps its contributor source and value
+  // slots through permutation and reduction. A cast that cannot reserve
+  // the pair still fits in the existing transient Fragment quote.
+  let count = Int::min(
+    limits.max_work / scalar_cast_work,
+    limits.rows.operation_entries / aggregate_contributor_slots,
+  ).to_int64()
+  guard checked_preparation_add_product(
+      0L,
+      count,
+      scalar_cast_text_growth_bytes.to_int64(),
+    )
+    is Some(text) else {
+    return None
+  }
+  execution_capacity_inventory_bytes([
+    { unit: ValueNodeSlots, count, copies: 1, },
+    { unit: DecodedTextBytes, count: text, copies: 1, },
+  ])
 }
 
 ///|
