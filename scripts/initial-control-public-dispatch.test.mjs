@@ -17,12 +17,18 @@ for (const name of ['node', 'local-node']) {
     assert.equal(result.status, 0, result.stderr);
   }
   test(name + ' ordinary private dispatch import does not load a wrapper or Root', () => {
+    const ports = ['selectedInitialControlHostPreparation'];
+    if (name === 'local-node') ports.push('prepareOrdinaryModelSdkInstallation');
+    const modelSdkRefusal = name === 'local-node' ? `
+assert.equal(typeof value.prepareOrdinaryModelSdkInstallation,'function');
+assert.throws(()=>value.prepareOrdinaryModelSdkInstallation(undefined),{code:'InitialControlSdkImageUnavailable'});` : '';
     child(['-e', `const assert=require('node:assert/strict');const file=${JSON.stringify(original)};
 const value=require(file);assert.equal(value.selectedInitialControlHostPreparation,undefined);
 assert.ok(Object.isFrozen(value));assert.equal(Object.getPrototypeOf(value),null);
-assert.deepEqual(Object.keys(value),['selectedInitialControlHostPreparation']);
+assert.deepEqual(Object.keys(value),${JSON.stringify(ports)});${modelSdkRefusal}
 assert.equal(Object.keys(require.cache).some(path=>path.endsWith('/selected-infer-startup.cjs')),false);
-assert.equal(Object.keys(require.cache).some(path=>path.endsWith('/infer-trusted-node-preload.cjs')),false);`]);
+assert.equal(Object.keys(require.cache).some(path=>path.endsWith('/infer-trusted-node-preload.cjs')),false);
+assert.equal(Object.keys(require.cache).some(path=>path.endsWith('/initial-control-package-custody.cjs')),false);`]);
   });
   test(name + ' late native-looking cache or caller table cannot become the selected original', () => {
     child(['-e', `const assert=require('node:assert/strict'),path=require('node:path');const file=${JSON.stringify(original)};
