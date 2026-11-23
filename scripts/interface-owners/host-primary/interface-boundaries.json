@@ -10811,7 +10811,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {

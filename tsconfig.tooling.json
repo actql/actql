@@ -54,6 +54,7 @@
     "adapters/host-node/**/*.mts",
     "adapters/host-node/process-retained-runtime.d.ts",
     "adapters/host-node/host-journal-native-image.cts",
+    "adapters/host-node/host-result-service-recipe.cts",
     "adapters/host-node/host-journal-native-requests.cts",
     "adapters/host-node/ordinary-node-resource-runtime.cts",
     "adapters/site-node/**/*.mts",

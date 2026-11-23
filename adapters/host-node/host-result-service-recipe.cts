@@ -4,9 +4,10 @@
 // This DATA cannot supply a Host original, backed amount or authorization.
 const freeze = Object.freeze, assign = Object.assign, create = Object.create;
 const descriptor = Object.getOwnPropertyDescriptor, own = Object.hasOwn;
-const {isProxy} = require('node:util').types;
-const record = value => freeze(assign(create(null), value));
-const unavailable = () => {
+const {isProxy} = (require('node:util') as typeof import('node:util')).types;
+const record = <Value extends object>(value: Value): Readonly<Value> =>
+  freeze(assign(create(null), value) as Value);
+const unavailable: () => never = () => {
   throw Object.assign(new Error('HostResultPublicationUnavailable'), {code: 'HostResultPublicationUnavailable'});
 };
 const fields = freeze(['directory', 'storeAuthorityCid', 'capacityBytes',
@@ -42,13 +43,18 @@ const phases = record({
     'key creation or first-initialization/Account/Result permission']),
 });
 
-function selectHostResultStoreArguments(options, directory) {
+type StoreArguments = Readonly<{
+  directory: string; storeAuthorityCid: string; capacityBytes: number;
+  maxObjectBytes: number; maxObjects: number; maxContractNodes: number; maxContractDepth: number;
+  privateEvidenceKey?: undefined;
+}>;
+function selectHostResultStoreArguments(options: unknown, directory: string) {
   if (options === null || typeof options !== 'object' || isProxy(options)) unavailable();
   const names = Reflect.ownKeys(options);
   if (names.length !== fields.length && names.length !== fields.length + 1) unavailable();
-  const selected = create(null);
+  const selected = create(null) as Record<PropertyKey, unknown>;
   for (const name of names) {
-    if (!fields.includes(name) && name !== 'privateEvidenceKey') unavailable();
+    if (!fields.includes(name as string) && name !== 'privateEvidenceKey') unavailable();
     const property = descriptor(options, name);
     if (property === undefined || !own(property, 'value')) unavailable();
     selected[name] = property.value;
@@ -61,30 +67,33 @@ function selectHostResultStoreArguments(options, directory) {
   // The exact service/Journal/directory binding above remains the owner; these
   // numbers cannot issue physical backing or replace Store admission. Contract
   // decoding crosses Core Int; checked representation bounds remain finite.
-  if (!Number.isSafeInteger(selected.capacityBytes) || selected.capacityBytes < 0 ||
+  if (!Number.isSafeInteger(selected.capacityBytes) || (selected.capacityBytes as number) < 0 ||
       ['maxObjectBytes', 'maxObjects', 'maxContractNodes'].some(name =>
-        !Number.isSafeInteger(selected[name]) || selected[name] < 1 || selected[name] > 2147483647) ||
-      !Number.isSafeInteger(selected.maxContractDepth) || selected.maxContractDepth < 1 ||
-      selected.maxContractDepth > store.maxContractDepth) unavailable();
+        !Number.isSafeInteger(selected[name]) || (selected[name] as number) < 1 || (selected[name] as number) > 2147483647) ||
+      !Number.isSafeInteger(selected.maxContractDepth) || (selected.maxContractDepth as number) < 1 ||
+      (selected.maxContractDepth as number) > store.maxContractDepth) unavailable();
   // Key authority is independent. This ordinary no-key purpose must not copy
   // the legacy create-on-absence fallback or accept an arbitrary key buffer.
   if (selected.privateEvidenceKey !== undefined) unavailable();
-  return record(selected);
+  return record(selected as StoreArguments);
 }
 
 // Representation validation for DATA already projected by the fixed callback
 // from the same checked Program/current request. This does not admit a Run,
 // allocate rows or replace provider/Store capacity. Collection/read support is
 // separate: maxCollectedRows bounds all(), not publication or rows().
-function validOriginalResultPublicationExtent(resultCount, maxRows, maxContractBytes, minimumResults) {
+function validOriginalResultPublicationExtent(resultCount: number, maxRows: number,
+  maxContractBytes: number, minimumResults: number) {
   return Number.isSafeInteger(resultCount) && resultCount >= minimumResults &&
     Number.isSafeInteger(maxRows) && maxRows >= 0 && maxRows <= 2147483647 &&
     Number.isSafeInteger(maxContractBytes) && maxContractBytes >= 1 && maxContractBytes <= 2147483647;
 }
 
-function declareHostResultServiceRecipe(control, journal, sourceCompute, sourceFreeCompute) {
+function declareHostResultServiceRecipe<Control, Journal, SourceCompute, SourceFreeCompute>(
+  control: Control, journal: Journal, sourceCompute: SourceCompute, sourceFreeCompute: SourceFreeCompute,
+) {
   if ([control, journal, sourceCompute, sourceFreeCompute].some(value =>
-    value === null || typeof value !== 'object' || isProxy(value)) || journal.sharedControl !== control) unavailable();
+    value === null || typeof value !== 'object' || isProxy(value)) || (journal as {sharedControl?: unknown}).sharedControl !== control) unavailable();
   return record({kind: 'selected-node-local-result-publication-service', sharedControl: control,
     journal, sourceCompute, sourceFreeCompute, store, result, phases,
     // These guard this single installation constructor and checked Run
@@ -101,6 +110,8 @@ const facilityFields = record({
   crypto: freeze(['createCipheriv', 'createDecipheriv', 'createHash', 'randomBytes', 'randomUUID']),
   buffer: freeze(['alloc', 'allocUnsafe', 'allocUnsafeSlow', 'byteLength', 'concat', 'from', 'isBuffer']),
 });
-module.exports = {declareHostResultServiceRecipe, facilityFields, validOriginalResultPublicationExtent,
+// Preserve the direct assignment for Node's CommonJS named-export detection.
+const recipe = module.exports = {declareHostResultServiceRecipe, facilityFields, validOriginalResultPublicationExtent,
   hostResultStorePolicy: store};
 freeze(module.exports);
+export = recipe as Readonly<typeof recipe>;

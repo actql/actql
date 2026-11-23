@@ -43263,7 +43263,7 @@
                 "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
@@ -43927,7 +43927,7 @@
                 "anchor": "fn valid_client_submitted_intent_limits("
               },
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
@@ -54605,7 +54605,7 @@
     },
     {
       "module": "adapters/host-node/host-result-service-recipe.cjs",
-      "sha256": "e95dbeddc989d02b633410c28b7d0f9012ab04b9c4dfeb3e351dbe8e53d33893",
+      "sha256": "84cd32f97b9b134c22e608116fb8d3c8bfce7ac67825bed2555a99097e9dcdea",
       "exports": [
         "commonjs:declareHostResultServiceRecipe",
         "commonjs:facilityFields",
@@ -54686,7 +54686,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function selectHostResultStoreArguments("
               }
             ],
@@ -54742,7 +54742,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
@@ -54782,7 +54782,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54792,7 +54792,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54802,7 +54802,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54812,7 +54812,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54822,7 +54822,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54832,7 +54832,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54842,7 +54842,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54852,7 +54852,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54862,7 +54862,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function validOriginalResultPublicationExtent("
               },
               {
@@ -54872,7 +54872,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-result-extent.test.mjs",
+                "path": "adapters/host-node/host-result-extent.test.mts",
                 "anchor": "Result publication accepts original extents beyond collection support without granting bytes"
               }
             ]
@@ -54892,7 +54892,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "function selectHostResultStoreArguments("
               }
             ],
@@ -54948,7 +54948,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
@@ -91693,7 +91693,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
@@ -91837,7 +91837,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
@@ -94302,7 +94302,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
@@ -95089,7 +95089,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-result-service-recipe.cjs",
+                "path": "adapters/host-node/host-result-service-recipe.cts",
                 "anchor": "maxReadWireBytes: 10 * 1024 * 1024"
               },
               {
