@@ -120,7 +120,7 @@ type Runtime = CatalogRequest['moon'] & Describe['moon'] &
     salesforceObservationConstructionDimensions(observation: unknown): readonly unknown[];
     salesforcePrepareExecutionMapping(declaration: object, resource: string, kind: number,
       fields: readonly string[], key: string, targets: readonly string[], sources: readonly string[],
-      nullBehaviors: readonly number[], bytes: number, nodes: number, depth: number): unknown;
+      nullBehaviors: readonly string[], bytes: number, nodes: number, depth: number): unknown;
     salesforceExecutionMappingRef(mapping: unknown): string;
     salesforceExecutionMappingCid(mapping: unknown): string;
     salesforceExecutionMappingBody(mapping: unknown): string;
@@ -979,7 +979,7 @@ export async function loadInstalledSalesforceSite(path: string, {commonMoon,
   const writeKinds = Object.freeze({create: 0, createFromResult: 1,
     update: 2, upsert: 3});
   type MappingWrite = Readonly<{kind: keyof typeof writeKinds; fields?: readonly string[]; key?: string;
-    sources?: readonly Readonly<{target: string; field: string; nullBehavior: number}>[]}>;
+    sources?: readonly Readonly<{target: string; field: string; nullBehavior: 'reject' | 'omit' | 'null'}>[]}>;
   // The executable Mapping of one Effect, from a declaration this Site
   // generated. It names the declaration's own manifest entry.
   function prepareExecutionMapping({declaration, resource, write,
