@@ -202,6 +202,50 @@ test "actual ordered DISTINCT and scalar filter preserve duplicates NULL exact w
 }
 
 ///|
+test "ordered Number CAST retains its staged contributor text and the original exact result" {
+  let aggregate =
+    #|{"fn":"string_agg","expr":{"cast":{"value":{"field":"id"},"target":{"type":"string"}}},"order_by":[{"id":"desc"}],"delimiter":",","max_bytes":4096}
+  let generated = string_group_capacity_fixture(aggregate~, fragment=true)
+  guard generated_sequence_step_at(generated, 0) is Some(@lower.RowStep(kernel)) else {
+    fail("original CAST StringAgg kernel missing")
+  }
+  let limits = string_group_constructor_limits()
+  assert_true(bounded_string_group_borrows_input(kernel))
+  assert_true(bounded_group_step_supported(generated, kernel))
+  // Two charged casts may now coexist outside the one current Fragment.
+  let limited = { ..limits, max_work: 128, }
+  let expected = execution_capacity_inventory_bytes([
+    { unit: ValueNodeSlots, count: 2L, copies: 1, },
+    { unit: DecodedTextBytes, count: 128L, copies: 1, },
+  ])
+  assert_eq(bounded_string_group_cast_capacity(kernel, limited), expected)
+  let schema =
+    #|{"id":{"type":"number","nullable":false},"v":{"type":"number","nullable":false}}
+  let rows =
+    #|[{"id":1,"v":10},{"id":2,"v":20},{"id":3,"v":20}]
+  let (_, started, source) = bounded_relation_start(
+    schema,
+    rows,
+    "\"group\":{\"by\":[],\"aggregates\":{\"ids\":" + aggregate + "}}",
+    "group_0",
+    true,
+    max_work=100000,
+    max_entries=10000,
+  )
+  let execution = started.unwrap()
+  guard drive_bounded_group(execution) is BoundedGroupComplete(output, ..) else {
+    fail("ordered CAST StringAgg did not complete")
+  }
+  assert_eq(completed_row_count(output), 1)
+  guard completed_cell(output, 0, 0) is Some(Text(actual)) else {
+    fail("ordered CAST StringAgg output text missing")
+  }
+  assert_eq(actual, "3,2,1")
+  assert_true(cleanup_bounded_group_execution(execution).unwrap())
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "borrowed checked Text literal StringAgg retains its original Fragment obligation" {
   let generated = string_group_capacity_fixture(
     aggregate=(
