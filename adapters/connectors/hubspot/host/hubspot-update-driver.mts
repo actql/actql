@@ -42,7 +42,7 @@ type Control = <Args extends readonly unknown[], Result>(receiver: unknown, proj
 type ControlConstruction = Control & Readonly<{grant?: Control}>;
 type DriverOptions = Readonly<{moon: unknown; site: unknown; authorization: unknown; connection: string; origin: string;
   portalId: string; connectorId: string; siteBindingCid: string; generationCid: string;
-  installedFor(member: Member): Installed; metadataResources: object; requestLimits: object; readLimits: object;
+  installedFor(member: Member): Installed | undefined; metadataResources: object; requestLimits: object; readLimits: object;
   writeLimits: object; maxRows: number; maxMembers: number; maxRecoveryBytes: number; requestRecheckCapacity: unknown}>;
 type WritePolicy = Parameters<typeof projectHubSpotRecordWriteObservation>[0]['limits'] & Readonly<{maxRequestBytes: number}>;
 type CurrentFrame = Readonly<{original: Installed; member: Member; runInvocationCid: string; dispatchRequestCid: string;

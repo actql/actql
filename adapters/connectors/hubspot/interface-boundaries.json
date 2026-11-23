@@ -523,7 +523,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-source.mjs",
-      "sha256": "e55e6fce66c589bedd8dcf4aa7df06f8ee74da66e33f9ae7295ec5a7790e0235",
+      "sha256": "494d3977b498250088e1298a5f9cc7218eff08c7d78e128fda4d6d8cac338dc3",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Source, Common declaration, Account/Credential and original RowRun owners",
@@ -2735,7 +2735,7 @@
     },
     {
       "module": "adapters/connectors/hubspot/host/installed-hubspot-effect.mjs",
-      "sha256": "8a97f6ab5f892060322f898330efb26c2a3718ff47cb8dfa8abd2f51f06dd1ee",
+      "sha256": "c96779cc5240ade8fbfb80bfab4690013f397e21c41003e73fe19d34080fe6a5",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Effect, Common initialization/Mapping/Checkpoint/current/dispatch and original Row Site owners",

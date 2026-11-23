@@ -14,6 +14,72 @@ import {prepareHubSpotManagedSequence} from '../site/hubspot-managed-sequence.mj
 import {HUBSPOT_PROPERTIES_READ_OPERATION,
   HUBSPOT_OBJECT_LIST_OPERATION} from '../site/hubspot-object-read.mjs';
 import {HUBSPOT_ACCOUNT_DETAILS_OPERATION} from '../site/hubspot-account-read.mjs';
+import type {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import type {createInstalledRowSource} from '../../../host-node/installed-row-source.mjs';
+
+type Limit = (typeof limitKeys)[number];
+type Site = Readonly<Record<Exclude<(typeof siteKeys)[number], 'siteGeneration'>, string> &
+  {siteGeneration: number; caPath?: string}>;
+type Resource = Readonly<{resource: string; objectType: string}>;
+type MetadataResources = Readonly<{account: string; properties: string}>;
+type Installed = Readonly<{version: typeof INSTALLED_HUBSPOT_SOURCE_VERSION; connectorId: string; portalId: string;
+  resources: readonly Resource[]; metadataPath: string; siteProfilePath: string; metadataResources: MetadataResources;
+  accountConfigurationWire: string; limits: Readonly<Record<Limit, number>>}>;
+type MetadataObject = Resource & Readonly<{propertiesBody: string}>;
+type Metadata = Readonly<{version: string; connectorId: string; portalId: string; apiOrigin: string;
+  accountBody: string; objects: readonly MetadataObject[]}>;
+type Managed = Parameters<typeof prepareHubSpotManagedSequence>[0];
+type Provider = Managed['moon'] & Readonly<{
+  hubspotPropertyCatalogNames(catalog: unknown): readonly string[];
+  hubspotObjectSchemaWire(catalog: unknown, names: readonly string[], maxColumns: number, maxNameUnits: number,
+    maxBytes: number, maxNodes: number, maxDepth: number): unknown;
+  hubspotObjectRelationFactsWire(): string;
+}>;
+export type HubSpotReadCommon = Readonly<{
+  clientProgramHubSpotAccountConstructionCapacity(bodyBytes: number, encodedUnits: number, portalUnits: number,
+    maxBytes: number, maxNodes: number, maxDepth: number): unknown;
+  clientProgramHubSpotObjectConstructionCapacity(bodyBytes: number, encodedUnits: number, objectTypeUnits: number,
+    maxBytes: number, maxNodes: number, maxDepth: number, maxProperties: number, maxNameUnits: number,
+    maxColumns: number, maxSelectedUnits: number, maxDeclarationBytes: number, maxDeclarationNodes: number,
+    maxDeclarationDepth: number): unknown;
+}>;
+type CapacityMethods = Readonly<{
+  clientProgramHubSpotMetadataIdentityCapacity(objects: number, bodyUnits: bigint, stringUnits: bigint): unknown;
+  clientProgramHubSpotReadTargetCapacity(objects: number, targetFields: bigint): unknown;
+  clientProgramHubSpotReadSequenceBounds(maxRequests: number, maxResponseBytes: number, originUnits: number,
+    portalUnits: number, objectUnits: number, fieldUnits: bigint): unknown;
+}>;
+type View = Readonly<{resource: string; resource_kind: string; schema_wire: string; facts_wire: string; schema_cid: string}>;
+type DeclaredView = Readonly<{resource: string; fields: readonly string[]}>;
+type Declared = Readonly<{views: readonly DeclaredView[]}>;
+type Readers = Readonly<{readJson(path: string): unknown; readOriginalBytes?(path: string): Buffer | PromiseLike<Buffer>}>;
+type NativeInput<Value> = Readonly<{capacity(): unknown; project(): Value}>;
+type Reader = ReturnType<typeof createInstalledCredentialSourceReader>;
+type RowSource = ReturnType<typeof createInstalledRowSource>;
+type RowSourceSite = Parameters<typeof createInstalledRowSource>[0]['site'];
+type Selection = Readonly<{resource: string; columns: readonly string[]; responseBorrow?: unknown; originalAuthorization?: unknown}>;
+type Implementation = Readonly<{capacity: unknown; runAcquisitionLimits: unknown}>;
+export type HubSpotOpenedSite = Readonly<{site: RowSourceSite & Readonly<{credential: unknown}>; authorization: Readonly<{context: Readonly<{contextCid: string}>}>}>;
+export type HubSpotMaterialsConstruction = Readonly<{
+  configurationReader: Readers;
+  prepareNativeInput<Value>(input: NativeInput<Value>): Value;
+  prepareDeclaration(views: readonly View[]): Readonly<{declared: Declared}>;
+}>;
+type Construction = HubSpotMaterialsConstruction & Readonly<{
+  openRowSite(options: Readonly<Record<string, unknown>>): PromiseLike<HubSpotOpenedSite>;
+  prepareReadTarget<Value>(input: NativeInput<Value>): Value;
+  createRowSource(options: Readonly<Record<string, unknown>>): RowSource;
+  sourceReaderImplementation(options: Readonly<Record<string, unknown>>): Implementation;
+  createSourceReader(options: Readonly<{implementation: Implementation;
+    prepareReadSequence(input: Selection): ReturnType<typeof prepareHubSpotManagedSequence>}>): Reader;
+}>;
+type MaterialOptions = Readonly<{moon: HubSpotReadCommon; providerMoon: Provider; construction?: HubSpotMaterialsConstruction}>;
+type RequiredMaterialOptions = MaterialOptions & Readonly<{construction: HubSpotMaterialsConstruction}>;
+type LoadOptions = MaterialOptions & Readonly<{construction?: Construction; runtimeBundleCid: string; resolveSecret?: unknown;
+  installation?: Readonly<{responseHeaders?: readonly string[]}>}>;
+type Materials = Readonly<{installed: Installed; siteProfile: Site; metadata: Metadata; objects: Map<string, MetadataObject>;
+  catalogs: Map<string, unknown>; views: View[]; identityExtent: Readonly<{objects: number; bodyUnits: bigint; stringUnits: bigint}>}>;
+type Target = Resource & Readonly<{version: string; apiOrigin: string; portalId: string; metadataCid: string; fields: readonly string[]}>;
 
 export const INSTALLED_HUBSPOT_SOURCE_VERSION = 'actql-installed-hubspot-source/0.1';
 export const INSTALLED_HUBSPOT_SITE_VERSION = 'actql-installed-hubspot-site/0.1';
@@ -22,62 +88,62 @@ const profileKeys = ['version', 'connectorId', 'portalId', 'resources', 'metadat
   'siteProfilePath', 'metadataResources', 'accountConfigurationWire', 'limits'];
 const siteKeys = ['version', 'apiOrigin', 'credentialAuthorityId', 'credentialKeyId',
   'credentialPrivateKeyPath', 'environment', 'journalRoot', 'namespaceId',
-  'siteGeneration', 'siteKey', 'tokenEnvironment'];
+  'siteGeneration', 'siteKey', 'tokenEnvironment'] as const;
 const limitKeys = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxProperties',
   'maxNameUnits', 'maxPages', 'maxRows', 'maxRequests', 'perPage', 'maxColumns',
   'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes', 'maxRowsWireBytes',
   'maxRowsWireNodes', 'maxRowsWireDepth', 'maxObjects', 'maxDeclarationBytes',
-  'maxDeclarationNodes', 'maxSecretBytes'];
-const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
-const text = value => typeof value === 'string' && value.length > 0 && value.isWellFormed() &&
+  'maxDeclarationNodes', 'maxSecretBytes'] as const;
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 && value.isWellFormed() &&
   !/[\u0000-\u001f\u007f]/u.test(value);
-const absolute = value => text(value) && isAbsolute(value);
-const positive = value => Number.isSafeInteger(value) && value > 0 && value < 2147483647;
-const closed = (value, keys) => value !== null && typeof value === 'object' &&
+const absolute = (value: unknown): value is string => text(value) && isAbsolute(value);
+const positive = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) > 0 && (value as number) < 2147483647;
+const closed = <Key extends string,>(value: unknown, keys: readonly Key[]): value is Record<Key, unknown> => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
-const closedMetadata = (value, keys) => !types.isProxy(value) && closed(value, keys) &&
+const closedMetadata = <Key extends string,>(value: unknown, keys: readonly Key[]): value is Record<Key, unknown> => !types.isProxy(value) && closed(value, keys) &&
   Object.getPrototypeOf(value) === Object.prototype && keys.every(key =>
-    Object.hasOwn(Object.getOwnPropertyDescriptor(value, key), 'value'));
-const canonical = value => canonicalJson(value, {dataKeys: true});
-const cid = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+    Object.hasOwn(Object.getOwnPropertyDescriptor(value, key)!, 'value'));
+const canonical = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const cid = (value: unknown) => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
 
-export function checkInstalledHubSpotSourceProfile(profile) {
+export function checkInstalledHubSpotSourceProfile(profile: unknown) {
   if (!closed(profile, profileKeys) || profile.version !== INSTALLED_HUBSPOT_SOURCE_VERSION ||
       !text(profile.connectorId) || typeof profile.portalId !== 'string' || !/^[1-9][0-9]{0,10}$/u.test(profile.portalId) ||
       !absolute(profile.metadataPath) || !absolute(profile.siteProfilePath) ||
       !text(profile.accountConfigurationWire) || !closed(profile.limits, limitKeys) ||
-      !limitKeys.every(key => positive(profile.limits[key])) ||
+      !limitKeys.every(key => positive((profile.limits as Installed['limits'])[key])) ||
       !closed(profile.metadataResources, ['account', 'properties']) ||
       !Object.values(profile.metadataResources).every(text) ||
       profile.metadataResources.account === profile.metadataResources.properties ||
       !Array.isArray(profile.resources) || profile.resources.length === 0 ||
-      profile.resources.length > profile.limits.maxObjects ||
+      profile.resources.length > (profile.limits.maxObjects as number) ||
       !profile.resources.every(value => closed(value, ['resource', 'objectType']) &&
         text(value.resource) && text(value.objectType) &&
         value.objectType !== '.' && value.objectType !== '..') ||
       new Set(profile.resources.map(value => value.resource)).size !== profile.resources.length ||
-      profile.resources.some(value => Object.values(profile.metadataResources).includes(value.resource)) ||
-      profile.limits.maxPages > profile.limits.maxRequests ||
-      profile.limits.perPage > profile.limits.maxRows) fail('InvalidInstalledHubSpotSourceProfile');
+      profile.resources.some(value => Object.values(profile.metadataResources as MetadataResources).includes(value.resource)) ||
+      (profile.limits.maxPages as number) > (profile.limits.maxRequests as number) ||
+      (profile.limits.perPage as number) > (profile.limits.maxRows as number)) fail('InvalidInstalledHubSpotSourceProfile');
   return Object.freeze({...profile, resources: Object.freeze(profile.resources.map(value => Object.freeze({...value}))),
-    limits: Object.freeze({...profile.limits}), metadataResources: Object.freeze({...profile.metadataResources})});
+    limits: Object.freeze({...profile.limits}), metadataResources: Object.freeze({...profile.metadataResources})}) as Installed;
 }
 
-function checkSite(site) {
-  const {caPath, ...rest} = site ?? {};
-  let origin;
-  try {origin = new URL(rest.apiOrigin);} catch { /* Closed rejection below. */ }
+function checkSite(site: unknown) {
+  const {caPath, ...rest} = (site as Partial<Site> | null | undefined) ?? {};
+  let origin: URL | undefined;
+  try {origin = new URL(rest.apiOrigin!);} catch { /* Closed rejection below. */ }
   if (!closed(rest, siteKeys) || rest.version !== INSTALLED_HUBSPOT_SITE_VERSION ||
       origin?.protocol !== 'https:' || origin.origin !== rest.apiOrigin ||
-      !['credentialAuthorityId', 'credentialKeyId', 'environment', 'namespaceId', 'siteKey'].every(key => text(rest[key])) ||
+      !(['credentialAuthorityId', 'credentialKeyId', 'environment', 'namespaceId', 'siteKey'] as const).every(key => text(rest[key])) ||
       !absolute(rest.credentialPrivateKeyPath) || !absolute(rest.journalRoot) ||
       (caPath !== undefined && !absolute(caPath)) ||
-      !Number.isSafeInteger(rest.siteGeneration) || rest.siteGeneration < 0 ||
-      !/^[A-Z_][A-Z0-9_]{0,63}$/u.test(rest.tokenEnvironment)) fail('InvalidInstalledHubSpotSite');
-  return Object.freeze({...rest, ...(caPath === undefined ? {} : {caPath})});
+      !Number.isSafeInteger(rest.siteGeneration) || (rest.siteGeneration as number) < 0 ||
+      !/^[A-Z_][A-Z0-9_]{0,63}$/u.test(rest.tokenEnvironment!)) fail('InvalidInstalledHubSpotSite');
+  return Object.freeze({...rest, ...(caPath === undefined ? {} : {caPath})}) as Site;
 }
 
-function metadataBodyBytes(encoded, maxBytes) {
+function metadataBodyBytes(encoded: unknown, maxBytes: number) {
   if (typeof encoded !== 'string' || encoded.length > Math.ceil(maxBytes / 3) * 4 ||
       !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(encoded)) {
     fail('InvalidInstalledHubSpotMetadata');
@@ -92,16 +158,16 @@ function metadataBodyBytes(encoded, maxBytes) {
   return bytes;
 }
 
-function decodeMetadataBody(encoded, maxBytes) {
+function decodeMetadataBody(encoded: string, maxBytes: number) {
   const body = Buffer.from(encoded, 'base64');
   if (body.byteLength > maxBytes || body.toString('base64') !== encoded) fail('InvalidInstalledHubSpotMetadata');
   return body;
 }
 
-async function readInputs(profile, readers) {
+async function readInputs(profile: unknown, readers: Readers) {
   const installed = checkInstalledHubSpotSourceProfile(profile);
   const site = checkSite(await readers.readJson(installed.siteProfilePath));
-  const metadata = await readers.readJson(installed.metadataPath);
+  const metadata = await readers.readJson(installed.metadataPath) as Metadata;
   if (!closedMetadata(metadata, ['version', 'connectorId', 'portalId', 'apiOrigin', 'accountBody', 'objects']) ||
       metadata.version !== 'actql-hubspot-read-metadata/0.1' ||
       metadata.connectorId !== installed.connectorId || metadata.portalId !== installed.portalId ||
@@ -115,11 +181,11 @@ async function readInputs(profile, readers) {
   let bodyUnits = BigInt(metadata.accountBody.length);
   let stringUnits = BigInt(
     metadata.version.length + metadata.connectorId.length + metadata.portalId.length + metadata.apiOrigin.length);
-  const objects = new Map();
+  const objects = new Map<string, MetadataObject>();
   for (let index = 0; index < metadata.objects.length; index++) {
     const entry = Object.getOwnPropertyDescriptor(metadata.objects, index);
     if (!entry || !Object.hasOwn(entry, 'value')) fail('InvalidInstalledHubSpotMetadata');
-    const object = entry.value;
+    const object = entry.value as MetadataObject;
     if (!closedMetadata(object, ['resource', 'objectType', 'propertiesBody']) ||
         objects.has(object.resource) || !installed.resources.some(value =>
           value.resource === object.resource && value.objectType === object.objectType)) {
@@ -138,27 +204,28 @@ async function readInputs(profile, readers) {
     identityExtent: Object.freeze({objects: metadata.objects.length, bodyUnits, stringUnits})};
 }
 
-export async function installedHubSpotSourceIdentityParts(profile, providerProfile, readJson, _entry, {configurationReader} = {}) {
+export async function installedHubSpotSourceIdentityParts(profile: Readonly<{accountConfigurationWire: string}>,
+  providerProfile: unknown, readJson?: unknown, _entry?: unknown, {configurationReader}: Readonly<{configurationReader?: unknown}> = {}) {
   const readers = captureConfigurationReaders(configurationReader, readJson,
-    () => fail('HubSpotSourceConstructionUnavailable'));
+    () => fail('HubSpotSourceConstructionUnavailable')) as unknown as Readers;
   const {site, metadata} = await readInputs(providerProfile, readers);
   if (site.caPath !== undefined && configurationReader !== undefined && readers.readOriginalBytes === undefined) {
     fail('HubSpotSourceConstructionUnavailable');
   }
   const ca = site.caPath === undefined ? undefined : await (configurationReader === undefined
-    ? readFile(site.caPath) : readers.readOriginalBytes(site.caPath));
+    ? readFile(site.caPath) : readers.readOriginalBytes!(site.caPath));
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)}, site,
     {metadataCid: cid(metadata), ...(ca === undefined ? {} : {caSha256: createHash('sha256').update(ca).digest('hex')})}];
 }
 
-function siteBinding(contextCid, runtimeBundleCid, metadataCid, site) {
+function siteBinding(contextCid: string, runtimeBundleCid: string, metadataCid: string, site: Site) {
   // Preserve the Source's complete original non-secret physical binding.
   // Each role supplies its own observed material; this issues no permission.
   return cid({version: 'actql-installed-hubspot-binding/0.1', contextCid,
     runtimeBundleCid, metadataCid, site});
 }
 
-export function installedHubSpotSiteBinding({contextCid, runtimeBundleCid, metadata, site}) {
+export function installedHubSpotSiteBinding({contextCid, runtimeBundleCid, metadata, site}: Readonly<{contextCid: string; runtimeBundleCid: string; metadata: Metadata; site: Site}>) {
   return siteBinding(contextCid, runtimeBundleCid, cid(metadata), site);
 }
 
@@ -166,7 +233,7 @@ export function installedHubSpotSiteBinding({contextCid, runtimeBundleCid, metad
 // not open a Site, authorize a read/write, resolve a secret or send a request.
 // Provider Catalogs stay in their original runtime; the Common declaration is
 // produced separately by the existing parent construction owner.
-async function prepareHubSpotMaterials(profile, {moon, providerMoon: provider, construction}, finish) {
+async function prepareHubSpotMaterials<Value>(profile: unknown, {moon, providerMoon: provider, construction}: MaterialOptions, finish: (materials: Materials) => Value) {
   if (construction === undefined || typeof construction.prepareNativeInput !== 'function' ||
       typeof construction.prepareDeclaration !== 'function' || construction.configurationReader === undefined) {
     fail('HubSpotSourceConstructionUnavailable');
@@ -191,9 +258,9 @@ async function prepareHubSpotMaterials(profile, {moon, providerMoon: provider, c
       return Object.freeze({account, identity});
     },
   }));
-  const catalogs = new Map(), views = [];
+  const catalogs = new Map<string, unknown>(), views: View[] = [];
   for (const {resource, objectType} of installed.resources) {
-    const encoded = objects.get(resource).propertiesBody;
+    const encoded = objects.get(resource)!.propertiesBody;
     const projected = construction.prepareNativeInput(Object.freeze({
       capacity: () => moon.clientProgramHubSpotObjectConstructionCapacity(
         metadataBodyBytes(encoded, limits.maxResponseBytes), encoded.length, objectType.length,
@@ -205,7 +272,7 @@ async function prepareHubSpotMaterials(profile, {moon, providerMoon: provider, c
           limits.maxNodes, limits.maxDepth, limits.maxProperties, limits.maxNameUnits));
         const names = provider.hubspotPropertyCatalogNames(catalog);
         const wire = checked(provider.hubspotObjectSchemaWire(catalog, names, limits.maxColumns,
-          limits.maxNameUnits, limits.maxDeclarationBytes, limits.maxDeclarationNodes, limits.maxDepth));
+          limits.maxNameUnits, limits.maxDeclarationBytes, limits.maxDeclarationNodes, limits.maxDepth)) as string;
         return Object.freeze({body, catalog, names, wire, view: Object.freeze({resource, resource_kind: 'object',
           schema_wire: wire, facts_wire: provider.hubspotObjectRelationFactsWire(),
           schema_cid: `sha256:${createHash('sha256').update(wire).digest('hex')}`})});
@@ -217,15 +284,15 @@ async function prepareHubSpotMaterials(profile, {moon, providerMoon: provider, c
   return finish({installed, siteProfile, metadata, objects, catalogs, views, identityExtent});
 }
 
-export async function prepareInstalledHubSpotMaterials(profile, options) {
+export async function prepareInstalledHubSpotMaterials(profile: unknown, options: RequiredMaterialOptions) {
   return prepareHubSpotMaterials(profile, options, ({views, identityExtent: _identityExtent, ...materials}) => {
     const {declared} = options.construction.prepareDeclaration(views);
     return Object.freeze({...materials, declared});
   });
 }
 
-export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: provider,
-  runtimeBundleCid, resolveSecret, installation, construction}) {
+export async function loadInstalledHubSpotSource(profile: unknown, {moon, providerMoon: provider,
+  runtimeBundleCid, resolveSecret, installation, construction}: LoadOptions) {
   if (construction === undefined || typeof construction.prepareNativeInput !== 'function' ||
       typeof construction.prepareDeclaration !== 'function' || typeof construction.openRowSite !== 'function' ||
       typeof construction.prepareReadTarget !== 'function' ||
@@ -240,8 +307,8 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   ].map(name => {
     const method = Object.getOwnPropertyDescriptor(moon, name);
     if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') fail('HubSpotSourceConstructionUnavailable');
-    return [name, (...args) => Reflect.apply(method.value, moon, args)];
-  })));
+    return [name, (...args: unknown[]) => Reflect.apply(method.value, moon, args)];
+  }))) as CapacityMethods;
   const {installed, siteProfile, catalogs, declared, metadataCid} =
     await prepareHubSpotMaterials(profile, {moon, providerMoon: provider, construction}, ({views, ...materials}) => {
       const {objects, bodyUnits, stringUnits} = materials.identityExtent;
@@ -271,22 +338,22 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
     project: () => Object.freeze(installed.resources.map(({resource, objectType}) => Object.freeze({
       version: 'actql-installed-hubspot-target/0.1', apiOrigin: siteProfile.apiOrigin,
       portalId: installed.portalId, resource, objectType, metadataCid,
-      fields: Object.freeze([...declared.views.find(value => value.resource === resource).fields]),
+      fields: Object.freeze([...declared.views.find(value => value.resource === resource)!.fields]),
     }))),
-  })]);
-  const target = (resource, fields) => {
+  })]) as readonly Target[];
+  const target = (resource: string, fields: readonly string[]) => {
     const original = targets.find(value => value.resource === resource);
     if (original === undefined) fail('ForeignHubSpotReadPreparation');
     return Object.freeze({...original, fields: Object.freeze([...fields])});
   };
-  const admitsApprovalTarget = (binding, resource) => {
+  const admitsApprovalTarget = (binding: Readonly<{fields?: unknown}> | null | undefined, resource: string) => {
     const original = targets.find(value => value.resource === resource);
     return original !== undefined && Array.isArray(binding?.fields) &&
       new Set(binding.fields).size === binding.fields.length && binding.fields.every(field => original.fields.includes(field)) &&
       canonical(binding) === canonical(target(resource, binding.fields));
   };
   if (siteProfile.caPath !== undefined && typeof readers.readOriginalBytes !== 'function') fail('HubSpotSourceConstructionUnavailable');
-  const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes(siteProfile.caPath);
+  const ca = siteProfile.caPath === undefined ? undefined : await readers.readOriginalBytes!(siteProfile.caPath);
   let fieldUnits = 0n;
   for (const view of declared.views) {
     let units = 0n;
@@ -297,7 +364,7 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
     limits.maxResponseBytes, siteProfile.apiOrigin.length, installed.portalId.length, objectUnits, fieldUnits);
   if (runtimeIsError(bounds)) fail('HubSpotManagedAggregateUnavailable');
   const geometry = checked(bounds);
-  const totalBytes = runtimeField(geometry, 0), targetUnits = runtimeField(geometry, 1);
+  const totalBytes = runtimeField(geometry, 0) as number, targetUnits = runtimeField(geometry, 1);
   if (!Number.isSafeInteger(totalBytes) || totalBytes < 1 || totalBytes > 2147483647 ||
       !positive(targetUnits)) fail('HubSpotManagedAggregateUnavailable');
   const readerLimits = Object.freeze({maxResponseBytes: limits.maxResponseBytes,
@@ -312,7 +379,7 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
   const readerBounds = Object.freeze(installedJsonSourceReaderLimitNames.map(name => readerLimits[name]));
   const protocolBounds = Object.freeze(limitKeys.slice(0, 16).map(name => limits[name]));
   const columnCount = Math.max(...declared.views.map(view => view.fields.length));
-  const capacityFor = (bodies, _received, propertyGeometry = Object.freeze([])) => {
+  const capacityFor = (bodies: readonly number[], _received?: bigint, propertyGeometry: readonly number[] = Object.freeze([])) => {
     const capacity = Reflect.apply(quote.value, moon,
       [readerBounds, columnCount, limits.maxSecretBytes, protocolBounds, targetUnits, bodies, propertyGeometry]);
     if (capacity === undefined || capacity === null) fail('HubSpotManagedCapacityUnavailable');
@@ -337,13 +404,13 @@ export async function loadInstalledHubSpotSource(profile, {moon, providerMoon: p
       if (!text(secret)) fail('RemoteCredentialSecretUnavailable');
       return secret;
     })});
-  const providerReader = construction.createSourceReader({implementation, prepareReadSequence(input) {
+  const providerReader = construction.createSourceReader({implementation, prepareReadSequence(input: Selection) {
     const catalog = catalogs.get(input.resource), objectType = targets.find(value => value.resource === input.resource)?.objectType;
     if (catalog === undefined || input.responseBorrow === undefined || input.originalAuthorization === undefined) {
       fail('ForeignHubSpotReadPreparation');
     }
     return prepareHubSpotManagedSequence({moon: provider, originalPortalId: installed.portalId,
-      originalCatalog: catalog, objectType, properties: input.columns.filter(name => name !== 'id'), limits,
+      originalCatalog: catalog, objectType: objectType!, properties: input.columns.filter(name => name !== 'id'), limits,
       responseCapacity: capacityFor});
   }});
   if (providerReader.capacity !== implementation.capacity) fail('HubSpotManagedImplementationMismatch');

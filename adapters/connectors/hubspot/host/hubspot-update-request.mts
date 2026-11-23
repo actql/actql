@@ -40,7 +40,7 @@ export type HubSpotUpdateMember = Pick<RowEffectMember<'update'>, 'kind' | 'reso
 export type InstalledHubSpotUpdateMapping = Readonly<{resource: string; mappingCid: string; mappingRef: string;
   markerProperty: string; catalog: unknown; mapping: unknown}>;
 type Options = Readonly<{moon: unknown; origin: string; portalId: string; connectorId: string;
-  installedFor(member: HubSpotUpdateMember): InstalledHubSpotUpdateMapping; limits: unknown}>;
+  installedFor(member: HubSpotUpdateMember): InstalledHubSpotUpdateMapping | undefined; limits: unknown}>;
 type Prepare = Readonly<{member: HubSpotUpdateMember; value: unknown; selector: unknown}>;
 type Finalize = Readonly<{request: unknown; requestTag?: string}>;
 type Restore = Readonly<{member: HubSpotUpdateMember; wire: unknown; requestTag?: string}>;

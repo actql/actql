@@ -3102,3 +3102,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/hubspot/host/hubspot-effect-plan.d.mts
 /adapters/connectors/hubspot/site/hubspot-managed-sequence.mjs
 /adapters/connectors/hubspot/site/hubspot-managed-sequence.d.mts
+/adapters/connectors/hubspot/host/installed-hubspot-source.mjs
+/adapters/connectors/hubspot/host/installed-hubspot-source.d.mts
+/adapters/connectors/hubspot/host/installed-hubspot-effect.mjs
+/adapters/connectors/hubspot/host/installed-hubspot-effect.d.mts

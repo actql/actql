@@ -32,7 +32,7 @@ type Native = Readonly<{
 }>;
 type RequestPorts = Pick<ReturnType<typeof createHubSpotUpdateRequestAdapter>, 'requestFacts' | 'nativeTargetRead' | 'objectType'>;
 type Limits = Readonly<Record<(typeof limitNames)[number], number>>;
-type Options = Readonly<{moon: unknown; portalId: string; installedFor(member: HubSpotUpdateMember): InstalledHubSpotUpdateMapping;
+type Options = Readonly<{moon: unknown; portalId: string; installedFor(member: HubSpotUpdateMember): InstalledHubSpotUpdateMapping | undefined;
   requests: RequestPorts; limits: unknown; maxRows?: number}>;
 type CatalogSlot = 'schema' | 'schema-before' | 'schema-after';
 export type HubSpotReadSlot = 'account' | CatalogSlot | 'target';
