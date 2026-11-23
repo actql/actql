@@ -8177,7 +8177,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "c788f4794c929646137ae37cf9f6f988343e66f74807e038c81a30a80194cdd9",
+      "sha256": "f0ffc2d039871ed1631c059e220936810d8768f54be7371d29ed411462d547e4",
       "exports": [
         "createKintoneUpdateRequestAdapter"
       ],

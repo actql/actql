@@ -3120,3 +3120,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/kintone/site/kintone-managed-sequence.d.mts
 /adapters/connectors/kintone/host/installed-kintone-source.mjs
 /adapters/connectors/kintone/host/installed-kintone-source.d.mts
+/adapters/connectors/kintone/host/kintone-update-request.mjs
+/adapters/connectors/kintone/host/kintone-update-request.d.mts
