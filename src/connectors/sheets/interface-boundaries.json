@@ -2,7 +2,7 @@
   {
     "module": "adapters/connectors/sheets/host/installed-sheets.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "08e2ab203c1a3ccbf26dd86b9ce5006eafeded8a67d0f4f9594ca3c8120296f9",
+    "sha256": "4bff87ba49f4f3dc3ed2af0d2a5452dc0efc3d076503db2583b61ceeeff86e78",
     "exports": [
       "SHEETS_EFFECT_VERSION",
       "SHEETS_SITE_VERSION",
@@ -437,7 +437,7 @@
               "anchor": "## Declaration and configuration"
             },
             {
-              "path": "adapters/connectors/sheets/host/installed-sheets.mjs",
+              "path": "adapters/connectors/sheets/host/installed-sheets.mts",
               "anchor": "restore("
             }
           ],
@@ -597,7 +597,7 @@
               "anchor": "## Physical exchange and lifecycle"
             },
             {
-              "path": "adapters/connectors/sheets/host/installed-sheets.mjs",
+              "path": "adapters/connectors/sheets/host/installed-sheets.mts",
               "anchor": "restore("
             }
           ],
@@ -7082,7 +7082,7 @@
           ],
           "extension": [
             {
-              "path": "adapters/connectors/sheets/host/installed-sheets.mjs",
+              "path": "adapters/connectors/sheets/host/installed-sheets.mts",
               "anchor": "function bindSheetsAppendConstructionProfile("
             }
           ],
@@ -7654,7 +7654,7 @@
           ],
           "extension": [
             {
-              "path": "adapters/connectors/sheets/host/installed-sheets.mjs",
+              "path": "adapters/connectors/sheets/host/installed-sheets.mts",
               "anchor": "function prepareInitializedSheetsEffectDriver("
             }
           ],

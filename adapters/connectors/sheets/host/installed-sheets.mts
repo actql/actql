@@ -22,6 +22,85 @@ import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
   withSheetsRangeCommand, sheetsRangeConfigurationBytes} from './sheets-range-command.mjs';
 import {createSheetsClearDriver, sheetsClearCommand} from './sheets-clear-command.mjs';
 import {sheetsOwnedResult} from '../site/sheets-owned-request.mjs';
+import type {SheetsCommandDeclaration} from './sheets-range-command.mjs';
+import type {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+
+type Grid = Parameters<typeof prepareSheetsGridPages>[0];
+type Target = Parameters<typeof prepareSheetsRangeTargetPages>[0];
+type RowSource = Parameters<typeof createInstalledRowSource>[0];
+type RowEffect = Parameters<typeof createInstalledRowEffect>[0];
+type SiteOptions = Parameters<typeof openRowSourceCredentialSite>[0];
+// The Sheets site uses the ordinary grant owner. Neither opening path
+// selects the metadata-only construction arm of the shared Site factory.
+type RowSite = Extract<Awaited<ReturnType<typeof openRowSourceCredentialSite>>, RowEffect['site']>;
+type SiteSelection = Readonly<{
+  authorization: Awaited<ReturnType<typeof installRowSourceAuthorization>>;
+  site: RowSite;
+}>;
+type Common = RowSource['moon'] & Parameters<typeof rowSourceMapping>[0] & Readonly<{
+  clientProgramRowSourceRestoreRelationDeclaration(connector: string, registration: string,
+    revision: string, views: string, expectedCatalogCid: undefined): unknown;
+  clientProgramRowSourceRestoreDeclaration(connector: string, registration: string,
+    revision: string, views: string, expectedCatalogCid: string | undefined): unknown;
+  clientProgramRowSourceDeclarationJson(declaration: unknown): string;
+  clientProgramResourceReferenceIssuer(admits: (kind: string, wire: string) => boolean, current: () => boolean): unknown;
+}>;
+type Provider = Grid['moon'] & Target['moon'] & Parameters<typeof prepareSheetsAppend>[0]['moon'] &
+  Parameters<typeof projectSheetsAppend>[0]['moon'] & Parameters<typeof sheetsRangeCommand>[2] &
+  Parameters<typeof sheetsClearCommand>[2] & Parameters<typeof withSheetsRangeCommand>[2];
+type SourceMapping = Readonly<{target: string; field: string; null_behavior: 'reject'}>;
+type Profile = Readonly<{
+  version: typeof SHEETS_SOURCE_VERSION | typeof SHEETS_EFFECT_VERSION;
+  siteProfilePath: string; publicationPath: string; connectorId: string; accountConfigurationWire: string;
+  rangeCommand?: true | 'clear'; sources?: readonly SourceMapping[];
+}>;
+type SiteInput = Readonly<{
+  version: typeof SHEETS_SITE_VERSION; caPath?: string;
+  apiOrigin: string; spreadsheetId: string; gridRange: Grid['range']; appendSheetId: number;
+  columns: Grid['columns']; namespaceId: string; environment: string; siteKey: string; siteGeneration: number;
+  credentialAuthorityId: string; credentialKeyId: string; credentialPrivateKeyPath: string;
+  journalRoot: string; tokenEnvironment: string;
+}>;
+type Site = Omit<SiteInput, 'version' | 'caPath'> & Readonly<{ca: SiteOptions['ca']}>;
+type Read = (path: string, options: Readonly<{maxBytes: number}>) => unknown;
+type ConfigurationReads = ReturnType<typeof captureConfigurationReaders> &
+  Readonly<{readOriginalBytes?: (path: string) => unknown}>;
+type ReadIdentity = (path: string) => unknown;
+type Options = Readonly<{
+  root: string; principalId: SiteOptions['principalId']; moon: Common; providerMoon: Provider;
+  runtimeBundleCid: RowEffect['runtimeBundleCid']; ledgerRoot: RowEffect['ledgerRoot'];
+  installation?: RowEffect['installation'] & Readonly<{responseHeaders?: readonly string[]}>;
+  configurationReader?: unknown; sourceInitialization?: object; installationServices?: object;
+  resolveSecret?: SiteOptions['resolveSecret']; signal?: AbortSignal; runAcquisitionLimits?: unknown;
+}>;
+type ManagedOptions = Options & Readonly<{sourceInitialization: object; installationServices: object}>;
+type Publication = Readonly<{
+  version: typeof publicationVersion; connectorId: string; catalogCid: string;
+  binding: ReturnType<typeof bindingFacts>; publication_cid: string;
+}>;
+type Prepared = Pick<RowSource, 'declaration' | 'declared' | 'commands'> &
+  Readonly<{environment: Readonly<{wire: string}>; commandDefinition?: SheetsCommandDeclaration; rangeCommand?: SheetsCommandDeclaration}>;
+type Restored = Pick<Prepared, 'declaration' | 'declared' | 'rangeCommand'>;
+type Mapping = ReturnType<typeof rowSourceMapping>;
+type ManagedMapping = Readonly<{environment: Prepared['environment']; mappings: RowEffect['mappings']}>;
+type Reader = ReturnType<typeof createInstalledCredentialSourceReader>;
+type PageProjection = Parameters<typeof prepareSheetsGridPages>[1];
+type ReaderImplementation = Readonly<{capacity: unknown; runAcquisitionLimits: unknown}>;
+type ServiceInputs = Readonly<Record<string, unknown>>;
+type SourceServices = {
+  (name: 'sourceReaderImplementation', options: ServiceInputs): ReaderImplementation;
+  (name: 'createSourceReader', options: ServiceInputs): Reader;
+};
+type CommandName = 'sheetsClearCommandJson' | 'sheetsRangeCommandJson';
+type CodecLimits = readonly [bytes: number, nodes: number, depth: number, cells: number];
+type CodecMethod = (...args: unknown[]) => unknown;
+type ReferenceCodec = Parameters<typeof sheetsRangeReference>[0]['moon'];
+type RangeDriverCodec = Parameters<typeof createSheetsRangeDriver>[0]['moon'];
+type ClearDriverCodec = Parameters<typeof createSheetsClearDriver>[0]['moon'];
+type EffectDriver = ReturnType<typeof createSheetsRangeDriver> | ReturnType<typeof createSheetsClearDriver>;
+type WriteProjection = Omit<Parameters<typeof projectSheetsAppend>[0], 'moon'>;
+type ApprovalBinding = Readonly<{version?: unknown; resource?: unknown; catalog_cid?: unknown;
+  binding?: unknown; fields?: unknown}> | null | undefined;
 
 export const SHEETS_SITE_VERSION = 'actql-installed-sheets-site/0.1';
 export const SHEETS_SOURCE_VERSION = 'actql-installed-sheets-source/0.1';
@@ -29,12 +108,13 @@ export const SHEETS_EFFECT_VERSION = 'actql-installed-sheets-effect/0.1';
 const registration = 'sheets', revision = 'sheets/0.1';
 const publicationVersion = 'actql-sheets-publication/0.1';
 const targetVersion = 'actql-installed-sheets-target/0.1';
-const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
-const text = value => typeof value === 'string' && value.length > 0;
-const absolute = value => text(value) && isAbsolute(value);
-const gridIndex = value => Number.isInteger(value) && value >= 0 && value <= 2_147_483_647;
-const exact = (value, keys) => value && typeof value === 'object' &&
-  !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const absolute = (value: unknown): value is string => text(value) && isAbsolute(value);
+const gridIndex = (value: unknown): value is number => Number.isInteger(value) && (value as number) >= 0 && (value as number) <= 2_147_483_647;
+const exact = (value: unknown, keys: readonly string[]): value is Record<string, unknown> =>
+  (value && typeof value === 'object' &&
+  !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0')) as boolean;
 const sourceKeys = ['version', 'siteProfilePath', 'publicationPath',
   'connectorId', 'accountConfigurationWire'];
 const siteKeys = ['apiOrigin', 'spreadsheetId', 'gridRange', 'appendSheetId',
@@ -42,8 +122,9 @@ const siteKeys = ['apiOrigin', 'spreadsheetId', 'gridRange', 'appendSheetId',
   'credentialAuthorityId', 'credentialKeyId', 'credentialPrivateKeyPath',
   'journalRoot', 'tokenEnvironment'];
 
-function checkProfile(profile, effect) {
-  const rangeCommand = profile?.rangeCommand === true || profile?.rangeCommand === 'clear';
+function checkProfile(profile: unknown, effect: boolean): Profile {
+  const rangeCommand = (profile as Partial<Profile> | null | undefined)?.rangeCommand === true ||
+    (profile as Partial<Profile> | null | undefined)?.rangeCommand === 'clear';
   if (!exact(profile, rangeCommand ? [...sourceKeys, 'rangeCommand']
     : effect ? [...sourceKeys, 'sources'] : sourceKeys) ||
       profile.version !== (effect ? SHEETS_EFFECT_VERSION : SHEETS_SOURCE_VERSION) ||
@@ -57,24 +138,24 @@ function checkProfile(profile, effect) {
         !text(source.target) || !text(source.field) || source.null_behavior !== 'reject'))) {
     fail('InvalidInstalledEffectProfile');
   }
-  return Object.freeze({...profile});
+  return Object.freeze({...profile}) as Profile;
 }
-export const checkInstalledSheetsSourceProfile = profile => checkProfile(profile, false);
-export const checkInstalledSheetsEffectProfile = profile => checkProfile(profile, true);
+export const checkInstalledSheetsSourceProfile = (profile: unknown) => checkProfile(profile, false);
+export const checkInstalledSheetsEffectProfile = (profile: unknown) => checkProfile(profile, true);
 
-async function readJson(path, originalRead) {
+async function readJson(path: string, originalRead?: Read) {
   if (originalRead !== undefined) return originalRead(path, {maxBytes: 1_048_576});
   const bytes = await readFile(path);
   if (bytes.length > 1_048_576) fail('SheetsConfigurationLimit');
-  return JSON.parse(bytes.toString('utf8'));
+  return JSON.parse(bytes.toString('utf8')) as unknown;
 }
-async function readSite(path, providerMoon, configurationReader) {
+async function readSite(path: string, providerMoon: Provider, configurationReader?: unknown): Promise<Site> {
   // Select original methods before the first awaited read, including the
   // exact-byte CA reader. A mutable adapter cannot swap it after Site input.
   const readers = configurationReader === undefined ? undefined
     : captureConfigurationReaders(configurationReader, undefined,
-      () => fail('InstalledSheetsConfigurationReaderUnavailable'));
-  const {version, caPath, ...site} = await readJson(path, readers?.readJson);
+      () => fail('InstalledSheetsConfigurationReaderUnavailable')) as ConfigurationReads;
+  const {version, caPath, ...site} = await readJson(path, readers?.readJson as Read | undefined) as SiteInput;
   let origin;
   try { origin = new URL(site.apiOrigin); } catch { /* Refused below. */ }
   if (version !== SHEETS_SITE_VERSION || !exact(site, siteKeys) ||
@@ -97,48 +178,55 @@ async function readSite(path, providerMoon, configurationReader) {
     fail('InstalledSheetsConfigurationReaderUnavailable');
   }
   return Object.freeze({...site, columns, ca: caPath === undefined ? undefined
-    : await (readers === undefined ? readFile(caPath) : readers.readOriginalBytes(caPath))});
+    : await (readers === undefined ? readFile(caPath) : readers.readOriginalBytes!(caPath)) as SiteOptions['ca']});
 }
 
 // The SAME original native command/catalog builders remain the semantic
 // owners. Capture all methods before the Source reserve/current boundary;
 // retain their returned canonical wires instead of serializing the projection
 // again merely to estimate or assemble its one Environment.
-function prepareInitializedSheetsCommandDeclaration(sourceInitialization, providerMoon, profile, site, viewsWire, expectedCatalogCid) {
+function prepareInitializedSheetsCommandDeclaration(sourceInitialization: object, providerMoon: Provider,
+  profile: Profile, site: Site, viewsWire: string, expectedCatalogCid: string | undefined): Prepared {
   const constructor = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareDeclaredCommands');
   if (!constructor || !Object.hasOwn(constructor, 'value') || typeof constructor.value !== 'function') {
     fail('InstalledSheetsInitializationUnavailable');
   }
   const commandName = profile.rangeCommand === 'clear' ? 'sheetsClearCommandJson' : 'sheetsRangeCommandJson';
-  const names = [commandName, 'sheetsRangeCatalogJson', 'sheetsRangeFailureJson', 'sheetsRangeDeclarationConstructionCapacity'];
+  const names = [commandName, 'sheetsRangeCatalogJson', 'sheetsRangeFailureJson', 'sheetsRangeDeclarationConstructionCapacity'] as const;
   const originals = Object.fromEntries(names.map(name => [name, checkedSourceMethod(providerMoon, name)]));
   const native = Object.freeze(Object.fromEntries(names.map(name => [name,
-    (...args) => Reflect.apply(originals[name], providerMoon, args)])));
+    (...args: unknown[]) => Reflect.apply(originals[name], providerMoon, args)]))) as
+    Pick<Provider, CommandName | 'sheetsRangeCatalogJson' | 'sheetsRangeFailureJson'> &
+    Readonly<{sheetsRangeDeclarationConstructionCapacity(...sizes: number[]): unknown}>;
   const columnsWire = JSON.stringify(site.columns), rangeWire = JSON.stringify(site.gridRange);
   const connectorId = profile.connectorId;
-  const limits = [SHEETS_LIMITS.maxResponseBytes, SHEETS_LIMITS.maxNodes, SHEETS_LIMITS.maxDepth, SHEETS_LIMITS.maxCells];
+  const limits = [SHEETS_LIMITS.maxResponseBytes, SHEETS_LIMITS.maxNodes, SHEETS_LIMITS.maxDepth, SHEETS_LIMITS.maxCells] as const satisfies CodecLimits;
   const projection = Object.freeze({
-    capacity(declaredWire) {
+    capacity(declaredWire: string) {
       return native.sheetsRangeDeclarationConstructionCapacity(Buffer.byteLength(columnsWire), site.columns.length,
         Buffer.byteLength(rangeWire), Buffer.byteLength(connectorId), Buffer.byteLength(declaredWire));
     },
-    project(declaredWire) {
+    project(declaredWire: string) {
       const definitionWire = sheetsOwnedResult(native,
-        native[commandName](connectorId, columnsWire, rangeWire, ...limits));
+        native[commandName](connectorId, columnsWire, rangeWire, ...limits)) as string;
       const wire = sheetsOwnedResult(native, native.sheetsRangeCatalogJson(declaredWire, definitionWire, ...limits));
-      const definition = Object.freeze(JSON.parse(definitionWire));
-      return Object.freeze({declared: Object.freeze(JSON.parse(wire)), wire,
+      const definition = Object.freeze(JSON.parse(definitionWire) as SheetsCommandDeclaration);
+      return Object.freeze({declared: Object.freeze(JSON.parse(wire as string) as Prepared['declared']), wire,
         commands: Object.freeze([definition.installed]), definition});
     },
   });
-  return Reflect.apply(constructor.value, sourceInitialization, [viewsWire, projection, expectedCatalogCid]);
+  return Reflect.apply(constructor.value, sourceInitialization, [viewsWire, projection, expectedCatalogCid]) as Prepared;
 }
 
-function restore(moon, providerMoon, profile, site, expectedCatalogCid, sourceInitialization) {
+function restore(moon: Common, providerMoon: Provider, profile: Profile, site: Site): Restored;
+function restore(moon: Common, providerMoon: Provider, profile: Profile, site: Site,
+  expectedCatalogCid: string | undefined, sourceInitialization: object): Prepared;
+function restore(moon: Common, providerMoon: Provider, profile: Profile, site: Site,
+  expectedCatalogCid?: string, sourceInitialization?: object): Restored | Prepared {
   if (profile.rangeCommand) {
     const schema = Object.fromEntries(site.columns.map(({name, type, nullable}) =>
       [name, {type, nullable}]));
-    const view = (resource, resource_kind, schema) => ({resource, resource_kind,
+    const view = (resource: string, resource_kind: string, schema: object) => ({resource, resource_kind,
       schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)});
     const views = {views: [view('rows', 'sheet_rows', schema),
       view('range_target', 'sheet_range', {
@@ -152,7 +240,7 @@ function restore(moon, providerMoon, profile, site, expectedCatalogCid, sourceIn
     const rangeCommand = (profile.rangeCommand === 'clear' ? sheetsClearCommand : sheetsRangeCommand)(
       profile.connectorId, site, providerMoon);
     const declared = withSheetsRangeCommand(
-      JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration)), rangeCommand, providerMoon);
+      JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration)), rangeCommand, providerMoon) as Restored['declared'];
     if (expectedCatalogCid !== undefined && expectedCatalogCid !== declared.catalog_cid) {
       fail('SheetsPublicationBindingChanged');
     }
@@ -165,14 +253,18 @@ function restore(moon, providerMoon, profile, site, expectedCatalogCid, sourceIn
     if (!constructor || !Object.hasOwn(constructor, 'value') || typeof constructor.value !== 'function') {
       fail('InstalledSheetsInitializationUnavailable');
     }
-    return Reflect.apply(constructor.value, sourceInitialization, [views, expectedCatalogCid]);
+    return Reflect.apply(constructor.value, sourceInitialization, [views, expectedCatalogCid]) as Prepared;
   }
   const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
     profile.connectorId, registration, revision, views, expectedCatalogCid));
-  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration)) as Restored['declared'];
   return {declaration, declared};
 }
-function mappingOf(moon, profile, site, declaration, sourceInitialization) {
+function mappingOf(moon: Common, profile: Profile, site: Site, declaration: unknown): Mapping;
+function mappingOf(moon: Common, profile: Profile, site: Site, declaration: unknown,
+  sourceInitialization: object): ManagedMapping;
+function mappingOf(moon: Common, profile: Profile, site: Site, declaration: unknown,
+  sourceInitialization?: object): Mapping | ManagedMapping {
   const writes = JSON.stringify({writes: [{resource: 'append_rows',
     resource_kind: 'sheet_collection', primary_identity: null,
     collection_identity: {spreadsheet_id: site.spreadsheetId, sheet_id: site.appendSheetId},
@@ -184,27 +276,27 @@ function mappingOf(moon, profile, site, declaration, sourceInitialization) {
     if (!constructor || !Object.hasOwn(constructor, 'value') || typeof constructor.value !== 'function') {
       fail('InstalledSheetsInitializationUnavailable');
     }
-    const sources = Object.freeze(profile.sources.map(source => Object.freeze({...source})));
+    const sources = Object.freeze(profile.sources!.map(source => Object.freeze({...source})));
     return Reflect.apply(constructor.value, sourceInitialization,
-      [writes, Object.freeze([Object.freeze({resource: 'append_rows', sources})])]);
+      [writes, Object.freeze([Object.freeze({resource: 'append_rows', sources})])]) as ManagedMapping;
   }
-  return rowSourceMapping(moon, declaration, writes, 'append_rows', profile.sources);
+  return rowSourceMapping(moon, declaration, writes, 'append_rows', profile.sources!);
 }
-const bindingFacts = site => ({api_origin: site.apiOrigin,
+const bindingFacts = (site: Site) => ({api_origin: site.apiOrigin,
   spreadsheet_id: site.spreadsheetId, read_grid: site.gridRange,
   append_sheet_id: site.appendSheetId, columns: site.columns});
 
-async function identityParts(profile, read) {
+async function identityParts(profile: Profile, read: ReadIdentity) {
   return [{...profile, accountConfigurationWire: JSON.parse(profile.accountConfigurationWire)},
     await read(profile.siteProfilePath), await read(profile.publicationPath)];
 }
-export const installedSheetsSourceIdentityParts = (profile, providerProfile, read) =>
+export const installedSheetsSourceIdentityParts = (profile: unknown, providerProfile: unknown, read: ReadIdentity) =>
   identityParts(checkInstalledSheetsSourceProfile(providerProfile), read);
-export const installedSheetsEffectIdentityParts = (profile, read) =>
+export const installedSheetsEffectIdentityParts = (profile: unknown, read: ReadIdentity) =>
   identityParts(checkInstalledSheetsEffectProfile(profile), read);
 
-async function readPublication(profile, site, declared, originalRead) {
-  const publication = await readJson(profile.publicationPath, originalRead);
+async function readPublication(profile: Profile, site: Site, declared: Restored['declared'], originalRead: Read | undefined): Promise<Publication> {
+  const publication = await readJson(profile.publicationPath, originalRead) as Publication;
   const {publication_cid, ...preimage} = publication;
   if (!exact(publication, ['version', 'connectorId', 'catalogCid', 'binding', 'publication_cid']) ||
       publication.version !== publicationVersion || publication.connectorId !== profile.connectorId ||
@@ -215,7 +307,8 @@ async function readPublication(profile, site, declared, originalRead) {
   return publication;
 }
 
-async function openSite(profile, site, options, publication, installationServices) {
+async function openSite(profile: Profile, site: Site, options: Options, publication?: Publication,
+  installationServices?: object) {
   const {root, principalId, moon, runtimeBundleCid, installation} = options;
   const connection = `sheets:${new URL(site.apiOrigin).host}/${site.spreadsheetId}`;
   const configuration = {profile: Object.freeze({...site, resourceOrigin: site.apiOrigin}),
@@ -225,13 +318,13 @@ async function openSite(profile, site, options, publication, installationService
       if (!text(token)) fail('RemoteCredentialSecretUnavailable');
       return token;
     }),
-    admitsApprovalTarget: (binding, resource) => publication !== undefined &&
-      (resource === 'rows' || (profile.rangeCommand && resource === 'range_target' && binding.resource === resource)) &&
+    admitsApprovalTarget: ((binding: ApprovalBinding, resource: string) => publication !== undefined &&
+      (resource === 'rows' || (profile.rangeCommand && resource === 'range_target' && binding!.resource === resource)) &&
       binding?.version === targetVersion && binding.catalog_cid === publication.catalogCid &&
       canonicalJson(binding.binding) === canonicalJson(bindingFacts(site)) &&
       Array.isArray(binding.fields) && binding.fields.every(field => resource === 'range_target'
-        ? field === 'target' : site.columns.some(column => column.name === field))};
-  let authorization, opened;
+        ? field === 'target' : site.columns.some(column => column.name === field))) as NonNullable<SiteOptions['admitsApprovalTarget']>};
+  let authorization: SiteSelection['authorization'], opened: SiteSelection['site'];
   if (installationServices !== undefined) {
     const open = Object.getOwnPropertyDescriptor(installationServices, 'openRowSite');
     if (!open || !Object.hasOwn(open, 'value') || typeof open.value !== 'function') {
@@ -242,14 +335,14 @@ async function openSite(profile, site, options, publication, installationService
       ...(options.sourceInitialization === undefined ? {} : {sourceInitialization: options.sourceInitialization}),
       accountConfiguration: profile.accountConfigurationWire,
       ...(options.runAcquisitionLimits === undefined ? {} : {runAcquisitionLimits:options.runAcquisitionLimits}),
-      connection, ...configuration}]));
+      connection, ...configuration}]) as SiteSelection);
   } else {
     authorization = await installRowSourceAuthorization({
       accountConfiguration: profile.accountConfigurationWire, principalId, root,
       connectorRegistration: registration});
     opened = await openRowSourceCredentialSite({...configuration, principalId, authorization,
       connection, connectorRegistration: registration, connectorRevision: revision,
-      runtimeBundleCid, commonMoon: moon});
+      runtimeBundleCid, commonMoon: moon}) as RowSite;
   }
   const bindingCid = contentCid({version: 'actql-installed-sheets-binding/0.1',
     context_cid: authorization.context.contextCid, binding: bindingFacts(site),
@@ -259,14 +352,14 @@ async function openSite(profile, site, options, publication, installationService
   return {authorization, site: opened, connection, bindingCid};
 }
 
-async function publish(profile, options) {
+async function publish(profile: Profile, options: Options) {
   const site = await readSite(profile.siteProfilePath, options.providerMoon);
   const {declaration, declared, rangeCommand} = restore(options.moon, options.providerMoon, profile, site);
   // Validate all Mapping declarations before any provider I/O.
   const mapping = profile.sources === undefined ? undefined
     : mappingOf(options.moon, profile, site, declaration);
   const opened = await openSite(profile, site, options);
-  let temporary;
+  let temporary: string | undefined;
   try {
     const resource = profile.rangeCommand ? 'range_target' : 'rows';
     const decision = await opened.authorization.authorize('acquisition',
@@ -311,15 +404,15 @@ async function publish(profile, options) {
       }}});
   }
 }
-export const publishInstalledSheetsSource = (profile, options) =>
+export const publishInstalledSheetsSource = (profile: unknown, options: Options) =>
   publish(checkInstalledSheetsSourceProfile(profile), options);
-export const publishInstalledSheetsEffect = (profile, options) =>
+export const publishInstalledSheetsEffect = (profile: unknown, options: Options) =>
   publish(checkInstalledSheetsEffectProfile(profile), options);
 
 // Bind the existing native constructor once to the SAME validated private
 // installation metadata. The original Plan supplies its existing input bound;
 // the complete returned Option/tuple stays opaque until Core consumes it.
-function bindSheetsAppendConstructionProfile(providerMoon, columns) {
+function bindSheetsAppendConstructionProfile(providerMoon: Provider, columns: Grid['columns']) {
   if (providerMoon === null || !['object', 'function'].includes(typeof providerMoon) ||
       nodeTypes.isProxy(providerMoon)) fail('InstalledStandardCreateRuntimeUnavailable');
   const native = Object.getOwnPropertyDescriptor(providerMoon, 'sheetsAppendRequestConstructionProfile');
@@ -329,7 +422,7 @@ function bindSheetsAppendConstructionProfile(providerMoon, columns) {
   }
   const schemaBytes = Buffer.byteLength(JSON.stringify(columns), 'utf8');
   const columnCount = columns.length;
-  return Object.freeze({installedStandardCreateConstructionProfile(inputWireBytes, inputNodes, inputDepth) {
+  return Object.freeze({installedStandardCreateConstructionProfile(inputWireBytes: number, inputNodes: number, inputDepth: number) {
     return Reflect.apply(native.value, providerMoon, [schemaBytes, columnCount, inputWireBytes, inputNodes, inputDepth,
       SHEETS_LIMITS.maxRequestBytes, SHEETS_LIMITS.maxResponseBytes,
       SHEETS_LIMITS.maxNodes, SHEETS_LIMITS.maxDepth]);
@@ -338,7 +431,7 @@ function bindSheetsAppendConstructionProfile(providerMoon, columns) {
 
 // Preserve this implementation's existing response/cell limits. These are
 // rejection/representation bounds, not user resource knobs or an admission.
-function sheetsGridReaderLimits(site, publication, secretBytes, rangeCommand = false) {
+function sheetsGridReaderLimits(site: Site, publication: Publication, secretBytes: number, rangeCommand = false) {
   const rows = SHEETS_LIMITS.maxRows, columns = site.columns.length;
   const names = site.columns.map(column => column.name);
   const target = {version: targetVersion, catalog_cid: publication.catalogCid,
@@ -364,7 +457,8 @@ function sheetsGridReaderLimits(site, publication, secretBytes, rangeCommand = f
     maxRowsWireNodes:1+rows*(columns+1),maxRowsWireDepth:4,maxSecretBytes:secretBytes});
 }
 
-function prepareInitializedSheetsReadTarget(sourceInitialization, providerMoon, site, catalogCid, bindingCid) {
+function prepareInitializedSheetsReadTarget(sourceInitialization: object, providerMoon: Provider,
+  site: Site, catalogCid: string, bindingCid: string): ReturnType<typeof sheetsRangeReference> {
   const field = Object.getOwnPropertyDescriptor(sourceInitialization, 'prepareReadTarget');
   if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') {
     fail('InstalledSheetsInitializationUnavailable');
@@ -372,7 +466,8 @@ function prepareInitializedSheetsReadTarget(sourceInitialization, providerMoon, 
   const names = ['sheetsRangeReferenceConstructionCapacity', 'sheetsRangeReferenceJson', 'sheetsRangeFailureJson'];
   const originals = Object.fromEntries(names.map(name => [name, checkedSourceMethod(providerMoon, name)]));
   const native = Object.freeze(Object.fromEntries(names.map(name => [name,
-    (...args) => Reflect.apply(originals[name], providerMoon, args)])));
+    (...args: unknown[]) => Reflect.apply(originals[name], providerMoon, args)]))) as ReferenceCodec &
+    Readonly<{sheetsRangeReferenceConstructionCapacity(originBytes: number, spreadsheetBytes: number): unknown}>;
   return Reflect.apply(field.value, sourceInitialization, [Object.freeze({
     capacity() {
       return native.sheetsRangeReferenceConstructionCapacity(Buffer.byteLength(site.apiOrigin),
@@ -381,10 +476,12 @@ function prepareInitializedSheetsReadTarget(sourceInitialization, providerMoon, 
     project() {
       return sheetsRangeReference({site, catalogCid, bindingCid, moon: native});
     },
-  })]);
+  })]) as ReturnType<typeof sheetsRangeReference>;
 }
 
-function prepareInitializedSheetsEffectDriver(sourceInitialization, providerMoon, site, catalogCid, bindingCid, command, clear, isCurrent) {
+function prepareInitializedSheetsEffectDriver(sourceInitialization: object, providerMoon: Provider,
+  site: Site, catalogCid: string, bindingCid: string, command: SheetsCommandDeclaration['installed'],
+  clear: boolean, isCurrent: () => boolean): Readonly<{target: ReturnType<typeof sheetsRangeReference>; driver: EffectDriver}> {
   const constructor = checkedSourceMethod(sourceInitialization, 'prepareEffectDriverConstruction');
   const names = ['sheetsRangeInstallationConstructionCapacity', 'sheetsRangeReferenceJson', 'sheetsRangeFailureJson',
     ...(clear ? ['sheetsClearBinding', 'sheetsClearPrepare', 'sheetsClearTargetMatches',
@@ -397,7 +494,8 @@ function prepareInitializedSheetsEffectDriver(sourceInitialization, providerMoon
   // reenter. Both the retained binding and its later Plan use this view.
   const originals = Object.fromEntries(names.map(name => [name, checkedSourceMethod(providerMoon, name)]));
   const native = Object.freeze(Object.fromEntries(names.map(name => [name,
-    (...args) => Reflect.apply(originals[name], providerMoon, args)])));
+    (...args: unknown[]) => Reflect.apply(originals[name], providerMoon, args)]))) as ReferenceCodec & RangeDriverCodec & ClearDriverCodec &
+    Readonly<{sheetsRangeInstallationConstructionCapacity(...sizes: number[]): unknown}>;
   const configurationBytes = sheetsRangeConfigurationBytes(site);
   return Reflect.apply(constructor, sourceInitialization, [Object.freeze({
     capacity() {
@@ -410,13 +508,14 @@ function prepareInitializedSheetsEffectDriver(sourceInitialization, providerMoon
         command, bindingCid, target, isCurrent});
       return Object.freeze({target, driver});
     },
-  })]);
+  })]) as Readonly<{target: ReturnType<typeof sheetsRangeReference>; driver: EffectDriver}>;
 }
 
-async function loadManagedSheetsGridSource(profile, options, site, publication, prepared) {
+async function loadManagedSheetsGridSource(profile: Profile, options: ManagedOptions, site: Site,
+  publication: Publication, prepared: Prepared) {
   const {moon,providerMoon,sourceInitialization,installation,installationServices}=options;
   const services=captureInstalledSourceServices(installationServices,()=>Object.assign(
-    new Error('InstalledSheetsSourceServicesUnavailable'),{code:'InstalledSheetsSourceServicesUnavailable'}));
+    new Error('InstalledSheetsSourceServicesUnavailable'),{code:'InstalledSheetsSourceServicesUnavailable'})) as SourceServices;
   const policy=checkedSourceMethod(moon,'clientProgramInstalledSourceReaderPolicy');
   const selected=Reflect.apply(policy,moon,[]);
   if(!Array.isArray(selected)||selected.length!==3||selected.some(n=>!Number.isSafeInteger(n)||n<1)) {
@@ -432,7 +531,7 @@ async function loadManagedSheetsGridSource(profile, options, site, publication, 
   const requestConstruction=Object.freeze({capacity:requestCapacity,maxRequestBytes:SHEETS_LIMITS.maxRequestBytes});
   const implementation=services('sourceReaderImplementation',{installation,sourceInitialization,limits,
     columnCount:site.columns.length,preservingRequestConstruction:requestConstruction});
-  let opened,providerReader,closed=false;
+  let opened: Awaited<ReturnType<typeof openSite>> | undefined,providerReader: Reader | undefined,closed=false;
   try {
     opened=await openSite(profile,site,{...options,runAcquisitionLimits:implementation.runAcquisitionLimits},
       publication,installationServices);
@@ -441,12 +540,13 @@ async function loadManagedSheetsGridSource(profile, options, site, publication, 
     const targetWire=target===undefined?undefined:canonicalJson(target);
     const targetSite=opened.site;
     const referenceCurrent=target===undefined?undefined:checkedSourceMethod(targetSite,'referenceCurrent');
-    const targetCurrent=()=>!closed&&Reflect.apply(referenceCurrent,targetSite,[])===true;
+    const targetCurrent=()=>!closed&&Reflect.apply(referenceCurrent!,targetSite,[])===true;
     providerReader=services('createSourceReader',{installation,sourceInitialization,implementation,site:opened.site,
-      operation:SHEETS_READ_OPERATION,preparePageReader({resource,columns},applySynchronousProjection){
+      operation:SHEETS_READ_OPERATION,preparePageReader({resource,columns}: Readonly<{resource: string; columns: readonly string[]}>,
+        applySynchronousProjection: PageProjection){
         if(rangeCommand&&resource==='range_target')return prepareSheetsRangeTargetPages({moon:providerMoon,
           spreadsheetId:site.spreadsheetId,columns:site.columns,range:site.gridRange,names:columns,
-          limits:SHEETS_LIMITS,target},applySynchronousProjection);
+          limits:SHEETS_LIMITS,target: target!},applySynchronousProjection);
         if(resource!=='rows')fail('UndeclaredSheetsResource');
         return prepareSheetsGridPages({moon:providerMoon,spreadsheetId:site.spreadsheetId,
           columns:site.columns,range:site.gridRange,names:columns,limits:SHEETS_LIMITS},applySynchronousProjection);
@@ -472,33 +572,33 @@ async function loadManagedSheetsGridSource(profile, options, site, publication, 
     {sourceReader:providerReader,sourceProfile:opened?.site});}
 }
 
-function checkedSourceMethod(receiver,name) {
+function checkedSourceMethod(receiver: object,name: string): CodecMethod {
   if(receiver===null||!['object','function'].includes(typeof receiver)||nodeTypes.isProxy(receiver)) {
     fail('InstalledSheetsSourceRuntimeUnavailable');
   }
   const field=Object.getOwnPropertyDescriptor(receiver,name);
   if(!field||!Object.hasOwn(field,'value')||typeof field.value!=='function'||
       nodeTypes.isProxy(field.value)||nodeTypes.isAsyncFunction(field.value))fail('InstalledSheetsSourceRuntimeUnavailable');
-  return field.value;
+  return field.value as CodecMethod;
 }
 
-async function load(profile, options, effect) {
+async function load(profile: Profile, options: Options, effect: boolean) {
   const {moon, providerMoon, sourceInitialization, configurationReader} = options;
   if (sourceInitialization === undefined) fail('InstalledSheetsInitializationUnavailable');
   if (configurationReader === undefined) fail('InstalledSheetsConfigurationReaderUnavailable');
   if (options.installationServices === undefined) fail('InvalidInstalledEffectSiteServices');
   const readers = captureConfigurationReaders(configurationReader, undefined,
-    () => fail('InstalledSheetsConfigurationReaderUnavailable'));
+    () => fail('InstalledSheetsConfigurationReaderUnavailable')) as ConfigurationReads;
   const site = await readSite(profile.siteProfilePath, providerMoon, readers);
   const restored = restore(moon, providerMoon, profile, site, undefined, sourceInitialization);
   const {declaration, declared} = restored;
   const rangeCommand = restored.commandDefinition ?? restored.rangeCommand;
-  const publication = await readPublication(profile, site, declared, readers?.readJson);
+  const publication = await readPublication(profile, site, declared, readers?.readJson as Read | undefined);
   const prepared = effect && rangeCommand === undefined
     ? mappingOf(moon, profile, site, declaration, sourceInitialization) : undefined;
   const mappings = prepared?.mappings;
-  const environment = effect && rangeCommand === undefined ? prepared.environment : restored.environment;
-  if (!effect) return loadManagedSheetsGridSource(profile, options, site, publication, restored);
+  const environment = effect && rangeCommand === undefined ? prepared!.environment : restored.environment;
+  if (!effect) return loadManagedSheetsGridSource(profile, options as ManagedOptions, site, publication, restored);
   const opened = await openSite(profile, site, options, publication,
     options.installationServices);
   let closed = false;
@@ -511,11 +611,11 @@ async function load(profile, options, effect) {
       : prepareInitializedSheetsEffectDriver(sourceInitialization, providerMoon, site, declared.catalog_cid,
         opened.bindingCid, rangeCommand.installed, profile.rangeCommand === 'clear', isCurrent);
     if (rangeCommand !== undefined) {
-      const driver = construction.driver;
+      const driver = construction!.driver;
       return await createInstalledRowEffect({moon,
       providerMoon: driver.managedPlanProvider, managedPlanDefinition: driver.managedPlanDefinition,
       managedPlanConstruction: driver.managedPlanConstruction,
-      commands: restored.commands ?? [rangeCommand.installed],
+      commands: (restored.commands ?? [rangeCommand.installed]) as RowEffect['commands'],
       declaration, declared, environment, sourceInitialization, environmentWire: environment.wire,
       connectorId: profile.connectorId, connectorRegistration: registration, connectorRevision: revision,
       connection: opened.connection, site: opened.site, authorization: opened.authorization,
@@ -539,7 +639,7 @@ async function load(profile, options, effect) {
           path: `/v4/spreadsheets/${site.spreadsheetId}:batchUpdate`,
           headers: [['accept', 'application/json']],
           maxRequestBytes: SHEETS_LIMITS.maxRequestBytes, maxResponseBytes: SHEETS_LIMITS.maxResponseBytes},
-        request: ({resource, value}) => {
+        request: ({resource, value}: Readonly<{resource: string; value: Parameters<typeof prepareSheetsAppend>[0]['value']}>) => {
           if (resource !== 'append_rows') fail('UndeclaredSheetsResource');
           const request = prepareSheetsAppend({moon: providerMoon, origin: site.apiOrigin,
             spreadsheetId: site.spreadsheetId, sheetId: site.appendSheetId, columns: site.columns, value});
@@ -553,18 +653,18 @@ async function load(profile, options, effect) {
             headers: [['accept', 'application/json']],
             maxRequestBytes: SHEETS_LIMITS.maxRequestBytes, maxResponseBytes: SHEETS_LIMITS.maxResponseBytes},
           body() {return undefined;},
-          project({accepted, observation}) {
+          project({accepted, observation}: Readonly<{accepted: boolean; observation: {statusCode: number; body: Buffer}}>) {
             return projectSheetsTarget({moon: providerMoon, spreadsheetId: site.spreadsheetId,
               columns: site.columns, range: site.gridRange, appendSheetId: site.appendSheetId,
               response: {accepted, statusCode: observation.statusCode, body: observation.body}});
           }},
-        classify: options => projectSheetsAppend({...options, moon: providerMoon})}});
+        classify: (options: WriteProjection) => projectSheetsAppend({...options, moon: providerMoon})}});
   } catch (cause) {
     closed = true;
     throw await retainInstalledHostInitializationFailure(cause, {installedEffect: opened.site});
   }
 }
-export const loadInstalledSheetsSource = (profile, options) =>
+export const loadInstalledSheetsSource = (profile: unknown, options: Options) =>
   load(checkInstalledSheetsSourceProfile(profile), options, false);
-export const loadInstalledSheetsEffect = (profile, options) =>
+export const loadInstalledSheetsEffect = (profile: unknown, options: Options) =>
   load(checkInstalledSheetsEffectProfile(profile), options, true);
