@@ -97,10 +97,14 @@ fn NativeClientRunJournal::retain_observed_run_state(
   observed : NativeLocalObservedRunState,
   authority : NativeLocalPolicyAuthority,
   operations? : NativeClientJournalOperationAccess? = None,
+  settlement? : NativeLocalEffectPublicationSettlement? = None,
 ) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
   self.transaction_with_reads(
     () => {
+      if (observed.effect_outcomes is Some(_)) != (settlement is Some(_)) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
       if !authority.current_for(self, request) ||
         !observed.publisher.current_in_owned_transaction() {
         return Err(AuthorizationDenied)
@@ -138,6 +142,24 @@ fn NativeClientRunJournal::retain_observed_run_state(
       if run.publication_binding != publication.binding {
         return Err(ForeignRun)
       }
+      if settlement is Some(effect) {
+        if !(effect.current)() {
+          return Err(AuthorizationDenied)
+        }
+        match
+          self.require_current_file_effect_settlement_locked(
+            effect.claim,
+            @env.now().reinterpret_as_int64(),
+            reads~,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        match self.require_file_effect_completion_locked(run, effect, reads) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+      }
       let saved = match
         self.retain_run_state_locked(
           original,
@@ -153,8 +175,8 @@ fn NativeClientRunJournal::retain_observed_run_state(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      // A metadata CAS never calls save(run), changes accepted revision, or
-      // creates a second control CAS. Current is checked before commit as well.
+      // Ordinary Saved-state metadata continues to leave the Run alone.
+      // The matched saved File continuation also settles its own claim.
       if !authority.current_for(self, request) ||
         !observed.publisher.current_in_owned_transaction() {
         return Err(AuthorizationDenied)
@@ -169,7 +191,19 @@ fn NativeClientRunJournal::retain_observed_run_state(
       if current_publication.binding != publication.binding {
         return Err(CustodyLost)
       }
-      Ok(saved)
+      match settlement {
+        None => Ok(saved)
+        Some(effect) =>
+          self
+          .finish_file_effect_resume_locked(
+            run,
+            observed,
+            saved.state_wire,
+            effect,
+            operations,
+          )
+          .map(completed => { ..saved, control_revision: completed.revision, })
+      }
     },
     reads~,
   )
@@ -302,6 +336,7 @@ fn NativeLocalHostConnection::retain_submitted_run_state_with_operations(
   now : Double,
   operations? : NativeClientJournalOperationAccess? = None,
   capture? : NativeLocalJournalCapture? = None,
+  settlement? : NativeLocalEffectPublicationSettlement? = None,
 ) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
   if !physical_equal(observed.host, self) ||
     @host.client_request_identity_relation(observed.request, request) !=
@@ -345,6 +380,7 @@ fn NativeLocalHostConnection::retain_submitted_run_state_with_operations(
     observed,
     authority,
     operations~,
+    settlement~,
   )
 }
 

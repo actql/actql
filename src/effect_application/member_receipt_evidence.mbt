@@ -100,6 +100,48 @@ pub fn issue_effect_member_receipt_from_row_partition(
     terminal_receipts.length() == row_count else {
     return Err(InvalidInventory)
   }
+  let issued = match
+    issue_effect_member_receipt_from_inventory(
+      preview, member_index, heads, terminal_receipts, row_count, max_wire_bytes,
+      max_nodes, max_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  match
+    check_effect_member_receipt_row_partition_evidence(
+      preview,
+      member_index,
+      scopes,
+      locators,
+      keys,
+      bases,
+      heads,
+      active_owners,
+      terminal_receipts,
+      @publication.publication_contract_json(issued),
+      max_rows,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+    ) {
+    Ok(_) => Ok(issued)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+// Single writer for a checked live row partition or recovered terminal rows.
+fn issue_effect_member_receipt_from_inventory(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  heads : Array[EffectLedgerEntry?],
+  terminal_receipts : Array[@publication.PublicationContract?],
+  row_count : Int,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, EffectMemberReceiptEvidenceIssue] {
   let writer = @encode.writer(max_wire_bytes, max_nodes, max_depth) catch {
     _ => return Err(Encoding)
   }
@@ -225,26 +267,56 @@ pub fn issue_effect_member_receipt_from_row_partition(
     Ok(value) => value
     Err(issue) => return Err(Receipt(issue))
   }
-  match
-    check_effect_member_receipt_row_partition_evidence(
-      preview,
-      member_index,
-      scopes,
-      locators,
-      keys,
-      bases,
-      heads,
-      active_owners,
-      terminal_receipts,
-      @publication.publication_contract_json(issued),
-      max_rows,
-      max_wire_bytes,
-      max_nodes,
-      max_depth,
-    ) {
-    Ok(_) => Ok(issued)
-    Err(issue) => Err(issue)
+  Ok(issued)
+}
+
+///|
+/// Derive the same successful member receipt from existing confirmed terminal
+/// originals in Preview order. The caller owns physical response admission
+/// and authentication of the already committed Set that references this CID.
+/// This DATA neither starts an Effect nor acknowledges physical cleanup.
+pub fn issue_effect_member_receipt_from_recovered_rows(
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  heads : Array[EffectLedgerEntry?],
+  terminal_receipts : Array[@publication.PublicationContract?],
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[@publication.PublicationContract, EffectMemberReceiptEvidenceIssue] {
+  guard @publication.effect_preview_row_count(preview, member_index)
+    is Some(rows) &&
+    @publication.effect_preview_member_identity(preview, member_index)
+    is Some(member_cid) &&
+    heads.length() == rows &&
+    terminal_receipts.length() == rows else {
+    return Err(InvalidInventory)
   }
+  for ordinal in 0..<rows {
+    guard heads[ordinal] is Some(head) &&
+      head.state == Applied &&
+      head.effect_preview_cid ==
+      @publication.effect_preview_semantic_identity(preview) &&
+      terminal_receipts[ordinal] is Some(receipt) &&
+      head.outcome_receipt_cid ==
+      Some(@publication.publication_contract_identity(receipt)) &&
+      @publication.effect_row_outcome_receipt_terminal_state(receipt) ==
+      Some("applied") &&
+      @publication.effect_row_outcome_receipt_member_identity(receipt) ==
+      Some(member_cid) &&
+      @publication.effect_preview_ordered_row_identity(
+        preview, member_index, ordinal,
+      )
+      is Some(row_cid) &&
+      @publication.effect_row_outcome_receipt_row_identity(receipt) ==
+      Some(row_cid) else {
+      return Err(ForeignTerminalReceipt(ordinal))
+    }
+  }
+  issue_effect_member_receipt_from_inventory(
+    preview, member_index, heads, terminal_receipts, rows, max_wire_bytes, max_nodes,
+    max_depth,
+  )
 }
 
 ///|

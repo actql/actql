@@ -6,7 +6,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "4f1b7e94c11f3ebcf81471473791d06c575438a851a494e35691f654e5ea8a7f",
+      "sha256": "61ccb73149651955e0f498c79e07fc290a0ea15e6014135e672a0b69ae8ce2ec",
       "exports": [],
       "operations": [
         {
@@ -14,20 +14,16 @@
           "declaration": "client_program_snowflake_accept_response ( value : @ snowflake_read . StatementRead , response : @ snowflake_read . StatementResponse , body : Bytes , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
         },
         {
+          "name": "client_program_snowflake_adopt_managed_read",
+          "declaration": "client_program_snowflake_adopt_managed_read ( description : @ snowflake_description . TableDescription , borrow : @ client_row_source_host . RowRunResponseBorrow , limits : @ snowflake_response . ResponseLimits , description_limits : @ snowflake_description . DescriptionLimits , max_contract_pairs : Int , ) - > Result [ @ snowflake_read . Read , @ snowflake_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_snowflake_adopt_managed_response",
+          "declaration": "client_program_snowflake_adopt_managed_response ( read : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , status : Int , charge : @ client_row_source_host . RowPageCharge , ) - > Result [ @ snowflake_read . StatementResponse , @ snowflake_read . StatementIssue ]"
+        },
+        {
           "name": "client_program_snowflake_attempt_request",
           "declaration": "client_program_snowflake_attempt_request ( value : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_bind_read_transport",
-          "declaration": "client_program_snowflake_bind_read_transport ( value : @ snowflake_read . Read , observe_stop : ( ) - > Bool , ) - > Result [ Unit , @ snowflake_read . ReadIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_borrow_read",
-          "declaration": "client_program_snowflake_borrow_read ( prepared : @ snowflake_read . PreparedRead , run : @ client_row_source_host . RowRun , limits : @ snowflake_response . ResponseLimits , max_contract_pairs : Int , ) - > Result [ @ snowflake_read . Read , @ snowflake_read . ReadIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_charge_response",
-          "declaration": "client_program_snowflake_charge_response ( value : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , status : Int , body : Bytes , ) - > Result [ @ snowflake_read . StatementResponse , @ snowflake_read . StatementIssue ]"
         },
         {
           "name": "client_program_snowflake_declaration_limits",
@@ -46,24 +42,16 @@
           "declaration": "client_program_snowflake_generate_read_declaration ( description : @ snowflake_description . TableDescription , resource : String , connector : String , revision : String , description_limits : @ snowflake_description . DescriptionLimits , declaration_limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ client_row_source_host . RowDeclaration , @ snowflake_read . ReadIssue ]"
         },
         {
-          "name": "client_program_snowflake_interrupt_read",
-          "declaration": "client_program_snowflake_interrupt_read ( value : @ snowflake_read . Read , ) - > Unit"
+          "name": "client_program_snowflake_managed_read_capacity",
+          "declaration": "client_program_snowflake_managed_read_capacity ( reader_limits : Array [ Int ] , columns : Int , secret_bytes : Int , response : @ snowflake_response . ResponseLimits , description : @ snowflake_description . DescriptionLimits , request_bytes : Int , contract_pairs : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_snowflake_next_request",
           "declaration": "client_program_snowflake_next_request ( value : @ snowflake_read . StatementRead , ) - > Result [ @ snowflake_read . StatementRequest ? , @ snowflake_read . StatementIssue ]"
         },
         {
-          "name": "client_program_snowflake_prepare_read",
-          "declaration": "client_program_snowflake_prepare_read ( description : @ snowflake_description . TableDescription , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , query_contract : String , evidence_contract : String , description_limits : @ snowflake_description . DescriptionLimits , declaration_limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ snowflake_read . PreparedRead , @ snowflake_read . ReadIssue ]"
-        },
-        {
           "name": "client_program_snowflake_prepare_statement",
           "declaration": "client_program_snowflake_prepare_statement ( read : @ snowflake_read . Read , request_id : String , warehouse : String , role : String , timeout_seconds : Int , max_requests : Int , max_request_bytes : Int , ) - > Result [ @ snowflake_read . StatementRead , @ snowflake_read . StatementIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_read_acquisition",
-          "declaration": "client_program_snowflake_read_acquisition ( read : @ snowflake_read . PreparedRead , ) - > @ client_row_source_host . RowAcquisition"
         },
         {
           "name": "client_program_snowflake_read_declaration_construction_capacity",
@@ -82,10 +70,6 @@
           "declaration": "client_program_snowflake_record_response_loss ( value : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
         },
         {
-          "name": "client_program_snowflake_reject_response",
-          "declaration": "client_program_snowflake_reject_response ( value : @ snowflake_read . StatementRead , response : @ snowflake_read . StatementResponse , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
-        },
-        {
           "name": "client_program_snowflake_request_material",
           "declaration": "client_program_snowflake_request_material ( request : @ snowflake_read . StatementRequest , ) - > ( String , String , String ? , Int )"
         },
@@ -94,12 +78,8 @@
           "declaration": "client_program_snowflake_response_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_columns : Int , max_name_units : Int , max_handle_units : Int , max_partitions : Int , max_rows : Int , max_total_rows : Int64 , ) - > @ snowflake_response . ResponseLimits"
         },
         {
-          "name": "client_program_snowflake_response_unknown",
-          "declaration": "client_program_snowflake_response_unknown ( value : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_retire_read_borrow",
-          "declaration": "client_program_snowflake_retire_read_borrow ( value : @ snowflake_read . Read , ) - > Result [ Unit , @ snowflake_read . ReadIssue ]"
+          "name": "client_program_snowflake_retire_managed_read",
+          "declaration": "client_program_snowflake_retire_managed_read ( read : @ snowflake_read . Read , ) - > Bool"
         },
         {
           "name": "client_program_snowflake_statement_complete",
@@ -116,28 +96,22 @@
             "<module>",
             "client_program_snowflake_accept_response",
             "client_program_snowflake_attempt_request",
-            "client_program_snowflake_bind_read_transport",
-            "client_program_snowflake_borrow_read",
-            "client_program_snowflake_charge_response",
             "client_program_snowflake_declaration_limits",
             "client_program_snowflake_describe_table",
             "client_program_snowflake_description_limits",
             "client_program_snowflake_generate_read_declaration",
-            "client_program_snowflake_interrupt_read",
             "client_program_snowflake_next_request",
-            "client_program_snowflake_prepare_read",
             "client_program_snowflake_prepare_statement",
-            "client_program_snowflake_read_acquisition",
             "client_program_snowflake_read_usage",
             "client_program_snowflake_record_decoder_refusal",
             "client_program_snowflake_record_response_loss",
-            "client_program_snowflake_reject_response",
             "client_program_snowflake_request_material",
             "client_program_snowflake_response_limits",
-            "client_program_snowflake_response_unknown",
-            "client_program_snowflake_retire_read_borrow",
             "client_program_snowflake_statement_complete",
-            "client_program_snowflake_statement_original"
+            "client_program_snowflake_statement_original",
+            "client_program_snowflake_adopt_managed_read",
+            "client_program_snowflake_adopt_managed_response",
+            "client_program_snowflake_retire_managed_read"
           ],
           "exports": [],
           "attributes": {
@@ -205,7 +179,8 @@
         },
         {
           "operations": [
-            "client_program_snowflake_read_declaration_construction_capacity"
+            "client_program_snowflake_read_declaration_construction_capacity",
+            "client_program_snowflake_managed_read_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -1098,7 +1073,7 @@
       "responsibilityFacet": "primary",
       "role": "generated-binding",
       "owner": "Same-runtime wrappers of existing Common and Snowflake Owners",
-      "sha256": "c1456e76745edd51a081d78db3733025bf8e3c2752aa8cb7fb33c50b51f22adf",
+      "sha256": "f331cb3576b205403cd066be5f0c685e8586705634abdc80f2c24a0789e46b7e",
       "exports": [],
       "operations": [
         {
@@ -1106,20 +1081,16 @@
           "declaration": "client_program_snowflake_accept_response ( value : @ snowflake_read . StatementRead , response : @ snowflake_read . StatementResponse , body : Bytes , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
         },
         {
+          "name": "client_program_snowflake_adopt_managed_read",
+          "declaration": "client_program_snowflake_adopt_managed_read ( description : @ snowflake_description . TableDescription , borrow : @ client_row_source_host . RowRunResponseBorrow , limits : @ snowflake_response . ResponseLimits , description_limits : @ snowflake_description . DescriptionLimits , max_contract_pairs : Int , ) - > Result [ @ snowflake_read . Read , @ snowflake_read . ReadIssue ]"
+        },
+        {
+          "name": "client_program_snowflake_adopt_managed_response",
+          "declaration": "client_program_snowflake_adopt_managed_response ( read : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , status : Int , charge : @ client_row_source_host . RowPageCharge , ) - > Result [ @ snowflake_read . StatementResponse , @ snowflake_read . StatementIssue ]"
+        },
+        {
           "name": "client_program_snowflake_attempt_request",
           "declaration": "client_program_snowflake_attempt_request ( value : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_bind_read_transport",
-          "declaration": "client_program_snowflake_bind_read_transport ( value : @ snowflake_read . Read , observe_stop : ( ) - > Bool , ) - > Result [ Unit , @ snowflake_read . ReadIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_borrow_read",
-          "declaration": "client_program_snowflake_borrow_read ( prepared : @ snowflake_read . PreparedRead , run : @ client_row_source_host . RowRun , limits : @ snowflake_response . ResponseLimits , max_contract_pairs : Int , ) - > Result [ @ snowflake_read . Read , @ snowflake_read . ReadIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_charge_response",
-          "declaration": "client_program_snowflake_charge_response ( value : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , status : Int , body : Bytes , ) - > Result [ @ snowflake_read . StatementResponse , @ snowflake_read . StatementIssue ]"
         },
         {
           "name": "client_program_snowflake_declaration_limits",
@@ -1138,24 +1109,16 @@
           "declaration": "client_program_snowflake_generate_read_declaration ( description : @ snowflake_description . TableDescription , resource : String , connector : String , revision : String , description_limits : @ snowflake_description . DescriptionLimits , declaration_limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ client_row_source_host . RowDeclaration , @ snowflake_read . ReadIssue ]"
         },
         {
-          "name": "client_program_snowflake_interrupt_read",
-          "declaration": "client_program_snowflake_interrupt_read ( value : @ snowflake_read . Read , ) - > Unit"
+          "name": "client_program_snowflake_managed_read_capacity",
+          "declaration": "client_program_snowflake_managed_read_capacity ( reader_limits : Array [ Int ] , columns : Int , secret_bytes : Int , response : @ snowflake_response . ResponseLimits , description : @ snowflake_description . DescriptionLimits , request_bytes : Int , contract_pairs : Int , ) - > @ execution . ExecutionCapacity ?"
         },
         {
           "name": "client_program_snowflake_next_request",
           "declaration": "client_program_snowflake_next_request ( value : @ snowflake_read . StatementRead , ) - > Result [ @ snowflake_read . StatementRequest ? , @ snowflake_read . StatementIssue ]"
         },
         {
-          "name": "client_program_snowflake_prepare_read",
-          "declaration": "client_program_snowflake_prepare_read ( description : @ snowflake_description . TableDescription , declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , query_contract : String , evidence_contract : String , description_limits : @ snowflake_description . DescriptionLimits , declaration_limits : @ client_row_source_host . RowDeclarationLimits , ) - > Result [ @ snowflake_read . PreparedRead , @ snowflake_read . ReadIssue ]"
-        },
-        {
           "name": "client_program_snowflake_prepare_statement",
           "declaration": "client_program_snowflake_prepare_statement ( read : @ snowflake_read . Read , request_id : String , warehouse : String , role : String , timeout_seconds : Int , max_requests : Int , max_request_bytes : Int , ) - > Result [ @ snowflake_read . StatementRead , @ snowflake_read . StatementIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_read_acquisition",
-          "declaration": "client_program_snowflake_read_acquisition ( read : @ snowflake_read . PreparedRead , ) - > @ client_row_source_host . RowAcquisition"
         },
         {
           "name": "client_program_snowflake_read_declaration_construction_capacity",
@@ -1174,10 +1137,6 @@
           "declaration": "client_program_snowflake_record_response_loss ( value : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
         },
         {
-          "name": "client_program_snowflake_reject_response",
-          "declaration": "client_program_snowflake_reject_response ( value : @ snowflake_read . StatementRead , response : @ snowflake_read . StatementResponse , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
-        },
-        {
           "name": "client_program_snowflake_request_material",
           "declaration": "client_program_snowflake_request_material ( request : @ snowflake_read . StatementRequest , ) - > ( String , String , String ? , Int )"
         },
@@ -1186,12 +1145,8 @@
           "declaration": "client_program_snowflake_response_limits ( max_bytes : Int , max_nodes : Int , max_depth : Int , max_columns : Int , max_name_units : Int , max_handle_units : Int , max_partitions : Int , max_rows : Int , max_total_rows : Int64 , ) - > @ snowflake_response . ResponseLimits"
         },
         {
-          "name": "client_program_snowflake_response_unknown",
-          "declaration": "client_program_snowflake_response_unknown ( value : @ snowflake_read . StatementRead , request : @ snowflake_read . StatementRequest , ) - > Result [ Unit , @ snowflake_read . StatementIssue ]"
-        },
-        {
-          "name": "client_program_snowflake_retire_read_borrow",
-          "declaration": "client_program_snowflake_retire_read_borrow ( value : @ snowflake_read . Read , ) - > Result [ Unit , @ snowflake_read . ReadIssue ]"
+          "name": "client_program_snowflake_retire_managed_read",
+          "declaration": "client_program_snowflake_retire_managed_read ( read : @ snowflake_read . Read , ) - > Bool"
         },
         {
           "name": "client_program_snowflake_statement_complete",
@@ -1208,28 +1163,22 @@
             "<module>",
             "client_program_snowflake_accept_response",
             "client_program_snowflake_attempt_request",
-            "client_program_snowflake_bind_read_transport",
-            "client_program_snowflake_borrow_read",
-            "client_program_snowflake_charge_response",
             "client_program_snowflake_declaration_limits",
             "client_program_snowflake_describe_table",
             "client_program_snowflake_description_limits",
             "client_program_snowflake_generate_read_declaration",
-            "client_program_snowflake_interrupt_read",
             "client_program_snowflake_next_request",
-            "client_program_snowflake_prepare_read",
             "client_program_snowflake_prepare_statement",
-            "client_program_snowflake_read_acquisition",
             "client_program_snowflake_read_usage",
             "client_program_snowflake_record_decoder_refusal",
             "client_program_snowflake_record_response_loss",
-            "client_program_snowflake_reject_response",
             "client_program_snowflake_request_material",
             "client_program_snowflake_response_limits",
-            "client_program_snowflake_response_unknown",
-            "client_program_snowflake_retire_read_borrow",
             "client_program_snowflake_statement_complete",
-            "client_program_snowflake_statement_original"
+            "client_program_snowflake_statement_original",
+            "client_program_snowflake_adopt_managed_read",
+            "client_program_snowflake_adopt_managed_response",
+            "client_program_snowflake_retire_managed_read"
           ],
           "exports": [],
           "attributes": {
@@ -1297,7 +1246,8 @@
         },
         {
           "operations": [
-            "client_program_snowflake_read_declaration_construction_capacity"
+            "client_program_snowflake_read_declaration_construction_capacity",
+            "client_program_snowflake_managed_read_capacity"
           ],
           "exports": [],
           "attributes": {

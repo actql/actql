@@ -51,6 +51,28 @@ pub fn NativeLocalJournalCapture::retain_observed_run_state_in_original_read(
   observed : NativeLocalObservedRunState,
   now : Double,
 ) -> Result[NativeClientSavedRunState, NativeLocalAdoptionIssue] {
+  self.retain_run_state_on_capture(
+    principal,
+    connection,
+    reference,
+    request,
+    observed,
+    now,
+    None,
+  )
+}
+
+///|
+fn NativeLocalJournalCapture::retain_run_state_on_capture(
+  self : NativeLocalJournalCapture,
+  principal : String,
+  connection : String,
+  reference : NativeClientSubmissionReference,
+  request : @host.ClientRequestIdentity,
+  observed : NativeLocalObservedRunState,
+  now : Double,
+  settlement : NativeLocalEffectPublicationSettlement?,
+) -> Result[NativeClientSavedRunState, NativeLocalAdoptionIssue] {
   guard observed.publisher.authority.capture is Some(capture) &&
     physical_equal(capture, self) &&
     observed.publisher.operation is Some(operation) &&
@@ -73,6 +95,7 @@ pub fn NativeLocalJournalCapture::retain_observed_run_state_in_original_read(
       now,
       operations=Some(operations),
       capture=Some(self),
+      settlement~,
     )
     .map_err(issue => Journal(issue))
   })

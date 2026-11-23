@@ -84,7 +84,7 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None, make: Path,
             perl: Path, gpg: Path, gpgv: Path, destination: Path, seconds: int, *,
             curl_archive: Path | None = None, curl_signature: Path | None = None,
             release_key: Path | None = None, tls_archive: Path | None = None, tls_jobs: int = 1,
-            model_resolver_archive: Path | None = None) -> dict:
+            model_resolver: bool = False, model_resolver_archive: Path | None = None) -> dict:
     HTTP.require(type(tls_jobs) is int and tls_jobs in (1, 2), 'TLS build jobs must be one or two')
     HTTP.require(type(seconds) is int and 0 < seconds <= 1800, 'Bounded HTTP preparation required')
     HTTP.TLS.command_profile(target, clang, sdk, destination, '11.0' if sdk else None)
@@ -108,7 +108,7 @@ def prepare(source: str, target: str, clang: Path, sdk: Path | None, make: Path,
     release_key = acquire_release_key(key, destination / 'release-key.asc', release_key, remaining())
     tls_archive = acquire(tls_recipe['url'], tls_recipe['archive'], destination / 'openssl.tar.gz', tls_archive, remaining())
     selected = [Path(__file__).resolve(), recipe_path, gpg, release_key, curl_archive, curl_signature, tls_archive]
-    if model_resolver_archive is not None:
+    if model_resolver or model_resolver_archive is not None:
         resolver = json.loads(HTTP.MODEL_RESOLVER_RECIPE.read_bytes())
         model_resolver_archive = acquire(resolver['url'], resolver['archive'],
             destination / 'c-ares.tar.gz', model_resolver_archive, remaining())
@@ -170,6 +170,8 @@ if __name__ == '__main__':
     parser.add_argument('--sdk', type=Path)
     parser.add_argument('--seconds', type=int, required=True)
     parser.add_argument('--tls-jobs', type=int, choices=(1, 2), default=1)
+    parser.add_argument('--model-resolver', action='store_true',
+                        help='Prepare the Model HTTP component with the pinned asynchronous resolver')
     for name in ('curl-archive', 'curl-signature', 'release-key', 'tls-archive', 'model-resolver-archive'):
         parser.add_argument('--' + name, type=Path)
     args = parser.parse_args()
@@ -177,4 +179,4 @@ if __name__ == '__main__':
         args.perl, args.gpg, args.gpgv, args.destination, args.seconds,
         curl_archive=args.curl_archive, curl_signature=args.curl_signature,
         release_key=args.release_key, tls_archive=args.tls_archive, tls_jobs=args.tls_jobs,
-        model_resolver_archive=args.model_resolver_archive)))
+        model_resolver=args.model_resolver, model_resolver_archive=args.model_resolver_archive)))
