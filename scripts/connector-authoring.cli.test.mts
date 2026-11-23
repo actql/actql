@@ -8,8 +8,9 @@ import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
 import {connectorConformancePlan} from './connector.mjs';
 import {projectRestConnector, restConnectorPackageMetadata} from './connector-authoring.mjs';
-import {assertAuthorRestRows, createAuthorRestProvider, readAuthorRestCase, readRestConformanceInput}
-  from './fixtures/external-rest/conformance-input.mjs';
+// @ts-expect-error TS7016: The author-case fixture is still authored JavaScript.
+import {assertAuthorRestRows, createAuthorRestProvider, readAuthorRestCase, readRestConformanceInput} from './fixtures/external-rest/conformance-input.mjs';
+// @ts-expect-error TS7016: The installed author-package fixture is still authored JavaScript.
 import {readAuthorPackage, selectAuthorPackage} from './fixtures/external-rest/author-package.mjs';
 import {authoringToolkitPath, observeInstalledAuthoringToolkit} from './connector-authoring-toolkit.mjs';
 import {inventory, unpack} from './package-release.mjs';
@@ -18,7 +19,10 @@ import {parseNpmPackJson} from './packed-client-packages.mjs';
 test('declarative read author projection retains closed request DATA and rejects colliding parameters', () => {
   const definition = {version: 'actql-rest-connector/0.1', id: 'acme', origin: 'https://api.example.invalid',
     auth: {kind: 'bearer'}, sources: {records: {fields: [{name: 'id', type: 'string', nullable: false}],
-      read: {method: 'GET', path: '/v1/records'}, pagination: {kind: 'cursor', items: ['data'],
+      read: {method: 'GET', path: '/v1/records'} as {
+        method: string; path: string; query?: string[][];
+        pageSize?: {parameter: string; limit: number}; versionHeader?: {name: string; value: string};
+      }, pagination: {kind: 'cursor', items: ['data'],
         next: ['next_cursor'], parameter: 'after'}, limits: {maxPageRows: 100, maxPageBytes: 4096,
         maxPages: 3, maxRows: 200, maxNodes: 1024, maxDepth: 12, maxCursorBytes: 256}}}};
   const project = () => JSON.parse(projectRestConnector(definition).files['src/connectors/acme/rest-source.json']);
@@ -26,7 +30,7 @@ test('declarative read author projection retains closed request DATA and rejects
   definition.sources.records.read = {method: 'GET', path: '/v1/records', query: [['kind', 'public']],
     pageSize: {parameter: 'page_size', limit: 100}, versionHeader: {name: 'api-version', value: '2026-03-11'}};
   assert.deepEqual(JSON.parse(project().sources[0].readWire), definition.sources.records.read);
-  definition.sources.records.read.query.push(['after', 'replacement-cursor']);
+  definition.sources.records.read.query!.push(['after', 'replacement-cursor']);
   assert.throws(project, /InvalidRestConnectorDefinition:read/u);
 });
 
@@ -38,7 +42,7 @@ test('the public REST toolkit CLI scaffolds, builds and checks one authored pack
   t.after(()=>rmSync(scratch,{recursive:true,force:true}));
   const author=join(scratch,'author'), output=join(scratch,'package');
   const cli=join(root,'scripts/connector.mjs');
-  const invoke=args=>execFileSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8'});
+  const invoke=(args: string[])=>execFileSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8'});
   const started=JSON.parse(invoke(['init',author,'acme']));
   assert.equal(started.definition,join(author,'connector.json'));
   assert.deepEqual(readdirSync(author),['connector.json']);
@@ -63,10 +67,10 @@ test('the public REST toolkit CLI scaffolds, builds and checks one authored pack
   const views={views:[{resource:'customers',resource_kind:'record',fields:[
     {name:'id',type:'string',nullable:false},{name:'name',type:'string',nullable:true},
   ]}]};
-  const generated=JSON.parse(readFileSync(join(output,'src/connectors/acme/rest-source.json')));
+  const generated=JSON.parse(readFileSync(join(output,'src/connectors/acme/rest-source.json')) as unknown as string);
   assert.equal(generated.authoredViewsWire,JSON.stringify(views));
-  assert.deepEqual(JSON.parse(readFileSync(join(output,'src/connectors/acme/source-views.json'))),views);
-  const manifest=JSON.parse(readFileSync(join(output,'src/connectors/acme/host-bundle.json')));
+  assert.deepEqual(JSON.parse(readFileSync(join(output,'src/connectors/acme/source-views.json')) as unknown as string),views);
+  const manifest=JSON.parse(readFileSync(join(output,'src/connectors/acme/host-bundle.json')) as unknown as string);
   assert.equal(manifest.installation.source.profileVersion,'actql-installed-acme-rest-source/0.1');
   assert.equal(manifest.installation.effect,undefined);assert.equal(manifest.installation.providerBundle,undefined);
   assert.match(readFileSync(join(output,'index.mjs'),'utf8'),/export const installedConnectors/u);
@@ -106,7 +110,7 @@ test('author child resolves its installed consumer validator and preserves origi
   const consumer=join(scratch,'consumer'),author=join(consumer,'author'),output=join(scratch,'package');
   mkdirSync(consumer);writeFileSync(join(consumer,'package.json'),'{"private":true,"type":"module"}\n');
   const cli=join(root,'scripts/connector.mjs');
-  const invoke=args=>spawnSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8',timeout:10000});
+  const invoke=(args: string[])=>spawnSync(process.execPath,[cli,...args],{cwd:root,encoding:'utf8',timeout:10000});
   const initialized=invoke(['init',author,'acme']);assert.equal(initialized.status,0,initialized.stderr);
   const definition=join(author,'connector.json'),original=readFileSync(definition);
   // An explicitly absent public export must refuse even if TMPDIR inherits
@@ -145,13 +149,13 @@ test('author projections and freshness use the selected Host package version', t
   t.after(()=>rmSync(scratch,{recursive:true,force:true}));
   const author=join(scratch,'author'),output=join(scratch,'output');
   const cli=join(root,'scripts/connector.mjs');
-  const invoke=(...args)=>spawnSync(process.execPath,[cli,...args],{cwd:scratch,encoding:'utf8',timeout:10000});
+  const invoke=(...args: string[])=>spawnSync(process.execPath,[cli,...args],{cwd:scratch,encoding:'utf8',timeout:10000});
   const init=invoke('init',author,'acme');
   assert.equal(init.status,0,init.stderr);
   const definition=join(author,'connector.json');
   const host=join(author,'node_modules','@actql','local-node');
   mkdirSync(host,{recursive:true});
-  const manifest=version=>writeFileSync(join(host,'package.json'),JSON.stringify({name:'@actql/local-node',
+  const manifest=(version: string)=>writeFileSync(join(host,'package.json'),JSON.stringify({name:'@actql/local-node',
     version,type:'module',exports:{'./connector-authoring':'./author.mjs'}}));
   // A test-owned public validation port isolates peer selection. It does not
   // stand in for the existing compiled Common validation controls.
@@ -191,7 +195,7 @@ test('the packed author toolkit runs outside the checkout and binds its runner t
   buildConnectorAuthoring(root, stage);
   const packResult = parseNpmPackJson(execFileSync('npm', ['pack', '--offline', '--ignore-scripts', '--json',
     '--pack-destination', scratch, '--cache', join(scratch, 'npm-cache')], {cwd: stage, encoding: 'utf8'}));
-  const packed = Array.isArray(packResult) ? packResult : Object.values(packResult);
+  const packed = Array.isArray(packResult) ? packResult : Object.values(packResult as Record<string, {filename: string}>);
   assert.equal(packed.length, 1);
   const archive = join(scratch, packed[0].filename);
   const extracted = await unpack(archive, join(scratch, 'unpacked'));
@@ -203,7 +207,7 @@ test('the packed author toolkit runs outside the checkout and binds its runner t
   renameSync(extracted, host);
   const bin = join(binDir, 'actql-connector');
   symlinkSync(join(host, metadata.bin['actql-connector']), bin);
-  const invoke = (...args) => execFileSync(process.execPath, [bin, ...args],
+  const invoke = (...args: string[]) => execFileSync(process.execPath, [bin, ...args],
     {cwd: authorRoot, encoding: 'utf8', timeout: 10_000});
   const {definition} = JSON.parse(invoke('init', join(authorRoot, 'definition'), 'harbor'));
   const definitionData = JSON.parse(readFileSync(definition, 'utf8'));
@@ -212,7 +216,7 @@ test('the packed author toolkit runs outside the checkout and binds its runner t
   writeFileSync(transformPath, 'export const decodePage = ({rowsWire}) => ({rowsWire});\n');
   const output = join(authorRoot, 'generated');
   assert.deepEqual(JSON.parse(invoke('build', definition, output)), JSON.parse(invoke('test', definition, output)));
-  assert.deepEqual(JSON.parse(readFileSync(join(output, 'package.json'))).peerDependencies,
+  assert.deepEqual(JSON.parse(readFileSync(join(output, 'package.json')) as unknown as string).peerDependencies,
     {'@actql/local-node': metadata.version});
   const checkoutOutput = join(scratch, 'checkout-generated');
   execFileSync(process.execPath, [join(root, 'scripts/connector.mjs'), 'build', definition, checkoutOutput],
@@ -240,7 +244,7 @@ test('the packed author toolkit runs outside the checkout and binds its runner t
   assert.equal(plan.root, authorRoot);
   assert.equal(plan.steps[0].args.at(-1), join(toolkit, 'scripts/fixtures/external-rest/normal-case.test.mjs'));
   const [step] = plan.steps;
-  const env = {...process.env, ...step.env};
+  const env: NodeJS.ProcessEnv = {...process.env, ...step.env};
   delete env.NODE_TEST_CONTEXT;
   const refused = spawnSync(step.command, step.args,
     {cwd: plan.root, env, encoding: 'utf8', timeout: 10_000});
@@ -314,7 +318,7 @@ test('author conformance selects independent connector, schema, Program, binding
   const connectorPath = join(scratch, 'connector.json');
   writeFileSync(casePath, bytes);
   writeFileSync(connectorPath, readFileSync(new URL('connector.json', fixture)));
-  const hash = value => createHash('sha256').update(value).digest('hex');
+  const hash = (value: Buffer) => createHash('sha256').update(value).digest('hex');
   const caseSha256 = hash(bytes);
   const input = join(scratch, 'normal-input.json');
   writeFileSync(input, JSON.stringify({kind: 'actql-standard-rest-normal/0.1', mode: 'author',
@@ -331,7 +335,7 @@ test('author conformance selects independent connector, schema, Program, binding
   const provider = createAuthorRestProvider(author);
   const before = provider.assertState('before');
   const response = provider.handle({method: 'GET', target: '/v2/berths'});
-  assert.deepEqual(JSON.parse(response.body).berths.map(row => row.slip_code), ['C-4', 'A-1', 'B-7']);
+  assert.deepEqual(JSON.parse(response.body).berths.map((row: {slip_code: string}) => row.slip_code), ['C-4', 'A-1', 'B-7']);
   provider.assertRequests([{method:'GET',path:'/v2/berths',authorized:true}]);
   assert.deepEqual(provider.assertState('after'), before);
   assertAuthorRestRows(author.expected,[{slip_code:'B-7',depth:9},{slip_code:'C-4',depth:17}]);

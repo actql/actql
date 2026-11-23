@@ -7,29 +7,37 @@ import {checkHostBundle, renderHostInstallations} from './connector-host-bundle-
 import {createRequire} from 'node:module';
 import {releaseVersion} from './release-version.mjs';
 
-const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const shape = (value, required, optional = []) => record(value) &&
+type ReadValidator = typeof import('../packages/local-node/connector-authoring.mjs').validateRestReadDeclaration;
+type ProjectOptions = {hostPackageVersion?: string; authorRoot?: string};
+type WriteOptions = {definitionPath: string; outputRoot: string; check?: boolean; installedToolkit?: boolean};
+
+const record = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
+const shape = <Required extends string, Optional extends string = never>(
+  value: unknown, required: readonly Required[], optional: readonly Optional[] = [],
+): value is Record<Required, unknown> & Partial<Record<Optional, unknown>> => record(value) &&
   required.every(key => Object.hasOwn(value, key)) &&
-  Object.keys(value).every(key => required.includes(key) || optional.includes(key));
-const fail = reason => { throw new Error(`InvalidRestConnectorDefinition:${reason}`); };
-const name = value => typeof value === 'string' && /^[a-z][a-z0-9_]*$/u.test(value);
-const finite = value => Number.isSafeInteger(value) && value > 0 && value <= 2147483647;
-const propertyPath = value => Array.isArray(value) && value.length <= 16 &&
+  Object.keys(value).every(key => (required as readonly string[]).includes(key) || (optional as readonly string[]).includes(key));
+const fail: (reason: string) => never = reason => { throw new Error(`InvalidRestConnectorDefinition:${reason}`); };
+const name = (value: unknown): value is string => typeof value === 'string' && /^[a-z][a-z0-9_]*$/u.test(value);
+const finite = (value: unknown): value is number =>
+  Number.isSafeInteger(value) && (value as number) > 0 && (value as number) <= 2147483647;
+const propertyPath = (value: unknown): value is string[] => Array.isArray(value) && value.length <= 16 &&
   value.every(key => typeof key === 'string' && key.length > 0 &&
     !['__proto__', 'prototype', 'constructor'].includes(key));
-const relative = value => typeof value === 'string' &&
+const relative = (value: unknown): value is string => typeof value === 'string' &&
   /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/u.test(value) &&
   value.split('/').every(part => !['.', '..'].includes(part));
-const freeze = value => {
+const freeze = <Value,>(value: Value): Value => {
   if (record(value) || Array.isArray(value)) {
     Object.values(value).forEach(freeze); Object.freeze(value);
   }
   return value;
 };
 
-function installedHostVersion(entry) {
+function installedHostVersion(entry: string) {
   try {
-    const manifest = JSON.parse(readFileSync(join(dirname(entry), 'package.json'), 'utf8'));
+    const manifest = JSON.parse(readFileSync(join(dirname(entry), 'package.json'), 'utf8')) as
+      {name?: unknown; version?: unknown} | null;
     if (manifest?.name !== '@actql/local-node') throw new Error('Unexpected author validator package');
     return manifest.version === '0.0.0-development' ? manifest.version : releaseVersion(manifest.version).version;
   } catch (cause) {
@@ -38,7 +46,7 @@ function installedHostVersion(entry) {
   }
 }
 
-function installedReadValidator(authorRoot) {
+function installedReadValidator(authorRoot: string | undefined) {
   // CLI callers resolve the author's explicitly installed dependency. The
   // repository's source/component caller selects its SAME prepared public
   // package entry; neither route falls back to a raw runtime or compiler.
@@ -46,14 +54,14 @@ function installedReadValidator(authorRoot) {
     ? new URL('../packages/local-node/package.json', import.meta.url)
     : join(resolve(authorRoot), 'package.json');
   const require = createRequire(selected);
-  let namespace, version;
+  let namespace: object, version: string;
   try {
     const entry = require.resolve('@actql/local-node/connector-authoring');
     version = installedHostVersion(entry);
     namespace = require('@actql/local-node/connector-authoring');
   }
   catch (cause) {
-    if (cause?.code === 'MODULE_NOT_FOUND' || cause?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
+    if ((cause as NodeJS.ErrnoException | null | undefined)?.code === 'MODULE_NOT_FOUND' || (cause as NodeJS.ErrnoException | null | undefined)?.code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {
       throw Object.assign(new Error('RestAuthoringValidatorUnavailable: install a matching @actql/local-node in the author project'),
         {code: 'RestAuthoringValidatorUnavailable'});
     }
@@ -63,26 +71,26 @@ function installedReadValidator(authorRoot) {
   if (!method || !Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
     throw Object.assign(new Error('RestAuthoringValidatorUnavailable'), {code: 'RestAuthoringValidatorUnavailable'});
   }
-  return {validateRead: method.value.bind(namespace), version};
+  return {validateRead: (method.value as ReadValidator).bind(namespace), version};
 }
 
 // The packed author runner uses the same manifest contract as the generator
 // before npm can run a caller-owned lifecycle or resolve another dependency.
-export function restConnectorPackageMetadata(id, hostPackageVersion) {
+export function restConnectorPackageMetadata(id: string, hostPackageVersion: string) {
   return {name: `@actql-connectors/${id.replaceAll('_', '-')}`,
     version: '0.0.1', type: 'module',
     peerDependencies: {'@actql/local-node': hostPackageVersion},
     exports: {'.': './index.mjs'}, files: ['index.mjs', 'src/connectors', 'adapters/connectors']};
 }
 
-export function projectRestConnector(definition, {hostPackageVersion, authorRoot} = {}) {
+export function projectRestConnector(definition: unknown, {hostPackageVersion, authorRoot}: ProjectOptions = {}) {
   if (!shape(definition, ['version', 'id', 'origin', 'auth', 'sources'], ['transform']) ||
       definition.version !== 'actql-rest-connector/0.1' || !name(definition.id) ||
       !shape(definition.auth, ['kind']) || definition.auth.kind !== 'bearer' ||
       !record(definition.sources) || Object.keys(definition.sources).length === 0 ||
       Object.keys(definition.sources).length > 64) fail('shape');
   let origin;
-  try { origin = new URL(definition.origin); } catch { fail('origin'); }
+  try { origin = new URL(definition.origin as string); } catch { fail('origin'); }
   if (origin.protocol !== 'https:' || origin.origin !== definition.origin ||
       origin.username || origin.password) fail('origin');
   if (definition.transform !== undefined && (!relative(definition.transform) ||
@@ -99,20 +107,20 @@ export function projectRestConnector(definition, {hostPackageVersion, authorRoot
     const single = shape(p, ['kind', 'items']) && p.kind === 'none';
     if ((!cursor && !single) || !propertyPath(p.items)) fail('pagination');
     let readWire;
-    try {readWire = validateRead(JSON.stringify(source.read), cursor ? p.parameter : undefined);}
+    try {readWire = validateRead(JSON.stringify(source.read), cursor ? p.parameter as string : undefined);}
     catch (cause) {
-      if (cause?.code === 'RestAuthoringValidatorUnavailable') throw cause;
+      if ((cause as NodeJS.ErrnoException | null | undefined)?.code === 'RestAuthoringValidatorUnavailable') throw cause;
       throw new Error('InvalidRestConnectorDefinition:read', {cause});
     }
     const limits = source.limits;
     const keys = ['maxPageRows', 'maxPageBytes', 'maxPages', 'maxRows',
-      'maxNodes', 'maxDepth', 'maxCursorBytes'];
+      'maxNodes', 'maxDepth', 'maxCursorBytes'] as const;
     if (!shape(limits, keys) || !keys.every(key => finite(limits[key])) ||
-        limits.maxPageRows > limits.maxRows) fail('limits');
+        (limits.maxPageRows as number) > (limits.maxRows as number)) fail('limits');
     // Pass the original typed schema DATA to Common. This is not a second
     // schema/type checker, no generated hash or independent business oracle.
     return {resource, resource_kind: 'record', fields: source.fields,
-      readWire, pagination: p, limits};
+      readWire, pagination: p, limits: limits as Record<typeof keys[number], number>};
   });
   const id = definition.id, profileVersion = `actql-installed-${id.replaceAll('_', '-')}-rest-source/0.1`;
   const module = `adapters/connectors/${id}/host/installation.mjs`;
@@ -146,7 +154,7 @@ export function projectRestConnector(definition, {hostPackageVersion, authorRoot
       destination: `adapters/connectors/${id}/host/transform.mjs`}})});
 }
 
-function unaliasedOutput(path) {
+function unaliasedOutput(path: string) {
   path = resolve(path);
   let current = parse(path).root;
   const parts = path.slice(current.length).split(sep).filter(Boolean);
@@ -154,18 +162,18 @@ function unaliasedOutput(path) {
     current = join(current, parts[index]);
     let info;
     try { info = lstatSync(current); }
-    catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue; throw error; }
     if (info.isSymbolicLink() || index < parts.length - 1 && !info.isDirectory()) {
       fail('aliased output');
     }
   }
 }
 
-export function writeRestConnector({definitionPath, outputRoot, check = false, installedToolkit = false}) {
+export function writeRestConnector({definitionPath, outputRoot, check = false, installedToolkit = false}: WriteOptions) {
   const authorRoot = dirname(resolve(definitionPath)), root = resolve(outputRoot);
   const projection = projectRestConnector(JSON.parse(readFileSync(definitionPath, 'utf8')),
     {authorRoot});
-  const files = {...projection.files};
+  const files: Record<string, string> = {...projection.files};
   if (projection.transform !== undefined) {
     let path = authorRoot;
     for (const part of projection.transform.source.split('/')) {
@@ -201,11 +209,12 @@ export function writeRestConnector({definitionPath, outputRoot, check = false, i
   if (installedToolkit) {
     // The installed standard generator owns its entry and the one selected
     // transform. It uses the same Host renderer over that finite inventory.
-    const modules = [entry.source.module];
+    const modules = [entry.source!.module];
     if (projection.transform !== undefined) modules.push(projection.transform.destination);
     registration = renderHostInstallations([entry], index, root, {implementationModules: () => modules});
   } else {
-    const {generateInstallations} = createRequire(import.meta.url)('./connector-host-bundles.mjs');
+    const {generateInstallations} = createRequire(import.meta.url)('./connector-host-bundles.mjs') as
+      Pick<typeof import('./connector-host-bundles.mjs'), 'generateInstallations'>;
     registration = generateInstallations([entry], index, root);
   }
   if (check) {
@@ -220,7 +229,7 @@ export function writeRestConnector({definitionPath, outputRoot, check = false, i
     pureCommonValidation: true, hostRuntimeExecuted: false});
 }
 
-export function initRestConnector(directory, id) {
+export function initRestConnector(directory: string, id: string) {
   if (!name(id)) fail('id');
   if (existsSync(directory) && readdirSync(directory).length !== 0) fail('nonempty scaffold');
   mkdirSync(directory, {recursive: true});

@@ -1700,7 +1700,7 @@
     {
       "module": "scripts/connector.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1050ebf0631f28c41b372a363438217ef1096c9fcd5aa221f2e5e6bb41c2059d",
+      "sha256": "54b3678440cd577a66af09c1774a4ddfab75f647ab15d673964cf4b687c0ed53",
       "exports": [
         "connectorCommand",
         "connectorConformancePlan"
@@ -1744,7 +1744,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "const usage ="
               }
             ],
@@ -1762,13 +1762,13 @@
             ],
             "synchronization": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "await runLocalCheck"
               }
             ],
             "failure": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "process.exitCode = 1"
               }
             ],
@@ -1780,19 +1780,19 @@
             ],
             "resources": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "heavyResources:"
               }
             ],
             "extension": [
               {
-                "path": "scripts/connector.mjs",
+                "path": "scripts/connector.mts",
                 "anchor": "export function connectorCommand"
               }
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "the packed author toolkit runs outside the checkout"
               }
             ]
@@ -1937,7 +1937,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "the packed author toolkit runs outside the checkout"
               }
             ]
@@ -1948,7 +1948,7 @@
     {
       "module": "scripts/connector-authoring.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7e63e54582ea061c848d810ec44aeb4a97659d25d67c485c21765ad66b0d74f",
+      "sha256": "6b3d505f80c1c79083a139af6a3456906c40e749504c10dc6b83643a015d1ed8",
       "exports": [
         "initRestConnector",
         "projectRestConnector",
@@ -2103,37 +2103,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "Build-time author DATA projection"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "function projectRestConnector"
               }
             ],
             "identity": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "installedHostVersion"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "@actql/local-node/connector-authoring"
               }
             ],
             "synchronization": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "Validate every selected destination before the first write"
               }
             ],
             "failure": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "StaleRestConnectorProjection"
               }
             ],
@@ -2142,7 +2142,7 @@
             },
             "resources": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "definition.sources).length > 64"
               }
             ],
@@ -2154,7 +2154,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "the packed author toolkit runs outside the checkout"
               }
             ]
@@ -2165,7 +2165,7 @@
     {
       "module": "scripts/connector-conformance-input.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f0efcdc52a612b292438a51082b1ca53df2e20ce7661edc3ef19663033e66ba",
+      "sha256": "0e16548439993718dbfadde2df9a30f9903c713eaab4d83646b7ca5b75929ac1",
       "exports": [
         "readRestConformanceInput"
       ],
@@ -2208,25 +2208,25 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "The CLI and the installed runner select the same finite input"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "const fields ="
               }
             ],
             "identity": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "gitIdentity(selected.sourceSha)"
               }
             ],
             "ownership": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "accountConfigurationPath"
               }
             ],
@@ -2235,7 +2235,7 @@
             },
             "failure": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "Invalid actql-standard-rest-normal/0.1 descriptor"
               }
             ],
@@ -2244,19 +2244,19 @@
             },
             "resources": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "Object.keys(selected).length === fields.length"
               }
             ],
             "extension": [
               {
-                "path": "scripts/connector-conformance-input.mjs",
+                "path": "scripts/connector-conformance-input.mts",
                 "anchor": "if (selected?.mode === 'author')"
               }
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "author conformance refuses implicit runtime"
               }
             ]
@@ -3086,7 +3086,7 @@
             ],
             "verification": [
               {
-                "path": "scripts/connector-authoring.cli.test.mjs",
+                "path": "scripts/connector-authoring.cli.test.mts",
                 "anchor": "the packed author toolkit runs outside the checkout"
               }
             ]
@@ -3215,7 +3215,7 @@
             ],
             "identity": [
               {
-                "path": "scripts/connector-authoring.mjs",
+                "path": "scripts/connector-authoring.mts",
                 "anchor": "releaseVersion(manifest.version)"
               }
             ],

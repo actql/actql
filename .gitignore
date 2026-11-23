@@ -2536,3 +2536,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/workers-composition.test.d.mts
 /adapters/host-common/runtime-run-state-control.mjs
 /adapters/host-common/runtime-run-state-control.d.mts
+/scripts/connector.mjs
+/scripts/connector.d.mts
+/scripts/connector-authoring.mjs
+/scripts/connector-authoring.d.mts
+/scripts/connector-conformance-input.mjs
+/scripts/connector-conformance-input.d.mts
+/scripts/connector-authoring.cli.test.mjs
+/scripts/connector-authoring.cli.test.d.mts
