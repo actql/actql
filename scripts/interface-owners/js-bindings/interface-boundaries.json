@@ -23613,6 +23613,8 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
+            "publicationControl/localEffectContext/localEffectContext",
             "publicationControl/inspectAcquiredEffectEvidence/inspectAcquiredEffectEvidence",
             "publicationControl/modelPreparationControls/modelPreparationControls",
             "publicationControl/contentCaptures/contentCaptures",
@@ -23648,10 +23650,8 @@
             "publicationControl/init:bindCheckedClientInferModelEntryPersistence/init:bindCheckedClientInferModelEntryPersistence",
             "publicationControl/init:bindCheckedClientInferModelScope/init:bindCheckedClientInferModelScope",
             "publicationControl/init:bindCheckedClientInferRun/init:bindCheckedClientInferRun",
-            "publicationControl/init:bindInferOriginalResultArtifact/init:bindInferOriginalResultArtifact",
             "publicationControl/init:bindInstalledModelRawCapturePolicy/init:bindInstalledModelRawCapturePolicy",
             "publicationControl/init:bindIssuedClientInferInvocation/init:bindIssuedClientInferInvocation",
-            "publicationControl/init:bindOriginalEffectUnitArtifact/init:bindOriginalEffectUnitArtifact",
             "publicationControl/init:bindRecoveredTablePreview/init:bindRecoveredTablePreview",
             "publicationControl/init:bindTableInput/init:bindTableInput",
             "publicationControl/init:bindTablePreview/init:bindTablePreview",
@@ -23731,7 +23731,6 @@
             "publicationControl/init:localTableCommitResponse/init:localTableCommitResponse",
             "publicationControl/init:modelPrivateHoldingCid/init:modelPrivateHoldingCid",
             "publicationControl/init:modelScopedPrivateHoldingCid/init:modelScopedPrivateHoldingCid",
-            "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
             "publicationControl/init:originalRunPlanAdmissionEvidence/init:originalRunPlanAdmissionEvidence",
             "publicationControl/init:prepareCheckedClientCompiledRun/init:prepareCheckedClientCompiledRun",
             "publicationControl/init:prepareInstalledOriginalComposedKeyedHostInput/init:prepareInstalledOriginalComposedKeyedHostInput",
@@ -23745,19 +23744,6 @@
             "publicationControl/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata/init:prepareKeyedLookupSourceMetadata",
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
             "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
-            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence",
-            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies",
-            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies#2",
-            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies/bodies",
-            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/lookupBodies/lookupBodies",
-            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
-            "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/value/value",
-            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
-            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
-            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#2",
-            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
-            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#4",
-            "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
             "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSavedInputScope/init:readCheckedClientInferSavedInputScope",
             "publicationControl/init:readCheckedClientInferSlotReplay/init:readCheckedClientInferSlotReplay",
@@ -23774,10 +23760,6 @@
             "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
             "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
             "publicationControl/init:retainResultReadMetadata/init:retainResultReadMetadata",
-            "publicationControl/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
-            "publicationControl/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
-            "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
-            "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained",
             "publicationControl/init:seal/init:seal",
             "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
             "publicationControl/init:sealRunEvidence/init:sealRunEvidence",
@@ -28994,16 +28976,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:bindInferOriginalResultArtifact/init:bindInferOriginalResultArtifact",
-          "parameters": [
-            "active",
-            "index",
-            "artifact",
-            "manifest"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:bindInstalledModelRawCapturePolicy/init:bindInstalledModelRawCapturePolicy",
           "parameters": [
             "policy",
@@ -29021,16 +28993,6 @@
             "execution",
             "definition",
             "issued"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:bindOriginalEffectUnitArtifact/init:bindOriginalEffectUnitArtifact",
-          "parameters": [
-            "owner",
-            "inputs",
-            "artifact",
-            "context"
           ],
           "async": false
         },
@@ -30047,13 +30009,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
-          "parameters": [
-            "artifact"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:originalInferRunAdmissionEvidence/init:originalInferRunAdmissionEvidence",
           "parameters": [
             "selected",
@@ -30268,125 +30223,6 @@
         },
         {
           "name": "publicationControl/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory/init:prepareLocalEffectDependencyInventory",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence",
-          "parameters": [
-            "managedRun",
-            "plan",
-            "request",
-            "held",
-            "compiled",
-            "definition",
-            "graph",
-            "unit",
-            "retention",
-            "catalogBodies",
-            "operation",
-            "limits",
-            "retained",
-            "current",
-            "retainedBase",
-            "executionBase",
-            "deferCatalogs"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies/bodies",
-          "parameters": [
-            "pair"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies#2",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/lookupBodies/lookupBodies",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/value/value",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
-          "parameters": [
-            "managedRun",
-            "plan",
-            "request",
-            "captured",
-            "dependency",
-            "admission",
-            "definition",
-            "limits",
-            "retained",
-            "current",
-            "prepared",
-            "consumerOccurrence",
-            "physicalSource",
-            "signal",
-            "retainedCurrent"
-          ],
-          "async": true
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
-          "parameters": [
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#4",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
           "parameters": [
             "value"
           ],
@@ -30741,41 +30577,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
-          "parameters": [
-            "retained"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
-          "parameters": [
-            "owner",
-            "inputs",
-            "artifact",
-            "exported",
-            "receipt"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
-          "parameters": [
-            "owner",
-            "invocation",
-            "artifacts",
-            "manifest"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained",
-          "parameters": [
-            "artifact"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:seal/init:seal",
           "parameters": [
             "name",
@@ -31006,6 +30807,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
+          "parameters": [
+            "issued"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
           "parameters": [
             "prepared"
@@ -31024,6 +30832,13 @@
           "parameters": [
             "limits",
             "label"
+          ],
+          "async": false
+        },
+        {
+          "name": "publicationControl/localEffectContext/localEffectContext",
+          "parameters": [
+            "context"
           ],
           "async": false
         },
@@ -31113,6 +30928,7 @@
         "./runtime-content-publication-control.mjs",
         "./runtime-effect-capture-control.mjs",
         "./runtime-effect-preparation-control.mjs",
+        "./runtime-effect-unit-result-control.mjs",
         "./runtime-execution-control.mjs",
         "./runtime-infer-original-read-control.mjs",
         "./runtime-model-preparation-control.mjs",
@@ -31126,7 +30942,319 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "6cfb378a7b14e216c25f50c1e861958e5504c4f35b90429cb16638bfa36296ed"
+      "sha256": "508c1db0f5ab094df4da13e81c572fc85728f03f504859e2818fbdf011184d59"
+    },
+    {
+      "module": "adapters/host-common/runtime-effect-unit-result-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Effect Unit evidence, result custody and retirement",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createEffectUnitResultControls",
+            "createEffectUnitResultControls/init:bindInferOriginalResultArtifact/init:bindInferOriginalResultArtifact",
+            "createEffectUnitResultControls/init:bindOriginalEffectUnitArtifact/init:bindOriginalEffectUnitArtifact",
+            "createEffectUnitResultControls/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
+            "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence",
+            "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies",
+            "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies#2",
+            "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies/bodies",
+            "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/lookupBodies/lookupBodies",
+            "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
+            "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/value/value",
+            "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+            "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+            "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#2",
+            "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
+            "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#4",
+            "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
+            "createEffectUnitResultControls/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
+            "createEffectUnitResultControls/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
+            "createEffectUnitResultControls/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
+            "createEffectUnitResultControls/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained"
+          ],
+          "exports": [
+            "createEffectUnitResultControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-unit-result-control.mts",
+                "anchor": "export function createEffectUnitResultControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-unit-result-control.mts",
+                "anchor": "retained.exports.push(exported); current();"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-unit-result-control.mts",
+                "anchor": "localEffectManifestTokens.set(manifest, issued);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const localEffectDependencyTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const localEffectArtifactTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-unit-result-control.mts",
+                "anchor": "await physical.withRows(row => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-unit-result-control.mts",
+                "anchor": "throw new TypeError('ForeignEffectSourceUnitOriginal');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-unit-result-control.mts",
+                "anchor": "moon.clientProgramEffectManagedInputCancel(importing);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-unit-result-control.mts",
+                "anchor": "operation.growOriginalPublicationCapacity(retainedBase + r, executionBase + e);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...effectUnitResultControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "original managed Unit Result awaits the same physical bridge before artifact and retains it through cleanup"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createEffectUnitResultControls"
+      ],
+      "operations": [
+        {
+          "name": "createEffectUnitResultControls",
+          "parameters": [
+            "moon",
+            "compiledRunTokens",
+            "localEffectDependencyTokens",
+            "localEffectArtifactTokens",
+            "localEffectManifestTokens",
+            "issuanceLimits",
+            "token",
+            "admissionToken",
+            "inspectLocalEffectArtifact",
+            "localEffectContext"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:bindInferOriginalResultArtifact/init:bindInferOriginalResultArtifact",
+          "parameters": [
+            "active",
+            "index",
+            "artifact",
+            "manifest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:bindOriginalEffectUnitArtifact/init:bindOriginalEffectUnitArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "artifact",
+            "context"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:originalEffectUnitArtifactDefinition/init:originalEffectUnitArtifactDefinition",
+          "parameters": [
+            "artifact"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence",
+          "parameters": [
+            "managedRun",
+            "plan",
+            "request",
+            "held",
+            "compiled",
+            "definition",
+            "graph",
+            "unit",
+            "retention",
+            "catalogBodies",
+            "operation",
+            "limits",
+            "retained",
+            "current",
+            "retainedBase",
+            "executionBase",
+            "deferCatalogs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies/bodies",
+          "parameters": [
+            "pair"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/bodies/bodies#2",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/lookupBodies/lookupBodies",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/originals/originals",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectModelUnitEvidence/init:prepareOriginalEffectModelUnitEvidence/value/value",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+          "parameters": [
+            "managedRun",
+            "plan",
+            "request",
+            "captured",
+            "dependency",
+            "admission",
+            "definition",
+            "limits",
+            "retained",
+            "current",
+            "prepared",
+            "consumerOccurrence",
+            "physicalSource",
+            "signal",
+            "retainedCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults",
+          "parameters": [
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#3",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults#4",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:prepareOriginalEffectSourceUnitResults/init:prepareOriginalEffectSourceUnitResults/issued/issued",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:retireOriginalEffectUnitResults/init:retireOriginalEffectUnitResults",
+          "parameters": [
+            "retained"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:reuseOriginalEffectUnitArtifact/init:reuseOriginalEffectUnitArtifact",
+          "parameters": [
+            "owner",
+            "inputs",
+            "artifact",
+            "exported",
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest",
+          "parameters": [
+            "owner",
+            "invocation",
+            "artifacts",
+            "manifest"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectUnitResultControls/init:reuseOriginalEffectUnitManifest/init:reuseOriginalEffectUnitManifest/retained/retained",
+          "parameters": [
+            "artifact"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "45d829ea4790852c2c4cc73599800ec0dd611b071d3c8ac5294d76a8ac70e237"
     },
     {
       "module": "adapters/host-common/runtime-effect-preparation-control.mjs",
