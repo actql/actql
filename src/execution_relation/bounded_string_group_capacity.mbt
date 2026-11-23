@@ -164,7 +164,9 @@ fn bounded_string_group_cast_capacity(
     bounded_string_group_number_cast(expression) else {
     return Some(0L)
   }
-  let count = Int::min(limits.rows.max_rows, limits.max_work / scalar_cast_work).to_int64()
+  // The group row limit constrains its output, including when the input
+  // has more rows. Only the shared nonrefilling cast debit bounds this count.
+  let count = (limits.max_work / scalar_cast_work).to_int64()
   guard checked_preparation_add_product(
       0L,
       count,

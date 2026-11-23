@@ -213,7 +213,11 @@ test "ordered Number CAST retains its staged contributor text and the original e
   assert_true(bounded_string_group_borrows_input(kernel))
   assert_true(bounded_group_step_supported(generated, kernel))
   // Two charged casts may now coexist outside the one current Fragment.
-  let limited = { ..limits, max_work: 128, }
+  let limited = {
+    ..limits,
+    rows: { ..limits.rows, max_rows: 1, },
+    max_work: 128,
+  }
   let expected = execution_capacity_inventory_bytes([
     { unit: ValueNodeSlots, count: 2L, copies: 1, },
     { unit: DecodedTextBytes, count: 128L, copies: 1, },
@@ -229,9 +233,11 @@ test "ordered Number CAST retains its staged contributor text and the original e
     "\"group\":{\"by\":[],\"aggregates\":{\"ids\":" + aggregate + "}}",
     "group_0",
     true,
+    max_output_rows=1,
     max_work=100000,
     max_entries=10000,
   )
+  assert_eq(completed_row_count(source), 3)
   let execution = started.unwrap()
   guard drive_bounded_group(execution) is BoundedGroupComplete(output, ..) else {
     fail("ordered CAST StringAgg did not complete")
