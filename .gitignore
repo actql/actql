@@ -2528,3 +2528,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/client-effect-observations.d.mts
 /adapters/host-node/client-owner-observations.mjs
 /adapters/host-node/client-owner-observations.d.mts
+/adapters/host-node/logical-task-observation.mjs
+/adapters/host-node/logical-task-observation.d.mts

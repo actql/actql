@@ -1,13 +1,42 @@
 // Existing Run/Request borrower and existing observation queue only. This is
 // metadata, not a task scheduler, Sample, control grant or fallback identity.
 import {checked} from '../host-common/runtime-result.mjs';
+// @ts-expect-error TS7016: the Local Values planner still has an authored JavaScript entry.
 import {localContractLimits} from './local-values-plan.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 
+import type {installHostObservation} from '../host-common/observation.mjs';
+import type {WireRunRef} from '@actql/client-wire';
+
+type Projection = NonNullable<ReturnType<typeof installHostObservation>>;
+type CoreRecord = (record: unknown) => unknown;
+type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type Control = Readonly<{
+  prepareClientLogicalObservation(run: unknown, executionOwner: unknown,
+    definition: unknown, limits: Limits): unknown;
+}>;
+type Moon = Readonly<{
+  clientProgramPrepareLogicalObservation?: (run: unknown, prepared: unknown, compiled: unknown,
+    definition: unknown, bytes: number, nodes: number, depth: number) => unknown;
+  clientProgramLogicalObservationCleanup?: (result: unknown) => unknown;
+  clientProgramAttachLogicalObservation?: (original: unknown, captured: unknown) => unknown;
+  clientProgramBeginLogicalObservation?: (original: unknown, phase: string) => unknown;
+  clientProgramCaptureLogicalObservationRecord?: CoreRecord;
+  clientProgramLogicalObservationRecordState?: CoreRecord;
+  clientProgramLogicalObservationRecordKey?: CoreRecord;
+  clientProgramLogicalObservationRecordPhase?: CoreRecord;
+  clientProgramReturnLogicalObservationRecord?: (record: unknown) => void;
+  clientProgramReturnLogicalObservation?: CoreRecord;
+}>;
+type AuthorizedOperation = Readonly<{
+  principalId: string | undefined; indexKey: WireRunRef | undefined; purpose: 'run-plan';
+}>;
+type Authorize = (operation: AuthorizedOperation) => boolean;
+
 // Positional originals avoid constructing an unbacked per-Run option bag. The
 // complete Core/Host control quote precedes createOwnedObservation's objects.
-export function prepareInstalledLogicalObservation(moon, control, managedRun,
-  executionOwner, definition, observation) {
+export function prepareInstalledLogicalObservation(moon: Moon, control: Control, managedRun: unknown,
+  executionOwner: unknown, definition: unknown, observation: unknown) {
   if (!isHostObservationProjection(observation) ||
       !observation.canObserveLogicalBoundaries() || managedRun === undefined ||
       executionOwner === undefined ||
@@ -32,7 +61,7 @@ export function prepareInstalledLogicalObservation(moon, control, managedRun,
     phase = moon.clientProgramLogicalObservationRecordPhase,
     release = moon.clientProgramReturnLogicalObservationRecord,
     close = moon.clientProgramReturnLogicalObservation;
-  let original, enabled = true, result;
+  let original: unknown, enabled = true, result: unknown;
   try {
     result = control.prepareClientLogicalObservation(managedRun, executionOwner, definition, localContractLimits);
     original = checked(result);
@@ -50,11 +79,16 @@ export function prepareInstalledLogicalObservation(moon, control, managedRun,
     attach, begin, capture, state, key, phase, release, close);
 }
 
-function createOwnedObservation(moon, original, observation, enabled,
-  attach, begin, capture, state, key, phase, release, close) {
-  let active = enabled, closing = false, authorize, ref, principalId, runId;
+function createOwnedObservation(moon: Moon, original: unknown, observation: Projection, enabled: boolean,
+  attach: NonNullable<Moon['clientProgramAttachLogicalObservation']>,
+  begin: NonNullable<Moon['clientProgramBeginLogicalObservation']>,
+  capture: CoreRecord, state: CoreRecord, key: CoreRecord, phase: CoreRecord,
+  release: NonNullable<Moon['clientProgramReturnLogicalObservationRecord']>, close: CoreRecord) {
+  let active = enabled, closing = false, authorize: Authorize | undefined, ref: WireRunRef | undefined,
+    principalId: string | undefined, runId: string | undefined;
   return Object.freeze({
-    attach(captured, selectedRef, principal, authorizeRead, acceptedRunId) {
+    attach(captured: unknown, selectedRef: WireRunRef, principal: string,
+      authorizeRead: Authorize, acceptedRunId: unknown) {
       if (!active || closing) return;
       // All Node wrappers, method environments and operation memos are within
       // the already admitted SAME Request control/record construction quote.
@@ -70,19 +104,19 @@ function createOwnedObservation(moon, original, observation, enabled,
         runId = acceptedRunId;
       } catch {observation.logicalBoundaryUnavailable(); active = false;}
     },
-    project(selectedPhase, task) {
+    project(selectedPhase: string, task: number) {
       if (!active || closing || original === undefined || authorize === undefined || runId === undefined) return undefined;
-      let record;
+      let record: unknown;
       try {record = checked(Reflect.apply(begin, moon, [original, selectedPhase]));}
       catch {observation.logicalBoundaryUnavailable(); return undefined;}
       // Closures, copied metadata and Account memos follow admission.
       // The immediate authority path never awaits an application answer. Each current outstanding delivery has its own real loan.
-      const operation = Object.freeze({principalId, indexKey: ref, purpose: 'run-plan'});
+      const operation: AuthorizedOperation = Object.freeze({principalId, indexKey: ref, purpose: 'run-plan'});
       let transferred = false;
-      const current = selected => {
-        if (record === undefined || authorize(selected) !== true) return false;
+      const current = (selected: AuthorizedOperation) => {
+        if (record === undefined || authorize!(selected) !== true) return false;
         checked(Reflect.apply(state, moon, [record]));
-        if (authorize(selected) !== true) return false;
+        if (authorize!(selected) !== true) return false;
         checked(Reflect.apply(state, moon, [record]));
         return true;
       };
