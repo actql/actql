@@ -2732,3 +2732,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/initial-control-phase-envelope.d.cts
 /scripts/release-project-sequences.test.mjs
 /scripts/release-project-sequences.test.d.mts
+/scripts/native-approval-performance.mjs
+/scripts/native-approval-performance.d.mts

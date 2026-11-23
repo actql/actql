@@ -8,6 +8,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {projectTemplateFiles} from '../packages/native-cli/lib/project-template.mjs';
 import {requireNativeMockWork} from './native-cli-mock-scenario.mjs';
+import {observeNativeMockHarnessPhase, type NativeMockHarnessRecord} from './native-approval-performance.mjs';
 
 type ReleasePorts = Parameters<typeof runReleaseProjectSequences>[0];
 type Label = Parameters<ReleasePorts['cli']>[2];
@@ -43,10 +44,7 @@ type FixturePorts = {root: string;
   cli(args: readonly string[], project: string, label: Label): Promise<FixtureExit>;
   node(request: ActionRequest, project: string, label: Label): Promise<FixtureReply>};
 type HarnessPhase = 'release-project-sequences' | 'original-mock-regressions';
-type PhaseRecord = {phase: HarnessPhase; state: 'running' | 'completed' | 'failed'; wallNs: number};
-type Observer = <Value>(records: PhaseRecord[], phase: HarnessPhase, action: () => Promise<Value>) => Promise<Value>;
-const {observeNativeMockHarnessPhase}: {observeNativeMockHarnessPhase: Observer} =
-  await import(new URL('./native-approval-performance.mjs', import.meta.url).href);
+type PhaseRecord = NativeMockHarnessRecord<HarnessPhase>;
 
 // The original fixture ports supply independently authored observations and
 // timestamps. The runner itself checks slot and payload requirements.
@@ -515,7 +513,7 @@ test('RC sequence phase uses the existing observer and preserves an original fai
     await assert.rejects(observeNativeMockHarnessPhase(records, phase, async () => {throw primary;}),
       value => value === primary);
     assert.deepEqual(records.map(({phase, state}) => [phase, state]), [[phase, 'completed'], [phase, 'failed']]);
-    assert(records.every(({wallNs}) => Number.isSafeInteger(wallNs) && wallNs >= 0));
+    assert(records.every(({wallNs}) => Number.isSafeInteger(wallNs) && wallNs! >= 0));
   }
 });
 

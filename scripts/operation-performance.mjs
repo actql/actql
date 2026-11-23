@@ -14,9 +14,6 @@ export const operationTargets = Object.freeze({
   'mock-workflow': {samples: 30, p95Ms: 5000},
 });
 for (const target of Object.values(operationTargets)) Object.freeze(target);
-// Separate Native profile: adding it must not impose Native samples on every
-// portable Host performance campaign.
-export const nativeApprovalTarget = Object.freeze({samples: 30, p95Ms: 6000, maxMs: 10000});
 export const historySizes = Object.freeze([1, 10, 100, 1000]);
 const digest = value => typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value);
 const outcome = (failures, missing, detail = {}) => ({
