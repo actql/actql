@@ -13,19 +13,36 @@ const profileKeys = ['version', 'connectorId', 'project', 'bucket', 'prefix',
   'mediaType', 'siteProfilePath', 'accountConfigurationWire', 'limits'];
 const limitKeys = ['maxListingItems', 'maxExaminedItems', 'maxPages',
   'maxAttempts', 'maxListingBytes', 'maxDurationMs', 'maxPathBytes',
-  'maxPageBytes', 'maxPageItems', 'maxRequestBytes', 'maxContentBytes'];
-const fail = () => { throw Object.assign(new TypeError('InvalidInstalledGcsSourceProfile'),
+  'maxPageBytes', 'maxPageItems', 'maxRequestBytes', 'maxContentBytes'] as const;
+const fail: () => never = () => { throw Object.assign(new TypeError('InvalidInstalledGcsSourceProfile'),
   {code: 'InvalidInstalledGcsSourceProfile'}); };
-const exact = (value, maximum, empty = false) => typeof value === 'string' &&
+const exact = (value: unknown, maximum: number, empty = false): value is string => typeof value === 'string' &&
   (empty || value.length > 0) && value.isWellFormed() &&
   !/[\u0000-\u001f\u007f]/u.test(value) && Buffer.byteLength(value) <= maximum;
-const closed = (value, keys) => value !== null && typeof value === 'object' &&
+const closed = (value: unknown, keys: readonly string[]): value is Record<string, unknown> => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') === keys.slice().sort().join('\0');
-const positive = value => Number.isInteger(value) && value > 0 && value <= 2147483647;
-const canonical = value => canonicalJson(value, {dataKeys: true});
-const cid = value => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
+const positive = (value: number) => Number.isInteger(value) && value > 0 && value <= 2147483647;
+const canonical = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const cid = (value: unknown) => `sha256:${createHash('sha256').update(canonical(value)).digest('hex')}`;
 
-export function checkInstalledGcsSourceProfile(profile) {
+type ProfileLimits = Readonly<Record<typeof limitKeys[number], number>>;
+type SourceProfile = Readonly<{
+  version: typeof INSTALLED_GCS_SOURCE_VERSION; connectorId: string; project: string;
+  bucket: string; prefix: string; mediaType: string; siteProfilePath: string;
+  accountConfigurationWire: string; limits: ProfileLimits;
+}>;
+type OriginalView = Readonly<{resource: string; carrier_schema_cid: string; source_ref: string;
+  fields: readonly string[]}>;
+type OriginalDeclaration = Readonly<{
+  catalog_cid: string; catalog: string; contracts: readonly string[]; views: readonly OriginalView[];
+}>;
+type DeclarationRuntime = Readonly<{
+  clientProgramRowSourceRestoreRelationDeclaration(connectorId: string, registration: string,
+    revision: string, wire: string, expectedCatalogCid: string | undefined): unknown;
+  clientProgramRowSourceDeclarationJson(declaration: unknown): string;
+}>;
+
+export function checkInstalledGcsSourceProfile(profile: unknown): SourceProfile {
   if (!closed(profile, profileKeys) || profile.version !== INSTALLED_GCS_SOURCE_VERSION ||
       !exact(profile.connectorId, 128) || !exact(profile.project, 128) ||
       !exact(profile.bucket, 222) ||
@@ -37,7 +54,7 @@ export function checkInstalledGcsSourceProfile(profile) {
       !exact(profile.siteProfilePath, 4096) || !isAbsolute(profile.siteProfilePath) ||
       !exact(profile.accountConfigurationWire, 1000000) ||
       !closed(profile.limits, limitKeys)) fail();
-  const limits = {...profile.limits};
+  const limits = {...profile.limits} as ProfileLimits;
   if (!limitKeys.filter(key => key !== 'maxContentBytes').every(key => positive(limits[key])) ||
       !Number.isInteger(limits.maxContentBytes) || limits.maxContentBytes < 0 ||
       limits.maxContentBytes > limits.maxPageBytes || limits.maxPages < 2 ||
@@ -47,21 +64,21 @@ export function checkInstalledGcsSourceProfile(profile) {
   let account;
   try { account = JSON.parse(profile.accountConfigurationWire); } catch { fail(); }
   if (account === null || typeof account !== 'object' || Array.isArray(account)) fail();
-  return Object.freeze({...profile, limits: Object.freeze(limits)});
+  return Object.freeze({...profile, limits: Object.freeze(limits)}) as SourceProfile;
 }
 
-function view(resource, schema, request, acquisition) {
+function view(resource: string, schema: unknown, request: unknown, acquisition: unknown) {
   return {resource, resource_kind: 'file', schema_wire: canonical(schema),
     schema_cid: cid(schema), request_schema_wire: canonical(request), facts_wire: '{}',
     ...(acquisition === undefined ? {} : {acquisition_wire: canonical(acquisition)})};
 }
 
-export function prepareGcsSourceDeclarationInputs(profile, {includeObjects = false} = {}) {
+export function prepareGcsSourceDeclarationInputs(profile: unknown, {includeObjects = false} = {}) {
   const installed = checkInstalledGcsSourceProfile(profile);
   const {limits} = installed;
   const resource = {type: 'resource_ref', resource_kind: 'file', nullable: false};
   const version = {type: 'string', nullable: false};
-  const request = fields => ({type: 'object', nullable: false,
+  const request = (fields: Readonly<Record<string, unknown>>) => ({type: 'object', nullable: false,
     additional_properties: false, fields});
   const views = [
     view('files', {resource, version, name: {type: 'string', nullable: false},
@@ -97,14 +114,14 @@ export function prepareGcsSourceDeclarationInputs(profile, {includeObjects = fal
     metadata_preconditions: ['generation', 'ifGenerationMatch'],
     media_preconditions: ['generation', 'ifGenerationMatch', 'ifMetagenerationMatch']});
   const initialViews = Object.freeze(views.map(value => Object.freeze(value)));
-  const deriveFinalViews = initial => {
+  const deriveFinalViews = (initial: Pick<OriginalDeclaration, 'views'>) => {
     // The actual preliminary declaration supplies these carrier identities.
     // Never mutate its privately retained inputs or invent matching hashes.
     const finalViews = initialViews.map(value => ({...value}));
     finalViews[0].facts_wire = canonical({file_listing: {
     version: 'actql-file-list/0.1', kind: 'file_listing', selectable: ['paths', 'glob'],
     allow_unfiltered_listing: true, admitted_scope_contract_cid: scopeCid,
-    listing_schema_contract_cid: initial.views.find(value => value.resource === 'files').carrier_schema_cid,
+    listing_schema_contract_cid: initial.views.find(value => value.resource === 'files')!.carrier_schema_cid,
     version_capability: {contract_cid: versionCid, required_nonnull: true},
     max_listing_items: limits.maxListingItems, max_examined_items: limits.maxExaminedItems,
     max_listing_pages: limits.maxPages, max_request_attempts: limits.maxAttempts,
@@ -114,7 +131,7 @@ export function prepareGcsSourceDeclarationInputs(profile, {includeObjects = fal
     finalViews[1].facts_wire = canonical({file_content: {
     version: 'actql-file-content/0.1', kind: 'file_content',
     admitted_scope_contract_cid: scopeCid,
-    content_schema_contract_cid: initial.views.find(value => value.resource === 'contents').carrier_schema_cid,
+    content_schema_contract_cid: initial.views.find(value => value.resource === 'contents')!.carrier_schema_cid,
     version_capability: {contract_cid: versionCid, required_nonnull: true},
     representation: 'exact_stored_bytes',
   }, lookup_capacity: {version: 'actql-lookup-capacity/0.1',
@@ -127,14 +144,15 @@ export function prepareGcsSourceDeclarationInputs(profile, {includeObjects = fal
 
 // Standalone declaration compatibility preserves the same TWO Common
 // restores. Installed load uses the bound common owner to fund/retain each.
-export function restoreGcsSourceDeclaration(moon, profile, expectedCatalogCid,
+export function restoreGcsSourceDeclaration(moon: DeclarationRuntime, profile: unknown, expectedCatalogCid?: string,
   {includeObjects = false} = {}) {
   const inputs = prepareGcsSourceDeclarationInputs(profile, {includeObjects});
-  const restore = (views, expected) => checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+  const restore = (views: ReturnType<typeof view>[] | readonly Readonly<ReturnType<typeof view>>[],
+    expected: string | undefined) => checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     inputs.connectorId, GCS_REGISTRATION, GCS_REVISION, JSON.stringify({views}), expected));
   const preliminary = restore(inputs.initialViews, undefined);
-  const initial = JSON.parse(moon.clientProgramRowSourceDeclarationJson(preliminary));
+  const initial = JSON.parse(moon.clientProgramRowSourceDeclarationJson(preliminary)) as OriginalDeclaration;
   const declaration = restore(inputs.deriveFinalViews(initial), expectedCatalogCid);
-  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration)) as OriginalDeclaration;
   return Object.freeze({declaration, declared, scopeCid: inputs.scopeCid, versionCid: inputs.versionCid});
 }

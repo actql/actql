@@ -4,18 +4,40 @@ import {invocationBindingsMatch, invokeScopedCredentialOperation,
   ownInvocationAuthorization, ownInvocationLimits} from
   '../../../host-common/owned-invocation-context.mjs';
 
+type ListingLimits = Readonly<{maxPageBytes: number; maxPageItems: number;
+  maxRequestBytes: number; maxTimeMs: number}>;
+type Target = Readonly<{bucket: string; prefix: string}>;
+type ResourceSelection = Readonly<{bucket: string; objectName: string}>;
+type ListingRuntime = Readonly<{gcsObjectTimestamp(updated: string): string | undefined}>;
+type Response = Pick<Awaited<ReturnType<typeof callHttpsCredentialResource>>,
+  'accepted' | 'statusCode' | 'headers' | 'body'>;
+type Invocation = ReturnType<typeof ownInvocationAuthorization>;
+type Scope = Readonly<{operation?: string; resourceOrigin?: string; siteGeneration?: number}>;
+type ListedItem = Readonly<{bucket: string; name: string; generation: string; size: string;
+  contentType?: string; updated?: string}>;
+type ProviderPage = Readonly<{kind: string; prefixes?: readonly unknown[]; items?: readonly ListedItem[];
+  nextPageToken?: string}>;
+type ListingOptions = Readonly<{
+  moon?: ListingRuntime; target: Target; limits: ListingLimits; credential: unknown;
+  listing: Readonly<{beginRequest(token?: string): unknown; consumePage(body: Buffer,
+    original: Readonly<{charge: unknown}>): unknown}>;
+  authorizationFor(index: number): unknown; chargePage(body: Buffer): unknown;
+  resourceFor(target: ResourceSelection): unknown; signal?: AbortSignal;
+  callResource?: (...args: never[]) => unknown;
+}>;
+
 export const GCS_FILE_LIST_OPERATION = 'gcs:file:list';
 const origin = 'https://storage.googleapis.com';
-const fail = code => { throw Object.assign(new Error(code), {code}); };
-const positive = value => Number.isSafeInteger(value) && value > 0;
-const text = (value, max, empty = false) => typeof value === 'string' &&
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
+const positive = (value: number) => Number.isSafeInteger(value) && value > 0;
+const text = (value: unknown, max: number, empty = false): value is string => typeof value === 'string' &&
   (empty || value.length > 0) && value.isWellFormed() &&
   !/[\u0000-\u001f\u007f]/u.test(value) && Buffer.byteLength(value) <= max;
-const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
-const encode = value => encodeURIComponent(value).replace(/[!'()*]/gu,
+const object = (value: unknown): value is object => value !== null && typeof value === 'object' && !Array.isArray(value);
+const encode = (value: string) => encodeURIComponent(value).replace(/[!'()*]/gu,
   char => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
 
-function setup(options) {
+function setup(options: ListingOptions) {
   const {moon, target, limits, listing, credential, authorizationFor, chargePage,
     resourceFor, callResource = callHttpsCredentialResource} = options;
   if ((moon !== undefined && typeof moon?.gcsObjectTimestamp !== 'function') ||
@@ -31,26 +53,26 @@ function setup(options) {
     fail('InvalidGcsFileListing');
   }
   return Object.freeze({moon, target: Object.freeze({...target}),
-    limits: ownInvocationLimits(limits), credential: Object.freeze({...credential}),
+    limits: ownInvocationLimits(limits) as ListingLimits, credential: Object.freeze({...credential}),
     callbacks: Object.freeze({beginRequest: listing.beginRequest,
       consumePage: listing.consumePage, authorizationFor, chargePage,
       resourceFor, callResource})});
 }
 
-function authorization(value, original) {
-  const owned = ownInvocationAuthorization(value);
+function authorization(value: unknown, original: Scope | undefined) {
+  const owned = ownInvocationAuthorization(value) as Invocation & Readonly<{scope: Scope}>;
   if (!owned.grant || owned.scope.operation !== GCS_FILE_LIST_OPERATION ||
       owned.scope.resourceOrigin !== origin ||
-      !Number.isSafeInteger(owned.scope.siteGeneration) || owned.scope.siteGeneration < 0 ||
+      !Number.isSafeInteger(owned.scope.siteGeneration) || (owned.scope.siteGeneration as number) < 0 ||
       (original && !invocationBindingsMatch(owned.scope, original))) {
     fail('InvalidGcsFileListingAuthorization');
   }
   return owned;
 }
 
-function page(body, target, maximum, moon) {
-  let parsed;
-  try { parsed = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body)); }
+function page(body: Buffer, target: Target, maximum: number, moon: ListingRuntime | undefined) {
+  let parsed: ProviderPage;
+  try { parsed = JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(body)) as ProviderPage; }
   catch { fail('InvalidGcsFileListingPage'); }
   if (!object(parsed) || parsed.kind !== 'storage#objects' ||
       (parsed.prefixes !== undefined &&
@@ -59,7 +81,7 @@ function page(body, target, maximum, moon) {
       (parsed.nextPageToken !== undefined && !text(parsed.nextPageToken, 8192))) {
     fail('InvalidGcsFileListingPage');
   }
-  const items = parsed.items ?? [];
+  const items: readonly ListedItem[] = parsed.items ?? [];
   if (items.length > maximum) fail('GcsFileListingPageItemsExceeded');
   // No delimiter, matchGlob, soft-deleted objects or all-version listing is
   // requested. Selection and duplicate/conflicting Resource facts belong to
@@ -100,11 +122,11 @@ function page(body, target, maximum, moon) {
 // its bounded selector, issuer and completion protocol. The Host supplies
 // resourceFor; neither this transport nor a Program issues reference authority.
 // The prefix is an installed scope, not a translation of the ActQL glob.
-export async function readGcsFileListing(options) {
+export async function readGcsFileListing(options: ListingOptions) {
   const {moon, target, limits, credential, callbacks} = setup(options);
   const signal = AbortSignal.any([AbortSignal.timeout(limits.maxTimeMs),
     ...(options.signal === undefined ? [] : [options.signal])]);
-  let nextToken, firstScope, index = 0;
+  let nextToken: string | undefined, firstScope: Scope | undefined, index = 0;
   for (;;) {
     signal.throwIfAborted();
     // beginRequest enforces the cumulative page/attempt/time ceilings and
@@ -122,7 +144,7 @@ export async function readGcsFileListing(options) {
         ...(nextToken === undefined ? [] : [['pageToken', nextToken]])],
       headers: [['accept-encoding', 'identity']], responseHeaders: ['content-encoding'],
       maxRequestBytes: limits.maxRequestBytes, maxResponseBytes: limits.maxPageBytes, signal,
-    });
+    }) as Response;
     if (!Buffer.isBuffer(response.body)) fail('InvalidGcsFileListingPage');
     // Preserve the exact received-body charge even for an error response or
     // malformed page. Normalized envelope bytes never replace this charge.

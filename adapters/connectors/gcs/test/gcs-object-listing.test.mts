@@ -2,9 +2,22 @@
 // port. The Resource callback below is a contract control, not Core authority.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import * as moon from '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js';
 import {readGcsObjects} from '../site/gcs-object-listing.mjs';
 import {GCS_FILE_LIST_OPERATION} from '../site/gcs-file-listing.mjs';
+
+type ListingOptions = Parameters<typeof readGcsObjects>[0];
+type Mutable<T> = {-readonly [Key in keyof T]: T[Key]};
+type Ticket = Readonly<{body: Buffer}>;
+type Selection = Parameters<ListingOptions['resourceFor']>[0];
+type Call = {operations: Map<string, Readonly<{path: string}>>};
+type Reply = {accepted: boolean; statusCode: number; headers: string[][]; body: Buffer};
+type Options = Omit<Mutable<ListingOptions>, 'limits' | 'chargePage' | 'callResource'> & {
+  limits: Mutable<ListingOptions['limits']>;
+  chargePage(body: Buffer): Ticket; callResource(call: Call): Promise<Reply>;
+};
+type Rows = Parameters<ListingOptions['consumePage']>[0];
+const moon: ListingOptions['moon'] = await import(new URL(
+  '../../../../_build/js/release/build/connectors/gcs/host_node/host_node.js', import.meta.url).href);
 
 const scope = Object.freeze({operation: GCS_FILE_LIST_OPERATION,
   resourceOrigin: 'https://storage.googleapis.com', siteGeneration: 1,
@@ -17,10 +30,11 @@ const item = Object.freeze({bucket: 'bucket', name: 'in/e\u0301%2F.csv',
   contentType: 'text/csv', storageClass: 'COLDLINE', updated: '2026-10-17T00:00:00Z',
   md5Hash: 'AAAAAA==', crc32c: 'crxyRA==',
   metadata: {'actql-request': 'private', '$json': 'user', 'e\u0301': 'e\u0301\r\n%2F'}});
-function fixture(pages = [{kind: 'storage#objects', nextPageToken: 'empty'},
+function fixture(pages: readonly unknown[] = [{kind: 'storage#objects', nextPageToken: 'empty'},
   {kind: 'storage#objects', items: [item]}]) {
-  const state = {calls: [], charges: [], rows: [], resources: [], events: []};
-  const options = {moon, target: {bucket: 'bucket', prefix: 'in/'}, requestWire: '{}',
+  const state = {calls: [] as Call[], charges: [] as Ticket[], rows: [] as Rows[],
+    resources: [] as Selection[], events: [] as string[]};
+  const options: Options = {moon, target: {bucket: 'bucket', prefix: 'in/'}, requestWire: '{}',
     limits: {maxPageBytes: 8192, maxPageItems: 3, maxRequestBytes: 4096,
       maxTimeMs: 1000, maxPages: 4, maxRows: 3}, credential: {journal: {fixture: true}},
     verifyRead: async () => {state.events.push('current');},
@@ -56,15 +70,15 @@ test('actual GCS object parser preserves exact Int64 Decimal text, all fields an
     md5: 'AAAAAA==', crc32c: 'crxyRA==', metadata: {'$json': 'user', 'e\u0301': 'e\u0301\r\n%2F'}}]]);
   assert.deepEqual(state.events, ['current', 'send', 'charge', 'consume',
     'current', 'send', 'charge', 'consume']);
-  assert.equal(JSON.parse(state.charges[1].body).items[0].metadata['actql-request'], 'private',
+  assert.equal(JSON.parse(state.charges[1].body.toString('utf8')).items[0].metadata['actql-request'], 'private',
     'the logical private-key projection never changes original physical evidence');
-  assert.deepEqual(state.calls.map(call => call.operations.get(GCS_FILE_LIST_OPERATION).path), [
+  assert.deepEqual(state.calls.map(call => call.operations.get(GCS_FILE_LIST_OPERATION)!.path), [
     '/storage/v1/b/bucket/o?prefix=in%2F&maxResults=3&projection=noAcl',
     '/storage/v1/b/bucket/o?prefix=in%2F&maxResults=3&projection=noAcl&pageToken=empty']);
 });
 
 test('missing provider metadata and empty object remain distinct Source DATA', async () => {
-  const absent = {...item}; delete absent.metadata;
+  const absent: Omit<typeof item, 'metadata'> & {metadata?: typeof item.metadata} = {...item}; delete absent.metadata;
   const {options, state} = fixture([{kind: 'storage#objects', items: [absent, {...item, metadata: {}}]}]);
   await readGcsObjects(options);
   assert.equal(state.rows[0][0].metadata, null);
@@ -76,7 +90,7 @@ test('GCS timestamp Source DATA uses the same UTC instant while retaining the ex
   const {options, state} = fixture([{kind: 'storage#objects', items: [{...item, updated: reported}]}]);
   await readGcsObjects(options);
   assert.equal(state.rows[0][0].updated, '2026-10-17T00:00:00.123Z');
-  assert.equal(JSON.parse(state.charges[0].body).items[0].updated, reported);
+  assert.equal(JSON.parse(state.charges[0].body.toString('utf8')).items[0].updated, reported);
 });
 
 test('GCS exact sub-millisecond timestamps retain the original physical report and Resource version', async () => {
@@ -89,7 +103,7 @@ test('GCS exact sub-millisecond timestamps retain the original physical report a
     await readGcsObjects(options);
     assert.equal(state.rows[0][0].updated, expected);
     assert.equal(state.rows[0][0].version, item.generation);
-    assert.equal(JSON.parse(state.charges[0].body).items[0].updated, reported);
+    assert.equal(JSON.parse(state.charges[0].body.toString('utf8')).items[0].updated, reported);
     assert.equal(state.resources.length, 1);
     assert.deepEqual(state.events, ['current', 'send', 'charge', 'consume']);
   }
@@ -101,7 +115,7 @@ test('unrepresentable GCS beyond-nine-digit timestamps refuse without rounding o
   await assert.rejects(readGcsObjects(options), {code: 'GcsInvalidObjectMetadata'});
   assert.equal(state.calls.length, 1);
   assert.equal(state.charges.length, 1);
-  assert.equal(JSON.parse(state.charges[0].body).items[0].updated, reported);
+  assert.equal(JSON.parse(state.charges[0].body.toString('utf8')).items[0].updated, reported);
   assert.equal(state.resources.length, 0);
   assert.equal(state.rows.length, 0);
 });
@@ -110,7 +124,7 @@ test('actual checked prefix narrows scope without Unicode or percent normalizati
   const {options, state} = fixture([{kind: 'storage#objects', items: [item]}]);
   options.requestWire = '{"prefix":"in/e\u0301%2F"}';
   await readGcsObjects(options);
-  assert.equal(state.calls[0].operations.get(GCS_FILE_LIST_OPERATION).path,
+  assert.equal(state.calls[0].operations.get(GCS_FILE_LIST_OPERATION)!.path,
     '/storage/v1/b/bucket/o?prefix=in%2Fe%CC%81%252F&maxResults=3&projection=noAcl');
   for (const requestWire of ['{"prefix":"out/"}', '{"glob":"*"}',
     '{"prefix":"in/","prefix":"out/"}', '{"prefix":1}', '[]']) {
@@ -128,7 +142,7 @@ for (const [name, body] of [
   ['unexpected prefix page', {kind: 'storage#objects', items: [item], prefixes: ['in/folder/']}],
   ['duplicate provider keys', Buffer.from('{"kind":"storage#objects","items":[],"items":[]}')],
   ['invalid UTF8', Buffer.from([0xff])],
-]) {
+] as const) {
   test(`actual GCS ${name} preserves original charge and admits no partial page`, async () => {
     const {options, state} = fixture([body]);
     await assert.rejects(readGcsObjects(options));

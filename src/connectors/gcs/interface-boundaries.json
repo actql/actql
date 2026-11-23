@@ -754,7 +754,7 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
-      "sha256": "2bca5ddca6810638848a727cd757610ec49bf24c0f89992d8fe74a7e61db7883",
+      "sha256": "3fc341931145d39b6c9d3b8c3f4fb1d472c3bbd90794237fc2f0f6c857bec042",
       "exports": [
         "readGcsObjects"
       ],
@@ -865,23 +865,23 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "signal.throwIfAborted()"
               },
               {
@@ -891,7 +891,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -905,7 +905,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -923,7 +923,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               }
             ],
@@ -933,7 +933,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               }
             ],
@@ -3037,7 +3037,7 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               },
               {
@@ -3055,11 +3055,11 @@
                 "anchor": "not object GET"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               }
             ],
@@ -3076,7 +3076,7 @@
                 "anchor": "if count > max_items"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -3106,7 +3106,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -3132,7 +3132,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               },
               {
@@ -3154,7 +3154,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               }
             ],
@@ -5059,7 +5059,7 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               },
               {
@@ -5133,11 +5133,11 @@
                 "anchor": "readAuthorizedEffectResponse"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               },
               {
@@ -5202,7 +5202,7 @@
                 "anchor": "Other statuses or malformed"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -5296,7 +5296,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -5410,7 +5410,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               },
               {
@@ -5520,7 +5520,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               },
               {
@@ -6619,7 +6619,7 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               },
               {
@@ -6641,11 +6641,11 @@
                 "anchor": "export function invokeScopedCredentialOperation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               },
               {
@@ -6667,7 +6667,7 @@
                 "anchor": "physical cleanup ACK"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "signal.throwIfAborted()"
               },
               {
@@ -6685,7 +6685,7 @@
                 "anchor": "pub fn gcs_object_failure_code"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -6715,7 +6715,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -6757,7 +6757,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               },
               {
@@ -6803,7 +6803,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               },
               {
@@ -7736,7 +7736,7 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               },
               {
@@ -7810,11 +7810,11 @@
                 "anchor": "readAuthorizedEffectResponse"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               },
               {
@@ -7852,7 +7852,7 @@
                 "anchor": "classification, Promise completion or a weak reference is not cleanup ACK"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "signal.throwIfAborted()"
               },
               {
@@ -7922,7 +7922,7 @@
                 "anchor": "Other statuses or malformed"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -8012,7 +8012,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -8130,7 +8130,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               },
               {
@@ -8248,7 +8248,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               },
               {

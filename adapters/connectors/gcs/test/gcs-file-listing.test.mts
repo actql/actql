@@ -2,6 +2,23 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readGcsFileListing, GCS_FILE_LIST_OPERATION} from '../site/gcs-file-listing.mjs';
 
+type ListingOptions = Parameters<typeof readGcsFileListing>[0];
+type Mutable<T> = {-readonly [Key in keyof T]: T[Key]};
+type Ticket = {bytes: Buffer};
+type Selection = Parameters<ListingOptions['resourceFor']>[0];
+type Call = {
+  operations: Map<string, {method: string; path: string; body?: string}>;
+  journal: Record<string, boolean>;
+  returnRejectedResponse: boolean;
+};
+type Reply = {accepted: boolean; statusCode: number; headers: string[][]; body: Buffer};
+type Options = Omit<Mutable<ListingOptions>, 'target' | 'limits' | 'credential' | 'listing' | 'chargePage' | 'callResource'> & {
+  target: Mutable<ListingOptions['target']>; limits: Mutable<ListingOptions['limits']>;
+  credential: {journal: Record<string, boolean>}; listing: Mutable<ListingOptions['listing']>;
+  chargePage(bytes: Buffer): Ticket; callResource(call: Call): Promise<Reply>;
+};
+type ListingEnvelope = {items: {name: string; path: string; resource: unknown}[]};
+
 const scope = Object.freeze({operation: GCS_FILE_LIST_OPERATION,
   resourceOrigin: 'https://storage.googleapis.com', siteGeneration: 1,
   issuerAuthority: 'fixture', principal: 'fixture', namespaceId: 'fixture',
@@ -11,13 +28,14 @@ const scope = Object.freeze({operation: GCS_FILE_LIST_OPERATION,
 const metadata = {bucket: 'actql-fixture', name: 'test/e\u0301%2F.csv',
   generation: '9007199254740993', size: '7', contentType: 'text/csv'};
 
-function fixture(pages = [
+function fixture(pages: readonly unknown[] = [
   {kind: 'storage#objects', nextPageToken: 'empty'},
   {kind: 'storage#objects', items: [metadata], nextPageToken: 'terminal'},
   {kind: 'storage#objects'},
 ]) {
-  const state = {calls: [], charges: [], envelopes: [], tokens: [], events: []};
-  const options = {target: {bucket: 'actql-fixture', prefix: 'test/'},
+  const state = {calls: [] as Call[], charges: [] as Ticket[], envelopes: [] as ListingEnvelope[],
+    tokens: [] as (string | undefined)[], events: [] as string[]};
+  const options: Options = {target: {bucket: 'actql-fixture', prefix: 'test/'},
     limits: {maxPageBytes: 4096, maxPageItems: 3, maxRequestBytes: 4096, maxTimeMs: 1000},
     credential: {journal: {fixture: true}},
     listing: {
@@ -25,7 +43,7 @@ function fixture(pages = [
       consumePage: async (body, {charge}) => {
         state.events.push('consume');
         assert.equal(charge, state.charges.at(-1));
-        state.envelopes.push(JSON.parse(body));
+        state.envelopes.push(JSON.parse(body.toString('utf8')));
       },
     },
     authorizationFor: async index => ({grant: {}, useId: `list-${index}`, scope}),
@@ -50,13 +68,13 @@ test('opaque prefix listing retains exact query bytes, original page charge and 
   await readGcsFileListing(options);
   assert.equal(state.calls.length, 1);
   assert.equal(state.charges.length, 1);
-  assert.equal(state.calls[0].operations.get(GCS_FILE_LIST_OPERATION).path,
+  assert.equal(state.calls[0].operations.get(GCS_FILE_LIST_OPERATION)!.path,
     '/storage/v1/b/actql-fixture/o?prefix=test%2Fe%CC%81%09%00%7F%252F%2F&maxResults=3&projection=noAcl');
   assert.equal(state.envelopes[0].items[0].name, name);
   assert.equal(state.envelopes[0].items[0].path, name);
   assert.deepEqual(state.envelopes[0].items[0].resource,
     {$fixtureResource: {bucket: 'actql-fixture', objectName: name}});
-  assert.equal(JSON.parse(state.charges[0].bytes).items[0].name, name);
+  assert.equal(JSON.parse(state.charges[0].bytes.toString('utf8')).items[0].name, name);
 });
 
 test('GCS listing retains empty continuation pages, exact keys and string generations', async () => {
@@ -73,7 +91,7 @@ test('GCS listing retains empty continuation pages, exact keys and string genera
   assert.deepEqual(state.events, Array.from({length: 3}, () =>
     ['begin', 'send', 'charge', 'consume']).flat());
   for (const [index, call] of state.calls.entries()) {
-    const request = call.operations.get(GCS_FILE_LIST_OPERATION);
+    const request = call.operations.get(GCS_FILE_LIST_OPERATION)!;
     assert.equal(request.method, 'GET');
     assert.equal(request.path, '/storage/v1/b/actql-fixture/o?prefix=test%2F&maxResults=3&projection=noAcl' +
       (index === 0 ? '' : `&pageToken=${['empty', 'terminal'][index - 1]}`));
@@ -85,7 +103,7 @@ test('GCS listing retains empty continuation pages, exact keys and string genera
 test('flat GCS listing refuses unexpected prefix pages without partial admission', async () => {
   const {options, state} = fixture([{kind: 'storage#objects',
     items: [metadata], prefixes: ['test/folder/'], nextPageToken: 'unfinished'}]);
-  const resources = [];
+  const resources: Selection[] = [];
   options.resourceFor = target => {
     resources.push(target);
     return {$fixtureResource: target};
@@ -97,11 +115,11 @@ test('flat GCS listing refuses unexpected prefix pages without partial admission
   assert.deepEqual(resources, []);
   assert.deepEqual(state.tokens, [undefined]);
   assert.deepEqual(state.events, ['begin', 'send', 'charge']);
-  assert.deepEqual(JSON.parse(state.charges[0].bytes), {
+  assert.deepEqual(JSON.parse(state.charges[0].bytes.toString('utf8')), {
     kind: 'storage#objects', items: [metadata], prefixes: ['test/folder/'],
     nextPageToken: 'unfinished',
   });
-  assert.equal(state.calls[0].operations.get(GCS_FILE_LIST_OPERATION).path,
+  assert.equal(state.calls[0].operations.get(GCS_FILE_LIST_OPERATION)!.path,
     '/storage/v1/b/actql-fixture/o?prefix=test%2F&maxResults=3&projection=noAcl');
 });
 
@@ -109,7 +127,7 @@ test('JSON object names retain legal controls in original listing metadata and R
   const names = ['test/a\tb', 'test/a\u0000\u007fb', 'test/e\u0301%2F#?.csv'];
   const {options, state} = fixture([{kind: 'storage#objects',
     items: names.map(name => ({...metadata, name}))}]);
-  const originals = [];
+  const originals: Selection[] = [];
   options.resourceFor = target => {
     originals.push(target);
     return {$fixtureResource: target};
@@ -118,7 +136,7 @@ test('JSON object names retain legal controls in original listing metadata and R
   assert.deepEqual(originals, names.map(objectName => ({bucket: 'actql-fixture', objectName})));
   assert.deepEqual(state.envelopes[0].items.map(row => [row.name, row.path]),
     names.map(name => [name, name]));
-  assert.deepEqual(JSON.parse(state.charges[0].bytes).items.map(item => item.name), names);
+  assert.deepEqual(JSON.parse(state.charges[0].bytes.toString('utf8')).items.map((item: {name: string}) => item.name), names);
   assert.equal(state.calls.length, 1);
 });
 
@@ -130,7 +148,7 @@ test('CR and LF in original listing metadata retain charges without Resource adm
     await assert.rejects(readGcsFileListing(options), {code: 'GcsFileListingMetadataMismatch'});
     assert.equal(state.calls.length, 1);
     assert.equal(state.charges.length, 1);
-    assert.equal(JSON.parse(state.charges[0].bytes).items[0].name, name);
+    assert.equal(JSON.parse(state.charges[0].bytes.toString('utf8')).items[0].name, name);
     assert.equal(state.envelopes.length, 0);
     assert.equal(resources, 0);
   }
@@ -150,7 +168,7 @@ test('flat GCS listing accepts empty prefixes but follows an empty continuation 
     {items: [], request_token: 'empty', next_token: null},
   ]);
   assert.deepEqual(state.calls.map(call =>
-    call.operations.get(GCS_FILE_LIST_OPERATION).path), [
+    call.operations.get(GCS_FILE_LIST_OPERATION)!.path), [
     '/storage/v1/b/actql-fixture/o?prefix=test%2F&maxResults=3&projection=noAcl',
     '/storage/v1/b/actql-fixture/o?prefix=test%2F&maxResults=3&projection=noAcl&pageToken=empty',
   ]);
@@ -162,7 +180,7 @@ for (const [name, changed] of [
   ['unpaired surrogate', {name: 'test/\ud800'}],
   ['numeric generation', {generation: 9007199254740992}],
   ['unsafe numeric size', {size: '9007199254740993'}],
-]) {
+] as const) {
   test(`GCS ${name} retains charge and rejects before common admission`, async () => {
     const {options, state} = fixture([{kind: 'storage#objects', items: [{...metadata, ...changed}]}]);
     await assert.rejects(readGcsFileListing(options), {code: 'GcsFileListingMetadataMismatch'});
