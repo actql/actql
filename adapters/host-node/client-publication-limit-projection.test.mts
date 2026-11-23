@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {checkedLocalOutputLimits} from './local-values-plan.mjs';
+import {checkedLocalOutputLimits} from './local-publication-limit-projection.mjs';
 
 test('checked publication ABI maps distinct sentinels to independently named fields',()=>{
   const original=Object.freeze({});
@@ -20,7 +20,7 @@ test('checked publication ABI maps distinct sentinels to independently named fie
   assert.equal(Object.isFrozen(actual),true);
 });
 test('checked publication ABI rejects missing extra unsafe or negative fields',()=>{
-  const valid=Array.from({length:22},(_,i)=>101+i);
+  const valid: (number | string)[]=Array.from({length:22},(_,i)=>101+i);
   for(const values of [undefined,{},valid.slice(1),[...valid,123],
     ...[-1,NaN,Infinity,1.5,Number.MAX_SAFE_INTEGER+1,'1'].map(value=>valid.with(9,value))]){
     assert.throws(()=>checkedLocalOutputLimits({clientProgramPreparedLocalPublicationLimits(){return values;}},{},{kind:'preparation',value:{}}),

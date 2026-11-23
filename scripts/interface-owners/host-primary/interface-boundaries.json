@@ -32092,7 +32092,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "3f7ba2b8be8dce48da7c398988df2eb0e0d71438b00421bcdb9c3b4784d53eaa",
+      "sha256": "0b4e137d617e07a3ddb1c4f8b57a387fa76ed722c8ae7e7d73bcef0ac6d47a2b",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -32468,30 +32468,6 @@
           "name": "buildLocalPublicationPlan/plan/plan",
           "parameters": [
             "_",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkedLocalOutputLimits",
-          "parameters": [
-            "moon",
-            "preparedProgram",
-            "publicationOriginal"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkedPublicationLimitValues/checkedPublicationLimitValues",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "checkedPublicationLimitValues/checkedPublicationLimitValues#2",
-          "parameters": [
-            "name",
             "index"
           ],
           "async": false
@@ -33317,7 +33293,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -33445,19 +33421,15 @@
           }
         },
         {
-          "operations": [
-            "checkedLocalOutputLimits",
-            "checkedPublicationLimitValues/checkedPublicationLimitValues",
-            "checkedPublicationLimitValues/checkedPublicationLimitValues#2"
-          ],
+          "operations": [],
           "exports": [
             "checkedLocalOutputLimits"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33466,8 +33438,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33476,8 +33448,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33486,8 +33458,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33496,8 +33468,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33506,8 +33478,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33516,8 +33488,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33526,8 +33498,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33536,8 +33508,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal)"
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -33702,7 +33674,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
@@ -34322,7 +34294,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -34940,7 +34912,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -35336,7 +35308,7 @@
               },
               {
                 "path": "adapters/host-node/model-resume-public.test.mjs",
-                "anchor": "approval and process restart retain one Run and physical calls 0\u21921\u21921"
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -35388,14 +35360,186 @@
       ],
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
-        "../host-common/result-output-limits.mjs",
         "../host-common/runtime-result.mjs",
         "./host-result-service-recipe.cjs",
         "./infer-effect-observation.mjs",
+        "./local-publication-limit-projection.mjs",
         "./local-publication-limits.mjs",
         "./local-values-capacity.mjs",
         "./query-evaluation-clock.mjs",
         "node:crypto"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-publication-limit-projection.mjs",
+      "sha256": "18ef8941d5e7768f01b00e7f475a43c4ae797864be6f819a0416e6a8527cf589",
+      "exports": [
+        "checkedLocalOutputLimits",
+        "checkedPublicationLimitValues"
+      ],
+      "operations": [
+        {
+          "name": "checkedLocalOutputLimits",
+          "parameters": [
+            "moon",
+            "preparedProgram",
+            "publicationOriginal"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues",
+          "parameters": [
+            "values"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues/checkedPublicationLimitValues",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkedPublicationLimitValues/checkedPublicationLimitValues#2",
+          "parameters": [
+            "name",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkedLocalOutputLimits",
+            "checkedPublicationLimitValues",
+            "checkedPublicationLimitValues/checkedPublicationLimitValues",
+            "checkedPublicationLimitValues/checkedPublicationLimitValues#2"
+          ],
+          "exports": [
+            "checkedLocalOutputLimits",
+            "checkedPublicationLimitValues"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-publication-limit-projection.mts",
+                "anchor": "publicationOriginal: PreparationOwner | InstalledRunOwner | undefined): Limits {"
+              },
+              {
+                "path": "docs/design/local-capacity-plan.md",
+                "anchor": "## Publication boundary"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "anchor": "test('publication reads the same original before admission and after its move to the live Run',()=>{"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              },
+              {
+                "path": "adapters/host-node/acquired-effect-keyed-publication.test.mjs",
+                "anchor": "test('Source-only keyed publication preserves tighter limits and refuses malformed projections'"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/result-output-limits.mjs",
+        "./host-result-service-recipe.cjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],

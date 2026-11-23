@@ -4,11 +4,12 @@ import {runtimeField, runtimeOptionalField} from '../host-common/compiler-bindin
 import {createHash, randomUUID} from 'node:crypto';
 import {checked} from '../host-common/runtime-result.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
-import {resultOutputLimitFields} from '../host-common/result-output-limits.mjs';
+import {checkedLocalOutputLimits, checkedPublicationLimitValues} from './local-publication-limit-projection.mjs';
 import {localContractLimits as limits, localOutputLimits} from './local-publication-limits.mjs';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
+export {checkedLocalOutputLimits} from './local-publication-limit-projection.mjs';
 export {localContractLimits, localOutputLimits} from './local-publication-limits.mjs';
 
 function prepareQueryInvocation(control, prepared, request, retained) {
@@ -88,32 +89,6 @@ function checkedOriginalQueryInvocation(original, control, prepared, request, ki
   return original;
 }
 
-// Contract and evidence issuance bounds only. Captured Named Result snapshots
-// consume the same original logical output policy as durable publication,
-// including its relation wrapper; these metadata bounds do not cap row data.
-// Project the common checked policy; no adapter-specific row/field formula.
-export function checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal) {
-  let values;
-  if (publicationOriginal?.kind === 'preparation') {
-    values = moon.clientProgramPreparedLocalPublicationLimits(publicationOriginal.value,
-      preparedProgram, hostResultStorePolicy.maxObjectBytes);
-  } else if (publicationOriginal?.kind === 'installed_run') {
-    values = moon.clientProgramInstalledManagedPublicationLimits(publicationOriginal.value,
-      preparedProgram, hostResultStorePolicy.maxObjectBytes);
-  } else {
-    throw new TypeError('InvalidCheckedLocalPublicationOriginal');
-  }
-  return checkedPublicationLimitValues(values);
-}
-
-function checkedPublicationLimitValues(values) {
-  const names = resultOutputLimitFields;
-  if (!Array.isArray(values) || values.length !== names.length ||
-      values.some(value => !Number.isSafeInteger(value) || value < 0)) {
-    throw new TypeError('InvalidCheckedLocalPublicationLimits');
-  }
-  return Object.freeze(Object.fromEntries(names.map((name,index) => [name,values[index]])));
-}
 const cid = value => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
 const policyCid = name => cid({version: 'actql-installed-local-policy/0.1',
