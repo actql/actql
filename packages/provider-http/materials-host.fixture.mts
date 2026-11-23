@@ -4,7 +4,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {httpMaterialsConfiguration} from './original-materials.fixture.mjs';
 import {createInstalledHttpChatRegistration} from './index.mjs';
-// @ts-expect-error Remove when the embedded Local Host source is migrated to TypeScript.
 import {openInstalledRemoteHttpHost} from '../../adapters/host-node/embedded-local.mjs';
 
 const register = createInstalledHttpChatRegistration(httpMaterialsConfiguration());

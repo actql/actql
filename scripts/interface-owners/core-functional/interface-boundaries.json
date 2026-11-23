@@ -33499,8 +33499,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/local-node/explanation-narrative.mjs",
-                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+                "path": "packages/local-node/explanation-narrative.mts",
+                "anchor": "export function renderStaticExplanationNarrative(wire: string, locale: 'en' | 'ja')"
               },
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
@@ -33538,7 +33538,7 @@
             },
             "failure": [
               {
-                "path": "packages/local-node/explanation-narrative.mjs",
+                "path": "packages/local-node/explanation-narrative.mts",
                 "anchor": "fail('InvalidStaticExplanationNarrative');"
               }
             ],
@@ -33574,7 +33574,7 @@
     {
       "module": "packages/local-node/explanation-narrative.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6e95768357d832c8ab4c14100b5652f2285b702c3817e2d0bce1cdd6e50ecc18",
+      "sha256": "2fe1b9c4093bf74e6cb5bc82f853727c5a853132d4d08cb4750cefc940aad89d",
       "exports": [
         "renderStaticExplanationNarrative"
       ],
@@ -33609,8 +33609,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/local-node/explanation-narrative.mjs",
-                "anchor": "export function renderStaticExplanationNarrative(wire, locale)"
+                "path": "packages/local-node/explanation-narrative.mts",
+                "anchor": "export function renderStaticExplanationNarrative(wire: string, locale: 'en' | 'ja')"
               },
               {
                 "path": "src/run_publication_host/client_explanation_narrative.mbt",
@@ -33648,7 +33648,7 @@
             },
             "failure": [
               {
-                "path": "packages/local-node/explanation-narrative.mjs",
+                "path": "packages/local-node/explanation-narrative.mts",
                 "anchor": "fail('InvalidStaticExplanationNarrative');"
               }
             ],

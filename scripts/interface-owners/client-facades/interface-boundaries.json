@@ -1422,7 +1422,7 @@
     {
       "module": "packages/local-node/connector-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a7a44d0104a22e95c05671690b1aee1eb2be4e747ba36b11eac166bc72951ce",
+      "sha256": "e145be096a8323da55dc0235343a7819d47a5da34439a2ac5e986e1ef0b43bef",
       "exports": [
         "checked",
         "createInstalledRestSource",
@@ -1468,13 +1468,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
@@ -1484,7 +1484,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
@@ -1494,7 +1494,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
@@ -1504,7 +1504,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
@@ -1514,7 +1514,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
@@ -1524,7 +1524,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
@@ -1534,7 +1534,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
@@ -1544,7 +1544,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/local-node/connector-installation.mjs",
+                "path": "packages/local-node/connector-installation.mts",
                 "anchor": "// Installation helpers keep the existing common Host owners and their identity."
               }
             ],
@@ -1925,7 +1925,7 @@
     {
       "module": "packages/local-node/http-host.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b218d525a6accaad65231723d9ae2f31b5895e5480a2072de62e150ea5980359",
+      "sha256": "c7c2f2ce8d113c8b386939ab3ae0a3595620b5717ac0fe67dc34ffabeb51eadf",
       "exports": [
         "openInstalledRemoteHttpHost"
       ],
@@ -1952,13 +1952,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
@@ -1968,7 +1968,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
@@ -1978,7 +1978,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
@@ -1988,7 +1988,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
@@ -1998,7 +1998,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
@@ -2008,7 +2008,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
@@ -2018,7 +2018,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
@@ -2028,7 +2028,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/local-node/http-host.mjs",
+                "path": "packages/local-node/http-host.mts",
                 "anchor": "// The installed Host owner also backs Embedded Local. No second runtime is"
               }
             ],
@@ -2361,7 +2361,7 @@
                 "anchor": "test("
               },
               {
-                "path": "scripts/node-local-owner-selection.test.mjs",
+                "path": "scripts/node-local-owner-selection.test.mts",
                 "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
               },
               {
@@ -2392,7 +2392,7 @@
     {
       "module": "packages/local-node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a312370ace32a5fcfd8025564cdbf49bb57eed32d94aa07632032eb8d58d2c00",
+      "sha256": "0180cce2950069c586e3085740b415fb7b75b484fb73c248c5052deb4e436435",
       "exports": [
         "connect",
         "createInstalledConnectorTable",
@@ -2449,13 +2449,13 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
@@ -2465,7 +2465,7 @@
                 "anchor": "## Identity domains"
               },
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
@@ -2475,7 +2475,7 @@
                 "anchor": "## Publication, retention and authorization"
               },
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
@@ -2485,7 +2485,7 @@
                 "anchor": "Atomic acceptance still checks the same current key, authority scope, retained"
               },
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
@@ -2495,7 +2495,7 @@
                 "anchor": "Expiry is an admission restriction, not proof of nonexecution."
               },
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
@@ -2505,7 +2505,7 @@
                 "anchor": "cannot discharge Model, Effect,"
               },
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
@@ -2515,7 +2515,7 @@
                 "anchor": "## Delivery profile and bounds"
               },
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
@@ -2525,7 +2525,7 @@
                 "anchor": "The registered wire shapes and generated JS/TypeScript/Native validators are"
               },
               {
-                "path": "packages/local-node/index.mjs",
+                "path": "packages/local-node/index.mts",
                 "anchor": "import {connectEmbeddedLocal, publishInstalledEffect,"
               }
             ],
@@ -2535,7 +2535,7 @@
                 "anchor": "test("
               },
               {
-                "path": "scripts/node-local-owner-selection.test.mjs",
+                "path": "scripts/node-local-owner-selection.test.mts",
                 "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
               },
               {
@@ -3399,7 +3399,7 @@
                 "anchor": "test("
               },
               {
-                "path": "scripts/node-local-owner-selection.test.mjs",
+                "path": "scripts/node-local-owner-selection.test.mts",
                 "anchor": "test('real SDK admits the same closed Local wire and awaited Client close after default selection'"
               },
               {
@@ -3439,7 +3439,7 @@
                 "anchor": "absent profile stays absent and an inherited profile cannot consent to Mock setup"
               },
               {
-                "path": "scripts/node-local-owner-selection.test.mjs",
+                "path": "scripts/node-local-owner-selection.test.mts",
                 "anchor": "real SDK admits the same closed Local wire and awaited Client close after default selection"
               },
               {
@@ -3666,7 +3666,7 @@
                 "anchor": "absent profile stays absent and an inherited profile cannot consent to Mock setup"
               },
               {
-                "path": "scripts/node-local-owner-selection.test.mjs",
+                "path": "scripts/node-local-owner-selection.test.mts",
                 "anchor": "real SDK admits the same closed Local wire and awaited Client close after default selection"
               },
               {
@@ -15421,7 +15421,7 @@
     {
       "module": "packages/local-node/observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "acb9f75ac03543079b6e2ffe72f48b66206e3ba98b65cf76194bd60fae855fa9",
+      "sha256": "6216ad38a0e7a6a7f9f12529ef42cd80ddc3f8fa83e0cbd58616dccbc3cada03",
       "exports": [
         "createHostObservationConnection",
         "observationLimits"
@@ -16184,7 +16184,7 @@
           }
         }
       ],
-      "sha256": "f4b036f7d7b6484376175913e9727cbcab7c3e016415e1487ef6499e0657a4a9",
+      "sha256": "1b4af4a7c30ae78db4d380bb159e74fa46b61780800cf36012a5b7f7495fad00",
       "imports": [
         "./adapters/host-common/compiler-binding.generated.mjs",
         "./adapters/host-common/http-exchange.mjs",

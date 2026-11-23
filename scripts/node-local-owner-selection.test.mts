@@ -5,10 +5,20 @@ import {copyFile, mkdir, readFile, symlink, writeFile} from 'node:fs/promises';
 import {pathToFileURL, fileURLToPath} from 'node:url';
 import {join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
+import type {Client} from '../packages/sdk/index.d.ts';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
+// The explicit selector double captures raw options, including invalid values.
+type Selected = Readonly<{mode: 'local'; owner: 'local'; installation: Readonly<{
+  directory: string; authorization?: unknown}>;
+}> & Readonly<Record<symbol, unknown>>;
+type Routing = {connect(options: unknown): Promise<{selected: Selected}>};
+type NodeRouting = Routing & Pick<typeof import('../packages/node/index.d.ts'), 'open'>;
+type Physical = {calls: Selected[]; requests: {connection: unknown}[]; closes: number};
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
-async function entries(t, protocol = false) {
+async function entries(t: TestContext, protocol = false) {
   const scratch = await createOwnedScratch({parent: join(repository, '_build'),
     prefix: 'node-local-owner-', label: 'public Local owner selection component'});
   const packages = join(scratch.path, 'node_modules/@actql');
@@ -55,10 +65,10 @@ export const publishInstalledEffect = () => { throw new Error('Not selected'); }
 `);
   await writeFile(join(packages, 'local-node/adapters/host-node/installed-connectors.mjs'),
     'export const createInstalledConnectorTable = () => {throw new Error("Not selected");};\n');
-  const node = await import(pathToFileURL(join(packages, 'node/index.mjs')));
-  const local = await import(pathToFileURL(join(packages, 'local-node/index.mjs')));
-  const physical = await import(pathToFileURL(join(packages,
-    'local-node/adapters/host-node/embedded-local.mjs')));
+  const node: NodeRouting = await import(pathToFileURL(join(packages, 'node/index.mjs')).href);
+  const local: Routing = await import(pathToFileURL(join(packages, 'local-node/index.mjs')).href);
+  const physical: Physical = await import(pathToFileURL(join(packages,
+    'local-node/adapters/host-node/embedded-local.mjs')).href);
   t.after(() => scratch.passed());
   return {node, local, calls: physical.calls, physical};
 }
@@ -146,10 +156,10 @@ test('default selection preserves other original descriptors without reading the
   await local.connect(options);
   assert.equal(reads, 0, 'the selector is not the installation reader');
   assert.strictEqual(Object.getPrototypeOf(calls[0]), prototype);
-  assert.strictEqual(Object.getOwnPropertyDescriptor(calls[0], 'installation').get,
+  assert.strictEqual(Object.getOwnPropertyDescriptor(calls[0], 'installation')!.get,
     readInstallation);
   assert.equal(calls[0][symbolic], 'original');
-  assert.equal(Object.getOwnPropertyDescriptor(calls[0], symbolic).enumerable, false);
+  assert.equal(Object.getOwnPropertyDescriptor(calls[0], symbolic)!.enumerable, false);
   assert.equal(Object.hasOwn(options, 'owner'), false);
 });
 
@@ -171,7 +181,7 @@ test('foreign owner refusal does not inspect installation or remaining descripto
 
 test('real SDK admits the same closed Local wire and awaited Client close after default selection', async t => {
   const {node, physical} = await entries(t, true);
-  const client = await node.connect({mode: 'local', installation: {directory: '.actql'}});
+  const client = await node.connect({mode: 'local', installation: {directory: '.actql'}}) as unknown as Client;
   assert.deepEqual(physical.requests.map(request => request.connection), [{
     mode: 'local', owner: 'local', consentRefs: [], runners: [],
   }]);

@@ -45,6 +45,8 @@
     "packages/node/**/*.mts",
     "packages/node/**/*.cts",
     "packages/local-node/**/*.cts",
+    "packages/local-node/**/*.mts",
+    "packages/local-node/staged-adapters.d.ts",
     "packages/native-cli/**/*.mts",
     "packages/provider-ai-sdk/**/*.mts",
     "packages/provider-http/**/*.mts",
