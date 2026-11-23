@@ -9390,8 +9390,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -13722,8 +13722,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -16454,8 +16454,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -18709,8 +18709,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -20943,8 +20943,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -22227,8 +22227,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -23507,8 +23507,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -24787,8 +24787,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mjs",
@@ -32092,7 +32092,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "da582f9e07c814c0a171880c0b196d6576e5cdb761aed6213d2dc30cd50ad8c3",
+      "sha256": "f22952f448b3f274b2c9e4427788f5ea0f944f0b07e722512324aa7c3fe74d24",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -32368,33 +32368,6 @@
           "async": false
         },
         {
-          "name": "inferTaskPublicationPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "preparedProgram",
-            "admitted",
-            "operation",
-            "issuance",
-            "modelEvidence",
-            "sourceEvidence",
-            "authorityScopeCid",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now",
-            "managedPublication",
-            "assertCurrent"
-          ],
-          "async": false
-        },
-        {
-          "name": "inferTaskRunAdmission",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "openSourceFreeEffectComputation",
           "parameters": [
             "moon",
@@ -32427,91 +32400,6 @@
           "parameters": [
             "unit",
             "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreInferTaskRunAdmission",
-          "parameters": [
-            "control",
-            "preparedProgram",
-            "restored",
-            "requestIdentity"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
-          "parameters": [
-            "original",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectInstalledSerializationGraph",
-          "parameters": [
-            "options",
-            "component"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectRestoredInferOccurrence",
-          "parameters": [
-            "moon",
-            "control",
-            "preparedProgram",
-            "restored",
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectRestoredInferOccurrence/selected/selected",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
-          "parameters": [
-            "original",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "serializationTaskPublicationPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "preparedProgram",
-            "admitted",
-            "generation",
-            "authorityScopeCid",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now",
-            "sourceEvidence",
-            "outputLimits",
-            "managedPublication",
-            "assertCurrent"
-          ],
-          "async": false
-        },
-        {
-          "name": "serializationTaskPublicationPlan/input/input",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "serializationTaskRunAdmission",
-          "parameters": [
-            "options"
           ],
           "async": false
         },
@@ -32597,15 +32485,9 @@
             "acquiredMultiEffectPublicationPlan/needsSourceUnits/needsSourceUnits/needsSourceUnits",
             "acquiredMultiEffectPublicationPlan/sourceEvidence/sourceEvidence",
             "acquiredMultiEffectPublicationPlan/whole/whole",
-            "inferTaskPublicationPlan",
-            "inferTaskRunAdmission",
             "prepareAcquiredEffectSourceUnits",
             "prepareAcquiredEffectSourceUnits/evidence/evidence",
             "prepareAcquiredEffectSourceUnits/selected/selected",
-            "selectInstalledSerializationGraph",
-            "serializationTaskPublicationPlan",
-            "serializationTaskPublicationPlan/input/input",
-            "serializationTaskRunAdmission",
             "sourceFreeEffectPublicationPlan",
             "sourceFreeInferEffectPublicationPlan",
             "sourceFreeInferEffectPublicationPlan/sourceFreeInferEffectPublicationPlan"
@@ -32697,8 +32579,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -33306,13 +33188,7 @@
           }
         },
         {
-          "operations": [
-            "restoreInferTaskRunAdmission",
-            "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
-            "selectRestoredInferOccurrence",
-            "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
-            "selectRestoredInferOccurrence/selected/selected"
-          ],
+          "operations": [],
           "exports": [
             "restoreInferTaskRunAdmission",
             "selectRestoredInferOccurrence"
@@ -33334,8 +33210,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -33804,8 +33680,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -34316,8 +34192,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -34665,7 +34541,393 @@
         "./host-result-service-recipe.cjs",
         "./infer-effect-observation.mjs",
         "./local-acquired-task-publication.mjs",
+        "./local-model-content-publication.mjs",
         "./local-publication-limit-projection.mjs",
+        "./local-publication-limits.mjs",
+        "./local-publication-plan.mjs",
+        "./local-query-invocation.mjs",
+        "./local-source-free-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-model-content-publication.mjs",
+      "sha256": "8895613005894bfab690fcf2509baa83bcdc3d2b01f872b8d5d86f2552d8d8c6",
+      "exports": [
+        "inferTaskPublicationPlan",
+        "inferTaskRunAdmission",
+        "restoreInferTaskRunAdmission",
+        "selectInstalledSerializationGraph",
+        "selectRestoredInferOccurrence",
+        "serializationTaskPublicationPlan",
+        "serializationTaskRunAdmission"
+      ],
+      "operations": [
+        {
+          "name": "inferTaskPublicationPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "admitted",
+            "operation",
+            "issuance",
+            "modelEvidence",
+            "sourceEvidence",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now",
+            "managedPublication",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferTaskRunAdmission",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInferTaskRunAdmission",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "restored",
+            "requestIdentity"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
+          "parameters": [
+            "original",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectInstalledSerializationGraph",
+          "parameters": [
+            "options",
+            "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "restored",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence/selected/selected",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
+          "parameters": [
+            "original",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "serializationTaskPublicationPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "admitted",
+            "generation",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now",
+            "sourceEvidence",
+            "outputLimits",
+            "managedPublication",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "serializationTaskPublicationPlan/input/input",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "serializationTaskRunAdmission",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        }
+      ],
+      "role": "physical-io",
+      "owner": "Existing admitted Run/Source/Effect and publication authority with installed Node Host physical dispatch and retained cleanup custody; no independent retry or permission decision",
+      "responsibilityFacet": "primary",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "inferTaskPublicationPlan",
+            "inferTaskRunAdmission",
+            "selectInstalledSerializationGraph",
+            "serializationTaskPublicationPlan",
+            "serializationTaskPublicationPlan/input/input",
+            "serializationTaskRunAdmission"
+          ],
+          "exports": [
+            "inferTaskPublicationPlan",
+            "inferTaskRunAdmission",
+            "selectInstalledSerializationGraph",
+            "serializationTaskPublicationPlan",
+            "serializationTaskRunAdmission"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function inferTaskRunAdmission(options: AdmissionOptions)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "const serializationGraph = options.serializationGraph ?? selectInstalledSerializationGraph(options);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "originals.some((original, index) => original.graph !== graphs[index])"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "control.checkRestoredClientInferRunOwner(restored, preparedProgram);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "const originalRetention = managedPublication === undefined ? undefined :"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "throw new TypeError('ForeignInstalledInferOriginalGraph');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "moon.clientProgramReleaseInferInvocationBinding(issued.binding);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "maxRows: localOutputLimits.maxRows, maxBytes: localOutputLimits.maxWireBytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "const contentGenerations = operation.contentGenerations?.();"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
+                "anchor": "saved Infer admission restores query time from its original definition without a clock sample"
+              },
+              {
+                "path": "adapters/host-node/serialization-plan.test.mjs",
+                "anchor": "installed Host admission retains the Content component and original Definition without pure fallback"
+              },
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual terminal Content and INFER publication borrow the same managed record"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "restoreInferTaskRunAdmission",
+            "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
+            "selectRestoredInferOccurrence",
+            "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
+            "selectRestoredInferOccurrence/selected/selected"
+          ],
+          "exports": [
+            "restoreInferTaskRunAdmission",
+            "selectRestoredInferOccurrence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
+              },
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              },
+              {
+                "path": "adapters/host-node/installed-composed-infer-run.test.mjs",
+                "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
+              },
+              {
+                "path": "docs/design/model-original-state-storage.md",
+                "anchor": "### Same-Request material normalization and authoring originals"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
         "./local-publication-limits.mjs",
         "./local-publication-plan.mjs",
         "./local-query-invocation.mjs",
@@ -35266,8 +35528,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",

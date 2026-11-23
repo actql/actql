@@ -27204,8 +27204,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mts",
@@ -27651,8 +27651,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -27999,8 +27999,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-node/client-program-preparation.mts",

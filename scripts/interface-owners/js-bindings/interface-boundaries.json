@@ -18254,8 +18254,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -23281,8 +23281,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "adapters/host-common/runtime-core.mjs",
@@ -25881,8 +25881,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               }
             ],
             "identity": [
@@ -27631,8 +27631,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -53010,8 +53010,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -59133,8 +59133,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               }
             ],
             "identity": [
@@ -63535,8 +63535,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -67036,8 +67036,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -67280,8 +67280,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -67520,8 +67520,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -67760,8 +67760,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -113157,7 +113157,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "da582f9e07c814c0a171880c0b196d6576e5cdb761aed6213d2dc30cd50ad8c3",
+      "sha256": "f22952f448b3f274b2c9e4427788f5ea0f944f0b07e722512324aa7c3fe74d24",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -113435,33 +113435,6 @@
           "async": false
         },
         {
-          "name": "inferTaskPublicationPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "preparedProgram",
-            "admitted",
-            "operation",
-            "issuance",
-            "modelEvidence",
-            "sourceEvidence",
-            "authorityScopeCid",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now",
-            "managedPublication",
-            "assertCurrent"
-          ],
-          "async": false
-        },
-        {
-          "name": "inferTaskRunAdmission",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
           "name": "openSourceFreeEffectComputation",
           "parameters": [
             "moon",
@@ -113494,91 +113467,6 @@
           "parameters": [
             "unit",
             "count"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreInferTaskRunAdmission",
-          "parameters": [
-            "control",
-            "preparedProgram",
-            "restored",
-            "requestIdentity"
-          ],
-          "async": false
-        },
-        {
-          "name": "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
-          "parameters": [
-            "original",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectInstalledSerializationGraph",
-          "parameters": [
-            "options",
-            "component"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectRestoredInferOccurrence",
-          "parameters": [
-            "moon",
-            "control",
-            "preparedProgram",
-            "restored",
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectRestoredInferOccurrence/selected/selected",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
-          "parameters": [
-            "original",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "serializationTaskPublicationPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "preparedProgram",
-            "admitted",
-            "generation",
-            "authorityScopeCid",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now",
-            "sourceEvidence",
-            "outputLimits",
-            "managedPublication",
-            "assertCurrent"
-          ],
-          "async": false
-        },
-        {
-          "name": "serializationTaskPublicationPlan/input/input",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "serializationTaskRunAdmission",
-          "parameters": [
-            "options"
           ],
           "async": false
         },
@@ -113674,8 +113562,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -115399,7 +115287,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115413,7 +115301,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115427,7 +115315,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115441,7 +115329,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115455,7 +115343,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115469,7 +115357,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115483,7 +115371,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115497,7 +115385,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115511,7 +115399,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115525,7 +115413,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-source-free-plan.mts",
                 "anchor": "checkedTaskRunAdmission"
               },
               {
@@ -115544,16 +115432,14 @@
           }
         },
         {
-          "operations": [
-            "inferTaskPublicationPlan"
-          ],
+          "operations": [],
           "exports": [
             "inferTaskPublicationPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115567,7 +115453,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115581,7 +115467,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115595,7 +115481,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115609,7 +115495,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115623,7 +115509,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115637,7 +115523,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115651,7 +115537,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115665,7 +115551,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115679,7 +115565,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskPublicationPlan"
               },
               {
@@ -115698,16 +115584,14 @@
           }
         },
         {
-          "operations": [
-            "inferTaskRunAdmission"
-          ],
+          "operations": [],
           "exports": [
             "inferTaskRunAdmission"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115717,7 +115601,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115727,7 +115611,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115737,7 +115621,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115747,7 +115631,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115757,7 +115641,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115767,7 +115651,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115777,7 +115661,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115787,7 +115671,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115797,7 +115681,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "inferTaskRunAdmission"
               },
               {
@@ -115817,7 +115701,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115827,7 +115711,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115837,7 +115721,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115847,7 +115731,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115857,7 +115741,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115867,7 +115751,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115877,7 +115761,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115887,7 +115771,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115897,7 +115781,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115907,7 +115791,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-publication-plan.mts",
                 "anchor": "localPublicationPlan"
               },
               {
@@ -115922,13 +115806,7 @@
           }
         },
         {
-          "operations": [
-            "restoreInferTaskRunAdmission",
-            "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
-            "selectRestoredInferOccurrence",
-            "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
-            "selectRestoredInferOccurrence/selected/selected"
-          ],
+          "operations": [],
           "exports": [
             "restoreInferTaskRunAdmission",
             "selectRestoredInferOccurrence"
@@ -115946,8 +115824,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               }
             ],
             "identity": [
@@ -116033,16 +115911,14 @@
           }
         },
         {
-          "operations": [
-            "selectInstalledSerializationGraph"
-          ],
+          "operations": [],
           "exports": [
             "selectInstalledSerializationGraph"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116056,7 +115932,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116070,7 +115946,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116084,7 +115960,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116098,7 +115974,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116112,7 +115988,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116126,7 +116002,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116140,7 +116016,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116154,7 +116030,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116168,7 +116044,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "selectInstalledSerializationGraph"
               },
               {
@@ -116187,17 +116063,14 @@
           }
         },
         {
-          "operations": [
-            "serializationTaskPublicationPlan",
-            "serializationTaskPublicationPlan/input/input"
-          ],
+          "operations": [],
           "exports": [
             "serializationTaskPublicationPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116211,7 +116084,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116225,7 +116098,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116239,7 +116112,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116253,7 +116126,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116267,7 +116140,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116281,7 +116154,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116295,7 +116168,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116309,7 +116182,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116323,7 +116196,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskPublicationPlan"
               },
               {
@@ -116342,16 +116215,14 @@
           }
         },
         {
-          "operations": [
-            "serializationTaskRunAdmission"
-          ],
+          "operations": [],
           "exports": [
             "serializationTaskRunAdmission"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116365,7 +116236,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116379,7 +116250,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116393,7 +116264,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116407,7 +116278,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116421,7 +116292,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116435,7 +116306,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116449,7 +116320,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116463,7 +116334,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -116477,7 +116348,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-model-content-publication.mts",
                 "anchor": "serializationTaskRunAdmission"
               },
               {
@@ -117684,8 +117555,8 @@
                 "anchor": "originalInputs(prepared: object) {"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
-                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}) {"
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -118229,7 +118100,1068 @@
         "./host-result-service-recipe.cjs",
         "./infer-effect-observation.mjs",
         "./local-acquired-task-publication.mjs",
+        "./local-model-content-publication.mjs",
         "./local-publication-limit-projection.mjs",
+        "./local-publication-limits.mjs",
+        "./local-publication-plan.mjs",
+        "./local-query-invocation.mjs",
+        "./local-source-free-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-model-content-publication.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "8895613005894bfab690fcf2509baa83bcdc3d2b01f872b8d5d86f2552d8d8c6",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "inferTaskPublicationPlan",
+        "inferTaskRunAdmission",
+        "restoreInferTaskRunAdmission",
+        "selectInstalledSerializationGraph",
+        "selectRestoredInferOccurrence",
+        "serializationTaskPublicationPlan",
+        "serializationTaskRunAdmission"
+      ],
+      "operations": [
+        {
+          "name": "inferTaskPublicationPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "admitted",
+            "operation",
+            "issuance",
+            "modelEvidence",
+            "sourceEvidence",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now",
+            "managedPublication",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "inferTaskRunAdmission",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInferTaskRunAdmission",
+          "parameters": [
+            "control",
+            "preparedProgram",
+            "restored",
+            "requestIdentity"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
+          "parameters": [
+            "original",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectInstalledSerializationGraph",
+          "parameters": [
+            "options",
+            "component"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "restored",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence/selected/selected",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
+          "parameters": [
+            "original",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "serializationTaskPublicationPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "preparedProgram",
+            "admitted",
+            "generation",
+            "authorityScopeCid",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now",
+            "sourceEvidence",
+            "outputLimits",
+            "managedPublication",
+            "assertCurrent"
+          ],
+          "async": false
+        },
+        {
+          "name": "serializationTaskPublicationPlan/input/input",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "serializationTaskRunAdmission",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function inferTaskRunAdmission(options: AdmissionOptions)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "const serializationGraph = options.serializationGraph ?? selectInstalledSerializationGraph(options);"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "originals.some((original, index) => original.graph !== graphs[index])"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "control.checkRestoredClientInferRunOwner(restored, preparedProgram);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "const originalRetention = managedPublication === undefined ? undefined :"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "throw new TypeError('ForeignInstalledInferOriginalGraph');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "moon.clientProgramReleaseInferInvocationBinding(issued.binding);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "maxRows: localOutputLimits.maxRows, maxBytes: localOutputLimits.maxWireBytes,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "const contentGenerations = operation.contentGenerations?.();"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-original-plan-admission.test.mjs",
+                "anchor": "saved Infer admission restores query time from its original definition without a clock sample"
+              },
+              {
+                "path": "adapters/host-node/serialization-plan.test.mjs",
+                "anchor": "installed Host admission retains the Content component and original Definition without pure fallback"
+              },
+              {
+                "path": "adapters/host-node/original-retention-rebinding.test.mjs",
+                "anchor": "actual terminal Content and INFER publication borrow the same managed record"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "inferTaskPublicationPlan"
+          ],
+          "exports": [
+            "inferTaskPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "inferTaskRunAdmission"
+          ],
+          "exports": [
+            "inferTaskRunAdmission"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "inferTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "restoreInferTaskRunAdmission",
+            "restoreInferTaskRunAdmission/restoreInferTaskRunAdmission",
+            "selectRestoredInferOccurrence",
+            "selectRestoredInferOccurrence/selectRestoredInferOccurrence",
+            "selectRestoredInferOccurrence/selected/selected"
+          ],
+          "exports": [
+            "restoreInferTaskRunAdmission",
+            "selectRestoredInferOccurrence"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "### Original INFER materials in the installed Host"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "originalInputs(prepared: object) {"
+              },
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "export function restoreInferTaskRunAdmission({control, preparedProgram, restored, requestIdentity}: InferRestore) {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "checkRestoredClientInferRunOwner(restored, checkedProgram) {"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('Common compiled Infer projection rejects foreign nominal preparation and copied compilation'"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "const owned = new WeakMap<object, OriginalInputs>();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const restoredInferRuns = new WeakSet();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const current = journal.lookupOwnedDefinition({...ref, requestId: retained.requestId}, moon, control);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/embedded-local.mjs",
+                "anchor": "if (inferOriginal === undefined) throw new Error('ModelResumeOriginalMaterialsUnavailable');"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "physical-input, reservation, claim, cancellation and cleanup gates remain."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "The preparation membership's Environment/Parameter snapshot, restored bundle"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "reference retirement are neither zero cost, GC evidence nor physical ACK."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "Other live graph profiles retain their existing first-admission behavior, but"
+              },
+              {
+                "path": "docs/design/model-provider-registration.md",
+                "anchor": "compilation and existing custody path."
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Host preparation uses saved Task materials even when current Environment has no such Task'"
+              },
+              {
+                "path": "adapters/host-node/infer-run-original-host.test.mjs",
+                "anchor": "test('restored Infer plan retains original Run and never calls fresh compilation or definition issuers'"
+              },
+              {
+                "path": "adapters/host-node/model-resume-public.test.mjs",
+                "anchor": "approval and process restart retain one Run and physical calls 0→1→1"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "selectInstalledSerializationGraph"
+          ],
+          "exports": [
+            "selectInstalledSerializationGraph"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "selectInstalledSerializationGraph"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "serializationTaskPublicationPlan",
+            "serializationTaskPublicationPlan/input/input"
+          ],
+          "exports": [
+            "serializationTaskPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "serializationTaskRunAdmission"
+          ],
+          "exports": [
+            "serializationTaskRunAdmission"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original Request domain construction"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-model-content-publication.mts",
+                "anchor": "serializationTaskRunAdmission"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "adapters/host-node/request-content-caller.test.mjs",
+                "anchor": "Request Content manager compiles one original graph"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/compiler-binding.generated.mjs",
         "./local-publication-limits.mjs",
         "./local-publication-plan.mjs",
         "./local-query-invocation.mjs",
