@@ -2027,7 +2027,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "path": "adapters/host-node/installed-model-configuration.mts",
                 "anchor": "readVerifiedSdkImage"
               },
               {
@@ -2193,7 +2193,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "path": "adapters/host-node/installed-model-configuration.mts",
                 "anchor": "readVerifiedSdkImage"
               },
               {
@@ -4179,7 +4179,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "path": "adapters/host-node/installed-model-configuration.mts",
                 "anchor": "export async function installConfiguredModelProviders"
               }
             ],
@@ -4221,7 +4221,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "path": "adapters/host-node/installed-model-configuration.mts",
                 "anchor": "const nodes = 128n + 2048n"
               },
               {

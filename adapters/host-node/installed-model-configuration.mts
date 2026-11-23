@@ -9,12 +9,79 @@ import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {isDeepStrictEqual, types as nodeTypes} from 'node:util';
 import packageCustody from './initial-control-package-custody.cjs';
 
-const fail = code => { throw Object.assign(new TypeError(code), {code}); };
+type ProviderInstaller = typeof installModelProviders;
+type TaskPreparation = typeof prepareInstalledProjectModelTasks;
+type Defaults = ReturnType<typeof prepareInstalledModelProviderDefaults>;
+type CandidateTasks = Awaited<ReturnType<TaskPreparation>>;
+type PrepareCapability = NonNullable<Parameters<ProviderInstaller>[6]>;
+type RawSelection = Parameters<PrepareCapability>[4];
+type SourceReader = NonNullable<ReturnType<typeof installedSourceConfigurationReader>>;
+type FundedInput<Value extends object> = Readonly<{capacity(): unknown; project(): Value; retained(value: NoInfer<Value>): unknown}>;
+type ModelReader = Omit<SourceReader, 'prepareModelTaskInput'> & {
+  prepareModelTaskInput<Value extends object>(input: FundedInput<Value>): Value;
+};
+type Current = () => unknown;
+type Binding = Readonly<{value: unknown; originals: Readonly<{configuration: Body; installationRevision: Body}>}>;
+type Body = Readonly<{wire: string; cid: string}>;
+type ArtifactHolder = {path: string; value: string | undefined};
+type Execution = Readonly<{modelTaskCid: string; execution: Body; retry: Body; backoff: Body; prompt: Body}>;
+type TaskData = Readonly<{name: string; providerId: string; taskCid: string; promptCid: string;
+  outputSchemaCid: string; modelSelector: string; promptPayloadWire: string}>;
+type CapabilityRuntime = Parameters<ProviderInstaller>[0] & Parameters<TaskPreparation>[0] &
+  Readonly<{
+    clientProgramInstalledSourceConstructionCapacity(nodes: bigint, text: bigint, wire: bigint,
+      workspaceNodes: bigint, workspaceText: bigint, workspaceWire: bigint): unknown;
+    clientProjectModelRegistryDefaultProvider(registry: unknown): unknown;
+    clientProjectModelRegistryProviderCount(registry: unknown): number;
+    clientProjectModelRegistryProviderName(registry: unknown, index: number): unknown;
+    clientProjectModelRegistryProviderType(registry: unknown, index: number): unknown;
+    clientProjectModelRegistryProviderKeyEnvironment(registry: unknown, index: number): unknown;
+    clientProgramPrepareModelProviderOriginals(installation: string, contract: string, configuration: string,
+      bytes: number, nodes: number, depth: number, work: number): unknown;
+    clientProgramModelRawOriginalRetainedCapacity(value: unknown, nodes: number, depth: number, bytes: number): unknown;
+    clientProgramAdmitEffectDependencyBody(kind: string, cid: string, wire: string,
+      bytes: number, nodes: number, depth: number): unknown;
+    clientProgramNormalizedPublicModelTaskProviderData(task: unknown, bytes: number, nodes: number, depth: number, work: number): unknown;
+    clientProgramInstalledChatConfigurationMatches(binding: unknown, configuration: string, provider: string,
+      selector: unknown, modelId: unknown, endpoint: unknown): unknown;
+    clientProgramNormalizedPublicModelTaskResponseProfile(task: unknown, profile: unknown,
+      bytes: number, nodes: number, depth: number, work: number): unknown;
+    clientProgramNormalizedPublicModelTaskNoRetryMaterials(task: unknown, ...limits: (bigint | number)[]): unknown;
+    clientProgramPrepareInstalledStructuredSdkCapability(provider: unknown, binding: unknown, config: string,
+      selector: unknown, model: unknown, mode: unknown, endpoint: unknown, profile: unknown): unknown;
+  }>;
+type ModelLimits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; maxMembers: number; maxWork: number}>;
+type SdkInstallation = NonNullable<ReturnType<typeof packageCustody.ordinaryModelSdkInstallation>>;
+type VerifiedImage = NonNullable<ReturnType<SdkInstallation['verifiedSdkInstallations']['get']>>;
+type VerifiedSdk = VerifiedImage & Readonly<{
+  sdk: VerifiedImage['sdk'] & Readonly<{packageName: string; version: string; exportName: string}>;
+  route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
+  providerOptions: unknown;
+  credential?: Readonly<{reference: unknown; header: unknown}>;
+}>;
+type SdkFile = Readonly<{path: unknown; cid: unknown}>;
+type SdkAdapter = Readonly<{createLanguageModel?: unknown; verifyRequest?: unknown; sdkProvider?: unknown;
+  readReportedUsage?: unknown; optionNamespace?: unknown; optionSchema?: unknown; credentialBinding?: unknown}>;
+type ImageRead = NonNullable<ReturnType<typeof packageCustody.readVerifiedSdkImage>>;
+type Credentials = Readonly<{transport: object; profile: object}>;
+type Registration = Readonly<{route: VerifiedSdk['route']; providerOptions: object;
+  credential?: Credentials; sdkPackage: string; sdkVersion: string; sdkArtifactCid: unknown;
+  adapterArtifactCid: unknown; lockArtifactCid: unknown}>;
+type SdkSelection = Readonly<{installation: Readonly<{build_artifact_cid?: unknown; endpoint?: unknown;
+  sdk?: Readonly<{package_name?: unknown; version?: unknown; interface?: unknown; lock_artifact_cid?: unknown}>}>; profile: unknown}>;
+type Options = Partial<SdkInstallation> & Readonly<{
+  moon: CapabilityRuntime; register?: (runtime: CapabilityRuntime, context: object) => unknown;
+  project?: Parameters<TaskPreparation>[1]; taskLimits: ModelLimits; installationServices?: object;
+  assertCurrent: Current; assertHostRuntime?: Current; assertNewHostRuntime?: Current;
+  bindSdkStaticOriginals?: Parameters<ProviderInstaller>[4]; runtimeUrl?: string;
+}>;
+type Writer = Readonly<{putSemantic(wire: string, cid: string): unknown}>;
+const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };
 const invalidSdkInstallation = 'InvalidInstalledModelSdkInstallation';
-const plainSdkRecord = value => value !== null && typeof value === 'object' &&
+const plainSdkRecord = (value: unknown): value is Readonly<Record<PropertyKey, unknown>> => value !== null && typeof value === 'object' &&
   !nodeTypes.isProxy(value) && Object.getPrototypeOf(value) === Object.prototype;
 
-function originalSdkRecord(value, keys, optional = []) {
+function originalSdkRecord(value: unknown, keys: readonly PropertyKey[], optional: readonly PropertyKey[] = []) {
   if (!plainSdkRecord(value) || !Object.isFrozen(value) ||
       Reflect.ownKeys(value).some(key => !keys.includes(key) && !optional.includes(key)) ||
       [...keys, ...optional.filter(key => Object.hasOwn(value, key))].some(key => {
@@ -24,13 +91,13 @@ function originalSdkRecord(value, keys, optional = []) {
   return value;
 }
 
-function sdkProviderOptions(values, namespace, schema) {
+function sdkProviderOptions(values: unknown, namespace: unknown, schema: unknown) {
   if (!plainSdkRecord(values) || !Object.isFrozen(values) || !plainSdkRecord(schema) ||
       !Object.isFrozen(schema) || typeof namespace !== 'string' ||
       !/^[a-zA-Z][a-zA-Z0-9_-]{0,63}$/u.test(namespace)) fail(invalidSdkInstallation);
   const keys = Reflect.ownKeys(values);
   if (keys.length > 32) fail(invalidSdkInstallation);
-  const snapshot = {};
+  const snapshot: Record<string, unknown> = {};
   for (const key of keys) {
     if (typeof key !== 'string' || !/^[a-zA-Z][a-zA-Z0-9_]{0,63}$/u.test(key) ||
         Object.hasOwn(Object.prototype, key)) fail(invalidSdkInstallation);
@@ -56,17 +123,17 @@ function sdkProviderOptions(values, namespace, schema) {
 export async function installConfiguredModelProviders({moon, register, project,
   taskLimits, installationServices, assertCurrent, assertHostRuntime,
   assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals, runtimeUrl,
-  verifiedSdkInstallations, sdkImageCustody}) {
+  verifiedSdkInstallations, sdkImageCustody}: Options) {
   if (register === undefined) return {providers: new Map(), projectTasks: undefined};
   if (typeof register !== 'function' || typeof assertCurrent !== 'function') {
     fail('InvalidInstalledModelProviderRegistration');
   }
-  let phase = 'registering', failure, preparing = false;
-  let defaults, candidates;
-  const executionOriginals = new Map();
-  let preparedSdkIds, preparedSdkRegistrations;
-  const pending = new Set();
-  const track = operation => {
+  let phase = 'registering', failure: {cause: unknown} | undefined, preparing = false;
+  let defaults: Map<string, Defaults>, candidates: CandidateTasks | undefined;
+  const executionOriginals = new Map<string, Execution>();
+  let preparedSdkIds: Set<string> | undefined, preparedSdkRegistrations: Map<string, Registration> | undefined;
+  const pending = new Set<Promise<unknown>>();
+  const track = <Value,>(operation: () => Promise<Value>) => {
     // A sealed context cannot create even a new asynchronous child from an
     // entry accessor or installation callback after the original drain.
     if (phase !== 'registering') check();
@@ -88,15 +155,15 @@ export async function installConfiguredModelProviders({moon, register, project,
     if (installationServices === undefined) fail('InstalledModelTaskConstructionUnavailable');
     const value = installedSourceConfigurationReader(installationServices);
     if (value === undefined) fail('InstalledModelTaskConstructionUnavailable');
-    return value;
+    return value as ModelReader;
   };
-  const capacity = (nodes, text = 0n, wire = 0n,
+  const capacity = (nodes: bigint, text = 0n, wire = 0n,
     workspaceNodes = 0n, workspaceText = 0n, workspaceWire = 0n) =>
     checked(moon.clientProgramInstalledSourceConstructionCapacity(
       nodes, text, wire, workspaceNodes, workspaceText, workspaceWire));
   const bodyLimits = Object.freeze({maxBytes: 65536, maxNodes: 4096,
     maxDepth: 32, maxMembers: 256, maxWork: 2097152});
-  const body = value => {
+  const body = (value: unknown): Body => {
     if (value === null || typeof value !== 'object' || nodeTypes.isProxy(value)) {
       fail('InvalidInstalledModelOriginalBody');
     }
@@ -108,7 +175,7 @@ export async function installConfiguredModelProviders({moon, register, project,
     if (wire.length > bodyLimits.maxBytes || cid.length !== 71) fail('InvalidInstalledModelOriginalBody');
     return {wire, cid};
   };
-  const artifactIdentity = value => track(async () => {
+  const artifactIdentity = (value: unknown) => track(async () => {
     check();
     const construction = reader();
     if (typeof value !== 'string' || value.length > 8192 || !value.startsWith('file:')) {
@@ -117,12 +184,12 @@ export async function installConfiguredModelProviders({moon, register, project,
     // Retain the exact software locator and digest under the SAME initial
     // Owner. URL/path conversion itself allocates, so it also follows reserve.
     // The reader separately owns its bounded buffer/FD/failed-close protocol.
-    const holder = construction.prepareModelTaskInput(Object.freeze({
+    const holder = construction.prepareModelTaskInput<ArtifactHolder>(Object.freeze({
       capacity: () => capacity(8n, BigInt(value.length + 71), 0n, 8n, BigInt(value.length)),
-      project: () => ({path: fileURLToPath(value), value: undefined}),
+      project: (): ArtifactHolder => ({path: fileURLToPath(value), value: undefined}),
       retained: original => capacity(8n, BigInt(original.path.length + 71)),
     }));
-    const read = reserveInstalledSourceRuntimeIdentity(installationServices);
+    const read = reserveInstalledSourceRuntimeIdentity(installationServices!);
     if (read === undefined) fail('InstalledModelTaskConstructionUnavailable');
     holder.value = await read(holder.path);
     check();
@@ -131,11 +198,11 @@ export async function installConfiguredModelProviders({moon, register, project,
   const context = Object.freeze({
     runtimeIdentity() { return artifactIdentity(runtimeUrl); },
     artifactIdentity,
-    registeredSdkSelected(providerId) {
+    registeredSdkSelected(providerId: string) {
       check();
       return verifiedSdkInstallations?.has(providerId) === true;
     },
-    prepareRegisteredSdk(providerId) {
+    prepareRegisteredSdk(providerId: string) {
       return track(async () => {
         check();
         const construction = reader();
@@ -145,10 +212,10 @@ export async function installConfiguredModelProviders({moon, register, project,
             providerId.length < 1 || providerId.length > 256) {
           fail(invalidSdkInstallation);
         }
-        const original = verifiedSdkInstallations?.get(providerId);
+        const original = verifiedSdkInstallations?.get(providerId) as VerifiedSdk | undefined;
         if (original === undefined) fail(invalidSdkInstallation);
         const requireOriginal = () => {
-          if (verifiedSdkInstallations.get(providerId) !== original) fail(invalidSdkInstallation);
+          if (verifiedSdkInstallations!.get(providerId) !== original) fail(invalidSdkInstallation);
         };
         construction.prepareModelTaskInput(Object.freeze({
           capacity: () => capacity(16n),
@@ -181,7 +248,7 @@ export async function installConfiguredModelProviders({moon, register, project,
             // Borrow module originals only from the package custody already
             // held by this Host. A registration cannot supply a loader, a
             // namespace, a file URL or an independent package search.
-            const read = (name, file, kind) => {
+            const read = (name: unknown, file: SdkFile, kind: string): ImageRead => {
               const image = packageCustody.readVerifiedSdkImage(sdkImageCustody, name, file.path, file.cid, kind);
               check();
               requireOriginal();
@@ -191,9 +258,9 @@ export async function installConfiguredModelProviders({moon, register, project,
             read(adapterName, original.lock, 'lock');
             const sdkImage = read(original.sdk.packageName, original.sdk, 'module');
             if (sdkImage.version !== original.sdk.version) fail(invalidSdkInstallation);
-            const sdk = sdkImage.namespace;
-            const adapter = read(adapterName, original.adapter, 'module').namespace;
-            sdkImageCustody.assertCurrent();
+            const sdk = sdkImage.namespace as Readonly<Record<string, unknown>>;
+            const adapter = read(adapterName, original.adapter, 'module').namespace as SdkAdapter;
+            sdkImageCustody!.assertCurrent();
             const factory = sdk[original.sdk.exportName];
             const {createLanguageModel, verifyRequest, sdkProvider, readReportedUsage} = adapter;
             if (!Object.hasOwn(sdk, original.sdk.exportName) || typeof factory !== 'function' ||
@@ -204,14 +271,14 @@ export async function installConfiguredModelProviders({moon, register, project,
             }
             const providerOptions = sdkProviderOptions(original.providerOptions,
               adapter.optionNamespace, adapter.optionSchema);
-            let credential;
+            let credential: Credentials | undefined;
             if (explicitCredential) {
               // Borrow the nonsecret route contract from the same verified
               // adapter. User Task options never supply an environment key.
               const declared = originalSdkRecord(adapter.credentialBinding,
                 ['reference', 'header', 'endpoint', 'prefix', 'placeholder']);
-              if (declared.reference !== original.credential.reference ||
-                  declared.header !== original.credential.header || declared.endpoint !== original.route.endpoint) {
+              if (declared.reference !== original.credential!.reference ||
+                  declared.header !== original.credential!.header || declared.endpoint !== original.route.endpoint) {
                 fail('RegisteredSdkCredentialMismatch');
               }
               credential = Object.freeze({transport: declared,
@@ -224,18 +291,18 @@ export async function installConfiguredModelProviders({moon, register, project,
               sdkPackage: original.sdk.packageName,
               sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,
               adapterArtifactCid: original.adapter.cid, lockArtifactCid: original.lock.cid,
-              createLanguageModel(fetch) {
+              createLanguageModel(fetch: unknown) {
                 assertCurrent();
                 assertNewHostRuntime?.();
                 requireOriginal();
-                sdkImageCustody.assertCurrent();
+                sdkImageCustody!.assertCurrent();
                 return createLanguageModel(factory, original.route.modelId, fetch, original.route);
               },
-              verifyRequest(wire, call) {
+              verifyRequest(wire: string, call: unknown) {
                 assertCurrent();
                 assertNewHostRuntime?.();
                 requireOriginal();
-                sdkImageCustody.assertCurrent();
+                sdkImageCustody!.assertCurrent();
                 return verifyRequest(wire, call, original.route, providerOptions);
               }});
             preparedSdkRegistrations ??= new Map();
@@ -284,7 +351,7 @@ export async function installConfiguredModelProviders({moon, register, project,
         }));
       });
     },
-    prepareConfiguration(project) {
+    prepareConfiguration(project: () => object) {
       return track(async () => {
         check();
         const construction = reader();
@@ -298,11 +365,11 @@ export async function installConfiguredModelProviders({moon, register, project,
     },
     // The existing bounded reader owns the actual FD, decode, retention and
     // pending-close responsibility. Secrets are never added to binding DATA.
-    readText(path, {maxBytes} = {}) {
+    readText(path: string, {maxBytes}: {maxBytes?: number} = {}) {
       return track(async () => {
         check();
         if (typeof path !== 'string' || !path ||
-            !Number.isSafeInteger(maxBytes) || maxBytes <= 0 || maxBytes > 2147483647) {
+            !Number.isSafeInteger(maxBytes) || maxBytes! <= 0 || maxBytes! > 2147483647) {
           fail('InvalidInstalledModelConfigurationRead');
         }
         const value = await reader().readUtf8(path, {maxBytes});
@@ -310,7 +377,7 @@ export async function installConfiguredModelProviders({moon, register, project,
         return value;
       });
     },
-    prepareBindingOriginals(installationWire, contractWire, configurationWire) {
+    prepareBindingOriginals(installationWire: string | (() => unknown), contractWire?: string, configurationWire?: string) {
       return track(async () => {
         check();
         const construction = reader();
@@ -323,7 +390,7 @@ export async function installConfiguredModelProviders({moon, register, project,
         if (typeof moon.clientProgramPrepareModelProviderOriginals !== 'function') {
           fail('InstalledModelBindingRuntimeUnavailable');
         }
-        return construction.prepareModelTaskInput(Object.freeze({
+        return construction.prepareModelTaskInput<Readonly<Record<string, Body>>>(Object.freeze({
           capacity: () => capacity(32n, 3n * 65536n, 0n,
             12n * 4096n, 12n * 65536n, 6n * 65536n),
           project() {
@@ -339,19 +406,19 @@ export async function installConfiguredModelProviders({moon, register, project,
                   field.value.length > bodyLimits.maxBytes) fail('InvalidInstalledModelOriginalBody');
             }
             const values = checked(moon.clientProgramPrepareModelProviderOriginals(
-              ...wires, bodyLimits.maxBytes,
+              ...wires as [string, string, string], bodyLimits.maxBytes,
               bodyLimits.maxNodes, bodyLimits.maxDepth, bodyLimits.maxWork));
             return Object.freeze(Object.fromEntries(
               ['installationRevision', 'configurationContract', 'configuration'].map((key, index) =>
-                [key, Object.freeze({wire: runtimeField(values, index * 2),
-                  cid: runtimeField(values, index * 2 + 1)})])));
+                [key, Object.freeze({wire: runtimeField(values, index * 2) as string,
+                  cid: runtimeField(values, index * 2 + 1) as string})]))) as Readonly<Record<string, Body>>;
           },
           retained: value => capacity(32n, Object.values(value).reduce((sum, item) =>
             sum + BigInt(item.wire.length + item.cid.length), 0n)),
         }));
       });
     },
-    prepareRawPolicies(originals) {
+    prepareRawPolicies(originals: unknown) {
       return track(async () => {
         check();
         const construction = reader();
@@ -369,7 +436,7 @@ export async function installConfiguredModelProviders({moon, register, project,
           fail('InstalledModelRawPolicyRuntimeUnavailable');
         }
         const retained = construction.prepareModelTaskInput(Object.freeze({
-          capacity: () => capacity(8n), project: () => ({}), retained: () => capacity(8n),
+          capacity: () => capacity(8n), project: (): Record<string, unknown> => ({}), retained: () => capacity(8n),
         }));
         for (const [key, kind] of entries) {
           const original = body(fields[key].value);
@@ -377,7 +444,7 @@ export async function installConfiguredModelProviders({moon, register, project,
             capacity: () => capacity(0n, 0n, 0n,
               4n * 4096n, 4n * 65536n, 4n * 65536n),
             project: () => checked(moon.clientProgramAdmitEffectDependencyBody(kind,
-              original.cid, original.wire, bodyLimits.maxBytes, bodyLimits.maxNodes, bodyLimits.maxDepth)),
+              original.cid, original.wire, bodyLimits.maxBytes, bodyLimits.maxNodes, bodyLimits.maxDepth)) as object,
             retained: value => checked(moon.clientProgramModelRawOriginalRetainedCapacity(value,
               bodyLimits.maxNodes, bodyLimits.maxDepth, 4 * bodyLimits.maxBytes)),
           }));
@@ -386,7 +453,7 @@ export async function installConfiguredModelProviders({moon, register, project,
         return Object.freeze(retained);
       });
     },
-    prepareTasks(bindings) {
+    prepareTasks(bindings: unknown) {
       return track(async () => {
         check();
         if (preparing || candidates !== undefined || project === undefined ||
@@ -399,7 +466,7 @@ export async function installConfiguredModelProviders({moon, register, project,
         // preparation cannot become a second initialization attempt.
         preparing = true;
         const construction = reader();
-        const construct = (project, retainedNodes, workspaceNodes = 0n) =>
+        const construct = <Value extends object,>(project: () => Value, retainedNodes: bigint, workspaceNodes = 0n) =>
           construction.prepareModelTaskInput(Object.freeze({
             capacity: () => capacity(retainedNodes, 0n, 0n, workspaceNodes), project,
             retained: () => capacity(retainedNodes),
@@ -429,13 +496,13 @@ export async function installConfiguredModelProviders({moon, register, project,
           fail('InstalledModelProviderDataUnavailable');
         }
         const originals = candidates.originalsForRuntime(moon);
-        const taskFor = name => {
+        const taskFor = (name: string) => {
           check();
           const original = originals.find(value => value.name === name);
           if (original === undefined) fail('InvalidInstalledModelTaskSelection');
           return original;
         };
-        const tasks = construct(() => [], 2n + BigInt(originals.length));
+        const tasks = construct((): TaskData[] => [], 2n + BigInt(originals.length));
         for (const task of originals) {
           const projectData = () => {
             const data = checked(moon.clientProgramNormalizedPublicModelTaskProviderData(
@@ -443,14 +510,14 @@ export async function installConfiguredModelProviders({moon, register, project,
               taskLimits.maxDepth, taskLimits.maxWork));
             return Object.freeze({name: task.name, providerId: task.providerId,
               taskCid: task.taskCid, promptCid: task.promptCid,
-              outputSchemaCid: runtimeField(data, 0), modelSelector: runtimeField(data, 1),
-              promptPayloadWire: runtimeField(data, 2)});
+              outputSchemaCid: runtimeField(data, 0) as string, modelSelector: runtimeField(data, 1) as string,
+              promptPayloadWire: runtimeField(data, 2) as string});
           };
           // This bounded encoder's workspace ends here. Only the emitted DATA
           // record/payload remains; Task/schema/selector strings stay borrowed.
           // These are conservative constructor quantities, not Model funding,
           // execution fuel, physical RSS or permission to call the Provider.
-          const material = construction.prepareModelTaskInput(Object.freeze({
+          const material = construction.prepareModelTaskInput<TaskData>(Object.freeze({
               capacity: () => capacity(8n, BigInt(taskLimits.maxBytes), 0n,
                 4n * BigInt(taskLimits.maxNodes), 4n * BigInt(taskLimits.maxBytes),
                 2n * BigInt(taskLimits.maxBytes)),
@@ -461,7 +528,7 @@ export async function installConfiguredModelProviders({moon, register, project,
         }
         preparing = false;
         return Object.freeze({tasks: Object.freeze(tasks),
-          verifyChatConfiguration(name, selector, modelId, endpoint) {
+          verifyChatConfiguration(name: string, selector: string, modelId: string, endpoint: string) {
             return track(async () => {
               const original = taskFor(name);
               if (typeof moon.clientProgramInstalledChatConfigurationMatches !== 'function') {
@@ -469,7 +536,7 @@ export async function installConfiguredModelProviders({moon, register, project,
               }
               // Read the same funded configuration and binding already used
               // to normalize this Task. Return no retained parser workspace.
-              const binding = original.defaults.binding;
+              const binding = original.defaults.binding as Binding;
               construction.prepareModelTaskInput(Object.freeze({
                 capacity: () => capacity(4n, 0n, 0n, 8n * 4096n,
                   8n * 65536n, 6n * 65536n),
@@ -483,7 +550,7 @@ export async function installConfiguredModelProviders({moon, register, project,
               }));
             });
           },
-          responseProfileFor(name, originalTemplate) {
+          responseProfileFor(name: string, originalTemplate: unknown) {
             return track(async () => {
               const original = taskFor(name);
               const template = typeof originalTemplate === 'string' || typeof originalTemplate === 'function'
@@ -510,12 +577,12 @@ export async function installConfiguredModelProviders({moon, register, project,
                   // canonical encoding, identity and full validation stay Core.
                   const sealed = typeof input === 'string'
                     ? control.sealRunEvidence('model_response_profile', input, limits) : input;
-                  const admitted = control.readInstalledModelResponseProfile(sealed.wire,
-                    typeof input === 'string' ? sealed.identity : sealed.cid, limits);
+                  const admitted = control.readInstalledModelResponseProfile((sealed as Body).wire,
+                    typeof input === 'string' ? (sealed as Body & {identity: string}).identity : (sealed as Body).cid, limits);
                   const values = checked(moon.clientProgramNormalizedPublicModelTaskResponseProfile(
                     original.normalized, admitted, bodyLimits.maxBytes, bodyLimits.maxNodes,
                     bodyLimits.maxDepth, bodyLimits.maxWork));
-                  const wire = runtimeField(values, 0), cid = runtimeField(values, 1);
+                  const wire = runtimeField(values, 0) as string, cid = runtimeField(values, 1) as string;
                   // The emitted DATA still enters the original full reader.
                   // Later Request admission binds the same Task/installation.
                   return Object.freeze({wire, cid,
@@ -525,7 +592,7 @@ export async function installConfiguredModelProviders({moon, register, project,
               }));
             });
           },
-          executionOriginalsFor(name, policy) {
+          executionOriginalsFor(name: string, policy: unknown) {
             return track(async () => {
               const original = taskFor(name);
               if (executionOriginals.has(original.taskCid)) fail('InstalledModelExecutionAlreadyPrepared');
@@ -548,9 +615,9 @@ export async function installConfiguredModelProviders({moon, register, project,
                     original.normalized, ...keys.map(key => fields[key].value), bodyLimits.maxBytes,
                     bodyLimits.maxNodes, bodyLimits.maxDepth, bodyLimits.maxWork));
                   const value = Object.freeze({modelTaskCid: original.taskCid,
-                    execution: Object.freeze({wire: runtimeField(values, 0), cid: runtimeField(values, 1)}),
-                    retry: Object.freeze({wire: runtimeField(values, 2), cid: runtimeField(values, 3)}),
-                    backoff: Object.freeze({wire: runtimeField(values, 4), cid: runtimeField(values, 5)}),
+                    execution: Object.freeze({wire: runtimeField(values, 0) as string, cid: runtimeField(values, 1) as string}),
+                    retry: Object.freeze({wire: runtimeField(values, 2) as string, cid: runtimeField(values, 3) as string}),
+                    backoff: Object.freeze({wire: runtimeField(values, 4) as string, cid: runtimeField(values, 5) as string}),
                     prompt: Object.freeze({wire: original.promptWire, cid: original.promptCid})});
                   executionOriginals.set(original.taskCid, value);
                   return value;
@@ -560,7 +627,7 @@ export async function installConfiguredModelProviders({moon, register, project,
               }));
             });
           },
-          providerEntries(project) {
+          providerEntries(project: () => unknown) {
             return track(async () => {
               check();
               if (typeof project !== 'function') fail('InvalidInstalledModelProviderRegistration');
@@ -583,7 +650,7 @@ export async function installConfiguredModelProviders({moon, register, project,
               }));
             });
           },
-          bindingOriginalsFor(providerId) {
+          bindingOriginalsFor(providerId: string) {
             check();
             const value = defaults.get(providerId);
             if (value === undefined) fail('InstalledModelDefaultsUnavailable');
@@ -614,25 +681,25 @@ export async function installConfiguredModelProviders({moon, register, project,
     if (candidates !== undefined) {
       if (!Array.isArray(entries)) fail('InvalidInstalledModelProviderRegistration');
       for (const entry of entries) {
-        const original = defaults.get(entry?.providerId);
+        const original = defaults!.get(entry?.providerId);
         if (original === undefined) fail('InstalledModelDefaultsForeignOriginal');
         original.bindRegistration(entry);
       }
     }
     const taskOriginals = candidates?.originalsForRuntime(moon);
     const prepareSdkCapability = preparedSdkRegistrations === undefined ? undefined :
-      (registration, providerId, taskCid, provider, raw) => {
+      (registration: Registration, providerId: string, taskCid: string, provider: unknown, raw: RawSelection) => {
         const original = taskOriginals?.find(task => task.taskCid === taskCid && task.providerId === providerId);
-        if (preparedSdkRegistrations.get(providerId) !== registration || original === undefined ||
+        if (preparedSdkRegistrations!.get(providerId) !== registration || original === undefined ||
             typeof moon.clientProgramPrepareInstalledStructuredSdkCapability !== 'function' ||
             typeof moon.clientProgramAdmitInstalledStructuredSdkCapability !== 'function') {
           fail(invalidSdkInstallation);
         }
         assertCurrent(); assertNewHostRuntime?.();
-        const {route} = registration, {binding} = original.defaults;
+        const {route} = registration, {binding} = original.defaults as {binding: Binding};
         const revision = JSON.parse(binding.originals.installationRevision.wire);
         const configuration = JSON.parse(binding.originals.configuration.wire);
-        const {installation} = raw;
+        const {installation} = raw as unknown as SdkSelection;
         const sdk = installation.sdk;
         if (revision.sdk_entry_artifact_cid !== registration.sdkArtifactCid ||
             revision.builder_artifact_cid !== registration.adapterArtifactCid ||
@@ -647,11 +714,11 @@ export async function installConfiguredModelProviders({moon, register, project,
         }
         const opaque = checked(moon.clientProgramPrepareInstalledStructuredSdkCapability(
           provider, binding.value, binding.originals.configuration.wire,
-          route.selector, route.modelId, route.apiMode, route.endpoint, raw.profile));
+          route.selector, route.modelId, route.apiMode, route.endpoint, (raw as unknown as SdkSelection).profile));
         return Object.freeze({opaque, installation});
       };
     const install = () => installModelProviders(moon, () => entries, assertHostRuntime,
-      assertNewHostRuntime, bindSdkStaticOriginals, taskOriginals, prepareSdkCapability);
+      assertNewHostRuntime, bindSdkStaticOriginals, taskOriginals, prepareSdkCapability as PrepareCapability | undefined);
     let registeredTaskNodes = 0n;
     if (preparedSdkRegistrations !== undefined && taskOriginals !== undefined) {
       for (const task of taskOriginals) {
@@ -659,7 +726,7 @@ export async function installConfiguredModelProviders({moon, register, project,
       }
     }
     const providerNodes = candidates === undefined ? 0n : 64n +
-      64n * BigInt(entries.length) + 128n * BigInt(taskOriginals.length) + registeredTaskNodes;
+      64n * BigInt((entries as readonly unknown[]).length) + 128n * BigInt(taskOriginals!.length) + registeredTaskNodes;
     // Install all provider views in the same original constructor. Each
     // capability remains retained, while one Task at a time borrows canonical
     // binding material and checks the two DATA bodies and their Common CID.
@@ -672,7 +739,7 @@ export async function installConfiguredModelProviders({moon, register, project,
     }));
     const projectTasks = candidates?.bindInstalledProviders(providers);
     let materialized = false;
-    const modelInstallationForRuntime = executionOriginals.size === 0 ? undefined : (runtime, environmentWire) => {
+    const modelInstallationForRuntime = executionOriginals.size === 0 ? undefined : (runtime: unknown, environmentWire: unknown) => {
       // This private Host assembly runs before the initial constructor ends.
       // It is separate from the sealed public configuration context, and may
       // not allocate another installation after initialization/reentry.
@@ -680,7 +747,7 @@ export async function installConfiguredModelProviders({moon, register, project,
         fail('ForeignInstalledModelConfiguration');
       }
       assertCurrent(); assertNewHostRuntime?.();
-      projectTasks.originalsForRuntime(runtime);
+      projectTasks!.originalsForRuntime(runtime);
       materialized = true;
       return reader().prepareModelTaskInput(Object.freeze({
         capacity: () => capacity(16n + 24n * BigInt(executionOriginals.size), 0n, 0n,
@@ -713,8 +780,8 @@ export async function installConfiguredModelProviders({moon, register, project,
     // the four admitted bodies while the same initialization owner is open;
     // the strings remain borrowed from their original Common owners.
     const policyInventory = candidates === undefined ? undefined : reader().prepareModelTaskInput(Object.freeze({
-      capacity: () => capacity(16n + 64n * BigInt(taskOriginals.length), 0n, 0n,
-        16n + 64n * BigInt(taskOriginals.length)),
+      capacity: () => capacity(16n + 64n * BigInt(taskOriginals!.length), 0n, 0n,
+        16n + 64n * BigInt(taskOriginals!.length)),
       project() {
         const owners = [], bodies = new Map();
         for (const installed of providers.values()) {
@@ -736,10 +803,10 @@ export async function installConfiguredModelProviders({moon, register, project,
         // every actual view still keeps its own current/physical/Run duties.
         return Object.freeze({owners: Object.freeze(owners), bodies: Object.freeze([...bodies.values()])});
       },
-      retained: () => capacity(16n + 64n * BigInt(taskOriginals.length)),
+      retained: () => capacity(16n + 64n * BigInt(taskOriginals!.length)),
     }));
     const persistOriginals = policyInventory === undefined || policyInventory.bodies.length === 0
-      ? undefined : async store => {
+      ? undefined : async (store: Writer) => {
         // The existing Store owns write funding, digest validation, durability
         // and pending cleanup. This installs policy DATA, never a raw grant,
         // Account permission, approval or authority to send a Model request.
