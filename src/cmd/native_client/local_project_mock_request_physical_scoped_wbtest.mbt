@@ -3392,7 +3392,7 @@ test "Native shared-file DELETE and UPDATE Preview own their original guarded ta
 }
 
 ///|
-test "Native Values CREATE captures its whole Result dependency closure under separate metadata limits" {
+test "Native Values CREATE captures its Result dependencies and prepares its original Preview" {
   let project = native_project_mock_model_fixture(
     "source-free-create",
     operation="run",
@@ -3587,6 +3587,70 @@ test "Native Values CREATE captures its whole Result dependency closure under se
       artifact,
     ),
   )
+  @local_values.yield_installed_effect_operation_construction_workspace(
+    proposals.construction.unwrap().operation,
+  ).native_file_route_value("yield CREATE proposal workspace")
+  state.observe_mock_effect_targets_in_original_request(
+    run,
+    proposals,
+    installations,
+    (_, _) => fail("CREATE must not request a preapproval target read"),
+    task => task(),
+    issue => fail(command_preparation_cleanup_cause(issue)),
+  )
+  assert_true(state.targets.is_empty())
+  let (observation, preview_invocation, _) = proposals.publication_context.unwrap()
+  state.build_mock_effect_preview(
+    proposals,
+    installations,
+    installation.store_authority_cid,
+    native_mock_effect_record_bytes(installation),
+    limit.max_result_fields,
+    () => (observation, preview_invocation, [], [], None),
+    issue => if primary.val is None { primary.val = Some(issue) },
+  ) catch {
+    ClientStop(message) =>
+      fail(
+        message +
+        " / " +
+        primary.val
+        .map(issue => {
+          command_preparation_cleanup_cause(
+            CommandBusinessEffectProposals(issue),
+          )
+        })
+        .unwrap_or("no typed cause"),
+      )
+  }
+  let preview = state.preview.unwrap()
+  let identity = @strategy.captured_effect_preview_ledger_identity(
+    preview.inputs,
+  )
+  assert_eq(
+    @publication.effect_preview_member_kind(identity, 0),
+    Some("create"),
+  )
+  assert_eq(@publication.effect_preview_row_count(identity, 0), Some(1))
+  assert_eq(
+    @publication.effect_preview_row_guard_version_cid(identity, 0, 0),
+    None,
+  )
+  assert_eq(
+    @publication.effect_preview_row_intended_value_wire(identity, 0, 0),
+    Some("{\"group\":\"inserted\",\"value\":null}"),
+  )
+  let dispatch_key = preview._retained_keys[0][0]
+  assert_eq(
+    @effect.effect_dispatch_key_correlation_wire(dispatch_key),
+    (
+      #|{"content_cid":"sha256:b4be31ec2536048c8e50bc1e32a84ec7c891a944e6c18c4253b166abd6eb000b","occurrence":0}
+    ),
+  )
+  assert_eq(
+    @publication.effect_preview_row_key(identity, 0, 0),
+    Some(@effect.effect_dispatch_key_cid(dispatch_key)),
+  )
+  state.preview = None
   assert_true(proposals.close())
   state.proposals = None
   state.suffix = None

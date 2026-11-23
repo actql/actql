@@ -912,7 +912,7 @@ fn LocalNativeMockEffectImportConstruction::prepare_mock_file_create_preview(
 }
 
 ///|
-// Original Native UPDATE keys retain their same correlation Strings and one
+// Native File Effect keys retain their admitted correlation Strings and one
 // newly owned CID each. Both vectors coexist with one bounded key codec;
 // the CID-only vector is a temporary input to Preview completion.
 fn native_mock_effect_preview_dispatch_capacity(
@@ -926,8 +926,8 @@ fn native_mock_effect_preview_dispatch_capacity(
   let mut text = 0L
   let mut largest = 1
   for index in 0..<members {
-    guard @publication.effect_preview_member_kind(preview, index) ==
-      Some("update") &&
+    guard @publication.effect_preview_member_kind(preview, index)
+      is Some("create" | "update" | "delete") &&
       @publication.effect_preview_row_count(preview, index) is Some(count) else {
       return Err(PreviewDispatch(InvalidRowKey))
     }
