@@ -81609,7 +81609,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
               }
             ],
@@ -125629,7 +125629,7 @@
     },
     {
       "module": "adapters/host-node/ordinary-mock-account.mjs",
-      "sha256": "3110766fd40c8a698d7a963c9c968b755193965b5986a22900db616f83d98a82",
+      "sha256": "e0dd5df85548fb02e101dd595c533105dbda569008dbe3bcb5bf9ae3f872d69a",
       "exports": [
         "initializeOrdinaryMockAccount",
         "prepareOrdinaryMockAccountSubjects"
@@ -125838,43 +125838,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "export function initializeOrdinaryMockAccount("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "intent.subjectCid !== subjectCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "flights.set(key, flight);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "if (flights.has(key))"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "fail('LocalMockAdoptedStateMissing')"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "cleanupHandle = Object.freeze({status, retry()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "const maximum = 1024 * 1024;"
               }
             ],
@@ -126004,43 +126004,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "export function initializeOrdinaryMockAccount("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "intent.subjectCid !== subjectCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "flights.set(key, flight);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "if (flights.has(key))"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "fail('LocalMockAdoptedStateMissing')"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "cleanupHandle = Object.freeze({status, retry()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "const maximum = 1024 * 1024;"
               }
             ],
@@ -126111,7 +126111,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
               }
             ],
@@ -126168,43 +126168,43 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "export function initializeOrdinaryMockAccount("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "intent.subjectCid !== subjectCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "flights.set(key, flight);"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "if (flights.has(key))"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "fail('LocalMockAdoptedStateMissing')"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "cleanupHandle = Object.freeze({status, retry()"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "const maximum = 1024 * 1024;"
               }
             ],
@@ -128042,7 +128042,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
               }
             ],

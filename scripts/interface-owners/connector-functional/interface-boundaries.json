@@ -17019,7 +17019,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-mock-account.mjs",
+                "path": "adapters/host-node/ordinary-mock-account.mts",
                 "anchor": "frame.failure(cause); frame.finish(false); throw cause;"
               }
             ],

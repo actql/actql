@@ -1,5 +1,5 @@
 import {generateKeyPairSync, createPrivateKey, createPublicKey, randomUUID, randomBytes} from 'node:crypto';
-import {mkdir, open, lstat} from 'node:fs/promises';
+import {mkdir, open, lstat, type FileHandle} from 'node:fs/promises';
 import {join} from 'node:path';
 import {canonicalJson, contentCid, bytesCid} from './local-account-config.mjs';
 import {readBoundedConfigurationUtf8} from './source-profile-json.mjs';
@@ -7,16 +7,120 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {isAccountConstruction, readAccountOriginal} from './account-construction.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
 
-const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
-const flights = new Map();
+import type {createAccountConstruction} from './account-construction.mjs';
+import type {loadExecutionAuthorizationRuntime} from './authorization.mjs';
+
+type Construction = ReturnType<typeof createAccountConstruction>;
+type Frame = ReturnType<Construction['begin']>;
+type Pair = readonly [string, string];
+type TupleFields = Pick<Pair, 0 | 1>;
+type Tuple = ReturnType<typeof runtimeTupleFromFields>;
+type TupleInventory = readonly Tuple[];
+type OptionalTuple = Tuple | undefined;
+type Tasks = readonly string[];
+type Prepare = Frame['core'];
+type AuthorizationRuntime = Awaited<ReturnType<typeof loadExecutionAuthorizationRuntime>>;
+type Runtime = Pick<AuthorizationRuntime, 'executionAuthorizationAdmit'> & Readonly<{
+  clientProgramLocalMockAccountControlConnectionPrepared?(preferred: string, savedProfile: OptionalTuple,
+    originalControl: string | undefined, sources: TupleInventory, targets: TupleInventory, prepare: Prepare): unknown;
+  clientProgramLocalMockAccountInventoryPrepared?(connection: string, sources: TupleInventory, tasks: Tasks,
+    request: OptionalTuple, targets: TupleInventory, prepare: Prepare): unknown;
+  clientProgramLocalMockAccountBeforeSigningPrepared?(accountId: string, principal: string,
+    connection: string, sources: TupleInventory, tasks: Tasks, request: OptionalTuple,
+    targets: TupleInventory, keyUnits: number, prepare: Prepare): boolean;
+  clientProgramLocalMockAccountConfigurationPrepared?(accountId: string, principal: string,
+    connection: string, sources: TupleInventory, tasks: Tasks, request: OptionalTuple,
+    targets: TupleInventory, reviewerResource: string, prepare: Prepare): unknown;
+  clientProgramLocalMockAccountConfiguration(accountId: string, principal: string, connection: string,
+    sources: TupleInventory, tasks: Tasks, request: OptionalTuple, target: OptionalTuple, reviewerResource: string): unknown;
+  clientProgramLocalMockAccountProfile(): unknown;
+  clientProgramLocalMockAccountProfileKnown(id: string, version: string, cid: string): boolean;
+  clientLocalSigningBootstrapOriginal?(): unknown;
+  clientLocalSigningBootstrapIssue?(policy: string, policyCid: string, intentCid: string,
+    sampledAt: bigint, validUntil: bigint): unknown;
+  clientLocalSigningPublicKeyOriginal?(raw32: Uint8Array): unknown;
+}>;
+type Catalog = Readonly<{
+  connection: string;
+  registration: string;
+  views: readonly Readonly<{resource: string}>[];
+}>;
+type SubjectTarget = Readonly<{connection: string; resource: string; mappingCid: string;
+  itemsPath: readonly string[]; keyPath: readonly string[]; primaryIdentity: string}>;
+type SubjectBundle = Readonly<{
+  sources: readonly Readonly<{catalogue: Catalog; wire: string}>[];
+  writables: readonly Readonly<{
+    source: Readonly<{catalogue: Catalog; effectPrepared: Readonly<{
+      mappings: readonly Readonly<{resource: string; mappingCid?: unknown}>[];
+    }>}>;
+    write: Readonly<{resource: string}>;
+    physical: Pick<SubjectTarget, 'itemsPath' | 'keyPath' | 'primaryIdentity'>;
+  }>[];
+}>;
+type CatalogSubject = {
+  projectDirectory: string;
+  configurationCid: string;
+  sources: readonly Readonly<{connection: string; registration: string; declarationCid: string}>[];
+  modelTasks: Tasks;
+  requestRealization: string;
+  targets?: readonly SubjectTarget[];
+};
+type Subjects = Readonly<{
+  subject: object;
+  sources: readonly Pair[];
+  modelTasks: Tasks;
+  requestTarget?: Pair;
+  updateTarget?: Pair;
+  updateTargets?: readonly Pair[];
+}>;
+type PreparedSubjects = Subjects & Readonly<{
+  subject: CatalogSubject;
+  requestTarget: Pair;
+  updateTargets: readonly Pair[];
+}>;
+type CommonOptions = Readonly<{
+  moon: Runtime;
+  root: string;
+  principal: string;
+  explicitSelection: boolean;
+  assertExclusiveCurrent(): void;
+  operatorAuthorization?: unknown;
+}>;
+type InitializeOptions = CommonOptions & (
+  | (Subjects & Readonly<{accountConstruction?: Construction; prepareSubjects?: undefined}>)
+  | (Partial<Subjects> & Readonly<{accountConstruction: Construction; prepareSubjects(frame: Frame): Subjects}>)
+);
+type SigningOriginal = Readonly<{wire: string; cid: string}>;
+type Profile = Readonly<{id: string; version: string; cid: string}>;
+type Intent = Readonly<{
+  attempt: string;
+  profile: Profile;
+  subjectCid: string;
+  accountId: string;
+  controlConnection?: string;
+  configuration: string;
+  configurationCid: string;
+  reviewerResource: string;
+  reviewerPem: string;
+  hostPem: string;
+  evidence: string;
+  signingPolicy?: SigningOriginal;
+  signingPublicKey?: SigningOriginal;
+}>;
+type Store = Readonly<{status(): Readonly<{closed: boolean}>}>;
+type CloseObservation = Readonly<{pending: boolean}>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
+const flights = new Map<string, ReturnType<typeof initializeConstructed>>();
 const maximum = 1024 * 1024;
 
 // The trusted installed caller supplies its SAME retained catalog originals.
 // Full declaration/configuration wires are hash inputs, not subject members.
 // Quote the actual returned forest separately from one synchronous hash's
 // Buffer scratch; the existing Account Read keeps all failed-prefix debt.
-export function prepareOrdinaryMockAccountSubjects(frame, bundle, originalTasks,
-  projectDirectory, configurationWire, requestRealization) {
+export function prepareOrdinaryMockAccountSubjects(frame: Frame, bundle: SubjectBundle,
+  originalTasks: readonly Readonly<{taskCid: string}>[], projectDirectory: string,
+  configurationWire: string, requestRealization: string): PreparedSubjects {
   let units = BigInt(projectDirectory.length + requestRealization.length + 256 + 71);
   let nodes = 64n + 2n * BigInt(originalTasks.length);
   for (const entry of bundle.sources) {
@@ -39,7 +143,7 @@ export function prepareOrdinaryMockAccountSubjects(frame, bundle, originalTasks,
   // This includes the subject, source/update tuples and original path/task
   // references. It does not charge a second retained copy of borrowed wires.
   frame.record(units, nodes, 8n);
-  const hashOriginal = value => {
+  const hashOriginal = (value: string) => {
     // Buffer.from and digest are synchronous. Each Buffer dies before the
     // next call; the SAME frame keeps the maximum execution peak, while its
     // record debit retains every returned CID. This is no GC/physical ACK.
@@ -47,11 +151,11 @@ export function prepareOrdinaryMockAccountSubjects(frame, bundle, originalTasks,
     return bytesCid(Buffer.from(value));
   };
   const tasks = originalTasks.map(entry => entry.taskCid);
-  const sources = bundle.sources.flatMap(entry => entry.catalogue.views.map(view =>
+  const sources = bundle.sources.flatMap<Pair>(entry => entry.catalogue.views.map(view =>
     [entry.catalogue.connection, view.resource]));
-  const updates = bundle.writables.map(target =>
+  const updates = bundle.writables.map<Pair>(target =>
     [target.source.catalogue.connection, target.write.resource]);
-  const subject = {projectDirectory, configurationCid: hashOriginal(configurationWire),
+  const subject: CatalogSubject = {projectDirectory, configurationCid: hashOriginal(configurationWire),
     sources: bundle.sources.map(entry => ({connection: entry.catalogue.connection,
       registration: entry.catalogue.registration, declarationCid: hashOriginal(entry.wire)})),
     modelTasks: tasks, requestRealization};
@@ -70,7 +174,7 @@ export function prepareOrdinaryMockAccountSubjects(frame, bundle, originalTasks,
 // This is the existing Local Host's installation work, under its actual Store
 // exclusion. Common owns the limited policy; these files do not create grants
 // from a profile name, discovered Project, equal CID or missing saved state.
-export function initializeOrdinaryMockAccount(options) {
+export function initializeOrdinaryMockAccount(options: InitializeOptions) {
   const key = options.root;
   if (flights.has(key)) fail('LocalMockInitializationAlreadyPending');
   const flight = Promise.resolve().then(() => initializeConstructed(options));
@@ -80,16 +184,16 @@ export function initializeOrdinaryMockAccount(options) {
   return flight;
 }
 
-async function initializeConstructed({accountConstruction, prepareSubjects, ...options}) {
+async function initializeConstructed({accountConstruction, prepareSubjects, ...options}: InitializeOptions) {
   if (accountConstruction === undefined) {
     if (prepareSubjects !== undefined || options.updateTargets !== undefined) fail('LocalMockAccountInventoryUnavailable');
-    return initialize(options);
+    return initialize(options as CommonOptions & Subjects);
   }
   if (!isAccountConstruction(accountConstruction)) fail('ForeignAccountConstruction');
   const frame = accountConstruction.begin();
   try {
     const subjects = prepareSubjects === undefined ? {} : prepareSubjects(frame);
-    const result = await initialize({...options, ...subjects}, frame);
+    const result = await initialize({...options, ...subjects} as CommonOptions & Subjects, frame);
     if (result !== undefined) frame.hold();
     frame.finish(result !== undefined);
     return result;
@@ -97,7 +201,8 @@ async function initializeConstructed({accountConstruction, prepareSubjects, ...o
 }
 
 async function initialize({moon, root, principal, subject, sources, modelTasks, requestTarget,
-  updateTarget, updateTargets, explicitSelection, assertExclusiveCurrent, operatorAuthorization}, frame) {
+  updateTarget, updateTargets, explicitSelection, assertExclusiveCurrent, operatorAuthorization}: CommonOptions & Subjects,
+  frame?: Frame) {
   let constructing = true;
   assertExclusiveCurrent();
   // The existing diagnostic callback is not an Account, policy or signer
@@ -113,9 +218,9 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   // The trusted initializer supplied the COMPLETE catalog before any subject
   // CID or key is created. Its tuple copies are separate live constructors.
   if (frame !== undefined) frame.record(0n, 16n + 4n * BigInt(sources.length + targets.length), 2n);
-  const sourceTuples = sources.map(runtimeTupleFromFields);
-  const targetTuples = targets.map(runtimeTupleFromFields);
-  let requestTuple;
+  const sourceTuples = sources.map(runtimeTupleFromFields as (fields: TupleFields) => Tuple);
+  const targetTuples = targets.map(runtimeTupleFromFields as (fields: TupleFields) => Tuple);
+  let requestTuple: OptionalTuple;
   let controlConnection = 'local-mock';
   const selectControl = moon.clientProgramLocalMockAccountControlConnectionPrepared;
   if (frame !== undefined && (typeof selectControl !== 'function' ||
@@ -136,11 +241,11 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   const reviewerPath = join(directory, 'reviewer.pem'), hostPath = join(directory, 'host.pem');
   const evidencePath = join(directory, 'continuation.key');
   const profile = moon.clientProgramLocalMockAccountProfile();
-  let identity = Object.freeze({id: runtimeField(profile, 0), version: runtimeField(profile, 1),
-    cid: runtimeField(profile, 2)});
+  let identity = Object.freeze({id: runtimeField(profile, 0) as string, version: runtimeField(profile, 1) as string,
+    cid: runtimeField(profile, 2) as string});
   if (Object.values(identity).some(value => typeof value !== 'string')) fail('InvalidHostRuntimeResult');
   const subjectCid = contentCid({principal, ...subject});
-  async function readOptional(path) {
+  async function readOptional(path: string) {
     assertExclusiveCurrent();
     try {
       const info = await lstat(path);
@@ -149,19 +254,19 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
       const wire = constructing && frame !== undefined ? await readAccountOriginal(path, frame)
         : await readBoundedConfigurationUtf8(path, {maxBytes: maximum});
       assertExclusiveCurrent(); return wire;
-    } catch (cause) {if (cause?.code === 'ENOENT') return undefined; throw cause;}
+    } catch (cause) {if ((cause as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') return undefined; throw cause;}
   }
-  async function closeOriginal(handle, primary, failed) {
-    const originalClose = handle.close;
+  async function closeOriginal(handle: FileHandle, primary: unknown, failed: boolean) {
+    const originalClose = handle.close as () => Promise<void | false>;
     try {if (await Reflect.apply(originalClose, handle, []) === false) fail('LocalMockInitializationCleanupPending');}
     catch (cause) {
-      let held = handle, flight;
+      let held: FileHandle | undefined = handle, flight: Promise<CloseObservation> | undefined;
       const status = () => Object.freeze({pending: held !== undefined});
       const cleanupHandle = Object.freeze({status, retry() {
         if (held === undefined) return Promise.resolve(status());
         if (flight !== undefined) return flight;
         const work = Promise.resolve().then(async () => {
-          if (await Reflect.apply(originalClose, held, []) === false) fail('LocalMockInitializationCleanupPending');
+          if (await Reflect.apply(originalClose, held!, []) === false) fail('LocalMockInitializationCleanupPending');
           held = undefined; return status();
         });
         flight = work;
@@ -180,13 +285,13 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     catch (cause) {primary = cause; failed = true;}
     await closeOriginal(handle, primary, failed);
   }
-  async function createOriginal(path, wire) {
+  async function createOriginal(path: string, wire: string) {
     assertExclusiveCurrent();
     if (constructing && frame !== undefined) frame.prepare(0n, 128n + 3n * BigInt(Buffer.byteLength(wire, 'utf8')));
     let handle;
     try {handle = await open(path, 'wx', 0o600);}
     catch (cause) {
-      if (cause?.code !== 'EEXIST') throw cause;
+      if ((cause as NodeJS.ErrnoException | undefined)?.code !== 'EEXIST') throw cause;
       if (await readOptional(path) !== wire) fail('LocalMockInitializationConflict');
       return;
     }
@@ -196,13 +301,13 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     await closeOriginal(handle, primary, failed);
     await syncDirectory();
   }
-  function parse(wire) {
+  function parse(wire: string): unknown {
     if (constructing) frame?.nativeJson(wire);
     try {return JSON.parse(wire);} catch (cause) {fail('LocalMockInitializationInvalid', cause);}
   }
   let intentWire = await readOptional(intentPath);
-  let adoptedWire = await readOptional(receiptPath), adoptionFlight;
-  const savedIntent = intentWire === undefined ? undefined : parse(intentWire);
+  let adoptedWire = await readOptional(receiptPath), adoptionFlight: Promise<void> | undefined;
+  const savedIntent = intentWire === undefined ? undefined : parse(intentWire) as Intent;
   if (typeof selectControl === 'function') {
     if (frame === undefined) fail('LocalMockAccountInventoryUnavailable');
     // Transport only actual optional fields. Common owns current/legacy
@@ -215,12 +320,13 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
       frame.record(0n, 5n, 1n);
     }
     const savedProfile = savedIntent === undefined ? undefined : runtimeTupleFromFields([
-      savedIntent.profile?.id, savedIntent.profile?.version, savedIntent.profile?.cid]);
+      savedIntent.profile?.id, savedIntent.profile?.version, savedIntent.profile?.cid] as
+      Pick<readonly [string, string, string], 0 | 1 | 2>);
     const selected = Reflect.apply(selectControl, moon,
       [originalControl ?? 'local-mock', savedProfile, originalControl, sourceTuples, targetTuples, frame.core]);
     frame.assert();
     if (selected === undefined) fail('LocalMockAccountInventoryUnavailable');
-    controlConnection = checked(selected);
+    controlConnection = checked(selected) as string;
     if (typeof controlConnection !== 'string') fail('LocalMockInstallationChanged');
   }
   if (requestTarget !== undefined) {
@@ -228,10 +334,10 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     // user Source/Effect target. Preserve its resource and selected domain.
     if (requestTarget[0] !== 'local-mock') fail('LocalMockInstallationChanged');
     frame?.record(0n, 4n, 1n);
-    requestTuple = runtimeTupleFromFields([controlConnection, requestTarget[1]]);
+    requestTuple = runtimeTupleFromFields([controlConnection, requestTarget[1]] as TupleFields);
   }
   if (frame !== undefined) {
-    const checkedInventory = Reflect.apply(moon.clientProgramLocalMockAccountInventoryPrepared, moon,
+    const checkedInventory = Reflect.apply(moon.clientProgramLocalMockAccountInventoryPrepared!, moon,
       [controlConnection, sourceTuples, modelTasks, requestTuple, targetTuples, frame.core]);
     frame.assert();
     if (checkedInventory === undefined) fail('LocalMockAccountInventoryUnavailable');
@@ -241,12 +347,12 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     if (adoptedWire !== undefined) fail('LocalMockAdoptedStateMissing');
     if (!explicitSelection) fail('LocalMockInitializationConsentRequired');
     try {await lstat(directory); fail('LocalMockInitializationConflict');}
-    catch (cause) {if (cause?.code !== 'ENOENT') throw cause;}
+    catch (cause) {if ((cause as NodeJS.ErrnoException | undefined)?.code !== 'ENOENT') throw cause;}
     const accountId = 'local-mock-' + randomUUID();
     if (frame !== undefined) {
       // bytesCid over the actual Ed25519 public PEM has the existing exact
       // ASCII SHA256 name length. This is a constructor bound, not a key value.
-      const prepared = moon.clientProgramLocalMockAccountBeforeSigningPrepared(accountId, principal,
+      const prepared = moon.clientProgramLocalMockAccountBeforeSigningPrepared!(accountId, principal,
         controlConnection, sourceTuples, modelTasks, requestTuple, targetTuples, 71, frame.core);
       frame.assert();
       if (prepared !== true) fail('LocalMockAccountConstructionUnavailable');
@@ -264,7 +370,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
       ? moon.clientProgramLocalMockAccountConfiguration(accountId, principal,
         controlConnection, sourceTuples, modelTasks, requestTuple,
         updateTarget === undefined ? undefined : targetTuples[0], reviewerResource)
-      : moon.clientProgramLocalMockAccountConfigurationPrepared(accountId, principal,
+      : moon.clientProgramLocalMockAccountConfigurationPrepared!(accountId, principal,
         controlConnection, sourceTuples, modelTasks, requestTuple, targetTuples, reviewerResource, frame.core);
     frame?.assert();
     if (generated === undefined) fail('LocalMockAccountConstructionUnavailable');
@@ -278,7 +384,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
         typeof publicKeyOriginal === 'function') {
       const original = Reflect.apply(policyOriginal, moon, []);
       signingPolicy = {wire: runtimeField(original, 0), cid: runtimeField(original, 1)};
-      const raw32 = Buffer.from(reviewer.publicKey.export({format: 'jwk'}).x, 'base64url');
+      const raw32 = Buffer.from(reviewer.publicKey.export({format: 'jwk'}).x!, 'base64url');
       const key = checked(Reflect.apply(publicKeyOriginal, moon, [raw32]));
       signingPublicKey = {wire: runtimeField(key, 0), cid: runtimeField(key, 1)};
       if (typeof signingPolicy.wire !== 'string' || typeof signingPolicy.cid !== 'string') {
@@ -297,7 +403,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
       reviewerPem, hostPem, evidence: randomBytes(32).toString('base64'), signingPolicy, signingPublicKey});
     await createOriginal(intentPath, intentWire);
   }
-  const intent = savedIntent ?? parse(intentWire);
+  const intent = savedIntent ?? parse(intentWire) as Intent;
   if (intent.subjectCid !== subjectCid || intent.profile === null || typeof intent.profile !== 'object' ||
       Array.isArray(intent.profile) || Object.keys(intent.profile).sort().join('\0') !== 'cid\0id\0version' ||
       ![intent.profile.id, intent.profile.version, intent.profile.cid].every(value => typeof value === 'string') ||
@@ -318,12 +424,12 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
       fail('LocalMockInstallationChanged');
     }
   }
-  const expected = [[hostPath, intent.hostPem], [evidencePath, intent.evidence]];
+  const expected: Pair[] = [[hostPath, intent.hostPem], [evidencePath, intent.evidence]];
   if (adoptedWire === undefined) {
     // An unfinished intent may finish only its own exclusive file creation.
     // Existing operator files are neither overwritten nor merged.
     await createOriginal(configPath, intent.configuration);
-    for (const [path, wire] of [[reviewerPath, intent.reviewerPem], ...expected]) await createOriginal(path, wire);
+    for (const [path, wire] of ([[reviewerPath, intent.reviewerPem], ...expected] as Pair[])) await createOriginal(path, wire);
   }
   for (const [path, wire] of expected) {
     if (await readOptional(path) !== wire) fail('LocalMockAdoptedStateMissing');
@@ -337,7 +443,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   if (currentConfiguration === undefined) fail('LocalMockAdoptedStateMissing');
   // Original generated bytes establish provenance. Current operator Account
   // configuration, including Deny/restriction, is admitted again by Common.
-  const account = parse(currentConfiguration);
+  const account = parse(currentConfiguration) as {account_id?: unknown};
   if (account.account_id !== intent.accountId) fail('LocalMockInstallationChanged');
   moon.executionAuthorizationAdmit(currentConfiguration);
   const reviewerKey = reviewerPem === undefined ? undefined : createPrivateKey(reviewerPem);
@@ -350,7 +456,7 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
     const saved = intent.signingPublicKey;
     if (typeof saved?.wire !== 'string' || typeof saved?.cid !== 'string' ||
         typeof publicKeyOriginal !== 'function') fail('LocalMockInstallationChanged');
-    const body = parse(saved.wire);
+    const body = parse(saved.wire) as {public_key?: unknown} | null | undefined;
     if (typeof body?.public_key !== 'string') fail('LocalMockInstallationChanged');
     const raw32 = Buffer.from(body.public_key, 'base64');
     const original = checked(Reflect.apply(publicKeyOriginal, moon, [raw32]));
@@ -364,9 +470,9 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
   const evidence = Buffer.from(intent.evidence, 'base64');
   if (evidence.length !== 32) fail('LocalMockInstallationChanged');
   assertExclusiveCurrent();
-  let adoptedStore, adoptedStoreStatus;
+  let adoptedStore: Store | undefined, adoptedStoreStatus: Store['status'] | undefined;
   const binding = Object.freeze({profile: identity, subjectCid, configurationPath: configPath,
-    adoptStore(store) {
+    adoptStore(store: Store) {
       if (adoptionFlight !== undefined) return adoptionFlight;
       const status = store.status;
       if (typeof status !== 'function' || Reflect.apply(status, store, []).closed !== false) {
@@ -389,10 +495,10 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
       });
       return adoptionFlight;
     },
-    async assertSigningCurrent(store) {
+    async assertSigningCurrent(store: Store) {
       assertExclusiveCurrent();
       if (store !== adoptedStore || adoptedWire === undefined ||
-          Reflect.apply(adoptedStoreStatus, store, []).closed !== false ||
+          Reflect.apply(adoptedStoreStatus!, store, []).closed !== false ||
           await readOptional(intentPath) !== intentWire ||
           await readOptional(receiptPath) !== adoptedWire) fail('LocalMockInstallationChanged');
       for (const [path, wire] of expected) {
@@ -405,13 +511,13 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
       if (storeWire === undefined || adoptedWire !== canonicalJson({...receiptFields,
         storeContractCid: bytesCid(Buffer.from(storeWire))})) fail('LocalMockInstallationChanged');
       assertExclusiveCurrent();
-      if (Reflect.apply(adoptedStoreStatus, store, []).closed !== false) fail('LocalMockInstallationChanged');
+      if (Reflect.apply(adoptedStoreStatus!, store, []).closed !== false) fail('LocalMockInstallationChanged');
     },
     // This closure belongs to the actual initializer and SAME adopted Store.
     // Saved policy absence is not repaired from the packaged getter on cold
     // open. The candidate is DATA; the Checkpoint owner must still authenticate
     // its original subject/current authority and durably claim before signing.
-    signingOriginal(store, sampledAt, validUntil) {
+    signingOriginal(store: Store, sampledAt: bigint, validUntil: bigint) {
       assertExclusiveCurrent();
       if (store !== adoptedStore || adoptedWire === undefined ||
           reviewerKey === undefined ||
@@ -419,11 +525,11 @@ async function initialize({moon, root, principal, subject, sources, modelTasks, 
           typeof bootstrapIssue !== 'function' || typeof publicKeyOriginal !== 'function') {
         fail('CheckpointSignerUnavailable');
       }
-      const raw32 = Buffer.from(createPublicKey(reviewerKey).export({format: 'jwk'}).x, 'base64url');
+      const raw32 = Buffer.from(createPublicKey(reviewerKey).export({format: 'jwk'}).x!, 'base64url');
       const key = checked(Reflect.apply(publicKeyOriginal, moon, [raw32]));
       if (intent.signingPublicKey.wire !== runtimeField(key, 0) ||
           intent.signingPublicKey.cid !== runtimeField(key, 1)) fail('LocalMockInstallationChanged');
-      const intentCid = bytesCid(Buffer.from(intentWire));
+      const intentCid = bytesCid(Buffer.from(intentWire!));
       const issue = checked(Reflect.apply(bootstrapIssue, moon, [
         intent.signingPolicy.wire, intent.signingPolicy.cid, intentCid, sampledAt, validUntil]));
       return Object.freeze({policyWire: intent.signingPolicy.wire, policyCid: intent.signingPolicy.cid,
