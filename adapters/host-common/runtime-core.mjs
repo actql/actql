@@ -19,6 +19,7 @@ import {publicationProgressControl} from './publication-progress-control.mjs';
 import {createResultDeliveryControls} from './runtime-result-delivery-control.mjs';
 import {createRunStateControls} from './runtime-run-state-control.mjs';
 import {createPublicationContractControls} from './runtime-publication-contract-control.mjs';
+import {createContentPublicationControls} from './runtime-content-publication-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -560,6 +561,10 @@ function publicationControl(moon) {
       computationPreviewTokens, modelOriginalDocumentTokens});
   const {transitionControls, contractControls} = createPublicationContractControls(moon, {
     token, admissionToken, evidenceToken, inspect, captureContractLimits,
+  });
+  const contentPublicationControls = createContentPublicationControls(moon, {
+    compiledRunTokens, serializationGenerationTokens, compiledContent, compiledRunResult, token,
+    inspectEvidence, inspect, captureContractLimits,
   });
   control = Object.freeze({
     executionFailureExplanation(cause) {
@@ -1533,114 +1538,7 @@ function publicationControl(moon) {
       serializationGenerationTokens.set(result, generation);
       return result;
     },
-    checkedClientSerializationByteHoldingCid(compiled, definition, storeAuthorityCid) {
-      const value = compiledContent(compiled);
-      return compiledRunResult(moon.clientProgramSerializationByteHoldingCid(
-        value, token(definition), storeAuthorityCid), 'Client Content byte binding unavailable');
-    },
-    capturedContentGenerationCount(captured) {
-      return compiledRunResult(moon.clientCapturedContentGenerationCount(token(captured)),
-        'Captured Content inventory unavailable');
-    },
-    capturedContentGenerationStorage(captured, definition, storeAuthorityCid, index) {
-      if (!Number.isSafeInteger(index) || index < 0) {
-        throw new TypeError('Invalid Captured Content occurrence');
-      }
-      const value = compiledRunResult(moon.clientCapturedContentGenerationStorage(
-        token(captured), token(definition), storeAuthorityCid, index),
-      'Captured Content storage binding unavailable');
-      return Object.freeze({holdingCid: runtimeField(value, 0), manifestCid: runtimeField(value, 1),
-        contentCid: runtimeField(value, 2), byteCount: runtimeField(value, 3),
-        bindings: Object.freeze(runtimeField(value, 4).map(binding => Object.freeze({
-          name: runtimeField(binding, 0), semanticCid: runtimeField(binding, 1), wire: runtimeField(binding, 2), holdingCid: runtimeField(binding, 3),
-        })))});
-    },
-    checkedClientSerializationRecoveryBindings(compiled, generation, storeAuthorityCid) {
-      const value = compiledRunTokens.get(compiled);
-      const completion = serializationGenerationTokens.get(generation);
-      if (value === undefined || completion === undefined) {
-        throw new TypeError('Foreign Client Content generation');
-      }
-      const bindings = compiledRunResult(moon.clientProgramSerializationRecoveryBindings(completion,
-        value, storeAuthorityCid), 'Client Content recovery binding unavailable');
-      return Object.freeze(bindings.map(binding => Object.freeze({
-        name: runtimeField(binding, 0), semanticCid: runtimeField(binding, 1), wire: runtimeField(binding, 2), holdingCid: runtimeField(binding, 3),
-      })));
-    },
-    checkedClientSerializationGenerationOutput(compiled, generation) {
-      const value = compiledRunTokens.get(compiled);
-      const completion = serializationGenerationTokens.get(generation);
-      if (value === undefined || completion === undefined) {
-        throw new TypeError('Foreign Client Content generation');
-      }
-      const output = moon.clientProgramSerializationGenerationOutput(completion, value);
-      if (output === undefined) throw new TypeError('Client Content generation unavailable');
-      return output;
-    },
-    exportCheckedClientContentGenerationOutput(compiled, definition, generation, storeAuthorityCid) {
-      const value = compiledRunTokens.get(compiled);
-      const completion = serializationGenerationTokens.get(generation);
-      if (value === undefined || completion === undefined) {
-        throw new TypeError('Foreign Client Content generation');
-      }
-      const exported = compiledRunResult(moon.clientProgramExportContentGenerationOutput(
-        completion, value, token(definition), storeAuthorityCid),
-      'Client Content completion export unavailable');
-      return Object.freeze({binding: runtimeField(exported, 0), descriptorWire: runtimeField(exported, 1),
-        rows: Object.freeze(runtimeField(exported, 2).slice())});
-    },
-    checkedClientSerializationGenerationEvidence(compiled, generation) {
-      const value = compiledRunTokens.get(compiled);
-      const completion = serializationGenerationTokens.get(generation);
-      if (value === undefined || completion === undefined) {
-        throw new TypeError('Foreign Client Content generation');
-      }
-      const evidence = moon.clientProgramSerializationGenerationEvidence(completion, value);
-      if (evidence === undefined) throw new TypeError('Client Content generation unavailable');
-      return inspectEvidence(evidence);
-    },
-    prepareCheckedClientRetainedContentOutput(compiled, definition, generation,
-      storeAuthorityCid, completion, available) {
-      const run = compiledRunTokens.get(compiled);
-      const original = serializationGenerationTokens.get(generation);
-      if (run === undefined || original === undefined || typeof available !== 'function') {
-        throw new TypeError('Foreign Client retained Content output');
-      }
-      return compiledRunResult(moon.clientProgramPrepareRetainedContentOutput(
-        original, run, token(definition), storeAuthorityCid, completion.binding,
-        completion.descriptorWire, completion.rows, available),
-      'Client Content completion recovery unavailable');
-    },
-    checkedClientCompiledEffectProgram(compiled, checkedEffect) {
-      const value = compiledRunTokens.get(compiled);
-      const original = value === undefined ? undefined
-        : moon.clientProgramCompiledEffectProgram(value, checkedEffect);
-      if (original === undefined) throw new TypeError('Foreign Client compiled Effect Run');
-      return original;
-    },
-    checkedClientSerializationGenerationDerivation(compiled, generation) {
-      const value = compiledRunTokens.get(compiled);
-      const completion = serializationGenerationTokens.get(generation);
-      if (value === undefined || completion === undefined) {
-        throw new TypeError('Foreign Client Content generation');
-      }
-      const evidence = moon.clientProgramSerializationGenerationDerivation(completion, value);
-      if (evidence === undefined) throw new TypeError('Client Content generation unavailable');
-      return inspectEvidence(evidence);
-    },
-    issueCheckedClientSerializationInvocation(compiled, definition, generation, limits) {
-      const value = compiledRunTokens.get(compiled);
-      const completion = serializationGenerationTokens.get(generation);
-      if (value === undefined || completion === undefined) {
-        throw new TypeError('Foreign Client Content generation');
-      }
-      limits = captureContractLimits(limits, 'Content Invocation');
-      const issued = compiledRunResult(moon.clientProgramIssueSerializationInvocation(
-        value, token(definition), completion,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth), 'RunHostContentInvocationRejected');
-      return Object.freeze({observation: inspectEvidence(runtimeField(issued, 0)),
-        invocation: inspect(runtimeField(issued, 1), limits), owner: runtimeField(issued, 1)});
-    },
+    ...contentPublicationControls,
     compiledInferSourceFreeResultPolicy: compiledSourceFreeResultPolicy,
     compiledInferEvaluationPolicy(compiled) {
       const value = compiledRunTokens.get(compiled);
