@@ -172,8 +172,9 @@ test('unfunded source-free Tasks invocation retains its original legacy issuer',
  assert.deepEqual(calls,[[compiledOriginal,definitionOriginal,'policy',11,13,17]]);
 });
 
-function captureFinisher(context,name='finishProgramCapture') {
- const source=readFileSync(new URL('../host-common/runtime-core.mjs',import.meta.url),'utf8');
+const validationSource='../host-common/runtime-publication-validation-control.mjs';
+function captureFinisher(context,name='finishProgramCapture',path='../host-common/runtime-core.mjs') {
+ const source=readFileSync(new URL(path,import.meta.url),'utf8');
  const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});let initializer;
  function walk(n){if(!n||typeof n!=='object')return;if(n.type==='VariableDeclarator'&&n.id.name===name)initializer=n.init;for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}}walk(ast);assert(initializer);
  return new Function(...Object.keys(context),`return (${source.slice(initializer.start,initializer.end)})`)(...Object.values(context));
@@ -223,16 +224,16 @@ test('typed retained chain and commit consume original contracts without numeric
  const capture={},captured={},handle={},seen=[],map=new WeakMap([[captured,{program:capture}]]);
  const context={issuanceLimits:()=>{},capturedComputationPreparations:map,checked:x=>x,token:x=>x,finishProgramValidation:(value,signal)=>{assert.equal(value,handle);seen.push(['run',signal]);return true;},moon:{clientProgramPrepareChainValidation:(...args)=>{seen.push(['chain',...args]);return handle;},clientProgramPrepareCommitValidation:(...args)=>{seen.push(['commit',...args]);return handle;}}};
  const definition={},invocation={},definitions=[{}],artifacts=[{}],manifest={},receipt={},signal={throwIfAborted(){}};
- const chain=get('../host-common/runtime-core.mjs','effectFreeChainValid',context,true);
+ const chain=get(validationSource,'effectFreeChainValid',context,true);
  assert.equal(await chain(definition,invocation,definitions,artifacts,manifest,receipt,captured,{maxNodes:1},signal),true);
  assert.deepEqual(seen[0],['chain',capture,definition,invocation,definitions,artifacts,manifest,receipt,captured]);
- const commit=get('../host-common/runtime-core.mjs','effectFreeCommitValid',context,true);const derivations=[{}],orderings=[{}],retentions=[{}],bindings=[{}],request={},attempt={},index={};
+ const commit=get(validationSource,'effectFreeCommitValid',context,true);const derivations=[{}],orderings=[{}],retentions=[{}],bindings=[{}],request={},attempt={},index={};
  assert.equal(await commit(definition,invocation,definitions,artifacts,derivations,orderings,retentions,bindings,manifest,receipt,captured,request,attempt,index,{maxNodes:1}),true);
  assert.deepEqual(seen[2],['commit',capture,definition,invocation,definitions,artifacts,derivations,orderings,retentions,bindings,manifest,receipt,captured,request,attempt,index]);assert.deepEqual(seen[3],['run',undefined]);
 });
 test('typed validation always cancels its tracked continuation after finish or failed start',async()=>{
  const handle={},seen=[];let failure;
- const run=captureFinisher({checked:x=>x,tuplePair:x=>x,moon:{clientProgramStartValidation:x=>{assert.equal(x,handle);if(failure)throw failure;seen.push('start');return x;},clientProgramAdvanceValidation:(x,q)=>{assert.equal(x,handle);assert.equal(q,256);return [true,1];},clientProgramFinishValidation:x=>{assert.equal(x,handle);seen.push('finish');},clientProgramCancelValidation:x=>{assert.equal(x,handle);seen.push('cancel');}}},'finishProgramValidation');
+ const run=captureFinisher({checked:x=>x,tuplePair:x=>x,moon:{clientProgramStartValidation:x=>{assert.equal(x,handle);if(failure)throw failure;seen.push('start');return x;},clientProgramAdvanceValidation:(x,q)=>{assert.equal(x,handle);assert.equal(q,256);return [true,1];},clientProgramFinishValidation:x=>{assert.equal(x,handle);seen.push('finish');},clientProgramCancelValidation:x=>{assert.equal(x,handle);seen.push('cancel');}}},'finishProgramValidation',validationSource);
  assert.equal(await run(handle),true);assert.deepEqual(seen,['start','finish','cancel']);failure=new Error('foreign');await assert.rejects(run(handle),x=>x===failure);assert.deepEqual(seen,['start','finish','cancel','cancel']);
 });
 
@@ -251,13 +252,13 @@ test('snapshot failure cancels exact typed continuation without clearing unrelat
 
 test('Store validator checks selected currentness after every yield and cancels before rejection',async()=>{
  const handle={},events=[];let current=true,advanced=0;
- const run=captureFinisher({checked:x=>x,tuplePair:x=>x,setImmediate:resolve=>{current=false;resolve();},moon:{clientStoreAdvanceOriginalValidation:(h,q)=>{assert.equal(h,handle);assert.equal(q,256);advanced++;return [false,1];},clientStoreFinishOriginalValidation:()=>assert.fail('late valid result'),clientStoreCancelOriginalValidation:h=>{assert.equal(h,handle);events.push('cancel');}}},'finishStoreValidation');
+ const run=captureFinisher({checked:x=>x,tuplePair:x=>x,setImmediate:resolve=>{current=false;resolve();},moon:{clientStoreAdvanceOriginalValidation:(h,q)=>{assert.equal(h,handle);assert.equal(q,256);advanced++;return [false,1];},clientStoreFinishOriginalValidation:()=>assert.fail('late valid result'),clientStoreCancelOriginalValidation:h=>{assert.equal(h,handle);events.push('cancel');}}},'finishStoreValidation',validationSource);
  await assert.rejects(run(handle,()=>{events.push('current');if(!current)throw new Error('Store closed');}),/Store closed/);
  assert.equal(advanced,1);assert.deepEqual(events,['current','current','cancel']);
 });
 test('Store original commit validation requires selected read owner and ignores numeric metadata ceilings',async()=>{
  const values=Array.from({length:14},()=>({}));for(const i of [2,3,4,5,6,7])values[i]=[{}];const handle={},calls=[],requireCurrent=()=>calls.push('current');
- const invoke=get('../host-common/runtime-core.mjs','effectFreeStoredCommitValid',{checked:x=>x,token:x=>x,capturedComputationPreparations:new WeakMap(),finishStoreValidation:(h,guard)=>{assert.equal(h,handle);assert.equal(guard,requireCurrent);return true;},moon:{clientStoreBeginOriginalCommitValidation:(...args)=>{calls.push(args);return handle;}}},true);
+ const invoke=get(validationSource,'effectFreeStoredCommitValid',{checked:x=>x,token:x=>x,capturedComputationPreparations:new WeakMap(),finishStoreValidation:(h,guard)=>{assert.equal(h,handle);assert.equal(guard,requireCurrent);return true;},moon:{clientStoreBeginOriginalCommitValidation:(...args)=>{calls.push(args);return handle;}}},true);
  assert.equal(await invoke(...values,requireCurrent),true);assert.deepEqual(calls,['current',values]);await assert.rejects(invoke(...values,{maxNodes:1}),/Store publication validation owner unavailable/);
 });
 

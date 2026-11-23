@@ -24012,6 +24012,7 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
             "publicationControl/inspectPreparedEffectCapturedRun/inspectPreparedEffectCapturedRun",
             "publicationControl/inspectSnapshot/inspectSnapshot",
             "publicationControl/inspectAdmission/inspectAdmission",
@@ -24025,7 +24026,6 @@
             "publicationControl/effectSourceToken/effectSourceToken",
             "publicationControl/evidenceToken/evidenceToken",
             "publicationControl/finishCapturedPreparation/finishCapturedPreparation/finishCapturedPreparation",
-            "publicationControl/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
             "publicationControl/init:admit/init:admit",
             "publicationControl/init:admitCheckedClientEffectRunPublication/init:admitCheckedClientEffectRunPublication",
             "publicationControl/init:admitCheckedClientRunPublication/init:admitCheckedClientRunPublication",
@@ -24085,12 +24085,7 @@
             "publicationControl/init:effectComputationPreviewSemanticCid/init:effectComputationPreviewSemanticCid",
             "publicationControl/init:effectComputationPreviewWire/init:effectComputationPreviewWire",
             "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
-            "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
-            "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
             "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
-            "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
             "publicationControl/init:finishCheckedClientInferNodeReadState/init:finishCheckedClientInferNodeReadState",
             "publicationControl/init:finishCheckedClientInferOriginalReadScope/init:finishCheckedClientInferOriginalReadScope",
             "publicationControl/init:inspectInferInvocationEvidence/init:inspectInferInvocationEvidence",
@@ -24542,7 +24537,7 @@
                 "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
                 "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
               },
               {
@@ -24949,10 +24944,7 @@
         {
           "operations": [
             "publicationControl/finishProgramCapture/finishProgramCapture/finishProgramCapture",
-            "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
-            "publicationControl/finishProgramValidation/finishProgramValidation/finishProgramValidation",
-            "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
-            "publicationControl/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid"
+            "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot"
           ],
           "exports": [],
           "attributes": {
@@ -28857,7 +28849,7 @@
                 "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
                 "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
               },
               {
@@ -29561,7 +29553,7 @@
                 "anchor": "const captureContractLimits = (limits, label) => issuanceLimits(Object.freeze({"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
                 "anchor": ": moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);"
               },
               {
@@ -30475,6 +30467,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/capturedPreparationLimits/capturedPreparationLimits",
+          "parameters": [
+            "preparation"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/compiledContent/compiledContent",
           "parameters": [
             "compiled"
@@ -30533,27 +30532,6 @@
         },
         {
           "name": "publicationControl/finishProgramSnapshot/finishProgramSnapshot/finishProgramSnapshot",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/finishProgramValidation/finishProgramValidation/finishProgramValidation",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
-          "parameters": [
-            "resolve"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/finishStoreValidation/finishStoreValidation/finishStoreValidation",
           "parameters": [
             "resolve"
           ],
@@ -31568,90 +31546,6 @@
             "preview",
             "limits",
             "previewLimits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectFreeChainValid/init:effectFreeChainValid",
-          "parameters": [
-            "runDefinition",
-            "invocation",
-            "definitions",
-            "artifacts",
-            "manifest",
-            "receipt",
-            "capturedRun",
-            "limits",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "publicationControl/init:effectFreeCommitValid/init:effectFreeCommitValid",
-          "parameters": [
-            "runDefinition",
-            "invocation",
-            "definitions",
-            "artifacts",
-            "derivations",
-            "orderings",
-            "retentions",
-            "durableBindings",
-            "manifest",
-            "receipt",
-            "capturedRun",
-            "request",
-            "attempt",
-            "indexEntry",
-            "limits"
-          ],
-          "async": true
-        },
-        {
-          "name": "publicationControl/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid",
-          "parameters": [
-            "runDefinition",
-            "invocation",
-            "definitions",
-            "artifacts",
-            "derivations",
-            "orderings",
-            "retentions",
-            "durableBindings",
-            "manifest",
-            "receipt",
-            "capturedRun",
-            "request",
-            "attempt",
-            "indexEntry",
-            "requireCurrent"
-          ],
-          "async": true
-        },
-        {
-          "name": "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid",
-          "parameters": [
-            "chain",
-            "preview",
-            "receipts",
-            "request",
-            "attempt",
-            "indexEntry",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
-          "parameters": [
-            "wire"
           ],
           "async": false
         },
@@ -34579,6 +34473,7 @@
         "./runtime-effect-capture-control.mjs",
         "./runtime-execution-control.mjs",
         "./runtime-publication-contract-control.mjs",
+        "./runtime-publication-validation-control.mjs",
         "./runtime-query-time-control.mjs",
         "./runtime-result-delivery-control.mjs",
         "./runtime-result.mjs",
@@ -34588,7 +34483,344 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "4cb2ea575429c93b3a99852231fec116fa133aaa51d4a65ebce68903b863f0ce"
+      "sha256": "3b0af8dbe4a62e3c2f7eed11d7843fda0eb9adac06a198e79ef27c200bb7bf44"
+    },
+    {
+      "module": "adapters/host-common/runtime-publication-validation-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common publication validation and selected Store commit reconciliation",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createPublicationValidationControls",
+            "createPublicationValidationControls/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
+            "createPublicationValidationControls/init:effectFreeChainValid/init:effectFreeChainValid",
+            "createPublicationValidationControls/init:effectFreeCommitValid/init:effectFreeCommitValid",
+            "createPublicationValidationControls/init:effectfulCommitValid/init:effectfulCommitValid",
+            "createPublicationValidationControls/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
+            "createPublicationValidationControls/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2"
+          ],
+          "exports": [
+            "createPublicationValidationControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
+                "anchor": "export function createPublicationValidationControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
+                "anchor": "issuanceLimits(limits, 'Effect-free chain validation');"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
+                "anchor": "computationPreviewTokens.get(preview as object);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const capturedComputationPreparations = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const recoveredEffectCaptures = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const computationPreviewTokens = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
+                "anchor": "const progress = advance(preparation, 256);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
+                "anchor": "throw new TypeError('Invalid publication validation progress');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
+                "anchor": "moon.clientProgramCancelValidation(validation);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-publication-validation-control.mts",
+                "anchor": "moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...publicationValidationControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "Store validator checks selected currentness after every yield and cancels before rejection"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createPublicationValidationControls/finishProgramValidation/finishProgramValidation/finishProgramValidation",
+            "createPublicationValidationControls/finishStoreValidation/finishStoreValidation/finishStoreValidation",
+            "createPublicationValidationControls/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Scope and responsibility"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Original identity"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Ownership and handoff"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Synchronization and currentness"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Failure and uncertainty"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Cancellation and retirement"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Resources and scratch cut"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Extension and pending work"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "docs/design/typed-publication-resource.md",
+                "anchor": "## JS representation"
+              },
+              {
+                "path": "adapters/host-node/client-publication-preparation-phase.test.mjs",
+                "anchor": "test('typed retained chain and commit consume original contracts without numeric limit relay'"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createPublicationValidationControls"
+      ],
+      "operations": [
+        {
+          "name": "createPublicationValidationControls",
+          "parameters": [
+            "moon",
+            "capturedComputationPreparations",
+            "recoveredEffectCaptures",
+            "computationPreviewTokens",
+            "token",
+            "issuanceLimits",
+            "capturedPreparationLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationValidationControls/finishProgramValidation/finishProgramValidation/finishProgramValidation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationValidationControls/finishPublicationValidation/finishPublicationValidation/finishPublicationValidation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationValidationControls/finishStoreValidation/finishStoreValidation/finishStoreValidation",
+          "parameters": [
+            "resolve"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationValidationControls/init:effectFreeChainValid/init:effectFreeChainValid",
+          "parameters": [
+            "runDefinition",
+            "invocation",
+            "definitions",
+            "artifacts",
+            "manifest",
+            "receipt",
+            "capturedRun",
+            "limits",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationValidationControls/init:effectFreeCommitValid/init:effectFreeCommitValid",
+          "parameters": [
+            "runDefinition",
+            "invocation",
+            "definitions",
+            "artifacts",
+            "derivations",
+            "orderings",
+            "retentions",
+            "durableBindings",
+            "manifest",
+            "receipt",
+            "capturedRun",
+            "request",
+            "attempt",
+            "indexEntry",
+            "limits"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationValidationControls/init:effectFreeStoredCommitValid/init:effectFreeStoredCommitValid",
+          "parameters": [
+            "runDefinition",
+            "invocation",
+            "definitions",
+            "artifacts",
+            "derivations",
+            "orderings",
+            "retentions",
+            "durableBindings",
+            "manifest",
+            "receipt",
+            "capturedRun",
+            "request",
+            "attempt",
+            "indexEntry",
+            "requireCurrent"
+          ],
+          "async": true
+        },
+        {
+          "name": "createPublicationValidationControls/init:effectfulCommitValid/init:effectfulCommitValid",
+          "parameters": [
+            "chain",
+            "preview",
+            "receipts",
+            "request",
+            "attempt",
+            "indexEntry",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationValidationControls/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPublicationValidationControls/init:effectfulCommitValid/init:effectfulCommitValid/init:effectfulCommitValid#2",
+          "parameters": [
+            "wire"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./runtime-result.mjs",
+        "./runtime-tuple.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "21c589517c19bc7bc1b8e931f97cd7a95f1be60f7cbe7a33249ccdefe86f186a"
     },
     {
       "module": "adapters/host-common/runtime-effect-capture-control.mjs",

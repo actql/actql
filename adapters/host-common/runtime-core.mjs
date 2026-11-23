@@ -23,6 +23,7 @@ import {createQueryTimeControls} from './runtime-query-time-control.mjs';
 import {createContentPublicationControls} from './runtime-content-publication-control.mjs';
 import {createContentInferenceControls} from './runtime-content-inference-control.mjs';
 import {createEffectCaptureControls} from './runtime-effect-capture-control.mjs';
+import {createPublicationValidationControls} from './runtime-publication-validation-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -430,78 +431,6 @@ function publicationControl(moon) {
       if (!finished) moon.clientProgramCancelCapture(capture);
     }
   };
-  const finishProgramValidation = async (validation, signal, requireCurrent) => {
-    try {
-      requireCurrent?.();
-      checked(moon.clientProgramStartValidation(validation));
-      while (true) {
-        signal?.throwIfAborted();
-        requireCurrent?.();
-        const progress = tuplePair(checked(
-          moon.clientProgramAdvanceValidation(validation, 256)));
-        if (!Array.isArray(progress) || progress.length !== 2 ||
-            typeof progress[0] !== 'boolean' ||
-            !Number.isSafeInteger(progress[1]) || progress[1] < 0) {
-          throw new TypeError('Invalid original publication validation progress');
-        }
-        if (progress[0]) {
-          signal?.throwIfAborted();
-          requireCurrent?.();
-          checked(moon.clientProgramFinishValidation(validation));
-          return true;
-        }
-        await new Promise(resolve => typeof setImmediate === 'function'
-          ? setImmediate(resolve) : setTimeout(resolve, 0));
-      }
-    } finally {
-      moon.clientProgramCancelValidation(validation);
-    }
-  };
-  const finishStoreValidation = async (validation, requireCurrent) => {
-    try {
-      while (true) {
-        requireCurrent();
-        const progress = tuplePair(checked(
-          moon.clientStoreAdvanceOriginalValidation(validation, 256)));
-        if (!Array.isArray(progress) || progress.length !== 2 ||
-            typeof progress[0] !== 'boolean' ||
-            !Number.isSafeInteger(progress[1]) || progress[1] < 0) {
-          throw new TypeError('Invalid original Store validation progress');
-        }
-        if (progress[0]) {
-          requireCurrent();
-          checked(moon.clientStoreFinishOriginalValidation(validation));
-          return true;
-        }
-        await new Promise(resolve => typeof setImmediate === 'function'
-          ? setImmediate(resolve) : setTimeout(resolve, 0));
-      }
-    } finally {
-      moon.clientStoreCancelOriginalValidation(validation);
-    }
-  };
-  const finishPublicationValidation = async (
-    preparation, advance, finish, cancel, signal,
-  ) => {
-    try {
-      while (true) {
-        signal?.throwIfAborted();
-        const progress = advance(preparation, 256);
-        if (progress === -1) return false;
-        if (progress === 1) {
-          signal?.throwIfAborted();
-          return finish(preparation);
-        }
-        if (progress !== 0) {
-          throw new TypeError('Invalid publication validation progress');
-        }
-        await new Promise(resolve => typeof setImmediate === 'function'
-          ? setImmediate(resolve) : setTimeout(resolve, 0));
-      }
-    } finally {
-      cancel(preparation);
-    }
-  };
   const {resultReadControls, resultRetentionControls, resultDeliveryControls} =
     createResultDeliveryControls(moon, {token, inspect, issuanceLimits, captureContractLimits,
       issuedDeliveryGrants, issuedDeliveryAttempts, originalDeliveryAttempts});
@@ -526,6 +455,10 @@ function publicationControl(moon) {
     computationPreviewTokens, recoveredEffectCaptures, localEffectArtifactTokens,
     token, inspect, inspectSnapshot, inspectEffectSource, inspectPreparedEffectCapturedRun,
     effectSourceToken, localEffectSourceToken, issuanceLimits,
+  });
+  const publicationValidationControls = createPublicationValidationControls(moon, {
+    capturedComputationPreparations, recoveredEffectCaptures, computationPreviewTokens,
+    token, issuanceLimits, capturedPreparationLimits,
   });
   control = Object.freeze({
     executionFailureExplanation(cause) {
@@ -4271,158 +4204,7 @@ function publicationControl(moon) {
     ...transitionControls,
     ...publicationProgressControl(moon, token),
     ...contractControls,
-    async effectFreeChainValid(runDefinition, invocation, definitions, artifacts,
-      manifest, receipt, capturedRun, limits, signal) {
-      issuanceLimits(limits, 'Effect-free chain validation');
-      signal?.throwIfAborted();
-      const original = capturedComputationPreparations.get(capturedRun);
-      if (original?.program !== undefined) {
-        const validation = checked(moon.clientProgramPrepareChainValidation(
-          original.program, token(runDefinition), token(invocation),
-          definitions.map(token), artifacts.map(token), token(manifest),
-          token(receipt), token(capturedRun),
-        ));
-        return finishProgramValidation(validation, signal);
-      }
-      if (original !== undefined) limits = capturedPreparationLimits(original);
-      const args = [
-        token(runDefinition),
-        token(invocation),
-        definitions.map(token),
-        artifacts.map(token),
-        token(manifest),
-        token(receipt),
-        token(capturedRun),
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
-      ];
-      const preparation = original === undefined
-        ? moon.strategyBeginEffectFreeChainCheck(...args)
-        : moon.strategyBeginEffectFreeChainCheckRetained(original, ...args);
-      return finishPublicationValidation(preparation,
-        moon.strategyEffectFreeChainCheckAdvance,
-        moon.strategyEffectFreeChainCheckFinish,
-        moon.strategyEffectFreeChainCheckCancel, signal);
-    },
-    // The selected Store read owns this full-original validation operation.
-    // No preparation owner is reconstructed after reopen and no metadata
-    // ceiling is reused for a larger independently admitted contract.
-    async effectFreeStoredCommitValid(runDefinition, invocation, definitions, artifacts,
-      derivations, orderings, retentions, durableBindings, manifest, receipt,
-      capturedRun, request, attempt, indexEntry, requireCurrent) {
-      if (typeof requireCurrent !== 'function') {
-        throw new TypeError('Store publication validation owner unavailable');
-      }
-      requireCurrent();
-      const retained = capturedComputationPreparations.get(capturedRun);
-      if (retained?.program !== undefined) {
-        const validation = checked(moon.clientProgramPrepareCommitValidation(
-          retained.program, token(runDefinition), token(invocation),
-          definitions.map(token), artifacts.map(token), derivations.map(token),
-          orderings.map(token), retentions.map(token), durableBindings.map(token),
-          token(manifest), token(receipt), token(capturedRun), token(request),
-          token(attempt), token(indexEntry),
-        ));
-        return finishProgramValidation(validation, undefined, requireCurrent);
-      }
-      const validation = checked(moon.clientStoreBeginOriginalCommitValidation(
-        token(runDefinition), token(invocation), definitions.map(token),
-        artifacts.map(token), derivations.map(token), orderings.map(token),
-        retentions.map(token), durableBindings.map(token), token(manifest),
-        token(receipt), token(capturedRun), token(request), token(attempt),
-        token(indexEntry),
-      ));
-      return finishStoreValidation(validation, requireCurrent);
-    },
-    async effectFreeCommitValid(runDefinition, invocation, definitions, artifacts,
-      derivations, orderings, retentions, durableBindings, manifest, receipt,
-      capturedRun, request, attempt, indexEntry, limits) {
-      issuanceLimits(limits, 'Effect-free commit validation');
-      const original = capturedComputationPreparations.get(capturedRun);
-      if (original?.program !== undefined) {
-        const validation = checked(moon.clientProgramPrepareCommitValidation(
-          original.program, token(runDefinition), token(invocation),
-          definitions.map(token), artifacts.map(token), derivations.map(token),
-          orderings.map(token), retentions.map(token), durableBindings.map(token),
-          token(manifest), token(receipt), token(capturedRun), token(request),
-          token(attempt), token(indexEntry),
-        ));
-        // Commit reconciliation remains authoritative after cancellation.
-        return finishProgramValidation(validation);
-      }
-      if (original !== undefined) limits = capturedPreparationLimits(original);
-      const args = [
-        token(runDefinition),
-        token(invocation),
-        definitions.map(token),
-        artifacts.map(token),
-        derivations.map(token),
-        orderings.map(token),
-        retentions.map(token),
-        durableBindings.map(token),
-        token(manifest),
-        token(receipt),
-        token(capturedRun),
-        token(request),
-        token(attempt),
-        token(indexEntry),
-        limits.maxWireBytes,
-        limits.maxNodes,
-        limits.maxDepth,
-        moon.strategyPublicationEvidenceWorkspace(limits.maxNodes),
-      ];
-      const preparation = original === undefined
-        ? moon.strategyBeginEffectFreeCommitCheck(...args)
-        : moon.strategyBeginEffectFreeCommitCheckRetained(original, ...args);
-      // A committed outcome is authoritative even after request cancellation.
-      return finishPublicationValidation(preparation,
-        moon.strategyEffectFreeCommitCheckAdvance,
-        moon.strategyEffectFreeCommitCheckFinish,
-        moon.strategyEffectFreeCommitCheckCancel);
-    },
-    effectfulCommitValid(chain, preview, receipts, request, attempt,
-      indexEntry, limits) {
-      issuanceLimits(limits, 'Effectful publication commit');
-      if (chain === null || typeof chain !== 'object' ||
-          !['definitions', 'artifacts', 'derivations', 'orderings',
-            'retentions', 'durableBindings'].every(name =>
-            Array.isArray(chain[name])) ||
-          receipts === null || typeof receipts !== 'object' ||
-          typeof receipts.setWire !== 'string' ||
-          typeof receipts.finalWire !== 'string' ||
-          !Array.isArray(receipts.memberWires) ||
-          receipts.memberWires.some(wire => typeof wire !== 'string')) {
-        throw new TypeError('Invalid Effectful publication commit');
-      }
-      const ownedPreview = computationPreviewTokens.get(preview);
-      if (ownedPreview === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      const prepared = recoveredEffectCaptures.get(chain.capturedRun);
-      return prepared === undefined ? moon.strategyEffectfulPublicationCommitValid(
-        token(chain.runDefinition), token(chain.invocation),
-        chain.definitions.map(token), chain.artifacts.map(token),
-        chain.derivations.map(token), chain.orderings.map(token),
-        chain.retentions.map(token), chain.durableBindings.map(token),
-        token(chain.manifest), token(chain.computationReceipt),
-        token(chain.capturedRun), ownedPreview, receipts.setWire,
-        receipts.memberWires, receipts.finalWire, token(request),
-        token(attempt), token(indexEntry), limits.maxWireBytes,
-        limits.maxNodes, limits.maxDepth,
-      ) : moon.clientProgramPreparedEffectfulPublicationCommitValid(
-        token(chain.runDefinition), token(chain.invocation),
-        chain.definitions.map(token), chain.artifacts.map(token),
-        chain.derivations.map(token), chain.orderings.map(token),
-        chain.retentions.map(token), chain.durableBindings.map(token),
-        token(chain.manifest), token(chain.computationReceipt),
-        token(chain.capturedRun), prepared, ownedPreview, receipts.setWire,
-        receipts.memberWires, receipts.finalWire, token(request),
-        token(attempt), token(indexEntry), limits.maxWireBytes,
-        limits.maxNodes, limits.maxDepth,
-      );
-    },
+    ...publicationValidationControls,
     issueResultArtifact(exportHandle, invocation, retention, limits) {
       limits = captureContractLimits(limits, 'Result Artifact');
       return inspect(checked(

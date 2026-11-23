@@ -41,12 +41,15 @@ test('ordinary captured issuance requires the Node original-owned entry, never t
 });
 
 test('retained chain and commit verification project the same completed original extent, not metadata limits',async()=>{
+ const name='runtime-publication-validation-control.mjs';
+ const validationSource=readFileSync(process.env.CAPTURE_RELAY_SOURCE_ROOT?`${process.env.CAPTURE_RELAY_SOURCE_ROOT}/adapters/host-common/${name}`:new URL('../host-common/'+name,import.meta.url),'utf8');
+ const validationAst=parse(validationSource,{ecmaVersion:'latest',sourceType:'module'});
  for(const methodName of ['effectFreeChainValid','effectFreeCommitValid']){
-  let method;function find(n){if(!n||typeof n!=='object')return;if(n.type==='Property'&&n.key?.name===methodName)method=n.value;for(const x of Object.values(n)){if(Array.isArray(x))x.forEach(find);else if(x&&typeof x==='object')find(x);}}find(ast);assert(method);
+  let method;function find(n){if(!n||typeof n!=='object')return;if(n.type==='Property'&&n.key?.name===methodName)method=n.value;for(const x of Object.values(n)){if(Array.isArray(x))x.forEach(find);else if(x&&typeof x==='object')find(x);}}find(validationAst);assert(method);
   const captured={},original={},next={},metadata={maxWireBytes:11,maxNodes:13,maxDepth:17},derived={maxWireBytes:2000003,maxNodes:300007,maxDepth:73},seen=[];
   const originals=new WeakMap([[captured,original]]);
   const moon={strategyPublicationEvidenceWorkspace(n){seen.push(['workspace',n]);return n+1;},strategyBeginEffectFreeChainCheckRetained(owner,...args){assert.equal(owner,original);assert.deepEqual(args.slice(-4),[2000003,300007,73,300008]);return next;},strategyBeginEffectFreeCommitCheckRetained(owner,...args){assert.equal(owner,original);assert.deepEqual(args.slice(-4),[2000003,300007,73,300008]);return next;}};
-  const fn=new Function('issuanceLimits','capturedComputationPreparations','capturedPreparationLimits','token','moon','finishPublicationValidation',`return async function(${method.params.map(p=>p.name).join(',')})${source.slice(method.body.start,method.body.end)}`)(()=>{},originals,owner=>{assert.equal(owner,original);seen.push(['original']);return derived;},x=>x,moon,async p=>{assert.equal(p,next);return true;});
+  const fn=new Function('issuanceLimits','capturedComputationPreparations','capturedPreparationLimits','token','moon','finishPublicationValidation',`return async function(${method.params.map(p=>p.name).join(',')})${validationSource.slice(method.body.start,method.body.end)}`)(()=>{},originals,owner=>{assert.equal(owner,original);seen.push(['original']);return derived;},x=>x,moon,async p=>{assert.equal(p,next);return true;});
   const args=methodName==='effectFreeChainValid'?[{},{},[],[],{},{},captured,metadata]:[{},{},[],[],[],[],[],[],{},{},captured,{},{},{},metadata];
   assert.equal(await fn(...args),true);assert.deepEqual(seen,[['original'],['workspace',300007]]);assert.deepEqual(metadata,{maxWireBytes:11,maxNodes:13,maxDepth:17});
  }
