@@ -34,6 +34,8 @@ class SDKPayloadStorePortTests(unittest.TestCase):
             if name == 'confirm_sdk_payload_chunk':
                 calls.append((name, args))
                 return 8
+            if (family, name) == ('publication_commit_export', 'length'):
+                return 0
             return previous(family, name, *args)
         core._call = call
         return holder, store, core, request, first, chunk, clock, calls, state
@@ -45,7 +47,8 @@ class SDKPayloadStorePortTests(unittest.TestCase):
                 root, helper.transfer_ready(root, final))
             changes = store._connection.total_changes
             holder.prepare_original_input(request, clock)
-            output = holder.produce_original_chunk(request, chunk, clock, eof=True)
+            output, payload = holder.produce_original_chunk(request, chunk, clock, eof=True)
+            self.assertEqual(payload, b'')
             self.assertEqual(holder.confirm_original_chunk(request, output), 8)
             with self.assertRaisesRegex(RuntimeError, 'cleanup is pending'):
                 holder.produce_original_receipt(request, clock)

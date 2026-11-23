@@ -932,6 +932,8 @@ export function openSqliteCheckpointJournal(root, {
   return Object.freeze({
     path,
 
+    get connectionFenced() { return !transaction.connectionUsable; },
+
     // Private Local Reviewer custody in THIS original Journal, not another
     // signing store or a public grant API. The caller retains the authenticated
     // operation, policy, key and current authority. A successful transition is

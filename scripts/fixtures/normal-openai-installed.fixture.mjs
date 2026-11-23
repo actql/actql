@@ -18,7 +18,7 @@ const phase = process.argv[2];
 assert(['warm', 'cold', 'missing-key', 'project-key', 'rate-limit', 'usage-reported', 'usage-zero', 'usage-absent',
   'timeout-headers', 'timeout-body', 'timeout-call', 'registered-project', 'registered-too-late', 'registered-invalid',
   'registered-credential-reference', 'registered-credential-header', 'registered-anthropic',
-  'registered-google', 'registered-mixed', 'registered-mistral'].includes(phase));
+  'registered-google', 'registered-mixed', 'registered-mistral', 'registered-length', 'registered-refusal'].includes(phase));
 const fresh = phase !== 'cold';
 const missingKey = phase === 'missing-key';
 const credentialMismatch = phase.startsWith('registered-credential-');
@@ -45,31 +45,40 @@ const {workflowWorkObservation} = await import('./work-observation.fixture.mjs')
 // selected physical inputs; absence is not a reason to guess another profile.
 const alternative = {'registered-anthropic': 'anthropic', 'registered-google': 'google',
   'registered-mixed': 'mixed', 'registered-mistral': 'mistral'}[phase];
+const terminalFailure = {'registered-length': 'truncated', 'registered-refusal': 'refusal'}[phase];
 const selection = fresh ? {
-  usage: phase === 'registered-mixed' ? null : phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
+  usage: phase === 'registered-mixed' || terminalFailure !== undefined
+    ? null : phase === 'project-key' || phase.startsWith('registered-') ? 'reported'
     : phase.startsWith('usage-') ? phase.slice(6) : null,
   timeout: phase.startsWith('timeout-') ? phase.slice(8) : null,
   rateLimit: phase === 'rate-limit',
   project: phase === 'project-key' || phase.startsWith('registered-'),
   registered: phase.startsWith('registered-'),
   ...(alternative === undefined ? {} : {provider: alternative}),
+  ...(terminalFailure === undefined ? {} : {terminalFailure}),
 } : JSON.parse(await readFile('case-profile.fixture.json', 'utf8'));
 assert([undefined, 'anthropic', 'google', 'mixed', 'mistral'].includes(selection.provider));
 const mixed = selection.provider === 'mixed';
 const mistral = selection.provider === 'mistral';
-const trackOriginal = mixed || mistral;
+const failedAnswer = selection.terminalFailure;
+assert([undefined, 'truncated', 'refusal'].includes(failedAnswer));
+const trackOriginal = mixed || mistral || failedAnswer !== undefined;
 const work = workflowWorkObservation({createObservation: createHostObservationConnection, trackOriginal});
 const diagnostic = normalProviderDiagnostics({phase, work, write: writeFile});
 assert.deepEqual(Object.keys(selection).sort(),
-  ['project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered', 'timeout', 'usage']);
+  ['project', ...(selection.provider === undefined ? [] : ['provider']), 'rateLimit', 'registered',
+    ...(failedAnswer === undefined ? [] : ['terminalFailure']), 'timeout', 'usage']);
 assert([null, 'reported', 'zero', 'absent'].includes(selection.usage));
 assert([null, 'headers', 'body', 'call'].includes(selection.timeout));
 assert(selection.usage === null || selection.timeout === null);
 const usageMode = selection.usage ?? undefined, timeoutMode = selection.timeout ?? undefined;
 const project = selection.project === true;
 const registered = selection.registered === true;
-if (project) assert.deepEqual(selection, {usage: mixed ? null : 'reported', timeout: null, rateLimit: false, project: true, registered,
-  ...(selection.provider === undefined ? {} : {provider: selection.provider})});
+if (project) assert.deepEqual(selection, {usage: mixed || failedAnswer !== undefined ? null : 'reported',
+  timeout: null, rateLimit: false, project: true, registered,
+  ...(selection.provider === undefined ? {} : {provider: selection.provider}),
+  ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer})});
+if (failedAnswer !== undefined) assert(registered && selection.provider === undefined);
 const providerName = mixed ? 'openai' : selection.provider ?? 'openai';
 const routeFixtures = {
   openai: {officialHost: 'api.openai.com', credentialReference: 'OPENAI_API_KEY',
@@ -164,8 +173,9 @@ if (phase === 'registered-too-late') {
   process.stdout.write(JSON.stringify({phase, startupRefused: true, registrations, calls: 0}) + '\n');
   process.exit(0);
 }
-const maxCalls = usageMode === 'reported' || mixed ? 1n : 2n;
-const taskCount = !missingKey && usageMode === undefined && timeoutMode === undefined && !selection.rateLimit ? 2 : 1;
+const maxCalls = usageMode === 'reported' || mixed || failedAnswer !== undefined ? 1n : 2n;
+const taskCount = !missingKey && usageMode === undefined && timeoutMode === undefined &&
+  !selection.rateLimit && failedAnswer === undefined ? 2 : 1;
 const phaseTimeoutMs = timeoutMode === 'call' ? 2000 : 1000;
 const transportTimeouts = {
   connectMs: phaseTimeoutMs, headersMs: timeoutMode === 'headers' ? 30 : phaseTimeoutMs,
@@ -296,6 +306,15 @@ const server = createServer({cert: certificate, key: await readFile('provider.ke
     response.end(JSON.stringify({modelVersion: resolvedModelId, candidates: [{index: 0, finishReason: 'STOP',
       content: {role: 'model', parts: [{text: JSON.stringify(value)}]}}],
     usageMetadata: {promptTokenCount: 2, candidatesTokenCount: 2, thoughtsTokenCount: 1, totalTokenCount: 5}}));
+    return;
+  }
+  if (failedAnswer !== undefined) {
+    const message = failedAnswer === 'refusal'
+      ? {role: 'assistant', content: null, refusal: 'Controlled refusal'}
+      : {role: 'assistant', content: JSON.stringify(value)};
+    response.end(JSON.stringify({id: 'installed-' + calls, model: 'fixture-reported-model',
+      choices: [{index: 0, message, finish_reason: failedAnswer === 'truncated' ? 'length' : 'stop'}],
+      usage: failedAnswer === 'truncated' ? {prompt_tokens: 5, completion_tokens: 7} : {prompt_tokens: 0}}));
     return;
   }
   response.end(JSON.stringify(anthropic ? {id: 'installed-' + calls, type: 'message', role: 'assistant',
@@ -510,6 +529,7 @@ try {
     ];
     cases.length = taskCount;
     if (selection.rateLimit) cases[0][2] = {id: 'original-text', outcome: 'failed:provider_error', value: null};
+    if (failedAnswer !== undefined) cases[0][2] = {id: 'original-text', outcome: 'failed:' + failedAnswer, value: null};
     for (const [index, args, expected] of cases) {
       const submissionRef = client.newSubmission({nonce: 'installed-' + index});
       await writeFile('submission-' + index + '.json', JSON.stringify(submissionRef), {flag: 'wx', mode: 0o600});
@@ -566,7 +586,8 @@ try {
       assert.equal((await run.status()).status, 'succeeded');
     } else if (timeoutMode === undefined) {
       // The original Saved Result precedes this process's first status read.
-      const expected = selection.rateLimit ? {outcome: 'failed:provider_error', value: null}
+      const expected = failedAnswer !== undefined ? {outcome: 'failed:' + failedAnswer, value: null}
+        : selection.rateLimit ? {outcome: 'failed:provider_error', value: null}
         : {outcome: 'ok', value: {answer: true}};
       await checkResult(run, {id: 'original-text', ...expected}, 0);
       assert.equal((await run.status()).status, 'succeeded');
@@ -626,7 +647,8 @@ console.log(JSON.stringify({phase, calls, firstCloseReturned: true, aliveScopedF
   ...(trackOriginal ? {originalModelStarts: work.forOriginal(originalRef).modelCallStarts,
     originalRunDefinitionCid: originalRef.runDefinitionCid} : {}),
   ...(project ? {projectTlsConnects, projectCredential: true} : {}),
-  ...(usageMode === 'reported' ? {maxCalls: Number(maxCalls)} : {}),
+  ...(usageMode === 'reported' || failedAnswer !== undefined ? {maxCalls: Number(maxCalls)} : {}),
+  ...(failedAnswer === undefined ? {} : {terminalFailure: failedAnswer}),
   ...(phase === 'cold' ? {egressChecks,
     ...(timeoutMode === undefined ? {originalSavedFirst: true} : {originalUnknown: true, zeroResend: true})}
     : {tasks: taskCount, requests: taskCount, ...(missingKey ? {credentialRefused: true} : {}),
