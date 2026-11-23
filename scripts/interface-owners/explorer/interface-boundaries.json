@@ -4665,7 +4665,7 @@
     {
       "module": "packages/explorer/app/main.tsx",
       "responsibilityFacet": "primary",
-      "sha256": "5ccb78abbb4d32b2f9ea21852213941bf66a5126aae3b90cf699a2fca728d120",
+      "sha256": "fea4a5b4221cc0c5fde36ef15f8e44e226d765a1067b0411b65f8786a42354d1",
       "exports": [],
       "operations": [
         {
@@ -5091,7 +5091,7 @@
         {
           "name": "StepOrigin",
           "parameters": [
-            "{step, label}: {step: Step; label?: string}"
+            "{step, label, select}: {step: Step; label?: string; select?(): void}"
           ],
           "result": null
         },
@@ -5108,6 +5108,11 @@
             "port"
           ],
           "result": null
+        },
+        {
+          "name": "StepOrigin/select",
+          "parameters": [],
+          "result": "void"
         },
         {
           "name": "stepState",
@@ -5188,9 +5193,89 @@
           "result": null
         },
         {
+          "name": "storyProjections",
+          "parameters": [
+            "story: ExplanationStoryModel",
+            "sources: StoryContext",
+            "context: StoryContext",
+            "stageResultLinks: PlanReadModel['stageResultLinks']"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/<call>",
+          "parameters": [
+            "link"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/<call>#2",
+          "parameters": [
+            "step"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/<call>#3",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/<call>#4",
+          "parameters": [
+            "{binding}"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/<call>#5",
+          "parameters": [
+            "column"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/kept",
+          "parameters": [
+            "step: Step | undefined"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/kept/<call>",
+          "parameters": [
+            "{input, output}"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/kept/<call>#2",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/kept/<call>#3",
+          "parameters": [
+            "port"
+          ],
+          "result": null
+        },
+        {
+          "name": "storyProjections/kept/<call>#4",
+          "parameters": [
+            "field"
+          ],
+          "result": null
+        },
+        {
           "name": "StorySteps",
           "parameters": [
-            "{story, context, saved, boundary, selectedStep, selectStep, graph, labels}: {\n  story: ExplanationStoryModel; context: StoryContext; saved: boolean;\n  boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;\n}"
+            "{story, context, saved, boundary, selectedStep, selectStep, graph, labels, stageResultLinks}: {\n  story: ExplanationStoryModel; context: StoryContext; saved: boolean;\n  boundary?: {stepId: string; state: StepState}; selectedStep?: string;\n  selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;\n  stageResultLinks: PlanReadModel['stageResultLinks'];\n}"
           ],
           "result": null
         },
@@ -5203,15 +5288,13 @@
         },
         {
           "name": "StorySteps/<call>/<call>",
-          "parameters": [
-            "port"
-          ],
+          "parameters": [],
           "result": null
         },
         {
           "name": "StorySteps/<call>/<call>#2",
           "parameters": [
-            "item"
+            "port"
           ],
           "result": null
         },
@@ -5231,6 +5314,18 @@
         },
         {
           "name": "StorySteps/<call>/<call>#5",
+          "parameters": [],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#6",
+          "parameters": [
+            "item"
+          ],
+          "result": null
+        },
+        {
+          "name": "StorySteps/<call>/<call>#7",
           "parameters": [
             "{origin, text}",
             "index"
@@ -5238,7 +5333,7 @@
           "result": null
         },
         {
-          "name": "StorySteps/<call>/<call>#6",
+          "name": "StorySteps/<call>/<call>#8",
           "parameters": [
             "{declaration,write_fields}",
             "position"
@@ -5653,7 +5748,21 @@
             "StorySteps/card/onToggle/<call>",
             "StorySteps/selectStep",
             "StoryText",
-            "StoryText/<call>"
+            "StoryText/<call>",
+            "StepOrigin/select",
+            "storyProjections",
+            "storyProjections/<call>",
+            "storyProjections/<call>#2",
+            "storyProjections/<call>#3",
+            "storyProjections/<call>#4",
+            "storyProjections/<call>#5",
+            "storyProjections/kept",
+            "storyProjections/kept/<call>",
+            "storyProjections/kept/<call>#2",
+            "storyProjections/kept/<call>#3",
+            "storyProjections/kept/<call>#4",
+            "StorySteps/<call>/<call>#7",
+            "StorySteps/<call>/<call>#8"
           ],
           "exports": [],
           "attributes": {

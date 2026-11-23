@@ -133,24 +133,92 @@ function StoryCard({ordinal, label, title, detail, system, state, open, selected
   </li>;
 }
 
-function StepOrigin({step, label}: {step: Step; label?: string}) {
+function StepOrigin({step, label, select}: {step: Step; label?: string; select?(): void}) {
   return <div className="occurrence-origin">
     <strong>{stepTitle(step, label)}</strong><p><StoryText text={step.explanation.text}/></p>
     <details><summary>Original step and ports</summary>
       {step.names.length > 0 && <p>{step.names.map(name=><code key={name}>{name}</code>)}</p>}
+      {select && <button type="button" className="small" onClick={select}>Select original step</button>}
       <code>{step.stepId}</code>
       <ul>{step.ports.map(port=><li key={port.port_id}>{port.role} · <code>{port.port_id}</code></li>)}</ul>
     </details>
   </div>;
 }
 
-function StorySteps({story, context, saved, boundary, selectedStep, selectStep, graph, labels}: {
+type KeptColumns = {step: Step; columns: readonly string[]};
+
+// A same-name field selection can be described in its caller's card when
+// the original Plan links that exact port. The field list is still shown
+// because selection can drop columns even though it keeps their values.
+function storyProjections(story: ExplanationStoryModel, sources: StoryContext,
+  context: StoryContext, stageResultLinks: PlanReadModel['stageResultLinks']) {
+  const source = new Map<number, KeptColumns>(), model = new Map<string, KeptColumns>();
+  const imported = stageResultLinks && new Set(stageResultLinks.map(link=>link.consumer.port_id));
+  const claimed = new Set<string>();
+  const steps = new Map(story.occurrences.map(step => [step.stepId, step]));
+  const kept = (step: Step | undefined) => {
+    if (!step || claimed.has(step.stepId)) return;
+    const {meaning} = step.explanation;
+    if (meaning.kind !== 'projection' || meaning.operation !== 'select' ||
+        !meaning.fields.length || !meaning.fields.every(({input, output}) => input === output)) return;
+    const inputs = step.ports.filter(port => port.role === 'input');
+    const outputs = step.ports.filter(port => port.role === 'output');
+    if (inputs.length === 1 && outputs.length === 1 && inputs[0].carrier === 'relation' &&
+        outputs[0].carrier === 'relation') return {step, columns: meaning.fields.map(field => field.output),
+      input: inputs[0], output: outputs[0]};
+  };
+  for (const [index, {origin}] of sources.entries()) {
+    if (!imported || origin.kind !== 'source' || origin.link_state !== 'linked' ||
+        origin.consuming_ports.length !== 1) continue;
+    const link = origin.consuming_ports[0], selection = kept(steps.get(link.step_id));
+    const locator = selection?.input.source;
+    if (!imported.has(link.port_id) && selection?.input.port_id === link.port_id && locator?.kind === 'stage_input' &&
+        locator.stage_ordinal === origin.stage_input.stage_ordinal &&
+        locator.input_port_ordinal === origin.stage_input.input_port_ordinal) {
+      source.set(index, selection);
+      claimed.add(selection.step.stepId);
+    }
+  }
+  const edgesByProducer = new Map<string, typeof story.dependencies[number][]>();
+  const edgesByConsumer = new Map<string, typeof story.dependencies[number][]>();
+  for (const edge of story.dependencies) {
+    const bySource = edgesByProducer.get(edge.sourceStepId), byTarget = edgesByConsumer.get(edge.targetStepId);
+    if (bySource) bySource.push(edge);
+    else edgesByProducer.set(edge.sourceStepId, [edge]);
+    if (byTarget) byTarget.push(edge);
+    else edgesByConsumer.set(edge.targetStepId, [edge]);
+  }
+  for (const {origin} of context) {
+    if (origin.kind !== 'model_task' || origin.producer.state !== 'projected') continue;
+    const {step_id} = origin.producer;
+    const consumer = steps.get(step_id);
+    if (consumer?.operator !== 'infer') continue;
+    const incoming = edgesByConsumer.get(step_id);
+    if (incoming?.length !== 1 || model.has(step_id)) continue;
+    const edge = incoming[0], selection = kept(steps.get(edge.sourceStepId));
+    const port = consumer.ports.find(port => port.port_id === edge.targetPortId);
+    const producer = port?.source;
+    if (!selection || edgesByProducer.get(edge.sourceStepId)?.length !== 1 ||
+        edge.sourcePortId !== selection.output.port_id || origin.input_bindings.length !== selection.columns.length ||
+        port?.role !== 'input' || port.carrier !== 'relation' || producer?.kind !== 'logical_output' ||
+        producer.step_id !== edge.sourceStepId || producer.output_port_id !== edge.sourcePortId) continue;
+    const inputs = new Set(origin.input_bindings.flatMap(({binding}) => binding.state === 'field' ? [binding.name] : []));
+    if (inputs.size !== selection.columns.length || !selection.columns.every(column => inputs.has(column))) continue;
+    model.set(step_id, selection);
+    claimed.add(selection.step.stepId);
+  }
+  return {source, model, claimed};
+}
+
+function StorySteps({story, context, saved, boundary, selectedStep, selectStep, graph, labels, stageResultLinks}: {
   story: ExplanationStoryModel; context: StoryContext; saved: boolean;
   boundary?: {stepId: string; state: StepState}; selectedStep?: string;
   selectStep(id: string): void; graph: boolean; labels: ReturnType<typeof graphStepLabels>;
+  stageResultLinks: PlanReadModel['stageResultLinks'];
 }) {
   const [opened, setOpened] = useState<Record<string, boolean>>({});
   const sources = context.filter(item=>item.origin.kind === 'source');
+  const projections = storyProjections(story, sources, context, stageResultLinks);
   const outputs = context.filter(item=>item.origin.kind === 'result' || item.origin.kind === 'effect_set');
   const models = new Map<string, StoryContext[number][]>();
   const unboundModels: StoryContext[number][] = [];
@@ -163,6 +231,7 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
   }
   const groups: Step[][] = [];
   for (const step of story.occurrences) {
+    if (!graph && projections.claimed.has(step.stepId)) continue;
     const current = groups.at(-1);
     if (step.operator === 'join' && current?.[0]?.operator === 'join') current.push(step);
     else groups.push([step]);
@@ -178,20 +247,30 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
   });
   return <section aria-label={graph ? 'Selected Step' : 'Original story'}>
     <ol className="story-steps">
-      {!graph && sources.map(({origin,text}, index)=>origin.kind === 'source' && <StoryCard
-        key={`source-${origin.stage_input.stage_ordinal}-${origin.stage_input.input_port_ordinal}`}
-        {...card(`source-${index}`, !saved && index === 0)}
-        label="Read" title={`Read "${origin.source_view.resource}"`} detail={text}
-        system={origin.source_view.connector} state={unobserved}>
-        <p>Stage {origin.stage_input.stage_ordinal + 1} · input {origin.stage_input.input_port_ordinal + 1}</p>
-        <p>Bounded Source data is not available in this view.</p>
-        <details><summary>Original Source and links</summary>
-          <dl><dt>Contract</dt><dd><code>{origin.source_view.contract_cid}</code></dd>
-            <dt>Catalog</dt><dd><code>{origin.source_view.catalog_cid}</code></dd></dl>
-          {origin.consuming_ports.length > 0 && <ul aria-label="Original consumers">
-            {origin.consuming_ports.map(port=><li key={port.port_id}><code>{port.step_id}</code><br/><code>{port.port_id}</code></li>)}</ul>}
-        </details>
-      </StoryCard>)}
+      {!graph && sources.map(({origin,text}, index)=>{
+        if (origin.kind !== 'source') return null;
+        const projection = projections.source.get(index);
+        const step = projection?.step;
+        const selected = step !== undefined && step.stepId === selectedStep;
+        const observed = step !== undefined && step.stepId === boundary?.stepId;
+        return <StoryCard
+          key={`source-${origin.stage_input.stage_ordinal}-${origin.stage_input.input_port_ordinal}`}
+          {...card(`source-${index}`, !saved && index === 0 || selected || observed, step?.stepId)}
+          selected={selected}
+          label="Read" title={`Read "${origin.source_view.resource}"`} detail={text}
+          system={origin.source_view.connector} state={step ? stepState(step.stepId, saved, boundary) : unobserved}>
+          <p>Stage {origin.stage_input.stage_ordinal + 1} · input {origin.stage_input.input_port_ordinal + 1}</p>
+          {projection && <p>{story.locale === 'ja' ? '保持する列' : 'Selected columns'} · {projection.columns.join(', ')}</p>}
+          {step && <StepOrigin step={step} label={labels.get(step.stepId)?.title} select={()=>selectStep(step.stepId)}/>}
+          <p>Bounded Source data is not available in this view.</p>
+          <details><summary>Original Source and links</summary>
+            <dl><dt>Contract</dt><dd><code>{origin.source_view.contract_cid}</code></dd>
+              <dt>Catalog</dt><dd><code>{origin.source_view.catalog_cid}</code></dd></dl>
+            {origin.consuming_ports.length > 0 && <ul aria-label="Original consumers">
+              {origin.consuming_ports.map(port=><li key={port.port_id}><code>{port.step_id}</code><br/><code>{port.port_id}</code></li>)}</ul>}
+          </details>
+        </StoryCard>;
+      })}
       {groups.map(group=>{
         const first = group[0];
         const selected = group.find(item=>item.stepId===selectedStep);
@@ -201,13 +280,21 @@ function StorySteps({story, context, saved, boundary, selectedStep, selectStep, 
         const title = tasks.length === 1 ? tasks[0].text : tasks.length > 1 ? `Ask ${tasks.length} declared model tasks` :
           group.length > 1 && !graph ? (story.locale === 'ja' ? '入力を結合' : 'Join inputs') :
           stepTitle(step, labels.get(step.stepId)?.title);
-        const controls = card(first.stepId, !saved && ordinal === 0 || observed !== undefined, step.stepId);
+        const projection = graph ? undefined : projections.model.get(step.stepId);
+        const projectedStep = projection?.step;
+        const selectedProjection = projectedStep !== undefined && projectedStep.stepId === selectedStep;
+        const observedProjection = projectedStep !== undefined && projectedStep.stepId === boundary?.stepId;
+        const focusedStep = (selectedProjection || observedProjection) && projectedStep ? projectedStep : step;
+        const controls = card(first.stepId, !saved && ordinal === 0 || observed !== undefined ||
+          selectedProjection || observedProjection, focusedStep.stepId);
         if (graph && !selected) return null;
-        return <StoryCard key={first.stepId} {...controls} selected={!!selected}
+        return <StoryCard key={first.stepId} {...controls} selected={!!selected || selectedProjection}
           label={tasks.length ? 'Ask model' : step.operator === 'join' ? 'Combine' : 'Compute'}
-          state={stepState(step.stepId, saved, boundary)} title={title}
+          state={stepState(focusedStep.stepId, saved, boundary)} title={title}
           detail={tasks.length ? undefined : step.explanation.text}>
           {saved && <p>Sample data is unavailable for this step.</p>}
+          {projection && <StepOrigin step={projection.step} label={labels.get(projection.step.stepId)?.title}
+            select={()=>selectStep(projection.step.stepId)}/>}
           {(graph ? [step] : group).map(item=><StepOrigin key={item.stepId} step={item}
             label={labels.get(item.stepId)?.title}/>)}
           {tasks.map(({origin, text}, index)=>origin.kind === 'model_task' && <div key={index}>
@@ -599,7 +686,7 @@ function App() {
             label: id=>({state: stepState(id, !!selectedRef, boundary),
               ...graphLabels.get(id)})}}/>}
         {story && <StorySteps key={scopeKey} story={story} context={context} boundary={boundary}
-          saved={!!selectedRef} selectedStep={selection} selectStep={setSelection} graph={graph} labels={graphLabels}/>}
+          saved={!!selectedRef} selectedStep={selection} selectStep={setSelection} graph={graph} labels={graphLabels} stageResultLinks={map?.stageResultLinks}/>}
         {graph && !map && <p className="workspace-note">Read a Plan or open an original Run to see its Graph.</p>}
         {!graph && !story && map && <p className="workspace-note">This read supplies a logical map. Choose Graph to inspect it.</p>}
         {run && <details className="workspace-tools panel"><summary>Current Run observations</summary><RunInspector model={run}/></details>}
