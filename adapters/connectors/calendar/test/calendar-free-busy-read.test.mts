@@ -1,9 +1,13 @@
+// @ts-expect-error TS7016: the Common runtime facade is still authored JavaScript.
 import {ledgerUsageSnapshot} from '../../../host-common/runtime-core.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {CalendarFreeBusyReadFailure, createCalendarFreeBusyReader} from '../site/calendar-free-busy-read.mjs';
 import {freeBusyFixture, freeBusyResponse} from './calendar-free-busy.fixture.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
+
+type FixtureFailure = Error & {code?: string; cause?: {code?: string};
+  observations: CalendarFreeBusyReadFailure['observations']};
 
 const expectedRows = [
   {calendar_id:'sales@example.test',start:'2026-10-17T01:00:00.000Z',end:'2026-10-17T01:30:00.000Z'},
@@ -12,7 +16,7 @@ const expectedRows = [
 
 test('Calendar keyless facts omit key evidence and real Common still rejects an empty-key declaration',async t=>{
   await assert.rejects(freeBusyFixture(t,{factsWire:'{"relation_keys":{"candidate_keys":[]}}'}),
-    error=>error.code==='ERR_ASSERTION'&&error.message==='check_invalid_configuration');
+    error=>(error as FixtureFailure).code==='ERR_ASSERTION'&&(error as FixtureFailure).message==='check_invalid_configuration');
 });
 
 test('Calendar free busy actual TLS POST binds original query signed use Account and accounted RowRun',async t=>{
@@ -22,7 +26,7 @@ test('Calendar free busy actual TLS POST binds original query signed use Account
   const request=f.state.requests[0];assert.equal(request.path,'/calendar/v3/freeBusy');
   assert.equal(request.method,'POST');assert.equal(request.authorization,'Bearer calendar-fixture-secret');
   assert.equal(request.contentType,'application/json');
-  assert.deepEqual(JSON.parse(request.body),{timeMin:'2026-10-17T00:00:00.000Z',timeMax:'2026-10-18T00:00:00.000Z',
+  assert.deepEqual(JSON.parse(request.body as unknown as string),{timeMin:'2026-10-17T00:00:00.000Z',timeMax:'2026-10-18T00:00:00.000Z',
     timeZone:'UTC',calendarExpansionMax:2,items:[{id:'sales@example.test'},{id:'private'}]});
   assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,BigInt(result.observations[0].body.length));
   f.row.finish();assert.equal(f.row.captureCount(),2);
@@ -40,7 +44,7 @@ test('Calendar free busy original operation and invalid preparation refuse befor
   await assert.rejects(f.read({limits:{...f.options.limits,maxBodyBytes:1}}),{code:'CalendarFreeBusyRequestLimit'});
   await assert.rejects(f.read({authorizationFor:()=>({...f.options.initialAuthorization,
     scope:{...f.scope,dispatchRequestCid:`sha256:${'d'.repeat(64)}`}})}),
-    error=>error.cause.code==='ForeignCalendarFreeBusyAuthorization');
+    error=>(error as FixtureFailure).cause!.code==='ForeignCalendarFreeBusyAuthorization');
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);f.row.assertNoCapture();
 });
 
@@ -50,7 +54,7 @@ test('Calendar provider cannot replace Credential-owned content type or framing'
     const [operation,original]=[...options.operations][0];
     return callHttpsCredentialResource({...options,operations:new Map([[operation,
       {...original,headers:[...(original.headers??[]),['content-type','application/json']]}]])});
-  }}),error=>error.cause.code==='ReservedHttpRequestHeader');
+  }}),error=>(error as FixtureFailure).cause!.code==='ReservedHttpRequestHeader');
   assert.equal(f.state.requests.length,0);assert.equal(f.state.resolutions,0);assert.equal(f.state.charges,0);
   assert.deepEqual(f.journal.recover(),[]);f.row.assertNoCapture();
 });
@@ -59,8 +63,8 @@ test('Calendar free busy per-calendar refusal never publishes partial availabili
   const f=await freeBusyFixture(t);const body=freeBusyResponse();body.calendars.private.errors=[{domain:'calendar',reason:'notFound'}];
   f.state.pages=[JSON.stringify(body)];
   await assert.rejects(f.read(),error=>{
-    assert.ok(error instanceof CalendarFreeBusyReadFailure);assert.equal(error.observations.length,1);
-    assert.equal(error.observations[0].body.toString(),f.state.pages[0]);return true;
+    assert.ok(error instanceof CalendarFreeBusyReadFailure);assert.equal((error as FixtureFailure).observations.length,1);
+    assert.equal((error as FixtureFailure).observations[0].body.toString(),f.state.pages[0]);return true;
   });
   assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
 });
@@ -68,8 +72,8 @@ test('Calendar free busy per-calendar refusal never publishes partial availabili
 test('Calendar free busy rejected HTTP retains and charges original without retry',async t=>{
   for(const status of [403,429]){
     const f=await freeBusyFixture(t);f.state.status=status;
-    await assert.rejects(f.read(),error=>error.cause.code==='CalendarFreeBusyReadRejected'&&
-      error.observations.length===1&&error.observations[0].statusCode===status);
+    await assert.rejects(f.read(),error=>(error as FixtureFailure).cause!.code==='CalendarFreeBusyReadRejected'&&
+      (error as FixtureFailure).observations.length===1&&(error as FixtureFailure).observations[0].statusCode===status);
     assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
   }
 });
@@ -82,17 +86,17 @@ test('Calendar free busy response substitution and whole-row bounds refuse befor
     if(kind==='rowlimit')options={limits:{...f.options.limits,maxRows:1}};
     if(kind==='precision')body.calendars.private.busy[0].start='2026-10-17T02:00:00.0000000001Z';
     f.state.pages=[JSON.stringify(body)];
-    await assert.rejects(f.read(options),error=>error.observations.length===1);
+    await assert.rejects(f.read(options),error=>(error as FixtureFailure).observations.length===1);
     assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
   }
 });
 
 test('Calendar free busy current Account is checked before I/O and after original secret resolution',async t=>{
   const denied=await freeBusyFixture(t,{account:'deny'});
-  await assert.rejects(denied.read(),error=>error.cause.code==='CalendarReadDenied');
+  await assert.rejects(denied.read(),error=>(error as FixtureFailure).cause!.code==='CalendarReadDenied');
   assert.equal(denied.state.requests.length,0);assert.equal(denied.state.resolutions,0);
   const changed=await freeBusyFixture(t);changed.state.resolved=()=>changed.writeAccount('deny');
-  await assert.rejects(changed.read(),error=>error.cause.code==='AuthorizationCurrentAccountChanged');
+  await assert.rejects(changed.read(),error=>(error as FixtureFailure).cause!.code==='AuthorizationCurrentAccountChanged');
   assert.equal(changed.state.requests.length,0);assert.equal(changed.state.resolutions,1);changed.row.assertNoCapture();
 });
 
@@ -101,7 +105,7 @@ test('Calendar free busy cancellation after received response retains original c
   const charge=f.options.chargeResponse;
   await assert.rejects(f.read({signal:controller.signal,chargeResponse:async body=>{
     const original=await charge(body);controller.abort(reason);return original;
-  }}),error=>error.cause===reason&&error.observations.length===1);
+  }}),error=>(error as FixtureFailure).cause===reason&&(error as FixtureFailure).observations.length===1);
   assert.equal(f.state.requests.length,1);assert.equal(f.state.charges,1);assert.deepEqual(f.state.rows,[]);f.row.assertNoCapture();
 });
 
@@ -126,15 +130,15 @@ test('Calendar free busy original reader read-once and retained observation neve
   await assert.rejects(reader.read(),{code:'CalendarFreeBusyReaderAlreadyStarted'});
   const copied={...reader};await assert.rejects(copied.read(),{code:'ForeignCalendarFreeBusyReader'});
   assert.throws(()=>copied.observe(),{code:'ForeignCalendarFreeBusyReader'});
-  assert.throws(()=>copied.requestStop(),{code:'ForeignCalendarFreeBusyReader'});
+  assert.throws(()=>(copied.requestStop as (reason?: unknown) => void)(),{code:'ForeignCalendarFreeBusyReader'});
   assert.equal(f.state.requests.length,1);f.row.finish();assert.equal(f.row.captureCount(),2);
 });
 
 test('Calendar free busy lost POST reply keeps same journal use Unknown with no resend or new resolution',async t=>{
   const f=await freeBusyFixture(t);f.state.beforeResponse=(request)=>request.socket.destroy();
-  await assert.rejects(f.read(),error=>error.cause.code==='ECONNRESET');
+  await assert.rejects(f.read(),error=>(error as FixtureFailure).cause!.code==='ECONNRESET');
   const original=f.journal.recover()[0];assert.equal(original.outcome,'unknown');
-  await assert.rejects(f.read(),error=>error.cause.code==='RemoteCredentialUseAlreadyClaimed');
+  await assert.rejects(f.read(),error=>(error as FixtureFailure).cause!.code==='RemoteCredentialUseAlreadyClaimed');
   assert.equal(f.journal.recover()[0].useCid,original.useCid);assert.equal(f.journal.recover()[0].outcome,'unknown');
   assert.equal(f.state.requests.length,1);assert.equal(f.state.resolutions,1);assert.equal(f.state.charges,0);f.row.assertNoCapture();
 });

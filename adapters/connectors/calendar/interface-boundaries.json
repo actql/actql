@@ -168,7 +168,7 @@
                 "anchor": "Calendar retains original implementation failure and original failed reader children"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mts",
                 "anchor": "Calendar actual shared Host reader retires only after original stop and keeps typed rows"
               }
             ]
@@ -2257,11 +2257,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy actual TLS POST"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
@@ -2365,11 +2365,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy actual TLS POST"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
@@ -2475,11 +2475,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy actual TLS POST"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
@@ -2581,11 +2581,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy actual TLS POST"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
@@ -2831,7 +2831,7 @@
                 "anchor": "Calendar retains original implementation failure and original failed reader children"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mts",
                 "anchor": "Calendar actual shared Host reader retires only after original stop and keeps typed rows"
               }
             ]
