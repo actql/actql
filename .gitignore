@@ -2928,3 +2928,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/local-node/installed-mock-row-effect.d.mts
 /adapters/local-node/installed-project-mock.mjs
 /adapters/local-node/installed-project-mock.d.mts
+/adapters/host-node/node-source-managed-installation.mjs
+/adapters/host-node/node-source-managed-installation.d.mts
+/adapters/host-node/node-source-managed-installation.test.mjs
+/adapters/host-node/node-source-managed-installation.test.d.mts
