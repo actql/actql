@@ -8,38 +8,59 @@ import {createHash} from 'node:crypto';
 import {installSalesforceResourceDiscovery} from
   './salesforce-resource-discovery.mjs';
 
-const fail = (code, cause) => {
+import type {DiscoveryRuntime} from './salesforce-resource-discovery.mjs';
+import type {ResourceAuthorization, ResourceBinding, ResourceCatalog} from './salesforce-resource-resolver.mjs';
+
+type InstalledCatalog = ResourceCatalog & Readonly<{observationJson: string}>;
+type Target = Readonly<{resource: string; maxBytes: number; signal?: AbortSignal}>;
+type Peek = Target & Readonly<{fields: readonly string[]; maxRows: number}>;
+type Decision = Awaited<ReturnType<ResourceAuthorization['authorize']>>;
+type Preview = Readonly<{observationCid: string; fields: readonly string[]; rows: unknown; limited: boolean}>;
+type Site = Readonly<{
+  connection: string; namespaceId: string; principal: string; environment: string; orgId: string;
+  siteKey: string; siteGeneration: number; connectionRevision: string; instanceOrigin: string;
+  connectorRegistration: string; connectorRevision: string; authorization: ResourceAuthorization;
+  ownsDeclaration(declaration: unknown): boolean;
+  peek(input: Peek & Readonly<{decision: Decision}>): Preview | PromiseLike<Preview>;
+}>;
+type Scope = Readonly<{principalId: string; resourceConnection: string}>;
+type List = Scope & Readonly<{query?: string; limit?: number; signal?: AbortSignal}>;
+type Declared = Readonly<{declaration: unknown; observed: InstalledCatalog}>;
+type Held = Readonly<{catalog: InstalledCatalog; discovery: ReturnType<typeof installSalesforceResourceDiscovery>}>;
+type ServiceError = Readonly<{code?: unknown}> | null | undefined;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const cid = value => `sha256:${createHash('sha256')
+const cid = (value: unknown) => `sha256:${createHash('sha256')
   .update(JSON.stringify(value)).digest('hex')}`;
-const utf8Bytes = text => Buffer.byteLength(text, 'utf8');
+const utf8Bytes = (text: string) => Buffer.byteLength(text, 'utf8');
 // Denials and malformed Resource names keep their public meaning; nothing is
 // revealed about why a Resource is not visible.
-const denied = (code, error) => {
-  if (error?.code === 'ExecutionAuthorizationDenied' ||
-      error?.code === 'SalesforcePeekNotAuthorized') fail(code, error);
-  if (error?.code === 'InvalidSalesforceResourceDiscovery' ||
-      error?.code === 'InvalidSalesforcePeek') fail('InvalidClientRequest', error);
+const denied: (code: string, error: unknown) => never = (code, error) => {
+  if ((error as ServiceError)?.code === 'ExecutionAuthorizationDenied' ||
+      (error as ServiceError)?.code === 'SalesforcePeekNotAuthorized') fail(code, error);
+  if ((error as ServiceError)?.code === 'InvalidSalesforceResourceDiscovery' ||
+      (error as ServiceError)?.code === 'InvalidSalesforcePeek') fail('InvalidClientRequest', error);
   throw error;
 };
 
-export function installSalesforceResourceService({salesforceMoon, sites}) {
+export function installSalesforceResourceService({salesforceMoon, sites}: Readonly<{salesforceMoon: DiscoveryRuntime; sites: readonly Site[]}>) {
   if (salesforceMoon === undefined || !Array.isArray(sites) ||
       sites.length === 0) {
     fail('InvalidSalesforceResourceService');
   }
-  const byConnection = new Map(sites.map(site => [site.connection, site]));
+  const byConnection = new Map<string, Site>(sites.map((site: Site) => [site.connection, site]));
   if (byConnection.size !== sites.length) {
     fail('InvalidSalesforceResourceService');
   }
-  const current = new Map();
+  const current = new Map<string, Held>();
   // An observation answers current discovery only when it was observed for
   // this Site as installed now. A snapshot of another namespace, principal,
   // environment, org, Site generation, connection revision, origin or
   // connector revision is refused and the current view is kept.
-  const install = (site, catalog) => {
-    const binding = JSON.parse(catalog.observationJson).binding;
+  const install = (site: Site, catalog: InstalledCatalog) => {
+    const binding = JSON.parse(catalog.observationJson).binding as ResourceBinding;
     const expected = {namespace_id: site.namespaceId, principal: site.principal,
       environment: site.environment, org_id: site.orgId,
       site_key: site.siteKey, site_generation: site.siteGeneration,
@@ -48,7 +69,7 @@ export function installSalesforceResourceService({salesforceMoon, sites}) {
       connector_registration: site.connectorRegistration,
       connector_revision: site.connectorRevision};
     const mismatch = Object.keys(expected).filter(name =>
-      binding?.[name] !== expected[name]);
+      binding?.[name as keyof typeof expected] !== expected[name as keyof typeof expected]);
     if (mismatch.length !== 0) {
       throw Object.assign(new Error('ResourceCatalogBindingMismatch'),
         {code: 'ResourceCatalogBindingMismatch', fields: mismatch});
@@ -60,7 +81,7 @@ export function installSalesforceResourceService({salesforceMoon, sites}) {
     current.set(site.connection, held);
     return held;
   };
-  const siteFor = (principalId, resourceConnection) => {
+  const siteFor = (principalId: string, resourceConnection: string) => {
     const site = byConnection.get(resourceConnection);
     if (site === undefined) fail('ResourceConnectionNotFound');
     if (principalId !== site.principal) fail('ResourceDiscoveryDenied');
@@ -69,7 +90,7 @@ export function installSalesforceResourceService({salesforceMoon, sites}) {
 
   // Answer discovery for one Site from its published declaration: one the
   // Site itself generated or restored for its current installation.
-  function installPublished(resourceConnection, declared) {
+  function installPublished(resourceConnection: string, declared: Declared) {
     const site = byConnection.get(resourceConnection);
     if (site === undefined) fail('ResourceConnectionNotFound');
     if (!site.ownsDeclaration(declared?.declaration) ||
@@ -80,7 +101,7 @@ export function installSalesforceResourceService({salesforceMoon, sites}) {
     return declared.observed.observationCid;
   }
 
-  async function discoveryFor(principalId, resourceConnection) {
+  async function discoveryFor(principalId: string, resourceConnection: string) {
     const site = siteFor(principalId, resourceConnection);
     const held = current.get(resourceConnection);
     // Nothing is published for this Site: discovery never syncs it.
@@ -91,7 +112,7 @@ export function installSalesforceResourceService({salesforceMoon, sites}) {
   return Object.freeze({
     installPublished,
     // Public `resources`: one bounded page of visible Resource names.
-    async resources({principalId, resourceConnection, query, limit, signal}) {
+    async resources({principalId, resourceConnection, query, limit, signal}: List) {
       const {discovery} = await discoveryFor(principalId, resourceConnection);
       let listing;
       try {
@@ -101,7 +122,7 @@ export function installSalesforceResourceService({salesforceMoon, sites}) {
     },
     // Public `resource-inspect`: typed metadata or the Catalog reason.
     async inspectResource({principalId, resourceConnection, resource,
-      maxBytes, signal}) {
+      maxBytes, signal}: Scope & Target) {
       const {discovery} = await discoveryFor(principalId, resourceConnection);
       let inspected;
       try {
@@ -121,7 +142,7 @@ export function installSalesforceResourceService({salesforceMoon, sites}) {
     },
     // Public `resource-peek`: a separately authorized bounded prefix.
     async peekResource({principalId, resourceConnection, resource, fields,
-      maxRows, maxBytes, signal}) {
+      maxRows, maxBytes, signal}: Scope & Peek) {
       const site = siteFor(principalId, resourceConnection);
       const decision = await site.authorization.authorize('acquisition', {
         connection: site.connection, resource, operation: 'read'}, {

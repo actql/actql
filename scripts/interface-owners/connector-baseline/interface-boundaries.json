@@ -9814,7 +9814,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "87929671a351981c66ca50a3827c2030a0e979a680d785880bc091cf097ad664",
+      "sha256": "fe1847163c2176bec4fdbce0d7faa60766cbd18d71e3e0c87a15177bfdb77995",
       "role": "observation-presentation",
       "owner": "Disclosure-checked discovery over the same published Catalog observation; no provider refresh or resource absence inference",
       "exports": [
@@ -9947,49 +9947,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "An installed view of one exact observation"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "installSalesforceResourceDiscovery"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "salesforceCatalogObservationMatchesBinding"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "ownedCatalog"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "await authorize"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "InvalidSalesforceResourceDiscovery"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "maxSummaryBytes"
               }
             ],
@@ -10012,7 +10012,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b12889245f1bf24bc52dc7d89a3951dcc117b7003f40fe10ad2fa617689a551c",
+      "sha256": "27a9dbeb827aaf7a56a996d5b29263b1aae53e30c6874b3246ebc22290986580",
       "role": "connector-semantics",
       "owner": "Disclosure-checked candidate from one exact Catalog observation; portable read/write projection does not grant dispatch",
       "exports": [
@@ -10085,49 +10085,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mts",
                 "anchor": "disclosure-checked candidate"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mts",
                 "anchor": "resolveSalesforceResource"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mts",
                 "anchor": "catalog.observationCid !== observationCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mts",
                 "anchor": "ownedFields"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mts",
                 "anchor": "await requireAuthorizedDispatch"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mts",
                 "anchor": "catalogRequiredReason"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mts",
                 "anchor": "signal?.throwIfAborted"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-resolver.mts",
                 "anchor": "maxSoqlBytes"
               }
             ],
@@ -10154,7 +10154,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c48b070a02c5e4d0964a9e42b3a43b1e1d25b4b037cd70802c09b172e6dbf40d",
+      "sha256": "14c4ae08f6ccc32290416df6effb9442786dd18f63286a073c27b78b591cc99c",
       "role": "observation-presentation",
       "owner": "Public resources/inspect/peek projection over current installed Salesforce Sites, not a Catalog sync or read grant",
       "exports": [
@@ -10245,55 +10245,55 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mts",
                 "anchor": "discovery never syncs"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mts",
                 "anchor": "installSalesforceResourceService"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mts",
                 "anchor": "site.ownsDeclaration"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mts",
                 "anchor": "current.set"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mts",
                 "anchor": "site.authorization.authorize"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mts",
                 "anchor": "ResourceCatalogBindingMismatch"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mts",
                 "anchor": "signal"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-service.mts",
                 "anchor": "ResourcePeekTooLarge"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mjs",
+                "path": "adapters/connectors/salesforce/host/salesforce-resource-discovery.mts",
                 "anchor": "installSalesforceResourceDiscovery"
               }
             ],

@@ -2,6 +2,30 @@ import {requireAuthorizedDispatch} from
   '../../../host-common/authorization-gate.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
+import type {SalesforceCatalogRuntime} from '../site/salesforce-catalog-sync.mjs';
+
+export type ResourceCatalog = Readonly<{observation: unknown; observationCid: string; observationJson?: string}>;
+export type ResourceBinding = Readonly<{
+  [Name in typeof fields[number]]: Name extends 'site_generation' ? number : string
+}>;
+export type ResourceAuthorization = Parameters<typeof requireAuthorizedDispatch>[0] & Readonly<{principal: string}>;
+export type CatalogBindingArguments = [namespace: string, principal: string, environment: string, revision: string,
+  org: string, site: string, generation: number, registration: string, connectorRevision: string,
+  origin: string, invocation: string, dispatch: string, occurrence: string];
+export type CatalogResourceArguments = [observation: unknown, ...binding: CatalogBindingArguments, resource: string];
+export type ResourceResolutionRuntime = Pick<SalesforceCatalogRuntime,
+  'salesforceCatalogObservationCid' | 'salesforceCatalogObservationJson'> & Readonly<{
+    salesforceCatalogObservedResourceState(...input: CatalogResourceArguments): unknown;
+    salesforceCatalogFirstUnconfirmedField(...input: [...resource: CatalogResourceArguments, fields: readonly string[]]): unknown;
+    salesforcePrepareReadProjection(...input: [...resource: CatalogResourceArguments, fields: readonly string[], bytes: number]): unknown;
+    salesforcePrepareWriteProjection(...input: [...resource: CatalogResourceArguments, operation: number,
+      externalId: string, fields: readonly string[], maxFields: number]): unknown;
+  }>;
+export type ResolveResource = Readonly<{resource: string; operation: 'read' | keyof typeof operations;
+  fieldNames: readonly string[]; externalIdField?: string; maxSoqlBytes?: number; maxFields?: number; signal?: AbortSignal}>;
+type ResolveOptions = ResolveResource & Readonly<{moon: ResourceResolutionRuntime; catalog: ResourceCatalog;
+  binding: ResourceBinding; authorization: ResourceAuthorization; connection: string}>;
+
 // Why an observation cannot answer for a Resource the caller may see. A
 // Resource the caller may not see is refused before this (never disclosed,
 // present or absent).
@@ -12,7 +36,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 //   principal. A permission failure is never reported as `not_found`.
 // - `describe_unavailable`: the describe failed, was refused by the provider
 //   or was interrupted; the Resource's state is unknown.
-export function catalogRequiredReason(state, named) {
+export function catalogRequiredReason(state: unknown, named: boolean) {
   if (state === -2) return named ? 'not_observed' : 'listing_truncated';
   if (state === -1) return 'not_visible';
   if (state === 8) return 'not_found';
@@ -24,11 +48,11 @@ const fields = Object.freeze([
   'site_key', 'site_generation', 'connector_registration',
   'connector_revision', 'resource_origin', 'run_invocation_cid',
   'dispatch_request_cid', 'sync_occurrence',
-]);
+] as const);
 const names = /^[A-Za-z_][A-Za-z0-9_]{0,254}$/u;
 const operations = Object.freeze({create: 0, update: 1, upsert: 2});
 
-const fail = () => {
+const fail: () => never = () => {
   throw Object.assign(new Error('InvalidSalesforceResourceResolution'), {
     code: 'InvalidSalesforceResourceResolution',
   });
@@ -39,7 +63,7 @@ const fail = () => {
 // the Catalog before any external request. No credential is used here.
 export async function resolveSalesforceResource({moon, catalog, binding,
   authorization, connection, resource, operation, fieldNames,
-  externalIdField = '', maxSoqlBytes = 4096, maxFields = 256, signal}) {
+  externalIdField = '', maxSoqlBytes = 4096, maxFields = 256, signal}: ResolveOptions) {
   if (!moon || !catalog?.observation || !binding || !authorization ||
       typeof authorization.authorize !== 'function' ||
       typeof connection !== 'string' || connection.length === 0 ||
@@ -57,10 +81,10 @@ export async function resolveSalesforceResource({moon, catalog, binding,
   const ownedBinding = Object.freeze(Object.fromEntries(fields.map(name => {
     const value = binding[name];
     if (name === 'site_generation'
-      ? !Number.isSafeInteger(value) || value < 0
+      ? !Number.isSafeInteger(value) || (value as number) < 0
       : typeof value !== 'string' || value.length === 0) fail();
     return [name, value];
-  })));
+  }))) as ResourceBinding;
   if (authorization.principal !== ownedBinding.principal ||
       connection !== `salesforce:${ownedBinding.org_id}`) fail();
   const ownedFields = Object.freeze([...fieldNames]);
@@ -74,7 +98,7 @@ export async function resolveSalesforceResource({moon, catalog, binding,
   }, {subjectCid: observationCid, signal});
   signal?.throwIfAborted();
   const arguments_ = [catalog.observation, ...fields.map(name =>
-    ownedBinding[name]), resource];
+    ownedBinding[name]), resource] as CatalogResourceArguments;
   const state = checked(moon.salesforceCatalogObservedResourceState(
     ...arguments_));
   if (state !== 1) {
