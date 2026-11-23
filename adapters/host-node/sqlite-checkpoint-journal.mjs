@@ -932,6 +932,8 @@ export function openSqliteCheckpointJournal(root, {
   return Object.freeze({
     path,
 
+    get connectionFenced() { return !transaction.connectionUsable; },
+
     // Private Local Reviewer custody in THIS original Journal, not another
     // signing store or a public grant API. The caller retains the authenticated
     // operation, policy, key and current authority. A successful transition is
@@ -2194,8 +2196,14 @@ export function openSqliteCheckpointJournal(root, {
     },
 
     close() {
-      closed = true;
       if (databaseClosed) return;
+      // A previous close may have completed without returning. Confirm the
+      // same private connection before attempting another physical close.
+      if (closed && database.isOpen === false) {
+        databaseClosed = true;
+        return;
+      }
+      closed = true;
       database.close();
       databaseClosed = true;
     },

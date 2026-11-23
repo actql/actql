@@ -2280,6 +2280,17 @@ enters the ObservationSet. No leaf refers back to the slot capture,
 ObservationSet or Stage Invocation, including through an interpreted dependency.
 Non-INFER bodies and their identity preimages are unchanged.
 
+The reported failure outcome binds the original Attempt to its confirmed Raw
+response artifact, selected Response Profile and observation time. Its
+model ID, request ID, finish reason and response completeness are optional
+provider observations. A selected Response Profile can allow one bounded
+codec-selected metadata field. Usage remains in the original attempt
+accounting leaf.
+The section is absent when there is no authenticated observation or the
+outcome is outside provider failure. Saved admission checks this section
+against the confirmed Raw descriptor on the same entered Attempt. Typed Result
+certification and replay authorization remain governed by their original owners.
+
 <a id="compilation-identities"></a>
 
 ### Compilation identity envelopes
@@ -3011,7 +3022,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority sha256:2ef4cc7eb176d29e8abadf8be9c4741b4253ddfae554667dc51e68fe5c0c0a72
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_attempt sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome sha256:b80820080c15fbdc391376e9fd8a2759de1c9a059cc824ed3b76834796096c9f
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7

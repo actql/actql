@@ -52,7 +52,7 @@ enum ModelPhysicalInvocation {
   AsynchronousSavedStructured(
     StructuredModelCapability,
     (ModelCallEntry) -> ModelPhysicalCall?,
-    (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelPhysicalEncodedResponse?
+    (ModelPhysicalCall, ModelSavedRawReceipt, Bytes) -> ModelSavedStructuredDecoded?
   )
 }
 
@@ -442,6 +442,12 @@ fn advance_model_physical_preflight(
       }
       if plan.quantities.duration_ms > capacity.per_attempt.duration_ms {
         return @bounded.Failed(Ledger(@resources.DurationLimit), 1, 1)
+      }
+      if plan.invocation is AsynchronousSavedStructured(_, _, _) {
+        match prepare_saved_structured_attempt_report(state, request) {
+          Err(issue) => return @bounded.Failed(issue, 1, 1)
+          Ok(_) => ()
+        }
       }
       state.physical_plans[index] = plan
       state.physical_pending = None

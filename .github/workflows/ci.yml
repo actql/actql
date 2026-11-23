@@ -2294,7 +2294,7 @@ jobs:
         if: ${{ matrix.group == 'query-native' }}
         timeout-minutes: 5
         run: |
-          bash scripts/ci-install-linux-clang.sh
+          bash scripts/ci-install-linux-clang.sh --packed-query-native
           compiler_bin="$RUNNER_TEMP/packed-query-compiler"
           mkdir -m 700 "$compiler_bin"
           ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"

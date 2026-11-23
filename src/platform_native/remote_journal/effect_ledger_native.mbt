@@ -47,6 +47,9 @@ pub fn Journal::claim_effect_ledger_dispatch(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let prepared = match
     @effect.issue_prepared_effect_ledger_entry(
       basis,
@@ -220,10 +223,7 @@ pub fn Journal::claim_effect_ledger_dispatch(
     StorageIssue(issue) => Err(issue)
   }
   match result {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(issue)
-    }
+    Err(issue) => self.abort_write(Err(issue))
     Ok(value) => {
       match self.finish_effect_checkpoint_mutation(Ok(())) {
         Ok(_) => ()
@@ -253,6 +253,9 @@ pub fn Journal::record_effect_ledger_response(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let use_cid = response.credential_use_cid
   if !effect_response_cid_valid(use_cid) ||
@@ -350,6 +353,9 @@ pub fn Journal::effect_ledger_response(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   (fn() -> Result[NativeEffectSavedResponse?, NativeRemoteJournalIssue] raise EffectLedgerStorageFailure {
     ledger_storage(self.require(request)) |> ignore
@@ -554,10 +560,7 @@ pub fn Journal::record_effect_row_receipt(
     StorageIssue(issue) => Err(issue)
   }
   match result {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(issue)
-    }
+    Err(issue) => self.abort_write(Err(issue))
     Ok(value) =>
       match self.finish_effect_checkpoint_mutation(Ok(())) {
         Ok(_) => Ok(value)

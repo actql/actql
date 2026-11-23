@@ -206,16 +206,18 @@ test "native output file custody commit failure rolls back both custody and comp
   let transition = @remote.prepare_durable_execution_evidence(record, evidence).unwrap()
   let revision = @remote.dispatch_record_revision(record)
   test_fail_cancel_commit(journal.database, 1)
-  assert_true(
-    journal.commit_evidence_transition(
+  guard journal.commit_evidence_transition(
       transition,
       evidence,
       subject,
       measurement,
       file_custody=Some(custody),
     )
-    is Err(Physical(_)),
-  )
+    is Err(TransactionCommit(failure)) else {
+    fail("expected the original refused COMMIT")
+  }
+  assert_true(failure.outcome is @sqlite.CommitNotApplied)
+  assert_true(failure.cleanup_failure is None)
   assert_eq(@remote.dispatch_record_revision(record), revision)
   assert_true(
     journal.database.read("site_output_file", key) is Err(@sqlite.NotFound),
@@ -262,11 +264,14 @@ test "native output file custody lost commit reply requires the exact original s
       measurement,
       file_custody=Some(custody),
     )
-    is Err(Physical(_)),
+    is Err(TransactionCommit(_)),
   )
   assert_eq(@remote.dispatch_record_revision(record), revision)
   let key = @remote.dispatch_request_attempt_identity(request).unwrap()
-  let original = journal.database.read("site_output_file", key).unwrap()
+  assert_true(journal.observation(request) is Err(TransactionFenced))
+  assert_true(journal.close())
+  let exact = open_journal(library, path, 1048576L, test_control(test_site())).unwrap()
+  let original = exact.database.read("site_output_file", key).unwrap()
   let foreign = prepare_native_output_file_custody(
     request,
     custody.occurrence,
@@ -276,7 +281,7 @@ test "native output file custody lost commit reply requires the exact original s
     custody.manifest,
   ).unwrap()
   assert_true(
-    journal.commit_evidence_transition(
+    exact.commit_evidence_transition(
       transition,
       evidence,
       subject,
@@ -286,16 +291,14 @@ test "native output file custody lost commit reply requires the exact original s
     is Err(StateCollision),
   )
   assert_true(
-    journal.commit_evidence_transition(
-      transition, evidence, subject, measurement,
-    )
+    exact.commit_evidence_transition(transition, evidence, subject, measurement)
     is Err(StateCollision),
   )
   assert_eq(
-    journal.database.read("site_output_file", key).unwrap().body,
+    exact.database.read("site_output_file", key).unwrap().body,
     original.body,
   )
-  journal
+  exact
   .commit_evidence_transition(
     transition,
     evidence,
@@ -305,11 +308,8 @@ test "native output file custody lost commit reply requires the exact original s
   )
   .unwrap()
   assert_eq(@remote.dispatch_record_revision(record), revision + 1)
-  assert_eq(
-    journal.database.read("site_output_file", key).unwrap().revision,
-    0L,
-  )
-  assert_true(journal.close())
+  assert_eq(exact.database.read("site_output_file", key).unwrap().revision, 0L)
+  assert_true(exact.close())
   let reopened = open_journal(
     library,
     path,

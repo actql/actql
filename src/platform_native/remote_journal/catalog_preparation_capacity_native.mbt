@@ -15,10 +15,13 @@ pub fn Journal::read_catalog_preparation_capacity(
   if self.retiring {
     return Err(Journal(CleanupPending))
   }
+  if self.database.transaction_fenced() {
+    return Err(Journal(TransactionFenced))
+  }
   if !physical_equal(self, custody.journal) ||
     !custody.accepted ||
     custody.cleanup_started ||
-    custody.removal_confirmed {
+    custody.removal is RemovalConfirmed {
     return Err(Journal(StateCollision))
   }
   if !initial_catalog_use_envelope_valid(required) ||
@@ -69,7 +72,7 @@ pub fn Journal::read_catalog_preparation_capacity(
     Err(issue) => return Err(Journal(Protocol(issue)))
   }
   if custody.cleanup_started ||
-    custody.removal_confirmed ||
+    custody.removal is RemovalConfirmed ||
     !@resources.capacity_reservation_covers(
       custody.ledger,
       custody.reservation,

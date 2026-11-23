@@ -714,12 +714,12 @@ fn prepare_declared_file_lookup_dependencies(
     max_nodes,
     max_depth,
     fn() {
-      match reserve_keyed_dependency_serial_controls(lookup) {
-        Ok(_) => ()
+      let cursor = match begin_keyed_dependency_serial_cursor(lookup) {
+        Ok(value) => value
         Err(issue) => return Err(issue)
       }
+      defer cursor.retire()
       let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
-      let cursor = new_keyed_dependency_serial_cursor()
 
       let before = (
         bytes : Int,
@@ -749,7 +749,7 @@ fn prepare_declared_file_lookup_dependencies(
           before(bytes, nodes, depth, serial_cursor)
         }),
         begin_batch: first => {
-          match cursor.begin_batch(first) {
+          match cursor.begin_batch(lookup, first) {
             Ok(_) => true
             Err(issue) => {
               primary.val = Some(issue)
@@ -758,7 +758,7 @@ fn prepare_declared_file_lookup_dependencies(
           }
         },
         record: bodies => {
-          match cursor.record_body(bodies, max_nodes) {
+          match cursor.record_body(lookup, bodies, max_nodes) {
             Ok(_) => true
             Err(issue) => {
               primary.val = Some(issue)
@@ -788,13 +788,15 @@ fn prepare_declared_file_lookup_dependencies(
         Ok(value) => value
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
       }
-      Ok(
+      cursor
+      .seal(lookup)
+      .map(proof => {
         keyed_protocol_built(
           bodies,
           dependency_bodies=Some(bodies),
-          measured_bodies=cursor.measured,
-        ),
-      )
+          measured_bodies=proof,
+        )
+      })
     },
     bodies => {
       guard !lookup.closed &&
