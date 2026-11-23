@@ -227,6 +227,7 @@ fn local_command_preparation_operation_selected(
       selected == "lookup-submission" ||
       selected == "lookup-request" ||
       selected == "cancel" ||
+      selected == "reconcile" ||
       selected == "lookup-cancellation"
     )
   ) ||
@@ -596,10 +597,13 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
     operation == "cancel" ||
     operation == "approve" ||
     operation == "reject" ||
+    operation == "reconcile" ||
     (public_run && !child.flags.get("json").unwrap_or(false)) {
     command_preparation_result(
       self.prepare_run_observation_operation(
-        journal=operation == "approve" || operation == "reject",
+        journal=operation == "approve" ||
+          operation == "reject" ||
+          operation == "reconcile",
       ),
     )
   }
@@ -765,6 +769,10 @@ fn LocalCommandPreparationOriginal::execute_adopted_command(
             child,
             capture=Some(capture),
             prepared=Some((self, configuration)),
+          )
+        } else if operation == "reconcile" {
+          self.reconcile_saved_file_by_ref(
+            capture, configuration, input_root, child,
           )
         } else if operation == "status" {
           let runtime = preparation_runtime.unwrap_or_else(() => {

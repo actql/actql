@@ -78,6 +78,17 @@ pub fn project_publication_request_context(
 }
 
 ///|
+/// Original request timestamp for re-observing a committed occurrence.
+pub fn publication_request_requested_at(
+  request : PublicationContract,
+) -> String? {
+  if request.name != "publication_request" {
+    return None
+  }
+  contract_string(request, "requested_at")
+}
+
+///|
 pub fn install_publication_publisher_port(
   request : PublicationContract,
   attempt : PublicationContract,

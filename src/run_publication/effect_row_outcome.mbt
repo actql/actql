@@ -301,6 +301,17 @@ pub fn effect_row_outcome_receipt_dispatch_identity(
 }
 
 ///|
+/// Original member identity carried by this admitted terminal row receipt.
+pub fn effect_row_outcome_receipt_member_identity(
+  receipt : PublicationContract,
+) -> String? {
+  if receipt.name != "effect_row_outcome_receipt" {
+    return None
+  }
+  contract_string(receipt, "effect_member_preview_cid")
+}
+
+///|
 pub fn effect_row_outcome_receipt_row_identity(
   receipt : PublicationContract,
 ) -> String? {

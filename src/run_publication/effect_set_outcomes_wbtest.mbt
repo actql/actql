@@ -84,6 +84,26 @@ test "retained admitted Effect partition uses the existing Unknown writer withou
       16,
     ).unwrap()
     assert_eq(effect_set_apply_receipt_run_status(original), expected)
+    assert_true(
+      effect_set_apply_receipt_matches_members(original, preview, [
+        member_receipt,
+      ]),
+    )
+    let other = partition_test_member(
+      preview,
+      0,
+      if state == "accepted" {
+        "applied"
+      } else {
+        "accepted"
+      },
+    )
+    assert_false(
+      effect_set_apply_receipt_matches_members(original, preview, [other]),
+    )
+    assert_false(
+      effect_set_apply_receipt_matches_members(original, preview, []),
+    )
     let projected = issue_admitted_effect_reconciliation_run_state_wire(
       original,
       "original-run",
