@@ -288,10 +288,25 @@ test "structured answer adoption requires the original saved raw receipt" {
 }
 
 ///|
-test "structured execution rejects an answer without the checked decoder" {
+test "structured execution rejects a substituted encoded answer without the checked decoder" {
   let fixture = raw_save_fixture(structured=true)
-  let substituted = async_response_observation(None)
-  fixture.response.val = @model.PhysicalResponse(substituted)
+  fixture.response.val = @model.PhysicalEncodedResponse({
+    body: "{\"reason\":null,\"risk\":\"fake\"}",
+    observation: {
+      ..async_response_observation(None).observation,
+      response_profile_cid: Some(
+        @environment.model_response_profile_identity(
+          structured_raw_fixture_profile(),
+        ),
+      ),
+      raw_response_artifact_cid: Some("sha256:" + "f".repeat(64)),
+      input_tokens: Some(3L),
+      output_tokens: Some(0L),
+    },
+    transport_eof: true,
+    endpoint_complete: true,
+    answer_complete: true,
+  })
   fixture.ready.val = true
   assert_true(
     fixture_finish(fixture.active, initial_work=fixture.work)
