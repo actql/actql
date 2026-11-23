@@ -32,6 +32,25 @@ decision, compatibility analysis and coordinated updates of affected checks and
 this policy. Evaluate each contract's compatibility independently; do not infer
 compatibility or force all version domains to advance in lockstep.
 
+## Replacement policy during v0.0.x
+
+Backward compatibility is out of scope throughout the ActQL `v0.0.x` product
+release series. Owned contract versions, including the current `0.1`
+baseline, follow their own version rules.
+
+Remove superseded readers, writers, adapters, compatibility shims,
+fallbacks, and their build and test wiring in the same change that
+replaces them. Keep a single current implementation. Update the applicable
+schema, generated outputs, package contents and verification together.
+List the removed paths and their replacements in the pull request. Merge
+after the affected entry points and normal packages have been verified
+and all replaced paths are gone.
+
+Preserve the meaning of current originals and their authority. Keep
+persisted records, their historical meaning and original identities intact.
+Reject unsupported stored formats explicitly. A separate migration decision
+is required before changing persisted data.
+
 ## When to keep or advance a contract version
 
 Decide per contract, not per feature branch. The initial ActQL product
@@ -50,21 +69,18 @@ before a writer emits a changed body:
   contract without changing accepted canonical bytes, meaning, or references.
   A code revision, Connector revision, or different signed bundle instance
   does not itself advance the format version.
-- Before the initial 0.1 release, correct an unfinished 0.1 contract within
-  0.1 only when its prior bodies are development fixtures or otherwise known
-  not to require compatibility. Replace all writers, readers, schema, pins,
-  independent vectors and dependent identities together. There must be one
-  accepted canonical body for that version; do not accept an old field set by
-  silently filling in new fields.
-- A persisted or distributed instance outside controlled development fixtures
-  needs an explicit compatibility and migration decision before the correction.
-  Preserve its exact bytes and historical identity. Do not overwrite or re-sign
-  it as if it had used the corrected contract. If compatibility cannot be
-  resolved within 0.1, stop and decide whether a new version is required.
-- After a contract has supported consumers, advance its own version when its
-  accepted field set, canonicalization, signature preimage, identity-bearing
-  references or normative interpretation changes incompatibly. Version
-  advances are deliberate, not a workaround for an incomplete 0.1 feature.
+- An unfinished owned `0.1` contract may be corrected in place during
+  `v0.0.x` when the correction preserves the meaning of current originals
+  and persisted records. Replace its writers, readers, schema, pins,
+  independent vectors and dependent identities together. Use one canonical
+  body for each valid state of the current contract. Reject unsupported
+  field sets during admission. If a correction would change existing
+  contract meaning, decide its version in that contract's own domain.
+- After the `v0.0.x` series, make an explicit compatibility and migration
+  decision for existing persisted or distributed instances before changing an
+  accepted contract. Advance the contract version when its field set,
+  canonicalization, signature preimage, identity-bearing references or
+  normative interpretation changes incompatibly.
 
 An explicit version decision records the old and corrected canonical bodies,
 the inventory of stored records and consumers, reader/writer support, any

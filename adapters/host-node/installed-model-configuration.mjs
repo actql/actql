@@ -195,11 +195,12 @@ export async function installConfiguredModelProviders({moon, register, project,
             const adapter = read(adapterName, original.adapter, 'module').namespace;
             sdkImageCustody.assertCurrent();
             const factory = sdk[original.sdk.exportName];
-            const {createLanguageModel, verifyRequest, sdkProvider, readReportedUsage} = adapter;
+            const {createLanguageModel, verifyRequest, sdkProvider, readReportedUsage, readReportedResponse} = adapter;
             if (!Object.hasOwn(sdk, original.sdk.exportName) || typeof factory !== 'function' ||
                 typeof createLanguageModel !== 'function' || typeof verifyRequest !== 'function' ||
                 typeof sdkProvider !== 'string' || sdkProvider.length < 1 || sdkProvider.length > 256 ||
-                readReportedUsage !== undefined && typeof readReportedUsage !== 'function') {
+                readReportedUsage !== undefined && typeof readReportedUsage !== 'function' ||
+                readReportedResponse !== undefined && typeof readReportedResponse !== 'function') {
               fail(invalidSdkInstallation);
             }
             const providerOptions = sdkProviderOptions(original.providerOptions,
@@ -219,7 +220,8 @@ export async function installConfiguredModelProviders({moon, register, project,
                   endpoint: declared.endpoint, prefix: declared.prefix})});
             }
             check();
-            const registration = Object.freeze({route: original.route, providerOptions, sdkProvider, readReportedUsage,
+            const registration = Object.freeze({route: original.route, providerOptions, sdkProvider,
+              readReportedUsage, readReportedResponse,
               ...(credential === undefined ? {} : {credential}),
               sdkPackage: original.sdk.packageName,
               sdkVersion: original.sdk.version, sdkArtifactCid: original.sdk.cid,

@@ -146,6 +146,77 @@ fn emit_optional_usage(
 }
 
 ///|
+fn saved_failure_report(
+  state : ModelState,
+  slot : Int,
+  trace : ModelAttemptTrace,
+) -> @publication.ModelCaptureObservation? {
+  // Adopting a failure moves the execution cursor past the slot. Use the
+  // retained terminal Call and exact Attempt here, as no new Raw read or
+  // physical response admission can occur at this boundary.
+  guard trace.category == "provider_failure" &&
+    model_physical_call_at(state, slot) is Some(call) &&
+    !call.retired &&
+    call.entry is Some(entry) &&
+    entry.slot == slot &&
+    entry.send_started &&
+    physical_equal(entry.trace, trace) &&
+    call.terminal is Some(PhysicalSavedStructuredResponse(saved)) &&
+    call.raw_capture is Some(raw) &&
+    physical_equal(saved.receipt.original, raw) &&
+    physical_equal(raw.call, call) &&
+    raw.saved is Some(confirmation) &&
+    physical_equal(saved.receipt, confirmation) &&
+    saved.observation is Some(observation) &&
+    observation.raw_response_artifact_cid is Some(_) &&
+    observation.response_profile_cid is Some(_) else {
+    return None
+  }
+  Some(observation)
+}
+
+///|
+fn emit_saved_failure_report(
+  observation : @publication.ModelCaptureObservation,
+  writer : @encode.Writer,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.key(writer, "reported_response")
+  @encode.begin_object(writer)
+  for
+    (name, value) in [
+      (
+        "raw_response_artifact_cid",
+        observation.raw_response_artifact_cid.unwrap(),
+      ),
+      ("response_profile_cid", observation.response_profile_cid.unwrap()),
+      ("observed_at", observation.observed_at),
+    ] {
+    @encode.key(writer, name)
+    @encode.string_value(writer, value)
+  }
+  for
+    (name, value) in [
+      ("provider_reported_model_id", observation.provider_model),
+      ("provider_request_id", observation.provider_request_id),
+      ("finish_reason", observation.provider_finish_reason),
+    ] {
+    if value is Some(text) {
+      @encode.key(writer, name)
+      @encode.string_value(writer, text)
+    }
+  }
+  if observation.response_complete is Some(complete) {
+    @encode.key(writer, "response_complete")
+    @encode.bool_value(writer, complete)
+  }
+  if observation.provider_metadata is Some(metadata) {
+    @encode.key(writer, "provider_metadata")
+    @canonical.emit_value(metadata, writer)
+  }
+  @encode.end_object(writer)
+}
+
+///|
 /// Enumerate retained physical attempt traces only after confirmed stop.
 /// Reclaimed executions cannot be mistaken for an empty evidence inventory.
 pub fn stopped_model_attempt_count(execution : ModelExecution) -> Int? {
@@ -260,6 +331,7 @@ pub fn model_execution_attempt_evidence(
       Ok(value) => value
       Err(issue) => return Err(InvocationEvidence(issue))
     }
+    let report = saved_failure_report(execution.state, slot, trace)
     let writer = @encode.writer(16384, 256, 8)
     @encode.begin_object(writer)
     for
@@ -276,6 +348,9 @@ pub fn model_execution_attempt_evidence(
     match trace.failure {
       Some(value) => @encode.string_value(writer, value)
       None => @encode.null_value(writer)
+    }
+    if report is Some(observation) {
+      emit_saved_failure_report(observation, writer)
     }
     @encode.end_object(writer)
     let outcome = match

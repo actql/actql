@@ -11,7 +11,9 @@ import {checkComputeAssembly} from './connector-compute-bundles.mjs';
 import {checkNodeAssembly} from './connector-node-bundles.mjs';
 import {assertClientWireDependency} from
   './connector-addition-wire-dependency.mjs';
-import {copyConnectorAdditionHostSource, assertConnectorAdditionHostSource} from
+import {
+  assertConnectorAdditionHostSource, connectorAdditionNativeSourcePaths, copyConnectorAdditionHostSource,
+} from
   './connector-addition-source.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -22,7 +24,7 @@ const git = args => {
 };
 const sourceHead = git(['rev-parse', 'HEAD']);
 const sourcePaths = ['src', 'adapters', 'scripts', 'packages/client-wire', 'packages/sdk',
-  'moon.mod'];
+  'moon.mod', ...connectorAdditionNativeSourcePaths];
 if (git(['status', '--porcelain', '--', ...sourcePaths])) {
   throw new Error('Commit product sources and assembly checks before the connector-addition check');
 }
@@ -166,6 +168,7 @@ const snapshot = () => new Map([...inventory(join(isolated, 'src'), 'src/'),
   ...inventory(join(isolated, 'adapters'), 'adapters/'),
   ...inventory(join(isolated, 'packages/client-wire'), 'packages/client-wire/'),
   ...inventory(join(isolated, 'packages/sdk'), 'packages/sdk/'),
+  ...inventory(join(isolated, 'packages/python-local-runtime'), 'packages/python-local-runtime/'),
   ...inventory(join(isolated, 'scripts/templates'), 'scripts/templates/'),
   ...['scripts/native-cxx-link-driver.sh', 'scripts/native-sqlite-link-driver.sh',
     'scripts/ar', ...nodeFixturePaths].map(path =>
@@ -199,6 +202,7 @@ for (const target of ['js', 'wasm', 'native']) {
 }
 tests.node = run('standard-node', ['--test', '--test-name-pattern=standard native and broad Node Hosts',
   'adapters/connectors/duckdb/node/test/standard-host.test.mjs'], process.execPath);
+assertConnectorAdditionHostSource(isolated, commonHostInputs);
 const final = snapshot();
 writeFileSync(join(isolated,'common-after.json'),JSON.stringify(
   Object.fromEntries([...final].filter(([path]) => !allowed(path))),null,2)+'\n');

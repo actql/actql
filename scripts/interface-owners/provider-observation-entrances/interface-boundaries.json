@@ -1936,12 +1936,13 @@
     {
       "module": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "52d0b8fe10440ae007f66ecff8f6e0f12c7d4f35859e7a9e2bfc0b9a737f2093",
+      "sha256": "bfb3155c9aa699a11ecd45b8956fea5d6dc956dcf7137bf978578a63095a64d6",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
         "optionNamespace",
         "optionSchema",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -1954,6 +1955,13 @@
             "modelId",
             "fetch",
             "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -1983,7 +1991,8 @@
             "<module>",
             "createLanguageModel",
             "readReportedUsage",
-            "verifyRequest"
+            "verifyRequest",
+            "readReportedResponse"
           ],
           "exports": [
             "createLanguageModel",
@@ -1992,7 +2001,8 @@
             "optionSchema",
             "readReportedUsage",
             "sdkProvider",
-            "verifyRequest"
+            "verifyRequest",
+            "readReportedResponse"
           ],
           "attributes": {
             "responsibility": [
@@ -2097,17 +2107,20 @@
       "imports": [
         "@ai-sdk/anthropic",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2def9d9e6fe7a8ba45895cd0c0b78fb10be67f8c62200a56881a5992bcc96cf9",
+      "sha256": "2c8622649cf5419b282455ed0c8dead36b3c0674a27ee8382fb572b843a40e9d",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
         "optionNamespace",
         "optionSchema",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -2120,6 +2133,13 @@
             "modelId",
             "fetch",
             "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -2149,7 +2169,8 @@
             "<module>",
             "createLanguageModel",
             "readReportedUsage",
-            "verifyRequest"
+            "verifyRequest",
+            "readReportedResponse"
           ],
           "exports": [
             "createLanguageModel",
@@ -2158,7 +2179,8 @@
             "optionSchema",
             "readReportedUsage",
             "sdkProvider",
-            "verifyRequest"
+            "verifyRequest",
+            "readReportedResponse"
           ],
           "attributes": {
             "responsibility": [
@@ -2263,12 +2285,14 @@
       "imports": [
         "@ai-sdk/google",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4bb5bba1cb4e3f806d2dfe62b8054c152a486e445d0f218a0a00e3420344af65",
+      "sha256": "8a314dfd68418201d6f09d4c57635df8a64ce7e3509ed379da0827d7576e508a",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
@@ -2276,6 +2300,7 @@
         "optionNamespace",
         "optionSchema",
         "prepareOpenAIChatRequest",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -2324,6 +2349,13 @@
           "async": false
         },
         {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "readReportedUsage",
           "parameters": [
             "body"
@@ -2352,7 +2384,8 @@
             "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
             "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
             "readReportedUsage",
-            "verifyRequest"
+            "verifyRequest",
+            "readReportedResponse"
           ],
           "exports": [
             "createLanguageModel",
@@ -2363,7 +2396,8 @@
             "prepareOpenAIChatRequest",
             "readReportedUsage",
             "sdkProvider",
-            "verifyRequest"
+            "verifyRequest",
+            "readReportedResponse"
           ],
           "attributes": {
             "responsibility": [
@@ -2471,7 +2505,9 @@
         "@ai-sdk/openai",
         "@ai-sdk/provider-utils",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
