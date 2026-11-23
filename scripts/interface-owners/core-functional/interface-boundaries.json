@@ -48096,7 +48096,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               }
             ],
@@ -48114,7 +48114,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "if(pending)return false;"
               }
             ],
@@ -69060,7 +69060,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               }
             ],
@@ -69078,7 +69078,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "if(pending)return false;"
               }
             ],
@@ -113334,7 +113334,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               }
             ],
@@ -113352,7 +113352,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "if(pending)return false;"
               }
             ],
