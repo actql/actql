@@ -78,10 +78,10 @@ class ValueTests(unittest.TestCase):
 
     def test_wire_classifies_only_bounded_ecmascript_array_indices(self):
         long_key = '9' * 5000
-        keys = ['label', '4294967295', '4294967294', '01', '00', '0', '10',
+        keys = ['label', '4294967295', '4294967294', '01', '-0', '00', '0', '10',
                 '12345678901', long_key, '١', '2', 'tail']
         ordered = ['0', '2', '10', '4294967294', 'label', '4294967295',
-                   '01', '00', '12345678901', long_key, '١', 'tail']
+                   '01', '-0', '00', '12345678901', long_key, '١', 'tail']
         expected = ('{' + ','.join('"' + key + '":1' for key in ordered) + '}').encode()
         self.assertEqual(wire_bytes(dict.fromkeys(keys, 1)), expected)
 
