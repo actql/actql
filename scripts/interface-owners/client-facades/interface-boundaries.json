@@ -5,7 +5,7 @@
     {
       "module": "packages/local-node/connector-installation.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "7963ea8cddad403ca2b87ea9c96460de96faf6a680a96fa3058cdec369046596",
+      "sha256": "ef0badc02eede622c2ec8561c01da14951fffc78daea0fd0ef5a3e9ae2d569cd",
       "exports": [
         "AuthorizationBoundary",
         "AuthorizationTuple",
@@ -536,14 +536,14 @@
         {
           "name": "RowEffectDriver/recoverMemberRequests",
           "parameters": [
-            "options: Readonly<{durable: unknown; recorded: unknown;\n    previewWire: string; body: ConnectorJsonObject;\n    memberIndexes: readonly number[]}>"
+            "options: Readonly<{durable: unknown; recorded: unknown;\n    previewWire: string; body: ConnectorJsonObject;\n    members: readonly RowEffectMember<RowEffectKind>[];\n    memberIndexes: readonly number[]}>"
           ],
           "result": "Readonly<{\n      requests: readonly (readonly Request[])[];\n      currents?: readonly (Current | undefined)[]}>"
         },
         {
           "name": "RowEffectDriver/recoverRequests",
           "parameters": [
-            "options: Readonly<{durable: unknown; recorded: unknown;\n    previewWire: string; body: ConnectorJsonObject}>"
+            "options: Readonly<{durable: unknown; recorded: unknown;\n    previewWire: string; body: ConnectorJsonObject;\n    members: readonly RowEffectMember<Kind>[]}>"
           ],
           "result": "Readonly<{\n      requests: readonly (readonly Request[])[];\n      currents?: readonly (Current | undefined)[]}>"
         },

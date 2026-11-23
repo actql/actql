@@ -667,13 +667,16 @@ test('standard saved request preserves provider CID, full DATA and composed glob
   const prepared = fresh.prepareRequest({member: selectedMember, value});
   const saved = fresh.recoveryEntry({member: selectedMember, entries: [{...prepared, value}]});
   const cold = deriveInstalledRowWrite({...write, request() {assert.fail('cold must not map or create a tag');}}, 'fixture');
-  const restored = cold.recoverMemberRequests({members: [{kind: 'create', resource: 'unrelated'}, selectedMember],
-    memberIndexes: [1], durable: {connectorRecovery: [{memberIndex: 1, ...saved}]}}).requests[0][0];
+  const members = Object.freeze([Object.freeze({kind: 'command', resource: 'records'}), selectedMember]);
+  const durable = {connectorRecovery: [{memberIndex: 1, ...saved}]};
+  const restored = cold.recoverMemberRequests({members, memberIndexes: [1], durable}).requests[0][0];
   assert.equal(cold.requestCid(restored), providerCid);
   assert.equal(restored.body, prepared.request.body);
   assert.deepEqual(restored.metadata, prepared.request.metadata);
   assert.deepEqual(cold.requestFacts(restored).value, value);
   assert.ok(Object.isFrozen(restored.metadata.ordering));
+  assert.throws(() => cold.recoverMemberRequests({members, memberIndexes: [0], durable}),
+    {code: 'InvalidInstalledRowWrite'});
   assert.throws(() => cold.requestCid({...restored}), {code: 'InvalidInstalledRowWrite'});
   assert.throws(() => prepared.request.metadata.ordering.push('changed'), TypeError);
 });
