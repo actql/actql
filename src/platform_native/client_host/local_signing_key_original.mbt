@@ -80,8 +80,9 @@ fn read_local_signing_installation_projection(
   host : NativeLocalHostConnection,
   file : NativeLocalSelectedFile,
   payload : Bytes,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
-  read_local_signing_installation_record(host, file, payload).map(record => {
+  read_local_signing_installation_record(host, file, payload, capture~).map(record => {
     record.0
   })
 }
@@ -91,6 +92,7 @@ fn read_local_signing_installation_record(
   host : NativeLocalHostConnection,
   file : NativeLocalSelectedFile,
   payload : Bytes,
+  capture? : NativeLocalJournalCapture? = None,
 ) -> Result[
   (Bytes, @credential.LocalSigningPublicKey?),
   NativeLocalAdoptionIssue,
@@ -109,7 +111,7 @@ fn read_local_signing_installation_record(
     selection,
   )
   let scope = match
-    host.authority_scope_cid(principal, connection, host.epoch.crypto) {
+    host.authority_scope_cid(principal, connection, host.epoch.crypto, capture~) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -140,6 +142,8 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
   self : NativeLocalHostConnection,
   own_file : NativeLocalSelectedFile,
   original : Bytes,
+  capture? : NativeLocalJournalCapture? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
   let own_wire = @utf8.decode(own_file.body) catch {
     _ => return Err(CustodyLost)
@@ -152,11 +156,16 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
     return Err(CustodyLost)
   }
   let control = match
-    self.database.read("client_local_installation_custody", "host") {
+    read_client_journal_value(
+      self.database,
+      "client_local_installation_custody",
+      "host",
+      reads,
+    ) {
     Err(issue) => return Err(Physical(issue))
     Ok(value) => value
   }
-  match read_local_initial_signing_control(self, control.body) {
+  match read_local_initial_signing_control(self, control.body, reads~) {
     Err(_) => return Err(CustodyLost)
     Ok(None) => ()
     Ok(Some(initial)) => {
@@ -189,7 +198,12 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
   let mut cursor = ""
   for _ in 0..<8 {
     let row = match
-      self.database.scan_after("client_local_installation_originals", cursor) {
+      scan_client_journal_value(
+        self.database,
+        "client_local_installation_originals",
+        cursor,
+        reads,
+      ) {
       Ok(value) => value
       Err(@sqlite.NotFound) => return Ok(())
       Err(issue) => return Err(Physical(issue))
@@ -204,7 +218,8 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
       is Some(file) else {
       return Err(CustodyLost)
     }
-    let other = match read_local_installation_projection(self, file, row.body) {
+    let other = match
+      read_local_installation_projection(self, file, row.body, capture~, reads~) {
       Ok(value) => value
       Err(_) => return Err(CustodyLost)
     }
@@ -259,7 +274,12 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
     }
   }
   match
-    self.database.scan_after("client_local_installation_originals", cursor) {
+    scan_client_journal_value(
+      self.database,
+      "client_local_installation_originals",
+      cursor,
+      reads,
+    ) {
     Err(@sqlite.NotFound) => Ok(())
     Err(issue) => Err(Physical(issue))
     Ok(_) => Err(CustodyLost)

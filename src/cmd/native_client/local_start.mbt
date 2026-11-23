@@ -392,8 +392,15 @@ fn local_submission_start(
       // partial work as a completed Run, checkpoint, write or retry permit.
       stop("LocalEffectAuthoritySupplierUnavailable")
     }
+    let model = business.bind(original => {
+      original.configured_model_compilation(prepared)
+    })
     let source_free = @run_host.prepared_client_acquisition_count(prepared) == 0
+    if !source_free && model is Some(_) {
+      stop("LocalModelHttpSourcePlanUnavailable")
+    }
     if source_free &&
+      model is None &&
       !@local_host.native_client_local_values_profile_supported(prepared) {
       stop("LocalValuesExecutionProfileNotSupported")
     }
@@ -437,7 +444,24 @@ fn local_submission_start(
     }
     let run = match runtime_selection {
       Ok(Accepted) => return observe_original()
-      Ok(Pending(None)) => run
+      Ok(Pending(None)) =>
+        if model is Some(_) && business is Some(original) {
+          let installed = run.source_free.unwrap_or_else(() => {
+            stop("LocalValuesInstallationRequired")
+          })
+          {
+            ..run,
+            source_free: Some(
+              local_current_values_installation(
+                installed,
+                original.assets,
+                original.installed_contracts,
+              ),
+            ),
+          }
+        } else {
+          run
+        }
       Ok(Pending(Some((assets, installed_contracts)))) => {
         let installed = run.source_free.unwrap_or_else(() => {
           stop("LocalValuesInstallationRequired")
@@ -526,9 +550,10 @@ fn local_submission_start(
       local_input_cursor(@publication.publication_contract_json(run.retention)),
     ).unwrap_or_else(() => stop("InvalidLocalResultRetentionPolicy"))
     let until = run_text(retention, "available_until")
-    let compilation = match business {
-      Some(original) => original.request_compilation()
-      None => {
+    let compilation : @run_host.ClientRunCompilation = match (model, business) {
+      (Some(model), _) => @run_host.Tasks(model.compilation)
+      (None, Some(original)) => original.request_compilation()
+      (None, None) => {
         let manifests = @run_host.admit_client_compilation_manifests(
           @compiler_environment.compiler_grammar_manifest_wire(),
           @compiler_environment.compiler_barrier_contract_manifest_wire(),
@@ -593,7 +618,12 @@ fn local_submission_start(
       (compiled, definition)
     }
     if business is Some(original) {
-      original.adopt_request_run(request)
+      // Each branch transfers the same prepared Request to its managed Run.
+      match model {
+        Some(model) =>
+          original.prepare_model_run(model, request, compiled, definition)
+        None => original.adopt_request_run(request)
+      }
     }
     let accepted : Result[
       @local_host.NativeClientSubmittedIntentRecord,

@@ -20,7 +20,8 @@ typedef struct actql_native_observed_component_member
 
 enum actql_native_command_component_kind {
   ACTQL_NATIVE_COMMAND_SQLITE_COMPONENT = 1,
-  ACTQL_NATIVE_COMMAND_CRYPTO_COMPONENT = 2
+  ACTQL_NATIVE_COMMAND_CRYPTO_COMPONENT = 2,
+  ACTQL_NATIVE_COMMAND_MODEL_HTTP_COMPONENT = 3
 };
 
 /* Filesystem-owner projections of its SAME retained Runtime/member. These

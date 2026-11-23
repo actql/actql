@@ -2970,7 +2970,7 @@ test "two Model Request adopts one module and all original scopes with one aggre
   let {
     parent,
     input,
-    prepared: _,
+    prepared,
     holder,
     occurrences,
     graphs,
@@ -2980,6 +2980,19 @@ test "two Model Request adopts one module and all original scopes with one aggre
     selected_module,
     module_entries,
   } = f
+  let projected = selected_module.model_local_requirements(prepared).unwrap()
+  assert_true(physical_equal(projected.sequences, selected_module.sequences))
+  assert_true(
+    physical_equal(
+      projected.capacity_plan.graph.unwrap(),
+      @publication_host.prepared_client_graph(prepared),
+    ),
+  )
+  assert_eq(
+    projected.maximum_limits().retained_bytes,
+    selected_module.limits.retained_bytes,
+  )
+  assert_true(projected.finalization_round_limit(prepared) is Some(_))
   let ledger = parent.ledger
   // Use distinct original limits while preserving the previous aggregate.
   let first_limits = { ..effect_model_plan_limits, retained_bytes: 1100L, }

@@ -9,6 +9,7 @@ fn begin_native_local_host_adoption_original(
   account_id : String,
   crypto : @crypto.Library,
   configuration_files? : Array[String] = [],
+  model_configuration? : NativeLocalModelConfigurationSelection? = None,
   managed_root_path? : String? = None,
   existing_only? : Bool = false,
   custody? : NativeLocalAdoptionOpenFailure? = None,
@@ -84,6 +85,8 @@ fn begin_native_local_host_adoption_original(
       custody~,
       root_opening~,
       operator_host~,
+      model_configuration~,
+      construction~,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

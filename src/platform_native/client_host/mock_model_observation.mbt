@@ -63,6 +63,80 @@ pub fn NativeClientMockModelWork::prepare_observation(
 }
 
 ///|
+/// Form one publication issuer on the first completed configured Work. The
+/// original Request has already funded the temporary vector of executions.
+pub fn NativeClientMockModelWork::prepare_source_free_model_observation(
+  self : Self,
+  works : Array[NativeClientMockModelWork],
+  plans : Array[@host.ClientInferPlanGraph],
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard !self.advancing &&
+    self.publication_capacity is None &&
+    self.observation is None &&
+    works.get(0) is Some(first) &&
+    physical_equal(first, self) &&
+    plans.length() == works.length() &&
+    self.active is Some(active) else {
+    return Err(ForeignOriginal)
+  }
+  let owners = Array(capacity=works.length())
+  for index, work in works {
+    guard !work.closing &&
+      !work.closed &&
+      !work.advancing &&
+      work.settlement is None &&
+      work.active is Some(original) &&
+      work.provider_role is PortableHttp(_) &&
+      physical_equal(work.capture, self.capture) &&
+      physical_equal(work.request, self.request) &&
+      physical_equal(work.compiled, self.compiled) &&
+      physical_equal(work.definition, self.definition) &&
+      physical_equal(work.graph, plans[index]) &&
+      work.publication_capacity is None &&
+      work.observation is None else {
+      return Err(ForeignOriginal)
+    }
+    owners.push(original)
+  }
+  guard @infer.original_source_free_model_observation_requirements(
+      owners, plans,
+    )
+    is Some((limits, bytes)) &&
+    @execution.execution_capacity(bytes, bytes) is Some(issuer) &&
+    @execution.add_execution_capacity(
+      self._retained_observation_capacity,
+      issuer,
+    )
+    is Some(payload) else {
+    return Err(Encoding)
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  let capacity = match
+    @infer.reserve_original_infer_publication_capacity(
+      active,
+      @execution.execution_capacity_retained_bytes(payload),
+      @execution.execution_capacity_execution_bytes(payload),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Model(issue))
+  }
+  // Keep the same reservation attached if the constructor refuses afterward.
+  self.publication_capacity = Some(capacity)
+  self.publication_retained = @model.original_model_publication_retained_bytes(
+    capacity,
+  )
+  self.publication_execution = @model.original_model_publication_execution_bytes(
+    capacity,
+  )
+  @infer.start_complete_original_observation_issuance(owners, capacity, limits)
+  .map_err(issue => NativeClientMockModelIssue::Model(issue))
+  .map(issued => self.observation = Some(issued))
+}
+
+///|
 /// Advance only the original flat evidence issuer, never the Model/provider.
 pub fn NativeClientMockModelWork::advance_observation(
   self : Self,
@@ -169,6 +243,7 @@ fn NativeClientMockModelWork::close_observation(
   // projection's export/uses before the complete issuer and its same-parent
   // reservation. Cancellation is not Model/Store/physical cleanup evidence.
   self.local_observation = None
+  self.publication_inputs = None
   if self.local_scan is Some(scan) {
     @execution.cancel_completed_relation_identity_scan(scan) |> ignore
     self.local_scan = None

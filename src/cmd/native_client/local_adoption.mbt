@@ -19,6 +19,16 @@ priv struct LocalHostSettings {
   run_policy_profile_file : String?
   reviewer_file : String?
   initial_host_signing : (String, String, String)?
+  model_http_installation : LocalModelHttpInstallationSettings?
+}
+
+///|
+priv struct LocalModelHttpInstallationSettings {
+  files : @local_host.NativeModelHttpConfigurationFiles
+  provider_id : String
+  response_profile_cid : String
+  execution_file : String?
+  policy_file : String?
 }
 
 ///|
@@ -33,6 +43,97 @@ fn local_settings_text(
     stop("InvalidLocalHostConfiguration")
   }
   text
+}
+
+///|
+// The operator's protected settings select only already adopted documents.
+// Credential bytes remain in the private file named by the installation.
+fn local_model_http_installation_settings(
+  cursor : @decode.Cursor,
+  installation_files : Array[String],
+) -> LocalModelHttpInstallationSettings raise ClientStop {
+  let child = @decode.indexed_child_construction_extent()
+  let retained = local_host_metadata_price(
+    local_host_metadata_units(4L, 11L, 1L, 0L),
+  )
+  let execution = local_host_metadata_price(
+    local_host_metadata_units(
+      20L + 8L * child.record_headers,
+      45L + 8L * child.reference_slots,
+      12L + 8L * child.scalar_words,
+      0L,
+    ),
+  )
+  local_host_metadata_prepare(retained, execution)
+  let fields = local_host_settings_object(
+    cursor,
+    [
+      "provider_id", "credential_installation", "installation_revision", "configuration_contract",
+      "response_profile", "response_profile_cid", "execution_file", "run_policy_file",
+    ],
+    3,
+    "InvalidLocalModelHttpInstallation",
+  )
+  let provider_id = local_settings_text(fields, "provider_id")
+  let setting = local_settings_text(fields, "credential_installation")
+  let installation_revision = local_settings_text(
+    fields, "installation_revision",
+  )
+  let configuration_contract = local_settings_text(
+    fields, "configuration_contract",
+  )
+  let response_profile = local_settings_text(fields, "response_profile")
+  let response_profile_cid = local_settings_text(fields, "response_profile_cid")
+  if provider_id.length() > 128 ||
+    provider_id.contains("\u{0}") ||
+    response_profile_cid.length() != 71 ||
+    !response_profile_cid.has_prefix("sha256:") ||
+    setting == installation_revision ||
+    setting == configuration_contract ||
+    setting == response_profile ||
+    installation_revision == configuration_contract ||
+    installation_revision == response_profile ||
+    configuration_contract == response_profile {
+    stop("InvalidLocalModelHttpInstallation")
+  }
+  let configuration_files = [
+    setting, installation_revision, configuration_contract, response_profile,
+  ]
+  for name in configuration_files {
+    if !installation_files.contains(name) {
+      stop("LocalModelHttpOriginalNotSelected")
+    }
+  }
+  let selected_file = fn(key : String) -> String? raise ClientStop {
+    match @decode.lookup(fields, key) {
+      None => None
+      Some(_) => {
+        let name = local_settings_text(fields, key)
+        if !installation_files.contains(name) ||
+          configuration_files.contains(name) {
+          stop("LocalModelHttpOriginalNotSelected")
+        }
+        Some(name)
+      }
+    }
+  }
+  let execution_file = selected_file("execution_file")
+  let policy_file = selected_file("run_policy_file")
+  if policy_file is Some(_) && policy_file == execution_file {
+    stop("LocalModelHttpOriginalNotSelected")
+  }
+  {
+    files: {
+      setting,
+      installation_revision,
+      configuration_contract,
+      response_profile,
+    },
+    provider_id,
+    response_profile_cid,
+    execution_file,
+    policy_file,
+  }
 }
 
 ///|
@@ -79,6 +180,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
       "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
       "journal_snapshot_bytes", "installation_files", "source_file", "run_file",
       "read_file", "reviewer_file", "run_policy_profile_file", "initial_host_signing",
+      "model_http_installation",
     ],
     2,
     "InvalidLocalHostConfiguration",
@@ -160,6 +262,12 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     snapshot_bytes: snapshot,
     installation_files,
     initial_host_signing,
+    model_http_installation: match
+      @decode.lookup(fields, "model_http_installation") {
+      None => None
+      Some(value) =>
+        Some(local_model_http_installation_settings(value, installation_files))
+    },
     run_policy_profile_file: match
       @decode.lookup(fields, "run_policy_profile_file") {
       None => None
@@ -316,6 +424,29 @@ fn execute_native_local_adoption(
   // The operator selects installation originals separately from submitted
   // Program data. Their bytes and generations join the same adoption intent;
   // naming a file installs no Source, Policy, credential or execution grant.
+  if settings.model_http_installation is Some(_) && preparation is Some(_) {
+    let installed = settings.installation_files
+    let host_file = settings.initial_host_signing is Some(_) ||
+      installed.contains("host.json")
+    let add_host = settings.initial_host_signing is Some(_) &&
+      !installed.contains("host.json")
+    let count = installed.length() + 2 + (if add_host { 1 } else { 0 })
+    let allowed = Int::min(
+      @run_host.client_local_model_configuration_file_limit(),
+      count - (if host_file { 1 } else { 0 }),
+    )
+    if !@run_host.client_local_configuration_file_count_supported(
+        count, host_file, allowed,
+      ) {
+      stop("LocalModelHttpConfigurationLimit")
+    }
+    // The command's distinct input vector and the selected Model descriptor
+    // are live through the next capture's separately funded snapshot.
+    let inventory = local_host_metadata_price(
+      local_host_metadata_units(9L, 30L + 2L * count.to_int64(), 16L, 0L),
+    )
+    local_host_metadata_prepare(inventory, inventory)
+  }
   let selected_files = [name, environment_file]
   for file in settings.installation_files {
     if selected_files.contains(file) || file == settings.account_file {

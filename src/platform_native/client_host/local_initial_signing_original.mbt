@@ -294,11 +294,13 @@ fn read_local_initial_signing_control(
   host : NativeLocalHostConnection,
   body : Bytes,
   signing_original? : NativeLocalInitialSigningOriginal? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeLocalInitialSigningFields?, NativeLocalAdoptionIssue] {
   read_local_initial_signing_control_with_host_key(
     host,
     body,
     signing_original~,
+    reads~,
   ).map(value => value.map(pair => pair.0))
 }
 
@@ -309,6 +311,7 @@ fn read_local_initial_signing_control_with_host_key(
   host : NativeLocalHostConnection,
   body : Bytes,
   signing_original? : NativeLocalInitialSigningOriginal? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[
   (
     NativeLocalInitialSigningFields,
@@ -345,6 +348,7 @@ fn read_local_initial_signing_control_with_host_key(
         "reviewer_proof",
         "local-signing-key.pem",
         signing_original~,
+        reads~,
       ),
     )
     let mut host_fields = None
@@ -362,6 +366,7 @@ fn read_local_initial_signing_control_with_host_key(
           "host_attestation",
           "local-host-attestation-key.pem",
           signing_original~,
+          reads~,
         ),
       )
       guard reviewer.public_key.raw32() is Ok(reviewer_raw) &&
@@ -380,6 +385,7 @@ fn read_local_initial_signing_control_with_host_key(
               header,
               host_key,
               signing_original~,
+              reads~,
             ),
           )
           is Some(subject) else {
@@ -536,6 +542,7 @@ fn read_local_initial_signing_packet(
   purpose : String,
   key_file : String,
   signing_original? : NativeLocalInitialSigningOriginal? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[NativeLocalInitialSigningFields, NativeLocalAdoptionIssue] {
   try {
     let payload = local_initial_signing_value(
@@ -543,6 +550,7 @@ fn read_local_initial_signing_packet(
         host,
         packet,
         signing_original~,
+        reads~,
       ),
     )
     let fields = local_initial_signing_value(
@@ -658,8 +666,9 @@ fn NativeLocalInitialSigningOriginal::decoded_initial_signing_public_key(
 fn valid_local_installation_control(
   host : NativeLocalHostConnection,
   body : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Bool {
-  read_local_initial_signing_control(host, body) is Ok(_)
+  read_local_initial_signing_control(host, body, reads~) is Ok(_)
 }
 
 ///|

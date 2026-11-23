@@ -31,6 +31,61 @@ pub fn NativeLocalJournalCapture::lookup_submitted_run_original_by_id_in_origina
 }
 
 ///|
+/// Authenticate the supplied Submission in the same bounded RunRead route as
+/// selection by ID. The resulting identity does not supply a saved state or
+/// authorize disclosure of that state before the caller checks its RunRef.
+pub fn NativeLocalJournalCapture::lookup_submitted_run_original_by_reference_in_original_read(
+  self : NativeLocalJournalCapture,
+  principal : String,
+  connection : String,
+  scope : String,
+  reference : NativeClientSubmissionReference,
+) -> Result[
+  Result[NativeClientOriginalRunSelection, NativeClientSavedRunStateIssue],
+  NativeLocalAdoptionIssue,
+] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    material,
+    operations,
+  ) => {
+    let allowed = () => {
+      self.original_run_operation_allowed(
+        host, material, principal, connection, scope, "read",
+      )
+      is Ok(true)
+    }
+    let reads = Some(operations.reads)
+    let selected = host.journal.transaction_with_reads(
+      () => {
+        if !allowed() {
+          return Err(AuthorizationDenied)
+        }
+        let selected = host.journal.run_reference_original_locked(
+          host.epoch,
+          reference,
+          scope,
+          reads~,
+        )
+        if !allowed() {
+          return Err(AuthorizationDenied)
+        }
+        selected
+      },
+      reads~,
+    )
+    Ok(
+      match selected {
+        Ok(Some((reference, request, definition))) =>
+          Ok({ reference, request, definition, scope, })
+        Ok(None) => Err(Unavailable)
+        Err(issue) => Err(Journal(issue))
+      },
+    )
+  })
+}
+
+///|
 /// Restore the exact saved observation under independently current RunRead.
 /// Full retained-row and effect-ledger custody, ambiguity refusal and the
 /// original transaction fence remain mandatory. Missing state stays missing.

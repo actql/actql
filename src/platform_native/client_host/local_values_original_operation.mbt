@@ -443,6 +443,10 @@ pub fn NativeLocalHostConnection::open_original_values_work(
   max_finalization_rounds : Int,
   requirements? : @local.ClientLocalRequirements? = None,
   managed? : @local.ClientInstalledManagedRun? = None,
+  drive_task? : ((Int, @local_driver.LocalManagedDispatchOperations[Int]) -> Result[
+    Unit,
+    @local.LocalValuesExecutionIssue,
+  ])? = None,
 ) -> Result[NativeClientValuesWork, NativeClientValuesWorkFailure] {
   let receiver = operation.receiver
   guard receiver.domain is StoreBusinessDomain(execution) else {
@@ -508,6 +512,7 @@ pub fn NativeLocalHostConnection::open_original_values_work(
     original_access=Some(access),
     requirements~,
     managed~,
+    drive_task~,
   )
   match result {
     Ok(work) => Ok(work)

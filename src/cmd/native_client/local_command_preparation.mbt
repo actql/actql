@@ -46,7 +46,9 @@ priv enum LocalCommandPreparationIssue {
   CommandBusinessSource(@row_file.NativeRelationFileIssue)
   CommandBusinessSourceIdentity(LocalNativeMockSourceIdentityIssue)
   CommandBusinessModel(@local_host.NativeClientMockModelIssue)
+  CommandBusinessModelHttp(@local_host.NativeClientModelHttpIssue)
   CommandBusinessModelGraph(@local_values.ClientRequestProgramPlanIssue)
+  CommandBusinessModelPlan(@local_values.ClientInstalledManagedRunIssue)
   CommandBusinessQueryPlan(@local_values.ClientRequestProgramPlanIssue)
   CommandBusinessQueryRequirement(@local_values.ClientLocalQueryIssue)
   CommandBusinessQueryRow(@row_host.RowHostIssue)
@@ -246,6 +248,7 @@ fn prepare_local_command_preparation_original(
       request_retiring: false,
       model_work: [],
       effect_model: None,
+      model_run: None,
       saved_effect_rows: [],
       saved_effect_files: None,
       values_work: None,
@@ -1345,6 +1348,7 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
   self : LocalCommandPreparationOriginal,
   input : @local_host.NativeLocalExistingAdoptionInput,
   initialize : Bool,
+  model_configuration? : @local_host.NativeLocalModelConfigurationSelection? = None,
 ) -> Result[
   @local_host.NativeLocalAdoptionSession,
   LocalCommandPreparationIssue,
@@ -1360,17 +1364,22 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
   }
   try {
     let crypto = command_preparation_value(self.library(true))
+    let construction = Some(value => self.prepare_account_construction(value))
     let selected = if initialize {
       @local_host.prepare_native_local_initial_adoption_capture_in_current_read_context(
         input,
         crypto,
         self.profile.diagnostic_ceiling,
+        model_configuration~,
+        construction~,
       )
     } else {
       @local_host.prepare_native_local_existing_adoption_capture_in_current_read_context(
         input,
         crypto,
         self.profile.diagnostic_ceiling,
+        model_configuration~,
+        construction~,
       )
     }
     let capture = command_preparation_value(
@@ -1386,13 +1395,7 @@ fn LocalCommandPreparationOriginal::prepare_adoption(
         )
       None => None
     }
-    if capture
-      .open(
-        product=self.product,
-        operator_host~,
-        construction=Some(value => self.prepare_account_construction(value)),
-      )
-      .issue()
+    if capture.open(product=self.product, operator_host~, construction~).issue()
       is Some(issue) {
       self.retain_primary(CommandCapture(issue))
       return Err(self.primary.unwrap_or(CommandCapture(issue)))

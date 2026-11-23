@@ -11,22 +11,14 @@ fn structured_raw_fixture_profile() -> @environment.ModelResponseProfile {
 }
 
 ///|
-fn structured_raw_fixture_binding() -> (
-  @publication.RunEvidenceValue,
-  String,
-  String,
-  String,
-) {
+fn structured_raw_fixture_binding(
+  configuration : String,
+) -> (@publication.RunEvidenceValue, String, String, String) {
   let binding = @publication_host.issue_client_model_provider_binding(
-    "models/fixture", "{}", "{}", structured_raw_configuration,
+    "models/fixture", "{}", "{}", configuration,
   ).unwrap()
   let empty = "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
-  (
-    binding,
-    empty,
-    empty,
-    "sha256:" + @sha.hex(@utf8.encode(structured_raw_configuration)),
-  )
+  (binding, empty, empty, "sha256:" + @sha.hex(@utf8.encode(configuration)))
 }
 
 ///|
@@ -83,6 +75,8 @@ fn structured_raw_fixture_plan(
   profile : @environment.ModelResponseProfile,
   start : (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
   foreign_decoder_profile : Bool,
+  configuration : String,
+  measured : Bool,
 ) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
   let execution = @publication_host.client_infer_plan_graph_execution_contract(
     active.plan.unwrap(),
@@ -99,13 +93,21 @@ fn structured_raw_fixture_plan(
   let selected : @model.ResolvedStructuredModel = {
     selector: "fixture-risk-model",
     model_id: "actual-sdk-model",
-    adapter_kind: "fixture-sdk",
-    api_mode: "structured",
+    adapter_kind: if measured {
+      "portable-http"
+    } else {
+      "fixture-sdk"
+    },
+    api_mode: if measured {
+      "chat-completions"
+    } else {
+      "structured"
+    },
     endpoint: installation.endpoint,
   }
   guard active.source is Physical(original) else { abort("fixture Provider") }
   let capability = @model.register_structured_model_capability(
-    original, binding, structured_raw_configuration, selected, profile, true, true,
+    original, binding, configuration, selected, profile, true, true,
   ).unwrap()
   let admitted = @model.admit_structured_model_provider(
     capability,
@@ -115,6 +117,18 @@ fn structured_raw_fixture_plan(
     installation,
     (_, _) => true,
   ).unwrap()
+  if measured {
+    let original = @model.prepare_model_http_chat_request(
+      admitted, request, installation, 100,
+    ).unwrap()
+    return @model.prepared_model_http_chat_plan(
+      original,
+      installation,
+      { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+      start,
+      measured_transfer=true,
+    )
+  }
   @model.structured_model_async_request_plan(
     admitted,
     capability,
