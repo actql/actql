@@ -541,7 +541,7 @@ function App() {
           {programText.split('\n').map((line,index)=><li key={index}><code>{line || ' '}</code></li>)}</ol>}
         <form className="query-controls" onSubmit={readPlan}>
           <span className="query-format">{({sql:'SQL', aql:'AQL', 'aql-text':'AQL text', program:'Program JSON'})[programFormat]}</span>
-          <button className="small primary" value="static-explanation" disabled={!connected || pending || !programText}>Explain Effect</button>
+          <button className="small primary" value="static-explanation" disabled={!connected || pending || !programText}>Explain</button>
           <details className="toolbar-menu query-menu"><summary aria-label="Query options">⋯</summary>
             <div className="panel query-options">
               <label className="query-file">Open query file <input type="file" accept=".sql,.aql,.json" onChange={event=>void openDraft(event)}/></label>

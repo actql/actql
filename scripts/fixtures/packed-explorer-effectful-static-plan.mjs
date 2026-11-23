@@ -247,7 +247,7 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       ui.lastAction = 'explain through the installed Story renderer';
       const received = page.waitForResponse(response =>
         response.url() === gateway.origin + '/api/read/static-explanation');
-      await page.getByRole('button', {name: 'Explain Effect', exact: true}).click();
+      await page.getByRole('button', {name: 'Explain', exact: true}).click();
       const response = await received;
       assert.equal(response.status(), 200, 'Installed Gateway must load the structural renderer');
       const {data: explained} = await response.json();

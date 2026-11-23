@@ -128,7 +128,7 @@ try {
         await page.getByLabel('Open query file').setInputFiles(join(project, 'deal-review.aql'));
         await page.getByLabel('Query options').click();
         const checked = page.waitForResponse(response => response.url() === gateway.origin + '/api/read/static-explanation');
-        await page.getByRole('button', {name: 'Explain Effect', exact: true}).click();
+        await page.getByRole('button', {name: 'Explain', exact: true}).click();
         const checkedResponse = await checked;
         assert.equal(checkedResponse.status(), 200);
         const {data: beforeRun} = await checkedResponse.json();
@@ -267,7 +267,7 @@ try {
         await page.getByLabel('Query options').click();
         await page.locator('.query-options label').filter({hasText: /^Language/u}).locator('select').selectOption('ja');
         await page.getByLabel('Query options').click();
-        await page.getByRole('button', {name: 'Explain Effect', exact: true}).click();
+        await page.getByRole('button', {name: 'Explain', exact: true}).click();
         await page.locator('.story-computation').filter({hasText: /3回の結合（name で結合する箇所を含む）/u}).waitFor();
         assert(await page.evaluate(() => document.documentElement.scrollWidth === window.innerWidth));
         await page.screenshot({path: join(evidence, 'installed-deal-review-narrow-ja.png')});
