@@ -15,6 +15,7 @@ import {retainInstalledHostInitializationFailure} from '../host-node/installed-h
 import {declaredProjectMockFootprintConstructionGeometry} from '../host-node/declared-project-catalog-construction.mjs';
 
 import type {EffectOwner} from '../host-node/installed-effect-inventory.mjs';
+import type {prepareInstalledProjectMock} from './installed-project-mock.mjs';
 
 type Data = Record<string, unknown>;
 type RecipeRuntime = Parameters<typeof prepareInstalledPhysicalWritePlanRecipe>[0]['moon'] & Readonly<{
@@ -26,23 +27,14 @@ type Runtime = RecipeRuntime & InventoryOptions['moon'] & Readonly<{
 }>;
 type File = ReturnType<typeof createMockFileTarget>;
 type FileOptions = Parameters<typeof createMockFileTarget>[0];
-type Mapping = Readonly<{mappingRef: string; mappingCid: string; body: string; target: string}>;
-type Physical = Readonly<{
-  declaration: unknown; resource: string; itemsPath: readonly string[]; keyPath: readonly string[];
-  primaryIdentity: string; writableFields: readonly string[];
-}>;
-type Write = Readonly<{
-  resource: string; permission: string; observe_permission: string; primary_identity: string;
-  aliases: readonly string[]; mappingWire: string; writable_fields: readonly string[]; update_fields?: readonly string[];
-}>;
-type Catalog = Readonly<{connectorId: string; registration: string; revision: string; connection: string}>;
-type Source = Readonly<{
-  declaration: unknown; physical: readonly Physical[]; writes: readonly Write[]; catalogue: Catalog;
-  effectPrepared: Readonly<{declaration: unknown; environment?: Readonly<{wire: string}>; mappings: readonly Mapping[]}>;
-  effectMember?: Readonly<{load(input: EffectInstallation): Effect | PromiseLike<Effect>}>;
-}>;
-type Target = Readonly<{source: Source; mapping: Mapping; physical: Physical; write: Write; beforeFields: readonly string[]}>;
-type Bundle = Readonly<{dataPath: string; sources: readonly Source[]; writables: readonly Target[]}>;
+type Preparation = Awaited<ReturnType<typeof prepareInstalledProjectMock>>;
+type Bundle = ReturnType<Preparation['originalsForRuntime']>;
+type Source = Bundle['sources'][number];
+type Target = Bundle['writables'][number];
+type Physical = Target['physical'];
+type Write = Target['write'];
+type Mapping = NonNullable<Target['mapping']>;
+type InstalledMapping = Extract<Mapping, {target: string}>;
 type Effect = EffectOwner & Readonly<{close(): unknown}>;
 type Authorization = Readonly<{configurationCid?: string}>;
 type Resources = Readonly<{
@@ -50,24 +42,12 @@ type Resources = Readonly<{
   assertCurrent(original: unknown): unknown;
   limits(original: unknown): unknown;
 }>;
-type MockPreparation = Readonly<{
-  originalsForRuntime(runtime: Runtime): Bundle;
-  constructWritableRuntime<T>(runtime: Runtime, phase: 'root' | 'source' | 'aliases',
-    source: Source | undefined, construct: () => T): PromiseLike<T> | T;
-}>;
+type MockPreparation = Pick<Preparation, 'originalsForRuntime' | 'constructWritableRuntime'>;
 type Recipe = ReturnType<typeof prepareInstalledPhysicalWritePlanRecipe>;
 type TargetPlanRecipes = ReturnType<typeof prepareInstalledTargetPlanRecipes>;
 type DriverInstance = ReturnType<typeof mockRowEffectDriver>;
 type ConstructedDriver = DriverInstance & Readonly<{
   targets: readonly Target[]; managedPlanRecipe?: Recipe; managedTargetPlanRecipes?: TargetPlanRecipes;
-}>;
-type EffectInstallation = Readonly<{
-  moon: Runtime; mappings: readonly Mapping[]; environmentWire: string;
-  connectorId: string; connectorRegistration: string; connectorRevision: string; connection: string;
-  site: DriverInstance['site']; driver: DriverInstance['driver'];
-  authorization: Authorization; runtimeBundleCid: string; bindingCid: string; ledgerRoot: string;
-  managedPlanRecipe?: Recipe; managedTargetPlanRecipes?: TargetPlanRecipes;
-  effectResources: Resources; limits: Readonly<{maxRows: number}>;
 }>;
 type Installation = Readonly<{
   moon: Runtime; mockPreparation: MockPreparation;
@@ -288,7 +268,7 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
       {moon, baseEnvironmentWire, installationServices}, async (original, _options, retain) => {
         const prepared = original.effectPrepared, catalogue = original.catalogue;
         if (typeof original.effectMember?.load !== 'function' || prepared?.declaration !== original.declaration ||
-            prepared.environment === undefined) fail('InstalledSourceInitializationUnavailable');
+            prepared!.environment === undefined) fail('InstalledSourceInitializationUnavailable');
         const selectedBinding = bindingFor === undefined ? sources.length === 1 ? bindingCid : undefined
           : bindingFor(original);
         if (!cid(selectedBinding)) fail('ForeignInstalledMockSourceBinding');
@@ -309,11 +289,11 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
           const recipes: Record<string, Readonly<{targetReadOperation: string; recipe: Recipe}>> = Object.create(null);
           for (const {mapping, write} of targets) {
             const targetReadOperation = write.observe_permission;
-            recipes[mapping.mappingCid] = Object.freeze({targetReadOperation,
+            recipes[mapping!.mappingCid] = Object.freeze({targetReadOperation,
               recipe: mockFileEffectPlanRecipe(moon, bundle, write.permission, targetReadOperation)});
           }
           return {...constructed, targets,
-            managedTargetPlanRecipes: prepareInstalledTargetPlanRecipes(prepared.mappings, Object.freeze(recipes))};
+            managedTargetPlanRecipes: prepareInstalledTargetPlanRecipes(prepared!.mappings, Object.freeze(recipes))};
         });
         const {driver, site, targets, managedPlanRecipe, managedTargetPlanRecipes} = constructed;
         // Every driver observes this SAME physical file. Reuse an existing
@@ -323,18 +303,18 @@ export async function installPreparedProjectMockEffects({moon, mockPreparation,
         try {
           // A member is consumed ONCE with ALL of its original prepared
           // mappings. Logical routing happens inside this same installed driver.
-          const effect = await original.effectMember.load({moon, mappings: prepared.mappings,
-            environmentWire: prepared.environment.wire, connectorId: catalogue.connectorId,
+          const effect = await original.effectMember.load({moon, mappings: prepared!.mappings,
+            environmentWire: prepared!.environment.wire, connectorId: catalogue.connectorId,
             connectorRegistration: catalogue.registration, connectorRevision: catalogue.revision,
             connection: catalogue.connection, site, authorization, runtimeBundleCid,
             bindingCid: selectedBinding, ledgerRoot, driver, managedPlanRecipe,
             ...(managedTargetPlanRecipes === undefined ? {} : {managedTargetPlanRecipes}), effectResources: resources,
-            limits: {maxRows: targetLimits.maxRows}});
+            limits: {maxRows: targetLimits.maxRows}}) as Effect;
           retain(effect);
           current();
           const projection = await mockPreparation.constructWritableRuntime(moon, 'aliases', original, () => {
             const aliases = targets.flatMap(target => target.write.aliases.map(name =>
-              Object.freeze({name, targetRef: target.mapping.target})));
+              Object.freeze({name, targetRef: (target.mapping as InstalledMapping).target})));
             return retainInstalledRowEffectAdapter(effect, Object.freeze({...effect,
               queryUpdateTargets: installedUpdateTargets(effect, aliases)}));
           });
@@ -436,7 +416,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
     return target;
   }
   function targetForRecord(record: Readonly<{mapping?: unknown}> | null | undefined) {
-    const target = targets.find(value => value.mapping.mappingCid === record?.mapping);
+    const target = targets.find(value => value.mapping!.mappingCid === record?.mapping);
     if (target === undefined) fail('InvalidMockEffectRequest');
     return target;
   }
@@ -462,8 +442,8 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
     current();
     if (member === null || typeof member !== 'object') fail('ForeignMockEffectMember');
     const target = targetForResource(member.resource);
-    if (member.kind !== 'update' || member.mapping?.mappingCid !== target.mapping.mappingCid ||
-        member.mapping?.mappingRef !== target.mapping.mappingRef) fail('ForeignMockEffectMember');
+    if (member.kind !== 'update' || member.mapping?.mappingCid !== target.mapping!.mappingCid ||
+        member.mapping?.mappingRef !== target.mapping!.mappingRef) fail('ForeignMockEffectMember');
     return target;
   }
   function description(value: object, runOriginal: RunOriginal | undefined, target: Target | undefined) {
@@ -555,7 +535,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
     runCurrent(runOriginal);
     const target = targetForRecord(record), {write: spec, mapping, beforeFields} = target;
     if (!closed(record, ['binding', 'mapping', 'target', 'value', 'version', 'before']) ||
-        record.binding !== bindingCid || record.mapping !== mapping.mappingCid ||
+        record.binding !== bindingCid || record.mapping !== mapping!.mappingCid ||
         typeof record.target !== 'string' || !record.target.isWellFormed() ||
         !changes(record.value, target) || !cid(record.version) || !closed(record.before, beforeFields) ||
         record.before[spec.primary_identity] !== record.target || Buffer.byteLength(wire(record)) > maximum) {
@@ -585,7 +565,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
         const document = admit(bytes, target), observed = observe(document, selector);
         // Validate the Mapping body with Common before sealing the request.
         checked(call('update', document.selected, observed.row, observed.versionCid, wire(value), work));
-        const request = requestFrom({binding: bindingCid, mapping: mapping.mappingCid,
+        const request = requestFrom({binding: bindingCid, mapping: mapping!.mappingCid,
           target: selector, value, version: observed.versionCid, before: observed.before}, runOriginal);
         const original = requests.get(request)!;
         requests.set(request, Object.freeze({...original, observedAt: selected}));
