@@ -249,7 +249,16 @@ fn native_mock_effect_operations(
       stop("LocalOriginalEffectImplementationUnavailable")
     }
     let deleting = descriptor.2 == "delete"
-    let physical = (if deleting {
+    let creating = descriptor.2 == "create"
+    let physical = (if creating {
+      // The Saved application prices the document after observing the actual
+      // file length. The preparation Plan only needs fixed insertion controls.
+      @row_file.native_relation_file_target_insert_construction(
+        binding.provider,
+        None,
+        None,
+      ).map(value => value.0)
+    } else if deleting {
       @row_file.native_relation_file_delete_target_io_capacity(binding.provider)
     } else {
       @row_file.native_relation_file_target_io_capacity(
@@ -263,12 +272,27 @@ fn native_mock_effect_operations(
     // Include the complete canonical request prefix before its later check:
     // target + changes + full before, six-byte JSON escaping for original
     // binding/Mapping metadata, the original 71-unit version and punctuation.
-    let request_bytes = native_mock_effect_request_bytes(
-      wire,
-      binding.limits.page.max_bytes,
-      installation.binding,
-      installation.write.mapping.mapping_cid,
-    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let request_bytes = (if creating {
+      let bytes = wire.max_bytes.to_int64() +
+        192L +
+        6L *
+        (
+          installation.binding.length().to_int64() +
+          installation.write.mapping.mapping_cid.length().to_int64()
+        )
+      if bytes > 2147483647L {
+        None
+      } else {
+        Some(bytes.to_int())
+      }
+    } else {
+      native_mock_effect_request_bytes(
+        wire,
+        binding.limits.page.max_bytes,
+        installation.binding,
+        installation.write.mapping.mapping_cid,
+      )
+    }).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let original_capture = native_mock_effect_recipe_capacities(
       wire, record_bytes, request_bytes, physical,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
@@ -307,25 +331,22 @@ fn native_mock_effect_operations(
     let recovery = @local_values.prepare_installed_effect_capture_recipe_extent(
       "native.mock.file.recovery", original_capture,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    let read_initial = installation
-      .file_target_read_capacity(binding.provider, response_bytes=Some(0))
-      .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    let read_maximum = installation
-      .file_target_read_capacity(binding.provider)
-      .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-    let read_maximum = native_mock_effect_capacity_envelope(
-      physical, read_maximum,
-    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     // Initial fixed controls/replacement slots, not another Target document.
     // Actual original changes/before/version refine this SAME staged extent.
-    let request_initial = native_mock_effect_changes_input_capacity(
-      binding.limits.page,
-      installation.write.mapping.write_fields.length(),
-      "",
-      "",
-      "",
-      deleting~,
-    ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+    let request_initial = (if creating {
+      // The measured member constructor assembles the request without a row
+      // child. No target projection or decoded before image exists.
+      @execution.execution_capacity(0L, 0L)
+    } else {
+      native_mock_effect_changes_input_capacity(
+        binding.limits.page,
+        installation.write.mapping.write_fields.length(),
+        "",
+        "",
+        "",
+        deleting~,
+      )
+    }).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let request_maximum = native_mock_effect_capacity_envelope(
       quantities[2],
       request_initial,
@@ -345,32 +366,45 @@ fn native_mock_effect_operations(
       true,
     ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
     let rows = [request, write]
-    for phase in ["capture-target", "apply-target", "resume-target"] {
-      let operation = "native.mock.file." + phase
-      let maximum = @local_values.prepare_installed_effect_operation_extent(
-        operation,
-        if phase == "capture-target" {
-          read_maximum
-        } else {
-          physical
-        },
-        binding.limits.page.max_bytes.to_int64(),
-        true,
+    if !creating {
+      let read_initial = installation
+        .file_target_read_capacity(binding.provider, response_bytes=Some(0))
+        .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+      let read_maximum = installation
+        .file_target_read_capacity(binding.provider)
+        .unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+      let read_maximum = native_mock_effect_capacity_envelope(
+        physical, read_maximum,
       ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-      let extent = if phase == "capture-target" {
-        @local_values.prepare_installed_effect_staged_extent(
-          @local_values.prepare_installed_effect_operation_extent(
-            operation,
-            read_initial,
-            binding.limits.page.max_bytes.to_int64(),
-            true,
-          ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable")),
-          maximum,
+      for phase in ["capture-target", "apply-target", "resume-target"] {
+        let operation = "native.mock.file." + phase
+        let maximum = @local_values.prepare_installed_effect_operation_extent(
+          operation,
+          if phase == "capture-target" {
+            read_maximum
+          } else {
+            physical
+          },
+          binding.limits.page.max_bytes.to_int64(),
+          true,
         ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
-      } else {
-        maximum
+        let extent = if phase == "capture-target" {
+          @local_values.prepare_installed_effect_staged_extent(
+            @local_values.prepare_installed_effect_operation_extent(
+              operation,
+              read_initial,
+              binding.limits.page.max_bytes.to_int64(),
+              true,
+            ).unwrap_or_else(() => {
+              stop("LocalOriginalEffectCapacityUnavailable")
+            }),
+            maximum,
+          ).unwrap_or_else(() => stop("LocalOriginalEffectCapacityUnavailable"))
+        } else {
+          maximum
+        }
+        rows.push(extent)
       }
-      rows.push(extent)
     }
     let controls_per_row = native_mock_effect_target_control_capacity(
       quantities[4],

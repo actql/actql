@@ -178,6 +178,77 @@ fn emit_native_local_effect_file_create_request(
 }
 
 ///|
+/// Compose the approved row data and its physical request commitment.
+pub fn native_local_effect_file_create_preview_row(
+  after : Json,
+  correlation : Json,
+  originals : (String, String, String, String),
+  pending : String,
+  limits : @checkpoint.WireLimits,
+) -> Result[(Json, String), Unit] {
+  guard correlation is Object(target) &&
+    target.length() == 2 &&
+    target.get("content_cid") is Some(String(content)) &&
+    target.get("occurrence") is Some(Number(ordinal, ..)) &&
+    ordinal >= 0.0 &&
+    ordinal <= 2147483647.0 &&
+    ordinal == ordinal.to_int().to_double() &&
+    after is Object(fields) &&
+    fields.length() == 2 &&
+    fields.get("state") is Some(String("present")) &&
+    fields.get("value") is Some(Object(_) as value) else {
+    return Err(())
+  }
+  let (run, binding, identity, mapping) = originals
+  guard @publication.effect_file_create_storage_key(
+      run,
+      binding,
+      identity,
+      content,
+      ordinal.to_int(),
+    )
+    is Ok(key) else {
+    return Err(())
+  }
+  let payload = @canonical.from_json(
+    value,
+    limits.max_nodes,
+    limits.max_depth,
+    limits.max_wire_bytes,
+    data_keys=true,
+  ) catch {
+    _ => return Err(())
+  }
+  guard native_local_effect_file_create_request_wire(
+      binding,
+      mapping,
+      key,
+      payload,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    is Ok(request) &&
+    @sha.text_hex(request) is Ok(digest) else {
+    return Err(())
+  }
+  Ok(
+    (
+      {
+        "target_row_identity": correlation,
+        "target_guard": { "state": "not_applicable" },
+        "before": { "state": "absent" },
+        "after": after,
+        "intended_changes": after,
+        "row_preview_cid": Json::string(pending),
+        "row_idempotency_key": Json::string(pending),
+      },
+      "sha256:" + digest,
+    ),
+  )
+}
+
+///|
 /// Execution order and raw admission order are different inventories. Join
 /// once through the original row CID; never index the raw key vector by an
 /// execution ordinal or recompute an already checked key.

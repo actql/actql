@@ -610,13 +610,13 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
   let (initial, _) = native_relation_file_target_insert_construction(
     provider,
     None,
-    mapped_wire,
+    None,
   ).unwrap()
   assert_true(
     native_relation_file_target_insert_construction(
       provider,
       Some(provider.limits.page.max_bytes),
-      mapped_wire,
+      Some(mapped_wire),
     )
     is None,
   )
@@ -631,7 +631,7 @@ fn target_io_fixture_insert_work(directory : String) -> Unit raise {
       guard native_relation_file_target_insert_construction(
           provider,
           Some(bytes),
-          mapped_wire,
+          Some(mapped_wire),
         )
         is Some((actual, _)) else {
         return false

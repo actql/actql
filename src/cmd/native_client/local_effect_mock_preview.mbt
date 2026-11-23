@@ -262,7 +262,13 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   let run_cid = @publication.publication_contract_identity(
     materials.run_definition,
   )
-  let measured_preview = proposals.measured_model_capture
+  let checked_preview = @checked.effect_program_static_headers(
+    @run_host.prepared_client_effect_computation_candidate(materials.prepared),
+  )
+  let includes_create = @syntax.effect_header_count(checked_preview) == 1 &&
+    @syntax.effect_header_at(checked_preview, 0) is Some(header) &&
+    @syntax.effect_header_kind(header) == "create"
+  let measured_preview = proposals.measured_model_capture || includes_create
   let (
     draft,
     draft_bytes,
@@ -270,7 +276,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     draft_depth,
     sources,
     identities,
-    target_index,
+    row_count,
   ) = {
     let mut draft_row_bytes = 0L
     let model_cids : Array[String] = []
@@ -310,6 +316,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
     let identities : Array[@run_host.ClientEffectLocalIdentity] = []
     let pending = "sha256:" + "0".repeat(64)
     let mut target_index = 0
+    let mut row_count = 0
     for index, entry in proposals.members {
       let input = @strategy.captured_effect_input_at(proposals.inputs, index).unwrap_or_else(() => {
           stop("LocalOriginalEffectPreviewUnavailable")
@@ -331,6 +338,7 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
         max_work,
       ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewUnavailable"))
       let deleting = descriptor.2 == "delete"
+      let creating = descriptor.2 == "create"
       guard descriptor.0 == index &&
         descriptor.6 is Some(result_name) &&
         installations
@@ -404,56 +412,79 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
         .prepare_body_result(@execution.execution_capacity(0L, draft_row_bytes))
         .native_effect_proposal_with_cause(report)
       }
-      let changes : Array[Json] = []
-      let requests : Array[Json] = []
-      for _ in 0..<entry.rows.length() {
-        guard state.targets.get(target_index) is Some(target) &&
-          target._retained_request is Some((request_wire, request_cid)) else {
-          stop("LocalOriginalEffectPreviewTargetUnavailable")
+      let (changes, requests) = if creating {
+        let (changes, requests, retained) = construction.prepare_mock_file_create_preview(
+          entry.rows,
+          (
+            run_cid,
+            selected.binding,
+            @run_host.client_effect_local_identity_cid(identity),
+            descriptor.5,
+          ),
+          pending,
+          { max_wire_bytes: max_bytes, max_nodes, max_depth, },
+          draft_row_bytes,
+          report,
+        )
+        draft_row_bytes = retained
+        (changes, requests)
+      } else {
+        let changes : Array[Json] = []
+        let requests : Array[Json] = []
+        for _ in 0..<entry.rows.length() {
+          guard state.targets.get(target_index) is Some(target) &&
+            target._retained_request is Some((request_wire, request_cid)) else {
+            stop("LocalOriginalEffectPreviewTargetUnavailable")
+          }
+          if measured_preview {
+            draft_row_bytes = construction.fund_preview_target_row(
+              request_wire, draft_row_bytes, report,
+            )
+          }
+          guard native_mock_preview_json(request_wire) is Object(request) &&
+            request.get("target") is Some(target_value) &&
+            request.get("before") is Some(before) &&
+            json_text(request, "binding") == Some(selected.binding) &&
+            json_text(request, "mapping") == Some(descriptor.5) &&
+            json_text(request, "version") is Some(version) else {
+            stop("LocalOriginalEffectPreviewTargetUnavailable")
+          }
+          let value = match request.get("value") {
+            None if deleting && request.length() == 5 => Json::null()
+            Some(value) if !deleting &&
+              request.length() == 6 &&
+              value is Object(_) => value
+            _ => stop("LocalOriginalEffectPreviewTargetUnavailable")
+          }
+          target_index += 1
+          requests.push(Json::string(request_cid))
+          changes.push({
+            "target_row_identity": target_value,
+            "target_guard": {
+              "state": "version",
+              "version_cid": Json::string(version),
+            },
+            "before": { "state": "present", "value": before },
+            "after": if deleting {
+              { "state": "absent" }
+            } else {
+              { "state": "present", "value": value }
+            },
+            "intended_changes": if deleting {
+              { "state": "not_applicable" }
+            } else {
+              { "state": "present", "value": value }
+            },
+            "row_preview_cid": Json::string(pending),
+            "row_idempotency_key": Json::string(pending),
+          })
         }
-        if measured_preview {
-          draft_row_bytes = construction.fund_preview_target_row(
-            request_wire, draft_row_bytes, report,
-          )
-        }
-        guard native_mock_preview_json(request_wire) is Object(request) &&
-          request.get("target") is Some(target_value) &&
-          request.get("before") is Some(before) &&
-          json_text(request, "binding") == Some(selected.binding) &&
-          json_text(request, "mapping") == Some(descriptor.5) &&
-          json_text(request, "version") is Some(version) else {
-          stop("LocalOriginalEffectPreviewTargetUnavailable")
-        }
-        let value = match request.get("value") {
-          None if deleting && request.length() == 5 => Json::null()
-          Some(value) if !deleting &&
-            request.length() == 6 &&
-            value is Object(_) => value
-          _ => stop("LocalOriginalEffectPreviewTargetUnavailable")
-        }
-        target_index += 1
-        requests.push(Json::string(request_cid))
-        changes.push({
-          "target_row_identity": target_value,
-          "target_guard": {
-            "state": "version",
-            "version_cid": Json::string(version),
-          },
-          "before": { "state": "present", "value": before },
-          "after": if deleting {
-            { "state": "absent" }
-          } else {
-            { "state": "present", "value": value }
-          },
-          "intended_changes": if deleting {
-            { "state": "not_applicable" }
-          } else {
-            { "state": "present", "value": value }
-          },
-          "row_preview_cid": Json::string(pending),
-          "row_idempotency_key": Json::string(pending),
-        })
+        (changes, requests)
       }
+      if changes.length() > max_nodes - row_count {
+        stop("LocalOriginalEffectPreviewTargetUnavailable")
+      }
+      row_count += changes.length()
       // Wire projection of the existing installed row-driver contract: the
       // selected implementation is single-serial without provider idempotency.
       // This identity is not an Account decision, claim or send permission.
@@ -602,17 +633,17 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
       draft_json,
     )
     (
-      draft, draft_bytes, draft_nodes, draft_depth, sources, identities, target_index,
+      draft, draft_bytes, draft_nodes, draft_depth, sources, identities, row_count,
     )
   }
   let (semantic, authored, identity) = if measured_preview {
     // Member/row/digest placeholders use the same 71 ASCII units as their
     // issued CIDs. The emitted shape adds only row_order strings to this
-    // draft; target_index is the number of changes already constructed.
+    // draft; row_count includes both authored inserts and observed targets.
     construction
     .prepare_body_result(
       @publication.effect_preview_semantic_authoring_construction_inventory(
-        draft_bytes, draft_nodes, draft_depth, target_index, max_bytes, max_nodes,
+        draft_bytes, draft_nodes, draft_depth, row_count, max_bytes, max_nodes,
       ).bind(inventory => {
         @execution.preparation_representation_cost({
           // The authored and later completion carriers stay paid here.
@@ -749,6 +780,12 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
   // can fail. Its borrowed pins remain owned by the same proposals record.
   state.preview = Some(held)
   for index, entry in proposals.members {
+    if @publication.effect_preview_member_kind(completed_identity, index) ==
+      Some("create") {
+      // Common validates CREATE content and occurrence IDs in Preview.
+      // The verifier below belongs to version-guarded Effect terminals.
+      continue
+    }
     let verifier = @strategy.prepare_captured_effect_plan_verifier(
         held.inputs,
         index,
@@ -785,6 +822,104 @@ fn LocalNativeMockEffectPlan::build_mock_effect_preview(
       .native_effect_proposal_with_cause(report),
     )
   }
+}
+
+///|
+// Common assigns an occurrence to each original proposed value, including
+// repeated values. Only the physical request uses the derived storage key.
+fn LocalNativeMockEffectImportConstruction::prepare_mock_file_create_preview(
+  self : Self,
+  rows : Array[(String, String)],
+  originals : (String, String, String, String),
+  pending : String,
+  limits : @checkpoint.WireLimits,
+  prior : Int64,
+  report : (LocalNativeMockEffectProposalIssue) -> Unit,
+) -> (Array[Json], Array[Json], Int64) raise ClientStop {
+  let count = rows.length()
+  if count == 0 || count > limits.max_nodes {
+    stop("LocalOriginalEffectPreviewTargetUnavailable")
+  }
+  let mut remaining = limits.max_wire_bytes
+  let mut largest = 128
+  for (selector, wire) in rows {
+    guard selector == "null" &&
+      @scalar.admit_utf8_length(wire, remaining) is Ok(bytes) else {
+      stop("LocalOriginalEffectPreviewTargetUnavailable")
+    }
+    remaining -= bytes
+    largest = Int::max(largest, bytes)
+  }
+  let nodes = Int::min(limits.max_nodes, largest + 2)
+  let depth = Int::min(limits.max_depth, nodes)
+  guard native_mock_effect_dependency_body_capacity(largest, nodes, depth)
+    is Some(codec) &&
+    @encode.hash_writer_construction_inventory(nodes, depth) is Some(hash) &&
+    @execution.preparation_representation_cost({
+      // Source wires, sortable digest/index pairs, occurrence wire pairs,
+      // and the returned draft and request vectors share a live prefix.
+      record_headers: hash.record_headers + 24L + 12L * count.to_int64(),
+      reference_slots: hash.reference_slots + 64L + 30L * count.to_int64(),
+      scalar_words: hash.scalar_words + 16L + 8L * count.to_int64(),
+      owned_utf16_units: hash.owned_utf16_units + 320L * count.to_int64(),
+      owned_wire_bytes: hash.owned_wire_bytes,
+    })
+    is Some(control) &&
+    @execution.checked_preparation_add_product(prior, control, 1L)
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      retained,
+      @execution.execution_capacity_execution_bytes(codec),
+      1L,
+    )
+    is Some(peak) else {
+    report(Managed(InsufficientCapacity))
+    stop("LocalOriginalEffectPreviewTargetUnavailable")
+  }
+  self
+  .prepare_body_result(@execution.execution_capacity(0L, peak))
+  .native_effect_proposal_with_cause(report)
+  let inventory = @publication.derive_effect_create_row_inventory(
+      rows.map(row => row.1),
+      count,
+      limits.max_wire_bytes,
+      limits.max_nodes,
+      limits.max_depth,
+    )
+    .map_err(issue => LocalNativeMockEffectProposalIssue::PreviewBody(issue))
+    .native_effect_proposal_with_cause(report)
+  let changes : Array[Json] = []
+  let requests : Array[Json] = []
+  let mut retained = retained
+  for (index, correlation_wire) in inventory {
+    let wire = rows[index].1
+    retained = self.fund_preview_target_row(wire, retained, report)
+    let (run, binding, identity, mapping) = originals
+    let request = native_mock_effect_request_json_capacity(
+      "", wire, "", binding, mapping, "",
+    )
+    self
+    .prepare_body_result(
+      request.bind(capacity => {
+        @execution.checked_preparation_add_product(
+          retained,
+          @execution.execution_capacity_execution_bytes(capacity),
+          1L,
+        ).bind(peak => @execution.execution_capacity(0L, peak))
+      }),
+    )
+    .native_effect_proposal_with_cause(report)
+    let (change, request_cid) = @local_host.native_local_effect_file_create_preview_row(
+      native_mock_preview_json(wire),
+      native_mock_preview_json(correlation_wire),
+      (run, binding, identity, mapping),
+      pending,
+      limits,
+    ).unwrap_or_else(() => stop("LocalOriginalEffectPreviewTargetUnavailable"))
+    changes.push(change)
+    requests.push(Json::string(request_cid))
+  }
+  (changes, requests, retained)
 }
 
 ///|

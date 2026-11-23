@@ -83,7 +83,7 @@ fn LocalNativeSavedEffectFileRow::file_write_construction(
       @row_file.native_relation_file_target_insert_construction(
         provider,
         observed_bytes,
-        self.changes_wire,
+        Some(self.changes_wire),
       )
     "delete" =>
       @row_file.native_relation_file_target_delete_construction(

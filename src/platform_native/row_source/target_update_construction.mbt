@@ -33,14 +33,12 @@ pub fn native_relation_file_target_delete_construction(
 pub fn native_relation_file_target_insert_construction(
   provider : NativeRelationFilePreparedProvider,
   observed_bytes : Int?,
-  mapped_wire : String,
+  mapped_wire : String?,
 ) -> (@execution.ExecutionCapacity, Int64)? {
   let limits = provider.limits
   let response_bytes = observed_bytes.unwrap_or(0)
   guard response_bytes >= 0 &&
     response_bytes < limits.page.max_bytes &&
-    !mapped_wire.is_empty() &&
-    mapped_wire.length() <= limits.page.max_bytes &&
     file_capture_metadata_capacity(
       provider.selection,
       limits,
@@ -61,6 +59,11 @@ pub fn native_relation_file_target_insert_construction(
   let (document, document_units, insertion) = if observed_bytes is None {
     (0L, empty, empty)
   } else {
+    guard mapped_wire is Some(mapped_wire) &&
+      !mapped_wire.is_empty() &&
+      mapped_wire.length() <= limits.page.max_bytes else {
+      return None
+    }
     let contract = @rows.relation_document_prepared_contract(
       provider.prepared_contract,
     )
