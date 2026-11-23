@@ -4,13 +4,41 @@
 import {storeCompletedResultPublicationPayload} from
   '../host-common/durable-result-payload.mjs';
 
-const yieldToHost = () => new Promise(resolve => setImmediate(resolve));
-const issue = code => Object.assign(new Error(code), {code});
-const quantity = value => Number.isInteger(value) && value >= 0 && value <= 2147483647;
+import type {contentGenerationControl} from '../host-common/content-generation-control.mjs';
+import type {outputExportControl} from '../host-common/output-export-control.mjs';
+
+type Payload = Parameters<typeof storeCompletedResultPublicationPayload>;
+type PayloadPublication = Payload[5];
+type ContentControl = ReturnType<typeof contentGenerationControl>;
+type Publication = Pick<PayloadPublication, 'runDefinition' | 'invocation' | 'retention' | 'evidenceContext'> &
+  Readonly<{outputLimits: Payload[4]; contractLimits: Parameters<ContentControl['resultOccurrence']>[3]}>;
+type Compiled = Parameters<ContentControl['resultOccurrence']>[0];
+type SerializationPublicationOptions = Readonly<{
+  moon: Readonly<{clientProgramResultCount(preparedProgram: unknown): number}>;
+  core: Readonly<{
+    contentGenerationControl: Pick<ContentControl, 'completedOutput' | 'resultOccurrence' | 'resultStart' |
+      'resultAdvance' | 'resultFinish' | 'resultCancel'>;
+    outputExportControl: Payload[1] & Pick<ReturnType<typeof outputExportControl>, 'rowsComplete' | 'advance'>;
+    publicationControl: PayloadPublication['control'] & Readonly<{
+      checkClientCompiledRunOwner(compiled: Compiled, preparedProgram: unknown): unknown;
+    }>;
+  }>;
+  compiled: Compiled;
+  preparedProgram: unknown;
+  generation: unknown;
+  contractLimits: Publication['contractLimits'];
+  remainingWork(): number;
+  chargeWork(delta: number): unknown;
+  quantum?: number;
+}>;
+
+const yieldToHost = () => new Promise<void>(resolve => setImmediate(resolve));
+const issue = (code: string) => Object.assign(new Error(code), {code});
+const quantity = (value: number) => Number.isInteger(value) && value >= 0 && value <= 2147483647;
 
 export function serializationPublicationExecution({moon, core, compiled,
   preparedProgram, generation, contractLimits, remainingWork, chargeWork,
-  quantum = 32}) {
+  quantum = 32}: SerializationPublicationOptions) {
   const control = core.contentGenerationControl;
   core.publicationControl.checkClientCompiledRunOwner(compiled, preparedProgram);
   if (compiled.kind !== 'serialization' || typeof remainingWork !== 'function' ||
@@ -25,7 +53,7 @@ export function serializationPublicationExecution({moon, core, compiled,
   }, (_, index) => control.resultOccurrence(compiled, preparedProgram, index, contractLimits)));
   return Object.freeze({status: 'host-tasks-completed', resultInventory: occurrences,
     publicationInventory: Object.freeze({occurrences}),
-    async storePublicationResult(index, store, publication, signal) {
+    async storePublicationResult(index: number, store: Payload[0], publication: Publication, signal?: AbortSignal) {
       if (!Number.isSafeInteger(index) || occurrences[index] === undefined) {
         throw new TypeError('InvalidContentPublicationResult');
       }

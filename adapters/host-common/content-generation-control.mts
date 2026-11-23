@@ -83,7 +83,7 @@ type GenerationPublicationBindings = Readonly<{
   ): CommonObject;
   checkedClientSerializationGenerationOutput(compiled: unknown, generation: unknown): CommonObject;
   checkClientCompiledRunOwner(compiled: unknown, checkedProgram: unknown): void;
-  admit(name: 'result_definition', completeWire: string, limits: ContractLimits): CommonObject;
+  admit(name: 'result_definition', completeWire: string, limits: ContractLimits): CommonObject & Readonly<{identity: string}>;
 }>;
 
 // The generated Common JS entries own the handles and raw Result shapes.

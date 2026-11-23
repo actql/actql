@@ -2504,6 +2504,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-content-family.d.mts
 /adapters/host-node/content-recovery-dispatch.mjs
 /adapters/host-node/content-recovery-dispatch.d.mts
+/adapters/host-node/serialization-result-publication.mjs
+/adapters/host-node/serialization-result-publication.d.mts
 /adapters/host-node/stored-content-consumption.test.mjs
 /adapters/host-node/stored-content-consumption.test.d.mts
 /adapters/host-node/local-values-retention-original.test.mjs

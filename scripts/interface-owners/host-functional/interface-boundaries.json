@@ -98806,7 +98806,7 @@
     {
       "module": "adapters/host-node/serialization-result-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b6d933374ceb3da2d44bd3dbedd17d7c2a4803b72736957fb42b4c08ad167636",
+      "sha256": "2421e61bc8f0ea4410206b5da615cb5fcf000b82ebd01398f2c212d4bfe24d58",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -98891,7 +98891,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "export function serializationPublicationExecution({moon, core, compiled,"
               },
               {
@@ -98905,7 +98905,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "export function serializationPublicationExecution({moon, core, compiled,"
               },
               {
@@ -98919,7 +98919,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "// Export the original checked Serialize completion through the existing"
               },
               {
@@ -98933,7 +98933,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "// Result view, physical payload and completed-Run publication owners. This"
               },
               {
@@ -98947,8 +98947,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve => setImmediate(resolve));"
+                "path": "adapters/host-node/serialization-result-publication.mts",
+                "anchor": "const yieldToHost = () => new Promise<void>(resolve => setImmediate(resolve));"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -98961,8 +98961,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
-                "anchor": "const issue = code => Object.assign(new Error(code), {code});"
+                "path": "adapters/host-node/serialization-result-publication.mts",
+                "anchor": "const issue = (code: string) => Object.assign(new Error(code), {code});"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -98975,8 +98975,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
-                "anchor": "async storePublicationResult(index, store, publication, signal) {"
+                "path": "adapters/host-node/serialization-result-publication.mts",
+                "anchor": "async storePublicationResult(index: number, store: Payload[0], publication: Publication, signal?: AbortSignal) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -98989,7 +98989,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "// adapter borrows completion/custody; it does not issue a Run or hold bytes."
               },
               {
@@ -99003,7 +99003,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "export function serializationPublicationExecution({moon, core, compiled,"
               },
               {
@@ -99035,7 +99035,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "export function serializationPublicationExecution({moon, core, compiled,"
               },
               {
@@ -99049,7 +99049,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "export function serializationPublicationExecution({moon, core, compiled,"
               },
               {
@@ -99063,7 +99063,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "// Export the original checked Serialize completion through the existing"
               },
               {
@@ -99077,7 +99077,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "// Result view, physical payload and completed-Run publication owners. This"
               },
               {
@@ -99091,8 +99091,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
-                "anchor": "const yieldToHost = () => new Promise(resolve => setImmediate(resolve));"
+                "path": "adapters/host-node/serialization-result-publication.mts",
+                "anchor": "const yieldToHost = () => new Promise<void>(resolve => setImmediate(resolve));"
               },
               {
                 "path": "docs/design/retained-result-boundary.md",
@@ -99105,8 +99105,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
-                "anchor": "const issue = code => Object.assign(new Error(code), {code});"
+                "path": "adapters/host-node/serialization-result-publication.mts",
+                "anchor": "const issue = (code: string) => Object.assign(new Error(code), {code});"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -99119,8 +99119,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
-                "anchor": "async storePublicationResult(index, store, publication, signal) {"
+                "path": "adapters/host-node/serialization-result-publication.mts",
+                "anchor": "async storePublicationResult(index: number, store: Payload[0], publication: Publication, signal?: AbortSignal) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -99133,7 +99133,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "// adapter borrows completion/custody; it does not issue a Run or hold bytes."
               },
               {
@@ -99147,7 +99147,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/serialization-result-publication.mjs",
+                "path": "adapters/host-node/serialization-result-publication.mts",
                 "anchor": "export function serializationPublicationExecution({moon, core, compiled,"
               },
               {
