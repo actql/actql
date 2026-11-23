@@ -538,13 +538,55 @@ async def _async_cancellation(version: str, phase: str, receipt: Path) -> dict[s
     return terminal
 
 
+def _named_results(version: str, phase: str, receipt: Path, fixture: Path) -> list[str]:
+    from actql import Client
+
+    with fixture.open('rb') as source:
+        encoded = source.read(65537)
+    if len(encoded) > 65536:
+        raise AssertionError('Named Results fixture exceeds its bound')
+    body = json.loads(encoded)
+    if (type(body) is not dict or set(body) != {'aql', 'results'}
+            or type(body['aql']) is not str or not body['aql']
+            or type(body['results']) is not dict
+            or set(body['results']) != {'before_change', 'after_change'}
+            or any(type(rows) is not list or len(rows) != 1 for rows in body['results'].values())):
+        raise AssertionError('Invalid shared named Results fixture')
+    saved = _saved(receipt, version) if phase == 'resume' else None
+    with Client.open() as client:
+        if saved is None:
+            submission = client.new_submission()
+            run = client.start_source(body['aql'], format='aql-text', submission_ref=submission)
+            state = run.wait(until='terminal')
+        else:
+            submission = saved['submission']
+            observed = client.lookup_submission(submission)
+            if observed['kind'] != 'ready' or _plain(observed['admission']['ref']) != saved['run']:
+                raise AssertionError('Lookup did not return the original named Results Run')
+            run = client.attach(saved['run'])
+            if _plain(run.ref) != saved['run']:
+                raise AssertionError('Saved attach replaced the original named Results Run')
+            state = run.status()
+        if state['status'] != 'succeeded' or set(state['result_availability']) != set(body['results']):
+            raise AssertionError('Original Run did not publish both named Results')
+        for name, expected in body['results'].items():
+            actual = run.result(name).all(max_rows=1)
+            if json.dumps(actual, sort_keys=True) != json.dumps(expected, sort_keys=True):
+                raise AssertionError('Named Result differs from independent expected rows: ' + name)
+        original = _plain(run.ref)
+    if saved is None:
+        _record(receipt, version=version, facade='sync', submission=submission, run=original)
+    return list(body['results'])
+
+
 def installed(version: str, mode: str, *, facade: str | None = None,
               phase: str | None = None, receipt: Path | None = None,
-              case: str = 'execution') -> None:
+              case: str = 'execution', named_results_fixture: Path | None = None) -> None:
     if metadata.version('actql-sdk') != version:
         raise AssertionError('Installed SDK cohort differs')
     if mode == 'sdk-only':
-        if facade is not None or phase is not None or receipt is not None or case != 'execution':
+        if (facade is not None or phase is not None or receipt is not None
+                or case != 'execution' or named_results_fixture is not None):
             raise AssertionError('SDK-only inspection does not run a Local scenario')
         for package in ('actql', 'actql-local-runtime', 'wasmtime', 'duckdb'):
             try:
@@ -558,10 +600,15 @@ def installed(version: str, mode: str, *, facade: str | None = None,
             raise AssertionError('Lightweight SDK imported a Local engine')
         print(json.dumps({'mode': mode, 'version': version, 'sdk_only': True, 'local_executed': False}))
         return
-    if (mode != 'local' or case not in ('execution', 'cancellation')
+    if (mode != 'local' or case not in ('execution', 'cancellation', 'named-results')
             or facade not in ('sync', 'async') or phase not in ('initial', 'resume')
             or receipt is None):
         raise AssertionError('Local consumer requires an explicit facade/phase/private receipt')
+    if case == 'named-results':
+        if facade != 'sync' or named_results_fixture is None:
+            raise AssertionError('Named Results requires the shared fixture and original sync consumer')
+    elif named_results_fixture is not None:
+        raise AssertionError('Named Results fixture is only admitted for its own case')
     if phase == 'initial' and (os.path.lexists(receipt) or os.path.lexists(receipt.with_name(receipt.name + '.submitted'))):
         raise AssertionError('Initial consumer requires a fresh receipt, not a repeated submission')
     if (phase == 'initial' and case == 'cancellation'
@@ -569,6 +616,12 @@ def installed(version: str, mode: str, *, facade: str | None = None,
         raise AssertionError('Initial cancellation consumer requires fresh public state')
     if metadata.version('actql') != version or metadata.version('actql-local-runtime') != version:
         raise AssertionError('Installed product/runtime cohort differs')
+    if case == 'named-results':
+        names = _named_results(version, phase, receipt, named_results_fixture)
+        print(json.dumps({'mode': mode, 'version': version, 'case': case, 'phase': phase,
+            'pid': os.getpid(), 'results': names, 'original_run_reused': phase == 'resume',
+            'submitted': phase == 'initial', 'first_close': True}))
+        return
     if case == 'cancellation':
         terminal = (_sync_cancellation(version, phase, receipt) if facade == 'sync'
                     else asyncio.run(_async_cancellation(version, phase, receipt)))
@@ -606,11 +659,12 @@ if __name__ == '__main__':
     parser.add_argument('--mode', choices=('sdk-only', 'local'), required=True)
     parser.add_argument('--facade', choices=('sync', 'async'))
     parser.add_argument('--phase', choices=('initial', 'resume'))
-    parser.add_argument('--case', choices=('execution', 'cancellation'), default='execution')
+    parser.add_argument('--case', choices=('execution', 'cancellation', 'named-results'), default='execution')
+    parser.add_argument('--named-results-fixture', type=Path)
     parser.add_argument('--receipt', type=Path)
     parser.add_argument('--await-close-observation', action='store_true')
     options = parser.parse_args()
     installed(options.version, options.mode, facade=options.facade, phase=options.phase,
-              receipt=options.receipt, case=options.case)
+              receipt=options.receipt, case=options.case, named_results_fixture=options.named_results_fixture)
     if options.await_close_observation:
         _observe_closed()
