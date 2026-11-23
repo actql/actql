@@ -113157,7 +113157,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cec4ba99f89b0c22c90d1c3e3a92aa6e9407dbc29c8f42e35be4cfc2dbb53f59",
+      "sha256": "da582f9e07c814c0a171880c0b196d6576e5cdb761aed6213d2dc30cd50ad8c3",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -113330,27 +113330,6 @@
           "async": false
         },
         {
-          "name": "acquiredKeyedTaskPublicationPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "acquired",
-            "preparedProgram",
-            "publicationOriginal",
-            "captured",
-            "sourceEvidence",
-            "keyedObservation",
-            "authorityScopeCid",
-            "effectiveDataPolicyCid",
-            "captureStartedAt",
-            "captureCompletedAt",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now"
-          ],
-          "async": false
-        },
-        {
           "name": "acquiredMultiEffectPublicationPlan",
           "parameters": [
             "acquired",
@@ -113452,75 +113431,6 @@
           "name": "acquiredMultiEffectPublicationPlan/whole/whole",
           "parameters": [
             "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredMultiTaskPublicationPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "acquired",
-            "preparedProgram",
-            "publicationOriginal",
-            "sources",
-            "authorityScopeCid",
-            "effectiveDataPolicyCid",
-            "captureStartedAt",
-            "captureCompletedAt",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
-          "parameters": [
-            "captured",
-            "sourceEvidence",
-            "task"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredMultiTaskPublicationPlan/whole/whole",
-          "parameters": [
-            "captured"
-          ],
-          "async": false
-        },
-        {
-          "name": "acquiredTaskPublicationPlan",
-          "parameters": [
-            "moon",
-            "control",
-            "acquired",
-            "preparedProgram",
-            "publicationOriginal",
-            "captured",
-            "sourceEvidence",
-            "authorityScopeCid",
-            "effectiveDataPolicyCid",
-            "captureStartedAt",
-            "captureCompletedAt",
-            "namespaceId",
-            "storeAuthorityCid",
-            "now"
           ],
           "async": false
         },
@@ -114470,9 +114380,7 @@
           }
         },
         {
-          "operations": [
-            "acquiredKeyedTaskPublicationPlan"
-          ],
+          "operations": [],
           "exports": [
             "acquiredKeyedTaskPublicationPlan",
             "keyedInputRetentionSelection"
@@ -114480,7 +114388,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114494,7 +114402,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114508,7 +114416,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114522,7 +114430,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114536,7 +114444,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114550,7 +114458,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114564,7 +114472,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114578,7 +114486,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114592,7 +114500,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114606,7 +114514,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -114892,20 +114800,14 @@
           }
         },
         {
-          "operations": [
-            "acquiredMultiTaskPublicationPlan",
-            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
-            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
-            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
-            "acquiredMultiTaskPublicationPlan/whole/whole"
-          ],
+          "operations": [],
           "exports": [
             "acquiredMultiTaskPublicationPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -114919,7 +114821,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -114933,7 +114835,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -114947,7 +114849,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -114961,7 +114863,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -114975,7 +114877,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -114989,7 +114891,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -115003,7 +114905,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -115017,7 +114919,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -115031,7 +114933,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredMultiTaskPublicationPlan"
               },
               {
@@ -115050,16 +114952,14 @@
           }
         },
         {
-          "operations": [
-            "acquiredTaskPublicationPlan"
-          ],
+          "operations": [],
           "exports": [
             "acquiredTaskPublicationPlan"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115073,7 +114973,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115087,7 +114987,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115101,7 +115001,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115115,7 +115015,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115129,7 +115029,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115143,7 +115043,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115157,7 +115057,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115171,7 +115071,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -115185,7 +115085,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
                 "anchor": "acquiredTaskPublicationPlan"
               },
               {
@@ -118328,11 +118228,664 @@
         "../host-common/runtime-result.mjs",
         "./host-result-service-recipe.cjs",
         "./infer-effect-observation.mjs",
+        "./local-acquired-task-publication.mjs",
         "./local-publication-limit-projection.mjs",
         "./local-publication-limits.mjs",
         "./local-publication-plan.mjs",
         "./local-query-invocation.mjs",
         "./local-source-free-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending."
+    },
+    {
+      "module": "adapters/host-node/local-acquired-task-publication.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "2d51b33afe3351cde8f387efa768c1841c4dac6f4f490fdecc5e0306902e6fe5",
+      "role": "physical-io",
+      "owner": "A — existing JS/Core projection boundary",
+      "exports": [
+        "acquiredKeyedTaskPublicationPlan",
+        "acquiredMultiTaskPublicationPlan",
+        "acquiredTaskPublicationPlan"
+      ],
+      "operations": [
+        {
+          "name": "acquiredKeyedTaskPublicationPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "acquired",
+            "preparedProgram",
+            "publicationOriginal",
+            "captured",
+            "sourceEvidence",
+            "keyedObservation",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "captureStartedAt",
+            "captureCompletedAt",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiTaskPublicationPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "acquired",
+            "preparedProgram",
+            "publicationOriginal",
+            "sources",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "captureStartedAt",
+            "captureCompletedAt",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
+          "parameters": [
+            "captured",
+            "sourceEvidence",
+            "task"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
+          "parameters": [
+            "source"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredMultiTaskPublicationPlan/whole/whole",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquiredTaskPublicationPlan",
+          "parameters": [
+            "moon",
+            "control",
+            "acquired",
+            "preparedProgram",
+            "publicationOriginal",
+            "captured",
+            "sourceEvidence",
+            "authorityScopeCid",
+            "effectiveDataPolicyCid",
+            "captureStartedAt",
+            "captureCompletedAt",
+            "namespaceId",
+            "storeAuthorityCid",
+            "now"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "export function acquiredTaskPublicationPlan<Retention>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "source: {sources: observed, authorityScopeCid,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquired.publicationPreparation !== publicationOriginal.value"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "control.issueProgramInitialRetention(acquired.publicationPreparation, preparedProgram,"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "throw new TypeError('InvalidAcquiredTaskPublication');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "captured?.logicalInput === undefined"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "effectiveDataPolicyCid, localRetentionTimes(now), retentionDependencies, limits);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "const right = control.keyedLookupPublicationEvidence(keyedObservation.observation);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-dispatch-observation.test.mjs",
+                "anchor": "single Source publication selects checked Result policy"
+              },
+              {
+                "path": "adapters/host-node/client-publication-plan-original.test.mjs",
+                "anchor": "Source dispatch preserves checked same-Run output limits and rejects invalid originals"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "acquiredKeyedTaskPublicationPlan"
+          ],
+          "exports": [
+            "acquiredKeyedTaskPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredKeyedTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "acquiredMultiTaskPublicationPlan",
+            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan",
+            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#2",
+            "acquiredMultiTaskPublicationPlan/acquiredMultiTaskPublicationPlan#3",
+            "acquiredMultiTaskPublicationPlan/whole/whole"
+          ],
+          "exports": [
+            "acquiredMultiTaskPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredMultiTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "acquiredTaskPublicationPlan"
+          ],
+          "exports": [
+            "acquiredTaskPublicationPlan"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/local-acquired-task-publication.mts",
+                "anchor": "acquiredTaskPublicationPlan"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mjs",
+                "anchor": "actual pinned MoonBit Result"
+              },
+              {
+                "path": "docs/design/check-sdk.md",
+                "anchor": "## Original Request authoring context in the Node publication path"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./local-publication-limit-projection.mjs",
+        "./local-publication-limits.mjs",
+        "./local-publication-plan.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],

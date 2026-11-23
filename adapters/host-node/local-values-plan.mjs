@@ -2,7 +2,7 @@
 // owner. Physical Local policy CIDs are stable identities of this Host profile.
 import {runtimeField, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {checkedLocalOutputLimits, checkedPublicationLimitValues} from './local-publication-limit-projection.mjs';
+import {checkedPublicationLimitValues} from './local-publication-limit-projection.mjs';
 import {localContractLimits as limits, localOutputLimits} from './local-publication-limits.mjs';
 import {hostResultStorePolicy} from './host-result-service-recipe.cjs';
 import {prepareQueryInvocation, bindQueryInvocation}
@@ -12,6 +12,8 @@ import {retentionDependencies, localPublicationPlan, localRetentionTimes, buildL
   managedProgramPublicationCurrent, managedProgramInitialRetention, effectPublicationAdmission}
   from './local-publication-plan.mjs';
 export {keyedInputRetentionSelection} from './local-publication-plan.mjs';
+export {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan, acquiredKeyedTaskPublicationPlan}
+  from './local-acquired-task-publication.mjs';
 export {checkedLocalOutputLimits} from './local-publication-limit-projection.mjs';
 export {prepareTimedClientInvocation} from './local-query-invocation.mjs';
 export {localContractLimits, localOutputLimits} from './local-publication-limits.mjs';
@@ -794,163 +796,4 @@ export function inferTaskPublicationPlan({moon, control, preparedProgram,
     moon.clientProgramReleaseInferInvocationBinding(issued.binding);
     throw error;
   }
-}
-
-// The connector/Acquisition owner supplies Source Evidence after completing
-// physical capture and current authorization. This Host binds that evidence to
-// the checked task Run and the captured relation before publication.
-export function acquiredTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, publicationOriginal, captured, sourceEvidence, authorityScopeCid,
-  effectiveDataPolicyCid, captureStartedAt, captureCompletedAt, namespaceId,
-  storeAuthorityCid, now}) {
-  control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
-  if (sourceEvidence === undefined ||
-      typeof effectiveDataPolicyCid !== 'string' ||
-      captured?.logicalInput === undefined ||
-      captured?.checkedSource === undefined ||
-      captured?.identity === undefined ||
-      captured?.capture === undefined ||
-      moon.clientProgramCapturedSourceMatches(preparedProgram,
-        captured.capture.source()) !== true) {
-    throw new TypeError('InvalidAcquiredTaskPublication');
-  }
-  // The adopted capture constructor retains this SAME Program body. Grow
-  // before the existing complete Source/lookup invocation checks so current
-  // callbacks cannot invalidate an earlier capture check unnoticed.
-  if ((acquired.publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
-      (publicationOriginal?.kind !== 'installed_run' || acquired.publicationPreparation === undefined ||
-        acquired.publicationPreparation !== publicationOriginal.value)) {
-    throw new TypeError('OriginalProgramRetentionOwnerRequired');
-  }
-  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
-    control.issueProgramInitialRetention(acquired.publicationPreparation, preparedProgram,
-      acquired.requestIdentity, effectiveDataPolicyCid, localRetentionTimes(now), retentionDependencies, limits);
-  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
-    acquired.compiled, acquired.runDefinition,
-    {dataPolicyCid: effectiveDataPolicyCid, source: {captured, sourceEvidence,
-      authorityScopeCid, captureStartedAt, captureCompletedAt}}, limits,
-    acquired.publicationPreparation, preparedProgram);
-  return localPublicationPlan({control, originalRetention, admission: acquired.admission,
-    runDefinition: acquired.runDefinition, invocation, observation,
-    compiledPlanCid: acquired.compiledPlan.identity,
-    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
-    inputRelationCids: [moon.clientProgramCapturedSourceLogicalCid(
-      captured.identity)], sourceEvidence: [sourceEvidence],
-    authorityScopeCid, namespaceId, storeAuthorityCid,
-    dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
-    now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram, publicationOriginal,
-    authoringContextOriginal: acquired.authoringContextOriginal,
-    ...(publicationOriginal === undefined ? {} : {
-      outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
-    })});
-}
-
-
-// The existing checked publication owner receives the complete occurrence
-// inventory. Each source evidence retains its own read policy; the final
-// publication policy is the checker's join of exact Result contributors.
-export function acquiredMultiTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, publicationOriginal, sources, authorityScopeCid, effectiveDataPolicyCid,
-  captureStartedAt, captureCompletedAt, namespaceId, storeAuthorityCid, now}) {
-  control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
-  const whole = Array.isArray(sources) && sources.some(({captured}) => captured?.inputKind === 'whole-input');
-  if (!Array.isArray(sources) || sources.length < 1 ||
-      moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
-      sources.some(({captured, sourceEvidence}, task) =>
-        sourceEvidence === undefined || captured?.logicalInput === undefined ||
-        captured?.identity === undefined || (whole
-          ? captured.inputKind !== 'whole-input' || captured.wholeCapacity === undefined ||
-            typeof captured.capture?.originalWholeInput !== 'function' || acquired.publicationPreparation === undefined
-          : captured?.requirement === undefined ||
-            !moon.clientProgramCapturedTaskSourceMatches(preparedProgram, captured.capture.source(), task)))) {
-    throw new TypeError('InvalidAcquiredTaskPublication');
-  }
-  const observed = sources;
-  // The adopted capture constructor retains this SAME Program body. Grow
-  // before the existing complete Source/lookup invocation checks so current
-  // callbacks cannot invalidate an earlier capture check unnoticed.
-  if ((acquired.publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
-      (publicationOriginal?.kind !== 'installed_run' || acquired.publicationPreparation === undefined ||
-        acquired.publicationPreparation !== publicationOriginal.value)) {
-    throw new TypeError('OriginalProgramRetentionOwnerRequired');
-  }
-  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
-    control.issueProgramInitialRetention(acquired.publicationPreparation, preparedProgram,
-      acquired.requestIdentity, effectiveDataPolicyCid, localRetentionTimes(now), retentionDependencies, limits);
-  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
-    acquired.compiled, acquired.runDefinition, {source: {sources: observed, authorityScopeCid,
-      captureStartedAt, captureCompletedAt}, dataPolicyCid: effectiveDataPolicyCid}, limits,
-    acquired.publicationPreparation, preparedProgram);
-  return localPublicationPlan({control, originalRetention, admission: acquired.admission,
-    runDefinition: acquired.runDefinition, invocation, observation,
-    compiledPlanCid: acquired.compiledPlan.identity,
-    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
-    // Result derivation records a unique set of logical content dependencies.
-    // Equal content does not coalesce the occurrence-owned captures or either
-    // Source Evidence entry retained above in the Observation Set.
-    inputRelationCids: [...new Set(sources.map(source =>
-      moon.clientProgramCapturedSourceLogicalCid(source.captured.identity)))],
-    sourceEvidence: observed.map(source => source.sourceEvidence),
-    authorityScopeCid, namespaceId, storeAuthorityCid,
-    dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
-    now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram, publicationOriginal,
-    authoringContextOriginal: acquired.authoringContextOriginal,
-    ...(publicationOriginal === undefined ? {} : {
-      outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
-    })});
-}
-
-// A keyed JOIN completes a second Source, not a second Direct task prefix.
-// Retain both Source evidence entries while reusing the admitted compilation
-// and the ordinary Result publication/retention plan.
-export function acquiredKeyedTaskPublicationPlan({moon, control, acquired,
-  preparedProgram, publicationOriginal, captured, sourceEvidence, keyedObservation,
-  authorityScopeCid, effectiveDataPolicyCid, captureStartedAt, captureCompletedAt,
-  namespaceId, storeAuthorityCid, now}) {
-  control.checkClientCompiledRunOwner(acquired.compiled, preparedProgram);
-  if (sourceEvidence === undefined ||
-      captured?.logicalInput === undefined || captured?.identity === undefined ||
-      captured?.requirement === undefined || captured?.capture === undefined ||
-      keyedObservation?.observation === undefined ||
-      moon.clientProgramPublicationDataPolicyCid(preparedProgram) !== effectiveDataPolicyCid ||
-      moon.clientProgramCapturedSourceMatches(preparedProgram, captured.capture.source()) !== true) {
-    throw new TypeError('InvalidAcquiredTaskPublication');
-  }
-  // The adopted capture constructor retains this SAME Program body. Grow
-  // before the existing complete Source/lookup invocation checks so current
-  // callbacks cannot invalidate an earlier capture check unnoticed.
-  if ((acquired.publicationPreparation !== undefined || publicationOriginal?.kind === 'installed_run') &&
-      (publicationOriginal?.kind !== 'installed_run' || acquired.publicationPreparation === undefined ||
-        acquired.publicationPreparation !== publicationOriginal.value)) {
-    throw new TypeError('OriginalProgramRetentionOwnerRequired');
-  }
-  const originalRetention = publicationOriginal?.kind !== 'installed_run' ? undefined :
-    control.issueProgramInitialRetention(acquired.publicationPreparation, preparedProgram,
-      acquired.requestIdentity, effectiveDataPolicyCid, localRetentionTimes(now), retentionDependencies, limits);
-  const right = control.keyedLookupPublicationEvidence(keyedObservation.observation);
-  const left = sourceEvidence;
-  const {observation, invocation} = control.issueCheckedClientCompiledInvocation(
-    acquired.compiled, acquired.runDefinition, {source: {captured, sourceEvidence: left,
-      keyedObservation: keyedObservation.observation, authorityScopeCid,
-      captureStartedAt, captureCompletedAt}, dataPolicyCid: effectiveDataPolicyCid}, limits,
-    acquired.publicationPreparation, preparedProgram);
-  return localPublicationPlan({control, originalRetention, admission: acquired.admission,
-    runDefinition: acquired.runDefinition, invocation, observation,
-    compiledPlanCid: acquired.compiledPlan.identity,
-    programDefinitionCid: moon.clientProgramDefinitionCid(preparedProgram),
-    inputRelationCids: [...new Set([
-      moon.clientProgramCapturedSourceLogicalCid(captured.identity),
-      right.logicalRelationCid,
-    ])],
-    sourceEvidence: [left, right.source],
-    authorityScopeCid, namespaceId, storeAuthorityCid,
-    dataPolicyCid: effectiveDataPolicyCid, createdAt: acquired.createdAt,
-    now, resultCount: moon.clientProgramResultCount(preparedProgram),
-    compiled: acquired.compiled, preparedProgram, publicationOriginal,
-    authoringContextOriginal: acquired.authoringContextOriginal,
-    ...(publicationOriginal === undefined ? {} : {
-      outputLimits: checkedLocalOutputLimits(moon, preparedProgram, publicationOriginal),
-    })});
 }
