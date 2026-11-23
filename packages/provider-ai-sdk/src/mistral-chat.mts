@@ -68,3 +68,14 @@ export function readReportedUsage(body: unknown): {inputTokens?: bigint; outputT
     outputTokens: tokenCount('completion_tokens' in usage ? usage.completion_tokens : undefined),
   };
 }
+
+export function readReportedResponse(body: unknown) {
+  if (body === null || typeof body !== 'object') return undefined;
+  const choices = 'choices' in body && Array.isArray(body.choices) ? body.choices : undefined;
+  const choice: unknown = choices?.length === 1 ? choices[0] : undefined;
+  const finish = choice !== null && typeof choice === 'object' && 'finish_reason' in choice
+    ? choice.finish_reason : undefined;
+  return {model: 'model' in body ? body.model : undefined,
+    requestId: 'id' in body ? body.id : undefined, finishReason: finish,
+    outcome: finish === 'content_filter' ? 'refusal' : undefined};
+}

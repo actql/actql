@@ -43,8 +43,8 @@ export function originalHttpCommonFixture(t,moon,options) {
 }
 
 async function originalCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
-  storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false,
-  physical,rowTexts,structuredSdk=false,foreignRegisteredProfile=false}={},independentHttp) {
+  storeOriginals=true,beforeOriginalRead,observeSettlement,modelId='gpt-4.1-nano',nativeDecision=false,
+  physical,rowTexts,structuredSdk=false,foreignRegisteredProfile=false,excludeReportedMetadata=false,overrideCompletion}={},independentHttp) {
   // Explicit finite test inventory, not another normal capacity supplier.
   // This route has no installed ModelIoAccess and therefore remains serial;
   // a profile's active_slots declaration alone cannot enable a window.
@@ -64,6 +64,16 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
     : registeredSdkMode
     ? (await import('../../packages/provider-ai-sdk/_internal/model-port.mjs')).createAdmittedRegisteredSdkPreflight
     : (await import('../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs')).createAdmittedOpenAIChatPreflight;
+  const portMoon=overrideCompletion===undefined?moon:Object.create(moon,{
+    clientProgramModelStructuredRequestPlan:{value(...args){
+      const decode=args.pop();
+      return moon.clientProgramModelStructuredRequestPlan(...args,(...originals)=>{
+        const observed=decode(...originals);
+        assert.equal(observed._7,true);
+        return {...observed,_7:overrideCompletion()};
+      });
+    }},
+  });
   // Optional exact loopback transport for the joined physical diagnostic.
   // Preserve its function identity: wrapping it would lose the existing
   // original-transport preparation/cleanup membership. No ambient fallback.
@@ -139,6 +149,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   if (structuredSdk) {
     profileBody.adapter.codec_id='fixture/sdk-v4-saved-text';
     profileBody.completion.validator_id='fixture/sdk-v4-saved-text';
+    profileBody.observations=profileBody.observations.filter(name=>name!=='provider_metadata');
+    if (!excludeReportedMetadata) profileBody.observations.push('provider_metadata');
   }
   // The exact SDK lock is a DATA reference; this explicitly synthetic fixture
   // does not authenticate these otherwise fixture builder/runtime declarations.
@@ -185,7 +197,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   }
   let registeredSdk;
   if (registeredSdkMode) {
-    const {openAIChatStaticOriginals:{createOpenAI}}=await import('../../packages/provider-ai-sdk/_internal/openai-chat.mjs');
+    const {openAIChatStaticOriginals:{createOpenAI},readReportedUsage,readReportedResponse}=
+      await import('../../packages/provider-ai-sdk/_internal/openai-chat.mjs');
     const endpoint=installation.endpoint, baseURL=endpoint.slice(0,-'/chat/completions'.length);
     registeredSdk=Object.freeze({route:Object.freeze({providerId:'models/fixture',selector:task.authored_model_selector,
       modelId,apiMode:'chat_completions',endpoint}),sdkProvider:'openai.chat',sdkPackage:installation.sdk.package_name,
@@ -200,8 +213,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
           response_format:{type:'json_schema',json_schema:{name:responseFormat.name,
             schema:responseFormat.schema,strict:true}}});
       },
-      readReportedUsage:body=>({inputTokens:BigInt(body.usage.prompt_tokens),
-        outputTokens:BigInt(body.usage.completion_tokens)})});
+      readReportedUsage,readReportedResponse});
   }
   let structuredAdmission, registeredProjectionIssue;
   let sends=0;
@@ -226,7 +238,7 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
       metadataAcquisition:{metadata:{maxWireBytes:4096,maxLedgerEntries:4},directory:{maxWireBytes:1024,maxDirectoryEntries:8},
         retainedBytes:7000n,workspaceBytes:3000n}},
     physicalPreflight(request,notification,retainRawBinder,admittedProvider){
-      const common={moon,request,admittedProvider,
+      const common={moon:portMoon,request,admittedProvider,
         probability,
         taskCid:task.contract_cid,promptCid:prompt.cid,outputSchemaCid:task.output_schema_cid,
         modelSelector:task.authored_model_selector,projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
@@ -287,10 +299,16 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   let cp;
   const controller=await installNodeModelContinuation({moon,control,store:selectedStore,storeAuthorityCid,
     namespaceId:'scope',authorityScopeCid:cid('3'),now,getCheckpoints:()=>cp});
+  const verifier=observeSettlement===undefined ? controller.verifier : Object.freeze({
+    ...controller.verifier, verifySettlement(input) {
+      observeSettlement(input);
+      return controller.verifier.verifySettlement(input);
+    },
+  });
   const keys=generateKeyPairSync('ed25519');
   cp=await installRemoteCheckpoints({root,namespaceId:'scope',authorityScopeCid:cid('3'),ownerPrincipal:'owner',
     siteKey:'local',realizationKey:'source-free-values',environmentCid:environmentCid,contractControl:control,
-    modelResumeVerifier:controller.verifier,now:()=>Date.parse(now()),
+    modelResumeVerifier:verifier,now:()=>Date.parse(now()),
     authorization:{resumeAfterAnswer:false,accountConfiguration:accountWire,
       reviewers:[{keyId:'reviewer',reviewerId:'reviewer',principalId:'reviewer',publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
       hostKey:{keyId:'host',privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'})}}});

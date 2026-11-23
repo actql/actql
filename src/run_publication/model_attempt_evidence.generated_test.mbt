@@ -231,6 +231,29 @@ test "independent model attempt evidence 9" {
 }
 
 ///|
+test "independent model attempt evidence 10" {
+  let value = seal_run_evidence_value(
+    "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"provider_failure\",\"failure\":\"truncated\",\"reported_response\":{\"finish_reason\":\"length\",\"observed_at\":\"2026-10-12T00:00:00.000Z\",\"provider_metadata\":{\"system_fingerprint\":\"fp_observed\"},\"provider_reported_model_id\":\"reported-model\",\"provider_request_id\":\"original-response\",\"raw_response_artifact_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"response_complete\":false,\"response_profile_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+    16384, 256, 8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(value),
+    "sha256:b5954104469340e034bc97b3e96cdb38dc912724b9d87acd7049797ef3fef670",
+  )
+  let restored = admit_run_evidence_value(
+    "model_attempt_outcome",
+    run_evidence_value_json(value),
+    16384,
+    256,
+    8,
+  ).unwrap()
+  assert_eq(
+    run_evidence_value_identity(restored),
+    "sha256:b5954104469340e034bc97b3e96cdb38dc912724b9d87acd7049797ef3fef670",
+  )
+}
+
+///|
 test "invalid model attempt evidence model_attempt_accounting 688a91b3" {
   assert_true(
     seal_run_evidence_value(
@@ -257,6 +280,72 @@ test "invalid model attempt evidence model_attempt_outcome 7127dfab" {
   assert_true(
     seal_run_evidence_value(
       "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"provider_failure\",\"failure\":\"invented\",\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_outcome c6dc611e" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"provider_failure\",\"failure\":\"truncated\",\"reported_response\":{\"finish_reason\":\"length\",\"observed_at\":\"2026-10-12T00:00:00.000Z\",\"provider_metadata\":{\"system_fingerprint\":\"fp_observed\"},\"provider_reported_model_id\":\"reported-model\",\"provider_request_id\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"raw_response_artifact_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"response_complete\":false,\"response_profile_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_outcome c39784eb" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"provider_failure\",\"failure\":\"truncated\",\"reported_response\":{\"finish_reason\":\"length\",\"observed_at\":\"2026-10-12T00:00:00.000Z\",\"provider_metadata\":{\"system_fingerprint\":\"fp_observed\"},\"provider_reported_model_id\":\"reported-model\",\"provider_request_id\":\"original-response\",\"raw_response_artifact_cid\":null,\"response_complete\":false,\"response_profile_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_outcome e468e1e0" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"ok\",\"failure\":null,\"reported_response\":{\"finish_reason\":\"length\",\"observed_at\":\"2026-10-12T00:00:00.000Z\",\"provider_metadata\":{\"system_fingerprint\":\"fp_observed\"},\"provider_reported_model_id\":\"reported-model\",\"provider_request_id\":\"original-response\",\"raw_response_artifact_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"response_complete\":false,\"response_profile_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_outcome 0f2dbc6c" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"provider_failure\",\"failure\":\"truncated\",\"reported_response\":{\"finish_reason\":\"length\",\"observed_at\":\"2026-10-12T00:00:00.000Z\",\"provider_metadata\":{\"first\":\"one\",\"second\":\"two\"},\"provider_reported_model_id\":\"reported-model\",\"provider_request_id\":\"original-response\",\"raw_response_artifact_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"response_complete\":false,\"response_profile_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_outcome f9210655" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"provider_failure\",\"failure\":\"truncated\",\"reported_response\":{\"finish_reason\":\"length\",\"observed_at\":\"2026-10-12T00:00:00.000Z\",\"provider_metadata\":{\"first\":{\"value\":\"nested\"}},\"provider_reported_model_id\":\"reported-model\",\"provider_request_id\":\"original-response\",\"raw_response_artifact_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"response_complete\":false,\"response_profile_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
+      16384, 256, 8,
+    )
+    is Err(RunEvidenceInvalidShape),
+  )
+}
+
+///|
+test "invalid model attempt evidence model_attempt_outcome 86f8c45a" {
+  assert_true(
+    seal_run_evidence_value(
+      "model_attempt_outcome", "{\"attempt_cid\":\"sha256:3dcf62f77c94893b9a28ab0d955989d8338d92ca74ec193c56b58b597864160c\",\"category\":\"result_unknown\",\"failure\":\"result_unknown\",\"reported_response\":{\"finish_reason\":\"length\",\"observed_at\":\"2026-10-12T00:00:00.000Z\",\"provider_metadata\":{\"system_fingerprint\":\"fp_observed\"},\"provider_reported_model_id\":\"reported-model\",\"provider_request_id\":\"original-response\",\"raw_response_artifact_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"response_complete\":false,\"response_profile_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},\"slot_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"version\":\"actql-model-attempt-outcome/0.1\"}",
       16384, 256, 8,
     )
     is Err(RunEvidenceInvalidShape),
