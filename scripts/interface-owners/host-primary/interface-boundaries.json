@@ -34630,8 +34630,8 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/original-effect-query-time.test.mjs",
-                "anchor": "Effect computation forwards the same invocation preparation and request"
+                "path": "adapters/host-node/original-effect-query-time.test.mts",
+                "anchor": "Effect computation checks the same managed Run, preparation and Request"
               },
               {
                 "path": "adapters/host-node/local-values-retention-original.test.mjs",

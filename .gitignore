@@ -2480,6 +2480,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/local-model-content-publication.d.mts
 /adapters/host-node/local-source-free-effect-publication.mjs
 /adapters/host-node/local-source-free-effect-publication.d.mts
+/adapters/host-node/original-effect-query-time.test.mjs
+/adapters/host-node/original-effect-query-time.test.d.mts
 /adapters/host-node/client-publication-plan-original.test.mjs
 /adapters/host-node/client-publication-plan-original.test.d.mts
 /adapters/host-node/local-query-invocation.mjs
