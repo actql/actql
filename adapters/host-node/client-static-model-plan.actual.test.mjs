@@ -191,10 +191,10 @@ test('installed static Explanation retains the original deal-review Source, Mode
     assert.match(english.context[5].text, /Declared write update "connector:\/\/salesforce\/Opportunity".*Contract minimum approval: required.*Current decision unknown/u);
     assert.match(japanese.context[5].text, /^宣言された書き込み 更新 /u);
     assert.match(japanese.context[5].text, /契約上の最低承認要件 必要.*現在の判断は不明/u);
-    assert.equal(english.story.occurrences.filter(step => step.operator === 'join' &&
-      step.explanation.text.includes(' join on: ')).length, 3);
-    assert.equal(japanese.story.occurrences.filter(step => step.operator === 'join' &&
-      step.explanation.text.includes(' 結合のキー: ')).length, 3);
+    assert.equal(englishJoins.length, 3);
+    assert.deepEqual(japaneseJoins.map(step => step.stepId), englishJoins.map(step => step.stepId));
+    assert(englishJoins.every(step => step.explanation.text.includes('Null keys:')));
+    assert(japaneseJoins.every(step => step.explanation.text.includes('NULLキー:')));
     assert.deepEqual(await readFile(dataPath), before);
   } catch (error) {primary = error;}
   finally {
