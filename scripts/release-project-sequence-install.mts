@@ -6,15 +6,18 @@ import {basename, dirname, join, resolve} from 'node:path';
 import {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
 import {verifyPackageRelease, inventory} from './package-release.mjs';
+import type {runReleaseProjectSequences} from './release-project-sequences.mjs';
 
 type NodeManifest = Awaited<ReturnType<typeof verifyPackageRelease>>;
 type CohortIdentity = {sourceSha: NodeManifest['sourceSha'];
   cohort: Pick<NodeManifest['cohort'], 'packageVersion'>};
-type Report = {pid: number; [field: string]: unknown};
+type Report = Awaited<ReturnType<Parameters<typeof runReleaseProjectSequences>[0]['node']>>;
 type Run<Output> = (command: string, args: readonly string[], cwd: string, timeout?: number) => Output;
-type Exit = {code: number | null; signal: NodeJS.Signals | null; stderr?: string; pid?: number};
+type Exit = {code: number | string | null; signal: NodeJS.Signals | null; stderr?: string; pid?: number | null};
 type Label = {template: string; family: string; ordinal: number; phase: string};
 type ArchiveDigest = Readonly<{name: string; bytes?: number; sha256: string}>;
+type ArchiveManifest = {packages: readonly {file: string; bytes: number; sha256: string;
+  originalFile?: string; originalSha256?: string}[]};
 type Preparation = {directory: string; nativeManifest: CohortIdentity;
   originalNodeManifest: NodeManifest; originalNodeManifestBytes: Buffer; originalNodeDevelopmentManifestBytes: Buffer; root: string;
   repository: string; registry: {url: string}; run: Run<Promise<Exit>>;
@@ -64,7 +67,7 @@ async function archiveDigest(path: string, expected: ArchiveDigest) {
   }
 }
 
-export async function retainReleaseProjectArchives(directory: string, manifest: NodeManifest, manifestBytes: Buffer, developmentBytes?: Buffer) {
+export async function retainReleaseProjectArchives(directory: string, manifest: ArchiveManifest, manifestBytes: Buffer, developmentBytes?: Buffer) {
   const root = await realpath(directory);
   const sha256 = (bytes: Buffer) => createHash('sha256').update(bytes).digest('hex');
   assert.deepEqual(JSON.parse(manifestBytes as unknown as string), manifest);
@@ -73,8 +76,8 @@ export async function retainReleaseProjectArchives(directory: string, manifest: 
     assert.equal(item.file, basename(item.file));
     members.push({name: item.file, bytes: item.bytes, sha256: item.sha256});
     if (developmentBytes !== undefined) {
-      assert.equal(item.originalFile, basename(item.originalFile));
-      members.push({name: 'development/' + item.originalFile, sha256: item.originalSha256});
+      assert.equal(item.originalFile, basename(item.originalFile!));
+      members.push({name: 'development/' + item.originalFile, sha256: item.originalSha256!});
     }
   }
   if (developmentBytes !== undefined) members.push({name: 'development/packed-client-packages.json',
@@ -161,7 +164,7 @@ export async function prepareReleaseProjectNode({directory, nativeManifest, orig
     } catch (cause) {primary = cause; failed = true;}
     try {await verify();} catch (cause) {if (!failed) {primary = cause; failed = true;}}
     if (failed) throw primary;
-    return response;
+    return response!;
   };
   const verifyRelease = async () => {
     assert.deepEqual(await verifyManifest(directory), manifest);

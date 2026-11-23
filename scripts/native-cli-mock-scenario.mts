@@ -21,8 +21,8 @@ type Work = ReturnType<typeof requireNativeMockWork>;
 type CommandRecord = {stdout: string; stderr: string; signal: string | null; code: string | number | null;
   launcherTiming?: LauncherTiming; acceptance?: Work};
 type ObservedCommand = CommandRecord & {args: readonly string[]; cwd: string; workflowPhase: string};
-type ScenarioOptions = {root: string; template: keyof typeof expectedChanges;
-  run: (args: readonly string[], cwd: string) => CommandRecord | Promise<CommandRecord>;
+type ScenarioOptions<Command extends CommandRecord> = {root: string; template: keyof typeof expectedChanges;
+  run: (args: readonly string[], cwd: string) => Command | Promise<Command>;
   launcherTimings?: LauncherTimings};
 // Parsed fixture and receipt views are interpreted by the existing assertions.
 type Checkpoint = {checkpoint_id: string; checkpoint_cid: string};
@@ -287,11 +287,11 @@ export function nativeLauncherEnvelope(stderr: string, mode: LauncherTimings) {
   return {native: stderr.slice(0, start), timing};
 }
 
-function nativeMockScenarioCommands({project, run, launcherTimings, rows, work}:
-  Readonly<{project: string; run: ScenarioOptions['run']; launcherTimings: LauncherTimings; rows: number; work?: MockWorkOptions}>) {
+function nativeMockScenarioCommands<Command extends CommandRecord>({project, run, launcherTimings, rows, work}:
+  Readonly<{project: string; run: ScenarioOptions<Command>['run']; launcherTimings: LauncherTimings; rows: number; work?: MockWorkOptions}>) {
   assert(['optional','required'].includes(launcherTimings), 'Invalid launcher observation contract');
   assert.equal(typeof run, 'function');
-  const commands: ObservedCommand[] = [];
+  const commands: (ObservedCommand & Command)[] = [];
   async function invoke(workflowPhase: string, args: readonly string[], cwd = project) {
     const record = await run(args, cwd);
     commands.push({args, cwd, ...record, workflowPhase});
@@ -308,7 +308,9 @@ function nativeMockScenarioCommands({project, run, launcherTimings, rows, work}:
   return {commands, invoke};
 }
 
-export async function runNativeCliMockScenario({root, template, run, launcherTimings = 'optional'}: ScenarioOptions) {
+export async function runNativeCliMockScenario<Command extends CommandRecord>(
+  {root, template, run, launcherTimings = 'optional'}: ScenarioOptions<Command>,
+) {
   assert(mockTemplates.includes(template), 'Unknown Native mock acceptance template');
   const project = join(root, template), file = join(project, 'mock/data.json');
   const {commands, invoke} = nativeMockScenarioCommands({project, run, launcherTimings,
@@ -376,7 +378,9 @@ export async function runNativeCliMockScenario({root, template, run, launcherTim
     resultSha256: createHash('sha256').update(first.stdout).digest('hex'), commands};
 }
 
-export async function runNativeSharedFileMockScenario({root, run, launcherTimings = 'optional'}: Omit<ScenarioOptions, 'template'>) {
+export async function runNativeSharedFileMockScenario<Command extends CommandRecord>(
+  {root, run, launcherTimings = 'optional'}: Omit<ScenarioOptions<Command>, 'template'>,
+) {
   const fixture = threeWriteMockProject();
   const project = join(root, 'native-shared-file-mock'), file = join(project, 'mock/data.json');
   const configuration = join(project, 'actql.config.json'), stateDirectory = join(project, '.actql');
@@ -445,8 +449,8 @@ export async function runNativeSharedFileMockScenario({root, run, launcherTiming
     resultSha256: createHash('sha256').update(first.stdout).digest('hex'), lockPathAbsent: true, commands};
 }
 
-export async function runNativeNullableMockScenarios({root, run, launcherTimings}:
-  Omit<ScenarioOptions, 'template' | 'launcherTimings'> & {launcherTimings: LauncherTimings}) {
+export async function runNativeNullableMockScenarios<Command extends CommandRecord>({root, run, launcherTimings}:
+  Omit<ScenarioOptions<Command>, 'template' | 'launcherTimings'> & {launcherTimings: LauncherTimings}) {
   const {definition, files, before: expectedBefore, after: expectedAfter} =
     await import('../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs');
   const results = [];

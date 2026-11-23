@@ -214,7 +214,7 @@ export async function verifyNativeCliRelease(directory: string) {
 // run for every consumer. No serialized report or matching SHA can create it.
 export async function withNativeMockReleaseAdmission<Value>(directory: string, action: (admission: Admission) => Value,
   {sourceRepository = repository, controller = repository, checkSource = checkInterfaceOwners}:
-  {sourceRepository?: string; controller?: string; checkSource?: typeof checkInterfaceOwners} = {}) {
+  {sourceRepository?: string; controller?: string; checkSource?: typeof checkInterfaceOwners} = {}): Promise<Awaited<Value>> {
   directory = resolve(directory);
   const manifest = admitNativeReleaseManifest(JSON.parse(await readFile(join(directory, 'release.json'), 'utf8')));
   const source = checkoutState(sourceRepository);

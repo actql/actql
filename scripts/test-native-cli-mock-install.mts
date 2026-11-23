@@ -25,9 +25,43 @@ import {inventory, verifyPackageRelease} from './package-release.mjs';
 import {assertReleaseProjectCohort, prepareReleaseProjectNode, retainReleaseProjectArchives, runReleaseProjectCli} from './release-project-sequence-install.mjs';
 import {runReleaseProjectSequences, projectTargetSnapshot, requiredProjectReplacements, projectCliExpectedExit} from './release-project-sequences.mjs';
 import {runOriginalMockRegressions} from './native-cli-mock-regressions.mjs';
+import type {NativeMockHarnessRecord} from './native-approval-performance.mjs';
+
+type InstallOptions = ReturnType<typeof nativeApprovalObservationOptions> & {
+  projectSequenceNodeRelease?: string; originalMockRegressions?: boolean;
+};
+type RunOptions = Partial<InstallOptions> & {sharedFileMock?: boolean;
+  releaseAdmission?: ReturnType<typeof originalNativeMockReleaseAdmission>};
+type NativeManifest = Awaited<ReturnType<typeof verifyNativeCliRelease>>;
+type NodeManifest = Awaited<ReturnType<typeof verifyPackageRelease>>;
+type StandardScenario = Awaited<ReturnType<typeof runNativeCliMockScenario<CommandRecord>>>;
+type SharedScenario = Awaited<ReturnType<typeof runNativeSharedFileMockScenario<CommandRecord>>>;
+type StagePorts = Parameters<typeof runReleaseProjectSequences>[0];
+type RegressionPorts = Parameters<typeof runOriginalMockRegressions>[0];
+type StageLabel = Parameters<RegressionPorts['cli']>[2];
+type StageCli = Awaited<ReturnType<RegressionPorts['cli']>>;
+type StageCase = (Parameters<StagePorts['persist']>[0] | Parameters<RegressionPorts['persist']>[0]) & {name?: string};
+type Receipt = Parameters<typeof publishNativeApprovalReceipt>[0]['receipt'] & Record<string, unknown>;
+type Work = ReturnType<typeof requireNativeMockWork>;
+type ResourceFile = Awaited<ReturnType<typeof retainNativeApprovalObservation>>;
+type ChildResult = {
+  code: string | number | null; signal: NodeJS.Signals | null; pid?: number | null;
+  killed?: boolean; stdout: string; stderr: string; childExitCode?: number | null;
+};
+type ChildFailure = Omit<Partial<ChildResult>, 'childExitCode'> & {exitCode?: number | null};
+type CommandRecord = ChildResult & {
+  command: string; args: readonly string[]; cwd: string; timeoutMs: number; elapsedMs: number; wallNs: number;
+  observationFiles?: ResourceFile[]; resourceObservationIssue?: string;
+  resources?: ReturnType<typeof approvalResources>; acceptance?: Work;
+  measurement?: {sampler: string; wallIncludesSampler: boolean; diagnosticOnly?: boolean;
+    acceptanceEligible?: boolean; instrumentation?: string};
+};
+type ObservedApproval = (StandardScenario | SharedScenario)['commands'][number] & {
+  validationCalls?: ReturnType<typeof approvalCallCounts>; phases?: ReturnType<typeof approvalPhases>;
+};
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-export function nativeMockInstallOptions(extra, platform) {
+export function nativeMockInstallOptions(extra: readonly string[], platform: string): InstallOptions | {sharedFileMock: true} {
   if (extra.includes('--shared-file-mock')) {
     assert.deepEqual(extra, ['--shared-file-mock'], 'Shared-file Mock requires a separate acceptance invocation');
     return {sharedFileMock: true};
@@ -35,7 +69,7 @@ export function nativeMockInstallOptions(extra, platform) {
   const selected = extra.findIndex(value => ['--release-project-sequences', '--original-mock-regressions'].includes(value));
   assert(selected < 0 || selected === extra.length - 2 && typeof extra[selected + 1] === 'string' && extra[selected + 1].length,
     'RC sequence selection requires exactly its Node RC directory');
-  const options = nativeApprovalObservationOptions(selected < 0 ? extra : extra.slice(0, selected), platform);
+  const options: InstallOptions = nativeApprovalObservationOptions(selected < 0 ? extra : extra.slice(0, selected), platform);
   if (selected >= 0) {
     assert.equal(platform, 'darwin', 'The additional RC profile is the reported Mac consumer');
     options.projectSequenceNodeRelease = extra[selected + 1];
@@ -43,8 +77,8 @@ export function nativeMockInstallOptions(extra, platform) {
   }
   return options;
 }
-export async function runNativeCliMockInstall(input, {measureResources = false, diagnoseSyscalls = false,
-  releaseAdmission, projectSequenceNodeRelease, originalMockRegressions = false, sharedFileMock = false} = {}) {
+export async function runNativeCliMockInstall(input: string, {measureResources = false, diagnoseSyscalls = false,
+  releaseAdmission, projectSequenceNodeRelease, originalMockRegressions = false, sharedFileMock = false}: RunOptions = {}) {
   assert(input, 'Native mock acceptance requires its fixed release directory');
   assert(!originalMockRegressions || projectSequenceNodeRelease !== undefined,
     'Original Mock regressions require the exact Node companion');
@@ -55,8 +89,9 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     sha256: createHash('sha256').update(await readFile('/usr/bin/strace')).digest('hex'),
     version: (await promisify(execFile)('/usr/bin/strace', ['--version'], {encoding: 'utf8', timeout: 5000})).stdout.trim(),
   } : undefined;
-  const harnessPhases = [];
-  const observe = (phase, action, template) => observeNativeMockHarnessPhase(harnessPhases, phase, action, template);
+  const harnessPhases: NativeMockHarnessRecord[] = [];
+  const observe = <Value,>(phase: NativeMockHarnessRecord['phase'], action: () => Value,
+    template?: typeof mockTemplates[number]) => observeNativeMockHarnessPhase(harnessPhases, phase, action, template);
   const directory = resolve(input);
   if (releaseAdmission !== undefined) releaseAdmission = originalNativeMockReleaseAdmission(releaseAdmission, directory);
   const nativeManifestBytes = projectSequenceNodeRelease === undefined ? undefined
@@ -66,14 +101,16 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     const source = checkoutState(repository);
     assert(source.clean, 'Installed mock acceptance requires clean source');
     assert.equal(source.revision, manifest.sourceSha, 'Fixtures and Native artifact must share the fixed source');
-    const glibc = process.platform === 'linux' ? process.report.getReport().header.glibcVersionRuntime : undefined;
+    const glibc = process.platform === 'linux'
+      ? (process.report.getReport() as {header: {glibcVersionRuntime?: string}}).header.glibcVersionRuntime : undefined;
     const platform = platformKey({platform: process.platform, arch: process.arch, glibc});
     assert(manifest.platforms[platform], 'No fixed Native artifact for this platform');
     const expectedArtifact = manifest.artifacts.find(value => value.platform === platform);
     assert(expectedArtifact?.localRuntime, 'Mock acceptance requires the packaged Local runtime');
     return {source, glibc, platform, expectedArtifact};
   });
-  let nodeDirectory, nodeManifest, nodeManifestBytes, nodeDevelopmentManifestBytes;
+  let nodeDirectory: string | undefined, nodeManifest: NodeManifest | undefined,
+    nodeManifestBytes: Buffer | undefined, nodeDevelopmentManifestBytes: Buffer | undefined;
   if (projectSequenceNodeRelease !== undefined) {
     assert.equal(typeof projectSequenceNodeRelease, 'string'); assert(projectSequenceNodeRelease.length);
     assert.equal(platform, 'darwin-arm64', 'The additional RC cases select the reported Mac platform');
@@ -83,57 +120,59 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     nodeManifestBytes = await readFile(join(nodeDirectory, 'release.json'));
     nodeDevelopmentManifestBytes = await readFile(join(nodeDirectory, 'development/packed-client-packages.json'));
     nodeManifest = await verifyPackageRelease(nodeDirectory);
-    assert.deepEqual(JSON.parse(nodeManifestBytes), nodeManifest);
+    assert.deepEqual(JSON.parse(nodeManifestBytes as unknown as string), nodeManifest);
     assertReleaseProjectCohort(manifest, nodeManifest);
   }
   const scratch = await observe('scratch-creation', () => createOwnedScratch({parent: tmpdir(), prefix: 'actql-native-mock-install-',
     label: 'Native mock public workflow external installation'}));
   const registry = await observe('registry-open', () => openReleaseTestRegistry([{directory, manifest},
-    ...(nodeManifest ? [{directory: nodeDirectory, manifest: nodeManifest}] : [])]));
-  const root = scratch.path, prefix = join(root, 'global'), records = [], scenarios = [];
+    ...(nodeManifest ? [{directory: nodeDirectory!, manifest: nodeManifest}] : [])]));
+  const root = scratch.path, prefix = join(root, 'global'), records: CommandRecord[] = [],
+    scenarios: (StandardScenario | SharedScenario)[] = [];
   // No inherited account, provider key, Host selection, library override, SDK or
   // private runtime path may rescue a missing installed Native implementation.
   const env = {PATH: process.env.PATH, HOME: join(root, 'home'), TMPDIR: join(root, 'tmp'), LANG: 'C.UTF-8',
     npm_config_registry: registry.url, npm_config_userconfig: join(root, 'npmrc'),
     npm_config_globalconfig: join(root, 'npmrc-global'), npm_config_cache: join(root, 'cache'),
     npm_config_proxy: '', npm_config_https_proxy: '', npm_config_update_notifier: 'false',
-    NO_PROXY: '127.0.0.1,localhost'};
+    NO_PROXY: '127.0.0.1,localhost'} as NodeJS.ProcessEnv & {HOME: string; TMPDIR: string};
   const execute = promisify(execFile);
-  let receipt, primary, failed = false;
-  async function run(command, args, cwd = root, timeoutMs = 120_000) {
+  let receipt: Receipt | undefined, primary: unknown, failed = false;
+  async function run(command: string, args: readonly string[], cwd = root, timeoutMs = 120_000) {
     const started = process.hrtime.bigint();
     const resources = measureResources && command === process.execPath && args[1] === 'approve'
       ? join(root, `approval-resources-${records.length}.txt`) : undefined;
     const syscalls = resources && diagnoseSyscalls ? join(root, `approval-syscalls-${records.length}.txt`) : undefined;
     const observed = nativeApprovalObservedCommand(command, args, {platform: process.platform, resources, syscalls});
-    let result;
+    let result: ChildResult;
     try {
-      const options = {cwd, env, timeout: timeoutMs, killSignal: 'SIGKILL', maxBuffer: 8 * 1024 * 1024};
+      const options = {cwd, env, timeout: timeoutMs, killSignal: 'SIGKILL' as const, maxBuffer: 8 * 1024 * 1024};
       const captured = command === process.execPath
         ? await captureNativeMockCommand(observed.command, observed.args,
           {...options, stderrPath: join(root, `command-${records.length}.stderr`)})
         : await execute(observed.command, observed.args, options);
       result = {...captured, code: 0, signal: null};
     } catch (error) {
-      result = {code: error.code ?? null, signal: error.signal ?? null, pid: error.pid ?? null,
-        killed: error.killed ?? false, stdout: error.stdout ?? '', stderr: error.stderr ?? '',
-        ...(error.exitCode !== undefined ? {childExitCode: error.exitCode} : {})};
+      result = {code: (error as ChildFailure).code ?? null, signal: (error as ChildFailure).signal ?? null,
+        pid: (error as ChildFailure).pid ?? null,
+        killed: (error as ChildFailure).killed ?? false, stdout: (error as ChildFailure).stdout ?? '', stderr: (error as ChildFailure).stderr ?? '',
+        ...((error as ChildFailure).exitCode !== undefined ? {childExitCode: (error as ChildFailure).exitCode} : {})};
     }
     const wallNs = Number(process.hrtime.bigint() - started);
     assert(Number.isSafeInteger(wallNs) && wallNs >= 0);
-    const record = {command, args, cwd, timeoutMs, elapsedMs: wallNs / 1e6, wallNs, ...result};
+    const record: CommandRecord = {command, args, cwd, timeoutMs, elapsedMs: wallNs / 1e6, wallNs, ...result};
     if (resources) {
       record.observationFiles = [];
-      for (const [kind, file] of [['resources', resources], ['syscalls', syscalls]]) {
+      for (const [kind, file] of [['resources', resources], ['syscalls', syscalls]] as const) {
         if (!file) continue;
         try {
           record.observationFiles.push(await retainNativeApprovalObservation(file,
             join(directory, `approval-${kind}-${basename(root)}-${records.length}.txt`), kind));
-        } catch (error) { record.resourceObservationIssue ??= error.message; }
+        } catch (error) { record.resourceObservationIssue ??= (error as Error).message; }
       }
       if (result.code === 0 && result.signal === null) {
         try { record.resources = approvalResources(await readFile(resources, 'utf8'), process.platform); }
-        catch (error) { record.resourceObservationIssue ??= error.message; }
+        catch (error) { record.resourceObservationIssue ??= (error as Error).message; }
       }
       record.measurement = {sampler: '/usr/bin/time', wallIncludesSampler: true,
         ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,
@@ -163,7 +202,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     const {platformRoot, artifact, binary} = await observe('installed-package-admission', async () => {
       assert.deepEqual((await readdir(join(packageRoot, 'node_modules/@actql'))).sort(), [`cli-${platform}`]);
       const platformRoot = join(packageRoot, 'node_modules/@actql', `cli-${platform}`);
-      const artifact = JSON.parse(await readFile(join(platformRoot, 'artifact.json'), 'utf8'));
+      const artifact = JSON.parse(await readFile(join(platformRoot, 'artifact.json'), 'utf8')) as NativeManifest['artifacts'][number];
       assert.deepEqual(artifact, expectedArtifact);
       const binary = await readFile(join(platformRoot, 'bin/actql-native-client'));
       assert.equal(binary.length, manifest.platforms[platform].binaryBytes);
@@ -174,7 +213,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       : await retainReleaseProjectArchives(directory, manifest, nativeManifestBytes);
     const verifyNativeInputs = async () => {
       assert.deepEqual(checkoutState(repository), source);
-      await verifyNativeArchives();
+      await verifyNativeArchives!();
       for (const path of [prefix, packageRoot, platformRoot]) {
         const info = await lstat(path);
         assert(info.isDirectory() && !info.isSymbolicLink());
@@ -187,15 +226,17 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
         assert.deepEqual(await inventory(path, '', {ignoreInstalledDependencies: true}), item.files);
       }
     };
-    const preparedNode = nodeManifest ? await prepareReleaseProjectNode({directory: nodeDirectory,
-      nativeManifest: manifest, originalNodeManifest: nodeManifest, originalNodeManifestBytes: nodeManifestBytes,
-      originalNodeDevelopmentManifestBytes: nodeDevelopmentManifestBytes,
+    const preparedNode = nodeManifest ? await prepareReleaseProjectNode({directory: nodeDirectory!,
+      nativeManifest: manifest, originalNodeManifest: nodeManifest, originalNodeManifestBytes: nodeManifestBytes!,
+      originalNodeDevelopmentManifestBytes: nodeDevelopmentManifestBytes!,
       root, repository, registry, run, verifySource: verifyNativeInputs}) : undefined;
     env.PATH = join(root, 'empty-path');
     env.ACTQL_NATIVE_TIMINGS = '1';
     env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS = '1';
-    const runScenarioCommand = (args, cwd) => run(process.execPath, [launcher, ...args], cwd);
-    let nullableUpdate;
+    const runScenarioCommand = (args: readonly string[], cwd: string) => run(process.execPath, [launcher, ...args], cwd);
+    let nullableUpdate: {
+      caseSha256: string; decisions: Awaited<ReturnType<typeof runNativeNullableMockScenarios<CommandRecord>>>;
+    } | undefined;
     if (sharedFileMock) {
       scenarios.push(await observe('shared-file-scenario', () => runNativeSharedFileMockScenario({root,
         launcherTimings: 'required', run: runScenarioCommand})));
@@ -212,12 +253,12 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     for (const scenario of scenarios) {
       const approvals = scenario.commands.filter(record => record.args.includes('approve'));
       assert.equal(approvals.length, 1);
-      const approval = approvals[0];
+      const approval: ObservedApproval = approvals[0];
       approval.validationCalls = approvalCallCounts(approval);
       approval.phases = approvalPhases(approval, {requireCompleted: false});
-      assertApprovalCallCounts(approval.validationCalls, approval.acceptance.writes.length);
+      assertApprovalCallCounts(approval.validationCalls, approval.acceptance!.writes.length);
     }
-    let projectSequences;
+    let projectSequences: StageCase[] | undefined;
     if (preparedNode) {
       const verify = preparedNode.verify;
       const verifyRelease = async () => {
@@ -228,14 +269,14 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
         });
         await verify();
       };
-      const cli = async (args, cwd, label) => {
+      const cli = async (args: readonly string[], cwd: string, label: StageLabel): Promise<StageCli> => {
         await verify();
         const change = expectedChanges[label.template];
         let minimumWrites = change.rows.length;
         if (args[0] === 'approve') {
           minimumWrites = requiredProjectReplacements(label.template, (await projectTargetSnapshot(cwd)).bytes);
         }
-        let value, primary, failed = false;
+        let value: CommandRecord | undefined, primary: unknown, failed = false;
         try {value = await runReleaseProjectCli(run, launcher, args, cwd);
           assert.equal(value.code, projectCliExpectedExit(args, label), value.stderr); assert.equal(value.signal, null);
           const groups = nativeMockAcceptanceObservations(nativeLauncherEnvelope(value.stderr, 'required').native);
@@ -245,14 +286,14 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
         } catch (cause) {primary = cause; failed = true;}
         try {await verify();} catch (cause) {if (!failed) {primary = cause; failed = true;}}
         if (failed) throw primary;
-        return value;
+        return value as StageCli;
       };
-      let sequenceFailure, sequenceFailed = false;
+      let sequenceFailure: unknown, sequenceFailed = false;
       try {
         projectSequences = await observe(originalMockRegressions ? 'original-mock-regressions' : 'release-project-sequences',
           () => (originalMockRegressions ? runOriginalMockRegressions : runReleaseProjectSequences)({
           root: preparedNode.projects, cli, node: preparedNode.node,
-          persist: value => writeFile(join(preparedNode.cases, `${value.template}-${value.family}${value.name ? '-' + value.name : ''}.json`),
+          persist: (value: StageCase) => writeFile(join(preparedNode.cases, `${value.template}-${value.family}${value.name ? '-' + value.name : ''}.json`),
             JSON.stringify(value) + '\n', {flag: 'wx', mode: 0o600}),
         }));
         assert(projectSequences.length && projectSequences.every(value => value.complete));
@@ -274,8 +315,8 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       registry: 'private-loopback-fixed-RC', registryRequests: registry.requested,
       publicRegistryPublication: 'not-tested', harnessPhases, scenarios, records,
       ...(nullableUpdate === undefined ? {} : {nullableUpdate}),
-      ...(projectSequences ? {projectSequences, originalMockRegressions, nodeSourceSha: nodeManifest.sourceSha,
-        nodePackages: nodeManifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity}))} : {}),
+      ...(projectSequences ? {projectSequences, originalMockRegressions, nodeSourceSha: nodeManifest!.sourceSha,
+        nodePackages: nodeManifest!.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity}))} : {}),
       ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,
         diagnostic: {purpose: 'native-approval-syscall-summary', tool: syscallTool,
           qualification: 'one instrumented workflow; not formal latency or a replacement for failed samples'}} : {}),
@@ -296,7 +337,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
   // Successful evidence is published only after every child has exited and the
   // private registry has confirmed closure. Cleanup failure is not acceptance.
   const receiptFile = join(directory, `${diagnoseSyscalls ? 'mock-syscalls' : 'mock-install'}-${platform}-${Date.now()}.json`);
-  await publishNativeApprovalReceipt({receipt, receiptFile, measureResources, sharedFileMock, scratch});
+  await publishNativeApprovalReceipt({receipt: receipt!, receiptFile, measureResources, sharedFileMock, scratch});
 
   return receiptFile;
 }

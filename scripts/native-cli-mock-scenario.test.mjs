@@ -729,8 +729,8 @@ test('the required Node caller cannot silently become a direct Native caller', a
   await assert.rejects(runNativeCliMockScenario(options),/Required Node launcher timing trailer missing/u);
   const installed = await readFile(new URL('./test-native-cli-mock-install.mjs',import.meta.url),'utf8');
   assert.match(installed, /const runScenarioCommand = \(args, cwd\) => run\(process\.execPath, \[launcher, \.\.\.args\], cwd\);/u);
-  assert.match(installed, /runNativeCliMockScenario\(\{\s*root, template, launcherTimings: 'required', run: runScenarioCommand\}/u);
-  assert.match(installed, /runNativeSharedFileMockScenario\(\{\s*root,\s*launcherTimings: 'required', run: runScenarioCommand\}/u);
+  assert.match(installed, /runNativeCliMockScenario\(\{\s*root, template, launcherTimings: 'required', run: runScenarioCommand\s*\}/u);
+  assert.match(installed, /runNativeSharedFileMockScenario\(\{\s*root,\s*launcherTimings: 'required', run: runScenarioCommand\s*\}/u);
 });
 
 for (const [name, envelope] of [
