@@ -89,8 +89,12 @@ export async function originalNotionEffectValuesFixture() {
   assert(bound);
   const registry = await readFile(new URL('../../../../spec/dependencies/aoa-pipeline-registry.json', import.meta.url), 'utf8');
   const aoa = JSON.parse(await readFile(new URL('../../../../spec/contracts/actql-aoa.json', import.meta.url), 'utf8'));
-  const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(bound, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']), 1n, 0n, 0n, 0n);
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts = checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
+  const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(bound, contracts,
+    values, 1n, 0n, 0n, 0n, fragment, ordered);
   assert(owned, 'same original source-free Effect Host');
   let execution, inputs;
   try {
