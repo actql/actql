@@ -344,8 +344,8 @@ test "initial acceptance retry reuses the original funded custody after rollback
 }
 
 ///|
-test "lost initial acceptance reply reuses the saved original without another reservation" {
-  let (_, _, journal) = initial_catalog_fixture("accept-reply")
+test "lost initial acceptance reply preserves the reservation and the original durable stamp" {
+  let (library, path, journal) = initial_catalog_fixture("accept-reply")
   let request = test_request("accept-reply")
   let ledger = initial_catalog_test_ledger()
   test_fail_cancel_commit_reply(journal.database, 1)
@@ -359,25 +359,44 @@ test "lost initial acceptance reply reuses the saved original without another re
   }
   let original = failure.custody.unwrap()
   let before = @resources.ledger_usage(ledger)
-  // A consumed original claim is preserved after the acceptance reply is lost.
-  journal.claim_initial_catalog_use(request).unwrap() |> ignore
-  let (kind, _, retried) = journal
-    .accept_with_initial_catalog_use(
+  assert_true(
+    journal.claim_initial_catalog_use(request) is Err(TransactionFenced),
+  )
+  guard journal.accept_with_initial_catalog_use(
       request,
       ledger,
       initial_catalog_test_envelope(),
       original_custody=Some(original),
     )
-    .unwrap()
-  assert_eq(kind, @remote.ExistingDispatch)
-  assert_true(physical_equal(retried.unwrap(), original))
-  assert_eq(@resources.ledger_usage(ledger), before)
-  assert_true(journal.require_initial_catalog_use(request, 1L) is Ok(_))
-  assert_true(journal.claim_initial_catalog_use(request) is Err(StateCollision))
-  initial_catalog_test_release(journal, request)
-  journal.cleanup_initial_catalog_use(original).unwrap()
-  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+    is Err(retry) else {
+    fail("fenced acceptance continued")
+  }
+  assert_true(retry.issue is Journal(TransactionFenced))
+  assert_true(physical_equal(retry.custody.unwrap(), original))
+  assert_true(
+    journal.cleanup_initial_catalog_use(original)
+    is Err(Journal(StateCollision)),
+  )
+  assert_true(initial_catalog_use_custody_pending(original))
   assert_true(journal.close())
+
+  let reopened = open_journal(library, path, 262144L, test_control(test_site())).unwrap()
+  let (kind, record) = reopened.accept(request).unwrap()
+  assert_eq(kind, @remote.ExistingDispatch)
+  assert_true(@remote.dispatch_record_matches_request(record, request))
+  let stamp = reopened.require_initial_catalog_use(request, 0L).unwrap()
+  assert_eq(stamp.revision, 0L)
+  assert_eq(
+    stamp.body,
+    @utf8.encode(@remote.dispatch_request_json(request).unwrap()),
+  )
+  assert_true(
+    reopened.cleanup_initial_catalog_use(original)
+    is Err(Journal(StateCollision)),
+  )
+  assert_true(initial_catalog_use_custody_pending(original))
+  assert_eq(@resources.ledger_usage(ledger), before)
+  assert_true(reopened.close())
 }
 
 ///|
@@ -516,6 +535,13 @@ test "initial stamp cleanup waits for exact consumer release and returns its ori
 }
 
 ///|
+#borrow(database)
+extern "C" fn initial_catalog_lookup_fault(
+  database : @sqlite.Database,
+  kind : Int,
+) -> Unit = "actql_native_sqlite_test_lookup_fault"
+
+///|
 test "lost exact cleanup commit reply retains the same nominal operation and reservation" {
   let (_, _, journal) = initial_catalog_fixture("cleanup-reply")
   let request = test_request("cleanup-reply")
@@ -532,14 +558,21 @@ test "lost exact cleanup commit reply retains the same nominal operation and res
   test_fail_cancel_commit_reply(journal.database, 1)
   assert_true(journal.cleanup_initial_catalog_use(custody) is Err(_))
   assert_true(custody.cleanup_started)
-  assert_false(custody.removal_confirmed)
+  assert_true(custody.removal is RemovalUnconfirmed)
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(
     journal.database.read("site_initial_catalog_use", custody.dispatch_cid)
     is Err(@sqlite.NotFound),
   )
+  initial_catalog_lookup_fault(journal.database, 2)
+  assert_true(journal.cleanup_initial_catalog_use(custody) is Err(_))
+  assert_true(custody.removal is RemovalLookupPending(_))
+  assert_true(initial_catalog_use_custody_pending(custody))
+  assert_eq(@resources.ledger_usage(ledger), before)
   journal.cleanup_initial_catalog_use(custody).unwrap()
+  assert_true(custody.removal is RemovalConfirmed)
   assert_false(initial_catalog_use_custody_pending(custody))
+  assert_true(journal.require(request) is Err(TransactionFenced))
   assert_true(journal.close())
 }
 
@@ -597,5 +630,37 @@ test "a reopened Journal cannot adopt another nominal initial stamp cleanup" {
   assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(other.close())
   journal.cleanup_initial_catalog_use(custody).unwrap()
+  assert_true(journal.close())
+}
+
+///|
+test "fenced cleanup leaves the original reservation charged when its stamp survived" {
+  let (_, _, journal) = initial_catalog_fixture("cleanup-retained")
+  let request = test_request("cleanup-retained")
+  let ledger = initial_catalog_test_ledger()
+  let custody = journal
+  .accept_with_initial_catalog_use(
+    request,
+    ledger,
+    initial_catalog_test_envelope(),
+  )
+  .unwrap().2.unwrap()
+  initial_catalog_test_release(journal, request)
+  let before = @resources.ledger_usage(ledger)
+  test_fail_cancel_commit(journal.database, 1)
+  fail_original_site_rollback(journal.database, 1)
+  assert_true(
+    journal.cleanup_initial_catalog_use(custody)
+    is Err(Journal(TransactionCommit(_))),
+  )
+  assert_true(custody.cleanup_started)
+  journal.database.rollback().unwrap()
+  assert_true(
+    journal.cleanup_initial_catalog_use(custody) is Err(Journal(StateCollision)),
+  )
+  assert_true(custody.removal is RemovalUnconfirmed)
+  assert_true(journal.require(request) is Err(TransactionFenced))
+  assert_true(initial_catalog_use_custody_pending(custody))
+  assert_eq(@resources.ledger_usage(ledger), before)
   assert_true(journal.close())
 }
