@@ -45,6 +45,9 @@ test('actual checked Notion cells preserve original decimal lexeme enum and exac
   assert.equal(cell(b,p,0),'"9007199254740993.25"');
   assert.equal(cell(b,p,1),'"low"');
   assert.equal(cell(b,p,2),'"2026-01-01T00:00:00.000Z"');
+  const fractional=page(s,'1',{type:'string',string:'low'},
+    {start:'2026-01-01T00:00:00.0001Z',end:null,time_zone:null});
+  assert.equal(cell(b,fractional,2),'"2026-01-01T00:00:00.0001Z"');
   const schema=checked(provider.notionDataSourceReadSchemaJson(b,4096,128,16)) as string;
   assert.match(schema,/"precision":20/u);
   assert.match(schema,/"enum":\["low","medium"\]/u);
@@ -61,7 +64,7 @@ test('actual Notion scalar admission refuses rounded native relabels changed dis
   refuses(()=>cell(b,page(s,'1',{type:'number',number:1}),1));
   for(const date of [
     {start:'2026-01-01T00:00:00.000-00:00',end:null,time_zone:null},
-    {start:'2026-01-01T00:00:00.0001Z',end:null,time_zone:null},
+    {start:'2026-01-01T00:00:00.0000000001Z',end:null,time_zone:null},
     {start:'2026-01-01T00:00:00.000Z',end:'2026-01-02T00:00:00.000Z',time_zone:null},
     {start:'2026-01-01T00:00:00.000',end:null,time_zone:'Asia/Tokyo'},
   ])refuses(()=>cell(b,page(s,'1',{type:'string',string:'low'},date),2));
