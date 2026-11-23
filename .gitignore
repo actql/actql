@@ -2686,3 +2686,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/node-host-result-installation.d.mts
 /adapters/host-node/ordinary-host-result.test.mjs
 /adapters/host-node/ordinary-host-result.test.d.mts
+/adapters/host-node/bounded-continuation-metadata.mjs
+/adapters/host-node/bounded-continuation-metadata.d.mts
+/adapters/host-node/bounded-continuation-metadata.test.mjs
+/adapters/host-node/bounded-continuation-metadata.test.d.mts

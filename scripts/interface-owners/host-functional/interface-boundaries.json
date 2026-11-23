@@ -17610,7 +17610,7 @@
     {
       "module": "adapters/host-node/bounded-continuation-metadata.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4a307124e4120bf96c191a0c9e62172d791252841a7e2fde77903b38aefacd15",
+      "sha256": "38360050bbe0ca571a5d3b99a286cb8cb3dfb3b4149d6e0ed95fc809dc19be9f",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -17666,8 +17666,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "export async function readContinuationLedgerBounded(path, prepareAttemptId, supplied, signal, control) {"
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
+                "anchor": "export async function readContinuationLedgerBounded(path: string, prepareAttemptId: string,"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -17680,8 +17680,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "export async function readContinuationLedgerBounded(path, prepareAttemptId, supplied, signal, control) {"
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
+                "anchor": "export async function readContinuationLedgerBounded(path: string, prepareAttemptId: string,"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -17694,7 +17694,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "const attempt = /^[A-Za-z0-9._:-]{1,128}$/u;"
               },
               {
@@ -17708,7 +17708,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "// Shape/wire acquisition ONLY. The existing Evidence Owner selects the exact"
               },
               {
@@ -17722,7 +17722,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "// Capture before the first await, so caller mutation cannot widen a read."
               },
               {
@@ -17736,8 +17736,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
+                "anchor": "const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -17750,7 +17750,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "// still funds bytes + decoded tree/entries + frames + FD/cleanup overlap in its"
               },
               {
@@ -17764,7 +17764,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "import {readBoundedLocalMetadata} from '../store-local/publication-store.mjs';"
               },
               {
@@ -17778,7 +17778,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "const version = 'actql-local-continuation-retention/0.1';"
               },
               {
@@ -17792,7 +17792,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.test.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.test.mts",
                 "anchor": "test('bounded continuation metadata exact wire fit and one-short use the shared real FD reader', async t => {"
               },
               {
@@ -17810,8 +17810,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "export async function readContinuationLedgerBounded(path, prepareAttemptId, supplied, signal, control) {"
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
+                "anchor": "export async function readContinuationLedgerBounded(path: string, prepareAttemptId: string,"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -17824,8 +17824,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "export async function readContinuationLedgerBounded(path, prepareAttemptId, supplied, signal, control) {"
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
+                "anchor": "export async function readContinuationLedgerBounded(path: string, prepareAttemptId: string,"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -17838,7 +17838,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "const attempt = /^[A-Za-z0-9._:-]{1,128}$/u;"
               },
               {
@@ -17852,7 +17852,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "// Shape/wire acquisition ONLY. The existing Evidence Owner selects the exact"
               },
               {
@@ -17866,7 +17866,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "// Capture before the first await, so caller mutation cannot widen a read."
               },
               {
@@ -17880,8 +17880,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
-                "anchor": "const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
+                "anchor": "const fail: (code: string, cause?: unknown) => never = (code, cause) => { throw Object.assign(new Error(code, {cause}), {code}); };"
               },
               {
                 "path": "docs/spec/protocols/artifacts.md",
@@ -17894,7 +17894,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "// still funds bytes + decoded tree/entries + frames + FD/cleanup overlap in its"
               },
               {
@@ -17908,7 +17908,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "import {readBoundedLocalMetadata} from '../store-local/publication-store.mjs';"
               },
               {
@@ -17922,7 +17922,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.mts",
                 "anchor": "const version = 'actql-local-continuation-retention/0.1';"
               },
               {
@@ -17936,7 +17936,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/bounded-continuation-metadata.test.mjs",
+                "path": "adapters/host-node/bounded-continuation-metadata.test.mts",
                 "anchor": "test('bounded continuation metadata exact wire fit and one-short use the shared real FD reader', async t => {"
               },
               {
