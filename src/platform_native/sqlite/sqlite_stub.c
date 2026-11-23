@@ -131,6 +131,8 @@ typedef struct {
   int test_commit_failures;
   int test_commit_reply_failures;
   int test_commit_skip;
+  int test_rollback_failures;
+  int test_transaction_state_failures;
   int transaction_fenced;
   // The same Database retains its read child before BEGIN and after a lost
   // response. This is not the earlier write's outcome or a second ledger.
@@ -567,6 +569,14 @@ void actql_native_sqlite_test_fail_commit_reply(
   actql_native_sqlite_database *database, int32_t failures
 ) { database->test_commit_reply_failures = failures; database->test_commit_skip = 0; }
 
+void actql_native_sqlite_test_fail_rollback(
+  actql_native_sqlite_database *database, int32_t failures
+) { database->test_rollback_failures = failures; }
+
+void actql_native_sqlite_test_fail_transaction_state(
+  actql_native_sqlite_database *database, int32_t failures
+) { database->test_transaction_state_failures = failures; }
+
 // Select an owned transaction boundary after preceding successful commits.
 // This is whitebox fault injection, not an environment-controlled retry mode.
 void actql_native_sqlite_test_fail_commit_after(
@@ -664,6 +674,21 @@ static int actql_exec(
   }
   if (message != NULL) database->library->free_memory(message);
   return code;
+}
+
+// Whitebox-only: stage a real deferred constraint failure in the original
+// transaction. TEMP tables leave the durable Journal schema unchanged.
+int32_t actql_native_sqlite_test_stage_deferred_constraint(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened ||
+      !actql_database_library_available(database->library) ||
+      database->library->get_autocommit(database->database)) return -1;
+  return actql_exec(database,
+    "CREATE TEMP TABLE actql_test_parent(id INTEGER PRIMARY KEY);"
+    "CREATE TEMP TABLE actql_test_child(parent INTEGER REFERENCES "
+    "actql_test_parent(id) DEFERRABLE INITIALLY DEFERRED);"
+    "INSERT INTO actql_test_child VALUES (1)");
 }
 
 static int actql_user_version(actql_native_sqlite_database *database) {
@@ -1171,7 +1196,8 @@ static void *actql_open_database(
       return database;
     }
   }
-  int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX;
+  // Keep the original SQLite code from exec, before any subsequent SQL.
+  int flags = SQLITE_OPEN_READWRITE | SQLITE_OPEN_FULLMUTEX | SQLITE_OPEN_EXRESCODE;
   flags |= contained ? SQLITE_OPEN_NOFOLLOW : SQLITE_OPEN_CREATE;
   int code = ACTQL_NATIVE_TIMED_CALL(ACTQL_NATIVE_COUNT_SQL_OPEN, library->open_v2)(
     path_text,
@@ -2057,26 +2083,40 @@ int32_t actql_native_sqlite_test_remove_journal_record(
   return removed && finalized == SQLITE_OK;
 }
 
+// Nonnegative results in these entry points are original SQLite codes, not
+// actql_operation_code tags. Negative results belong to the transaction adapter.
+enum actql_transaction_reply {
+  ACTQL_TRANSACTION_NOT_ISSUED = -1,
+  ACTQL_TRANSACTION_CLOSED = -2,
+  ACTQL_TRANSACTION_REPLY_LOST = -3,
+  ACTQL_TRANSACTION_STATE_UNAVAILABLE = -4,
+  ACTQL_TRANSACTION_REFUSED_BEFORE_SQL = -5
+};
+
+static int32_t actql_database_transaction_begin(
+  actql_native_sqlite_database *database, const char *sql
+) {
+  if (database == NULL || !database->opened ||
+      !actql_database_library_available(database->library))
+    return ACTQL_TRANSACTION_CLOSED;
+  if (database->lookup_generation != 0 || database->transaction_fenced)
+    return ACTQL_TRANSACTION_NOT_ISSUED;
+  actql_clear_result(database);
+  return actql_exec(database, sql);
+}
+
 // A deferred physical snapshot, matching the existing byte-store BEGIN.
 // It neither writes nor commits a row and must retain its original stop ACK.
 int32_t actql_native_sqlite_database_begin_deferred(
   actql_native_sqlite_database *database
 ) {
-  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->lookup_generation != 0) return -1;
-  actql_clear_result(database);
-  int code = actql_exec(database, "BEGIN");
-  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+  return actql_database_transaction_begin(database, "BEGIN");
 }
 
 int32_t actql_native_sqlite_database_begin_immediate(
   actql_native_sqlite_database *database
 ) {
-  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->lookup_generation != 0) return -1;
-  actql_clear_result(database);
-  int code = actql_exec(database, "BEGIN IMMEDIATE");
-  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+  return actql_database_transaction_begin(database, "BEGIN IMMEDIATE");
 }
 
 // An adapter that cannot confirm commit/rollback fences this physical handle.
@@ -2098,43 +2138,59 @@ int32_t actql_native_sqlite_database_transaction_state(
   actql_native_sqlite_database *database
 ) {
   if (database == NULL || !database->opened || database->database == NULL ||
-      !actql_database_library_available(database->library)) return -1;
+      !actql_database_library_available(database->library))
+    return ACTQL_TRANSACTION_CLOSED;
+  if (database->test_transaction_state_failures > 0) {
+    database->test_transaction_state_failures--;
+    return ACTQL_TRANSACTION_STATE_UNAVAILABLE;
+  }
   return database->library->get_autocommit(database->database) ? 0 : 1;
 }
 
 int32_t actql_native_sqlite_database_commit(
   actql_native_sqlite_database *database
 ) {
-  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->lookup_generation != 0) return -1;
+  if (database == NULL || !database->opened ||
+      !actql_database_library_available(database->library))
+    return ACTQL_TRANSACTION_CLOSED;
+  if (database->lookup_generation != 0 || database->transaction_fenced)
+    return ACTQL_TRANSACTION_NOT_ISSUED;
   actql_clear_result(database);
   if (database->test_commit_skip > 0) {
     database->test_commit_skip--;
-    int code = actql_exec(database, "COMMIT");
-    return code == SQLITE_OK ? 0 : actql_operation_code(code);
+    return actql_exec(database, "COMMIT");
   }
   if (database->test_commit_failures > 0) {
     database->test_commit_failures--;
-    actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "injected transaction commit failure");
-    return 4;
+    actql_replace_error_for(database->library, &database->error,
+      database->diagnostic_ceiling, "injected transaction commit failure");
+    return ACTQL_TRANSACTION_REFUSED_BEFORE_SQL;
   }
   int code = actql_exec(database, "COMMIT");
   if (code == SQLITE_OK && database->test_commit_reply_failures > 0) {
     database->test_commit_reply_failures--;
-    actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling, "injected lost transaction commit reply");
-    return 4;
+    actql_replace_error_for(database->library, &database->error,
+      database->diagnostic_ceiling, "injected lost transaction commit reply");
+    return ACTQL_TRANSACTION_REPLY_LOST;
   }
-  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+  return code;
 }
 
 int32_t actql_native_sqlite_database_rollback(
   actql_native_sqlite_database *database
 ) {
-  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
-  if (database->lookup_generation != 0) return -1;
+  if (database == NULL || !database->opened ||
+      !actql_database_library_available(database->library))
+    return ACTQL_TRANSACTION_CLOSED;
+  if (database->lookup_generation != 0) return ACTQL_TRANSACTION_NOT_ISSUED;
   actql_clear_result(database);
-  int code = actql_exec(database, "ROLLBACK");
-  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+  if (database->test_rollback_failures > 0) {
+    database->test_rollback_failures--;
+    actql_replace_error_for(database->library, &database->error,
+      database->diagnostic_ceiling, "injected transaction rollback failure");
+    return ACTQL_TRANSACTION_REFUSED_BEFORE_SQL;
+  }
+  return actql_exec(database, "ROLLBACK");
 }
 
 static void actql_capacity_rollback(
@@ -2969,7 +3025,7 @@ int64_t actql_native_sqlite_lookup_claim(actql_native_sqlite_database *database)
       !actql_database_library_available(database->library) ||
       !database->transaction_fenced || database->lookup_generation != 0 ||
       database->lookup_sequence == INT64_MAX ||
-      !database->library->get_autocommit(database->database)) return 0;
+      actql_native_sqlite_database_transaction_state(database) != 0) return 0;
   database->lookup_generation = ++database->lookup_sequence;
   database->lookup_start_attempted = false;
   database->lookup_begin_attempted = false;

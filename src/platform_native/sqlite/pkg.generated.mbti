@@ -68,6 +68,7 @@ pub fn Database::scan_after_with_body_limit(Self, String, String, Int64) -> Resu
 pub fn Database::scan_exact_body_extent(Self, String, String, String, NativeJournalHeader) -> Result[NativeJournalEntry, NativeSqliteIssue]
 pub fn Database::transaction_fenced(Self) -> Bool
 pub fn Database::transaction_state(Self) -> Result[NativeSqliteTransactionState, NativeSqliteIssue]
+pub fn Database::transaction_step(Self, NativeSqliteTransactionStep) -> Result[Unit, NativeSqliteTransactionFailure]
 
 type Library
 pub fn Library::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
@@ -167,9 +168,34 @@ pub fn NativeSqliteOpenFailure::borrow_original_database_cleanup(Self, NativeSto
 pub fn NativeSqliteOpenFailure::issue(Self) -> NativeSqliteIssue
 pub fn NativeSqliteOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeSqliteIssue]
 
+pub(all) struct NativeSqliteResultCode {
+  primary : Int
+  extended : Int
+} derive(Eq)
+
+pub struct NativeSqliteTransactionFailure {
+  step : NativeSqliteTransactionStep
+  reply : NativeSqliteTransactionReply
+  issue : NativeSqliteIssue
+}
+
+pub(all) enum NativeSqliteTransactionReply {
+  SqlNotIssued
+  SqlRejected(NativeSqliteResultCode)
+  SqlReplyLost
+  SqlConfirmed
+} derive(Eq)
+
 pub(all) enum NativeSqliteTransactionState {
   NoActiveSqliteTransaction
   ActiveSqliteTransaction
+} derive(Eq)
+
+pub(all) enum NativeSqliteTransactionStep {
+  BeginDeferred
+  BeginImmediate
+  Commit
+  Rollback
 } derive(Eq)
 
 type NativeStoreOperationOriginal
