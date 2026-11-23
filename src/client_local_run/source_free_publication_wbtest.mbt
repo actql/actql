@@ -336,9 +336,15 @@ test "Local commit evidence shares only exact Result retentions" {
   ).unwrap()
   assert_false(physical_equal(first, equal))
   let policies = []
-  assert_true(append_local_result_retention_evidence(policies, first))
-  assert_true(append_local_result_retention_evidence(policies, distinct))
-  assert_true(append_local_result_retention_evidence(policies, equal))
+  assert_true(
+    @publication.append_unique_result_retention_evidence(policies, first),
+  )
+  assert_true(
+    @publication.append_unique_result_retention_evidence(policies, distinct),
+  )
+  assert_true(
+    @publication.append_unique_result_retention_evidence(policies, equal),
+  )
   assert_eq(policies.length(), 2)
   assert_true(physical_equal(policies[0], first))
   assert_true(physical_equal(policies[1], distinct))

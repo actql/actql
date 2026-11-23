@@ -121,6 +121,8 @@ pub fn admit_source_effect_dependency_body(String, String, Int, Int, Int) -> Res
 
 pub fn advance_content_bytes(ContentByteEncoder, Int) -> ContentBytePoll
 
+pub fn append_unique_result_retention_evidence(Array[PublicationContract], PublicationContract) -> Bool
+
 pub fn author_effect_preview_semantic_wire(String, String, String, Int, Int, Int) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
 
 pub fn authored_effect_preview_identity(AuthoredEffectPreview) -> EffectPreviewIdentity

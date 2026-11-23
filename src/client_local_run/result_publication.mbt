@@ -351,24 +351,6 @@ pub fn local_run_manifest_contract(
 }
 
 ///|
-// Result ordinals keep their own policy original. Only the commit evidence
-// collection is a set, and an equal CID must have the same admitted body.
-fn append_local_result_retention_evidence(
-  policies : Array[@publication.PublicationContract],
-  original : @publication.PublicationContract,
-) -> Bool {
-  let cid = @publication.publication_contract_identity(original)
-  for admitted in policies {
-    if @publication.publication_contract_identity(admitted) == cid {
-      return @publication.publication_contract_json(admitted) ==
-        @publication.publication_contract_json(original)
-    }
-  }
-  policies.push(original)
-  true
-}
-
-///|
 /// Connect the original completed inventory to the existing bounded commit
 /// validator. This issues no Store permission, commit fact or Run outcome.
 /// The physical Host must recheck current authority around every yield and
@@ -397,7 +379,10 @@ pub fn start_local_publication_commit_check(
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
-    if !append_local_result_retention_evidence(retentions, result.retention) {
+    if !@publication.append_unique_result_retention_evidence(
+        retentions,
+        result.retention,
+      ) {
       return Err(ForeignPublication)
     }
   }
