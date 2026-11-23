@@ -150,9 +150,12 @@ test('record rejection resolves the same signed Checkpoint and cold lookup only 
     })}]};
   }});
   assert.deepEqual(original.events.slice(cursor), ['load:captured', 'attach', 'effect:status',
-    'save:reject-status', 'review', 'reject', 'effect:wait', 'save:reject-wait', 'save:rejected', 'close']);
+    'save:reject-status', 'review', 'reject', 'effect:wait', 'save:reject-wait', 'save:rejected',
+    'submit:read', 'save:after-reject-ref', 'read:wait', 'read:rows', 'save:after-reject', 'close']);
   assert.equal(rejectionCalls, 1);
   assert.equal(original.saved.get('rejected').status, 'cancelled');
+  assert.deepEqual(original.saved.get('after-reject').rows, value.read.beforeRows);
+  assert.notDeepEqual(original.saved.get('after-reject').ref, original.effect.ref);
   original.effect.status = async () => {original.events.push('effect:status');return resolved;};
   cursor = original.events.length;
   await phase('recover', value, original, {decision, reject: () => assert.fail('Repeated rejection')});
@@ -278,19 +281,28 @@ test('authored schema pins compare each original provider schema reference indep
   }
 });
 
-test('the standard HubSpot and kintone case files keep the original Programs and independent oracles', async () => {
-  for (const [connector, build] of [['hubspot', hubspotUpdateCase], ['kintone', kintoneUpdateCase]]) {
+test('the standard HubSpot and kintone cases keep one write and read both independent rows', async () => {
+  for (const [connector, build, field] of [
+    ['hubspot', hubspotUpdateCase, 'name'], ['kintone', kintoneUpdateCase, 'Subject'],
+  ]) {
     const directory = new URL(`./fixtures/${connector}-approval/`, import.meta.url);
     const authored = await readAuthoredCase(fileURLToPath(new URL('case.json', directory)));
     const selected = sharedRecordUpdateSelections[connector];
     const update = await readFile(new URL('update.aql', directory), 'utf8');
     const read = await readFile(new URL('read.aql', directory), 'utf8');
-    const {fixture, ...original} = authored;
-    assert.deepEqual(original, build({update, read}, selected));
+    const {fixture, read: verification, ...original} = authored;
+    const {read: targetOnly, ...effectCase} = build({update, read}, selected);
+    assert.deepEqual(original, effectCase);
     assert.deepEqual(fixture.expected, recordUpdateFixtureState(selected));
     const {id: recordId, name: previousName} = fixture.expected.before.target;
     const {id: controlId, name: controlName} = fixture.expected.before.control;
     assert.deepEqual(fixture.seed, {recordId, previousName, controlId, controlName});
+    assert.deepEqual(verification.parameterDeclarations,
+      {...targetOnly.parameterDeclarations, control_id: {type: 'string'}});
+    assert.deepEqual(verification.parameters, {...targetOnly.parameters, control_id: controlId});
+    const control = {id: controlId, [field]: controlName};
+    assert.deepEqual(verification.beforeRows, [...targetOnly.beforeRows, control]);
+    assert.deepEqual(verification.afterRows, [...targetOnly.afterRows, control]);
   }
 });
 

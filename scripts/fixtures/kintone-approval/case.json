@@ -9,13 +9,19 @@
     "expectedRows": [{"id": "9007199254740993", "previous_name": "Before kintone approval", "next_name": "After kintone approval"}]
   },
   "read": {
-    "documentPath": "read.aql",
+    "document": "SELECT r.`$id` AS id, r.Subject AS Subject\nFROM kintone.inquiries AS r\nWHERE r.`$id` IN (@record_id, @control_id)\nORDER BY id;\n",
     "format": "aql",
     "resultName": "main",
-    "parameterDeclarations": {"record_id": {"type": "string"}},
-    "parameters": {"record_id": "9007199254740993"},
-    "beforeRows": [{"id": "9007199254740993", "Subject": "Before kintone approval"}],
-    "afterRows": [{"id": "9007199254740993", "Subject": "After kintone approval"}]
+    "parameterDeclarations": {"record_id": {"type": "string"}, "control_id": {"type": "string"}},
+    "parameters": {"record_id": "9007199254740993", "control_id": "9007199254740994"},
+    "beforeRows": [
+      {"id": "9007199254740993", "Subject": "Before kintone approval"},
+      {"id": "9007199254740994", "Subject": "Untouched control"}
+    ],
+    "afterRows": [
+      {"id": "9007199254740993", "Subject": "After kintone approval"},
+      {"id": "9007199254740994", "Subject": "Untouched control"}
+    ]
   },
   "review": {
     "target": "connector://kintone/inquiries",
