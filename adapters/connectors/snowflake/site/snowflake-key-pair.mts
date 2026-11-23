@@ -2,13 +2,25 @@
 // claims/authorizes each use and binds the original acquisition's token.
 import {constants, createHash, createPrivateKey, createPublicKey, sign} from 'node:crypto';
 
-const lifetimeSeconds = 59 * 60;
-const environmentName = value => typeof value === 'string' && /^[A-Z_][A-Z0-9_]{0,63}$/u.test(value);
-const fail = code => {throw Object.assign(new Error(code), {code});};
+type KeyPairProfile = Readonly<{
+  accountIdentifier: string; user: string; privateKeyEnvironment: string; passphraseEnvironment?: string;
+}>;
+type SecretContext = Readonly<Record<string, unknown>>;
+type KeyPairOptions = Readonly<{
+  maxSecretBytes: number;
+  resolveMaterial?: (context: SecretContext & Readonly<{materialEnvironment: string}>,
+    signal?: AbortSignal) => unknown;
+  now?: () => number;
+}>;
+type CachedToken = Readonly<{fingerprint: string; issued: number; expires: number; token: string}>;
 
-export function checkSnowflakeKeyPairProfile(input) {
+const lifetimeSeconds = 59 * 60;
+const environmentName = (value: unknown): value is string => typeof value === 'string' && /^[A-Z_][A-Z0-9_]{0,63}$/u.test(value);
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+
+export function checkSnowflakeKeyPairProfile(input: unknown): KeyPairProfile {
   if (input === null || typeof input !== 'object' || Array.isArray(input)) fail('InvalidSnowflakeKeyPairProfile');
-  const {accountIdentifier, user, privateKeyEnvironment, passphraseEnvironment} = input;
+  const {accountIdentifier, user, privateKeyEnvironment, passphraseEnvironment} = input as Partial<KeyPairProfile>;
   const keys = Object.keys(input);
   if (!['accountIdentifier', 'user', 'privateKeyEnvironment'].every(key => keys.includes(key)) ||
       keys.some(key => !['accountIdentifier', 'user', 'privateKeyEnvironment', 'passphraseEnvironment'].includes(key)) ||
@@ -25,8 +37,8 @@ export function checkSnowflakeKeyPairProfile(input) {
     ...(passphraseEnvironment === undefined ? {} : {passphraseEnvironment})});
 }
 
-export function openSnowflakeKeyPairMaterial(profile, {maxSecretBytes,
-  resolveMaterial, now = () => Date.now()}) {
+export function openSnowflakeKeyPairMaterial(profile: unknown, {maxSecretBytes,
+  resolveMaterial, now = () => Date.now()}: KeyPairOptions) {
   const selected = checkSnowflakeKeyPairProfile(profile);
   if (!Number.isSafeInteger(maxSecretBytes) || maxSecretBytes <= 0 ||
       (resolveMaterial !== undefined && typeof resolveMaterial !== 'function') || typeof now !== 'function') {
@@ -37,12 +49,12 @@ export function openSnowflakeKeyPairMaterial(profile, {maxSecretBytes,
   // Snowflake requires as hyphens in JWT claims. The raw selection remains in
   // the original installed identity separately from these provider spellings.
   const subject = `${selected.accountIdentifier.replaceAll('.', '-').toUpperCase()}.${selected.user.toUpperCase()}`;
-  let closed = false, cached;
-  const ensureOpen = signal => {
+  let closed = false, cached: CachedToken | undefined;
+  const ensureOpen = (signal?: AbortSignal) => {
     signal?.throwIfAborted();
     if (closed) fail('SnowflakeKeyPairMaterialClosed');
   };
-  async function material(context, name, signal, empty = false) {
+  async function material(context: SecretContext, name: string, signal?: AbortSignal, empty = false) {
     ensureOpen(signal);
     const value = resolveMaterial === undefined ? process.env[name]
       : await resolveMaterial(Object.freeze({...context, materialEnvironment: name}), signal);
@@ -54,7 +66,7 @@ export function openSnowflakeKeyPairMaterial(profile, {maxSecretBytes,
     return value;
   }
   return Object.freeze({
-    async resolveSecret(context, signal) {
+    async resolveSecret(context: SecretContext, signal?: AbortSignal) {
       const pem = await material(context, selected.privateKeyEnvironment, signal);
       const passphrase = selected.passphraseEnvironment === undefined ? undefined
         : await material(context, selected.passphraseEnvironment, signal, true);
@@ -65,7 +77,7 @@ export function openSnowflakeKeyPairMaterial(profile, {maxSecretBytes,
       let key, fingerprint;
       try {
         key = createPrivateKey({key: pem, format: 'pem', ...(passphrase === undefined ? {} : {passphrase})});
-        if (key.asymmetricKeyType !== 'rsa' || key.asymmetricKeyDetails.modulusLength < 2048) {
+        if (key.asymmetricKeyType !== 'rsa' || key.asymmetricKeyDetails!.modulusLength! < 2048) {
           fail('InvalidSnowflakeKeyPairMaterial');
         }
         const publicKey = createPublicKey(key).export({type: 'spki', format: 'der'});

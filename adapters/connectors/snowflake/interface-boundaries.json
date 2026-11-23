@@ -6,7 +6,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing credential HTTPS scope, Account current fence and original Common RowRun borrower",
-      "sha256": "5d42b4d973594a4783a17047e26d3ea3f9ccedb8d6b648e49f73558d6e8eeadd",
+      "sha256": "f6839745f470b14411534ca7679bbbabad2248b0a64c91f7f98e77cf24dab1c6",
       "exports": [
         "SNOWFLAKE_SQL_READ_OPERATION",
         "readSnowflakeSqlApi"
@@ -125,7 +125,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Host, Account, credential Site and same-runtime Common RowRun borrower",
-      "sha256": "bb143dfe9c5489e36a5c4693ec97d91aa8c1354371652fcd8f9906bb7bf2b4c9",
+      "sha256": "43803c5b7866f0333d8bebe8b18fa1f47c2f894713418f9628877d8a1bcb05f2",
       "exports": [
         "INSTALLED_SNOWFLAKE_SITE_VERSION",
         "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
@@ -410,7 +410,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Credential Site material lifetime and original HTTPS acquisition binding",
-      "sha256": "9da0fd85a5a7dfe6f5ce3229a4647707f51d52bb0c5fe3cf67a26e47fe653493",
+      "sha256": "6b571355e1af808d3b1de9279d9ea4d51aa00c5dd0bd4766f3afa9fe2e388d76",
       "exports": [
         "checkSnowflakeKeyPairProfile",
         "openSnowflakeKeyPairMaterial"

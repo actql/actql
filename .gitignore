@@ -2936,3 +2936,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/bigquery/host/installed-bigquery-source.d.mts
 /adapters/connectors/bigquery/site/bigquery-sql-read.mjs
 /adapters/connectors/bigquery/site/bigquery-sql-read.d.mts
+/adapters/connectors/snowflake/host/installed-snowflake-source.mjs
+/adapters/connectors/snowflake/host/installed-snowflake-source.d.mts
+/adapters/connectors/snowflake/site/snowflake-key-pair.mjs
+/adapters/connectors/snowflake/site/snowflake-key-pair.d.mts
+/adapters/connectors/snowflake/site/snowflake-sql-read.mjs
+/adapters/connectors/snowflake/site/snowflake-sql-read.d.mts
