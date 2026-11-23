@@ -63468,7 +63468,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-package-original.cjs",
-      "sha256": "5655d70ecda3fcacb527448b3f8ccb4337b71e891b2d7d58513735dbb74c4fcc",
+      "sha256": "49119d2e8b7053d8be3c7c74a5ee06d6d59202affb873a0916006959ca52fc8d",
       "exports": [
         "commonjs:imageInventory"
       ],
@@ -63488,7 +63488,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-package-original.cjs",
+                "path": "adapters/host-node/initial-control-package-original.cts",
                 "anchor": "// The normal package builder replaces this source-only absence"
               },
               {
@@ -63620,7 +63620,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-package-original.cjs",
+                "path": "adapters/host-node/initial-control-package-original.cts",
                 "anchor": "// The normal package builder replaces this source-only absence"
               },
               {
@@ -126133,7 +126133,7 @@
     },
     {
       "module": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
-      "sha256": "054e644aef0fd2fe64c9f9bb222a299bba45171274121a7f3449366271315419",
+      "sha256": "bc455a0c092ea6942387ee060593032b8f0518b324f539507386c14b96a5d482",
       "exports": [
         "commonjs:declareHostLocalMockModelServiceRecipe"
       ],
@@ -126165,61 +126165,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
-                "anchor": "function declareHostLocalMockModelServiceRecipe("
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
+                "anchor": "function declareHostLocalMockModelServiceRecipe<"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
-                "anchor": "const unavailable ="
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
+                "anchor": "const unavailable:"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "replenishedOnClose: false"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "composition:"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "numericalBackingClaim: false"
               },
               {
@@ -126237,61 +126237,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
-                "anchor": "function declareHostLocalMockModelServiceRecipe("
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
+                "anchor": "function declareHostLocalMockModelServiceRecipe<"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
-                "anchor": "const unavailable ="
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
+                "anchor": "const unavailable:"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "replenishedOnClose: false"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "composition:"
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "purpose. This declaration is neither an original issuer nor a backed"
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/host-local-mock-model-service-recipe.cjs",
+                "path": "adapters/host-node/host-local-mock-model-service-recipe.cts",
                 "anchor": "numericalBackingClaim: false"
               },
               {

@@ -4,10 +4,22 @@
 // purpose. This declaration is neither an original issuer nor a backed
 // numerical amount, Model permission, or a generic/async Provider facility.
 const freeze = Object.freeze;
-const unavailable = () => {throw Object.assign(new Error('LocalMockModelPreparationUnavailable'),
+const unavailable: () => never = () => {throw Object.assign(new Error('LocalMockModelPreparationUnavailable'),
   {code: 'LocalMockModelPreparationUnavailable'});};
 
-function declareHostLocalMockModelServiceRecipe(control, sourceCompute, result) {
+type SourceComputeInput = {
+  readonly sourceDeclaration?: {readonly controlDeclaration?: unknown};
+};
+type ResultInput = {
+  readonly sharedControl?: unknown;
+  readonly sourceCompute?: unknown;
+};
+
+function declareHostLocalMockModelServiceRecipe<
+  Control extends object,
+  SourceCompute extends SourceComputeInput,
+  Result extends ResultInput
+>(control: Control, sourceCompute: SourceCompute, result: Result) {
   if (control === null || typeof control !== 'object' ||
       sourceCompute?.sourceDeclaration?.controlDeclaration !== control ||
       result?.sharedControl !== control || result.sourceCompute !== sourceCompute) unavailable();
@@ -41,5 +53,7 @@ function declareHostLocalMockModelServiceRecipe(control, sourceCompute, result) 
     replenishedOnClose: false, numericalBackingClaim: false, allocationSuccessGuaranteed: false});
 }
 
-module.exports = {declareHostLocalMockModelServiceRecipe};
+// Node's CommonJS named-export detection uses the direct assignment.
+const recipe = module.exports = {declareHostLocalMockModelServiceRecipe};
 freeze(module.exports);
+export = recipe as Readonly<typeof recipe>;

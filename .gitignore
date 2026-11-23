@@ -2714,3 +2714,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/gcs/host/gcs-collection-target.d.mts
 /adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs
 /adapters/connectors/gcs/test/gcs-upload-declaration.test.d.mts
+/adapters/host-node/initial-control-package-original.cjs
+/adapters/host-node/initial-control-package-original.d.cts
+/adapters/host-node/host-local-mock-model-service-recipe.cjs
+/adapters/host-node/host-local-mock-model-service-recipe.d.cts
