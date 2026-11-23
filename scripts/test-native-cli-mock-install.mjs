@@ -18,7 +18,7 @@ import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {approvalCallCounts, assertApprovalCallCounts, approvalResources, approvalPhases, publishNativeApprovalReceipt, nativeApprovalObservationOptions,
   nativeApprovalObservedCommand, retainNativeApprovalObservation, observeNativeMockHarnessPhase} from './native-approval-performance.mjs';
 import {captureNativeMockCommand, mockTemplates, runNativeCliMockScenario, runNativeNullableMockScenarios,
-  runNativeMixedFileMockScenarios, runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
+  runNativeFileCreateMockScenarios, runNativeMixedFileMockScenarios, runNativeSharedFileMockScenario} from './native-cli-mock-scenario.mjs';
 import {expectedChanges, nativeLauncherEnvelope, requireNativeMockWork} from './native-cli-mock-scenario.mjs';
 import {nativeMockAcceptanceObservations} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {inventory, verifyPackageRelease} from './package-release.mjs';
@@ -195,7 +195,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
     env.ACTQL_NATIVE_TIMINGS = '1';
     env.ACTQL_NATIVE_ACCEPTANCE_OBSERVATIONS = '1';
     const runScenarioCommand = (args, cwd) => run(process.execPath, [launcher, ...args], cwd);
-    let nullableUpdate, mixedFileMutations;
+    let nullableUpdate, mixedFileMutations, fileCreate;
     if (sharedFileMock) {
       scenarios.push(await observe('shared-file-scenario', () => runNativeSharedFileMockScenario({root,
         launcherTimings: 'required', run: runScenarioCommand})));
@@ -208,6 +208,11 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
         caseSha256: createHash('sha256').update(await readFile(new URL(
           '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs', import.meta.url))).digest('hex'),
         decisions: await runNativeMixedFileMockScenarios({root, launcherTimings: 'required', run: runScenarioCommand}),
+      }));
+      fileCreate = await observe('file-create-scenarios', async () => ({
+        caseSha256: createHash('sha256').update(await readFile(new URL(
+          '../adapters/host-node/fixtures/mock-file-create.fixture.mjs', import.meta.url))).digest('hex'),
+        decisions: await runNativeFileCreateMockScenarios({root, launcherTimings: 'required', run: runScenarioCommand}),
       }));
     } else {
       for (const template of mockTemplates) scenarios.push(await observe('scenario', () => runNativeCliMockScenario({
@@ -280,6 +285,7 @@ export async function runNativeCliMockInstall(input, {measureResources = false, 
       publicRegistryPublication: 'not-tested', harnessPhases, scenarios, records,
       ...(nullableUpdate === undefined ? {} : {nullableUpdate}),
       ...(mixedFileMutations === undefined ? {} : {mixedFileMutations}),
+      ...(fileCreate === undefined ? {} : {fileCreate}),
       ...(projectSequences ? {projectSequences, originalMockRegressions, nodeSourceSha: nodeManifest.sourceSha,
         nodePackages: nodeManifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity}))} : {}),
       ...(diagnoseSyscalls ? {diagnosticOnly: true, acceptanceEligible: false,

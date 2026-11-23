@@ -1,5 +1,6 @@
 import {nativeMockAcceptanceObservations, projectInitialAdoptionArguments} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {mixedDeleteUpdateMockProject, threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {fileCreateMockProject} from '../adapters/host-node/fixtures/mock-file-create.fixture.mjs';
 // Public README/Quickstart commands only. The installed runner supplies a new
 // exited process for every invocation. Unit doubles validate these assertions,
 // not Native execution, signatures, custody or an installed package.
@@ -372,6 +373,17 @@ export async function runNativeMixedFileMockScenarios({root, run, launcherTiming
   return results;
 }
 
+export async function runNativeFileCreateMockScenarios({root, run, launcherTimings = 'optional'}) {
+  const fixture = fileCreateMockProject();
+  const results = [];
+  for (const decision of ['approve', 'reject']) {
+    const result = await runNativeSharedFileMutation({project: join(root, 'native-file-create-' + decision),
+      fixture, changes: fixture.changes, decision, run, launcherTimings});
+    results.push({decision, ...result});
+  }
+  return results;
+}
+
 async function runNativeSharedFileMutation({project, fixture, changes, decision, run, launcherTimings}) {
   const file = join(project, 'mock/data.json');
   const configuration = join(project, 'actql.config.json'), stateDirectory = join(project, '.actql');
@@ -411,8 +423,9 @@ async function runNativeSharedFileMutation({project, fixture, changes, decision,
     `  Effect: "${kind}"  Target: "connector://salesforce/${resource}"`,
     '  Items: 1', '  Preview strength: "full_diff"', '  Changes:',
     `    Row: ${JSON.stringify(id)}`,
-    ['Before', {state: 'present', value: originalDocument.salesforce[resource].rows.find(row => row.id === id)}],
-    ['After', kind === 'delete' ? {state: 'absent'} : {state: 'present', value: {value: after}}],
+    ['Before', kind === 'create' ? {state: 'absent'} :
+      {state: 'present', value: originalDocument.salesforce[resource].rows.find(row => row.id === id)}],
+    ['After', kind === 'create' ? after : kind === 'delete' ? {state: 'absent'} : {state: 'present', value: {value: after}}],
   ]), 'Original Review must preserve ordered targets and every intended change');
   assert.deepEqual(await targetSnapshot(file), before, 'Pending status must not write');
 
@@ -429,7 +442,9 @@ async function runNativeSharedFileMutation({project, fixture, changes, decision,
     assert.deepEqual(await targetSnapshot(file), before, 'Saved rejection must not write');
     return {...common, commands};
   }
-  if (changes.some(change => change.kind === 'delete')) {
+  if (fixture.assertCreatedFile) {
+    fixture.assertCreatedFile(after.bytes);
+  } else if (changes.some(change => change.kind === 'delete')) {
     assert.equal(after.bytes, fixture.after, 'The ordered DELETE and UPDATE must preserve every untouched byte');
   } else {
     assert.deepEqual(JSON.parse(after.bytes), JSON.parse(fixture.after),
@@ -439,7 +454,7 @@ async function runNativeSharedFileMutation({project, fixture, changes, decision,
   runState(await invoke('completed-status', ['status', runId, '--json']), 'succeeded', runId);
   assert.deepEqual(await targetSnapshot(file), after, 'Completed status must not rewrite the target');
 
-  const resultArguments = ['result', runId, '--result', 'updates', '--format', 'jsonl'];
+  const resultArguments = ['result', runId, '--result', fixture.resultName ?? 'updates', '--format', 'jsonl'];
   const first = await invoke('result', resultArguments);
   const rows = first.stdout.trimEnd().split('\n').map(line => JSON.parse(line));
   assert.deepEqual(rows, fixture.rows, 'Result must retain every independently expected field');
