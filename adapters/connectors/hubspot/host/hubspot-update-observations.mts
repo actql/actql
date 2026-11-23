@@ -30,9 +30,11 @@ type Native = Readonly<{
   hubspotConsumePropertyResponseSource(original: unknown, path: string, bytes: Uint8Array): unknown;
   hubspotRetirePropertyResponseSource(original: unknown): void;
 }>;
-type RequestPorts = Pick<ReturnType<typeof createHubSpotUpdateRequestAdapter>, 'requestFacts' | 'nativeTargetRead' | 'objectType'>;
+type Requests = ReturnType<typeof createHubSpotUpdateRequestAdapter>;
+type RequestPorts = Pick<Requests, 'nativeTargetRead' | 'objectType'> &
+  Readonly<{requestFacts(request: unknown): Pick<ReturnType<Requests['requestFacts']>, 'target'>}>;
 type Limits = Readonly<Record<(typeof limitNames)[number], number>>;
-type Options = Readonly<{moon: unknown; portalId: string; installedFor(member: HubSpotUpdateMember): InstalledHubSpotUpdateMapping | undefined;
+type Options = Readonly<{moon: unknown; portalId: string; installedFor(member: HubSpotUpdateMember): Omit<Selection, 'objectType'> | undefined;
   requests: RequestPorts; limits: unknown; maxRows?: number}>;
 type CatalogSlot = 'schema' | 'schema-before' | 'schema-after';
 export type HubSpotReadSlot = 'account' | CatalogSlot | 'target';
@@ -41,7 +43,7 @@ type Request = Readonly<{method: HttpMethod; path: string; query: readonly (read
   headers: readonly (readonly string[])[]; body?: string}>;
 type Preparation = Readonly<{prepare(body: Uint8Array): readonly number[]; retire(): void}>;
 type Project<Value> = ((bytes: Uint8Array) => Value) & Readonly<{responsePreparation?: Preparation}>;
-type Consume<Value> = (response: HubSpotResponse) => Value;
+type Consume<Value> = ((response: HubSpotResponse) => Value) & Readonly<{responsePreparation?: Preparation}>;
 type RequestInput = Pick<HubSpotResourceInput, 'grant' | 'useId' | 'operations' | 'maxRequestBytes' |
   'maxResponseBytes' | 'returnRejectedResponse' | 'signal' | 'currentBeforeSend'>;
 export type HubSpotReadAuthorization = Readonly<{useId: string; grant?: unknown; originalAuthorization?: unknown}>;
