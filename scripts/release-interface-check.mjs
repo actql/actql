@@ -146,13 +146,27 @@ export async function releaseInterfaceCheck({repository, directory}) {
           verification: {manifestSha256, originalSha256: item.originalSha256,
             build: `scripts/${plan.script}.mjs`, sourcePackages: plan.sources}};
       }).concat(localArtifacts);
-      const actual = installedInterfaceInventory(installed, {artifacts});
-      const authoredEntrances = actual.modules.map(module => {
+      const firstInventory = installedInterfaceInventory(installed, {artifacts});
+      const authoredEntrances = firstInventory.modules.map(module => {
         const binding = bindings.get(module.module);
         assert(binding, `Unbound installed authored interface: ${module.module}`);
         return binding.source;
       });
       const checkedSource = await checkInterfaceOwners(repository, {manifests: [root.manifest], authoredEntrances});
+      // Resolve each ordinary configured output from the same checked source
+      // and the already verified normal tarball. The generated member cannot
+      // pass as authored JavaScript or inherit a dependency's output proof.
+      const packagedOutputs = new Map(item.files.map(file => [file.path, file.sha256]));
+      const configured = checkedSource.configuredOutputs.filter(output =>
+        dirname(output.build) === packageSource);
+      for (const output of configured) {
+        assert(output.module.startsWith(packageSource + '/'), 'Configured output escaped its package');
+        const module = output.module.slice(packageSource.length + 1);
+        assert.equal(packagedOutputs.get(module), output.sha256, `Mixed normal Vite output: ${output.module}`);
+        artifacts.push({module, sha256: output.sha256, sourceSha: before.revision, target: 'js',
+          verification: {manifestSha256, originalSha256: item.originalSha256, build: output.build}});
+      }
+      const actual = configured.length === 0 ? firstInventory : installedInterfaceInventory(installed, {artifacts});
       const bySource = new Map([...bindings.values()].map(value => [value.source, value.member]));
       const runtimeBindings = checkedSource.runtimeBindings.filter(value => bySource.has(value.module))
         .map(value => ({...value, module: bySource.get(value.module)}));
