@@ -589,6 +589,7 @@ test "SDK read refuses expired foreign selection adoption and current authority 
   let other = @publication.issue_local_sdk_result_read_selection(
     "sha256:" + "f".repeat(64),
     "sha256:" + "e".repeat(64),
+    requested_original_result=true,
   ).unwrap()
   assert_true(
     invoke(
@@ -599,6 +600,20 @@ test "SDK read refuses expired foreign selection adoption and current authority 
       "2026-10-13T00:00:04.000Z",
     )
     is Err(InvalidOriginal),
+  )
+  let old_mode = @publication.issue_local_sdk_result_read_selection(
+    "sha256:" + "f".repeat(64),
+    "sha256:" + "e".repeat(64),
+  ).unwrap()
+  assert_true(
+    invoke(
+      old_mode,
+      "sha256:" + "a".repeat(64),
+      "answer",
+      "jsonl",
+      "2026-10-13T00:00:04.000Z",
+    )
+    is Err(Preflight(AuthorizationMismatch)),
   )
   assert_true(
     prepare_local_sdk_read_originals(

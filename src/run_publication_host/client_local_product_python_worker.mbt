@@ -9,10 +9,10 @@ pub fn client_local_product_python_worker_bootstrap_originals(
   ClientLocalProductSDKBootstrapOriginals,
   ClientLocalProductConfigurationIssue,
 ] {
+  // Worker provisioning retains the original fixed read alongside its exact
+  // result/answer Account. The ordinary SDK named role is a different adoption.
   let sdk = match
-    client_local_product_sdk_bootstrap_originals(
-      configuration_root, observed_at,
-    ) {
+    product_sdk_bootstrap_originals(configuration_root, observed_at, false) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

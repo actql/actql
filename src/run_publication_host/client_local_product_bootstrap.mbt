@@ -25,8 +25,22 @@ pub fn client_local_product_sdk_bootstrap_originals(
   ClientLocalProductSDKBootstrapOriginals,
   ClientLocalProductConfigurationIssue,
 ] {
+  product_sdk_bootstrap_originals(configuration_root, observed_at, true)
+}
+
+///|
+fn product_sdk_bootstrap_originals(
+  configuration_root : String,
+  observed_at : String,
+  original_result_read : Bool,
+) -> Result[
+  ClientLocalProductSDKBootstrapOriginals,
+  ClientLocalProductConfigurationIssue,
+] {
   let original = match
-    product_bootstrap_originals(configuration_root, observed_at, true) {
+    product_bootstrap_originals(
+      configuration_root, observed_at, original_result_read,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -41,7 +55,7 @@ pub fn client_local_product_sdk_bootstrap_originals(
     @publication.issue_local_sdk_result_read_selection(
       client_local_run_policy_profile_cid(profile),
       product_cid(policy),
-      requested_original_result=true,
+      requested_original_result=original_result_read,
     ) {
     Ok(value) => value
     Err(_) => return Err(ConfigurationLimit)

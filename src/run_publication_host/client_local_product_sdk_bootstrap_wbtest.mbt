@@ -4,9 +4,17 @@ test "explicit SDK bootstrap adds bounded read originals with the exact installe
   let at = "2026-10-12T00:00:00.000Z"
   let old = client_local_product_bootstrap_originals(root, at).unwrap()
   let fresh = client_local_product_sdk_bootstrap_originals(root, at).unwrap()
-  let installed = @authorization.admit_account_configuration_json(
-    @utf8.decode(fresh.original.common.account),
-  ).unwrap()
+  let wire = @utf8.decode(fresh.original.common.account)
+  let expected =
+    #|{"account_id":"local-cli","entries":[{"connection":{"any_of":["local"]},"entry_id":"local-result-original-read","exclusions":[],"operation":{"any_of":["read"]},"outcome":"allow","principal":{"any_of":["local-cli"]},"resource":{"any_of":["result"]}},{"connection":{"any_of":["local"]},"entry_id":"local-run-control","exclusions":[],"operation":{"any_of":["cancel","publish","read","submit"]},"outcome":"allow","principal":{"any_of":["local-cli"]},"resource":{"any_of":["run"]}}],"version":"actql-execution-account-config/0.1"}
+  assert_eq(wire, expected)
+  assert_eq(
+    @authorization.account_configuration_cid_json(wire),
+    Ok(
+      "sha256:aaa4d96c987f84530038f7a3e41fec16e094a8df585a5ec604d69bab646fb78e",
+    ),
+  )
+  let installed = @authorization.admit_account_configuration_json(wire).unwrap()
   let legacy = @authorization.admit_account_configuration_json(
     @utf8.decode(old.common.account),
   ).unwrap()

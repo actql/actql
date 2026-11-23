@@ -35,6 +35,8 @@ test "Python worker fresh durable profile uses only its original child and reope
   assert_eq(stage.originals.length(), 9)
   stage.stage_configuration().unwrap()
   let bytes = local_adoption_read(stage.root, "account.json", 65536L).unwrap()
+  let read = local_adoption_read(stage.root, "read.json", 8192L).unwrap()
+  assert_true(@utf8.decode(read.0).contains("\"result_names\":[\"answer\"]"))
   assert_true(stage.close())
   let host = python_worker_profile_host(path)
   let (arena, selection) = worker_provisioning_selection(1L)
@@ -64,6 +66,10 @@ test "Python worker fresh durable profile uses only its original child and reope
   assert_eq(
     local_adoption_read(restored.root, "account.json", 65536L).unwrap(),
     bytes,
+  )
+  assert_eq(
+    local_adoption_read(restored.root, "read.json", 8192L).unwrap(),
+    read,
   )
   assert_true(restored.close())
   let reopened = python_worker_profile_host(path)
