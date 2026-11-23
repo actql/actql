@@ -344,12 +344,20 @@ test('generated check validator rejects contradictory evidence and partial verif
       requirements: [requirement],
       coverage: {limits: [{code: 'checking_context_missing'}], unresolved: []},
       runnable: {verdict: 'no', reasons: [{code: 'calendar_profile_required'}]}});
-    const required = {code: 'calendar_profile_required', facts: {issue: 'selection_missing'}};
+    const required = {code: 'calendar_profile_required', facts: {
+      issue: 'selection_missing', supplier: 'checking_context_owner', stage: 'checking'}};
     assert.equal(valid(calendar(required)), true);
-    assert.equal(valid(calendar({...required, facts: {issue: 'artifact_missing'}})), true);
-    assert.equal(valid(calendar({...required, facts: {issue: 'unknown'}})), false);
-    assert.equal(valid(calendar({...required, facts: {...required.facts, artifact: 'private'}})), false);
-    assert.equal(valid(calendar({...required, facts: undefined})), false);
+    assert.equal(valid(calendar({...required, facts: {...required.facts, issue: 'artifact_missing'}})), true);
+    for (const facts of [
+      {...required.facts, issue: 'unknown'},
+      {...required.facts, artifact: 'private'},
+      {...required.facts, capability: 'calendar'},
+      {...required.facts, authorization: 'allow'},
+      {...required.facts, supplier: 'caller'},
+      {...required.facts, stage: 'execution'},
+      {issue: 'selection_missing'},
+      undefined,
+    ]) assert.equal(valid(calendar({...required, facts})), false);
     assert.equal(valid(outcome({...report, verdict: 'invalid', reasons: [required]})), false);
   });
 

@@ -3,8 +3,8 @@
 const freeze = value => { if (value && typeof value === "object") {Object.values(value).forEach(freeze); Object.freeze(value);} return value; };
 const info = freeze({
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-11-23.1",
-  "reasonSchemaCid": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
+  "revision": "2026-11-23.2",
+  "reasonSchemaCid": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
 });
 const entries = freeze({
   "analysis_budget_exhausted": {

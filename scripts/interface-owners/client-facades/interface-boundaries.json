@@ -4505,7 +4505,7 @@
     {
       "module": "packages/sdk/check-reason-catalog.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "07ff6d269b1e31a5cb54e3edce52bd77cdad259f474dbf9f8d17779f33f69a78",
+      "sha256": "27758120103c892f00592d3961443563cfa6ad8f58b031d95a6fae8fed3dd5a1",
       "exports": [
         "getCheckReasonCatalogEntry",
         "getCheckReasonCatalogInfo",
@@ -5858,7 +5858,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "1d94fee86ed6c20c299b52b2ffcfafdc7f80b93c8a19c28fe1faea21193ef704",
+      "sha256": "09333800858f933ff2bbdee9411f1bb05c6cf2fe9bb5e58deef1cf4fe9d52e7a",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",

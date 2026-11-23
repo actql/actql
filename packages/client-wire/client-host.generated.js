@@ -10103,7 +10103,9 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
-                            "issue"
+                            "issue",
+                            "supplier",
+                            "stage"
                           ],
                           "additionalProperties": false,
                           "properties": {
@@ -10112,6 +10114,12 @@ const schemas = {
                                 "selection_missing",
                                 "artifact_missing"
                               ]
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
                             }
                           }
                         }
@@ -11520,7 +11528,9 @@ const schemas = {
                           "facts": {
                             "type": "object",
                             "required": [
-                              "issue"
+                              "issue",
+                              "supplier",
+                              "stage"
                             ],
                             "additionalProperties": false,
                             "properties": {
@@ -11529,6 +11539,12 @@ const schemas = {
                                   "selection_missing",
                                   "artifact_missing"
                                 ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
                               }
                             }
                           }
@@ -12476,7 +12492,9 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
-                            "issue"
+                            "issue",
+                            "supplier",
+                            "stage"
                           ],
                           "additionalProperties": false,
                           "properties": {
@@ -12485,6 +12503,12 @@ const schemas = {
                                 "selection_missing",
                                 "artifact_missing"
                               ]
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
                             }
                           }
                         }
@@ -13893,7 +13917,9 @@ const schemas = {
                           "facts": {
                             "type": "object",
                             "required": [
-                              "issue"
+                              "issue",
+                              "supplier",
+                              "stage"
                             ],
                             "additionalProperties": false,
                             "properties": {
@@ -13902,6 +13928,12 @@ const schemas = {
                                   "selection_missing",
                                   "artifact_missing"
                                 ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
                               }
                             }
                           }
@@ -14140,7 +14172,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
+            "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -15359,7 +15391,9 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
-                            "issue"
+                            "issue",
+                            "supplier",
+                            "stage"
                           ],
                           "additionalProperties": false,
                           "properties": {
@@ -15368,6 +15402,12 @@ const schemas = {
                                 "selection_missing",
                                 "artifact_missing"
                               ]
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
                             }
                           }
                         }
@@ -16776,7 +16816,9 @@ const schemas = {
                           "facts": {
                             "type": "object",
                             "required": [
-                              "issue"
+                              "issue",
+                              "supplier",
+                              "stage"
                             ],
                             "additionalProperties": false,
                             "properties": {
@@ -16785,6 +16827,12 @@ const schemas = {
                                   "selection_missing",
                                   "artifact_missing"
                                 ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
                               }
                             }
                           }
@@ -17732,7 +17780,9 @@ const schemas = {
                         {
                           "type": "object",
                           "required": [
-                            "issue"
+                            "issue",
+                            "supplier",
+                            "stage"
                           ],
                           "additionalProperties": false,
                           "properties": {
@@ -17741,6 +17791,12 @@ const schemas = {
                                 "selection_missing",
                                 "artifact_missing"
                               ]
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
                             }
                           }
                         }
@@ -19149,7 +19205,9 @@ const schemas = {
                           "facts": {
                             "type": "object",
                             "required": [
-                              "issue"
+                              "issue",
+                              "supplier",
+                              "stage"
                             ],
                             "additionalProperties": false,
                             "properties": {
@@ -19158,6 +19216,12 @@ const schemas = {
                                   "selection_missing",
                                   "artifact_missing"
                                 ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
                               }
                             }
                           }
@@ -19414,7 +19478,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
+            "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -19460,7 +19524,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
+            "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -22048,8 +22112,8 @@ const optionalRequestFields = {
   }
 };
 
-export const checkReasonSchemaCid = "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8";
-export const checkOutcomeSchemaCid = "sha256:71541a809907d8c0c9918a5906af393cf41aa21a788f3951bfc6e165d6e6beb2";
+export const checkReasonSchemaCid = "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f";
+export const checkOutcomeSchemaCid = "sha256:12497b50d1f2a20ef355b6a3a59ae497bd8dd86ebaca33797ed47af4e2f08423";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {

@@ -1,6 +1,6 @@
 {
   "version": "actql-check-reason-catalog/0.1",
-  "revision": "2026-11-23.1",
+  "revision": "2026-11-23.2",
   "reason_schema": {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
@@ -903,7 +903,9 @@
             "type": "object",
             "additionalProperties": false,
             "required": [
-              "issue"
+              "issue",
+              "supplier",
+              "stage"
             ],
             "properties": {
               "issue": {
@@ -911,6 +913,12 @@
                   "selection_missing",
                   "artifact_missing"
                 ]
+              },
+              "supplier": {
+                "const": "checking_context_owner"
+              },
+              "stage": {
+                "const": "checking"
               }
             }
           }
@@ -2320,7 +2328,9 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
-                "issue"
+                "issue",
+                "supplier",
+                "stage"
               ],
               "properties": {
                 "issue": {
@@ -2328,6 +2338,12 @@
                     "selection_missing",
                     "artifact_missing"
                   ]
+                },
+                "supplier": {
+                  "const": "checking_context_owner"
+                },
+                "stage": {
+                  "const": "checking"
                 }
               }
             }

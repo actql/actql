@@ -10448,7 +10448,9 @@
                           {
                             "type": "object",
                             "required": [
-                              "issue"
+                              "issue",
+                              "supplier",
+                              "stage"
                             ],
                             "additionalProperties": false,
                             "properties": {
@@ -10457,6 +10459,12 @@
                                   "selection_missing",
                                   "artifact_missing"
                                 ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
                               }
                             }
                           }
@@ -11865,7 +11873,9 @@
                             "facts": {
                               "type": "object",
                               "required": [
-                                "issue"
+                                "issue",
+                                "supplier",
+                                "stage"
                               ],
                               "additionalProperties": false,
                               "properties": {
@@ -11874,6 +11884,12 @@
                                     "selection_missing",
                                     "artifact_missing"
                                   ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
                                 }
                               }
                             }
@@ -12821,7 +12837,9 @@
                           {
                             "type": "object",
                             "required": [
-                              "issue"
+                              "issue",
+                              "supplier",
+                              "stage"
                             ],
                             "additionalProperties": false,
                             "properties": {
@@ -12830,6 +12848,12 @@
                                   "selection_missing",
                                   "artifact_missing"
                                 ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
                               }
                             }
                           }
@@ -14238,7 +14262,9 @@
                             "facts": {
                               "type": "object",
                               "required": [
-                                "issue"
+                                "issue",
+                                "supplier",
+                                "stage"
                               ],
                               "additionalProperties": false,
                               "properties": {
@@ -14247,6 +14273,12 @@
                                     "selection_missing",
                                     "artifact_missing"
                                   ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
                                 }
                               }
                             }
@@ -14485,7 +14517,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -15704,7 +15736,9 @@
                           {
                             "type": "object",
                             "required": [
-                              "issue"
+                              "issue",
+                              "supplier",
+                              "stage"
                             ],
                             "additionalProperties": false,
                             "properties": {
@@ -15713,6 +15747,12 @@
                                   "selection_missing",
                                   "artifact_missing"
                                 ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
                               }
                             }
                           }
@@ -17121,7 +17161,9 @@
                             "facts": {
                               "type": "object",
                               "required": [
-                                "issue"
+                                "issue",
+                                "supplier",
+                                "stage"
                               ],
                               "additionalProperties": false,
                               "properties": {
@@ -17130,6 +17172,12 @@
                                     "selection_missing",
                                     "artifact_missing"
                                   ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
                                 }
                               }
                             }
@@ -18077,7 +18125,9 @@
                           {
                             "type": "object",
                             "required": [
-                              "issue"
+                              "issue",
+                              "supplier",
+                              "stage"
                             ],
                             "additionalProperties": false,
                             "properties": {
@@ -18086,6 +18136,12 @@
                                   "selection_missing",
                                   "artifact_missing"
                                 ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
                               }
                             }
                           }
@@ -19494,7 +19550,9 @@
                             "facts": {
                               "type": "object",
                               "required": [
-                                "issue"
+                                "issue",
+                                "supplier",
+                                "stage"
                               ],
                               "additionalProperties": false,
                               "properties": {
@@ -19503,6 +19561,12 @@
                                     "selection_missing",
                                     "artifact_missing"
                                   ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
                                 }
                               }
                             }
@@ -19759,7 +19823,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -19805,7 +19869,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -21105,11 +21169,11 @@
     "locations_match_input",
     "fix_targets_match_exact_eof"
   ],
-  "check_reason_schema_cid": "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8",
-  "check_outcome_schema_cid": "sha256:71541a809907d8c0c9918a5906af393cf41aa21a788f3951bfc6e165d6e6beb2",
+  "check_reason_schema_cid": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f",
+  "check_outcome_schema_cid": "sha256:12497b50d1f2a20ef355b6a3a59ae497bd8dd86ebaca33797ed47af4e2f08423",
   "reasons": {
     "version": "actql-check-reason-catalog/0.1",
-    "revision": "2026-11-23.1",
+    "revision": "2026-11-23.2",
     "reason_schema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
@@ -22012,7 +22076,9 @@
               "type": "object",
               "additionalProperties": false,
               "required": [
-                "issue"
+                "issue",
+                "supplier",
+                "stage"
               ],
               "properties": {
                 "issue": {
@@ -22020,6 +22086,12 @@
                     "selection_missing",
                     "artifact_missing"
                   ]
+                },
+                "supplier": {
+                  "const": "checking_context_owner"
+                },
+                "stage": {
+                  "const": "checking"
                 }
               }
             }
@@ -23429,7 +23501,9 @@
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
-                  "issue"
+                  "issue",
+                  "supplier",
+                  "stage"
                 ],
                 "properties": {
                   "issue": {
@@ -23437,6 +23511,12 @@
                       "selection_missing",
                       "artifact_missing"
                     ]
+                  },
+                  "supplier": {
+                    "const": "checking_context_owner"
+                  },
+                  "stage": {
+                    "const": "checking"
                   }
                 }
               }

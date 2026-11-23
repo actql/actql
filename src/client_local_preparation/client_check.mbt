@@ -1924,6 +1924,10 @@ fn write_check_report(
       @encode.begin_object(writer)
       @encode.key(writer, "issue")
       @encode.string_value(writer, issue)
+      @encode.key(writer, "stage")
+      @encode.string_value(writer, "checking")
+      @encode.key(writer, "supplier")
+      @encode.string_value(writer, "checking_context_owner")
       @encode.end_object(writer)
       @encode.end_object(writer)
     }

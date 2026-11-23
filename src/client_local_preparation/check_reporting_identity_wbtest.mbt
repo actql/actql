@@ -4,10 +4,10 @@ test "portable Host reporting identity retains independent reason and outcome sc
   // Independent current normative pins. This also rejects swapping two valid
   // CID strings, rather than merely checking their syntax or equal copies.
   assert_eq(
-    reason, "sha256:df1b44a8e8dc4ea7d490edbc92acf044c77d7e2cdd84903063e7e5795c4629a8",
+    reason, "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f",
   )
   assert_eq(
-    outcome, "sha256:71541a809907d8c0c9918a5906af393cf41aa21a788f3951bfc6e165d6e6beb2",
+    outcome, "sha256:12497b50d1f2a20ef355b6a3a59ae497bd8dd86ebaca33797ed47af4e2f08423",
   )
   assert_true(reason != outcome)
   let unavailable = client_program_check_unavailable("corr:reporting-identity")
