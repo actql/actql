@@ -552,6 +552,8 @@ pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, 
 
 pub fn[P, C, R] report_backed_execution_live_child(BackedExecutionLiveProjection[P, C, R], R, LedgerUsage) -> Result[Unit, BackedExecutionIssue]
 
+pub fn[I] report_backed_initialization_cleanup_usage(BackedInitializationAdmission[I]) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> Result[Unit, LedgerIssue]
 
 pub fn report_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]

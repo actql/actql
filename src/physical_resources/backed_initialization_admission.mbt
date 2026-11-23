@@ -10,7 +10,14 @@ struct BackedInitializationAdmission[I] {
   mut transitioning : Bool
   mut host_taken : Bool
   mut preparation_selected : Bool
-  mut cleaned : Bool
+  mut cleanup_phase : BackedInitializationCleanupPhase
+}
+
+///|
+priv enum BackedInitializationCleanupPhase {
+  AwaitingUsageReport
+  CleanupUsageAcknowledged
+  InputAliasRetired
 }
 
 ///|
@@ -43,7 +50,7 @@ pub fn[P, C, I] prepare_backed_initialization_admission(
     transitioning: false,
     host_taken: false,
     preparation_selected: false,
-    cleaned: false,
+    cleanup_phase: AwaitingUsageReport,
   }
   owner.original = Some(owner)
   Ok(owner)
@@ -72,7 +79,7 @@ pub fn[I] check_backed_initialization_input(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if owner.cleaned || (owner.owner_retired)() {
+  if owner.cleanup_phase is InputAliasRetired || (owner.owner_retired)() {
     return Err(Unavailable)
   }
   guard owner.input is Some(original) && physical_equal(original, input) else {
@@ -93,7 +100,7 @@ pub fn[I] start_backed_initialization_admission(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if owner.cleaned || (owner.owner_retired)() {
+  if owner.cleanup_phase is InputAliasRetired || (owner.owner_retired)() {
     return Err(Unavailable)
   }
   owner.transitioning = true
@@ -211,6 +218,60 @@ pub fn[I] backed_initialization_ledger_published(
 }
 
 ///|
+fn backed_initialization_cleanup_quiescent(
+  ledger : Ledger,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  // Zero-sized original identities still require their own retirement.
+  if !continuation_quiescent(ledger) {
+    return Err(Unavailable)
+  }
+  if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
+    return Err(Resource(ResourceParked))
+  }
+  Ok(())
+}
+
+///|
+/// Report the stopped, quiescent original ledger to its existing parent.
+/// Only its acknowledged report can release a later alias with uncertain
+/// transfer history. The report keeps the same debt and grants no physical ACK.
+pub fn[I] report_backed_initialization_cleanup_usage(
+  owner : BackedInitializationAdmission[I],
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match backed_initialization_original(owner) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if owner.cleanup_phase is CleanupUsageAcknowledged {
+    return Ok(())
+  }
+  if owner.cleanup_phase is InputAliasRetired || (owner.owner_retired)() {
+    return Err(Unavailable)
+  }
+  let frame = owner.frame
+  if frame.stop_outcome is Some(issue) {
+    return Err(issue)
+  }
+  guard frame.stop_attempted && frame.ledger is Some(ledger) else {
+    return Err(Unavailable)
+  }
+  match backed_initialization_cleanup_quiescent(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  owner.transitioning = true
+  let result = report_imported_child_ledger(frame)
+  owner.transitioning = false
+  match result {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      owner.cleanup_phase = CleanupUsageAcknowledged
+      Ok(())
+    }
+  }
+}
+
+///|
 /// The common Host has already retired its selected body and all borrowers.
 /// Logical stop keeps Native cleanup/report possible; only the SAME physical
 /// owner's actual after-ACK retirement permits releasing this input alias.
@@ -221,7 +282,7 @@ pub fn[I] cleanup_backed_initialization_admission(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if owner.cleaned {
+  if owner.cleanup_phase is InputAliasRetired {
     return Ok(())
   }
   let frame = owner.frame
@@ -232,20 +293,20 @@ pub fn[I] cleanup_backed_initialization_admission(
     return Err(issue)
   }
   if frame.ledger is Some(ledger) {
-    let usage = ledger_usage(ledger)
-    // Reuse the existing logical-quiescence predicate: zero-sized original
-    // reservations, attempts, holdings and delegations still require retirement.
-    // The separate physical ACK below cannot settle any of those identities.
-    if usage.uncertain_transfer_bytes != 0L || !continuation_quiescent(ledger) {
+    // Unknown is historical debt once the exact stopped ledger has been
+    // reported. An acknowledged physical retirement alone cannot proxy it.
+    if ledger_usage(ledger).uncertain_transfer_bytes != 0L &&
+      owner.cleanup_phase is AwaitingUsageReport {
       return Err(Unavailable)
     }
-    if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
-      return Err(Resource(ResourceParked))
+    match backed_initialization_cleanup_quiescent(ledger) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
     }
   }
   if (owner.owner_retired)() {
     owner.input = None
-    owner.cleaned = true
+    owner.cleanup_phase = InputAliasRetired
     return Ok(())
   }
   owner.transitioning = true

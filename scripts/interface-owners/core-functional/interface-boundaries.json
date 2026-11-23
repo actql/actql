@@ -76669,7 +76669,7 @@
     },
     {
       "module": "src/physical_resources/backed_initialization_admission.mbt",
-      "sha256": "9658cc33de738fb6fdd68f6968f0e9a105c64c89f894e7136b4738821de64e8e",
+      "sha256": "7f3c72ccaf6e2e2db12b6ae9b1cb25902a30b0de7885d58652e9b05a492fc652",
       "exports": [],
       "operations": [
         {
@@ -76693,6 +76693,10 @@
           "declaration": "[ I ] cleanup_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
+          "name": "[I]report_backed_initialization_cleanup_usage",
+          "declaration": "[ I ] report_backed_initialization_cleanup_usage ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
           "name": "[I]start_backed_initialization_admission",
           "declaration": "[ I ] start_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
         },
@@ -76707,6 +76711,10 @@
         {
           "name": "[P,C,I]prepare_backed_initialization_admission",
           "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
+        },
+        {
+          "name": "backed_initialization_cleanup_quiescent",
+          "declaration": "backed_initialization_cleanup_quiescent ( ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -76724,7 +76732,9 @@
             "[I]start_backed_initialization_admission",
             "[I]take_backed_initialization_admission",
             "[P,C,I]prepare_backed_initialization_admission",
-            "[I]take_backed_initialization_for_host"
+            "[I]take_backed_initialization_for_host",
+            "[I]report_backed_initialization_cleanup_usage",
+            "backed_initialization_cleanup_quiescent"
           ],
           "exports": [],
           "attributes": {
@@ -80306,9 +80316,13 @@
     },
     {
       "module": "src/platform_native/host_bootstrap/backed_initialization_native.mbt",
-      "sha256": "248287e46993958e3827ee2bfcb08d272d9467f2d8f1b96dfa6a04b5d00c4ab3",
+      "sha256": "52ad69bcf0304d08e56e50cc19d4fc8c11a3dfd2a941f875795d19456160877c",
       "exports": [],
       "operations": [
+        {
+          "name": "[T,C,I]NativeHostBootstrap::borrow_initialized_preparation_ledger",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : borrow_initialized_preparation_ledger ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , ) - > Result [ @ resources . Ledger , NativeBackedInitializationIssue ]"
+        },
         {
           "name": "[T,C,I]NativeHostBootstrap::close_backed_preparation",
           "declaration": "[ T , C , I ] NativeHostBootstrap : : close_backed_preparation ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , ) - > Result [ Unit , NativeBackedInitializationIssue ]"
@@ -80323,11 +80337,27 @@
         },
         {
           "name": "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_original",
-          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_original ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , state : NativeBackedInitialization [ T , C , I ] , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_original ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , state : NativeBackedInitialization [ T , C , I ] , request : Bool , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_selected",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_selected ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , request : Bool , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::initialize_backed_request_preparation",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_request_preparation ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , ) - > Result [ @ resources . BackedPreparationAdmission [ I ] , NativeBackedInitializationIssue , ]"
         },
         {
           "name": "[T,C,I]NativeHostBootstrap::original_initialization_cleanup",
           "declaration": "[ T , C , I ] NativeHostBootstrap : : original_initialization_cleanup ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , ) - > Result [ NativeBackedInitialization [ T , C , I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::prepare_initialized_working_window",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : prepare_initialized_working_window ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , retained : Int64 , execution : Int64 , ) - > Result [ Unit , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "copy_native_working_issue_data",
+          "declaration": "copy_native_working_issue_data ( issue : NativeBackedExecutionIssue , ) - > NativeBackedExecutionIssue"
         },
         {
           "name": "initialization_control_scope_clear_ffi",
@@ -80346,7 +80376,12 @@
             "[T,C,I]NativeHostBootstrap::initialize_backed_preparation",
             "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_original",
             "[T,C,I]NativeHostBootstrap::original_initialization_cleanup",
-            "initialization_control_scope_clear_ffi"
+            "initialization_control_scope_clear_ffi",
+            "[T,C,I]NativeHostBootstrap::borrow_initialized_preparation_ledger",
+            "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_selected",
+            "[T,C,I]NativeHostBootstrap::initialize_backed_request_preparation",
+            "[T,C,I]NativeHostBootstrap::prepare_initialized_working_window",
+            "copy_native_working_issue_data"
           ],
           "exports": [],
           "attributes": {
