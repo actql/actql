@@ -3,12 +3,98 @@
 // cleanup state machine; the caller retains its original holding responsibility.
 import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
 
+import type {contentCaptureControl} from '../host-common/content-capture-control.mjs';
+import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import type {SelectedPhysicalHoldingRecord} from '../store-local/physical-holding-record-reader.mjs';
+
+type Store = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type Control = Pick<ReturnType<typeof contentCaptureControl>, 'inspect' | 'issuer' | 'issue'>;
+type Candidate = Parameters<Control['inspect']>[0];
+type CleanupHandle = Readonly<{
+  status(): Readonly<{pending: boolean}>;
+  retry(): unknown;
+}>;
+type StoredReader = {pending: boolean; cleanup: CleanupHandle | undefined};
+type CleanupFailure = Readonly<{cleanupHandle?: CleanupHandle}> | null | undefined;
+type ContentProvenance = 'GeneratedContent' | 'CapturedContent';
+type ContentStore = Pick<Store, 'storeAuthorityCid' | 'status' | 'inspectPhysicalHolding' | 'commitPhysicalHolding'>;
+type Holding = Pick<SelectedPhysicalHoldingRecord, 'namespace' | 'holding_cid' | 'objects'>;
+type StoredContentOriginal = Readonly<{
+  candidate: Candidate;
+  issued: ReturnType<Control['issue']>;
+  holding: SelectedPhysicalHoldingRecord;
+  storeAuthorityCid: string;
+  workspaceScopeCid: string;
+  effectiveDataPolicyCid: string;
+}>;
+type ContentIssueOptions = Readonly<{
+  store: ContentStore;
+  control: Control;
+  candidate: Candidate;
+  holdingCid: string;
+  workspaceScopeCid: string;
+  effectiveDataPolicyCid: string;
+  available(): unknown;
+  authorize(contentCid: string): unknown;
+  limits: Parameters<Control['issue']>[2];
+  retainOriginal?: (original: StoredContentOriginal) => unknown;
+}>;
+type PrivateHolding = ReturnType<typeof preparePrivatePublicationHolding>;
+type RecoveryBinding = Readonly<{
+  name: 'content_input_artifact' | 'content_evidence' | 'content_generation';
+  semanticCid: string;
+  holdingCid: string;
+  wire: string;
+}>;
+type RetainedEvidence = Readonly<{
+  bindings: readonly RecoveryBinding[];
+  holdings: readonly PrivateHolding[];
+  retry(options?: Readonly<{signal?: AbortSignal}>): Promise<RetainedEvidence>;
+}>;
+type EvidenceOptions = Readonly<{
+  store: Parameters<typeof preparePrivatePublicationHolding>[0] & Pick<Store, 'storeAuthorityCid'>;
+  publications: Readonly<{
+    checkedClientSerializationRecoveryBindings(compiled: unknown, generation: unknown,
+      storeAuthorityCid: string): readonly RecoveryBinding[];
+  }>;
+  compiled: unknown;
+  generation: unknown;
+  retainHoldings(holdings: readonly PrivateHolding[], retained: RetainedEvidence): unknown;
+  signal?: AbortSignal;
+}>;
+type RestoreOptions = Omit<ContentIssueOptions, 'store' | 'holdingCid' | 'retainOriginal'> & Readonly<{
+  store: ContentStore & Pick<Store, 'confirmPrivateEvidence'>;
+  publications: Readonly<{
+    capturedContentGenerationCount(capturedRun: unknown): number;
+    capturedContentGenerationStorage(capturedRun: unknown, runDefinition: unknown,
+      storeAuthorityCid: string, index: number): Readonly<{
+        holdingCid: string; manifestCid: string; contentCid: string; byteCount: bigint;
+        bindings: readonly RecoveryBinding[];
+      }>;
+  }>;
+  capturedRun: unknown;
+  runDefinition: unknown;
+  index: number;
+  assertCurrent(): unknown;
+  readers: Set<StoredReader>;
+  retainOriginal(original: StoredContentOriginal): unknown;
+  signal?: AbortSignal;
+}>;
+type ConsumeOptions = Readonly<{
+  store: Pick<Store, 'storeAuthorityCid' | 'consumePhysicalHolding'>;
+  original: Readonly<{holding: Holding; storeAuthorityCid: string}>;
+  readers: Set<StoredReader>;
+  assertCurrent(): unknown;
+  accept(bytes: Uint8Array): unknown;
+}>;
+
+
 // Persist the exact common-issued input/derivation/generation inventory through
 // the existing encrypted publication holdings. Register custody before any I/O;
 // an uncertain commit is reconciled by that same holding, never by generating
 // bytes again or inventing a new evidence identity.
 export async function retainGeneratedContentEvidence({store, publications,
-  compiled, generation, retainHoldings, signal}) {
+  compiled, generation, retainHoldings, signal}: EvidenceOptions) {
   if (typeof retainHoldings !== 'function') {
     throw new TypeError('Content evidence requires retained cleanup custody');
   }
@@ -23,14 +109,14 @@ export async function retainGeneratedContentEvidence({store, publications,
     const current = publications.checkedClientSerializationRecoveryBindings(
       compiled, generation, store.storeAuthorityCid);
     if (current.length !== bindings.length || current.some((binding, index) =>
-      ['name', 'semanticCid', 'holdingCid', 'wire'].some(key =>
+      (['name', 'semanticCid', 'holdingCid', 'wire'] as const).some(key =>
         binding[key] !== bindings[index][key]))) {
       throw new TypeError('Content recovery binding changed');
     }
   };
   // Retrying sequences the same existing holding handles. It does not create
   // another preparation or retain a second commit/cleanup state machine.
-  const retained = Object.freeze({bindings, holdings,
+  const retained: RetainedEvidence = Object.freeze({bindings, holdings,
     async retry({signal: retrySignal = signal} = {}) {
       for (const holding of holdings) {
         retrySignal?.throwIfAborted();
@@ -47,7 +133,7 @@ export async function retainGeneratedContentEvidence({store, publications,
 
 export async function issueStoredGeneratedContent({store, control, candidate,
   holdingCid, workspaceScopeCid, effectiveDataPolicyCid, available,
-  authorize, limits, retainOriginal}) {
+  authorize, limits, retainOriginal}: ContentIssueOptions) {
   return issueStoredContent({store, control, candidate, holdingCid,
     workspaceScopeCid, effectiveDataPolicyCid, available, authorize, limits, retainOriginal},
   'GeneratedContent');
@@ -55,7 +141,7 @@ export async function issueStoredGeneratedContent({store, control, candidate,
 
 // Both provenances use the exact same physical custody and ReferenceIssuer
 // boundary. Neither variant treats a provider envelope as proof of stored bytes.
-export async function issueStoredCapturedContent(options) {
+export async function issueStoredCapturedContent(options: ContentIssueOptions) {
   return issueStoredContent(options, 'CapturedContent');
 }
 
@@ -64,8 +150,8 @@ export async function issueStoredCapturedContent(options) {
 // value to its original saved input; these Store checks issue no input or grant.
 export async function restoreStoredGeneratedContentOriginal({store, publications, control,
   capturedRun, runDefinition, index, candidate, workspaceScopeCid, effectiveDataPolicyCid,
-  available, authorize, assertCurrent, limits, readers, retainOriginal, signal}) {
-  const fail = code => {throw Object.assign(new Error(code), {code});};
+  available, authorize, assertCurrent, limits, readers, retainOriginal, signal}: RestoreOptions) {
+  const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
   if (!Number.isSafeInteger(index) || index < 0 || !(readers instanceof Set) ||
       typeof assertCurrent !== 'function' || typeof available !== 'function' ||
       typeof authorize !== 'function' || typeof retainOriginal !== 'function') {
@@ -101,7 +187,7 @@ export async function restoreStoredGeneratedContentOriginal({store, publications
       BigInt(value.sizeBytes) !== binding.byteCount || binding.bindings.length !== 3) {
     fail('StoredContentRecoveryBindingMismatch');
   }
-  const read = {pending: true, cleanup: undefined};
+  const read: StoredReader = {pending: true, cleanup: undefined};
   readers.add(read); // Same parent custody before any evidence/holding reader.
   try {
     for (const proof of binding.bindings) {
@@ -117,7 +203,7 @@ export async function restoreStoredGeneratedContentOriginal({store, publications
     current();
     return issued;
   } catch (cause) {
-    if (cause?.cleanupHandle !== undefined) read.cleanup = cause.cleanupHandle;
+    if ((cause as CleanupFailure)?.cleanupHandle !== undefined) read.cleanup = (cause as CleanupFailure)!.cleanupHandle;
     throw cause;
   } finally {
     read.pending = false;
@@ -129,13 +215,13 @@ export async function restoreStoredGeneratedContentOriginal({store, publications
 // issued Content. The reader collection belongs to that same owner; this is
 // neither a CID lookup capability nor another holding/cleanup owner.
 export async function consumeStoredContentOriginal({store, original, readers,
-  assertCurrent, accept}) {
+  assertCurrent, accept}: ConsumeOptions) {
   if (typeof accept !== 'function' || typeof assertCurrent !== 'function' ||
       original?.storeAuthorityCid !== store.storeAuthorityCid ||
       original.holding?.namespace !== 'content' || original.holding.objects.length !== 1) {
     throw new TypeError('InvalidStoredContentConsumer');
   }
-  const read = {pending: true, cleanup: undefined};
+  const read: StoredReader = {pending: true, cleanup: undefined};
   readers.add(read); // Retain before authority callbacks or acquiring the FD.
   try {
     assertCurrent();
@@ -150,7 +236,7 @@ export async function consumeStoredContentOriginal({store, original, readers,
     assertCurrent();
     return result;
   } catch (cause) {
-    if (cause?.cleanupHandle !== undefined) read.cleanup = cause.cleanupHandle;
+    if ((cause as CleanupFailure)?.cleanupHandle !== undefined) read.cleanup = (cause as CleanupFailure)!.cleanupHandle;
     throw cause;
   } finally {
     read.pending = false;
@@ -158,11 +244,11 @@ export async function consumeStoredContentOriginal({store, original, readers,
   }
 }
 
-export async function closeStoredContentReaders(readers) {
+export async function closeStoredContentReaders(readers: Set<StoredReader>) {
   for (const read of readers) {
     if (read.pending) return false;
-    if (read.cleanup.status().pending) await read.cleanup.retry();
-    if (read.cleanup.status().pending) return false;
+    if (read.cleanup!.status().pending) await read.cleanup!.retry();
+    if (read.cleanup!.status().pending) return false;
     readers.delete(read);
   }
   return true;
@@ -170,7 +256,7 @@ export async function closeStoredContentReaders(readers) {
 
 async function issueStoredContent({store, control, candidate,
   holdingCid, workspaceScopeCid, effectiveDataPolicyCid, available,
-  authorize, limits, retainOriginal}, prefix) {
+  authorize, limits, retainOriginal}: ContentIssueOptions, prefix: ContentProvenance) {
   if (typeof available !== 'function' || typeof authorize !== 'function') {
     throw new TypeError('Missing Content holding authority callbacks');
   }
@@ -178,7 +264,7 @@ async function issueStoredContent({store, control, candidate,
     throw new TypeError('InvalidContentOriginalReceiver');
   }
   const value = control.inspect(candidate);
-  const fail = code => { throw Object.assign(new Error(code), {code}); };
+  const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
   if (value.storeCid !== store.storeAuthorityCid ||
       value.workspaceScopeCid !== workspaceScopeCid ||
       value.effectiveDataPolicyCid !== effectiveDataPolicyCid) {

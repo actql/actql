@@ -17957,7 +17957,7 @@
     {
       "module": "adapters/host-node/captured-content-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8d43a1b019001a3728178d42f4129c8d54819876465ada3667ca0a7f001b9ab2",
+      "sha256": "7b6cbfde81bec4f1088a719f6048a53d91d39dd6370d9495ae672fc36cbfabe3",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -17995,7 +17995,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "export async function retainCapturedContent({store, control, candidate, bytes,"
               },
               {
@@ -18013,7 +18013,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "export async function retainCapturedContent({store, control, candidate, bytes,"
               },
               {
@@ -18031,7 +18031,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "// Physical I/O for a common checked capture candidate. Byte identity and Ref"
               },
               {
@@ -18049,7 +18049,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "// owner retain reservations and retry handles. No second capture journal exists."
               },
               {
@@ -18067,7 +18067,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "await retainCustody(Object.freeze({writer}));"
               },
               {
@@ -18085,7 +18085,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "throw new TypeError('Captured Content requires bytes and existing custody');"
               },
               {
@@ -18103,8 +18103,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
-                "anchor": "available, authorize, limits, signal, retainOriginal}) {"
+                "path": "adapters/host-node/captured-content-holding.mts",
+                "anchor": "available, authorize, limits, signal, retainOriginal}: CaptureOptions) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -18121,7 +18121,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "export async function retainCapturedContent({store, control, candidate, bytes,"
               },
               {
@@ -18139,7 +18139,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "const holding = Object.freeze({version: 'actql-local-physical-holding/0.1',"
               },
               {
@@ -18179,7 +18179,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "export async function retainCapturedContent({store, control, candidate, bytes,"
               },
               {
@@ -18197,7 +18197,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "export async function retainCapturedContent({store, control, candidate, bytes,"
               },
               {
@@ -18215,7 +18215,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "// Physical I/O for a common checked capture candidate. Byte identity and Ref"
               },
               {
@@ -18233,7 +18233,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "// owner retain reservations and retry handles. No second capture journal exists."
               },
               {
@@ -18251,7 +18251,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "await retainCustody(Object.freeze({writer}));"
               },
               {
@@ -18269,7 +18269,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "throw new TypeError('Captured Content requires bytes and existing custody');"
               },
               {
@@ -18287,8 +18287,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
-                "anchor": "available, authorize, limits, signal, retainOriginal}) {"
+                "path": "adapters/host-node/captured-content-holding.mts",
+                "anchor": "available, authorize, limits, signal, retainOriginal}: CaptureOptions) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -18305,7 +18305,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "export async function retainCapturedContent({store, control, candidate, bytes,"
               },
               {
@@ -18323,7 +18323,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/captured-content-holding.mjs",
+                "path": "adapters/host-node/captured-content-holding.mts",
                 "anchor": "const holding = Object.freeze({version: 'actql-local-physical-holding/0.1',"
               },
               {
@@ -52033,7 +52033,7 @@
     {
       "module": "adapters/host-node/generated-content-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dfcddcb6af316be17d42e8a4761c90992a0a8e0fbab9ced2fae19abcb4270bdf",
+      "sha256": "42ffe3b4cd2b37dc9f9447be087742c7e39b612cf83c47c28ea2f41150f98650",
       "role": "physical-io",
       "owner": "Existing Content/Reference/completion/publication Owners and physical Store writer",
       "exports": [
@@ -52198,7 +52198,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "export async function retainGeneratedContentEvidence({store, publications,"
               },
               {
@@ -52216,7 +52216,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "export async function retainGeneratedContentEvidence({store, publications,"
               },
               {
@@ -52234,7 +52234,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// ReferenceIssuer. This adapter has no encoder, identity codec, journal or"
               },
               {
@@ -52252,7 +52252,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// Connect the common byte/candidate owner to the existing physical Store and"
               },
               {
@@ -52270,7 +52270,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "await holding.retry();"
               },
               {
@@ -52288,7 +52288,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "throw new TypeError('Content evidence requires retained cleanup custody');"
               },
               {
@@ -52306,7 +52306,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// cleanup state machine; the caller retains its original holding responsibility."
               },
               {
@@ -52324,7 +52324,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// bytes again or inventing a new evidence identity."
               },
               {
@@ -52342,7 +52342,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// boundary. Neither variant treats a provider envelope as proof of stored bytes."
               },
               {
@@ -52390,7 +52390,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52400,7 +52400,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52410,7 +52410,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52420,7 +52420,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52430,7 +52430,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52440,7 +52440,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52450,7 +52450,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52460,7 +52460,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52470,7 +52470,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "restoreStoredGeneratedContentOriginal"
               },
               {
@@ -52494,7 +52494,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "export async function retainGeneratedContentEvidence({store, publications,"
               },
               {
@@ -52512,7 +52512,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "export async function retainGeneratedContentEvidence({store, publications,"
               },
               {
@@ -52530,7 +52530,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// ReferenceIssuer. This adapter has no encoder, identity codec, journal or"
               },
               {
@@ -52548,7 +52548,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// Connect the common byte/candidate owner to the existing physical Store and"
               },
               {
@@ -52566,7 +52566,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "await holding.retry();"
               },
               {
@@ -52584,7 +52584,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "throw new TypeError('Content evidence requires retained cleanup custody');"
               },
               {
@@ -52602,7 +52602,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// cleanup state machine; the caller retains its original holding responsibility."
               },
               {
@@ -52620,7 +52620,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// bytes again or inventing a new evidence identity."
               },
               {
@@ -52638,7 +52638,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/generated-content-holding.mjs",
+                "path": "adapters/host-node/generated-content-holding.mts",
                 "anchor": "// boundary. Neither variant treats a provider envelope as proof of stored bytes."
               },
               {

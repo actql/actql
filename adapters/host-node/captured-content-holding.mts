@@ -3,9 +3,30 @@
 // owner retain reservations and retry handles. No second capture journal exists.
 import {issueStoredCapturedContent} from './generated-content-holding.mjs';
 
+import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+
+type Store = Awaited<ReturnType<typeof openLocalPublicationStore>>;
+type StoreWriter = ReturnType<Store['createPreparedObjectWriter']>;
+type PreparedObject = Awaited<ReturnType<StoreWriter['seal']>>['prepared'];
+type CapturedHolding = Readonly<{
+  version: 'actql-local-physical-holding/0.1';
+  namespace: 'content';
+  holding_cid: string;
+  manifest_cid: string;
+  objects: readonly Readonly<{cid: string; byte_count: number}>[];
+}>;
+type Custody = Readonly<{writer: StoreWriter}> | Readonly<{prepared: PreparedObject}> |
+  Readonly<{holding: CapturedHolding}>;
+type CaptureOptions = Omit<Parameters<typeof issueStoredCapturedContent>[0], 'store'> & Readonly<{
+  store: Parameters<typeof issueStoredCapturedContent>[0]['store'] & Pick<Store, 'createPreparedObjectWriter'>;
+  bytes: Uint8Array;
+  retainCustody(custody: Custody): unknown;
+  signal?: AbortSignal;
+}>;
+
 export async function retainCapturedContent({store, control, candidate, bytes,
   holdingCid, workspaceScopeCid, effectiveDataPolicyCid, retainCustody,
-  available, authorize, limits, signal, retainOriginal}) {
+  available, authorize, limits, signal, retainOriginal}: CaptureOptions) {
   if (!(bytes instanceof Uint8Array) || typeof retainCustody !== 'function' ||
       typeof available !== 'function' || typeof authorize !== 'function') {
     throw new TypeError('Captured Content requires bytes and existing custody');
