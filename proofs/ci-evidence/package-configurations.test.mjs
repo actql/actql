@@ -93,9 +93,9 @@ test('Journal review binds the actual selector-only introduction and every sourc
   const selector = '    "open_close_custody_native_wbtest.mbt": [ "native" ],\n';
   assert.equal(introduced.toString().split(selector).length, 2);
   assert.equal(introduced.toString().replace(selector, ''), before.toString());
-  assert.deepEqual(current, introduced);
+  assertCurrentSuccessor(path, current);
   assert.equal(hash(before), oldDigest);
-  assert.equal(hash(current), digest);
+  assert.equal(hash(introduced), digest);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
   assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
   const selected = packageSourceInputs({tree, packages: [directory], target: 'js'});
@@ -116,6 +116,41 @@ test('Journal review binds the actual selector-only introduction and every sourc
     if (dependency.startsWith('actql/actql/')) assert(selected.paths.includes(
       `src/${dependency.slice('actql/actql/'.length)}/moon.pkg`));
 });
+
+for (const [reviewDirectory, fixture, revision, parent] of [
+  ['src/platform_native/remote_transfer_client', 'destination_receipt_recovery_native_wbtest.mbt',
+    '78790f8e01424741f96476968776215a32bc2668', 'd984547e6a8016647c7e326633a8baede8ebaede'],
+  [directory, 'journal_transaction_fault_native_wbtest.mbt',
+    'b3ce36122fd29c3dfecbd331944e5f136ab8b2fb', '97d6560fb467293c9236168fdde43c62c0726e7d'],
+]) {
+  test(`current Transfer review binds the one Native fixture: ${fixture}`, () => {
+    const manifest = `${reviewDirectory}/moon.pkg`;
+    const member = `${reviewDirectory}/${fixture}`;
+    assert.equal(execFileSync('git', ['show', '-s', '--format=%P', revision],
+      {cwd: repository, encoding: 'utf8'}).trim(), parent);
+    execFileSync('git', ['merge-base', '--is-ancestor', revision, 'HEAD'], {cwd: repository});
+    const current = treeAtHead(), introduced = gitTree(repository, revision);
+    const previous = gitTree(repository, parent).read(manifest);
+    const body = introduced.read(manifest);
+    assert.deepEqual(current.read(manifest), body);
+    const selector = `    "${fixture}": [ "native" ],\n`;
+    assert.equal(body.toString().split(selector).length, 2);
+    assert.equal(body.toString().replace(selector, ''), previous.toString());
+    const reviewed = {path: manifest, digest: hash(body), target: 'js', toolchainDigest};
+    assert.equal(currentPackageConfigurationReviewFor(reviewed)?.revision, revision);
+    assert.equal(currentPackageConfigurationReviewFor({...reviewed, digest: hash(previous)}), null);
+    const foreignTarget = body.toString().replace(selector, selector.replace('"native"', '"js"'));
+    assert.equal(currentPackageConfigurationReviewFor({...reviewed, digest: hash(foreignTarget)}), null);
+    assert.equal(currentPackageConfigurationReviewFor({...reviewed, path: `./${manifest}`}), null);
+    assert.equal(current.entries.get(member)?.mode, '100644');
+    assert.equal(current.entries.get(member)?.kind, 'blob');
+    assert(current.read(member).length > 0);
+    const selected = packageSourceInputs({tree: current, packages: [reviewDirectory], target: 'js'});
+    assert.deepEqual(selected.unresolved, []);
+    assert(selected.paths.includes(member));
+    assert(selected.directories.find(entry => entry.path === `${reviewDirectory}/*`).members.includes(member));
+  });
+}
 
 test('Journal review refuses old bytes, another path, target or toolchain', () => {
   assert.equal(packageConfigurationReviewFor(request)?.rule,
