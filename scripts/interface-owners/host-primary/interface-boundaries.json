@@ -32092,7 +32092,7 @@
     },
     {
       "module": "adapters/host-node/local-values-plan.mjs",
-      "sha256": "1cdfdd4d52049bc4fb026658f0e1c7e1a981a6a7b33940d5b4aaf6e1d7c72e1c",
+      "sha256": "dbed3873ef523914fada847cabd50d81f8e5fa3aa697593799b1207297ea8796",
       "exports": [
         "acquiredEffectPublicationAdmission",
         "acquiredEffectPublicationPlan",
@@ -32452,7 +32452,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "common Run and publication"
               },
               {
@@ -32468,7 +32468,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32476,7 +32476,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32526,7 +32526,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32534,7 +32534,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32548,7 +32548,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "Physical Local policy CIDs are stable identities"
               },
               {
@@ -32568,7 +32568,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32576,7 +32576,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32610,7 +32610,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32618,7 +32618,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32656,7 +32656,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32664,7 +32664,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32698,7 +32698,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32706,7 +32706,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32744,7 +32744,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32752,7 +32752,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32790,7 +32790,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32798,7 +32798,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32840,7 +32840,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -32848,7 +32848,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -32906,7 +32906,7 @@
                 "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33281,7 +33281,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33299,7 +33299,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33317,7 +33317,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33335,7 +33335,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33353,7 +33353,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33371,7 +33371,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33389,7 +33389,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33407,7 +33407,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33425,7 +33425,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33443,7 +33443,7 @@
                 "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -33577,7 +33577,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "common Run and publication"
               },
               {
@@ -33625,7 +33625,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "Physical Local policy CIDs are stable identities"
               },
               {
@@ -34071,7 +34071,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "common Run and publication"
               },
               {
@@ -34087,7 +34087,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34095,7 +34095,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -34133,7 +34133,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34141,13 +34141,13 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "Physical Local policy CIDs are stable identities"
               },
               {
@@ -34167,7 +34167,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34175,7 +34175,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -34201,7 +34201,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34209,7 +34209,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -34239,7 +34239,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34247,7 +34247,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -34273,7 +34273,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34281,7 +34281,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -34303,7 +34303,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34311,7 +34311,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -34341,7 +34341,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34349,7 +34349,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -34379,7 +34379,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34387,7 +34387,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -34437,7 +34437,7 @@
                 "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34736,7 +34736,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34754,7 +34754,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34772,7 +34772,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34790,7 +34790,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34808,7 +34808,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34826,7 +34826,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34844,7 +34844,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34862,7 +34862,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34880,7 +34880,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -34898,7 +34898,7 @@
                 "anchor": "actual multi-Source Effect publication keeps all Source originals but unique logical Result dependencies"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -35955,7 +35955,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "common Run and publication"
               },
               {
@@ -35971,7 +35971,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -35979,7 +35979,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -35989,7 +35989,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationAdmission"
               },
               {
@@ -36017,7 +36017,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -36025,13 +36025,13 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "Physical Local policy CIDs are stable identities"
               },
               {
@@ -36051,7 +36051,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -36059,7 +36059,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -36085,7 +36085,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -36093,7 +36093,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -36123,7 +36123,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -36131,7 +36131,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -36157,7 +36157,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -36165,7 +36165,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -36187,7 +36187,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -36195,7 +36195,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -36225,7 +36225,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -36233,7 +36233,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -36263,7 +36263,7 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -36271,7 +36271,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
@@ -36321,7 +36321,7 @@
                 "anchor": "test('one admitted Effect retains its original input retention after the Model clock advances'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {

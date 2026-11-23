@@ -123,7 +123,6 @@ import {canonicalJson as canonicalValueJson} from
 import {preparePinnedEffectSourceHoldings, preparePinnedEffectSourceSet, retainPinnedEffectDependencyPayloads} from './effect-input-export.mjs';
 import {openInstalledEffectLedger} from './installed-effect-ledger-open.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
-// @ts-expect-error TS7016: the Local values plan still has a JavaScript entry.
 import {localContractLimits} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {assertUpdateTargetSelectionMembersCurrent} from './update-target-original-shape.mjs';

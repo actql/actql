@@ -6,7 +6,6 @@ import {createAcquiredEffectModelPublication} from './acquired-effect-model-publ
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import type {openNodeComposedInferProvider} from './infer-operation.mjs';
 import {localContractLimits} from './local-publication-limits.mjs';
-// @ts-expect-error TS7016: the original Local publication planners still have a JavaScript owner.
 import {acquiredInferEffectPublicationPlan, prepareAcquiredEffectSourceUnits} from './local-values-plan.mjs';
 
 type Publication = Parameters<typeof createAcquiredEffectModelPublication>[0];
@@ -25,6 +24,9 @@ type SavedRecord = Readonly<{inventory: Readonly<{taskIndex: number; scopeCid: s
 type SavedToken = Restored['token'] & Readonly<{snapshot: Restored['snapshot'] & Readonly<{sourceContinuation?: unknown}>}>;
 type Evidence = NonNullable<CaptureOptions['sourceEvidence']>[number];
 type EvidenceSource = Readonly<{captured: Readonly<{identity: unknown}>; sourceEvidence: Evidence}>;
+type SourceUnitPublication = Parameters<typeof prepareAcquiredEffectSourceUnits>[0];
+type OriginalModelPublication = Parameters<typeof acquiredInferEffectPublicationPlan>[0];
+type PublicationSource = EvidenceSource & SourceUnitPublication['sources'][number];
 type KeyedSource = Readonly<{source: Evidence; logicalRelationCid: string}>;
 type KeyedFamily = Readonly<{
   evidence: KeyedSource; observation: unknown;
@@ -32,7 +34,7 @@ type KeyedFamily = Readonly<{
 }>;
 type Context = Readonly<{
   captures: readonly Readonly<{capture: Readonly<{source(): unknown}>}>[];
-  evidence: readonly EvidenceSource[]; captureStartedAt?: string; captureCompletedAt?: string; keyedFamily?: KeyedFamily;
+  evidence: readonly PublicationSource[]; captureStartedAt?: string; captureCompletedAt?: string; keyedFamily?: KeyedFamily;
   contentFamily?: Readonly<{generation(): unknown; recovery(): unknown}>;
 }>;
 type OriginalPreparation = NonNullable<Bind['originalPreparation']> & Readonly<{
@@ -113,7 +115,7 @@ type Runtime = Publication['moon'] & CaptureOptions['moon'] & Readonly<{
   clientProgramReleaseInferOutput(output: unknown): boolean;
 }>;
 type Options = Readonly<{
-  moon: Runtime; acquired: Publication['acquired'] & Readonly<{control: Control; requestIdentity: unknown;
+  moon: Runtime; acquired: Publication['acquired'] & OriginalModelPublication['acquired'] & Readonly<{control: Control; requestIdentity: unknown;
     admission: unknown; compilation: unknown}>;
   infer: Readonly<{components?: readonly Selection[]}>;
   originalModelComponents: readonly Component[]; preparedProgram: unknown; inferEvidence?: Publication['inferEvidence'];
@@ -196,7 +198,9 @@ export function acquiredEffectModelGroup({moon, acquired, infer, originalModelCo
   const {retainCompleted, publicationRetained, publicationCurrent, retirePublication, persistPublication,
     readPublicationOwner, hasPublicationBindings, projectionPending} = createAcquiredEffectModelPublication({
     moon, acquired, children, preparedProgram, plan, store, signal, inferEvidence, sourcePlan, managedRun, same,
-    buildPublication: acquiredInferEffectPublicationPlan, releaseUnitOutputs, preconsumerPending, originalHost, faultInjection,
+    // This group supplies the matching Core, Source and Model originals through the generic publication port.
+    buildPublication: acquiredInferEffectPublicationPlan as unknown as Publication['buildPublication'],
+    releaseUnitOutputs, preconsumerPending, originalHost, faultInjection,
     readIdentityRetained: () => earlyIdentityRetained, readIdentityExecution: () => earlyIdentityExecution,
     readCaptureStartedAt: () => captureStartedAt, readCaptureCompletedAt: () => captureCompletedAt,
     readEvidence: () => evidence, readKeyedSource: () => keyedFamily?.evidence ?? restoredKeyed,
@@ -331,7 +335,7 @@ export function acquiredEffectModelGroup({moon, acquired, infer, originalModelCo
         publicationCurrent();
         if (captures.length > 1) sourceUnitsOriginal = prepareAcquiredEffectSourceUnits({acquired,
           sources: evidence, sourcePlan, managedRun, deferCatalogs: managedRun !== undefined && sourcePlan !== undefined,
-          modelUnits: children.map(child => runtimeField(moon.clientProgramInferOccurrenceCoordinates(child.selection.occurrence), 1))}) as UnitInventory | undefined;
+          modelUnits: children.map(child => runtimeField(moon.clientProgramInferOccurrenceCoordinates(child.selection.occurrence), 1) as number)}) as UnitInventory | undefined;
         publicationCurrent();
       } catch (cause) {
         sourceUnitsFailed = true; sourceUnitsFailure = cause; throw cause;

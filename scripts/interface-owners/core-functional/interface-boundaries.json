@@ -102192,7 +102192,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "const original = acquired.control.captureCheckedClientInferModelObservation(issued, scan, receipt, limits);"
               }
             ],

@@ -1,5 +1,4 @@
 import {createHash} from 'node:crypto';
-// @ts-expect-error TS7016: The original Local Values planner is still authored JavaScript.
 import {sourceFreeValuesPlan, sourceFreeTaskPlan, sourceFreePlanOriginal} from '../host-node/local-values-plan.mjs';
 import test from 'node:test';import assert from 'node:assert/strict';
 import {prepareCompletedEffectFreeRunPublication} from './run-publication-preflight.mjs';
@@ -108,7 +107,7 @@ const hash = (body: unknown) => `sha256:${createHash('sha256').update(JSON.strin
 
 // Actual planner and preflight consumers, with explicit opaque control/Store
 // ports. These cases establish their shared data contract, not physical backing.
-for (const kind of ['values', 'tasks']) {
+for (const kind of ['values', 'tasks'] as const) {
 test(`timed ${kind} publication reaches the existing preflight with original contracts`, () => {
   const contract = (name: string) => Object.freeze({name, identity: hash({name}), wire: JSON.stringify({name})});
   const prepared = {}, request = {}, time = {}, context = {}, originalPlan = {};
@@ -127,6 +126,9 @@ test(`timed ${kind} publication reaches the existing preflight with original con
     prepareCheckedClientCompiledRun() {assert.fail('original compilation must not be repeated');},
     defineCheckedClientCompiledRun() {assert.fail('original Run must not be reissued');},
     prepareClientQueryTime() {assert.fail('original time must not be sampled again');},
+    restoreClientQueryTime() {assert.fail('checked original time must not be restored again');},
+    bindClientQueryTime() {assert.fail('checked original time must not be bound again');},
+    issueProgramInitialRetention() {assert.fail('preparation must not use the installed Run retention issuer');},
     issueCheckedClientCompiledInvocation(value: unknown, run: unknown) {
       assert.equal(value, compiled); assert.equal(run, definition);
       return {observation: contract('observation'), invocation: contract('invocation')};
@@ -160,6 +162,7 @@ test(`timed ${kind} publication reaches the existing preflight with original con
       assert.equal(value, publicationOriginal); assert.equal(owner, prepared);
       return resultOutputLimitFields.map(() => 1000);
     },
+    clientProgramInstalledManagedPublicationLimits() {assert.fail('preparation must not read installed Run limits');},
   };
   const plan = (kind === 'values' ? sourceFreeValuesPlan : sourceFreeTaskPlan)({
     moon, control, preparedProgram: prepared, requestIdentity: request, invocationOriginal,

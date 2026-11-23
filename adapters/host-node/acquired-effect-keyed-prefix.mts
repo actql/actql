@@ -9,7 +9,6 @@ import {performance} from 'node:perf_hooks';
 import {bytesCid, originalLocalContentStoragePolicy} from './local-account-config.mjs';
 import {preparePrivatePublicationHolding} from '../host-common/private-publication-holding.mjs';
 import {localOutputLimits, localContractLimits} from './local-publication-limits.mjs';
-// @ts-expect-error TS7016: retention selection remains in the authored JS Local Values plan.
 import {keyedInputRetentionSelection} from './local-values-plan.mjs';
 
 import type {createJournalKeyedLookupStorage} from './client-request-journal-records.mjs';
@@ -368,7 +367,7 @@ function originalKeyedLookupPublication({moon, acquired, plan, infer, sourceOrig
       originalCurrent();
       if (lookup !== undefined) throw new TypeError('OriginalKeyedLookupAlreadyInitialized');
       lookup = original;
-      const selection = keyedInputRetentionSelection(acquired) as Retention;
+      const selection = keyedInputRetentionSelection(acquired);
       storage = Object.freeze({namespaceId:runRef.namespaceId, storeAuthorityCid:store?.storeAuthorityCid,
         ...originalLocalContentStoragePolicy({storeAuthorityCid:store?.storeAuthorityCid,
           authorityScopeCid:acquired.authorityScopeCid, runDefinitionCid:acquired.runDefinition.identity,
@@ -482,7 +481,7 @@ function originalGenericKeyedLookupPublication({acquired, sourceOriginal, captur
       if (lookup !== undefined) throw new TypeError('OriginalKeyedLookupAlreadyInitialized');
       lookup = original;
       retention = acquired.control.prepareGenericEffectKeyedLookupSourceMetadata(sourceOriginal, lookup,
-        captures, sources, keyedInputRetentionSelection(acquired) as Retention, localContractLimits);
+        captures, sources, keyedInputRetentionSelection(acquired), localContractLimits);
       originalCurrent();
     },
     finishInput(original: unknown) {

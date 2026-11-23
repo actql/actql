@@ -1,7 +1,6 @@
 // Existing Run/Request borrower and existing observation queue only. This is
 // metadata, not a task scheduler, Sample, control grant or fallback identity.
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error TS7016: the Local Values planner still has an authored JavaScript entry.
 import {localContractLimits} from './local-values-plan.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 

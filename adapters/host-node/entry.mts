@@ -1,7 +1,6 @@
 // Standard composition entry. Callers cannot replace the runtime, installed
 // implementation factories, verification or SQL through execution options.
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
-// @ts-expect-error The source-free plan owner is still authored in JavaScript.
 import {sourceFreePlanOriginal} from './local-values-plan.mjs';
 import {installStrategyContributions} from '../connectors-builtin/strategy.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -117,7 +116,7 @@ async function runCapturedStrategyTarget<Runtime extends NodeRuntime>({
   // The selected strategies consume synchronous Common Results through this
   // same decoder. The installed Host validates the returned registrations.
   const installed = await install(moon, setup, checked as InstallCheck, configurations, signal);
-  const originalPlan = publication === undefined ? undefined : sourceFreePlanOriginal(publication.plan);
+  const originalPlan = publication === undefined ? undefined : sourceFreePlanOriginal(publication.plan as object);
   const observeFailure = core.publicationControl.originalClientDispatchFailureAvailable(originalPlan)
     ? (host: object) => core.publicationControl.observeOriginalClientDispatchFailure(originalPlan, host)
     : undefined;

@@ -113157,7 +113157,7 @@
     {
       "module": "adapters/host-node/local-values-plan.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "1cdfdd4d52049bc4fb026658f0e1c7e1a981a6a7b33940d5b4aaf6e1d7c72e1c",
+      "sha256": "dbed3873ef523914fada847cabd50d81f8e5fa3aa697593799b1207297ea8796",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -113467,7 +113467,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113485,7 +113485,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113507,7 +113507,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113525,7 +113525,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113547,7 +113547,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113565,7 +113565,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113587,7 +113587,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113601,7 +113601,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113623,7 +113623,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113641,7 +113641,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -113798,7 +113798,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113806,7 +113806,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113820,7 +113820,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113828,7 +113828,7 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113838,7 +113838,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113846,7 +113846,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113856,7 +113856,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113864,7 +113864,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113874,7 +113874,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113882,7 +113882,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113892,7 +113892,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113900,7 +113900,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113914,7 +113914,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113922,7 +113922,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113932,7 +113932,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113940,7 +113940,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113954,7 +113954,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113962,7 +113962,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -113972,7 +113972,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredEffectPublicationPlan"
               },
               {
@@ -113984,7 +113984,7 @@
                 "anchor": "actual pinned MoonBit Result"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114012,7 +114012,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114020,7 +114020,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114030,7 +114030,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114038,7 +114038,7 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114048,7 +114048,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114056,7 +114056,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114066,7 +114066,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114074,7 +114074,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114084,7 +114084,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114092,7 +114092,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114102,7 +114102,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114110,7 +114110,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114120,7 +114120,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114128,7 +114128,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114138,7 +114138,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114146,7 +114146,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114156,7 +114156,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114164,7 +114164,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114174,7 +114174,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredInferEffectPublicationPlan"
               },
               {
@@ -114190,7 +114190,7 @@
                 "anchor": "same Model binding and typed Whole contribution reach complete Model Artifact without Query conversion"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114380,7 +114380,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114388,7 +114388,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114396,7 +114396,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -114406,7 +114406,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114414,7 +114414,7 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114422,13 +114422,13 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114436,7 +114436,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114444,13 +114444,13 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114458,7 +114458,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114466,13 +114466,13 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114480,7 +114480,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114488,13 +114488,13 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114502,7 +114502,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114510,7 +114510,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -114520,7 +114520,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114528,7 +114528,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114536,13 +114536,13 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114550,7 +114550,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114558,7 +114558,7 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               },
               {
@@ -114568,7 +114568,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114576,7 +114576,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -114584,13 +114584,13 @@
                 "anchor": "test('Direct Source preserves actual inputs and typed evidence without wire re-admission'"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "export function acquiredKeyedEffectPublicationPlan("
               }
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredMultiEffectPublicationPlan"
               },
               {
@@ -114602,7 +114602,7 @@
                 "anchor": "actual pinned MoonBit Result"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116317,7 +116317,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116339,7 +116339,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116361,7 +116361,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116383,7 +116383,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116401,7 +116401,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116419,7 +116419,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116437,7 +116437,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116455,7 +116455,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116477,7 +116477,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116491,7 +116491,7 @@
                 "anchor": "test \"source-free Content Effect compiler requires"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116629,7 +116629,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116647,7 +116647,7 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116665,7 +116665,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116683,7 +116683,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116701,7 +116701,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116719,7 +116719,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116737,7 +116737,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116755,7 +116755,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116773,7 +116773,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -116795,7 +116795,7 @@
                 "anchor": "actual pinned MoonBit Result"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -117453,7 +117453,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117467,7 +117467,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117489,7 +117489,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117507,7 +117507,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117525,7 +117525,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117543,7 +117543,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117561,7 +117561,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117575,7 +117575,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117593,7 +117593,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -117611,7 +117611,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "// Bind the installed source-free compiler to the common Run and publication"
               },
               {
@@ -118398,7 +118398,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118420,7 +118420,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118442,7 +118442,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118464,7 +118464,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118482,7 +118482,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118500,7 +118500,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118518,7 +118518,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118536,7 +118536,7 @@
                 "anchor": "## Local file bytes and publication"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118558,7 +118558,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118572,7 +118572,7 @@
                 "anchor": "test \"source-free Content Effect compiler requires"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118715,7 +118715,7 @@
                 "anchor": "## Responsibility"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118733,7 +118733,7 @@
                 "anchor": "## Inputs and outputs"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118751,7 +118751,7 @@
                 "anchor": "## Identity"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118769,7 +118769,7 @@
                 "anchor": "## Ownership"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118787,7 +118787,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118805,7 +118805,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118823,7 +118823,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118841,7 +118841,7 @@
                 "anchor": "## Resources"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118859,7 +118859,7 @@
                 "anchor": "## Extension"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -118881,7 +118881,7 @@
                 "anchor": "actual pinned MoonBit Result"
               },
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "control.bindCheckedInstalledEffectModelInvocation(managedRun,"
               },
               {
@@ -122184,7 +122184,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122198,7 +122198,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122212,7 +122212,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122226,7 +122226,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122240,7 +122240,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122254,7 +122254,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122268,7 +122268,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122282,7 +122282,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122296,7 +122296,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
@@ -122310,7 +122310,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/local-values-plan.mjs",
+                "path": "adapters/host-node/local-values-plan.mts",
                 "anchor": "acquiredKeyedTaskPublicationPlan"
               },
               {
