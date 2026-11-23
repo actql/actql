@@ -186,11 +186,15 @@ async function inspectLivePause(run, minimumRevision, deadline) {
 }
 
 const readColdDebugOriginal = `
+  const {default: assert} = await import('node:assert/strict');
+  ${inspectLivePause.toString()}
+  ${drain.toString()}
+  ${starts.toString()}
   const {connect} = await import(process.argv[1]);
   const {createHostObservationConnection} = await import(process.argv[2]);
   const chunks = [];
   for await (const chunk of process.stdin) chunks.push(chunk);
-  const {installation, ref, stepId, operation} = JSON.parse(Buffer.concat(chunks));
+  const {installation, ref, stepId, operation, entry} = JSON.parse(Buffer.concat(chunks));
   const records = [];
   let physical = 0;
   installation.authorization.faultInjection = name => {
@@ -202,16 +206,51 @@ const readColdDebugOriginal = `
   let answer;
   try {
     const run = await client.attach(ref);
-    answer = {pid: process.pid, ref: run.ref,
-      sample: await run.sample({step: {by: 'id', step_id: stepId}, role: 'output'}),
-      control: await run.lookupControlOperation(operation)};
+    if (entry === undefined) {
+      answer = {pid: process.pid, ref: run.ref,
+        sample: await run.sample({step: {by: 'id', step_id: stepId}, role: 'output'}),
+        control: await run.lookupControlOperation(operation)};
+    } else {
+      const original = await run.inspect();
+      assert.deepEqual(original.run_ref, ref);
+      assert.equal(original.run_state.control_revision, entry.revision);
+      assert.equal(original.run_state.stop_reason, 'entry');
+      assert.equal(original.run_state.boundary.step_id, entry.stepId);
+      assert.equal(original.logical_map_cid, entry.logicalMapCid);
+      assert.deepEqual(original.available_operations, ['inspect', 'resume']);
+      const stale = await run.prepareResume({operationId: 'cold-stale',
+        expectedRevision: entry.revision - 1, until: 'step'});
+      await assert.rejects(run.resume(stale), {code: 'ClientRunDebugEntryRevisionConflict', status: 409});
+      await drain(observation);
+      const before = starts(records, physical);
+      assert.deepEqual(before, {physical: 0, source: 0, compute: 0, model: 0, effect: 0});
+      const step = await run.prepareResume({operationId: 'cold-first-step',
+        expectedRevision: entry.revision, until: 'step'});
+      const accepted = await run.resume(step);
+      assert.equal(accepted.state, 'found');
+      assert.equal(accepted.receipt.observed_state.control_revision, entry.revision + 1);
+      const paused = await inspectLivePause(run, entry.revision + 2, Date.now() + 15000);
+      assert.equal(paused.run_state.boundary.step_id, entry.nextStepId);
+      await drain(observation);
+      assert.deepEqual(starts(records, physical), {physical: 1, source: 0, compute: 1, model: 0, effect: 0});
+      const sample = await run.sample({step: {by: 'id', step_id: entry.stepId}, role: 'output'});
+      assert.equal(sample.state, 'available');
+      assert.deepEqual(sample.data.rows.map(row => row[0].value), [1, 2]);
+      const finish = await run.prepareResume({operationId: 'cold-continue',
+        expectedRevision: paused.run_state.control_revision, until: 'terminal'});
+      assert.equal((await run.resume(finish)).state, 'found');
+      assert.equal((await run.wait({signal: AbortSignal.timeout(15000)})).status, 'succeeded');
+      assert.deepEqual(await run.result('main').all(), [{n: 2}]);
+      assert.deepEqual(await run.lookupControlOperation(accepted.receipt.operation_ref), accepted);
+      answer = {pid: process.pid, ref: run.ref, before, receipt: accepted.receipt};
+    }
   } finally {
     await client.close();
   }
   for (let turn = 0; turn < 512; turn++) {
     const status = observation.status();
     if (status.queued === 0 && status.active === 0 && status.activeSegments === 0) {
-      process.stdout.write(JSON.stringify({...answer, physical,
+      process.stdout.write(JSON.stringify({...answer, physical, firstClose: true,
         starts: records.filter(record => record.event === 'task_started' ||
           record.event === 'attempt_started' || record.event === 'application_observed').length,
         loss: status.loss}));
@@ -236,9 +275,12 @@ function readDebugJournalCustody(directory, debugRef, normalRef) {
   } finally {db.close();}
 }
 
-for (const restart of [false, true]) test(
-  restart ? 'installed Local SDK steps the retained unstarted Debug entry after Host reopen'
-    : 'installed Local SDK Debug steps one original and a cold process reads its Sample and receipt', async t => {
+const debugCases = [
+  ['live', 'installed Local SDK Debug steps one original and a cold process reads its Sample and receipt'],
+  ['host', 'installed Local SDK steps the retained unstarted Debug entry after Host reopen'],
+  ['process', 'a detached Local SDK process attaches and steps the retained unstarted Debug entry'],
+];
+for (const [reopening, name] of debugCases) test(name, async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-interactive-debug-public-'));
   const principalId = userInfo().username, keys = generateKeyPairSync('ed25519');
   const records = [];
@@ -298,12 +340,36 @@ for (const restart of [false, true]) test(
   const firstStep = plan.logical_map.steps[0].step_id;
   assert.equal(entry.run_state.boundary.step_id, firstStep);
   assert.deepEqual(entry.available_operations, ['inspect', 'resume']);
-  if (restart) {
+  const coldAccess = input => spawnSync(process.execPath, ['--input-type=module', '--eval', readColdDebugOriginal,
+    new URL('../../packages/node/index.mjs', import.meta.url).href,
+    new URL('../../packages/local-node/adapters/host-common/observation.mjs', import.meta.url).href], {
+    input: JSON.stringify({installation, ref: run.ref, ...input}),
+    encoding: 'utf8', timeout: 45000, maxBuffer: 128 * 1024,
+  });
+  if (reopening !== 'live') {
     boundary = 'reopen_unstarted_debug_entry';
     await client.close();
     client = undefined;
     await drain(observation);
     assert.deepEqual(starts(records, physicalStarts), {physical: 0, source: 0, compute: 0, model: 0, effect: 0});
+    if (reopening === 'process') {
+      const cold = coldAccess({entry: {revision, logicalMapCid: plan.logical_map.self_cid,
+        stepId: firstStep, nextStepId: plan.logical_map.steps[1].step_id}});
+      assert.equal(cold.status, 0, cold.error?.code ?? cold.stderr);
+      const reopened = JSON.parse(cold.stdout);
+      assert.notEqual(reopened.pid, process.pid);
+      assert.deepEqual(reopened.ref, run.ref);
+      assert.deepEqual(reopened.receipt.operation_ref.run_ref, run.ref);
+      assert.deepEqual(reopened.before, {physical: 0, source: 0, compute: 0, model: 0, effect: 0});
+      assert.deepEqual({physical: reopened.physical, starts: reopened.starts, loss: reopened.loss},
+        {physical: 1, starts: 2, loss: {}});
+      assert.equal(reopened.firstClose, true);
+      t.diagnostic(JSON.stringify({producerPid: process.pid, resumePid: reopened.pid, originalRevision: revision,
+        physicalBeforeStep: reopened.before.physical, physicalAfterContinue: reopened.physical,
+        tasksAfterContinue: reopened.starts, firstCloses: true}));
+      completed = true;
+      return;
+    }
     observation = createHostObservationConnection({deliver: record => records.push(record)});
     client = await connect({mode: 'local', owner: 'local', durability: 'durable',
       installation: {...installation, observation}});
@@ -375,13 +441,7 @@ for (const restart of [false, true]) test(
   assert.equal(unselected.samples, 0);
 
   boundary = 'reopen_same_original';
-  const cold = spawnSync(process.execPath, ['--input-type=module', '--eval', readColdDebugOriginal,
-    new URL('../../packages/node/index.mjs', import.meta.url).href,
-    new URL('../../packages/local-node/adapters/host-common/observation.mjs', import.meta.url).href], {
-    input: JSON.stringify({installation, ref: run.ref, stepId: produced.step_id,
-      operation: accepted.receipt.operation_ref}),
-    encoding: 'utf8', timeout: 15000, maxBuffer: 128 * 1024,
-  });
+  const cold = coldAccess({stepId: produced.step_id, operation: accepted.receipt.operation_ref});
   assert.equal(cold.status, 0, cold.error?.code ?? cold.stderr);
   const observed = JSON.parse(cold.stdout);
   assert.notEqual(observed.pid, process.pid);
