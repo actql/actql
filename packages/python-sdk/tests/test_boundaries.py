@@ -76,6 +76,15 @@ class ValueTests(unittest.TestCase):
         self.assertEqual(wire_bytes({'10': 1.0, '2': 1e-7, '01': 1e20, '😀': 1e21}),
                          '{"2":1e-7,"10":1,"01":100000000000000000000,"😀":1e+21}'.encode())
 
+    def test_wire_classifies_only_bounded_ecmascript_array_indices(self):
+        long_key = '9' * 5000
+        keys = ['label', '4294967295', '4294967294', '01', '00', '0', '10',
+                '12345678901', long_key, '١', '2', 'tail']
+        ordered = ['0', '2', '10', '4294967294', 'label', '4294967295',
+                   '01', '00', '12345678901', long_key, '١', 'tail']
+        expected = ('{' + ','.join('"' + key + '":1' for key in ordered) + '}').encode()
+        self.assertEqual(wire_bytes(dict.fromkeys(keys, 1)), expected)
+
 
 class ContractTests(unittest.TestCase):
     def test_closed_schema_rejects_foreign_fields_and_bool_integers(self):
@@ -282,6 +291,40 @@ class AsyncBoundaryTests(unittest.IsolatedAsyncioTestCase):
             await run.result('answer').all()
         self.assertEqual(error.exception.code, 'IncompleteResultStream')
         self.assertEqual(error.exception.rows_yielded, 1)
+
+    async def test_long_digit_object_key_survives_original_row_reader(self):
+        key = '7' * 5000
+        row = b'{"' + key.encode('ascii') + b'":1}'
+        wire = row + b'\n\x1e'
+        # One record node, two key nodes, and one scalar value.
+        size = len(row) + 4 * 64
+        profile = PROFILE | {'limits': PROFILE['limits'] | {
+            'maxReadWireBytes': len(wire), 'maxRowWireBytes': len(row),
+            'maxRowRetainedValueBytes': size, 'maxRetainedValueBytes': size,
+        }}
+        operations = []
+
+        def serve(request):
+            operation = request.url.path.rsplit('/', 1)[1]
+            operations.append(operation)
+            if operation == 'connect':
+                return httpx.Response(200, json=profile)
+            if operation == 'read':
+                return httpx.Response(200, content=wire)
+            self.assertEqual(operation, 'submit-intent')
+            return httpx.Response(200, json=ready(json.loads(request.content)))
+
+        async with await AsyncClient.connect(
+                'https://host.invalid/', 'fixture-token', transport=httpx.MockTransport(serve)) as client:
+            run = await client.start({}, submission_ref=reference())
+            result = run.result('answer')
+            self.assertEqual(await result.all(max_rows=1, max_wire_bytes=len(wire),
+                max_row_wire_bytes=len(row), max_row_retained_value_bytes=size), [{key: 1}])
+            with self.assertRaises(ClientError) as caught:
+                await result.all(max_row_retained_value_bytes=size - 1)
+            self.assertEqual((caught.exception.code, caught.exception.rows_yielded),
+                             ('ResultRowRetainedLimit', 0))
+        self.assertEqual(operations, ['connect', 'submit-intent', 'read', 'read'])
 
     async def test_close_interrupts_blocked_reader_without_cancel_or_resend(self):
         run = await self.client.start({}, submission_ref=reference())
