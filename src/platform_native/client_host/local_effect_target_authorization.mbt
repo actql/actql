@@ -74,6 +74,7 @@ pub fn NativeLocalEffectResumeOriginal::authorize_saved_file_effect_in_original_
 ) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
   guard self.prepared &&
     !self.retired &&
+    !self.settlement_only &&
     self.action is Some(Claimed(claim)) &&
     physical_equal(claim.journal, self.host.journal) &&
     claim.request == self.request &&

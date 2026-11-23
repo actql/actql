@@ -11,6 +11,8 @@ struct NativeLocalObservedRunState {
   manifest : @publication.PublicationContract
   receipt : @publication.PublicationContract
   wire : String
+  observed_at : String
+  effect_outcomes : @publication.EffectSetApplyReceiptEvidence?
 }
 
 ///|
@@ -247,6 +249,8 @@ fn NativeLocalHostConnection::finalize_observed_run_state_candidate(
     manifest,
     receipt,
     wire,
+    observed_at,
+    effect_outcomes: candidate.original_effectful_outcomes(),
   }
   if !accepted.require_current_for(self, request) {
     return Err(AuthorizationDenied)

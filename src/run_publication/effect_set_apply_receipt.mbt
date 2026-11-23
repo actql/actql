@@ -344,6 +344,40 @@ pub fn effect_set_apply_receipt_disposition(
 }
 
 ///|
+/// Bind an existing ordered Preview member array to the admitted Set. A
+/// successful Set disposition alone cannot identify the original row receipts.
+pub fn effect_set_apply_receipt_matches_members(
+  value : EffectSetApplyReceiptEvidence,
+  preview : EffectPreviewIdentity,
+  members : Array[PublicationContract],
+) -> Bool {
+  guard members.length() == effect_preview_member_count(preview) &&
+    contract_string(value.receipt, "effect_preview_cid") ==
+    Some(effect_preview_semantic_identity(preview)) &&
+    @json.object_field(value.receipt.value, "effects")
+    is Some(@json.Array(items)) else {
+    return false
+  }
+  let entries = @json.array_values(items)
+  if entries.length() != members.length() {
+    return false
+  }
+  for index, receipt in members {
+    guard receipt.name == "effect_apply_receipt" &&
+      effect_preview_member_identity(preview, index) is Some(member_cid) &&
+      entries
+      .iter()
+      .any(entry => {
+        evidence_string(entry, "effect_member_preview_cid") == Some(member_cid) &&
+        evidence_string(entry, "member_receipt_cid") == Some(receipt.identity)
+      }) else {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Presentation of the same admitted Set outcome. No parsing, row admission,
 /// current permission or publication observation is performed by this getter.
 pub fn effect_set_apply_receipt_run_status(
