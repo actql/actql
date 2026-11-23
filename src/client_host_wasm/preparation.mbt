@@ -158,6 +158,22 @@ fn input_cursor(
 }
 
 ///|
+// The source-free installation links the Common numeric reducer. Select the
+// same pinned profile as the other installed Local Hosts.
+fn admit_python_local_source_free_environment(
+  body : String,
+  cid : String,
+) -> @checked.CheckEnvironment? {
+  @host.admit_client_check_environment(
+    body,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile_cid=Some(@numeric.cid(@numeric.builtin_profile())),
+  )
+}
+
+///|
 /// Private, trusted Host configuration; not caller-provided Check evidence.
 /// The environment Owner validates the original canonical wire and its CID.
 pub fn install_environment(nonce : Int64, input : Int) -> Int {
@@ -174,13 +190,7 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
     return -20
   }
   let body = @utf8.decode(wire) catch { _ => return -12 }
-  guard @host.admit_client_check_environment(
-      body,
-      cid,
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    )
-    is Some(environment) else {
+  guard admit_python_local_source_free_environment(body, cid) is Some(environment) else {
     return -20
   }
   // This entry installs the source-free profile. Source-backed aliases must
