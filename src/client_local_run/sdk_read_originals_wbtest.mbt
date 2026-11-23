@@ -19,6 +19,7 @@ priv struct SDKReadFixture {
 fn sdk_read_fixture(
   bound_scope? : Bool = false,
   sealed_payload? : Bool = false,
+  result_name? : String = "answer",
 ) -> SDKReadFixture raise {
   let at = "2026-10-13T00:00:00.001Z"
   let bootstrap = @host.client_local_product_sdk_bootstrap_originals(
@@ -28,8 +29,13 @@ fn sdk_read_fixture(
     @utf8.decode(bootstrap.original.common.account),
   ).unwrap()
   let env = environment()
+  let statement = if result_name == "answer" {
+    "SELECT 1 AS n"
+  } else {
+    "SELECT 1 AS n |> RESULT " + result_name
+  }
   let input = @input.prepare_local_input_material(
-    @input.Aql("SELECT 1 AS n"),
+    @input.Aql(statement),
     env,
     None,
     Some(@input.bind_local_input_context(env, [], "local").unwrap()),
@@ -663,7 +669,10 @@ test "SDK binding accepts separately admitted policy identities and rejects chan
   ).unwrap()
   let invoke = finite => {
     validate_sdk_read_original_binding(
-      local_sdk_read_source(fixture.preflight),
+      local_sdk_read_source(
+        fixture.preflight,
+        selection=Some(fixture.selection),
+      ),
       fixture.account,
       finite,
       fixture.selection,

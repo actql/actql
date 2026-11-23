@@ -1,7 +1,7 @@
 import {installedEffectDependencyOriginal} from './installed-effect-dependency-original.mjs';
 import {runtimeField, runtimeOptionalField, runtimeIsError, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
-import {rememberOriginalDispatchFailure} from './dispatch-failure-observation.mjs';
+import {rememberOriginalDispatchFailure, rememberOriginalSerializationRowLimit} from './dispatch-failure-observation.mjs';
 import {createLocalSigningMetadata} from './local-signing-metadata.mjs';
 import {createInstallationPreparationMetadata} from './installation-preparation-metadata.mjs';
 import {publicationAction} from './publication-action.mjs';
@@ -8574,9 +8574,21 @@ export function contentGenerationControl(moon, publications) {
         owned(encoders, encoder, 'Content encoder')));
     },
     bindInput(barrier, output, encoder) {
-      const input = checked(moon.clientProgramSerializationBindInput(
+      const result = moon.clientProgramSerializationBindInput(
         owned(barriers, barrier, 'Content barrier'), output,
-        owned(encoders, encoder, 'Content encoder')));
+        owned(encoders, encoder, 'Content encoder'));
+      let input;
+      try {
+        input = checked(result);
+      } catch (cause) {
+        try {
+          if (runtimeIsError(result) &&
+              moon.clientProgramSerializationInputIsRowLimit(runtimeField(result, 0))) {
+            rememberOriginalSerializationRowLimit(cause);
+          }
+        } catch { /* Optional diagnostic DATA cannot replace the original failure. */ }
+        throw cause;
+      }
       inputs.set(input, encoder);
       return input;
     },

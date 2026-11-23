@@ -687,7 +687,7 @@ pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract,
 
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
-pub fn issue_local_sdk_result_read_selection(String, String) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
+pub fn issue_local_sdk_result_read_selection(String, String, requested_original_result? : Bool) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
 
 pub fn issue_lookup_request_key_set(String, String, Array[(String, @value_contract.Contract)], Array[Array[@value_admission.CheckedValue]], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
@@ -745,11 +745,15 @@ pub fn local_model_observation_matches_input(CapturedEffectDependencyBody, Strin
 
 pub fn local_result_metadata_construction_geometry(String, String, String, String, String, Array[String], String, String, String, String, String, Int, Int, Int, Int) -> Result[Array[@encode_core.EncodingConstructionGeometry], ResultEvidenceIssuanceIssue]
 
+pub fn local_sdk_result_read_selection_accepts_name(LocalSDKResultReadSelection, String) -> Bool
+
 pub fn local_sdk_result_read_selection_cid(LocalSDKResultReadSelection) -> String
 
 pub fn local_sdk_result_read_selection_data_policy_cid(LocalSDKResultReadSelection) -> String
 
-pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -> (String, String, String, String, String, Int, Int)
+pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -> (String, String, String, String?, String, Int, Int)
+
+pub fn local_sdk_result_read_selection_uses_installed_result_authority(LocalSDKResultReadSelection) -> Bool
 
 pub fn local_sdk_result_read_selection_wire(LocalSDKResultReadSelection) -> String
 

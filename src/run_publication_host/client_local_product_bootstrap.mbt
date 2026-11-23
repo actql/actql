@@ -26,7 +26,7 @@ pub fn client_local_product_sdk_bootstrap_originals(
   ClientLocalProductConfigurationIssue,
 ] {
   let original = match
-    client_local_product_bootstrap_originals(configuration_root, observed_at) {
+    product_bootstrap_originals(configuration_root, observed_at, true) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -41,6 +41,7 @@ pub fn client_local_product_sdk_bootstrap_originals(
     @publication.issue_local_sdk_result_read_selection(
       client_local_run_policy_profile_cid(profile),
       product_cid(policy),
+      requested_original_result=true,
     ) {
     Ok(value) => value
     Err(_) => return Err(ConfigurationLimit)
@@ -58,10 +59,22 @@ pub fn client_local_product_bootstrap_originals(
   ClientLocalProductBootstrapOriginals,
   ClientLocalProductConfigurationIssue,
 ] {
+  product_bootstrap_originals(configuration_root, observed_at, false)
+}
+
+///|
+fn product_bootstrap_originals(
+  configuration_root : String,
+  observed_at : String,
+  original_result_read : Bool,
+) -> Result[
+  ClientLocalProductBootstrapOriginals,
+  ClientLocalProductConfigurationIssue,
+] {
   let assets = client_local_product_assets()
   let common = match
-    client_local_product_common_originals(
-      configuration_root, observed_at, assets,
+    product_common_bootstrap_originals(
+      configuration_root, observed_at, assets, original_result_read,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

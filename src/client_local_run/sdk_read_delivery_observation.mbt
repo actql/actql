@@ -381,7 +381,7 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
   LocalSDKReadDeliveryObservationIssue[E],
 ] {
   observe_local_sdk_read_delivery_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection=Some(selection)),
     account,
     finite,
     selection,
@@ -415,7 +415,7 @@ pub fn[E] local_sdk_read_delivery_lookup_wire(
   current : () -> Result[Unit, E],
 ) -> Result[String, LocalSDKReadDeliveryObservationIssue[E]] {
   local_sdk_read_delivery_lookup_wire_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection=Some(selection)),
     account,
     finite,
     selection,

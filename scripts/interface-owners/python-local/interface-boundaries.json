@@ -80874,7 +80874,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "743227b7afb0c1075a89e7efdaaaaa7bb55526e9a4dd8837f2e62efaa9720868",
+      "sha256": "f4f2ba10ef1ca4278b6ab68a8c72d5200ad068127e9aadba6953d1ab8d6ab10b",
       "exports": [],
       "operations": [
         {
@@ -80914,6 +80914,10 @@
           "declaration": "reobserve_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , retained : StoredSavedResultRead , incremental ? : Bool"
         },
         {
+          "name": "retire_saved_result_transport",
+          "declaration": "retire_saved_result_transport ( value : Instance , handle : Int , record : StoredSubmissionProjection , ) - > Int"
+        },
+        {
           "name": "saved_result_read_current",
           "declaration": "saved_result_read_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , result_name : String , ) - > Result [ Unit , Int ]"
         },
@@ -80944,7 +80948,8 @@
             "produce_incremental_saved_result",
             "reobserve_saved_result_read",
             "supply_saved_result_read",
-            "rebind_saved_result_originals"
+            "rebind_saved_result_originals",
+            "retire_saved_result_transport"
           ],
           "exports": [],
           "attributes": {

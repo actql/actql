@@ -17,12 +17,28 @@ priv struct OriginalSDKReadContext {
 }
 
 ///|
+fn sdk_read_request_fields(
+  value : Instance,
+  slot : @buffers.BufferSlot,
+) -> @decode.ObjectView? {
+  guard input_cursor(value, slot) is Some(cursor) else { return None }
+  match
+    @decode.closed_object(cursor, [
+      "result_name", "format", "attempt_id", "observed_at",
+    ]) {
+    Ok(request) => Some(request)
+    Err(_) => None
+  }
+}
+
+///|
 fn original_sdk_read_context(
   value : Instance,
   record : StoredPublicationCommitExport,
   run : Int,
   current_configuration : Int,
   same_reader_census? : Bool = false,
+  request_input? : @buffers.BufferSlot? = None,
 ) -> Result[OriginalSDKReadContext, Int] {
   if value.publications.get(record.publication) is None {
     return saved_sdk_read_context(
@@ -78,13 +94,36 @@ fn original_sdk_read_context(
     parent.observation_publisher is Some(publisher) else {
     return Err(-32)
   }
-  let (principal, connection, _, result_name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let (principal, connection, _, fixed_name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     sdk.read,
   )
   if principal != current.tuple.principal ||
     connection != current.tuple.connection {
     return Err(-32)
   }
+  let result_name = match fixed_name {
+    Some(name) => name
+    None => {
+      // The initial call only selects a name from the sealed input. It still
+      // validates the exact name after borrowing that same request. Later
+      // exports use the retained borrow from the original delivery.
+      let selected = match record.state_borrow {
+        Some(original) => Some(original.slot)
+        None => request_input
+      }
+      guard selected is Some(slot) &&
+        sdk_read_request_fields(value, slot) is Some(request) &&
+        required_text(request, "result_name") is Some(name) &&
+        !name.is_empty() else {
+        return Err(-30)
+      }
+      name
+    }
+  }
+  let source = @local_run.local_sdk_read_source(
+    preflight,
+    selection=Some(sdk.read),
+  )
   let check_current = () => {
     if value.closing ||
       value.runtime_closing ||
@@ -98,8 +137,8 @@ fn original_sdk_read_context(
       Err(code) => return Err(code)
       Ok(_) => ()
     }
-    if @local_run.validate_local_preflight_result_read_current(
-        preflight,
+    if @local_run.validate_local_sdk_read_source_current(
+        source,
         current.account,
         result_name,
       )
@@ -128,8 +167,8 @@ fn original_sdk_read_context(
       parent.lookup_closing {
       return Err(-5)
     }
-    if @local_run.validate_local_preflight_result_read_current(
-        preflight,
+    if @local_run.validate_local_sdk_read_source_current(
+        source,
         current.account,
         result_name,
       )
@@ -145,7 +184,7 @@ fn original_sdk_read_context(
     Err(code) => Err(code)
     Ok(_) =>
       Ok({
-        source: @local_run.local_sdk_read_source(preflight),
+        source,
         finite,
         sdk,
         current,

@@ -15,7 +15,15 @@ test "SDK read selection preserves independent canonical body and identity" {
   )
   assert_eq(
     local_sdk_result_read_selection_parameters(selected),
-    ("local-cli", "local", "python-local-read", "answer", "jsonl", 65536, 1),
+    (
+      "local-cli",
+      "local",
+      "python-local-read",
+      Some("answer"),
+      "jsonl",
+      65536,
+      1,
+    ),
   )
   assert_eq(
     admit_local_sdk_result_read_selection(
@@ -24,6 +32,46 @@ test "SDK read selection preserves independent canonical body and identity" {
     ),
     Ok(selected),
   )
+}
+
+///|
+test "SDK read selection admits only the exact requested original mode" {
+  let profile = "sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243"
+  let policy = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
+  let named_wire = sdk_read_fixture.replace(
+    old="\"result_names\":[\"answer\"]",
+    new="\"result_selection\":{\"authority\":\"original_result_read\",\"kind\":\"requested_original_result\"}",
+  )
+  let named = admit_local_sdk_result_read_selection(named_wire, profile, policy).unwrap()
+  let legacy = admit_local_sdk_result_read_selection(
+    sdk_read_fixture, profile, policy,
+  ).unwrap()
+  assert_eq(
+    local_sdk_result_read_selection_cid(named),
+    "sha256:8e336e72421b0dcf0a561bdad1b880cf5f209176a6c3ab121a96858333025291",
+  )
+  assert_true(local_sdk_result_read_selection_accepts_name(legacy, "answer"))
+  assert_false(
+    local_sdk_result_read_selection_accepts_name(legacy, "before_change"),
+  )
+  assert_true(
+    local_sdk_result_read_selection_accepts_name(named, "before_change"),
+  )
+  assert_false(local_sdk_result_read_selection_accepts_name(named, ""))
+  for
+    wire in [
+      named_wire + " ",
+      named_wire.replace(old="requested_original_result", new="all"),
+      named_wire.replace(
+        old="\"result_selection\"",
+        new="\"result_names\":[\"answer\"],\"result_selection\"",
+      ),
+    ] {
+    assert_eq(
+      admit_local_sdk_result_read_selection(wire, profile, policy),
+      Err(ForeignOriginal),
+    )
+  }
 }
 
 ///|

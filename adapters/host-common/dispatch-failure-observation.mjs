@@ -4,6 +4,13 @@ import {runtimeField, runtimeUnboxedReferenceOption} from './compiler-binding.ge
 
 const originals = new WeakMap();
 const codePattern = /^[a-z_]+$/u;
+const serializationRowLimit = Object.freeze({primaryDiagnostic: Object.freeze({
+  code: 'MoonBitHostFailure', phase: 'serialization_input', kind: 'row_limit',
+})});
+
+export function rememberOriginalSerializationRowLimit(error) {
+  originals.set(error, serializationRowLimit);
+}
 
 export function rememberOriginalDispatchFailure(error, original) {
   if (originals.has(error)) return;
