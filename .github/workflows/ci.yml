@@ -70,6 +70,10 @@ on:
         description: Also run the macOS native diagnostic job
         type: boolean
         default: false
+      native_model_linux:
+        description: Qualify the exact Native Model PR source with installed loopback HTTPS
+        type: boolean
+        default: false
       native_shared_remote_linux:
         description: Qualify shared Remote CLI clients with the verified Linux x64 HTTPS member
         type: boolean
@@ -79,7 +83,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_shared_remote_linux && 'linux-shared-remote' || 'normal' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_model_linux && 'linux-model-qualification' || inputs.native_shared_remote_linux && 'linux-shared-remote' || 'normal' }}
   # Keep the active main integration; GitHub retains only the latest pending run.
   # Branch and performance groups cannot cancel normal main integration.
   cancel-in-progress: ${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}
@@ -91,7 +95,7 @@ jobs:
   select-targets:
     permissions:
       contents: read
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux && !inputs.native_model_linux }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -2623,16 +2627,20 @@ jobs:
   # Separate positive Local cohort; the Remote/no-runtime regression is independent.
   native-cli-linux-local:
     needs: [select-targets]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
-      ((github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux && needs.select-targets.result == 'skipped') ||
-        (!inputs.native_shared_remote_linux && needs.select-targets.result == 'success' && needs.select-targets.outputs.profile == 'full')) }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+      always() && !cancelled() &&
+      ((github.event_name == 'workflow_dispatch' && inputs.native_model_linux && !inputs.native_shared_remote_linux &&
+      github.ref == 'refs/heads/e/ci-native-model-linux-af1f75f5' && needs.select-targets.result == 'skipped') ||
+      (!inputs.native_model_linux && (
+        (github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux && needs.select-targets.result == 'skipped') ||
+        (!inputs.native_shared_remote_linux && needs.select-targets.result == 'success' && needs.select-targets.outputs.profile == 'full')))) }}
     outputs:
       artifact-id: ${{ steps.local_evidence.outputs.artifact-id }}
       artifact-run-id: ${{ github.run_id }}
       artifact-run-attempt: ${{ github.run_attempt }}
-      artifact-source-sha: ${{ github.sha }}
+      artifact-source-sha: ${{ inputs.native_model_linux && 'af1f75f5d7c4fd6f90f67908424383416a711446' || github.sha }}
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.native_shared_remote_linux && 90 || 50 }}
+    timeout-minutes: ${{ (inputs.native_model_linux || inputs.native_shared_remote_linux) && 90 || 50 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2640,12 +2648,34 @@ jobs:
       - uses: ./.github/actions/setup-toolchain
         with:
           python: 'true'
+      - name: Check out the immutable Native Model product separately
+        if: inputs.native_model_linux
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: af1f75f5d7c4fd6f90f67908424383416a711446
+          path: native-model-source
+          persist-credentials: false
+      - name: Confirm the original product checkout and prepare its dependencies
+        if: inputs.native_model_linux
+        working-directory: native-model-source
+        timeout-minutes: 6
+        run: |
+          test "$(git rev-parse HEAD)" = af1f75f5d7c4fd6f90f67908424383416a711446
+          test "$(git rev-parse HEAD^{tree})" = a309ccd01ab9b0cbddb32798fb19b3e43167df14
+          test "$(uname -m)" = x86_64
+          test "$(node -p 'process.platform + "/" + process.arch')" = linux/x64
+          cmp toolchain.json "$GITHUB_WORKSPACE/toolchain.json"
+          npm ci --ignore-scripts --no-audit --no-fund
+          test -z "$(git status --porcelain)"
       - name: Install selected Linux compiler
         timeout-minutes: 5
         run: bash scripts/ci-install-linux-clang.sh
       - name: Install existing component producer Python dependencies
         run: python3 -m pip install --disable-pip-version-check httpx==0.28.1 rfc8785==0.1.4
       - name: Retain exact official component archives
+        working-directory: ${{ inputs.native_model_linux && 'native-model-source' || '.' }}
+        env:
+          MODEL_LINUX_OPT_IN: ${{ inputs.native_model_linux }}
         run: |
           python3 - <<'PY'
           import hashlib, json, os, pathlib, time, urllib.error, urllib.request
@@ -2685,9 +2715,41 @@ jobs:
           inputs.mkdir(parents=True, exist_ok=False)
           sqlite = json.loads(pathlib.Path('packages/python-local-runtime/native/sqlite-component/source.json').read_text())['upstream']
           crypto = json.loads(pathlib.Path('packages/python-local-runtime/native/crypto-component/source.json').read_text())['source_targets']['x86_64-unknown-linux-gnu']
-          for name, original in [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]:
+          selected = [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]
+          if os.environ.get('MODEL_LINUX_OPT_IN') == 'true':
+              resolver = json.loads(pathlib.Path('scripts/native-model-http-resolver-source.json').read_text())
+              curl = json.loads(pathlib.Path('scripts/native-http-component-source.json').read_text())['upstream']
+              archive = 'curl-' + curl['version'] + '.tar.xz'
+              selected.extend([
+                  ('c-ares.tar.gz', {'url': resolver['url'], **resolver['archive']}),
+                  (archive, {'url': curl['url'], **curl['archive']}),
+                  (archive + '.asc', {'url': curl['url'] + '.asc', **curl['signature']}),
+              ])
+          for name, original in selected:
               retain_original(original, inputs / name)
           PY
+      - name: Prepare the two verified HTTPS roles for the original product
+        if: inputs.native_model_linux
+        working-directory: native-model-source
+        timeout-minutes: 45
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends gnupg gpgv
+          source="$(git rev-parse HEAD)"
+          test "$source" = af1f75f5d7c4fd6f90f67908424383416a711446
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          original=(
+            --source "$source" --target linux-x64 --clang "$(realpath /usr/bin/clang-19)"
+            --make "$(realpath /usr/bin/make)" --perl "$(realpath /usr/bin/perl)"
+            --gpg "$(realpath /usr/bin/gpg)" --gpgv "$(realpath /usr/bin/gpgv)"
+            --seconds 1200 --tls-jobs 2
+            --curl-archive "$output/inputs/curl-8.23.0.tar.xz"
+            --curl-signature "$output/inputs/curl-8.23.0.tar.xz.asc"
+          )
+          python3 scripts/prepare-native-resident-http-component.py "${original[@]}" \
+            --destination "$output/remote-http"
+          python3 scripts/prepare-native-resident-http-component.py "${original[@]}" \
+            --model-resolver-archive "$output/inputs/c-ares.tar.gz" --destination "$output/model-http"
       - name: Prepare the verified synchronous Remote HTTPS member
         if: github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux
         timeout-minutes: 25
@@ -2702,12 +2764,20 @@ jobs:
             --gpgv "$(realpath /usr/bin/gpgv)" \
             --destination "$RUNNER_TEMP/native-cli-linux-local/http" --seconds 1200 --tls-jobs 2
       - name: Produce normal selected Linux Local artifact
+        working-directory: ${{ inputs.native_model_linux && 'native-model-source' || '.' }}
         env:
+          MODEL_LINUX_OPT_IN: ${{ inputs.native_model_linux }}
           SHARED_REMOTE_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux }}
         run: |
-          remote_http=()
-          if [ "$SHARED_REMOTE_LINUX" = true ]; then
-            remote_http=(--remote-http-preparation "$RUNNER_TEMP/native-cli-linux-local/http/preparation.json")
+          http_roles=()
+          if [ "$MODEL_LINUX_OPT_IN" = true ]; then
+            output="$RUNNER_TEMP/native-cli-linux-local"
+            http_roles=(
+              --remote-http-preparation "$output/remote-http/preparation.json"
+              --model-http-preparation "$output/model-http/preparation.json"
+            )
+          elif [ "$SHARED_REMOTE_LINUX" = true ]; then
+            http_roles=(--remote-http-preparation "$RUNNER_TEMP/native-cli-linux-local/http/preparation.json")
           fi
           node scripts/produce-native-cli-linux-local.mjs \
             --source "$(git rev-parse HEAD)" --package-version 0.0.2 \
@@ -2716,9 +2786,10 @@ jobs:
             --sqlite-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/sqlite.zip" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl-dev.deb" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl3t64.deb" \
-            --component-seconds 300 --compile-seconds 1800 "${remote_http[@]}"
+            --component-seconds 300 --compile-seconds 1800 "${http_roles[@]}"
       - name: Require Local payload in the selected npm cohort
         id: local_cohort
+        working-directory: ${{ inputs.native_model_linux && 'native-model-source' || '.' }}
         run: |
           printf '%s\n' '{"packageVersion":"0.0.2","registry":"https://registry.npmjs.org/","access":"public","tag":"latest"}' > "$RUNNER_TEMP/native-cli-linux-local/cohort.json"
           node scripts/native-cli-release.mjs prepare-local \
@@ -2728,11 +2799,33 @@ jobs:
       - name: Require actual bounded Crypto allocator conformance
         if: ${{ !cancelled() && steps.local_cohort.outcome == 'success' }}
         timeout-minutes: 3
+        working-directory: ${{ inputs.native_model_linux && 'native-model-source' || '.' }}
         run: |
           python3 scripts/test-native-crypto-allocator.py \
             --source "$(git rev-parse HEAD)" --clang "$(realpath /usr/bin/clang-19)" \
             --crypto-producer "$RUNNER_TEMP/native-cli-linux-local/production/crypto/producer.json" \
             --output "$RUNNER_TEMP/native-cli-linux-local/crypto-allocator" --seconds 150
+      - name: Exercise installed Native Model with loopback HTTPS only
+        if: inputs.native_model_linux
+        timeout-minutes: 8
+        working-directory: native-model-source
+        run: |
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          test "$(git rev-parse HEAD)" = af1f75f5d7c4fd6f90f67908424383416a711446
+          test "$(git rev-parse HEAD^{tree})" = a309ccd01ab9b0cbddb32798fb19b3e43167df14
+          test -z "$(git status --porcelain)"
+          node --input-type=module - "$output/qualification-origin.json" <<'JS'
+          import {writeFileSync} from 'node:fs';
+          writeFileSync(process.argv[2], JSON.stringify({
+            productSource: 'af1f75f5d7c4fd6f90f67908424383416a711446',
+            productTree: 'a309ccd01ab9b0cbddb32798fb19b3e43167df14',
+            runnerSource: process.env.GITHUB_SHA,
+            runId: process.env.GITHUB_RUN_ID,
+            runAttempt: process.env.GITHUB_RUN_ATTEMPT,
+            platform: process.platform, arch: process.arch,
+          }, null, 2) + '\n', {flag: 'wx'});
+          JS
+          node "$GITHUB_WORKSPACE/scripts/fixtures/native-model-linux/qualify.mjs" "$PWD" "$output" "$output"
       - name: Exercise installed shared Remote clients with the matching ordinary packages
         if: github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux
         timeout-minutes: 20
@@ -2756,6 +2849,14 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/release/release.json
             ${{ runner.temp }}/native-cli-linux-local/release/actql-0.0.2.tgz
             ${{ runner.temp }}/native-cli-linux-local/release/actql-cli-linux-x64-gnu-0.0.2.tgz
+            ${{ runner.temp }}/native-cli-linux-local/qualification-origin.json
+            ${{ runner.temp }}/native-cli-linux-local/qualification-installed-*/controlled-native.json
+            ${{ runner.temp }}/native-cli-linux-local/remote-http/preparation.json
+            ${{ runner.temp }}/native-cli-linux-local/remote-http/component/build.json
+            ${{ runner.temp }}/native-cli-linux-local/remote-http/owned-tls/build.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/preparation.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/component/build.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/owned-tls/build.json
             ${{ runner.temp }}/native-cli-linux-local/http/preparation.json
             ${{ runner.temp }}/native-cli-linux-local/http/component/build.json
             ${{ runner.temp }}/native-cli-linux-local/http/owned-tls/build.json
@@ -3153,7 +3254,7 @@ jobs:
             }
           '
   check:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux && !inputs.native_model_linux }}
     needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-installed, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04
