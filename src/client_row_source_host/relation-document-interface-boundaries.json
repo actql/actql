@@ -4,7 +4,7 @@
     {
       "module": "src/client_row_source_host/relation_document_target.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "6c8bc4c1213879b04a28cb273e1314f93d9d271954220b0f69f1402eda3d455c",
+      "sha256": "9b6bd2736ccb10d71debc18b1efaa1b6bf5ead2f05a951cf36022dd599d88ced",
       "role": "common-semantics",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -132,6 +132,10 @@
         {
           "name": "relation_target_version",
           "declaration": "relation_target_version ( row : RelationTargetRow ) - > String ?"
+        },
+        {
+          "name": "RelationTargetDocument::row_cursor",
+          "declaration": "RelationTargetDocument : : row_cursor ( self : RelationTargetDocument , index : Int , ) - > @ decode . Cursor"
         }
       ],
       "contracts": [
@@ -165,7 +169,8 @@
             "relation_target_separator",
             "relation_target_text",
             "relation_target_text_bytes",
-            "relation_target_version"
+            "relation_target_version",
+            "RelationTargetDocument::row_cursor"
           ],
           "exports": [],
           "attributes": {
@@ -243,6 +248,10 @@
               {
                 "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
                 "anchor": "relation insertion checks the supplied storage key against the original Text bound"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
+                "anchor": "relation target indexes the original at the existing page row limit"
               }
             ]
           }

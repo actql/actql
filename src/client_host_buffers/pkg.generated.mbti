@@ -62,6 +62,8 @@ pub fn reserve_output_buffer(BufferPool, Int, Int64, () -> Bool) -> Result[Buffe
 
 pub fn reserve_workspace(@physical_resources.Ledger, Int64, () -> Bool, () -> Bool) -> Result[WorkspaceLoan, BufferIssue]
 
+pub fn retire_consumed_output_transport(BufferPool, BufferSlot) -> Result[Unit, BufferIssue]
+
 pub fn[T] retire_workspace_original_read(OriginalWorkspaceRead[T], T, WorkspaceLoan) -> Result[Unit, @physical_resources.OriginalReadIssue]
 
 pub fn return_buffer_borrow(BufferPool, BufferBorrow) -> Result[Unit, BufferIssue]
@@ -117,7 +119,7 @@ pub struct BufferSlot {
   serial : Int
   mut allocation : @physical_resources.SharedAllocation?
   mut copy_capacity : @physical_resources.SharedCapacity?
-  accounted_bytes : Int64
+  mut accounted_bytes : Int64
   mut published : Bool
   wire_length : Int
   cleanup : () -> Bool

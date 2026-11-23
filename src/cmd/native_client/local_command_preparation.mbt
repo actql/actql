@@ -75,6 +75,7 @@ priv enum LocalCommandPreparationIssue {
   CommandProjectMock(LocalProjectMockModelIssue)
   CommandFilesystem(@files.NativeBoundedTextIssue)
   CommandFilesystemCleanup(@local_filesystem.NativeFilesystemIssue)
+  CommandRemoteHttpCleanup
 }
 
 ///|
@@ -134,6 +135,7 @@ priv struct LocalCommandPreparationOriginal {
   mut journal_read_open : Bool
   mut reply_outcome : Result[String, String]?
   mut read_failure : @files.NativeBoundedTextFailure?
+  mut remote_http : RemoteHttpOriginal?
   // Actual escaping metadata prefix, not completed constructor scratch.
   mut metadata_retained : Int64
   mut phase_open : Bool
@@ -303,6 +305,7 @@ fn prepare_local_command_preparation_original(
     journal_read_open: false,
     reply_outcome: None,
     read_failure: None,
+    remote_http: None,
     metadata_retained: 0L,
     phase_open: false,
     standalone_cleanup_open: false,
@@ -355,6 +358,7 @@ fn LocalCommandPreparationOriginal::acquire(
 // Help, version and parse failure must never construct this physical original.
 fn LocalCommandPreparationOriginal::acquire_physical_read(
   self : LocalCommandPreparationOriginal,
+  remote_budget? : @initial_arena.InstalledArenaOriginalReadBudget? = None,
 ) -> Result[Unit, LocalCommandPreparationIssue] {
   native_timing_begin(9)
   defer native_timing_end(9)
@@ -368,7 +372,10 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     let profile = self.profile
     // Preserve the immutable maximum profile. The initial Read funds only
     // the existing first processing block and its actually coheld originals.
-    let read_budget = command_preparation_option(self.initial_read_budget())
+    let read_budget = match remote_budget {
+      Some(budget) => budget
+      None => command_preparation_option(self.initial_read_budget())
+    }
     let initial_pool = command_preparation_value(
       native_storage_sum([
         read_budget.bootstrap_retained,
@@ -381,13 +388,17 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     let read_domain_bytes = command_preparation_option(
       local_command_domain_bytes(initial_pool),
     )
-    let initial_domains = command_preparation_value(
-      native_storage_sum([read_domain_bytes, profile.sqlite_domain_bytes]).map_err(issue => {
-          CommandNativeStorage(issue)
-        },
-      ),
-    )
-    let (arena_bytes, _) = command_preparation_option(
+    let initial_domains = if remote_budget is Some(_) {
+      read_domain_bytes
+    } else {
+      command_preparation_value(
+        native_storage_sum([read_domain_bytes, profile.sqlite_domain_bytes]).map_err(issue => {
+            CommandNativeStorage(issue)
+          },
+        ),
+      )
+    }
+    let (arena_bytes, selected_control_bytes) = command_preparation_option(
       local_command_backing_layout(initial_domains),
     )
     if read_domain_bytes > profile.read_domain_bytes ||
@@ -401,7 +412,11 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
         1L,
         arena_bytes,
         profile.host_limits,
-        profile.control_bytes,
+        if remote_budget is Some(_) {
+          selected_control_bytes
+        } else {
+          profile.control_bytes
+        },
       ).map_err(issue => CommandHost(issue)),
     )
     // Retain the actual original before its one anonymous mapping attempt.
@@ -442,26 +457,30 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     command_preparation_value(
       host.transfer_domain(read_domain).map_err(issue => CommandDomain(issue)),
     )
-    let acquired = command_preparation_value(
-      host
-      .prepare_domain_in_process(
-        scope,
-        profile.sqlite_domain_bytes,
-        profile.sqlite_domain_limits,
+    if remote_budget is None {
+      let acquired = command_preparation_value(
+        host
+        .prepare_domain_in_process(
+          scope,
+          profile.sqlite_domain_bytes,
+          profile.sqlite_domain_limits,
+        )
+        .map_err(issue => CommandDomain(issue)),
       )
-      .map_err(issue => CommandDomain(issue)),
-    )
-    let sqlite_domain = match acquired {
-      PreparedDomain(value) => value
-      PendingDomain(value, issue) => {
-        self.sqlite_domain = Some(value)
-        return Err(CommandDomain(issue))
+      let sqlite_domain = match acquired {
+        PreparedDomain(value) => value
+        PendingDomain(value, issue) => {
+          self.sqlite_domain = Some(value)
+          return Err(CommandDomain(issue))
+        }
       }
+      self.sqlite_domain = Some(sqlite_domain)
+      command_preparation_value(
+        host
+        .transfer_domain(sqlite_domain)
+        .map_err(issue => CommandDomain(issue)),
+      )
     }
-    self.sqlite_domain = Some(sqlite_domain)
-    command_preparation_value(
-      host.transfer_domain(sqlite_domain).map_err(issue => CommandDomain(issue)),
-    )
     record_command_extent_work(
       domain_work_before,
       self.observe_extent_work(host, scope),
@@ -488,15 +507,17 @@ fn LocalCommandPreparationOriginal::acquire_physical_read(
     command_preparation_value(
       read_preparation.map_err(issue => CommandDomain(issue)),
     )
-    let sqlite_preparation = match
-      self.native_storage.sqlite_domain_facility_ceiling {
-      Some(ceiling) =>
-        host.prepare_domain_read(sqlite_domain, execution_ceiling=ceiling)
-      None => host.prepare_domain_read(sqlite_domain)
+    if self.sqlite_domain is Some(sqlite_domain) {
+      let sqlite_preparation = match
+        self.native_storage.sqlite_domain_facility_ceiling {
+        Some(ceiling) =>
+          host.prepare_domain_read(sqlite_domain, execution_ceiling=ceiling)
+        None => host.prepare_domain_read(sqlite_domain)
+      }
+      command_preparation_value(
+        sqlite_preparation.map_err(issue => CommandDomain(issue)),
+      )
     }
-    command_preparation_value(
-      sqlite_preparation.map_err(issue => CommandDomain(issue)),
-    )
     let acquired = command_preparation_value(
       host
       .prepare_domain_original_read(read_domain, read_budget)
@@ -818,6 +839,10 @@ fn LocalCommandPreparationOriginal::close_checked(
   try {
     self.cleanup_stage = "leave-command-read"
     command_preparation_value(self.leave())
+    if self.remote_http is Some(remote) {
+      self.cleanup_stage = "remote-http"
+      command_preparation_value(remote.close(self))
+    }
     if self.standalone_cleanup_open {
       guard self.host is Some(host) && self.read is Some(read) else {
         return Err(CommandUnavailable)
@@ -902,7 +927,7 @@ fn LocalCommandPreparationOriginal::close_checked(
       }
     }
     if self.host is Some(host) {
-      if self.read is Some(read) {
+      if self.read is Some(read) && self.remote_http is None {
         if self.pair is Some(pair) {
           command_preparation_value(
             host

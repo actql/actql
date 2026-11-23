@@ -233,7 +233,7 @@ class OriginalCommitProjection:
             self._ready()
             self._projecting = True
             try:
-                output = self._output()
+                output = self._output(maximum=64 if field is None else 71)
                 if field is None:
                     self._core.produce_publication_commit_index_key(output, self._configuration)
                 else:
@@ -487,15 +487,18 @@ class OriginalCommitProjection:
     def _consume_observed_index(self, consume: Callable[[bytes, bytes], object]) -> None:
         # Drop temporary field references before retiring their reservations,
         # matching the existing synchronous original-material projection.
-        identity = self._output(maximum=71)
+        extent = self._output(maximum=79)
         self._core.produce_publication_observed_index(
-            identity, self._configuration, field='identity')
-        raw_identity = self._core.read_publication_commit_material(identity)
+            extent, self._configuration, field='storage_extent')
+        raw_identity, maximum = self._storage_extent(
+            self._core.read_publication_commit_material(extent))
         self._address(raw_identity, index_key=False)
-        body = self._output()
+        body = self._output(maximum=maximum)
         self._core.produce_publication_observed_index(
             body, self._configuration, field='wire')
         raw_body = self._core.read_publication_commit_material(body)
+        if len(raw_body) != maximum:
+            raise LocalCoreError('original_commit_projection_extent', -33)
         if consume(raw_identity, raw_body) is not None:
             raise ValueError('Invalid synchronous observed index consumer result')
 
@@ -561,25 +564,41 @@ class OriginalCommitProjection:
             raise LocalCoreError('original_commit_projection_address', -33)
         return raw.decode('ascii')
 
+    @staticmethod
+    def _storage_extent(raw: bytes) -> tuple[bytes, int]:
+        extent = raw[72:]
+        if (raw[71:72] != b':' or not extent
+                or extent[:1] == b'0' or not extent.isdigit()):
+            raise LocalCoreError('original_commit_projection_extent', -33)
+        bound = int(extent)
+        if bound > 1_048_576:
+            raise LocalCoreError('original_commit_projection_extent', -33)
+        return raw[:71], bound
+
     def _consume(self, ordinal: int, index_reference: bool,
                  consume: Callable[[ByteWrite], object], generation: int | None, *,
                  schema: bool = False) -> None:
         core = self._core
-        address_output = self._output(maximum=64 if index_reference else 71)
+        # Core measures the original contract or schema beside its CID. The
+        # index uses a fixed 64-byte key and a fixed 71-byte CID payload.
+        address_output = self._output(maximum=64 if index_reference else 79)
         if schema:
             core.produce_publication_commit_schema(
-                address_output, self._configuration, ordinal, field='identity')
+                address_output, self._configuration, ordinal, field='storage_extent')
         elif index_reference:
             core.produce_publication_commit_index_key(address_output, self._configuration)
         else:
             core.produce_publication_commit_material(
-                address_output, self._configuration, ordinal, field='identity')
+                address_output, self._configuration, ordinal, field='storage_extent')
         raw_address = core.read_publication_commit_material(address_output)
+        maximum = 71
+        if not index_reference:
+            raw_address, maximum = self._storage_extent(raw_address)
         address = self._address(raw_address, index_key=index_reference)
         key = LocalByteStore.namespaced_key(
             ('result_schema' if schema else
              'public_index' if index_reference else 'publication_contract'), address)
-        payload_output = self._output()
+        payload_output = self._output(maximum=maximum)
         if schema:
             core.produce_publication_commit_schema(
                 payload_output, self._configuration, ordinal, field='wire')
@@ -590,6 +609,8 @@ class OriginalCommitProjection:
         payload = core.read_publication_commit_material(payload_output)
         if index_reference:
             self._address(payload, index_key=False)
+        elif len(payload) != maximum:
+            raise LocalCoreError('original_commit_projection_extent', -33)
         if consume(ByteWrite(key, generation, payload)) is not None:
             raise ValueError('Invalid synchronous Local commit consumer result')
 

@@ -8,8 +8,9 @@ import {mkdir, writeFile} from 'node:fs/promises';
 import {join, basename} from 'node:path';
 import {
   LOCAL_RUNTIME_MAX_BYTES, localRuntimeHash, validateLocalRuntimeManifest,
-  admitLocalLibraryBytes, admitInstalledLocalRuntime,
+  admitLocalLibraryBytes, admitInstalledLocalRuntime, nativeRemoteHttpSystemDependency,
 } from '../packages/native-cli/lib/local-runtime.mjs';
+import {verifiedNativeRemoteHttpPackage} from './native-preparation-originals.mjs';
 
 function original(input, maxBytes) {
   assert.deepEqual(Object.keys(input).sort(), ['bytes', 'path', 'sha256']);
@@ -38,7 +39,7 @@ function original(input, maxBytes) {
   } finally { closeSync(descriptor); }
 }
 
-export function inspectLocalLibrary(path, platform, names, execute = execFileSync) {
+export function inspectLocalLibrary(path, platform, names, execute = execFileSync, role) {
   const inspect = args => execute(platform === 'darwin-arm64' ? 'otool' : 'readelf', args,
     {encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024});
   let dependencies, abi;
@@ -56,6 +57,10 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
       const match = /^\s*(\S+) \(compatibility version [^\n]+\)$/u.exec(s);
       assert(match, 'Malformed dylib dependency observation'); return match[1];
     }).filter(s => s !== ids[0]).map(s => {
+      if (role === 'remote-http') {
+        assert(nativeRemoteHttpSystemDependency(platform, s), 'Unselected Remote HTTP dependency');
+        return s;
+      }
       if (s.startsWith('@loader_path/')) {
         const name = s.slice('@loader_path/'.length);
         assert(names.has(name), 'Missing loader-relative bundled library'); return name;
@@ -70,6 +75,7 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
     const needed = [...dynamic.matchAll(/\(NEEDED\).*?\[([^\]]+)\]/gu)].map(v => v[1]);
     const paths = [...dynamic.matchAll(/\((?:RPATH|RUNPATH)\).*?\[([^\]]*)\]/gu)].map(v => v[1]);
     assert(paths.every(s => s === '$ORIGIN'), 'Unbundled shared-library search path');
+    if (role === 'remote-http') assert.equal(paths.length, 0, 'Remote HTTP cannot use a loader search path');
     if (needed.some(s => names.has(s))) assert(paths.length > 0, 'Bundled dependency needs its own loader-relative path');
     dependencies = needed;
     const versionInfo = inspect(['--version-info', path]);
@@ -87,7 +93,10 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
 }
 
 export async function prepareNativeLocalRuntime(directory, options, execute = execFileSync) {
-  assert.deepEqual(Object.keys(options).sort(), ['assets', 'libraries', 'licenses', 'platform', 'sourceSha']);
+  const hasRemotePreparation = Object.hasOwn(options, 'remoteHttpPreparation');
+  const optionKeys = ['assets', 'libraries', 'licenses', 'platform', 'sourceSha'];
+  if (hasRemotePreparation) optionKeys.push('remoteHttpPreparation');
+  assert.deepEqual(Object.keys(options).sort(), optionKeys.sort());
   const {sourceSha, platform, libraries, assets, licenses} = options;
   assert(Array.isArray(libraries) && libraries.length >= 2 && libraries.length <= 8);
   assert(Array.isArray(assets) && assets.length >= 5 && assets.length <= 8);
@@ -102,14 +111,33 @@ export async function prepareNativeLocalRuntime(directory, options, execute = ex
   for (const item of libraries) assert.deepEqual(Object.keys(item).sort(), ['dependencies', 'license', 'name', 'original', 'role']);
   for (const item of assets) assert.deepEqual(Object.keys(item).sort(), ['original', 'role']);
   for (const item of licenses) assert.deepEqual(Object.keys(item).sort(), ['name', 'original']);
+  const remoteHttp = libraries.find(item => item.role === 'remote-http');
+  assert.equal(remoteHttp !== undefined, hasRemotePreparation,
+    'Remote HTTP requires its original file-backed preparation receipt');
+  let remoteHttpNotice;
+  if (remoteHttp) {
+    const preparation = options.remoteHttpPreparation;
+    const target = platform === 'darwin-arm64' ? platform : 'linux-x64';
+    const verified = verifiedNativeRemoteHttpPackage(preparation, {source: sourceSha, target});
+    assert.deepEqual(remoteHttp.original, verified.library, 'Remote HTTP runtime original differs');
+    assert.deepEqual([...remoteHttp.dependencies].sort(), [...verified.dependencies].sort(),
+      'Remote HTTP preparation dependency census differs');
+    remoteHttpNotice = verified.notice;
+  }
   const libraryBytes = libraries.map(item => {
     const bytes = original(item.original, LOCAL_RUNTIME_MAX_BYTES);
     admitLocalLibraryBytes(bytes, platform); return bytes;
   });
   const observations = libraries.map(item => inspectLocalLibrary(item.original.path, platform,
-    new Set(libraries.map(v => v.name)), execute));
+    new Set(libraries.map(v => v.name)), execute, item.role));
   for (const [index, item] of libraries.entries()) assert.deepEqual(
     [...item.dependencies].sort(), [...observations[index].dependencies].sort(), 'Declared and physical loader dependencies differ');
+  if (remoteHttp) {
+    const recorded = licenses.find(item => item.name === remoteHttp.license);
+    assert(recorded, 'Remote HTTP requires its original combined notice');
+    assert.deepEqual(original(recorded.original, 1024 * 1024), remoteHttpNotice,
+      'Remote HTTP combined notice differs from its original preparation');
+  }
   const manifest = {
     sourceSha, platform,
     libraries: libraries.map((item, index) => ({role: item.role, path: `lib/${item.name}`,

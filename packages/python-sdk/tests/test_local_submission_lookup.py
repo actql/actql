@@ -262,6 +262,15 @@ class LocalSubmissionLookupTests(unittest.TestCase):
                 counters['validate'] += 1
                 current()
                 return 0
+            if family == 'submission' and name == 'retire_output' and args[0] in outputs:
+                self.assertIsNotNone(pending_saved_result)
+                ticket = args[0] - 100
+                self.assertTrue(core._lock._is_owned())
+                self.assertEqual(core._inputs[ticket].payload, b'',
+                                 'Original physical output cache must be empty before returning its quote')
+                calls.append((family, name, args))
+                del outputs[args[0]]
+                return 0
             if restoration:
                 # Explicit constructor/current/retirement ports only. These
                 # are not actual codec, Account, Wasm or execution evidence.

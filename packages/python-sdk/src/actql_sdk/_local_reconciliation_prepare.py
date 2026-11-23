@@ -59,7 +59,7 @@ _EXPORT_NAMES = (
     'actql_publication_commit_export_result_count',
     'actql_publication_commit_export_validate_payload_binding',
     'actql_payload_record_validate_snapshot', 'actql_publisher_authorize',
-    'actql_publication_commit_export_reserve',
+    'actql_publication_commit_export_reserve_bounded',
     'actql_publication_commit_export_produce_index_key',
     'actql_publication_commit_export_produce_lookup_reference',
     'actql_publication_commit_export_length', 'actql_publication_commit_export_close',

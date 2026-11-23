@@ -182,3 +182,43 @@ test "SDK row retention refuses before construction and foreign row never seeds 
   assert_true(sdk_row_original_capacity(131073) is None)
   sdk_row_original_fixture_close(value, slot)
 }
+
+///|
+test "SDK RunState candidate keeps its original Run and Ledger through close refusal" {
+  let (value, _, source) = sdk_row_original_fixture(33554432L)
+  let unblocked = Ref(false)
+  let slot = @buffers.reserve_output_buffer(value.pool, 1, 0L, () => {
+    unblocked.val
+  }).unwrap()
+  let before = @resources.ledger_usage(value.root)
+  let (retained, execution) = sdk_run_state_update_construction_capacity().unwrap()
+  let capacity = @resources.reserve_capacity(value.root, retained, execution).unwrap()
+  let projection = interrupted_saved_export(10, slot)
+  projection.projection = Some(SDKMeasuredRunState(0, 1, 100, false))
+  projection.pending = false
+  projection.sdk_run_state_update_capacity = Some(capacity)
+  value.commit_exports[20] = projection
+  let charged = @resources.ledger_usage(value.root)
+  assert_eq(
+    charged.reserved_retention_bytes - before.reserved_retention_bytes,
+    retained,
+  )
+  assert_eq(
+    charged.reserved_execution_bytes - before.reserved_execution_bytes,
+    execution,
+  )
+  assert_eq(close_run(value.nonce, 1), -9)
+  assert_eq(close_publication_commit_export(value.nonce, 20), -9)
+  assert_true(
+    physical_equal(projection.sdk_run_state_update_capacity.unwrap(), capacity),
+  )
+  assert_eq(@resources.ledger_usage(value.root), charged)
+  unblocked.val = true
+  assert_eq(close_publication_commit_export(value.nonce, 20), 0)
+  let closed = @resources.ledger_usage(value.root)
+  assert_eq(closed.reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(closed.reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_eq(closed.live_reservations, before.live_reservations)
+  assert_eq(closed.peak_retention_bytes, charged.peak_retention_bytes)
+  sdk_row_original_fixture_close(value, source)
+}

@@ -104,7 +104,7 @@ class SavedReadPortsTests(unittest.TestCase):
         helper.addCleanup = self.addCleanup
         with (TemporaryDirectory() as directory,
               physical_fixture.ReaderFactsTests.file(self, body) as (_, root, _, final)):
-            host, core, _, counts, _ = helper.fixture(directory, packet,
+            host, core, calls, counts, _ = helper.fixture(directory, packet,
                 run_reference=reference, result_name='answer', pending_saved_result=0)
             store = host._installation._store
             key = 'original-saved-hash-record'
@@ -121,10 +121,20 @@ class SavedReadPortsTests(unittest.TestCase):
                          CapacityReservation('publication_payload', key, len(body), 1),
                          'authority', 'material', 0, 0)
 
+            def prepare(source, observed):
+                self.assertEqual(observed, packet)
+                self.assertTrue(core._inputs[source.ticket].payload)
+                return selection
+
             async def exercise():
                 task = asyncio.create_task(saved.prepare_incremental(reference, 'answer', 'jsonl', 'hash'))
                 await asyncio.sleep(0)
+                if task.done():
+                    task.result()
                 self.assertFalse(task.done())
+                self.assertEqual([call for call in calls if call[:2] == ('submission', 'retire_output')],
+                                 [('submission', 'retire_output', (saved._source.handle,))])
+                self.assertIs(core._loans[saved._source.ticket], saved._source)
                 self.assertEqual(reader.offset, 4)
                 self.assertIsNone(reader.chunk)
                 self.assertFalse(core._lock._is_owned())
@@ -137,7 +147,7 @@ class SavedReadPortsTests(unittest.TestCase):
                 self.assertIs(saved._reader, reader)
                 self.assertFalse(saved._preparing)
 
-            with (patch.object(saved, '_prepare_payload', return_value=selection),
+            with (patch.object(saved, '_prepare_payload', side_effect=prepare),
                   patch.object(saved, '_finish_payload', side_effect=AssertionError('Premature Result'))):
                 asyncio.run(exercise())
             self.assertEqual(counts['produce'], 1)
@@ -175,6 +185,59 @@ class SavedReadPortsTests(unittest.TestCase):
             self.assertIs(core._loans[source.ticket], source)
             self.assertIsNotNone(saved._projection)
             self.assertFalse(saved._preparing)
+            self.assertTrue(host.close())
+
+    def test_refused_saved_transport_return_keeps_the_same_parent_for_cleanup(self):
+        from tempfile import TemporaryDirectory
+        reference = {'namespaceId': 'local', 'authorityScopeCid': 'sha256:' + 'a' * 64,
+                     'runDefinitionCid': 'sha256:' + 'd' * 64}
+        packet = {'resultOrdinal': '0', 'bindingOrdinal': '0', 'kind': 'result-originals',
+                  'resultName': 'answer', 'runDefinitionCid': reference['runDefinitionCid'],
+                  **{name: '{}' for name in
+                     ('index', 'manifest', 'definition', 'artifact', 'retention', 'binding')}}
+        helper = host_fixture.LocalSubmissionLookupTests()
+        helper.addCleanup = self.addCleanup
+        with TemporaryDirectory() as directory:
+            host, core, _, counts, _ = helper.fixture(directory, packet,
+                run_reference=reference, result_name='answer', pending_saved_result=0)
+            saved = OriginalSavedResultRead(host)
+            host._saved_result_reads.append(saved)
+            core._host_operation_scope = object()
+            core._host_fuel_phase = 'operation'
+            core._host_cleanup_depth = 0
+            retained = []
+            original_call = core._call
+
+            def prepare(source, observed):
+                self.assertEqual(observed, packet)
+                physical = core._inputs[source.ticket]
+                self.assertTrue(physical.payload)
+                retained.append((source, physical))
+
+            def refuse(family, operation, *args):
+                if (family, operation) == ('submission', 'retire_output'):
+                    (source, physical), = retained
+                    self.assertEqual(args, (source.handle,))
+                    self.assertTrue(core._lock._is_owned())
+                    self.assertIs(core._inputs[source.ticket], physical)
+                    self.assertEqual(physical.payload, b'')
+                    return -9
+                return original_call(family, operation, *args)
+
+            with (patch.object(saved, '_prepare_payload', side_effect=prepare),
+                  patch.object(core, '_call', side_effect=refuse),
+                  patch.object(saved, '_finish_payload') as finish):
+                with self.assertRaises(LocalCoreError) as failure:
+                    asyncio.run(saved.prepare_incremental(reference, 'answer', 'jsonl', 'retirement'))
+            self.assertEqual(failure.exception.code, -9)
+            finish.assert_not_called()
+            (source, physical), = retained
+            self.assertIs(saved._source, source)
+            self.assertIs(host._projections[-1], source)
+            self.assertIs(core._loans[source.ticket], source)
+            self.assertIs(core._inputs[source.ticket], physical)
+            self.assertNotIn(source.ticket, core._released)
+            self.assertEqual(counts['produce'], 1)
             self.assertTrue(host.close())
 
     def test_saved_lookup_keeps_same_returned_source_when_original_clock_refuses(self):

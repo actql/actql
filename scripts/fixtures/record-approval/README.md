@@ -234,9 +234,12 @@ write count remains zero.
 
 For the separate consumer commands, set `"decision": "rejected"` in the fresh
 configuration before capture and use `reject` as the second phase. The signed
-rejection must identify the original checkpoint and Run. The final `recover`
-phase reads the original cancelled status without reading an Effect Result or
-submitting another resolution.
+rejection must identify the original checkpoint and Run. After observing
+cancellation, `reject` executes the case's independent Read against the original
+before oracle. The standard HubSpot and kintone cases select both the target
+and the control in that Read. The final `recover` phase reads the original
+cancelled status without reading an Effect Result or submitting another
+resolution.
 
 ## Applied update with a lost reply
 

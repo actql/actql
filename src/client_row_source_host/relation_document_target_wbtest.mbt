@@ -877,10 +877,18 @@ test "relation projections share one admitted original and retain exact external
   assert_true(physical_equal(accounts.bytes, usage.bytes))
   assert_true(physical_equal(accounts.bytes, original.bytes))
   assert_true(
-    @decode.tree_index(original.root, accounts.row_cursors[0]) is Some(_),
+    @decode.tree_index(
+      original.root,
+      @decode.element_at(accounts.row_array, 0).unwrap(),
+    )
+    is Some(_),
   )
   assert_true(
-    @decode.tree_index(original.root, usage.row_cursors[0]) is Some(_),
+    @decode.tree_index(
+      original.root,
+      @decode.element_at(usage.row_array, 0).unwrap(),
+    )
+    is Some(_),
   )
   let after = relation_document_usage(original).unwrap()
   assert_eq(after.raw_nodes, before.raw_nodes)
@@ -1103,4 +1111,37 @@ test "prepared relation metadata rejects foreign originals bounds and invalid ac
     is Err(Value("label")),
   )
   assert_eq(relation_document_usage(invalid).unwrap().projections, 0)
+}
+
+///|
+test "relation target indexes the original at the existing page row limit" {
+  let declaration = relation_mapping_declaration()
+  let print_row = index => {
+    "{\"amount\":null,\"choices\":[],\"id\":\"row-\{index}\",\"label\":null}"
+  }
+  let rows = Array::makei(100, print_row)
+  let document_wire = (items : Array[String]) => {
+    "{\"collection\":{\"records\":[" + items.join(",") + "]}}"
+  }
+  let admitted = relation_document_test_admit(declaration, document_wire(rows)).unwrap()
+  assert_eq(relation_target_row_count(admitted), Some(100))
+  assert_eq(relation_target_row_identity(admitted, 0), Some("row-0"))
+  assert_eq(relation_target_row_identity(admitted, 99), Some("row-99"))
+  assert_eq(relation_target_row_identity(admitted, 100), None)
+  let last = observe_relation_target(admitted, declaration, "row-99").unwrap()
+  let updated = prepare_relation_target_update(
+    admitted,
+    last,
+    relation_target_version(last).unwrap(),
+    "{\"label\":\"updated\"}",
+    10000000,
+  ).unwrap()
+  let previous = rows[99]
+  rows[99] = previous.replace(old="\"label\":null", new="\"label\":\"updated\"")
+  assert_eq(@utf8.decode(updated), document_wire(rows))
+  rows.push(print_row(100))
+  assert_true(
+    relation_document_test_admit(declaration, document_wire(rows))
+    is Err(InvalidPage),
+  )
 }

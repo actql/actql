@@ -42319,12 +42319,13 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bc6c29af530bc92a02d2c81bec857eb7a3b28df78f0a67751fabe336b898756e",
+      "sha256": "b05efb04942ad3afab29eda23b3a51251cbaf0827a0c3c912671f7399ec765fb",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "bindManagedComputeRunObservation",
         "createEmbeddedHostRegistry",
+        "installedEffectSettlements",
         "installedHostShutdown",
         "managedComputeUsageReader",
         "managedPreparationRetirementContinuation"
@@ -42703,6 +42704,57 @@
           "async": false
         },
         {
+          "name": "installedEffectSettlements",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:drain/init:drain",
+          "parameters": [
+            "resumes",
+            "retirements"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start",
+          "parameters": [
+            "accepted",
+            "effectRun",
+            "settle",
+            "diagnostic"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start/settlement/settlement",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start/settlement/settlement#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/retain/retain",
+          "parameters": [
+            "settlement"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/retain/retain/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedHostShutdown",
           "parameters": [
             "host"
@@ -42923,6 +42975,13 @@
             "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer/pending/pending",
             "createEmbeddedHostRegistry/init:connect/init:connect/seal",
             "createEmbeddedHostRegistry/init:connect/init:connect/status/status",
+            "installedEffectSettlements",
+            "installedEffectSettlements/init:drain/init:drain",
+            "installedEffectSettlements/init:start/init:start",
+            "installedEffectSettlements/init:start/init:start/settlement/settlement",
+            "installedEffectSettlements/init:start/init:start/settlement/settlement#2",
+            "installedEffectSettlements/retain/retain",
+            "installedEffectSettlements/retain/retain/retire/retire",
             "installedHostShutdown",
             "installedHostShutdown/shutdown/shutdown",
             "installedHostShutdown/shutdown/shutdown#10",
@@ -42943,6 +43002,7 @@
           ],
           "exports": [
             "createEmbeddedHostRegistry",
+            "installedEffectSettlements",
             "installedHostShutdown"
           ],
           "attributes": {
@@ -43305,6 +43365,14 @@
               }
             ],
             "verification": [
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "initial Effect observation retains settlement after early acceptance"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "test('Host first close joins the original pre-dispatch Effect resume Store reader'"
+              },
               {
                 "path": "adapters/host-node/embedded-local-lifecycle.test.mjs",
                 "anchor": "test('ordinary Client close retires the original runtime once after all actual closes',async()=>{"
@@ -138245,8 +138313,8 @@
   ],
   "counts": {
     "modules": 194,
-    "operations": 5532,
-    "exports": 1201,
+    "operations": 5539,
+    "exports": 1202,
     "explicitContractGroups": 550
   },
   "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."

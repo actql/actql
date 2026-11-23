@@ -5418,7 +5418,7 @@ pub struct ClientSavedRunStateUpdate {
   prior_body : Bytes
   revision : Int64
   body : Bytes
-  state : ClientRunStateOriginal
+  state_wire : String
 }
 
 pub(all) enum ClientSavedRunStateUpdateIssue {

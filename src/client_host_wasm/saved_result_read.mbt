@@ -637,3 +637,28 @@ fn close_saved_result_read(record : StoredSubmissionProjection) -> Int {
   record.saved_result = None
   0
 }
+
+///|
+/// Spend the incremental Saved packet, not its live projection. Pause ready
+/// entry across the fallible accounting callbacks. Only successful byte
+/// retirement restores readiness, with the same current and Store checks.
+fn retire_saved_result_transport(
+  value : Instance,
+  handle : Int,
+  record : StoredSubmissionProjection,
+) -> Int {
+  guard saved_result_export_parent(value, handle) is Some((actual, saved)) &&
+    physical_equal(record, actual) &&
+    @buffers.buffer_length(value.pool, record.slot) is Some(_) else {
+    return -2
+  }
+  saved.advances_remaining = -1
+  value.copies.remove(handle) |> ignore
+  let code = status(
+    @buffers.retire_consumed_output_transport(value.pool, record.slot),
+  )
+  if code == 0 {
+    saved.advances_remaining = 0
+  }
+  code
+}
