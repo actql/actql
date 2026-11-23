@@ -296,23 +296,21 @@ test('current configuration entries bind exact authored Git inputs and literal d
   }
 });
 
-test('current Local JS review admits only reviewed fixture selectors and keeps every source bound', () => {
+test('current Local JS review binds retained Request imports and the existing fixture selectors', () => {
   const review = JSON.parse(readFileSync(new URL(
     '../../docs/reviews/2026-11-21-session-local-namespace-quote-selector-review.json', import.meta.url)));
   const path = review.path;
   const entry = currentPackageConfigurations[path];
   const reviewedTree = gitTree(root, review.source);
-  const body = reviewedTree.read(path).toString();
+  const historical = reviewedTree.read(path).toString();
   const previous = gitTree(root, review.previousRevision).read(path).toString();
-  assert.equal(entry.revision, review.source);
-  assert.equal(entry.digest, review.sha256);
-  assert.equal(hash(body), review.sha256);
+  assert.equal(hash(historical), review.sha256);
   assert.equal(hash(previous), review.previousSha256);
-  assert.equal(Buffer.byteLength(body), review.bytes);
+  assert.equal(Buffer.byteLength(historical), review.bytes);
   assert.equal(Buffer.byteLength(previous), review.previousBytes);
   assert.equal(reviewedTree.entries.get(path)?.mode, review.mode);
   assert.equal(currentTree.entries.get(path)?.mode, review.mode);
-  let reconstructed = body;
+  let reconstructed = historical;
   for (const selector of review.addedSelectors) {
     assert.deepEqual(selector.targets, ['js']);
     const line = `    "${selector.file}": [ "js" ],\n`;
@@ -330,13 +328,31 @@ test('current Local JS review admits only reviewed fixture selectors and keeps e
     assert.equal(reviewedTree.entries.get(fixture.path)?.mode, fixture.mode);
   }
   for (const fixture of review.fixtures) for (const dependency of fixture.jsFixtureDependencies) {
-    assert(body.includes(`    "${dependency}": [ "js" ],\n`),
+    assert(historical.includes(`    "${dependency}": [ "js" ],\n`),
       `Original JS fixture dependency: ${dependency}`);
   }
-  assert.deepEqual(packageImports(body).imports, packageImports(previous).imports);
+  assert.deepEqual(packageImports(historical).imports, packageImports(previous).imports);
+  const intakeTree = gitTree(root, entry.revision);
+  const body = intakeTree.read(path).toString();
+  assert.equal(hash(body), entry.digest);
+  assert.equal(intakeTree.entries.get(path)?.mode, review.mode);
+  assert.equal(currentTree.read(path).toString(), body);
+  const utf8 = '  "moonbitlang/core/encoding/utf8",\n';
+  const string = '  "moonbitlang/core/string",\n';
+  const json = '  "moonbitlang/core/json",\n';
+  const debug = '  "moonbitlang/core/debug",\n';
+  assert.equal(historical.split(utf8 + debug).length, 2);
+  assert.equal(historical.split(json).length, 2);
+  assert.equal(body, historical.replace(utf8 + debug, debug).replace(json, utf8 + json + string),
+    'Only the two ordinary imports change; every option and target selector remains exact');
+  assert.equal(currentPackageConfigurationReviewFor(request(path, review.sha256)), null);
   const selected = packageSourceInputs({tree: currentTree, packages: ['src/client_local_host'], target: 'js'});
   assert(!selected.unresolved.includes('Unreviewed package configuration: ' + path));
-  assert(selected.packageConfigurations.some(value => value.path === path && value.digest === review.sha256));
+  assert(selected.packageConfigurations.some(value => value.path === path && value.digest === entry.digest));
+  const intake = 'src/client_local_host/preparation_request_retained_intent.mbt';
+  assert(selected.paths.includes(intake));
+  assert.equal(currentTree.entries.get(intake)?.mode, '100644');
+  assert.deepEqual(currentTree.read(intake), intakeTree.read(intake));
   for (const selector of review.addedSelectors) {
     const source = 'src/client_local_host/' + selector.file;
     assert(selected.paths.includes(source));
@@ -350,6 +366,8 @@ test('current Local JS review admits only reviewed fixture selectors and keeps e
     }),
     body + '\noptions(pre_build: "unreviewed-hook")\n',
     body.replace('"actql/actql/decode_shape" @shape', '"actql/actql/decode_shape" @permission'),
+    body.replace(string, ''),
+    body.replace(utf8 + json, json).replace(debug, utf8 + debug),
   ]) {
     assert.notEqual(changed, body);
     assert.equal(currentPackageConfigurationReviewFor(request(path, hash(changed))), null);
@@ -360,7 +378,7 @@ test('current Local JS review admits only reviewed fixture selectors and keeps e
       .unresolved.includes('Unreviewed package configuration: ' + path));
   }
   for (const changed of [{target: 'native'}, {toolchainDigest: '0'.repeat(64)}, {path: 'src/foreign/moon.pkg'}]) {
-    assert.equal(currentPackageConfigurationReviewFor({...request(path, review.sha256), ...changed}), null);
+    assert.equal(currentPackageConfigurationReviewFor({...request(path, entry.digest), ...changed}), null);
   }
   assert.equal(currentPackageConfigurationReviewFor(request(path, review.previousSha256)), null);
 });
