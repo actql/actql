@@ -57,14 +57,20 @@ test('Node guide startSource parameters include explicit declarations', () => {
   declaredParameters(properties(options.get('parameters'), 'Program parameters'), options);
 });
 
-test('Node guide retains decide target semantics without claiming current support', () => {
-  const section = guide.split('### Deciding from code')[1]?.split('\n## ')[0];
-  assert.ok(section, 'Keep the target decision section');
-  const beforeExample = section.split('```ts')[0];
-  assert.match(beforeExample, /v0\.1 target/u);
-  assert.match(beforeExample, /current Node Client does not yet expose the\s+`decide` connection option/u);
-  assert.match(beforeExample, /not a currently type-checking or runnable/u);
-  assert.match(section, /decide: async \(decision\)/u);
-  assert.match(section, /'permit' : 'defer'/u);
-  assert.doesNotMatch(guide.split('## A short query')[0], /everything shown is typed/u);
+test('Node guides use the installed Checkpoint API for embedded approvals', () => {
+  const effects = readFileSync(new URL('../docs/guides/effects-and-approvals.md', import.meta.url), 'utf8');
+  for (const document of [guide, effects]) {
+    const examples = [...document.matchAll(/```ts\n([\s\S]*?)\n```/gu)].map(([, body]) => body);
+    assert.ok(examples.some(body => body.includes("stopBefore: 'commit'")));
+    assert.ok(examples.every(body => !/\bdecide\s*:/u.test(body)), 'No unimplemented connection option in an example');
+  }
+  assert.equal(calls('reviewCheckpoint').length, 1);
+  assert.equal(calls('approve').length, 1);
+  assert.equal(calls('reject').length, 1);
+});
+
+test('Node guide handles the completed check before reading its verified verdict', () => {
+  const section = guide.split('## Checking without running')[1]?.split('\n## ')[0];
+  assert.match(section, /outcome\.outcome === 'completed' && outcome\.report\.verdict === 'verified'/u);
+  assert.doesNotMatch(section, /report\.verdict\s*!?==?\s*'valid'/u);
 });
