@@ -123,7 +123,6 @@ pub fn bind_model_slot_attempt_evidence(
   Ok({ slot, attempt, accounting, outcome, authority, })
 }
 
-
 ///|
 /// Check the reported outcome against its original Store-authenticated Raw
 /// descriptor. This verifies saved references without opening a send path.
@@ -141,15 +140,17 @@ pub fn verify_model_attempt_reported_raw(
     raw.name == "model_raw_response" &&
     @json.object_field(raw.value, "transport_eof") is Some(@json.Bool(true)) &&
     @json.object_field(raw.value, "http_status") is Some(@json.Number(status)) &&
-    status >= 200 && status < 300 else {
+    status >= 200 &&
+    status < 300 else {
     return Err(mismatch)
   }
-  for (field, expected) in [
-    ("run_definition_cid", scope.definition.identity),
-    ("scope_cid", scope.scope.identity),
-    ("slot_cid", evidence.slot.call.identity),
-    ("attempt_cid", evidence.attempt.identity),
-  ] {
+  for
+    (field, expected) in [
+      ("run_definition_cid", scope.definition.identity),
+      ("scope_cid", scope.scope.identity),
+      ("slot_cid", evidence.slot.call.identity),
+      ("attempt_cid", evidence.attempt.identity),
+    ] {
     if contract_string_from_value(raw.value, field) != Some(expected) {
       return Err(mismatch)
     }

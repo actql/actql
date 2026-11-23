@@ -19,11 +19,18 @@ fn model_attempt_proof_construction(
   let names = "actql-model-call-attempt/0.1actql-model-attempt-accounting/0.1actql-model-attempt-outcome/0.1versionattempt_cidslot_cidrun_definition_cidmodel_task_cidfixed_request_cidauthority_evidence_cidprovider_idattemptcumulative_workuncertain_wire_bytesinput_tokensoutput_tokenscost_unitsduration_msreservationtokenscategoryfailure"
   let report_keys = "reported_responseraw_response_artifact_cidresponse_profile_cidobserved_atprovider_reported_model_idprovider_request_idfinish_reasonresponse_completeprovider_metadata"
   let report_text = if reported_response {
-    report_keys.length().to_int64() + 2L * 71L + 64L + 3L * 256L + 5L + 64L + 256L
+    report_keys.length().to_int64() +
+    2L * 71L +
+    64L +
+    3L * 256L +
+    5L +
+    64L +
+    256L
   } else {
     0L
   }
-  let text = names.length().to_int64() + report_text +
+  let text = names.length().to_int64() +
+    report_text +
     @environment.model_task_connector(state.task).length().to_int64() +
     slot_cid.length().to_int64() +
     state.fixed_request_cid.length().to_int64() +
@@ -46,8 +53,14 @@ fn model_attempt_proof_construction(
       reference_items: 192L + 8L * report_fields,
       scalar_arrays: 0L,
       scalar_items: 0L,
-      maps: if reported_response { 5L } else { 3L },
-      map_entries: 48L + report_fields + (if reported_response { 1L } else { 0L }),
+      maps: if reported_response {
+        5L
+      } else {
+        3L
+      },
+      map_entries: 48L +
+      report_fields +
+      (if reported_response { 1L } else { 0L }),
     })
     is Some(tree) &&
     @encode.text_writer_construction_inventory(wire.to_int(), 256, 8)
@@ -148,11 +161,21 @@ fn prepare_saved_structured_attempt_report(
     model_slot_send_eligible(state, request.slot) &&
     original_model_attempt_proof_capacity_current(state) &&
     model_attempt_proof_construction(state, request.slot_cid) is Some((base, _)) &&
-    model_attempt_proof_construction(state, request.slot_cid, reported_response=true)
-    is Some((retained, workspace)) && retained >= base else {
+    model_attempt_proof_construction(
+      state,
+      request.slot_cid,
+      reported_response=true,
+    )
+    is Some((retained, workspace)) &&
+    retained >= base else {
     return Err(OutputIdentity)
   }
-  grow_original_model_attempt_proof(state, retained - base, workspace, preserve_workspace=true)
+  grow_original_model_attempt_proof(
+    state,
+    retained - base,
+    workspace,
+    preserve_workspace=true,
+  )
 }
 
 ///|
@@ -173,8 +196,10 @@ fn grow_original_model_attempt_proof(
   } else {
     workspace
   }
-  guard @relation.checked_preparation_add_product(old_r, retained, 1L) is Some(next_r) &&
-    @relation.checked_preparation_add_product(next_r, workspace, 1L) is Some(next_e) else {
+  guard @relation.checked_preparation_add_product(old_r, retained, 1L)
+    is Some(next_r) &&
+    @relation.checked_preparation_add_product(next_r, workspace, 1L)
+    is Some(next_e) else {
     return Err(InvalidLimits)
   }
   let next_e = Int64::max(old_e, next_e)

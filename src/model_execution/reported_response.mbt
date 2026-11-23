@@ -56,7 +56,9 @@ fn valid_reported_model_observation(
   endpoint_complete : Bool,
   answer_complete : Bool,
 ) -> Bool {
-  transport_eof && endpoint_complete && answer_complete &&
+  transport_eof &&
+  endpoint_complete &&
+  answer_complete &&
   observation.response_complete == Some(true) &&
   valid_reported_model_observation_fields(profile, observation)
 }
