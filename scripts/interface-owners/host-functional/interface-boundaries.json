@@ -72411,7 +72411,7 @@
             "ownership": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;"
+                "anchor": "originals = sources = writables = catalog = connections = connectionOriginal = undefined;"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -73533,7 +73533,7 @@
             "ownership": [
               {
                 "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;"
+                "anchor": "originals = sources = writables = catalog = connections = connectionOriginal = undefined;"
               }
             ],
             "synchronization": [
