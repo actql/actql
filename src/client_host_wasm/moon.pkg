@@ -18,6 +18,7 @@ import {
   "actql/actql/publication_payload" @payload,
   "actql/actql/logical_request_scope" @identity,
   "actql/actql/program_check" @checked,
+  "actql/actql/numeric_reduction" @numeric,
   "actql/actql/physical_strategy_host" @strategy,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,

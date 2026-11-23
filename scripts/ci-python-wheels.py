@@ -432,6 +432,29 @@ def require_closed_task_drive(observed) -> None:
         raise ValueError('Incomplete installed closed task drive control')
 
 
+def accept_installed_numeric_reductions(run, consumer: Path, destination: Path,
+                                        source: str, module: str, env: dict[str, str]) -> None:
+    work = destination / 'numeric-reductions'
+    work.mkdir(mode=0o700)
+    fixture = work / 'installed_numeric_reductions.py'
+    shutil.copyfile(ROOT / 'packages/python-sdk/tests' / fixture.name, fixture)
+    previous_pid = None
+    for phase in ('initial', 'saved'):
+        observed = json.loads(run('installed-linux-numeric-' + phase, [
+            consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+            fixture, phase, source, module,
+        ], cwd=work, env=env, timeout=180))
+        if type(observed) is not dict:
+            raise ValueError('Invalid installed numeric reductions receipt')
+        pid = observed.get('pid')
+        if (observed.get('phase') != phase or observed.get('source') != source
+                or observed.get('module') != module or observed.get('cases') != ['pivot', 'sum', 'count']
+                or observed.get('first_close') is not True
+                or type(pid) is not int or pid <= 0 or pid == previous_pid):
+            raise ValueError('Incomplete installed numeric reductions or original Saved')
+        previous_pid = pid
+
+
 def run_acceptance(destination: Path) -> None:
     target_platform = normal_target()
     _, _, archive_bytes, library_name = duckdb_release(target_platform)
@@ -536,6 +559,9 @@ def run_acceptance(destination: Path) -> None:
     run('health', [consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
                    destination / 'ci-python-installed-health.py'], cwd=health, env=env, timeout=180)
     accept_installed_cancellation(run, consumer, destination, version, env)
+    if target_platform == 'linux-x64':
+        accept_installed_numeric_reductions(
+            run, consumer, destination, source, cohort['module_sha256'], env)
     repeated_host = accept_installed_repeated_host(run, consumer, destination, env)
     accept_installed_fuel(run, consumer, destination, source, cohort, env)
     saved_read = accept_installed_saved(run, consumer, destination, source, cohort, env)

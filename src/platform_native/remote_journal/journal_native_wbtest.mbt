@@ -1634,7 +1634,13 @@ test "native cancellation commit failure keeps responsibility retryable" {
     test_control(test_site()),
   ).unwrap()
   test_fail_cancel_commit(original.database, 1)
-  assert_true(original.request_cancellation(request) is Err(Physical(_)))
+  guard original.request_cancellation(request)
+    is Err(TransactionCommit(failure)) else {
+    fail("expected a refused COMMIT with confirmed cleanup")
+  }
+  assert_true(failure.outcome is @sqlite.CommitNotApplied)
+  assert_true(failure.primary.reply is @sqlite.SqlNotIssued)
+  assert_true(failure.cleanup_failure is None)
   assert_true(original.require(request) is Err(MissingDispatch))
   assert_false(original.cancellation_requested(request).unwrap())
   assert_true(original.close())
@@ -1683,7 +1689,32 @@ test "native cancellation lost commit reply reuses its terminal record" {
     test_control(test_site()),
   ).unwrap()
   test_fail_cancel_commit_reply(original.database, 1)
-  assert_true(original.request_cancellation(request) is Err(Physical(_)))
+  guard original.request_cancellation(request)
+    is Err(TransactionCommit(failure)) else {
+    fail("expected the original uncertain COMMIT")
+  }
+  assert_true(failure.outcome is @sqlite.CommitUnknown)
+  assert_true(failure.primary.reply is @sqlite.SqlReplyLost)
+  assert_true(failure.cleanup_failure is None)
+  assert_true(original.require(request) is Err(TransactionFenced))
+  assert_true(
+    original.cancellation_requested(request) is Err(TransactionFenced),
+  )
+  let key = @remote.dispatch_request_attempt_identity(request).unwrap()
+  guard original.database.prepare_lookup_read()
+    is Ok(@sqlite.ReadyLookupRead(child)) else {
+    fail("expected one current snapshot from the original Database")
+  }
+  let cancelled = child
+    .read_with_body_limit("site_cancel_request", key, 262144L)
+    .unwrap()
+  assert_eq(cancelled.revision, 0L)
+  assert_eq(
+    cancelled.body,
+    @utf8.encode(@remote.dispatch_request_json(request).unwrap()),
+  )
+  child.finish().unwrap()
+  assert_true(original.require(request) is Err(TransactionFenced))
   assert_true(original.close())
   let retry = open_journal(
     library,
@@ -1751,4 +1782,71 @@ test "native cancellation preserves completed execution and rejects stale bindin
   assert_true(owner.require(stale) is Err(MissingDispatch))
   assert_false(owner.cancellation_requested(stale).unwrap())
   assert_true(owner.close())
+}
+
+///|
+#borrow(database)
+extern "C" fn fail_original_site_rollback(
+  database : @sqlite.Database,
+  failures : Int,
+) -> Unit = "actql_native_sqlite_test_fail_rollback"
+
+///|
+test "Native Site normal lookup and duplicate acceptance refuse a private uncertain row" {
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let path = root + "/site-private-admission.sqlite3"
+  let site = test_site()
+  let request = test_request("site-private-admission")
+  let journal = open_journal(library, path, 262144L, test_control(site)).unwrap()
+  let same_database : Journal = { ..journal, }
+  let prior = test_request_for(
+    "site-prior-accepted",
+    6,
+    4,
+    test_cid("a".repeat(64)),
+  )
+  let (_, committed) = journal.accept(prior).unwrap()
+  let start = @remote.prepare_begin_provisioning(
+    committed,
+    test_capability(site),
+  ).unwrap()
+
+  test_fail_cancel_commit(journal.database, 1)
+  fail_original_site_rollback(journal.database, 1)
+  let acceptance = journal.accept(request)
+  let active = journal.database.transaction_state()
+  let lookup = journal.require(request)
+  let duplicate = same_database.accept(request)
+  let claim = same_database.claim_start(start, "original-executor")
+  let persisted_start = journal.commit_transition(start)
+  let recovery = journal.recover_after("")
+  assert_true(journal.close())
+  let independent = open_journal(library, path, 262144L, test_control(site)).unwrap()
+  let durable = independent.require(request)
+  assert_true(independent.close())
+
+  guard acceptance is Err(TransactionCommit(failure)) else {
+    fail("expected the original uncertain COMMIT")
+  }
+  assert_true(failure.primary.reply is @sqlite.SqlNotIssued)
+  assert_true(failure.outcome is @sqlite.CommitUnknown)
+  guard failure.cleanup_failure is Some(cleanup) else {
+    fail("expected to retain the rollback refusal")
+  }
+  guard cleanup.rollback is Some(Err(rollback)) else {
+    fail("expected a refused rollback")
+  }
+  assert_true(rollback.step is @sqlite.Rollback)
+  assert_true(rollback.reply is @sqlite.SqlNotIssued)
+  assert_true(cleanup.state is Ok(@sqlite.ActiveSqliteTransaction))
+  assert_true(active is Ok(@sqlite.ActiveSqliteTransaction))
+  assert_true(durable is Err(MissingDispatch))
+  assert_true(lookup is Err(TransactionFenced))
+  assert_true(duplicate is Err(TransactionFenced))
+  assert_true(claim is Err(TransactionFenced))
+  assert_true(persisted_start is Err(TransactionFenced))
+  assert_true(recovery is Err(TransactionFenced))
 }
