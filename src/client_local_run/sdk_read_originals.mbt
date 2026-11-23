@@ -286,7 +286,7 @@ pub fn prepare_local_sdk_read_originals(
   max_results : Int,
 ) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue] {
   prepare_local_sdk_read_originals_for_source(
-    live_sdk_read_source(preflight, selection=Some(selection)),
+    live_sdk_read_source(preflight, selection~),
     account,
     original,
     selection,

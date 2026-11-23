@@ -32,13 +32,12 @@ struct LocalSDKReadSource {
 ///|
 fn live_sdk_read_source(
   preflight : LocalPublicationPreflight,
-  selection? : @publication.LocalSDKResultReadSelection? = None,
+  selection~ : @publication.LocalSDKResultReadSelection,
 ) -> LocalSDKReadSource {
   {
     origin: Live(preflight),
-    installed_original_result: selection is Some(read) &&
-    @publication.local_sdk_result_read_selection_uses_installed_result_authority(
-      read,
+    installed_original_result: @publication.local_sdk_result_read_selection_uses_installed_result_authority(
+      selection,
     ),
   }
 }
@@ -58,7 +57,7 @@ pub fn prepare_local_saved_sdk_read_source(
   adoption_cid : String,
   owner : @publication.PublicationCommitPreparation,
   view : @publication.PublicationCommitReadView,
-  selection? : @publication.LocalSDKResultReadSelection? = None,
+  selection~ : @publication.LocalSDKResultReadSelection,
 ) -> Result[LocalSDKReadSource, LocalSDKReadOriginalsIssue] {
   guard @host.client_saved_submission_run_row(snapshot) is Some(row) &&
     @host.decode_client_run_journal_row_with_observation_originals(row.body)
@@ -109,8 +108,8 @@ pub fn prepare_local_saved_sdk_read_source(
   if adoption != adoption_cid {
     return Err(InvalidOriginal)
   }
-  if selection is Some(read) &&
-    @publication.local_sdk_result_read_selection_cid(read) != original_read {
+  if @publication.local_sdk_result_read_selection_cid(selection) !=
+    original_read {
     return Err(InvalidOriginal)
   }
   let policy = match
@@ -138,9 +137,8 @@ pub fn prepare_local_saved_sdk_read_source(
       view,
       index_cid: @publication.publication_contract_identity(index),
     }),
-    installed_original_result: selection is Some(read) &&
-    @publication.local_sdk_result_read_selection_uses_installed_result_authority(
-      read,
+    installed_original_result: @publication.local_sdk_result_read_selection_uses_installed_result_authority(
+      selection,
     ),
   }
   let manifest = match owner.view_contract(view, 2) {
@@ -355,7 +353,7 @@ fn LocalSDKReadSource::validate_finite_original(
 /// Reuse the original checked live entry. This projection grants no authority.
 pub fn local_sdk_read_source(
   preflight : LocalPublicationPreflight,
-  selection? : @publication.LocalSDKResultReadSelection? = None,
+  selection~ : @publication.LocalSDKResultReadSelection,
 ) -> LocalSDKReadSource {
   live_sdk_read_source(preflight, selection~)
 }

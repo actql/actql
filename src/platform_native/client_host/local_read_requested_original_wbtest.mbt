@@ -3,7 +3,7 @@ fn requested_original_test_wire() -> String {
   local_read_original_wire
   .replace(
     old="\"result_names\":[\"answer\"]",
-    new="\"result_selection\":{\"kind\":\"requested_original_result\"}",
+    new="\"result_selection\":{\"authority\":\"original_result_read\",\"kind\":\"requested_original_result\"}",
   )
   .replace(
     old="\"expires_at\":\"2026-10-12T00:00:00.000Z\"",
@@ -42,13 +42,22 @@ test "requested original purpose cannot be used as an unnarrowed finite read sel
 
 ///|
 test "installed original Result authority is a closed selected purpose" {
-  let legacy = requested_original_test_wire()
-  let marked = legacy.replace(
-    old="\"kind\":\"requested_original_result\"",
-    new="\"authority\":\"original_result_read\",\"kind\":\"requested_original_result\"",
+  let marked = requested_original_test_wire()
+  let unmarked = marked.replace(
+    old="\"authority\":\"original_result_read\",",
+    new="",
   )
+  assert_true(admit_native_local_read_purpose(unmarked) is Err(InvalidOriginal))
   let purpose = admit_native_local_read_purpose(marked).unwrap()
-  assert_true(purpose.names is RequestedOriginalResultWithAuthority)
+  assert_true(purpose.names is RequestedOriginalResult)
+  let named = marked.replace(
+    old="original_result_read",
+    new="named_result_read",
+  )
+  assert_true(
+    admit_native_local_read_purpose(named).unwrap().names
+    is RequestedNamedResult,
+  )
   assert_true(admit_native_local_read_selection(marked) is Err(InvalidOriginal))
   assert_true(
     admit_native_local_read_purpose(
@@ -155,10 +164,10 @@ test "requested original finite controls are admitted before the original lookup
 ///|
 test "requested original purpose independent canonical body preserves its complete identity" {
   let wire =
-    #|{"native":{"result_read":{"connection":"cli","data_policy_cids":["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],"enabled":true,"formats":["jsonl"],"max_bytes":65536,"max_uses":1,"principal":"operator","purpose":"inspection","result_selection":{"kind":"requested_original_result"},"retention_file":"retention.json","run_file":"run.json","run_policy_profile_cid":"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243","sink":"stdout","store_file":"store.json"}},"version":"actql-config/0.1"}
+    #|{"native":{"result_read":{"connection":"cli","data_policy_cids":["sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],"enabled":true,"formats":["jsonl"],"max_bytes":65536,"max_uses":1,"principal":"operator","purpose":"inspection","result_selection":{"authority":"original_result_read","kind":"requested_original_result"},"retention_file":"retention.json","run_file":"run.json","run_policy_profile_cid":"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243","sink":"stdout","store_file":"store.json"}},"version":"actql-config/0.1"}
   assert_eq(
     "sha256:" + @sha.hex(@utf8.encode(wire)),
-    "sha256:9c2deeb0bce96f7adedf721c204ae410597abf5b68686192dfe3cc2a35ff6148",
+    "sha256:a2e26fbe031c7209bd967c77a81463bfa21e63f94ca700ed72e9ab243ffc06c4",
   )
   assert_true(
     admit_native_local_read_purpose(wire).unwrap().names

@@ -687,7 +687,7 @@ pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract,
 
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
-pub fn issue_local_sdk_result_read_selection(String, String, requested_original_result? : Bool) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
+pub fn issue_local_sdk_result_read_selection(String, String, scope? : LocalSDKResultReadScope) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
 
 pub fn issue_lookup_request_key_set(String, String, Array[(String, @value_contract.Contract)], Array[Array[@value_admission.CheckedValue]], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
@@ -2069,6 +2069,11 @@ pub(all) enum LocalSDKReadSelectionIssue {
   InvalidBinding
   ForeignOriginal
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LocalSDKResultReadScope {
+  RequestedOriginal
+  WorkerAnswer
 } derive(Eq, @debug.Debug)
 
 type LocalSDKResultReadSelection derive(Eq, @debug.Debug)

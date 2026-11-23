@@ -98,11 +98,10 @@ An Account entry alone is neither a provisioning identity nor physical funding.
 
 The independent canonical Account CID is
 `sha256:3cc3f50ac60482bd2362dd7ce4325ffe268f41a379153b1cba05ec97b2e2cc8c`.
-The legacy source-free Account has CID
-`sha256:fd6d54cc5bcc0a7af2a7919981b4e06604a3380897bcf9ceb51cf764ecdfb396`.
-The worker selects the fixed original `answer` read with its own Account.
-Fresh ordinary SDK adoption selects the separate named Result role and its
-matching read selector. Existing adoptions continue to restore both originals.
+Worker provisioning selects the marked finite `answer` scope of the current
+SDK read body with its independently issued Account. Ordinary SDK adoption
+selects the marked requested-original Result scope. Restoration authenticates
+the exact current selection and refuses the retired unmarked SDK body.
 The worker Account is 746 bytes, within the unchanged 65536-byte per-file
 bound. The selection remains Account plus eight originals.
 

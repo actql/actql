@@ -105,7 +105,7 @@ fn sdk_saved_source(
     adoption,
     fixture.owner,
     fixture.view,
-    selection=Some(fixture.selection),
+    selection=fixture.selection,
   )
 }
 
@@ -115,7 +115,7 @@ test "SDK read identity projection borrows the existing live and saved originals
   defer (fixture.cleanup)()
   let live = local_sdk_read_source(
     fixture.preflight,
-    selection=Some(fixture.selection),
+    selection=fixture.selection,
   )
   let saved = sdk_saved_source(fixture).unwrap()
   for source in [live, saved] {
@@ -142,7 +142,7 @@ test "installed named SDK reads retain the exact Run member and actual Account t
   defer (fixture.cleanup)()
   let live = local_sdk_read_source(
     fixture.preflight,
-    selection=Some(fixture.selection),
+    selection=fixture.selection,
   )
   let keyed = sdk_saved_source(fixture).unwrap()
   let prepare = (source, result_name) => {
@@ -177,8 +177,6 @@ test "installed named SDK reads retain the exact Run member and actual Account t
   assert_false(live_authorization.0.contains("result/before_change"))
   assert_true(prepare(live, "after_change") is Err(Preflight(MissingResult)))
   assert_true(prepare(keyed, "after_change") is Err(StoredChain(_)))
-  let unmarked = local_sdk_read_source(fixture.preflight)
-  assert_true(prepare(unmarked, name) is Err(Preflight(AuthorizationMismatch)))
 }
 
 ///|

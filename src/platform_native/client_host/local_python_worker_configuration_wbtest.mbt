@@ -36,7 +36,25 @@ test "Python worker fresh durable profile uses only its original child and reope
   stage.stage_configuration().unwrap()
   let bytes = local_adoption_read(stage.root, "account.json", 65536L).unwrap()
   let read = local_adoption_read(stage.root, "read.json", 8192L).unwrap()
-  assert_true(@utf8.decode(read.0).contains("\"result_names\":[\"answer\"]"))
+  let selected = @publication.admit_local_sdk_result_read_selection(
+    @utf8.decode(read.0),
+    "sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243",
+    "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+  ).unwrap()
+  assert_eq(
+    @publication.local_sdk_result_read_selection_cid(selected),
+    "sha256:789827ac92735d7d4a21bb287708695dc7d7e2e9ff8bb0b599c35ebb2c797974",
+  )
+  assert_true(
+    @publication.local_sdk_result_read_selection_accepts_name(
+      selected, "answer",
+    ),
+  )
+  assert_false(
+    @publication.local_sdk_result_read_selection_accepts_name(
+      selected, "before_change",
+    ),
+  )
   assert_true(stage.close())
   let host = python_worker_profile_host(path)
   let (arena, selection) = worker_provisioning_selection(1L)

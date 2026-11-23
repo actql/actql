@@ -199,7 +199,8 @@ fn NativeLocalHostConnection::validate_read_evidence(
   guard epoch_text(egress, "result_name") is Some(recorded_name) else {
     return Err(CustodyLost)
   }
-  if purpose.names is RequestedOriginalResultWithAuthority && upgrade is Some(_) {
+  if purpose.names is (RequestedNamedResult | RequestedOriginalResult) &&
+    upgrade is Some(_) {
     return Err(CustodyLost)
   }
   let selection = match purpose.names {
@@ -209,7 +210,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
       }
       purpose.finite_selection(names)
     }
-    RequestedOriginalResult | RequestedOriginalResultWithAuthority => {
+    RequestedNamedResult | RequestedOriginalResult => {
       let prepare_original = match
         run_metadata_construction(self.database, reads) {
         Some(prepare) => prepare
@@ -427,7 +428,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
     crypto,
     file,
     selection,
-    account_purpose: if purpose.names is RequestedOriginalResultWithAuthority {
+    account_purpose: if purpose.names is RequestedOriginalResult {
       ArchivedOriginalResultRead
     } else {
       NamedResultRead

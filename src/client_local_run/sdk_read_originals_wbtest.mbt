@@ -589,7 +589,6 @@ test "SDK read refuses expired foreign selection adoption and current authority 
   let other = @publication.issue_local_sdk_result_read_selection(
     "sha256:" + "f".repeat(64),
     "sha256:" + "e".repeat(64),
-    requested_original_result=true,
   ).unwrap()
   assert_true(
     invoke(
@@ -601,13 +600,14 @@ test "SDK read refuses expired foreign selection adoption and current authority 
     )
     is Err(InvalidOriginal),
   )
-  let old_mode = @publication.issue_local_sdk_result_read_selection(
+  let worker_selection = @publication.issue_local_sdk_result_read_selection(
     "sha256:" + "f".repeat(64),
     "sha256:" + "e".repeat(64),
+    scope=WorkerAnswer,
   ).unwrap()
   assert_true(
     invoke(
-      old_mode,
+      worker_selection,
       "sha256:" + "a".repeat(64),
       "answer",
       "jsonl",
@@ -684,10 +684,7 @@ test "SDK binding accepts separately admitted policy identities and rejects chan
   ).unwrap()
   let invoke = finite => {
     validate_sdk_read_original_binding(
-      local_sdk_read_source(
-        fixture.preflight,
-        selection=Some(fixture.selection),
-      ),
+      local_sdk_read_source(fixture.preflight, selection=fixture.selection),
       fixture.account,
       finite,
       fixture.selection,

@@ -35,8 +35,8 @@ struct NativeLocalReadPurpose {
 ///|
 priv enum NativeLocalReadNamePurpose {
   FiniteResultNames(Array[String])
+  RequestedNamedResult
   RequestedOriginalResult
-  RequestedOriginalResultWithAuthority
 }
 
 ///|
@@ -344,11 +344,10 @@ pub fn admit_native_local_read_purpose(
         if !(expiry is AcceptedRunProfile(_)) {
           return Err(InvalidOriginal)
         }
-        match @decode.lookup(selected, "authority") {
-          None => RequestedOriginalResult
-          Some(_) if read_policy_text(selected, "authority", 32) ==
-            "original_result_read" => RequestedOriginalResultWithAuthority
-          Some(_) => return Err(InvalidOriginal)
+        match read_policy_text(selected, "authority", 32) {
+          "named_result_read" => RequestedNamedResult
+          "original_result_read" => RequestedOriginalResult
+          _ => return Err(InvalidOriginal)
         }
       }
       _ => return Err(InvalidOriginal)
@@ -388,7 +387,7 @@ pub fn NativeLocalReadSelection::enabled(
 }
 
 ///|
-/// Legacy finite-only API. A requested-original template is intentionally not
+/// Statically finite API. A requested-original template is intentionally not
 /// representable as a NativeLocalReadSelection, even when syntax is valid.
 pub fn admit_native_local_read_selection(
   text : String,
@@ -398,8 +397,7 @@ pub fn admit_native_local_read_selection(
     Ok(purpose) =>
       match purpose.names {
         FiniteResultNames(names) => Ok(purpose.finite_selection(names))
-        RequestedOriginalResult | RequestedOriginalResultWithAuthority =>
-          Err(InvalidOriginal)
+        RequestedNamedResult | RequestedOriginalResult => Err(InvalidOriginal)
       }
   }
 }
@@ -434,10 +432,10 @@ fn NativeLocalReadPurpose::narrow_original(
       if !names.contains(name) || !original_exists() {
         return Err(SelectionMismatch)
       }
-      // Even an old finite list is narrowed, never widened to another name.
+      // A finite list is narrowed to the selected name.
       Ok(self.finite_selection([name]))
     }
-    RequestedOriginalResult | RequestedOriginalResultWithAuthority => {
+    RequestedNamedResult | RequestedOriginalResult => {
       if !original_exists() {
         return Err(SelectionMismatch)
       }

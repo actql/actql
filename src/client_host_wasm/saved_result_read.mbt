@@ -38,10 +38,10 @@ fn saved_result_read_current(
     resource: "result/" + result_name,
     operation: "read",
   }
-  let installed_original_result = configuration.sdk is Some(sdk) &&
-    @publication.local_sdk_result_read_selection_uses_installed_result_authority(
-      sdk.read,
-    )
+  guard configuration.sdk is Some(sdk) else { return Err(-32) }
+  let installed_original_result = @publication.local_sdk_result_read_selection_uses_installed_result_authority(
+    sdk.read,
+  )
   if @authorization.local_result_read_authority_resource(
       configuration.account,
       tuple,
@@ -321,7 +321,7 @@ fn finish_saved_result_read(
       sdk.adoption_cid,
       owner,
       view,
-      selection=Some(sdk.read),
+      selection=sdk.read,
     ) {
     Ok(value) => value
     Err(_) => return Err(-32)

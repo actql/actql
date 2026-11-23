@@ -2804,9 +2804,11 @@ A fresh SDK selection uses the closed `requested_original_result` mode with
 read and the installer's exact `result` read tuple. The checked live inventory
 or original Saved commit must contain the requested name. An explicit denial
 or delegation for that name still refuses. Authorization evidence records
-the actual resource and binds the selected name separately. A retained
-`result_names: ["answer"]` selection keeps its exact bytes, CID and
-`result/answer` Account check.
+the actual resource and binds the selected name separately. Current Worker
+provisioning issues the same schema with a marked finite selection for
+`answer` and independently requires the exact `result/answer` Account
+tuple. The retired top-level `result_names` body is refused without
+rewriting installed originals.
 
 The SDK factory persists nine source originals, with exactly eight selected
 files excluding Account. Each of the two extra originals is limited to 8192

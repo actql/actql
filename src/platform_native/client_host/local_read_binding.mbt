@@ -200,12 +200,16 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
     Ok(value) => value
     Err(issue) => return Err(Selection(issue))
   }
+  if purpose.names is (RequestedNamedResult | RequestedOriginalResult) &&
+    !(policy.origin is Selected) {
+    return Err(SelectionMismatch)
+  }
   let (selection, account_purpose) = match requested_result {
     None =>
       match purpose.names {
         FiniteResultNames(names) =>
           (purpose.finite_selection(names), NamedResultRead)
-        RequestedOriginalResult | RequestedOriginalResultWithAuthority =>
+        RequestedNamedResult | RequestedOriginalResult =>
           return Err(SelectionMismatch)
       }
     Some((original, store, namespace_id, name)) => {
@@ -248,12 +252,10 @@ fn NativeLocalHostConnection::bind_result_read_policy_for_run_with_capture(
       }
       match selected {
         Ok(value) => {
-          let account_purpose = if purpose.names
-            is RequestedOriginalResultWithAuthority {
+          let account_purpose = if purpose.names is RequestedOriginalResult {
             // The same prepare callback pays for the retained variant and
             // its binding slot before either construction.
-            guard policy.origin is Selected &&
-              @execution.preparation_representation_cost({
+            guard @execution.preparation_representation_cost({
                 record_headers: 1L,
                 reference_slots: 3L,
                 scalar_words: 1L,

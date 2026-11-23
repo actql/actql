@@ -296,7 +296,7 @@ pub fn[E] issue_local_sdk_read_grant_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[@publication.PublicationContract, LocalSDKReadStoreIssue[E]] {
   issue_local_sdk_read_grant_for_source(
-    live_sdk_read_source(preflight, selection=Some(selection)),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,
@@ -332,7 +332,7 @@ pub fn[E] prepare_local_sdk_read_evidence_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[LocalSDKReadEvidenceDecision, LocalSDKReadStoreIssue[E]] {
   prepare_local_sdk_read_evidence_for_source(
-    live_sdk_read_source(preflight, selection=Some(selection)),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,

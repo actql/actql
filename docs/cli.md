@@ -347,8 +347,9 @@ success or roll back files, and retrying receipt export must not resend output.
 Fresh Native Local projects use the requested Result from that Run's committed
 manifest. The selected principal, connection, Data Policy, retention, delivery
 permission, and read limits still apply. An explicitly adopted `result_names`
-list limits selection to those names. Reopening a project
-uses its original read configuration.
+list limits selection to those names. Requested-original selections carry
+an explicit authority marker. Opening a selection without that marker
+refuses it without rewriting the retained configuration.
 
 Native Local file delivery creates each destination exclusively. Repeating the
 same Run, Result, format and destination inspects the existing attempt first:

@@ -120,10 +120,7 @@ fn original_sdk_read_context(
       name
     }
   }
-  let source = @local_run.local_sdk_read_source(
-    preflight,
-    selection=Some(sdk.read),
-  )
+  let source = @local_run.local_sdk_read_source(preflight, selection=sdk.read)
   let check_current = () => {
     if value.closing ||
       value.runtime_closing ||

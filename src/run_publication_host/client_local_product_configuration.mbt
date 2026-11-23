@@ -530,16 +530,19 @@ fn product_assemble_originals(
                 if finite_run_profile {
                   (
                     "result_selection",
-                    product_object(
-                      if original_result_read {
-                        [
-                          ("authority", Json::string("original_result_read")),
-                          ("kind", Json::string("requested_original_result")),
-                        ]
-                      } else {
-                        [("kind", Json::string("requested_original_result"))]
-                      },
-                    ),
+                    product_object([
+                      (
+                        "authority",
+                        Json::string(
+                          if original_result_read {
+                            "original_result_read"
+                          } else {
+                            "named_result_read"
+                          },
+                        ),
+                      ),
+                      ("kind", Json::string("requested_original_result")),
+                    ]),
                   )
                 } else {
                   ("result_names", product_texts(["answer"]))
