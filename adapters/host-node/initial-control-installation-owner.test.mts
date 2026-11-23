@@ -8,6 +8,8 @@ import {createContext, runInContext} from 'node:vm';
 import ownerModule from './initial-control-installation-owner.cjs';
 
 const {createInitialControlInstallationOwner: createOwner} = ownerModule;
+type OwnerScope = Awaited<ReturnType<ReturnType<typeof createOwner>['begin']>>;
+type Packet = ReturnType<typeof originals>;
 const changed = {code: 'NodeInitialControlOriginalChanged'};
 const originals = () => ({host: {}, installation: {}, generation: {}, supplier() {}, moduleLifetime: {}});
 
@@ -15,15 +17,15 @@ const originals = () => ({host: {}, installation: {}, generation: {}, supplier()
 // are not the actual preload's image/envelope issuer, a normal Host positive,
 // physical-capacity acquisition or permission to perform any covered work.
 function fixture() {
-  let current = true, closes = 0, closeValue = {pending: false};
-  const root = {assertCurrent(value) {
+  let current = true, closes = 0, closeValue:unknown = {pending: false};
+  const root = {assertCurrent(value:unknown) {
     assert.equal(this, root);
     assert.ok(Object.isFrozen(value));
     if (!current) throw new Error('OriginalOperationalCurrentRefused');
   }, close() { assert.equal(this, root); closes++; return closeValue; }};
-  const owner = createOwner(root), original = originals(), scope = owner.begin(original);
-  return {owner, original, scope, setCurrent(value) { current = value; },
-    setClose(value) { closeValue = value; }, get closes() { return closes; }};
+  const owner = createOwner(root), original = originals(), scope = owner.begin(original) as OwnerScope;
+  return {owner, original, scope, setCurrent(value:boolean) { current = value; },
+    setClose(value:unknown) { closeValue = value; }, get closes() { return closes; }};
 }
 
 test('unavailable actual original refuses before reading caller descriptors', () => {
@@ -34,24 +36,24 @@ test('unavailable actual original refuses before reading caller descriptors', ()
 });
 
 test('asynchronous begin snapshots five originals before initialization and checks current after it', async () => {
-  let finish, prepares = 0, currents = 0, heldByPrepare;
-  const wait = new Promise(resolve => { finish = resolve; });
+  let finish!:(value?:unknown)=>void, prepares = 0, currents = 0, heldByPrepare:unknown;
+  const wait = new Promise<unknown>(resolve => { finish = resolve; });
   const original = originals(), same = {...original};
-  const root = {prepare(held) {
+  const root = {prepare(held:Packet) {
     assert.equal(this, root); prepares++; heldByPrepare = held;
     assert.ok(Object.isFrozen(held));
     assert.deepEqual({...held}, same);
     return wait;
-  }, assertCurrent(held) {
+  }, assertCurrent(held:Packet) {
     assert.equal(this, root); currents++;
     assert.equal(held, heldByPrepare);
     assert.deepEqual({...held}, same);
-  }, close(held) { assert.equal(held, heldByPrepare); return {pending: false}; }};
+  }, close(held:Packet) { assert.equal(held, heldByPrepare); return {pending: false}; }};
   const owner = createOwner(root), pending = owner.begin(original);
   assert.ok(pending instanceof Promise);
   assert.equal(prepares, 1);
   assert.equal(currents, 0);
-  for (const name of Object.keys(original)) original[name] = {};
+  for (const name of Object.keys(original)) (original as Record<keyof Packet,object>)[name as keyof Packet] = {};
   assert.throws(() => owner.begin(same), changed);
   finish({aResolvedObjectIsNotAnAdmission: true});
   const scope = await pending;
@@ -62,8 +64,8 @@ test('asynchronous begin snapshots five originals before initialization and chec
 });
 
 test('asynchronous initialization retains the captured original callback and receiver', async () => {
-  let finish, calls = 0;
-  const wait = new Promise(resolve => { finish = resolve; });
+  let finish!:(value?:unknown)=>void, calls = 0;
+  const wait = new Promise<unknown>(resolve => { finish = resolve; });
   const root = {prepare() { assert.equal(this, root); calls++; return wait; },
     assertCurrent() { assert.equal(this, root); }, close() { return {pending: false}; }};
   const owner = createOwner(root);
@@ -76,9 +78,9 @@ test('asynchronous initialization retains the captured original callback and rec
 });
 
 test('one original namespace flight can serve different generations without sharing their scopes', async () => {
-  let finish, imports = 0, flight;
+  let finish!:(value?:unknown)=>void, imports = 0, flight:Promise<unknown>|undefined;
   const root = {prepare() {
-    flight ??= new Promise(resolve => { imports++; finish = resolve; });
+    flight ??= new Promise<unknown>(resolve => { imports++; finish = resolve; });
     return flight;
   }, assertCurrent() {}, close() { return {pending: false}; }};
   const owner = createOwner(root), first = originals(), second = originals();
@@ -105,7 +107,7 @@ test('failed asynchronous initialization preserves its exact cause and original 
   const root = {prepare() { return Promise.reject(cause); },
     assertCurrent() { currents++; }, close() { throw new Error('ScopeWasNotIssued'); }};
   const owner = createOwner(root), original = originals();
-  await assert.rejects(owner.begin(original), error => error === cause && error.cleanupHandle === cleanupHandle);
+  await assert.rejects(owner.begin(original), error => error === cause && (error as typeof cause).cleanupHandle === cleanupHandle);
   assert.equal(currents, 0);
   assert.equal(retries, 0);
   assert.ok(fstatSync(fd).isFile());
@@ -118,8 +120,8 @@ test('failed asynchronous initialization preserves its exact cause and original 
 });
 
 test('current refusal after initialization cannot issue or recycle the consumed generation', async () => {
-  let finish, current = true, checks = 0;
-  const wait = new Promise(resolve => { finish = resolve; });
+  let finish!:(value?:unknown)=>void, current = true, checks = 0;
+  const wait = new Promise<unknown>(resolve => { finish = resolve; });
   const cause = Object.freeze(new Error('OriginalCandidateRetiredDuringInitialization'));
   const root = {prepare() { return wait; }, assertCurrent() { checks++; if (!current) throw cause; },
     close() { throw new Error('NoScopeToClose'); }};
@@ -228,8 +230,8 @@ test('original status and retry receiver survive replacement and frozen thrown c
 
 test('concurrent and reentrant closes share one flight through original asynchronous cleanup', async () => {
   const f = fixture(), record = {};
-  let complete, pending = true, retries = 0, reentrant;
-  const wait = new Promise(resolve => { complete = resolve; });
+  let complete!:(value?:unknown)=>void, pending = true, retries = 0, reentrant:Promise<ReturnType<OwnerScope['status']>>|undefined;
+  const wait = new Promise<unknown>(resolve => { complete = resolve; });
   const handle = {status() { return {pending}; }, async retry() {
     assert.equal(this, handle); retries++;
     reentrant = f.scope.close();
@@ -311,7 +313,7 @@ test('cleanup descriptor failure retains the record and never manufactures physi
 
 test('failure history retains first and latest only, including null and undefined causes', async () => {
   const f = fixture(), record = {};
-  let cause;
+  let cause:unknown;
   const handle = {status() { throw cause; }, retry() { throw cause; }};
   f.scope.retainPreparation(record, handle).releaseReferences(record);
   const first = await f.scope.close();
@@ -357,11 +359,11 @@ test('original real file descriptors remain child-owned across pending and sibli
 });
 
 test('operational current callback cannot reentrantly close then authorize a scope', async () => {
-  let closeDuringCurrent = false, scope, closing;
+  let closeDuringCurrent = false, scope:OwnerScope, closing!:ReturnType<OwnerScope['close']>;
   const root = {assertCurrent() { if (closeDuringCurrent) closing = scope.close(); },
     close() { return {pending: false}; }};
   const owner = createOwner(root), original = originals();
-  scope = owner.begin(original);
+  scope = owner.begin(original) as OwnerScope;
   closeDuringCurrent = true;
   assert.throws(() => owner.assertCurrent(scope, original), changed);
   assert.equal((await closing).pending, false);
@@ -381,12 +383,12 @@ test('failed late cleanup attachment keeps its original debt rather than restori
 
 test('a generation cannot be reissued by reentry from its original current callback', async () => {
   const original = originals();
-  let owner, nested = 0;
+  let owner:ReturnType<typeof createOwner>, nested = 0;
   const root = {assertCurrent() {
     if (nested++ === 0) assert.throws(() => owner.begin(original), changed);
   }, close() { return {pending: false}; }};
   owner = createOwner(root);
-  const scope = owner.begin(original);
+  const scope = owner.begin(original) as OwnerScope;
   assert.equal(nested, 1);
   assert.equal((await scope.close()).pending, false);
   assert.throws(() => owner.begin(original), changed);

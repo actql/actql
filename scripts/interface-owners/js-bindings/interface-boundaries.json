@@ -57300,7 +57300,7 @@
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -60384,7 +60384,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               }
             ],
@@ -61582,7 +61582,7 @@
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -67419,7 +67419,7 @@
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -68829,7 +68829,7 @@
                 "anchor": "const {installation: suppliedInstallation, profile: requestedProfile,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {

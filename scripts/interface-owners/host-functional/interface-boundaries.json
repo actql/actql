@@ -59751,7 +59751,7 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               },
               {
@@ -59777,32 +59777,32 @@
                 "anchor": "## Private Model raw response custody"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function createInitialControlInstallationOwner(operational)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function createInitialControlInstallationOwner(operational:object|undefined):Owner<Scope|Promise<Scope>> {"
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readAsset(scope, originals, path)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readAsset(scope:unknown, originals:unknown, path:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readInput(scope, originals)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readInput(scope:unknown, originals:unknown)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -59823,15 +59823,15 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime'] as const);"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
@@ -59893,7 +59893,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Retain the record before any fallible cleanup descriptor observation."
               },
               {
@@ -59923,15 +59923,15 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// concurrent close observes that SAME Promise"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
@@ -59939,7 +59939,7 @@
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
               },
               {
@@ -59947,7 +59947,7 @@
                 "anchor": "// Publish the same immutable callback table before synchronous namespace"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// This callback starts synchronously in the caller's original stack,"
               },
               {
@@ -59981,15 +59981,15 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const unavailable: ()=>never = () => fail('NodeInitialControlAdmissionUnavailable');"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed late cleanup attachment keeps its original debt"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               },
               {
@@ -60019,15 +60019,15 @@
                 "anchor": "## Private Model raw response custody"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "state.closing = true;"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal does not prevent cleanup of original retained duties"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               },
               {
@@ -60061,7 +60061,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// here. An absent complete operational original refuses before caller reads."
               },
               {
@@ -60069,7 +60069,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
@@ -60149,11 +60149,11 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "nominal current rejects fake copied and other-instance scopes"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
@@ -60161,11 +60161,11 @@
                 "anchor": "a caller current method cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
@@ -60259,7 +60259,7 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               },
               {
@@ -60285,32 +60285,32 @@
                 "anchor": "## Private Model raw response custody"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function createInitialControlInstallationOwner(operational)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function createInitialControlInstallationOwner(operational:object|undefined):Owner<Scope|Promise<Scope>> {"
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readAsset(scope, originals, path)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readAsset(scope:unknown, originals:unknown, path:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readInput(scope, originals)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readInput(scope:unknown, originals:unknown)"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -60331,15 +60331,15 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime'] as const);"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
@@ -60401,7 +60401,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Retain the record before any fallible cleanup descriptor observation."
               },
               {
@@ -60431,15 +60431,15 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// concurrent close observes that SAME Promise"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
@@ -60447,7 +60447,7 @@
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
               },
               {
@@ -60455,7 +60455,7 @@
                 "anchor": "// Publish the same immutable callback table before synchronous namespace"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// This callback starts synchronously in the caller's original stack,"
               },
               {
@@ -60489,15 +60489,15 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const unavailable: ()=>never = () => fail('NodeInitialControlAdmissionUnavailable');"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed late cleanup attachment keeps its original debt"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               },
               {
@@ -60527,15 +60527,15 @@
                 "anchor": "## Private Model raw response custody"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "state.closing = true;"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal does not prevent cleanup of original retained duties"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               },
               {
@@ -60569,7 +60569,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// here. An absent complete operational original refuses before caller reads."
               },
               {
@@ -60577,7 +60577,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
@@ -60657,11 +60657,11 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "nominal current rejects fake copied and other-instance scopes"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
@@ -60669,11 +60669,11 @@
                 "anchor": "a caller current method cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
@@ -61972,7 +61972,7 @@
                 "anchor": "// Internal byte custody only, not an installation admission or a trust factory."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
@@ -61982,12 +61982,12 @@
                 "anchor": "function captureInitialControlImageSource(path: import('node:fs').PathLike, expected: unknown) {"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               }
             ],
             "identity": [
@@ -62000,11 +62000,11 @@
                 "anchor": "foreign size or digest never returns Source"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
@@ -62032,11 +62032,11 @@
                 "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               }
             ],
@@ -62046,7 +62046,7 @@
                 "anchor": "carrier.code = 'InitialControlImageCleanupPending';"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               },
               {
@@ -62060,7 +62060,7 @@
                 "anchor": "an unconfirmed close cannot return valid Source or become confirmed from EBADF"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               }
             ],
@@ -62078,7 +62078,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
@@ -62106,11 +62106,11 @@
                 "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
@@ -62132,7 +62132,7 @@
                 "anchor": "// Internal byte custody only, not an installation admission or a trust factory."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
@@ -62142,12 +62142,12 @@
                 "anchor": "function captureInitialControlImageSource(path: import('node:fs').PathLike, expected: unknown) {"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               }
             ],
             "identity": [
@@ -62160,11 +62160,11 @@
                 "anchor": "foreign size or digest never returns Source"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
@@ -62192,11 +62192,11 @@
                 "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               }
             ],
@@ -62206,7 +62206,7 @@
                 "anchor": "carrier.code = 'InitialControlImageCleanupPending';"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               },
               {
@@ -62220,7 +62220,7 @@
                 "anchor": "an unconfirmed close cannot return valid Source or become confirmed from EBADF"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               }
             ],
@@ -62238,7 +62238,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
@@ -62266,11 +62266,11 @@
                 "anchor": "a pre-close refusal stays pending without retrying the original integer or read"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
@@ -62285,7 +62285,7 @@
     },
     {
       "module": "adapters/host-node/initial-control-installation-owner.cjs",
-      "sha256": "c05cb010d56e61302125c10f70969ca9506fa728fd10354772cd18c53de73df6",
+      "sha256": "ce01a27a80adbf7ac2315db1bf8f7e02267557ba8489a2f28f29a42a84f46b6b",
       "exports": [
         "commonjs:createInitialControlInstallationOwner"
       ],
@@ -62457,51 +62457,51 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function createInitialControlInstallationOwner(operational)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function createInitialControlInstallationOwner(operational:object|undefined):Owner<Scope|Promise<Scope>> {"
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readAsset(scope, originals, path)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readAsset(scope:unknown, originals:unknown, path:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readInput(scope, originals)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readInput(scope:unknown, originals:unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime'] as const);"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
@@ -62523,7 +62523,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Retain the record before any fallible cleanup descriptor observation."
               },
               {
@@ -62537,23 +62537,23 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// concurrent close observes that SAME Promise"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// This callback starts synchronously in the caller's original stack,"
               },
               {
@@ -62563,15 +62563,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const unavailable: ()=>never = () => fail('NodeInitialControlAdmissionUnavailable');"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed late cleanup attachment keeps its original debt"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               },
               {
@@ -62585,15 +62585,15 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "state.closing = true;"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal does not prevent cleanup of original retained duties"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               },
               {
@@ -62611,7 +62611,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// here. An absent complete operational original refuses before caller reads."
               },
               {
@@ -62619,7 +62619,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
@@ -62647,11 +62647,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "nominal current rejects fake copied and other-instance scopes"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
@@ -62659,11 +62659,11 @@
                 "anchor": "a caller current method cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
@@ -62697,51 +62697,51 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function createInitialControlInstallationOwner(operational)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function createInitialControlInstallationOwner(operational:object|undefined):Owner<Scope|Promise<Scope>> {"
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readAsset(scope, originals, path)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readAsset(scope:unknown, originals:unknown, path:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readInput(scope, originals)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readInput(scope:unknown, originals:unknown)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime'] as const);"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
@@ -62763,7 +62763,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Retain the record before any fallible cleanup descriptor observation."
               },
               {
@@ -62777,23 +62777,23 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// concurrent close observes that SAME Promise"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// This callback starts synchronously in the caller's original stack,"
               },
               {
@@ -62803,15 +62803,15 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const unavailable: ()=>never = () => fail('NodeInitialControlAdmissionUnavailable');"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed late cleanup attachment keeps its original debt"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               },
               {
@@ -62825,15 +62825,15 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "state.closing = true;"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal does not prevent cleanup of original retained duties"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               },
               {
@@ -62851,7 +62851,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// here. An absent complete operational original refuses before caller reads."
               },
               {
@@ -62859,7 +62859,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
@@ -62887,11 +62887,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "nominal current rejects fake copied and other-instance scopes"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
@@ -62899,11 +62899,11 @@
                 "anchor": "a caller current method cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
@@ -63492,7 +63492,7 @@
                 "anchor": "// The normal package builder replaces this source-only absence"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
@@ -63502,12 +63502,12 @@
                 "anchor": "export function renderInitialControlPackageOriginal"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               }
             ],
             "identity": [
@@ -63516,11 +63516,11 @@
                 "anchor": "const images = new Map(outputs);"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               }
             ],
@@ -63540,11 +63540,11 @@
                 "anchor": "// similarly shaped caller object later cannot replace this module original."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               }
             ],
@@ -63554,7 +63554,7 @@
                 "anchor": "if (inputs.buildInputs !== undefined) return absent;"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               }
             ],
@@ -63564,7 +63564,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               }
             ],
@@ -63582,7 +63582,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               }
             ],
@@ -63602,11 +63602,11 @@
                 "anchor": "an aliased runtime ancestor cannot be mistaken"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               }
             ]
@@ -63624,7 +63624,7 @@
                 "anchor": "// The normal package builder replaces this source-only absence"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               }
             ],
@@ -63634,12 +63634,12 @@
                 "anchor": "export function renderInitialControlPackageOriginal"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               }
             ],
             "identity": [
@@ -63648,11 +63648,11 @@
                 "anchor": "const images = new Map(outputs);"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               }
             ],
@@ -63672,11 +63672,11 @@
                 "anchor": "// similarly shaped caller object later cannot replace this module original."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               }
             ],
@@ -63686,7 +63686,7 @@
                 "anchor": "if (inputs.buildInputs !== undefined) return absent;"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               }
             ],
@@ -63696,7 +63696,7 @@
                 "anchor": "Reference ownership follows the actual Host record and its real children."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               }
             ],
@@ -63714,7 +63714,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               }
             ],
@@ -63734,11 +63734,11 @@
                 "anchor": "an aliased runtime ancestor cannot be mistaken"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               }
             ]
@@ -92307,7 +92307,7 @@
                 "anchor": "<!-- requirement-block: ordinary-host.real-acquisition -->"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               },
               {
@@ -92321,32 +92321,32 @@
                 "anchor": "export function beginInitialControlInstallation(originals: unknown, rawInput?: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function createInitialControlInstallationOwner(operational)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function createInitialControlInstallationOwner(operational:object|undefined):Owner<Scope|Promise<Scope>> {"
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readAsset(scope, originals, path)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readAsset(scope:unknown, originals:unknown, path:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readInput(scope, originals)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readInput(scope:unknown, originals:unknown)"
               }
             ],
             "identity": [
@@ -92355,15 +92355,15 @@
                 "anchor": "same Host/installation/generation/source/backend/recipe"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime'] as const);"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
@@ -92393,7 +92393,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Retain the record before any fallible cleanup descriptor observation."
               },
               {
@@ -92415,15 +92415,15 @@
                 "anchor": "retainPreparation(originalRecord, originalCleanupHandle?) -> original duty"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// concurrent close observes that SAME Promise"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
@@ -92431,11 +92431,11 @@
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// This callback starts synchronously in the caller's original stack,"
               }
             ],
@@ -92449,15 +92449,15 @@
                 "anchor": "before observing caller fields"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const unavailable: ()=>never = () => fail('NodeInitialControlAdmissionUnavailable');"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed late cleanup attachment keeps its original debt"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               },
               {
@@ -92475,15 +92475,15 @@
                 "anchor": "<!-- requirement-block: ordinary-host.resource-lifetimes -->"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "state.closing = true;"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal does not prevent cleanup of original retained duties"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               },
               {
@@ -92505,7 +92505,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// here. An absent complete operational original refuses before caller reads."
               },
               {
@@ -92513,7 +92513,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
@@ -92565,11 +92565,11 @@
                 "anchor": "late selected consumer import has no synthetic or reusable pending admission"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "nominal current rejects fake copied and other-instance scopes"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
@@ -92577,11 +92577,11 @@
                 "anchor": "a caller current method cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {
@@ -92627,7 +92627,7 @@
                 "anchor": "<!-- requirement-block: ordinary-host.real-acquisition -->"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Internal state machine, not an operational issuer."
               },
               {
@@ -92641,32 +92641,32 @@
                 "anchor": "export function beginInitialControlInstallation(originals: unknown, rawInput?: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function createInitialControlInstallationOwner(operational)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function createInitialControlInstallationOwner(operational:object|undefined):Owner<Scope|Promise<Scope>> {"
               },
               {
                 "path": "adapters/host-node/node-initial-control-installation.mts",
                 "anchor": "export function assertInitialControlInstallationCurrent(scope: unknown, sameOriginals: unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function issue(held)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function issue(held:Snapshot)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readAsset(scope, originals, path)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readAsset(scope:unknown, originals:unknown, path:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function begin(originals, rawInput)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function begin(originals:unknown, rawInput?:unknown)"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "function readInput(scope, originals)"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "function readInput(scope:unknown, originals:unknown)"
               }
             ],
             "identity": [
@@ -92675,15 +92675,15 @@
                 "anchor": "same Host/installation/generation/source/backend/recipe"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const scopes = new NativeWeakMap();"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const scopes = new NativeWeakMap<object,State>();"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime'] as const);"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous begin snapshots five originals before initialization"
               },
               {
@@ -92713,7 +92713,7 @@
                 "anchor": "## Ordinary Host initialization and preparation"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Retain the record before any fallible cleanup descriptor observation."
               },
               {
@@ -92735,15 +92735,15 @@
                 "anchor": "retainPreparation(originalRecord, originalCleanupHandle?) -> original duty"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// concurrent close observes that SAME Promise"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot and consume before module initialization or any original current"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "one original namespace flight can serve different generations"
               },
               {
@@ -92751,11 +92751,11 @@
                 "anchor": "// The actual CJS startup may synchronously capture this ESM namespace before"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Do not let the returned String bypass that current/closing fence."
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// This callback starts synchronously in the caller's original stack,"
               }
             ],
@@ -92769,15 +92769,15 @@
                 "anchor": "before observing caller fields"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
-                "anchor": "const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');"
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
+                "anchor": "const unavailable: ()=>never = () => fail('NodeInitialControlAdmissionUnavailable');"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed late cleanup attachment keeps its original debt"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "failed asynchronous initialization preserves its exact cause"
               },
               {
@@ -92795,15 +92795,15 @@
                 "anchor": "<!-- requirement-block: ordinary-host.resource-lifetimes -->"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "state.closing = true;"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal does not prevent cleanup of original retained duties"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "current refusal after initialization cannot issue or recycle"
               },
               {
@@ -92825,7 +92825,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// here. An absent complete operational original refuses before caller reads."
               },
               {
@@ -92833,7 +92833,7 @@
                 "anchor": "Resource coverage distinguishes managed work/data limits"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "// Snapshot original child references with the captured native Map walk;"
               },
               {
@@ -92885,11 +92885,11 @@
                 "anchor": "late selected consumer import has no synthetic or reusable pending admission"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "nominal current rejects fake copied and other-instance scopes"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "original real file descriptors remain child-owned across pending and sibling cleanup"
               },
               {
@@ -92897,11 +92897,11 @@
                 "anchor": "a caller current method cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "later Reflect Object and collection replacements cannot authenticate"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.test.mjs",
+                "path": "adapters/host-node/initial-control-installation-owner.test.mts",
                 "anchor": "asynchronous initialization retains the captured original callback and receiver"
               },
               {

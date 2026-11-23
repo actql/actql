@@ -6,26 +6,55 @@
 const freeze = Object.freeze, descriptor = Object.getOwnPropertyDescriptor, create = Object.create;
 const hasOwn = Object.hasOwn, keys = Reflect.ownKeys, apply = Reflect.apply;
 const NativeError = Error, NativeWeakMap = WeakMap, NativeWeakSet = WeakSet, NativeMap = Map;
-const {isPromise, isProxy} = require('node:util').types;
+const {isPromise, isProxy} = (require('node:util') as typeof import('node:util')).types;
 const NativePromise = Promise, promiseResolve = Promise.resolve, promiseThen = Promise.prototype.then;
 const weakGet = WeakMap.prototype.get, weakSet = WeakMap.prototype.set;
 const generationHas = WeakSet.prototype.has, generationAdd = WeakSet.prototype.add;
 const mapGet = Map.prototype.get, mapSet = Map.prototype.set;
 const mapEach = Map.prototype.forEach, mapClear = Map.prototype.clear;
-const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime']);
-const reference = value => value !== null &&
+const names = freeze(['host', 'installation', 'generation', 'supplier', 'moduleLifetime'] as const);
+const reference = (value:unknown):value is object => value !== null &&
   (typeof value === 'object' || typeof value === 'function');
-const fail = code => { const error = new NativeError(code); error.code = code; throw error; };
-const unavailable = () => fail('NodeInitialControlAdmissionUnavailable');
-const foreign = () => fail('NodeInitialControlOriginalChanged');
-const own = (value, name) => {
+const fail: (code:string)=>never = code => { const error = new NativeError(code) as NodeJS.ErrnoException; error.code = code; throw error; };
+const unavailable: ()=>never = () => fail('NodeInitialControlAdmissionUnavailable');
+const foreign: ()=>never = () => fail('NodeInitialControlOriginalChanged');
+const own = (value:object, name:PropertyKey):unknown => {
   const property = descriptor(value, name);
   if (property === undefined || !hasOwn(property, 'value')) foreign();
   return property.value;
 };
-const snapshot = value => {
+type Snapshot = Readonly<Record<typeof names[number],object>>;
+type CapturedMethod = (...args:never[])=>unknown;
+type Cleanup = {receiver:object;status:CapturedMethod;retry:CapturedMethod};
+type Duty = Readonly<{releaseReferences(originalRecord:unknown):void}>;
+type Child = {record:object|undefined;handle:unknown;cleanup:Cleanup|undefined;
+  acknowledged:boolean;released:boolean;duty:Duty|undefined};
+type ErrorRecord = Readonly<{cause:unknown}>;
+type Observation = Readonly<{pending:boolean;closing:boolean;pendingPreparations:number;
+  errors:readonly ErrorRecord[]}>;
+type Scope = Readonly<{
+  assertCurrent(sameOriginals:unknown):void;
+  retainPreparation(record:unknown,cleanupHandle?:unknown):Duty;
+  status():Observation;
+  close():Promise<Observation>;
+}>;
+type State = {
+  originals:Snapshot|undefined;input:object|undefined;children:Map<object,Child>;
+  closing:boolean;closed:boolean;flight:Promise<Observation>|undefined;
+  firstError:ErrorRecord|undefined;lastError:ErrorRecord|undefined;
+};
+type Owner<Begin> = Readonly<{
+  begin(originals:unknown,rawInput?:unknown):Begin;
+  assertCurrent(scope:unknown,originals:unknown):void;
+  readAsset(scope:unknown,originals:unknown,path:unknown):string;
+  readInput(scope:unknown,originals:unknown):object;
+  requireOperational():void;
+}>;
+type Operational = Readonly<{assertCurrent:CapturedMethod;close:CapturedMethod}>;
+
+const snapshot = (value:unknown):Snapshot => {
   if (!reference(value) || keys(value).length !== names.length) foreign();
-  const result = create(null);
+  const result = create(null) as Record<typeof names[number],object>;
   for (let index = 0; index < names.length; index++) {
     const name = names[index];
     const item = own(value, name);
@@ -34,14 +63,14 @@ const snapshot = value => {
   }
   return freeze(result);
 };
-const matches = (left, right) => {
+const matches = (left:Snapshot, right:Snapshot) => {
   for (let index = 0; index < names.length; index++) {
     const name = names[index];
     if (left[name] !== right[name]) return false;
   }
   return true;
 };
-const completed = value => reference(value) &&
+const completed = (value:unknown) => reference(value) &&
   descriptor(value, 'pending')?.value === false;
 
 // operational is held only by the selected preload, never obtained from a
@@ -49,22 +78,24 @@ const completed = value => reference(value) &&
 // backend, recipe and original envelope, including escaped preparation aliases.
 // No per-object lease, reserve, allocation or business-Run permission is issued
 // here. An absent complete operational original refuses before caller reads.
-function createInitialControlInstallationOwner(operational) {
-  const assertOperational = operational === undefined ? undefined : own(operational, 'assertCurrent');
-  const closeOperational = operational === undefined ? undefined : own(operational, 'close');
+function createInitialControlInstallationOwner(operational:Operational & {prepare:CapturedMethod}):Owner<Promise<Scope>>;
+function createInitialControlInstallationOwner(operational:object|undefined):Owner<Scope|Promise<Scope>>;
+function createInitialControlInstallationOwner(operational:object|undefined):Owner<Scope|Promise<Scope>> {
+  const assertOperational = operational === undefined ? undefined : own(operational, 'assertCurrent') as CapturedMethod|undefined;
+  const closeOperational = operational === undefined ? undefined : own(operational, 'close') as CapturedMethod|undefined;
   const prepareProperty = operational === undefined ? undefined : descriptor(operational, 'prepare');
-  const prepareOperational = prepareProperty === undefined ? undefined : own(operational, 'prepare');
+  const prepareOperational = prepareProperty === undefined ? undefined : own(operational!, 'prepare') as CapturedMethod|undefined;
   const assetProperty = operational === undefined ? undefined : descriptor(operational, 'readAsset');
-  const readOperationalAsset = assetProperty === undefined ? undefined : own(operational, 'readAsset');
+  const readOperationalAsset = assetProperty === undefined ? undefined : own(operational!, 'readAsset') as CapturedMethod|undefined;
   const inputProperty = operational === undefined ? undefined : descriptor(operational, 'readInput');
-  const readOperationalInput = inputProperty === undefined ? undefined : own(operational, 'readInput');
+  const readOperationalInput = inputProperty === undefined ? undefined : own(operational!, 'readInput') as CapturedMethod|undefined;
   if (operational !== undefined &&
       (typeof assertOperational !== 'function' || typeof closeOperational !== 'function' ||
        prepareProperty !== undefined && typeof prepareOperational !== 'function' ||
        assetProperty !== undefined && typeof readOperationalAsset !== 'function' ||
        inputProperty !== undefined && typeof readOperationalInput !== 'function')) unavailable();
-  const scopes = new NativeWeakMap();
-  const generations = new NativeWeakSet();
+  const scopes = new NativeWeakMap<object,State>();
+  const generations = new NativeWeakSet<object>();
 
   function requireOperational() {
     // Private pre-dispatch absence fence only, before a Host candidate exists.
@@ -73,12 +104,12 @@ function createInitialControlInstallationOwner(operational) {
     if (assertOperational === undefined) unavailable();
   }
 
-  function remember(state, cause) {
+  function remember(state:State, cause:unknown) {
     const record = freeze({cause});
     state.firstError ??= record;
     state.lastError = record;
   }
-  function observeChild(state, child) {
+  function observeChild(state:State, child:Child) {
     if (child.cleanup === undefined || child.acknowledged) return;
     try {
       if (completed(apply(child.cleanup.status, child.cleanup.receiver, []))) {
@@ -87,30 +118,30 @@ function createInitialControlInstallationOwner(operational) {
       }
     } catch (cause) { remember(state, cause); }
   }
-  function observation(state) {
+  function observation(state:State):Observation {
     let pendingPreparations = 0;
-    apply(mapEach, state.children, [child => {
+    apply(mapEach, state.children, [(child:Child) => {
       observeChild(state, child);
       if (!child.released || !child.acknowledged) pendingPreparations++;
     }]);
     return freeze({pending: !state.closed, closing: state.closing,
       pendingPreparations, errors: freeze(state.firstError === undefined ? [] :
-        state.firstError === state.lastError ? [state.firstError] : [state.firstError, state.lastError])});
+        state.firstError === state.lastError ? [state.firstError] : [state.firstError, state.lastError!])});
   }
-  function stateFor(scope) {
-    const state = apply(weakGet, scopes, [scope]);
+  function stateFor(scope:unknown) {
+    const state = apply(weakGet, scopes, [scope]) as State|undefined;
     if (state === undefined) foreign();
     return state;
   }
-  function assertCurrent(scope, originals) {
+  function assertCurrent(scope:unknown, originals:unknown) {
     if (assertOperational === undefined) unavailable();
     const state = stateFor(scope);
-    if (state.closing || state.closed || !matches(state.originals, snapshot(originals))) foreign();
+    if (state.closing || state.closed || !matches(state.originals!, snapshot(originals))) foreign();
     apply(assertOperational, operational, [state.originals]);
     // The original supplier callback may reentrantly close this same scope.
     if (state.closing || state.closed) foreign();
   }
-  function readAsset(scope, originals, path) {
+  function readAsset(scope:unknown, originals:unknown, path:unknown) {
     // This is an immutable original Source borrow, not another file read or a
     // decoder, authority factory, current-path proof or capacity conversion.
     // Only the SAME nominal scope and five originals can reach the actual
@@ -127,14 +158,14 @@ function createInitialControlInstallationOwner(operational) {
     if (typeof source !== 'string') fail('NodeInitialControlAssetUnavailable');
     return source;
   }
-  function readInput(scope, originals) {
+  function readInput(scope:unknown, originals:unknown) {
     // Only the original supplier may acquire and retain the raw packet before
     // its first enumeration/copy. This projection cannot admit that input,
     // infer its backing from shape/alias count or reconstruct a snapshot.
     assertCurrent(scope, originals);
     if (readOperationalInput === undefined) fail('NodeInitialControlInputUnavailable');
     const state = stateFor(scope);
-    const input = apply(readOperationalInput, operational, [state.originals]);
+    const input:unknown = apply(readOperationalInput, operational, [state.originals]);
     // Native brand tests observe neither a then getter nor Proxy traps. The
     // actual supplier still owns finite provenance, bounds and original DATA;
     // these representation checks are not that operational proof.
@@ -148,17 +179,17 @@ function createInitialControlInstallationOwner(operational) {
     assertCurrent(scope, originals);
     return input;
   }
-  function cleanupOriginal(handle) {
+  function cleanupOriginal(handle:unknown):Cleanup {
     if (!reference(handle)) foreign();
     const status = own(handle, 'status'), retry = own(handle, 'retry');
     if (typeof status !== 'function' || typeof retry !== 'function') foreign();
-    return {receiver: handle, status, retry};
+    return {receiver: handle, status:status as CapturedMethod, retry:retry as CapturedMethod};
   }
-  function retainPreparation(scope, record, handle) {
+  function retainPreparation(scope:unknown, record:unknown, handle:unknown):Duty {
     const state = stateFor(scope);
     assertCurrent(scope, state.originals);
     if (!reference(record)) foreign();
-    let child = apply(mapGet, state.children, [record]);
+    let child = apply(mapGet, state.children, [record]) as Child|undefined;
     if (child !== undefined) {
       if (child.released) foreign();
       if (handle !== undefined) {
@@ -172,11 +203,11 @@ function createInitialControlInstallationOwner(operational) {
           catch (cause) { remember(state, cause); throw cause; }
         }
       }
-      return child.duty;
+      return child.duty!;
     }
     child = {record, handle, cleanup: undefined, acknowledged: handle === undefined,
       released: false, duty: undefined};
-    child.duty = freeze({releaseReferences(originalRecord) {
+    child.duty = freeze({releaseReferences(originalRecord:unknown) {
       if (child.record !== originalRecord || state.closed) foreign();
       child.released = true;
       // This is only the caller's managed alias-cut notice. It does not
@@ -188,9 +219,9 @@ function createInitialControlInstallationOwner(operational) {
       try { child.cleanup = cleanupOriginal(handle); }
       catch (cause) { remember(state, cause); throw cause; }
     }
-    return child.duty;
+    return child.duty!;
   }
-  function close(scope) {
+  function close(scope:unknown):Promise<Observation> {
     const state = stateFor(scope);
     if (state.flight !== undefined) return state.flight;
     state.closing = true;
@@ -200,8 +231,8 @@ function createInitialControlInstallationOwner(operational) {
     const flight = Promise.resolve().then(async () => {
       // Snapshot original child references with the captured native Map walk;
       // a later application replacement cannot skip another child's duty.
-      const children = [];
-      apply(mapEach, state.children, [child => { children[children.length] = child; }]);
+      const children:Child[] = [];
+      apply(mapEach, state.children, [(child:Child) => { children[children.length] = child; }]);
       for (let index = 0; index < children.length; index++) {
         const child = children[index];
         observeChild(state, child);
@@ -216,14 +247,14 @@ function createInitialControlInstallationOwner(operational) {
       const before = observation(state);
       if (before.pendingPreparations !== 0) return before;
       try {
-        const value = await apply(closeOperational, operational, [state.originals]);
+        const value = await apply(closeOperational!, operational, [state.originals]);
         if (!completed(value)) return observation(state);
       } catch (cause) {
         remember(state, cause);
         return observation(state);
       }
       state.closed = true;
-      apply(mapEach, state.children, [child => {
+      apply(mapEach, state.children, [(child:Child) => {
         child.record = undefined;
         child.handle = undefined;
         child.cleanup = undefined;
@@ -236,17 +267,17 @@ function createInitialControlInstallationOwner(operational) {
     state.flight = flight;
     return flight;
   }
-  function issue(held) {
-    apply(assertOperational, operational, [held]);
-    const state = {originals: held, input: undefined, children: new NativeMap(), closing: false, closed: false,
+  function issue(held:Snapshot):Scope {
+    apply(assertOperational!, operational, [held]);
+    const state:State = {originals: held, input: undefined, children: new NativeMap(), closing: false, closed: false,
       flight: undefined, firstError: undefined, lastError: undefined};
-    const scope = freeze({assertCurrent(sameOriginals) { assertCurrent(scope, sameOriginals); },
-      retainPreparation(record, cleanupHandle) { return retainPreparation(scope, record, cleanupHandle); },
+    const scope:Scope = freeze({assertCurrent(sameOriginals:unknown) { assertCurrent(scope, sameOriginals); },
+      retainPreparation(record:unknown, cleanupHandle?:unknown) { return retainPreparation(scope, record, cleanupHandle); },
       status() { return observation(state); }, close() { return close(scope); }});
     apply(weakSet, scopes, [scope, state]);
     return scope;
   }
-  function begin(originals, rawInput) {
+  function begin(originals:unknown, rawInput?:unknown):Scope|Promise<Scope> {
     if (assertOperational === undefined) unavailable();
     if (rawInput !== undefined && prepareOperational === undefined) {
       fail('NodeInitialControlInputUnavailable');
@@ -271,10 +302,12 @@ function createInitialControlInstallationOwner(operational) {
     // and retain the same snapshot/partial cleanup before async initialization.
     const prepared = apply(prepareOperational, operational, [held, rawInput]);
     return apply(promiseThen, apply(promiseResolve, NativePromise, [prepared]),
-      [() => issue(held)]);
+      [() => issue(held)]) as Promise<Scope>;
   }
   return freeze({begin, assertCurrent, readAsset, readInput, requireOperational});
 }
 
-module.exports = {createInitialControlInstallationOwner};
+// Keep Node's named-export detection on the original CommonJS assignment.
+const exported = module.exports = {createInitialControlInstallationOwner};
 freeze(module.exports);
+export = exported as Readonly<typeof exported>;

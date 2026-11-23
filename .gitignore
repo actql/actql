@@ -2886,3 +2886,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/test/installed-notion-source.test.d.mts
 /adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs
 /adapters/connectors/notion/test/installed-notion-standard-reader.test.d.mts
+/adapters/host-node/initial-control-installation-owner.cjs
+/adapters/host-node/initial-control-installation-owner.d.cts
+/adapters/host-node/initial-control-installation-owner.test.mjs
+/adapters/host-node/initial-control-installation-owner.test.d.mts

@@ -10149,7 +10149,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -13705,7 +13705,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               }
             ],
@@ -17121,7 +17121,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -19504,7 +19504,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -21698,7 +21698,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -22982,7 +22982,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -24262,7 +24262,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
@@ -25542,7 +25542,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/initial-control-installation-owner.cjs",
+                "path": "adapters/host-node/initial-control-installation-owner.cts",
                 "anchor": "assertCurrent(scope, originals);"
               },
               {
