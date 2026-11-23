@@ -2802,6 +2802,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/notion/site/data-source-read.d.mts
 /adapters/connectors/notion/site/database-discovery.mjs
 /adapters/connectors/notion/site/database-discovery.d.mts
+/adapters/connectors/notion/host/database-reader.mjs
+/adapters/connectors/notion/host/database-reader.d.mts
 /adapters/connectors/notion/host/installed-notion-source.mjs
 /adapters/connectors/notion/host/installed-notion-source.d.mts
 /adapters/connectors/notion/host/database-metadata-targets.mjs

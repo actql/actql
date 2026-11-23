@@ -26929,7 +26929,7 @@
     },
     {
       "module": "adapters/connectors/notion/host/database-reader.mjs",
-      "sha256": "b7630c2737ceb0bdcb82ddabf57020bb38010bc9a1b7ecbb23b350c356abee15",
+      "sha256": "7ba692167fbe5a81e8a8e370fb964ee067eb8b5ec670b09a9e41b90229d6e2df",
       "exports": [
         "createNotionDatabaseReaderFactory"
       ],
