@@ -627,8 +627,10 @@ test "native remote runtime owns success failure and cleanup progression" {
   }
   assert_true(cleaned[0])
   assert_false(runtime.cleanup_pending())
-  runtime.start(request("dispatch-c"), input_binding).unwrap() |> ignore
-  runtime.start(request("dispatch-d"), input_binding).unwrap() |> ignore
+  let closing_c = request("dispatch-c")
+  let closing_d = request("dispatch-d")
+  runtime.start(closing_c, input_binding).unwrap() |> ignore
+  runtime.start(closing_d, input_binding).unwrap() |> ignore
   assert_true(runtime.retains_dispatch_resources())
   bundles.drain(bundle_cid).unwrap() |> ignore
   let executions_before_draining_process = executions[0]
@@ -639,6 +641,22 @@ test "native remote runtime owns success failure and cleanup progression" {
   assert_eq(executions[0], executions_before_draining_process)
   assert_true(runtime.close() is Err(@runtime.CleanupPending("output")))
   assert_eq(released[0], 6)
+  assert_true(runtime.retains_dispatch_resources())
+  let refused_cached_observations = Ref(0)
+  let refused_cached_executions = executions[0]
+  let refused_cached_handoffs = file_handoffs.val
+  for original in [closing_c, closing_d] {
+    assert_true(
+      runtime.start_after_acceptance(original, input_binding, _record => {
+        refused_cached_observations.val += 1
+        true
+      })
+      is Err(@runtime.Closed),
+    )
+  }
+  assert_eq(refused_cached_observations.val, 0)
+  assert_eq(executions[0], refused_cached_executions)
+  assert_eq(file_handoffs.val, refused_cached_handoffs)
   assert_true(runtime.close().unwrap())
   assert_false(runtime.retains_dispatch_resources())
   assert_eq(released[0], 8)
