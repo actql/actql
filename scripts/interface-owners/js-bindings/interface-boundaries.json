@@ -6654,7 +6654,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "dfaa700be221ae7119a849d2d3abb8be671dee2fe89759299ea7e6c7a7a5c47a",
+      "sha256": "f808e23e2a8b94af610ee6ecae322c50200bffff4f3a259091b3fc0ca522b75d",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -6973,7 +6973,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -6983,7 +6983,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -6993,7 +6993,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -7003,7 +7003,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -7013,7 +7013,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -7023,7 +7023,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -7033,7 +7033,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -7043,7 +7043,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -7053,7 +7053,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -7063,7 +7063,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -7088,7 +7088,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7098,7 +7098,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7108,7 +7108,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7118,7 +7118,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7128,7 +7128,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7138,7 +7138,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7148,7 +7148,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7158,7 +7158,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7168,7 +7168,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7178,7 +7178,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
@@ -7204,7 +7204,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7214,7 +7214,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7224,7 +7224,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7234,7 +7234,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7244,7 +7244,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7254,7 +7254,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7264,7 +7264,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7274,7 +7274,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7284,7 +7284,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7294,7 +7294,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkWrite"
               },
               {
@@ -7314,7 +7314,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7324,7 +7324,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7334,7 +7334,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7344,7 +7344,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7354,7 +7354,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7364,7 +7364,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7374,7 +7374,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7384,7 +7384,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7394,7 +7394,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7404,7 +7404,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "fail"
               },
               {
@@ -7427,7 +7427,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7437,7 +7437,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7447,7 +7447,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7457,7 +7457,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7467,7 +7467,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7477,7 +7477,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7487,7 +7487,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7497,7 +7497,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7507,7 +7507,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7517,7 +7517,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "generationFacts"
               },
               {
@@ -7545,7 +7545,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7555,7 +7555,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7565,7 +7565,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7575,7 +7575,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7585,7 +7585,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7595,7 +7595,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7605,7 +7605,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7615,7 +7615,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7625,7 +7625,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7635,7 +7635,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               },
               {
@@ -7661,7 +7661,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7671,7 +7671,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7681,7 +7681,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7691,7 +7691,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7701,7 +7701,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7711,7 +7711,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7721,7 +7721,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7731,7 +7731,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7741,7 +7741,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7751,7 +7751,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               },
               {
@@ -7773,7 +7773,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7783,7 +7783,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7793,7 +7793,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7803,7 +7803,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7813,7 +7813,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7823,7 +7823,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7833,7 +7833,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7843,7 +7843,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7853,7 +7853,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7863,7 +7863,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "mappingInput"
               },
               {
@@ -7887,7 +7887,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7897,7 +7897,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7907,7 +7907,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7917,7 +7917,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7927,7 +7927,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7937,7 +7937,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7947,7 +7947,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7957,7 +7957,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7967,7 +7967,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7977,7 +7977,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "membersOf"
               },
               {
@@ -7997,7 +7997,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8007,7 +8007,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8017,7 +8017,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8027,7 +8027,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8037,7 +8037,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8047,7 +8047,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8057,7 +8057,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8067,7 +8067,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8077,7 +8077,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8087,7 +8087,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "openSite"
               },
               {
@@ -8109,7 +8109,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8119,7 +8119,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8129,7 +8129,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8139,7 +8139,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8149,7 +8149,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8159,7 +8159,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8169,7 +8169,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8179,7 +8179,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8189,7 +8189,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8199,7 +8199,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publicationRecord"
               },
               {
@@ -8224,7 +8224,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8234,7 +8234,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8244,7 +8244,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8254,7 +8254,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8264,7 +8264,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8274,7 +8274,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8284,7 +8284,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8294,7 +8294,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8304,7 +8304,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8314,7 +8314,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "publishInstalledSalesforceEffect"
               },
               {
@@ -8337,7 +8337,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8347,7 +8347,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8357,7 +8357,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8367,7 +8367,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8377,7 +8377,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8387,7 +8387,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8397,7 +8397,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8407,7 +8407,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8417,7 +8417,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8427,7 +8427,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resolveMember"
               },
               {
@@ -8449,7 +8449,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8459,7 +8459,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8469,7 +8469,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8479,7 +8479,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8489,7 +8489,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8499,7 +8499,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8509,7 +8509,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8519,7 +8519,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8529,7 +8529,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8539,7 +8539,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "resourcesOf"
               },
               {
@@ -8565,7 +8565,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8575,7 +8575,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8585,7 +8585,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8595,7 +8595,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8605,7 +8605,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8615,7 +8615,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8625,7 +8625,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8635,7 +8635,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8645,7 +8645,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8655,7 +8655,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreGeneration"
               },
               {
@@ -8680,7 +8680,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8690,7 +8690,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8700,7 +8700,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8710,7 +8710,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8720,7 +8720,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8730,7 +8730,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8740,7 +8740,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8750,7 +8750,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8760,7 +8760,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8770,7 +8770,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectTargetReadInventory"
               },
               {
@@ -8795,7 +8795,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8805,7 +8805,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8815,7 +8815,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8825,7 +8825,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8835,7 +8835,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8845,7 +8845,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8855,7 +8855,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8865,7 +8865,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8875,7 +8875,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8885,7 +8885,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "salesforceEffectUnit"
               },
               {
@@ -8905,7 +8905,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8915,7 +8915,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8925,7 +8925,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8935,7 +8935,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8945,7 +8945,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8955,7 +8955,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8965,7 +8965,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8975,7 +8975,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8985,7 +8985,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -8995,7 +8995,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "text"
               },
               {
@@ -9019,8 +9019,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -9029,8 +9029,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -9049,8 +9049,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -9059,8 +9059,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -9069,8 +9069,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -9079,8 +9079,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -9089,8 +9089,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -9099,8 +9099,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -9127,7 +9127,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9137,7 +9137,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9147,7 +9147,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9157,7 +9157,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9167,7 +9167,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9177,7 +9177,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9187,7 +9187,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9197,7 +9197,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9207,7 +9207,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -9217,7 +9217,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "// Host-owned Salesforce Effect installation for the standard installed Host."
               },
               {
@@ -11200,7 +11200,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "dfb77892969030ac0d4702840c0b5ffa7be0f33c302f05050910c3770cdaa9c8",
+      "sha256": "1090dddf8ead9c8d26f32e5490920de65ebfb0e1a320d31a7e05d24cb3df1930",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [

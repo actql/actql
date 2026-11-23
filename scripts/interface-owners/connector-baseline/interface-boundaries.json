@@ -8300,7 +8300,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "loadInstalledSalesforceEffectInstallation"
               },
               {
@@ -8328,7 +8328,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1f625d2339af80752242c560fae7c04e1db7100053c49fff1954e6d78ebee447",
+      "sha256": "8c1001cd0b534546cf48aae744896ee805dffd3865270d44cbcc89a2e99db8a4",
       "role": "connector-semantics",
       "owner": "Salesforce factory entries in the generated Host connector table, not an independent Effect runtime",
       "exports": [
@@ -8398,61 +8398,61 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "Host supplies"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "loadInstalledSalesforceEffectInstallation"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "installedSalesforceEffectIdentityParts"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "close: effect.close"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "await loadInstalledSalesforceEffect"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "checkInstalledSalesforceEffectProfile"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],
@@ -8464,7 +8464,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "limits"
               }
             ],
@@ -8478,7 +8478,7 @@
                 "anchor": "generateInstallations"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mts",
                 "anchor": "return retainInstalledRowEffectAdapter(effect,"
               }
             ],

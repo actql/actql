@@ -28,7 +28,7 @@ import {recoverCapturedSalesforceSingleRequests} from
   './salesforce-effect-request-recovery.mjs';
 
 import type {ResourceBinding} from './salesforce-resource-resolver.mjs';
-import type {recoverNamedSalesforceObservation} from '../site/salesforce-named-describe.mjs';
+import type {loadInstalledSalesforceSite} from './installed-salesforce-site.mjs';
 
 type Rebuild = Parameters<typeof recoverCapturedSalesforceSingleRequests>[0];
 type Target = Parameters<typeof observeSalesforceTargetSet>[0];
@@ -60,16 +60,14 @@ type Installed = Readonly<{write: Readonly<{kind: (typeof installedKinds)[Kind];
 type Dispatch = Readonly<{runInvocationCid: string; dispatchRequestCid: string}>;
 type Grant = Dispatch & Readonly<{operation: string; decision: unknown; resource: string; subjectCid?: string}>;
 type Current = Readonly<{observation: unknown}>;
-type CurrentEvidence = Current & Readonly<{observationCid: string;
-  evidence: Parameters<typeof recoverNamedSalesforceObservation>[0]['evidence']}>;
-type DescribeSite = Dispatch & Readonly<{resources: readonly string[]; occurrence: string; approval?: unknown;
-  signal?: AbortSignal; readChild?: unknown; controlConstruction?: unknown}>;
-type Site = Readonly<{apiVersion: string; instanceOrigin: string; credential: TargetMember['credential'] & Capability['credential'];
-  describeEffectCatalog(input: DescribeSite): CurrentEvidence | PromiseLike<CurrentEvidence>;
-  admitCheckpointEffectTargetRead(decision: unknown, binding: Readonly<Record<string, unknown>>): unknown;
-  attestEffectCapability(input: Dispatch & Readonly<{operation: string}>): NonNullable<Capability['authority']>;
-  issueGrant(input: Grant): unknown;
-}>;
+type InstalledSite = Awaited<ReturnType<typeof loadInstalledSalesforceSite>>;
+type Site = Pick<InstalledSite, 'apiVersion' | 'instanceOrigin' | 'credential' | 'describeEffectCatalog' |
+  'admitCheckpointEffectTargetRead' | 'attestEffectCapability' | 'issueGrant'>;
+type CurrentEvidence = Awaited<ReturnType<Site['describeEffectCatalog']>>;
+type DescribeSite = NonNullable<Parameters<Site['describeEffectCatalog']>[0]>;
+type ReadDecision = Parameters<Site['admitCheckpointEffectTargetRead']>[0];
+type ReadBinding = Parameters<Site['admitCheckpointEffectTargetRead']>[1];
+type GrantDecision = Parameters<Site['issueGrant']>[0]['decision'];
 type Options = Readonly<{salesforceMoon: Runtime; site: Site; mappingOf(cid: string): Installed | undefined;
   nextOccurrence(label: string): string; siteBindingCid: string; generationCid: string;
   limits: Readonly<{preview: Rebuild['previewLimits']; body: Rebuild['bodyLimits']; request: Rebuild['requestLimits'];
@@ -206,7 +204,7 @@ export function salesforceWriteDriver({salesforceMoon, site, mappingOf,
       if (binding === undefined) {
         fail('SalesforceEffectTargetReadApprovalNotAdmitted');
       }
-      return site.admitCheckpointEffectTargetRead(decision, binding);
+      return site.admitCheckpointEffectTargetRead(decision as ReadDecision, binding as ReadBinding);
     },
 
     prepareRequest({member, value, selector, current}: MemberInput & CurrentInput & Readonly<{value: unknown; selector: string}>) {
@@ -354,11 +352,11 @@ export function salesforceRowEffectSite(site: Pick<Site, 'credential' | 'issueGr
   return Object.freeze({
     credential: site.credential, callResource: undefined,
     issueReadGrant: ({operation, decision, resource, runInvocationCid,
-      dispatchRequestCid}: Grant) => site.issueGrant({operation, decision, resource,
+      dispatchRequestCid}: Grant) => site.issueGrant({operation, decision: decision as GrantDecision, resource,
       runInvocationCid, dispatchRequestCid}),
     issueEffectGrant: ({operation, decision, resource, runInvocationCid,
       dispatchRequestCid, subjectCid}: Grant) => site.issueGrant({operation,
-      decision, resource, runInvocationCid, dispatchRequestCid, subjectCid}),
+      decision: decision as GrantDecision, resource, runInvocationCid, dispatchRequestCid, subjectCid}),
     // The bound constructor attaches the original Site's physical cleanup.
   });
 }

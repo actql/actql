@@ -37,6 +37,67 @@ import {salesforceRowEffectSite, salesforceWriteDriver} from
 import {captureSalesforceEffectPlanRecipeBuilder} from './salesforce-effect-plan.mjs';
 import {installedRowCredentialOperationSite} from '../../../host-node/installed-row-source.mjs';
 
+import type {bindInstalledSourceConstruction} from '../../../host-node/installed-host-services.mjs';
+import type {createInstalledRowEffect} from '../../../host-node/installed-row-effect.mjs';
+import type {SalesforceDeclarationConstruction, SalesforceSiteDeclaration} from './installed-salesforce-site.mjs';
+
+type Site = Awaited<ReturnType<typeof loadInstalledSalesforceSite>>;
+type Authorization = Awaited<ReturnType<typeof installSalesforceAuthorization>>;
+type SiteOptions = NonNullable<Parameters<typeof loadInstalledSalesforceSite>[1]>;
+type MappingWrite = NonNullable<Parameters<Site['prepareExecutionMapping']>[0]>['write'];
+type Write = Omit<MappingWrite, 'kind'> & Readonly<{
+  kind: Exclude<MappingWrite['kind'], 'create'>; resource: string;
+}>;
+type ProfileInput = Readonly<{siteProfilePath?: unknown; publicationPath?: unknown;
+  accountConfigurationWire?: unknown; connectorId?: unknown; version?: unknown; writes?: unknown}>;
+type Profile = Readonly<{siteProfilePath: string; publicationPath: string;
+  accountConfigurationWire: string; connectorId: string; version: typeof INSTALLED_SALESFORCE_EFFECT_VERSION;
+  writes: readonly Write[]}>;
+type Mapping = ReturnType<Site['prepareExecutionMapping']> & Readonly<{write: Write}>;
+type Environment = ReturnType<typeof salesforceCheckEnvironment>;
+type Source = Parameters<typeof restoreSalesforceGeneration>[0]['generation'];
+type Record = Readonly<{source: Source; environment_cid: string; mappings: readonly unknown[]; version: unknown}>;
+type Installed = Readonly<{generationCid: string; declared: SalesforceSiteDeclaration;
+  mappings: readonly Mapping[]; environment: Environment}>;
+type Runtime = Readonly<{
+  clientProgramEffectMemberDescriptor(prepared: unknown, stageIndex: number, effectId: string, work: number): unknown;
+  clientProgramEffectCompilationPlanWire(compilation: unknown): string;
+}>;
+type Provider = SiteOptions['salesforceMoon'] &
+  Parameters<typeof salesforceWriteDriver>[0]['salesforceMoon'] & Readonly<{
+    salesforceSourceEvidenceMembers(declaration: object): unknown;
+  }>;
+type EvidenceMembers = readonly [schemas: readonly string[], capabilities: readonly string[]];
+type Host = ReturnType<typeof bindInstalledSourceConstruction>;
+type Configuration = Readonly<{readText: NonNullable<Parameters<typeof readPublicationFile>[1]>;
+  parseJsonText(text: string): unknown}>;
+type Construction = Omit<Host, 'prepareNativeInput'> & SalesforceDeclarationConstruction;
+type RowEffect = Awaited<ReturnType<typeof createInstalledRowEffect>>;
+type SiteSetup = Readonly<{salesforceMoon: Provider; runtimeBundleCid: string;
+  resolveSecret?: SiteOptions['resolveSecret']; openCredentialJournal?: SiteOptions['openCredentialJournal']}>;
+type PublicationSetup = SiteSetup & Readonly<{root: string; principalId: string; moon: unknown;
+  baseEnvironmentWire: string; signal?: AbortSignal}>;
+type Install = SiteSetup & Readonly<{moon: Runtime; ledgerRoot: string; construction: Construction}>;
+type GenerationOptions = Readonly<{site: Site; salesforceMoon: Provider; declared: SalesforceSiteDeclaration;
+  writes: readonly Write[]; baseEnvironmentWire: string}>;
+type RestoreOptions = Readonly<{site: Site; salesforceMoon: Provider; moon: Runtime; profile: Profile;
+  construction: Construction}>;
+type Unit = ReturnType<typeof salesforceEffectUnit>;
+type Stage = Readonly<{id: string; effects?: object}>;
+type Inventory = Readonly<{moon: Runtime; prepared: unknown; unit: Unit;
+  installed: Pick<Installed, 'mappings' | 'generationCid'>; site: Parameters<typeof installedSalesforceSiteBinding>[0];
+  connectorId: string}>;
+type Driver = ReturnType<typeof salesforceWriteDriver>;
+type RecipeBuilder = ReturnType<typeof captureSalesforceEffectPlanRecipeBuilder>;
+type Recipes = ReturnType<RecipeBuilder>;
+type RunOperationSite = Extract<ReturnType<typeof installedRowCredentialOperationSite>, {construction: unknown}>;
+type DriverOptions = Pick<RestoreOptions, 'construction' | 'moon' | 'salesforceMoon' | 'site'> &
+  Readonly<{installed: Installed; nextOccurrence: (label: string) => string; siteBindingCid: string}>;
+type EffectOptions = Pick<Install, 'moon' | 'salesforceMoon' | 'ledgerRoot' | 'runtimeBundleCid' | 'construction'> &
+  Readonly<{site: Site; installed: Installed; connectorId: string; accountConfiguration: string}>;
+type ReadInventory = Readonly<{moon: unknown; prepared: unknown; unit?: Unit; compilation?: unknown;
+  updateTargetSelections?: unknown; assertUpdateSelectionCurrent?: () => unknown}>;
+
 export const INSTALLED_SALESFORCE_EFFECT_VERSION =
   'actql-installed-salesforce-effect/0.1';
 export const SALESFORCE_EFFECT_PUBLICATION_VERSION =
@@ -79,23 +140,23 @@ const limits = Object.freeze({
     maxDepth: 64}),
 });
 
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 const requiredEffectRuntime = Object.freeze([
   'salesforcePrepareExecutionWriteBody', 'salesforceWriteValueRefusal',
-  'salesforceSingleWriteRequestValue']);
+  'salesforceSingleWriteRequestValue'] as const);
 const names = /^[A-Za-z_][A-Za-z0-9_]{0,254}$/u;
 
-function checkWrite(write) {
+function checkWrite(write: Write): Write {
   if (write === null || typeof write !== 'object' || Array.isArray(write) ||
       !names.test(write.resource ?? '') || !writeKinds.has(write.kind) ||
       Object.keys(write).some(key => !['resource', 'kind', 'fields', 'key',
         'sources'].includes(key)) ||
       (write.fields !== undefined && (!Array.isArray(write.fields) ||
         write.fields.length === 0 || write.fields.length > limits.maxFields ||
-        !write.fields.every(field => names.test(field)))) ||
+        !write.fields.every((field: string) => names.test(field)))) ||
       (write.key !== undefined && !names.test(write.key)) ||
       (write.kind === 'upsert') !== (write.key !== undefined) ||
       (write.kind === 'createFromResult') !== (write.sources !== undefined) ||
@@ -103,7 +164,7 @@ function checkWrite(write) {
       (write.sources !== undefined && (!Array.isArray(write.sources) ||
         write.sources.length === 0 ||
         write.sources.length > limits.maxFields ||
-        !write.sources.every(source => source !== null &&
+        !write.sources.every((source: NonNullable<Write['sources']>[number]) => source !== null &&
           typeof source === 'object' && names.test(source.target ?? '') &&
           text(source.field) &&
           ['reject', 'omit', 'null'].includes(source.nullBehavior))))) {
@@ -113,12 +174,12 @@ function checkWrite(write) {
     ...(write.fields === undefined ? {} :
       {fields: Object.freeze([...write.fields])}),
     ...(write.sources === undefined ? {} : {sources: Object.freeze(
-      write.sources.map(source => Object.freeze({...source})))})});
+      write.sources.map((source: NonNullable<Write['sources']>[number]) => Object.freeze({...source})))})});
 }
 
 // Check the Host profile's shape before anything is read or installed. It
 // holds no secret value or private key: the Site profile names them.
-export function checkInstalledSalesforceEffectProfile(profile) {
+export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {
   if (profile === null || typeof profile !== 'object' ||
       Array.isArray(profile) ||
       Object.keys(profile).sort().join('\0') !== profileKeys.join('\0') ||
@@ -130,20 +191,20 @@ export function checkInstalledSalesforceEffectProfile(profile) {
       profile.writes.length > limits.maxMembers) {
     fail('InvalidInstalledEffectProfile');
   }
-  const writes = profile.writes.map(checkWrite);
+  const writes = (profile.writes as readonly Write[]).map(checkWrite);
   if (new Set(writes.map(write => canonicalJson(write))).size !==
       writes.length) {
     fail('InvalidInstalledEffectProfile');
   }
-  return Object.freeze({...profile, writes: Object.freeze(writes)});
+  return Object.freeze({...profile, writes: Object.freeze(writes)}) as Profile;
 }
 
 // The Resources the installed writes name, in first-write order.
-const resourcesOf = profile => Object.freeze([...new Set(
+const resourcesOf = (profile: Profile) => Object.freeze([...new Set(
   profile.writes.map(write => write.resource))]);
 
-async function openSite(profile, {root, principalId, moon, salesforceMoon,
-  runtimeBundleCid, resolveSecret, openCredentialJournal}) {
+async function openSite(profile: Profile, {root, principalId, moon, salesforceMoon,
+  runtimeBundleCid, resolveSecret, openCredentialJournal}: PublicationSetup) {
   const authorization = await installSalesforceAuthorization({
     accountConfiguration: profile.accountConfigurationWire, principalId,
     root});
@@ -153,7 +214,7 @@ async function openSite(profile, {root, principalId, moon, salesforceMoon,
   return site;
 }
 
-const mappingInput = write => ({kind: write.kind,
+const mappingInput = (write: Write): MappingWrite => ({kind: write.kind,
   ...(write.fields === undefined ? {} : {fields: [...write.fields]}),
   ...(write.key === undefined ? {} : {key: write.key}),
   ...(write.sources === undefined ? {} :
@@ -162,7 +223,7 @@ const mappingInput = write => ({kind: write.kind,
 // The execution Mappings of the installed writes and the Check Environment,
 // all from one declaration.
 function generationFacts({site, salesforceMoon, declared, writes,
-  baseEnvironmentWire}) {
+  baseEnvironmentWire}: GenerationOptions) {
   const mappings = writes.map(write => {
     const prepared = site.prepareExecutionMapping({
       declaration: declared.declaration, resource: write.resource,
@@ -170,14 +231,14 @@ function generationFacts({site, salesforceMoon, declared, writes,
     return Object.freeze({write, ...prepared});
   });
   const [schemas, capabilities] = checked(
-    salesforceMoon.salesforceSourceEvidenceMembers(declared.declaration));
+    salesforceMoon.salesforceSourceEvidenceMembers(declared.declaration)) as EvidenceMembers;
   const environment = salesforceCheckEnvironment(baseEnvironmentWire,
     declared, {schemas, capabilities},
     mappings.map(mapping => mapping.body));
   return {mappings, environment};
 }
 
-const publicationRecord = (source, mappings, environment) => ({
+const publicationRecord = (source: Source, mappings: readonly Mapping[], environment: Environment) => ({
   environment_cid: environment.evidenceCid,
   mappings: mappings.map(mapping => ({mapping_cid: mapping.mappingCid,
     mapping_ref: mapping.mappingRef, write: mapping.write})),
@@ -189,7 +250,7 @@ const publicationRecord = (source, mappings, environment) => ({
 // under the current metadata read decisions, generate their execution
 // Mappings and the Check Environment from that one declaration, and replace
 // the published generation atomically. A Host start never runs it.
-export async function publishInstalledSalesforceEffect(profile, options) {
+export async function publishInstalledSalesforceEffect(profile: ProfileInput, options: PublicationSetup) {
   const checkedProfile = checkInstalledSalesforceEffectProfile(profile);
   if (!text(options?.baseEnvironmentWire)) {
     fail('InvalidInstalledEffectOptions');
@@ -224,11 +285,11 @@ export async function publishInstalledSalesforceEffect(profile, options) {
 // Mappings and the Check Environment must regenerate exactly from the
 // restored declaration for the installed writes; any other generation, or a
 // partially replaced one, is refused.
-async function restoreGeneration({site, salesforceMoon, moon, profile, construction}) {
-  const readers = construction.configurationReader;
+async function restoreGeneration({site, salesforceMoon, moon, profile, construction}: RestoreOptions): Promise<Installed> {
+  const readers = construction.configurationReader as Configuration;
   const {body, generationCid} = await readPublicationFile(profile.publicationPath, readers.readText);
-  let record;
-  try { record = readers.parseJsonText(body); }
+  let record: Record;
+  try { record = readers.parseJsonText(body) as Record; }
   catch (error) { fail('InvalidSalesforceEffectPublication', error); }
   if (record === null || typeof record !== 'object' || Array.isArray(record) ||
       JSON.stringify(record) !== body || Object.keys(record).join('\0') !== publicationKeys.join('\0') ||
@@ -248,7 +309,7 @@ async function restoreGeneration({site, salesforceMoon, moon, profile, construct
       {generation: record.source, siteBinding: site, dimensions, declarationLimits: limits.declaration}),
     project() {
       const [schemas, capabilities] = checked(
-        salesforceMoon.salesforceSourceEvidenceMembers(declared.declaration));
+        salesforceMoon.salesforceSourceEvidenceMembers(declared.declaration)) as EvidenceMembers;
       return Object.freeze({declared, schemas, capabilities});
     },
   }));
@@ -259,7 +320,7 @@ async function restoreGeneration({site, salesforceMoon, moon, profile, construct
       declaration: provider.declared.declaration, resource: write.resource,
       write: mappingInput(write), limits: limits.mapping})}),
   }))));
-  const {environment} = construction.prepareProviderEffect(provider, mappings);
+  const {environment} = construction.prepareProviderEffect(provider, mappings) as {environment: Environment};
   if (canonicalJson(record.mappings) !== canonicalJson(
     publicationRecord(record.source, mappings, environment).mappings) ||
       record.environment_cid !== environment.evidenceCid) {
@@ -271,10 +332,11 @@ async function restoreGeneration({site, salesforceMoon, moon, profile, construct
 // One member of the installed Effect Unit: its Program descriptor and the
 // installed write whose Mapping the Program resolved. Refused before any
 // provider I/O when the Program's Mapping is not an installed one.
-function resolveMember(moon, prepared, installed, {stageIndex, effectId}) {
+function resolveMember(moon: Runtime, prepared: unknown, installed: Pick<Installed, 'mappings'>,
+  {stageIndex, effectId}: Readonly<{stageIndex: number; effectId: string}>) {
   const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
     prepared, stageIndex, effectId, limits.planWork));
-  const kind = runtimeField(descriptor, 2);
+  const kind = runtimeField(descriptor, 2) as ReturnType<typeof writeKinds.get>;
   const mapping = installed.mappings.find(candidate =>
     candidate.mappingCid === runtimeField(descriptor, 5) &&
     candidate.mappingRef === runtimeField(descriptor, 4));
@@ -282,24 +344,24 @@ function resolveMember(moon, prepared, installed, {stageIndex, effectId}) {
       runtimeField(descriptor, 6) === undefined) {
     fail('SalesforceEffectMappingNotInstalled');
   }
-  return Object.freeze({stageIndex, effectId: runtimeField(descriptor, 1),
-    memberIndex: runtimeField(descriptor, 0), kind, mapping,
+  return Object.freeze({stageIndex, effectId: runtimeField(descriptor, 1) as string,
+    memberIndex: runtimeField(descriptor, 0) as number, kind, mapping,
     resource: mapping.write.resource,
     fields: Object.freeze(mapping.write.fields ??
-      mapping.write.sources.map(source => source.target)),
+      mapping.write.sources!.map(source => source.target)),
     key: mapping.write.key ?? ''});
 }
 
 // The one Effect Unit of a compiled Values Program: its Program id, the stage
 // id and index, and its Effect ids in declaration order, as compiled. A
 // Program with Effects in more than one stage is not this scope.
-export function salesforceEffectUnit(moon, compilation) {
-  let program;
+export function salesforceEffectUnit(moon: Runtime, compilation: unknown) {
+  let program: Readonly<{id: string; stages: readonly Stage[]}> | undefined;
   try {
     program = JSON.parse(moon.clientProgramEffectCompilationPlanWire(
       compilation)).execution_material?.program;
   } catch (error) { fail('SalesforceEffectUnitUnsupported', error); }
-  const stages = Array.isArray(program?.stages) ? program.stages : [];
+  const stages: readonly Stage[] = Array.isArray(program?.stages) ? program.stages : [];
   const units = stages.flatMap((stage, stageIndex) =>
     stage?.effects === undefined ? [] : [{stage, stageIndex}]);
   if (!text(program?.id) || units.length !== 1 || !text(units[0].stage.id)) {
@@ -307,13 +369,13 @@ export function salesforceEffectUnit(moon, compilation) {
   }
   const {stage, stageIndex} = units[0];
   return Object.freeze({programId: program.id, stageId: stage.id, stageIndex,
-    effectIds: Object.freeze(Object.keys(stage.effects))});
+    effectIds: Object.freeze(Object.keys(stage.effects!))});
 }
 
 // The members of the one Effect Unit (`unit`: the Program id, the stage id
 // and index, and its Effect ids). The Program and stage ids name the logical
 // items of every claim; recovery uses the same pair.
-function membersOf(moon, prepared, installed, unit) {
+function membersOf(moon: Runtime, prepared: unknown, installed: Pick<Installed, 'mappings'>, unit: Unit) {
   const effectIds = unit?.effectIds;
   if (!text(unit?.programId) || !text(unit.stageId) ||
       !Number.isSafeInteger(unit.stageIndex) || unit.stageIndex < 0 ||
@@ -322,7 +384,7 @@ function membersOf(moon, prepared, installed, unit) {
       new Set(effectIds).size !== effectIds.length) {
     fail('SalesforceEffectUnitUnsupported');
   }
-  const members = effectIds.map(effectId => resolveMember(moon, prepared,
+  const members = effectIds.map((effectId: string) => resolveMember(moon, prepared,
     installed, {stageIndex: unit.stageIndex, effectId}));
   members.sort((a, b) => a.memberIndex - b.memberIndex);
   if (members.some((member, index) => member.memberIndex !== index)) {
@@ -335,7 +397,7 @@ function membersOf(moon, prepared, installed, unit) {
 // before computation or provider I/O. Preserve every member binding even
 // when several members share an authorization tuple.
 export function salesforceEffectTargetReadInventory({moon, prepared, unit,
-  installed, site, connectorId}) {
+  installed, site, connectorId}: Inventory) {
   const members = membersOf(moon, prepared, installed, unit);
   const siteBinding = installedSalesforceSiteBinding(site, connectorId);
   return Object.freeze(members.map(member => Object.freeze({
@@ -357,8 +419,8 @@ export function salesforceEffectTargetReadInventory({moon, prepared, unit,
 
 // The installed Salesforce Effect: its Check Environment and the provider
 // projections of one Run over the common owners.
-export async function loadInstalledSalesforceEffect(profile, {moon, salesforceMoon,
-  runtimeBundleCid, resolveSecret, ledgerRoot, openCredentialJournal, construction}) {
+export async function loadInstalledSalesforceEffect(profile: ProfileInput, {moon, salesforceMoon,
+  runtimeBundleCid, resolveSecret, ledgerRoot, openCredentialJournal, construction}: Install) {
   if (construction === undefined) fail('InstalledSourceInitializationUnavailable');
   const checkedProfile = checkInstalledSalesforceEffectProfile(profile);
   if (!text(ledgerRoot) || !isAbsolute(ledgerRoot)) fail('InvalidInstalledEffectOptions');
@@ -382,7 +444,7 @@ export async function loadInstalledSalesforceEffect(profile, {moon, salesforceMo
     siteArgument: checkedProfile.siteProfilePath,
     accountConfiguration: checkedProfile.accountConfigurationWire,
     siteOptions: {salesforceMoon, resolveSecret, openCredentialJournal, runAcquisitionLimits},
-  });
+  }) as Readonly<{site: Site; authorization: Authorization}>;
   const installed = await restoreGeneration({site, salesforceMoon, moon,
     profile: checkedProfile, construction});
   return installedSalesforceEffect({moon, salesforceMoon, site, installed, ledgerRoot,
@@ -396,11 +458,11 @@ export async function loadInstalledSalesforceEffect(profile, {moon, salesforceMo
 // through failed initialization and its existing retirement; no Run or grant
 // is issued here. Both methods/receivers are captured before reserve can reenter.
 function prepareInstalledSalesforceEffectDriver({construction, moon, salesforceMoon,
-  site, installed, nextOccurrence, siteBindingCid}) {
-  const method = (receiver, name) => {
+  site, installed, nextOccurrence, siteBindingCid}: DriverOptions) {
+  const method = (receiver: unknown, name: string) => {
     if (receiver === null || !['object', 'function'].includes(typeof receiver) ||
         nodeTypes.isProxy(receiver)) fail('InstalledSalesforceDriverConstructionUnavailable');
-    const field = Object.getOwnPropertyDescriptor(receiver, name);
+    const field = Object.getOwnPropertyDescriptor(receiver as object, name);
     if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function' ||
         nodeTypes.isProxy(field.value) || nodeTypes.isAsyncFunction(field.value)) {
       fail('InstalledSalesforceDriverConstructionUnavailable');
@@ -413,23 +475,23 @@ function prepareInstalledSalesforceEffectDriver({construction, moon, salesforceM
   return Reflect.apply(construct, construction, [Object.freeze({
     capacity() {return Reflect.apply(capacity, salesforceMoon, []);},
     project() {
-      const originalSite = installedRowCredentialOperationSite(site.credential);
-      const managedPlanRecipes = prepareRecipes({installed, site, credentialConstruction: originalSite.construction,
+      const originalSite = installedRowCredentialOperationSite(site.credential) as RunOperationSite;
+      const managedPlanRecipes = prepareRecipes({installed, site, credentialConstruction: originalSite.construction!,
         catalogLimits: DEFAULT_SALESFORCE_CATALOG_LIMITS, limits});
       const driver = salesforceWriteDriver({salesforceMoon, site,
-        mappingOf: mappingCid => installed.mappings.find(mapping =>
+        mappingOf: (mappingCid: string) => installed.mappings.find(mapping =>
           mapping.mappingCid === mappingCid),
         nextOccurrence, siteBindingCid, generationCid: installed.generationCid, limits});
       return Object.freeze({driver, managedPlanRecipes});
     },
-  })]);
+  })]) as Readonly<{driver: Driver; managedPlanRecipes: Recipes}>;
 }
 
 async function installedSalesforceEffect({moon, salesforceMoon, site,
   installed, ledgerRoot, connectorId, accountConfiguration,
-  runtimeBundleCid, construction}) {
+  runtimeBundleCid, construction}: EffectOptions) {
   let occurrence = 0;
-  const nextOccurrence = label => `effect-${label}-${Date.now()}-${
+  const nextOccurrence = (label: string) => `effect-${label}-${Date.now()}-${
     occurrence++}`;
   const siteBindingCid = installedSalesforceSiteBinding(site, connectorId)
     .bindingCid;
@@ -442,9 +504,9 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
     connection: site.connection, projectSite: salesforceRowEffectSite,
     runtimeBundleCid, bindingCid: siteBindingCid,
     continuationBinding: installed.generationCid,
-    ledgerRoot, driver, managedPlanRecipes});
+    ledgerRoot, driver, managedPlanRecipes}) as RowEffect;
   const targetReadInventory = ({moon: runMoon, prepared, unit: providedUnit, compilation,
-    updateTargetSelections, assertUpdateSelectionCurrent}) => {
+    updateTargetSelections, assertUpdateSelectionCurrent}: ReadInventory) => {
     if (runMoon !== moon) fail('InvalidInstalledEffectTargetInventory');
     const unit = providedUnit ?? salesforceEffectUnit(moon, compilation);
     const selections = validateInstalledUpdateOwnerSelections(rowEffect,
@@ -467,7 +529,7 @@ async function installedSalesforceEffect({moon, salesforceMoon, site,
           {code: 'InstalledRowEffectInstallationChanged'}));
       }
       const result = assertUpdateSelectionCurrent();
-      if (typeof result?.then === 'function') {
+      if (typeof (result as {then?: unknown} | null)?.then === 'function') {
         void Promise.resolve(result).catch(() => {});
         throw refusedEffectPreparation(Object.assign(
           new Error('InstalledRowEffectInstallationChanged'),

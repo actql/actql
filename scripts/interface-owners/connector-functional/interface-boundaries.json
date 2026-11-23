@@ -3091,49 +3091,49 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "only the"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "loadInstalledSalesforceEffect"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "installedSalesforceEffect"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "retainSalesforceSiteCleanup"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "restoreSalesforceGeneration"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "InvalidInstalledEffectProfile"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "signal"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
                 "anchor": "maxRetainedBytes"
               }
             ],
@@ -3161,8 +3161,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -3171,8 +3171,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -3191,8 +3191,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -3201,8 +3201,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -3211,8 +3211,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -3221,8 +3221,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -3231,8 +3231,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -3241,8 +3241,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-                "anchor": "export function checkInstalledSalesforceEffectProfile(profile) {"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-effect.mts",
+                "anchor": "export function checkInstalledSalesforceEffectProfile(profile: ProfileInput): Profile {"
               },
               {
                 "path": "docs/design/connector-layout.md",

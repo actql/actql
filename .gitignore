@@ -3188,3 +3188,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/salesforce/host/installed-salesforce-site.d.mts
 /adapters/connectors/salesforce/host/installed-salesforce-source.mjs
 /adapters/connectors/salesforce/host/installed-salesforce-source.d.mts
+/adapters/connectors/salesforce/host/installed-salesforce-effect-installation.d.mts
+/adapters/connectors/salesforce/host/installed-salesforce-effect-installation.mjs
+/adapters/connectors/salesforce/host/installed-salesforce-effect.d.mts
+/adapters/connectors/salesforce/host/installed-salesforce-effect.mjs

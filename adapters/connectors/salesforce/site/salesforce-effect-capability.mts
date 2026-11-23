@@ -8,6 +8,9 @@ import {matchesSalesforceCredentialOrg} from
 
 import type {SalesforceRequestScope, SalesforceWriteScope} from './salesforce-single-write.mjs';
 
+import type {remoteCredentialControl} from '../../../host-common/remote-credential-control.mjs';
+import type {withHttpsCredentialRunResponseOriginal} from '../../../site-node/https-credential-resource.mjs';
+
 type Runtime = Readonly<{
   salesforceCatalogObservationJson(observation: unknown): string;
   salesforceSingleWriteRequestOrgId(request: unknown): string;
@@ -22,10 +25,12 @@ type Runtime = Readonly<{
   salesforceWriteCapabilityRoute(evidence: unknown): number;
 }>;
 type CredentialOrg = NonNullable<Parameters<typeof matchesSalesforceCredentialOrg>[0]>;
-type GrantControl = Readonly<{identity(grant: unknown): string; projection(grant: unknown): readonly unknown[]}>;
+type RunOriginal = Parameters<typeof withHttpsCredentialRunResponseOriginal>;
+type GrantControl = ReturnType<typeof remoteCredentialControl>;
+type GrantScope = Parameters<GrantControl['prepare']>[0];
 type Credential = CredentialOrg & Readonly<{
   control: GrantControl;
-  journal: Readonly<{checkGrant(identity: string, now: bigint, scope: unknown, control: GrantControl): unknown}>;
+  journal: Pick<RunOriginal[2], 'checkGrant'>;
   now?: () => number | bigint;
 }>;
 type Authority = Readonly<{scope: object}>;
@@ -73,7 +78,7 @@ function currentGrant(owner: Readonly<Owner>) {
   if (attested !== undefined) return attested();
   const {control, journal, now} = credential;
   const grant = journal.checkGrant(control.identity(authorization.grant),
-    BigInt(now()), authorization.scope, control);
+    BigInt(now()), authorization.scope as GrantScope, control);
   return control.projection(grant)[7] as string;
 }
 
