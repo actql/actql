@@ -1,3 +1,4 @@
+// @ts-expect-error TS7016: the shared test ledger projection is still authored JavaScript.
 import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 import assert from 'node:assert/strict';
 import test from 'node:test';
@@ -9,17 +10,19 @@ import {calendarRecord} from './calendar-list.fixture.mjs';
 
 for(const format of ['sql','aql'])test(`ordinary installed Calendar ${format} captures two original pages and releases its native binding`,async t=>{
   const f=await installedCalendarFixture(t),source=await f.load(),preparation=await f.prepare(source,{format});
-  const opened=await source.openCapture(preparation);
+  // This Filter/Select fixture requests the original Query capture.
+  const opened=await source.openCapture(preparation) as
+    Awaited<ReturnType<typeof source.openCapture>> & Readonly<{requirement: unknown}>;
   const exported=checked(f.common.clientProgramExportSourceCapture(opened.capture.source(),opened.requirement,'installed-calendar-test'));
-  assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse),[
+  assert.deepEqual(f.common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse as (wire: string) => unknown),[
     {access_role:'reader',id:'one',summary:'one',time_zone:'UTC'},
     {access_role:'reader',id:'two',summary:'two',time_zone:'UTC'}]);
   assert.equal(f.state.requests.length,2);
-  const paths=f.state.requests.map(r=>new URL(r.path,'https://calendar.test'));
+  const paths=f.state.requests.map(r=>new URL(r.path!,'https://calendar.test'));
   assert(paths.every(p=>p.pathname==='/calendar/v3/users/me/calendarList'));
   assert.equal(paths[1].searchParams.get('pageToken'),'opaque /+é');
   assert(paths.every(p=>p.searchParams.get('showHidden')==='true'&&p.searchParams.get('showDeleted')==='false'));
-  assert(paths.every(p=>p.searchParams.get('fields').includes('accessRole')));
+  assert(paths.every(p=>p.searchParams.get('fields')!.includes('accessRole')));
   assert.equal(source.sourceReadAccesses[0].resource,'calendars');
   opened.close();
   assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);
@@ -53,7 +56,7 @@ test('ordinary installed Calendar rechecks stop before the next page and does no
 
 test('ordinary installed Calendar preserves the lost-response Credential Unknown after physical close',async t=>{
   const f=await installedCalendarFixture(t);f.state.beforeResponse=request=>request.socket.destroy();
-  const source=await f.load(),preparation=await f.prepare(source);let original;
+  const source=await f.load(),preparation=await f.prepare(source);let original: unknown;
   await assert.rejects(source.openCapture(preparation),cause=>{original=cause;return true;});
   assert.equal(f.state.requests.length,1);
   assert.deepEqual(ledgerUsageFieldsFor(f.common.clientProgramMultiCapturedLedgerUsage(preparation.ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]),[0n,0n,0n,0n]);
@@ -61,5 +64,5 @@ test('ordinary installed Calendar preserves the lost-response Credential Unknown
   const database=new DatabaseSync(join(f.root,'installed-journal','credential-journal.sqlite3'),{readOnly:true});
   try{assert.deepEqual(database.prepare('SELECT outcome FROM credential_uses ORDER BY use_ordinal').all().map(row=>row.outcome),[3]);}
   finally{database.close();}
-  assert(original.cause);assert.equal(f.state.requests.length,1);
+  assert((original as Error).cause);assert.equal(f.state.requests.length,1);
 });

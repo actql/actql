@@ -4,18 +4,42 @@ import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {createHash} from 'node:crypto';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as provider from '../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js';
+const common: InstalledCommon = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href);
+const provider: CalendarProvider = await import(new URL('../../../../_build/js/release/build/connectors/calendar/host_node/host_node.js', import.meta.url).href);
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {installedConnectors} from '../../../connectors-builtin/installations.generated.mjs';
 import {createInstalledConnectorTable,installedConnectorForTable} from '../../../host-node/installed-connectors.mjs';
 import {calendarFixture,calendarReadLimits} from './calendar-list.fixture.mjs';
+// @ts-expect-error TS7016: the shared installation lifetime fixture is still authored JavaScript.
 import {installedSourceFixtureLifetime} from '../../../host-node/fixtures/installed-source-initialization.mjs';
 
+import type {CalendarRowRuntime, CalendarTestContext} from './calendar-list.fixture.mjs';
+import type {loadInstalledCalendarSource} from '../host/installed-calendar-source.mjs';
+
+type Source = Awaited<ReturnType<typeof loadInstalledCalendarSource>>;
+type CalendarProvider = NonNullable<NonNullable<Parameters<typeof loadInstalledCalendarSource>[1]>['providerMoon']>;
+type PrepareInput = Parameters<Source['prepare']>[0];
+type InstalledCommon = CalendarRowRuntime & Readonly<{
+  clientProgramPrepareSourceWithParameters(text: string, format: string, environment: unknown,
+    publication: string, declarations: undefined, parameters: undefined): unknown;
+  clientProgramPrepareSingleCapturedLocalInstalledLedger(program: unknown, capacity: unknown,
+    transfer: bigint, execution: bigint, contracts: unknown, values: string, fragment: string, ordered: string): unknown;
+  clientProgramExportSourceCapture(source: unknown, requirement: unknown, authority: string): unknown;
+  clientProgramSourceCaptureExportRows(exported: unknown): string[];
+}>;
+type InitialLifetime = {
+  transportContext: CalendarTestContext;
+  open(input: Readonly<Record<string, unknown>>): {
+    load(factory: typeof loadInstalledCalendarSource, profile: unknown, options: Readonly<Record<string, unknown>>): Promise<Source>;
+  };
+};
+type Environment = Readonly<{evidence_bundle_cid: string; schema_snapshots: readonly Readonly<{
+  source_ref: string; source_view_contract_cid: string; carrier_schema_contract_cid: string;
+}>[]}>;
 const repo=new URL('../../../../',import.meta.url);
-export async function installedCalendarFixture(t,{account='allow',accountResource='calendars'}={}){
-  const lifetime=installedSourceFixtureLifetime(t);
+export async function installedCalendarFixture(t: CalendarTestContext,{account='allow',accountResource='calendars'}={}){
+  const lifetime=(installedSourceFixtureLifetime as (context: CalendarTestContext) => InitialLifetime)(t);
   const f=await calendarFixture(lifetime.transportContext,{accounted:false});
   const site={version:'actql-installed-calendar-site/0.1',apiOrigin:f.scope.resourceOrigin,
     credentialAuthorityId:'installed-calendar',credentialKeyId:'key',
@@ -34,11 +58,11 @@ export async function installedCalendarFixture(t,{account='allow',accountResourc
     baseEnvironmentWire:await readFile(new URL('spec/local-check-environment.json',repo),'utf8'),
     resolveSecret:async()=>{f.state.resolutions++;await f.state.resolved?.();return f.state.secret;}};
   const table=createInstalledConnectorTable(installedConnectors),selected=installedConnectorForTable(table,'source',profile);
-  const module=await selected.source.load();
+  const module=await selected.source!.load() as {load: typeof loadInstalledCalendarSource};
   const initial=lifetime.open({...options,installation:selected});
-  const load=(overrides={})=>initial.load(module.load,profile,{...options,...overrides});
-  const prepare=async(source,{format='sql',selection='id, summary, time_zone, access_role'}={})=>{
-    const env=JSON.parse(source.environmentWire),check=common.clientProgramCheckEnvironment(source.environmentWire,
+  const load=(overrides: Partial<typeof options>={}): Promise<Source>=>initial.load(module.load,profile,{...options,...overrides});
+  const prepare=async(source: Source,{format='sql',selection='id, summary, time_zone, access_role'}={})=>{
+    const env=JSON.parse(source.environmentWire) as Environment,check=common.clientProgramCheckEnvironment(source.environmentWire,
       env.evidence_bundle_cid,false,false,true,false,false,false,false);assert.ok(check);
     const view=env.schema_snapshots.find(v=>v.source_ref===source.sourceReadAccesses[0].sourceRef);assert.ok(view);
     const publication=JSON.stringify({environmentCid:env.evidence_bundle_cid,aliases:[{name:'calendar.calendars',
@@ -52,7 +76,7 @@ export async function installedCalendarFixture(t,{account='allow',accountResourc
     const values=JSON.stringify(aoa.execution_contracts['REL.values']),
       fragment=JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
       ordered=JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
-    const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered));
+    const contracts=checked(common.clientPrepareInstalledSequenceContracts(registry,values,fragment,ordered)) as PrepareInput['registry'];
     const preparation={preparedProgram,registry:contracts,values,fragment,ordered};
     const preparedSource=await source.prepare(preparation),planned=source.ledgerCapacity(preparedSource);
     const ledger=common.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,planned.capacity,

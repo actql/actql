@@ -2784,3 +2784,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/calendar/test/calendar-list-read.test.d.mts
 /adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs
 /adapters/connectors/calendar/test/calendar-free-busy-read.test.d.mts
+/adapters/connectors/calendar/test/installed-calendar-capture.test.mjs
+/adapters/connectors/calendar/test/installed-calendar-capture.test.d.mts
+/adapters/connectors/calendar/test/installed-calendar.fixture.mjs
+/adapters/connectors/calendar/test/installed-calendar.fixture.d.mts
