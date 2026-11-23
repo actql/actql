@@ -79402,7 +79402,7 @@
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               }
             ],
@@ -79414,23 +79414,23 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -79440,8 +79440,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               }
             ],
             "resources": [
@@ -79716,7 +79716,7 @@
     },
     {
       "module": "adapters/local-node/installed-project-mock.mjs",
-      "sha256": "338d7b1baf424adb4ec1ad62558462edcca6e0ce84cbb7d4aafceebdd163715f",
+      "sha256": "2c9463689a7bf77b12fe50128e6b8065f87e0ee6c49c2f38deedfff8f4988d58",
       "exports": [
         "inspectProjectMockDeclarations",
         "installPreparedProjectMockSources",
@@ -80284,7 +80284,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "// phase, before any fixture acquisition. The bundled declarations are not"
               },
               {
@@ -80298,8 +80298,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "export async function prepareInstalledProjectMock(moon, project, profile,"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "export async function prepareInstalledProjectMock(moon: ProjectRuntime, project: Project, profile: Profile,"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -80308,7 +80308,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (installedProjectOriginalsForRuntime(project, moon) !== projectOriginal ||"
               },
               {
@@ -80318,7 +80318,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;"
               },
               {
@@ -80332,8 +80332,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "let connections = await loadInstalledProjectConnections(moon, project,"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "let connections: Connections | undefined = await loadInstalledProjectConnections(moon, project!,"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -80342,7 +80342,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "fail('ForeignInstalledMockPreparation');"
               },
               {
@@ -80356,7 +80356,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "// cannot settle its FD, backing bytes, RowRuns or external cleanup ACKs."
               },
               {
@@ -80366,8 +80366,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (!Number.isSafeInteger(count) || count < 0 || count > 128) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "if (!Number.isSafeInteger(count) || count! < 0 || count! > 128) {"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -80380,8 +80380,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "let sources = catalog.sources;"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "let sources: Catalog['sources'] | undefined = catalog.sources;"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -80427,7 +80427,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "// Physical installation of the same already retained Mock declarations. The"
               },
               {
@@ -80449,7 +80449,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "export async function installPreparedProjectMockSources({moon, mockPreparation,"
               },
               {
@@ -80471,11 +80471,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (record === undefined || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (run !== held.run || read.source !== index ||"
               },
               {
@@ -80497,11 +80497,11 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "reads.push(read);"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "effectRuns.set(prepared, new WeakRef(record));"
               },
               {
@@ -80509,7 +80509,7 @@
                 "anchor": "###### Effect Request adoption and retired Mock entry points"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "effectRuns.set(prepared, new WeakRef(record));"
               },
               {
@@ -80527,11 +80527,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "sourceManaged.assertCurrent();"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;"
               },
               {
@@ -80553,7 +80553,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (Object.hasOwn(record, 'failure')) throw record.failure;"
               },
               {
@@ -80575,7 +80575,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -80597,7 +80597,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "limits: {maxPages: 1, maxPageBytes: 1048576, maxPageRows: 100, maxCaptureRows: 100},"
               },
               {
@@ -80623,7 +80623,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "else if (record.admission !== undefined) checked(moon.clientProgramNodeManagedRunCleanup(record.admission));"
               },
               {
@@ -80725,7 +80725,7 @@
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
@@ -80733,12 +80733,12 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "prepareAcquiredLedger(capacities: readonly AcquireCapacity[], registry: unknown, values: string, fragment?: string, ordered?: string) {"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "openCapturedHost(captures) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "openCapturedHost(captures: readonly SavedCapture[]) {"
               }
             ],
             "identity": [
@@ -80751,39 +80751,39 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "prepareAcquiredLedger(capacities: readonly AcquireCapacity[], registry: unknown, values: string, fragment?: string, ordered?: string) {"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "openCapturedHost(captures) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "openCapturedHost(captures: readonly SavedCapture[]) {"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "prepareAcquiredLedger(capacities: readonly AcquireCapacity[], registry: unknown, values: string, fragment?: string, ordered?: string) {"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "openCapturedHost(captures) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "openCapturedHost(captures: readonly SavedCapture[]) {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -80791,13 +80791,13 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "prepareAcquiredLedger(capacities: readonly AcquireCapacity[], registry: unknown, values: string, fragment?: string, ordered?: string) {"
               }
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -80809,14 +80809,14 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "prepareAcquiredLedger(capacities: readonly AcquireCapacity[], registry: unknown, values: string, fragment?: string, ordered?: string) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -80837,16 +80837,16 @@
                 "anchor": "### Original Request domain construction"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "prepareAcquiredLedger(capacities: readonly AcquireCapacity[], registry: unknown, values: string, fragment?: string, ordered?: string) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_installed_managed_run_bridge.mbt",
                 "anchor": "pub fn client_program_installed_managed_run_prepare_ledger("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "openCapturedHost(captures) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "openCapturedHost(captures: readonly SavedCapture[]) {"
               },
               {
                 "path": "src/client_local_host/preparation_request_model_module.mbt",
@@ -80919,7 +80919,7 @@
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
@@ -80939,12 +80939,12 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -80953,7 +80953,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -80963,7 +80963,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -80977,8 +80977,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -81051,7 +81051,7 @@
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
@@ -81071,12 +81071,12 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -81085,7 +81085,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -81095,7 +81095,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -81109,8 +81109,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -81183,8 +81183,8 @@
                 "anchor": "prepareOriginalMockRun(prepared, plan) {"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "openSourceFreeHost(registry: unknown, values: string, fragment: string | undefined, ordered: string | undefined, providers: unknown) {"
               },
               {
                 "path": "src/connectors_builtin_node/client_composed_infer_bridge.mbt",
@@ -81225,7 +81225,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "model.hostAttempted = true;"
               },
               {
@@ -81277,11 +81277,11 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "openSourceFreeHost(registry: unknown, values: string, fragment: string | undefined, ordered: string | undefined, providers: unknown) {"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||"
               },
               {
@@ -81318,7 +81318,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81328,7 +81328,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81338,7 +81338,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81348,7 +81348,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81358,7 +81358,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81368,7 +81368,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81378,7 +81378,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81388,7 +81388,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81398,7 +81398,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "  function prepareManagedMockModelRun("
               },
               {
@@ -81422,56 +81422,56 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "// phase, before any fixture acquisition. The bundled declarations are not"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "export async function prepareInstalledProjectMock(moon, project, profile,"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "export async function prepareInstalledProjectMock(moon: ProjectRuntime, project: Project, profile: Profile,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (installedProjectOriginalsForRuntime(project, moon) !== projectOriginal ||"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "originals = sources = mappingWire = writable = writables = catalog = connections = connectionOriginal = undefined;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "let connections = await loadInstalledProjectConnections(moon, project,"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "let connections: Connections | undefined = await loadInstalledProjectConnections(moon, project!,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "fail('ForeignInstalledMockPreparation');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "// cannot settle its FD, backing bytes, RowRuns or external cleanup ACKs."
               }
             ],
             "resources": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "if (!Number.isSafeInteger(count) || count < 0 || count > 128) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "if (!Number.isSafeInteger(count) || count! < 0 || count! > 128) {"
               }
             ],
             "extension": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "let sources = catalog.sources;"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "let sources: Catalog['sources'] | undefined = catalog.sources;"
               }
             ],
             "verification": [
@@ -95551,7 +95551,7 @@
                 "anchor": "const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody], state.callbacks);"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "sourceManaged.assertCurrent();"
               },
               {
@@ -95866,7 +95866,7 @@
                 "anchor": "const result = invoke(7, [state.installation, state.originals, receipt, originalFrozenBody], state.callbacks);"
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "sourceManaged.assertCurrent();"
               },
               {
@@ -119197,7 +119197,7 @@
                 "anchor": "pub fn[I] prepare_request_model_read_scope("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
@@ -119225,12 +119225,12 @@
             ],
             "ownership": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "function prepareManagedMockModelRun("
               },
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -119243,7 +119243,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -119257,7 +119257,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "if (model.readAttempted && model.readFailure !== undefined) throw model.readFailure;"
               },
               {
@@ -119275,8 +119275,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
-                "anchor": "function retireModelRead(model) {"
+                "path": "adapters/local-node/installed-project-mock.mts",
+                "anchor": "function retireModelRead(model: Model) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",

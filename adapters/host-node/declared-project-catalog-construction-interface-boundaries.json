@@ -349,7 +349,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/local-node/installed-project-mock.mjs",
+                "path": "adapters/local-node/installed-project-mock.mts",
                 "anchor": "installationInventory.prepareMetadataInput"
               },
               {

@@ -27,7 +27,9 @@ type Limits = Readonly<{maxBytes: number; maxNodes: number; maxDepth: number; ma
   maxWork: number; maxPageBytes: number; maxContentBytes: number}>;
 type ResourceRef = Readonly<Record<string, string>>;
 type RetainRawResponse = (bytes: Uint8Array) => unknown;
-type ReadOptions<RowRun> = Readonly<{rowRun: RowRun; signal?: AbortSignal; retainRawResponse?: RetainRawResponse}>;
+type ReadOptions<RowRun> = Readonly<{
+  rowRun: RowRun; signal?: AbortSignal; retainRawResponse?: RetainRawResponse; verifyRead(): unknown;
+}>;
 type ReadControl<Charge> = Readonly<{
   verifyRead(): unknown;
   chargePage(bytes: Uint8Array): Charge;

@@ -16,15 +16,160 @@ import {retireNodeInferOriginalRead} from '../host-node/infer-operation.mjs';
 import {declaredProjectWritableRuntimeConstructionGeometry}
   from '../host-node/declared-project-catalog-construction.mjs';
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
+import type {createDeclaredFileInstallationInventory} from './declared-file-installation.mjs';
+import type {selectInstalledProjectProfile} from '../host-node/installed-project-profile.mjs';
+
+type Catalog = Awaited<ReturnType<typeof loadDeclaredProjectCatalog>>;
+type CatalogSource = Catalog['sources'][number];
+type Inventory = ReturnType<typeof createDeclaredFileInstallationInventory>;
+type Project = Parameters<typeof loadInstalledProjectConnections>[1];
+type ProjectOriginal = ReturnType<typeof installedProjectOriginalsForRuntime>;
+type Connections = Awaited<ReturnType<typeof loadInstalledProjectConnections>>;
+type ConnectionOriginal = ReturnType<Connections['originalsForRuntime']>;
+type Profile = ReturnType<typeof selectInstalledProjectProfile>;
+type CatalogLoader = typeof loadDeclaredProjectCatalog;
+type ProjectRuntime = Parameters<CatalogLoader>[0] & NonNullable<Parameters<typeof loadInstalledProjectConnections>[0]>;
+type PreparationOptions = Readonly<{assertCurrent?: () => unknown; openFile?: unknown; installationInventory?: Inventory}>;
+type Available = object & Readonly<{then?: never; file?: Readonly<{close(): unknown}>}>;
+type Phase = Parameters<typeof declaredProjectWritableRuntimeConstructionGeometry>[2];
+type Frame = Readonly<{
+  physicalKind: 'declared-json-document'; project: ProjectOriginal; configuration: unknown; selection: unknown;
+  connections: ConnectionOriginal; dataFile: string; dataPath: string; catalog: Catalog;
+  sources: Catalog['sources']; writable?: Catalog['writables'][number]; writables: Catalog['writables']; mappingWire?: string;
+}>;
+type Preparation = Readonly<{
+  originalsForRuntime(runtime: unknown): Frame;
+  constructWritableRuntime<Value extends Available>(runtime: unknown, phase: Phase,
+    source: CatalogSource | undefined, projectImplementation: () => Value): Promise<Value>;
+  retire(runtime: unknown): void;
+}>;
+type Plan = Readonly<{compiled: unknown; runDefinition: unknown; queryTimePreparation?: unknown}>;
+type Occurrence = Readonly<{stage: number; input: number; task: number}>;
+type Selection = Readonly<{graph: unknown; occurrence: unknown}>;
+type Control = Parameters<typeof retireNodeInferOriginalRead>[0]['control'] & Readonly<{
+  prepareCheckedClientInferOriginalRead(compiled: unknown, definition: unknown, graph: unknown, scope: unknown, budget: Budget): unknown;
+}>;
+type Budget = Readonly<{readRetainedBytes: bigint; readExecutionBytes: bigint; modelRetainedBytes: bigint; modelExecutionBytes: bigint}>;
+type Model = {
+  control?: Control; compiled?: unknown; runDefinition?: unknown; graph?: unknown; occurrence?: unknown; compilation?: unknown;
+  selection?: Selection; component?: Readonly<{bindOriginal?: unknown}>; queryTimePreparation?: unknown; scope?: unknown;
+  budget?: Budget; publicationCapacity?: () => unknown; releaseAliases?(this: Model): void;
+  closed?: boolean; scopeFinished?: boolean; taken?: boolean; readAttempted?: boolean;
+  read?: unknown; readFailure?: unknown; sourceLedgerAttempted?: boolean; sourceLedgerFailure?: unknown;
+  sourceLedger?: unknown; hostAttempted?: boolean;
+};
+type Physical = CatalogSource['physical'][number];
+type FileBinding = CatalogSource['fileBindings'][number];
+type Read = {
+  raw?: object; source: number; occurrence?: Occurrence; request?: unknown;
+  close?: () => unknown; bytes?: () => Buffer | PromiseLike<Buffer>; value?: object;
+  closed: boolean; keyed?: boolean; physicalClosed?: boolean;
+  observedBytes?: Buffer; document?: unknown; projections?: Map<Physical, unknown>;
+};
+type Run = {
+  prepared?: object; request?: unknown; runtime?: object; preparationKind?: string;
+  value?: unknown; original?: unknown; admission?: unknown; requestOwned?: boolean; preparationFunded?: boolean;
+  model?: Model; managed?: Run; closed?: boolean; reads: (Read | undefined)[]; failure?: unknown;
+  effectful?: boolean; retired?: boolean; aliasesReleased?: boolean; retiringModel?: boolean; retiringContent?: boolean;
+  retiringMockSources?: boolean; mockSourceReads?: (Read | undefined)[]; mockKeyedReads?: Read[];
+  releaseMockSourceAliases?(this: Run, prepared: object, request: unknown): void;
+};
+type ManagedSourceFacts = Readonly<{preparedProgram: object; requestIdentity: unknown; prepareInvocation?: unknown; effectful?: unknown}>;
+type AcquireCapacity = Readonly<{managedRun: unknown; wholeInput?: boolean; capacity: unknown; transferBytes: bigint; executionBytes: bigint}>;
+type SavedCapture = Readonly<{capture: Readonly<{source(): unknown}>}>;
+type EnvironmentArgs = Parameters<typeof composeInstalledSourceEnvironment>;
+type CorePlan = [registry: unknown, values: string, fragment: string | undefined, ordered: string | undefined];
+type LedgerArgs = [value: unknown, prepared: unknown, request: unknown,
+  capacities: readonly unknown[], transfers: readonly bigint[], executions: readonly bigint[]];
+type KeyedRead = [value: unknown, keyed: unknown, request: unknown, declaration: unknown];
+type ReadProfile = [identity: string, name: string, version: string, mediaType: string,
+  contentUtf8: string, path: string | undefined, itemsPath: readonly string[], keyPath: readonly string[]];
+type ProducerMoon = EnvironmentArgs[1] & Parameters<typeof createFixtureFileSupplier>[0]['moon'] & Readonly<{
+  clientProgramInstalledManagedRunCheck(value: unknown, prepared: unknown, request: unknown): unknown;
+  clientProgramAcquisitionCount(prepared: unknown): number;
+  clientProgramEffectAcquisitionCount(prepared: unknown): number;
+  clientProgramInstalledManagedWholeSourcesLedger?(...args: LedgerArgs): unknown;
+  clientProgramInstalledManagedRunPrepareLedger(...args: [...LedgerArgs, ...CorePlan]): unknown;
+  clientProgramOpenInstalledManagedSourceFreeComposedInferHost(value: unknown, prepared: unknown, request: unknown,
+    ...args: [...CorePlan, providers: unknown]): unknown;
+  clientProgramOpenInstalledManagedCaptureHost(value: unknown, prepared: unknown, request: unknown, sources: readonly unknown[]): unknown;
+  clientProgramInstalledManagedRunRetire(value: unknown): unknown;
+  clientProgramNodeManagedRunCleanup(admission: unknown): unknown;
+  clientProgramInstalledKeyedSourceReadRetire(read: unknown): unknown;
+  clientProgramInstalledSourceReadRetire(read: unknown): unknown;
+  clientProgramResourceReferenceIssuer(admit: (kind: string, wire: string) => boolean, current: () => boolean): unknown;
+  clientProgramRelationAdmitDocument(bytes: Uint8Array, maximum: number, nodes: number, depth: number, rows: number, work: number): unknown;
+  clientProgramRelationProjectTargetDocument(document: unknown, declaration: unknown, resource: string,
+    items: readonly string[], key: readonly string[], primary: string, writable: readonly string[]): unknown;
+  clientProgramRowSourceFileReadProfileMatches?(declaration: unknown, ref: string, physical: unknown,
+    resource: string, ...fields: ReadProfile): boolean;
+  clientProgramInstalledManagedRunSourceReadAt(value: unknown, stage: number, input: number, task: number): object | undefined;
+  clientProgramInstalledManagedEffectKeyedSourceRead(...args: [...KeyedRead, number, number, number]): unknown;
+  clientProgramInstalledManagedModelKeyedSourceRead(...args: [...KeyedRead, number, number, number]): unknown;
+  clientProgramInstalledManagedKeyedSourceRead(...args: KeyedRead): unknown;
+  clientProgramRelationAcceptChargedInputDocument(run: unknown, charge: unknown, acquisition: unknown, document: unknown, work: number): unknown;
+  clientProgramRelationAcceptChargedDocument(run: unknown, charge: unknown, acquisition: unknown, document: unknown, work: number): unknown;
+}>;
+type Authorization = Readonly<{context: Readonly<{contextCid: string}>; assertAccountCurrent?: (decision: unknown) => unknown}>;
+type SourceManaged = Readonly<{
+  assertCurrent(): unknown;
+  prepareRead(owner: object, declaration: unknown, run: unknown, occurrence: Occurrence): object;
+  prepareKeyedRead?(owner: object, declaration: unknown, run: unknown, request: unknown): object;
+}>;
+type SourceInstallOptions = Readonly<{
+  moon: ProducerMoon; mockPreparation: Preparation; sourceManaged: SourceManaged;
+  baseEnvironmentWire: EnvironmentArgs[2]; installationServices: EnvironmentArgs[0];
+  authorizationFor(connection: string): Authorization | PromiseLike<Authorization>;
+  readAsset: (input: unknown) => unknown;
+  prepareManagedModelRun?: (prepared: object, request: unknown, model: Model) => Run;
+  prepareManagedSourceRun: (facts: ManagedSourceFacts) => Run;
+  effectManagedRun?: (prepared: object, request: unknown) => Run;
+}>;
+type Declared = Readonly<{views: readonly Readonly<{
+  resource: string; source_ref: string; view_cid: string; carrier_schema_cid: string;
+}>[]}>;
+type DispatchDecision = Readonly<{
+  action?: string; boundary?: string; tuple?: Readonly<{connection?: string; resource?: string; operation?: string}>;
+  contextCid?: string;
+}>;
+type GrantOptions = Readonly<{
+  operation: string; decision: DispatchDecision; resource: string; runInvocationCid: string; dispatchRequestCid: string; maxUses: number;
+}>;
+type RowRun = Readonly<{
+  originalRead?: object; originalKeyedRead?: object; inputKind?: string; run?: unknown; acquisition?: unknown;
+}>;
+type ReadOptions = Readonly<{rowRun: RowRun; signal?: AbortSignal; verifyRead(): unknown}>;
+type Supplier = ReturnType<typeof createFixtureFileSupplier<RowRun>>;
+type ListingPage = Parameters<Supplier['readListing']>[0];
+type ContentPage = Parameters<Supplier['readContent']>[0];
+type Pages = ReadOptions & Partial<ListingPage> & Partial<ContentPage> &
+  Readonly<{resource: string; chargePage(bytes: Uint8Array): unknown}>;
+type ReadPreparation = Readonly<{
+  checkedOwner: object; effectful: boolean; declaration: unknown; occurrence: Occurrence; managedRun?: unknown; originalRead?: object;
+}>;
+type KeyedPreparation = Readonly<{
+  checkedOwner: object; keyedAcquisition: unknown; request: unknown; declaration: unknown; managedRun?: unknown; originalRead?: object;
+  rowLimits: Readonly<{maxPageBytes: number; maxTextBytes: number; maxWork: number}>;
+}>;
+type SourceFacts = Readonly<{preparedEffect?: object; preparedProgram?: object; requestIdentity?: unknown; managedRun?: unknown}>;
+type SourceAdapter = Readonly<{
+  close(): unknown; environmentWire: string; connectorBindings: readonly unknown[];
+  admitsSource(ref: string): boolean;
+  prepare(facts: SourceFacts): object | PromiseLike<object>;
+  ledgerCapacity(prepared: object): Readonly<Record<string, unknown>>;
+}>;
+type QueryAlias = Readonly<{name: string; sourceRef: string; sourceViewContractCid: string; schemaContractCid: string; request?: object}>;
+type InstalledSource = SourceAdapter & Readonly<{queryAliases: readonly QueryAlias[]; requiresRunContentCapture?: boolean}>;
+
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
 const mockRealization = 'installed-multi-acquired';
-const canonical = value => canonicalJson(value, {dataKeys: true});
-const exactCid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
+const canonical = (value: unknown) => canonicalJson(value, {dataKeys: true});
+const exactCid = (value: unknown) => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 
 // The exact request Site subject of this same fixed Mock installation, before
 // authorization-dependent adapters are built. The returned label grants no
 // Source or operation; the installer below uses this same retained constant.
-export function installedMockRequestRealization(preparation, runtime) {
+export function installedMockRequestRealization(preparation: Pick<Preparation, 'originalsForRuntime'>, runtime: unknown) {
   if (preparation.originalsForRuntime(runtime).sources.length < 1) fail('ForeignInstalledMockPreparation');
   return mockRealization;
 }
@@ -33,19 +178,19 @@ export function installedMockRequestRealization(preparation, runtime) {
 // phase, before any fixture acquisition. The bundled declarations are not
 // inferred from rows, a Task, pathname or the original connection's secrets.
 // This view supplies no read decision, physical child, Run or capacity.
-function capturedPreparationOptions(options) {
+function capturedPreparationOptions(options: unknown): PreparationOptions {
   if (options === null || typeof options !== 'object' || Array.isArray(options) ||
       nodeTypes.isProxy(options)) fail('ForeignDeclaredFileInstallation');
-  const captured = {};
+  const captured: Record<string, unknown> = {};
   for (const name of ['assertCurrent', 'openFile', 'installationInventory']) {
     const field = Object.getOwnPropertyDescriptor(options, name);
     if (field !== undefined && !Object.hasOwn(field, 'value')) fail('ForeignDeclaredFileInstallation');
     captured[name] = field?.value;
   }
-  return Object.freeze(captured);
+  return Object.freeze(captured) as PreparationOptions;
 }
 
-export async function prepareInstalledProjectMock(moon, project, profile, options = {}) {
+export async function prepareInstalledProjectMock(moon: ProjectRuntime, project: Project, profile: Profile, options: PreparationOptions = {}) {
   options = capturedPreparationOptions(options);
   assertDeclaredFileInstallationInventory(options.installationInventory, moon,
     installedProjectOriginalsForRuntime(project, moon));
@@ -53,21 +198,24 @@ export async function prepareInstalledProjectMock(moon, project, profile, option
 }
 
 // Explicit metadata inspection. It cannot produce issued installation members.
-export async function inspectProjectMockDeclarations(moon, project, profile, options = {}) {
+export async function inspectProjectMockDeclarations(moon: ProjectRuntime, project: Project, profile: Profile, options: PreparationOptions = {}) {
   options = capturedPreparationOptions(options);
   if (options.installationInventory !== undefined) fail('ForeignDeclaredFileInstallation');
   return prepareProjectMockDeclarations(moon, project, profile, options, inspectDeclaredProjectCatalog);
 }
 
-async function prepareProjectMockDeclarations(moon, project, profile,
-  {assertCurrent, openFile, installationInventory}, loadCatalog) {
-  let projectOriginal = installedProjectOriginalsForRuntime(project, moon);
-  if (typeof assertCurrent !== 'function' || typeof project.directory !== 'string' ||
-      !project.directory || typeof profile?.originalsForRuntime !== 'function' ||
+async function prepareProjectMockDeclarations(moon: ProjectRuntime, project: Project | undefined, profile: Profile | undefined,
+  {assertCurrent, openFile, installationInventory}: PreparationOptions, loadCatalog: CatalogLoader): Promise<Preparation> {
+  let projectOriginal: ProjectOriginal | undefined = installedProjectOriginalsForRuntime(project, moon);
+  if (typeof assertCurrent !== 'function' || typeof project!.directory !== 'string' ||
+      !project!.directory || typeof profile?.originalsForRuntime !== 'function' ||
       typeof profile?.mockLocatorsForRuntime !== 'function') {
     fail('InvalidInstalledMockPreparation');
   }
-  let ports = Object.freeze({restore: moon?.clientProgramRowSourceRestoreRelationDeclaration,
+  let ports: Readonly<{restore: ProjectRuntime['clientProgramRowSourceRestoreRelationDeclaration'];
+    wire: ProjectRuntime['clientProgramRowSourceDeclarationJson']; mapping: ProjectRuntime['clientProgramRelationUpdateMapping'];
+    count: ProjectRuntime['clientProjectConnectionsCount']; name: ProjectRuntime['clientProjectConnectionsName'];
+    connector: ProjectRuntime['clientProjectConnectionsConnector']}> | undefined = Object.freeze({restore: moon?.clientProgramRowSourceRestoreRelationDeclaration,
     wire: moon?.clientProgramRowSourceDeclarationJson,
     mapping: moon?.clientProgramRelationUpdateMapping,
     count: moon?.clientProjectConnectionsCount, name: moon?.clientProjectConnectionsName,
@@ -75,19 +223,23 @@ async function prepareProjectMockDeclarations(moon, project, profile,
   if (!Object.values(ports).every(port => typeof port === 'function')) {
     fail('InstalledProjectRuntimeUnavailable');
   }
-  let profilePorts = Object.freeze({originals: profile.originalsForRuntime,
+  let profilePorts: Readonly<{originals: Profile['originalsForRuntime']; locators: Profile['mockLocatorsForRuntime']}> | undefined =
+    Object.freeze({originals: profile.originalsForRuntime,
     locators: profile.mockLocatorsForRuntime});
-  const call = (name, ...args) => Reflect.apply(ports[name], moon, args);
-  const select = name => Reflect.apply(profilePorts[name], profile, [moon]);
-  let selection = select('originals');
+  const call = <Name extends keyof NonNullable<typeof ports>>(name: Name,
+    ...args: Parameters<NonNullable<NonNullable<typeof ports>[Name]>>) =>
+    Reflect.apply(ports![name]!, moon, args) as ReturnType<NonNullable<NonNullable<typeof ports>[Name]>>;
+  const select = <Name extends keyof NonNullable<typeof profilePorts>>(name: Name) =>
+    Reflect.apply(profilePorts![name], profile, [moon]) as ReturnType<NonNullable<typeof profilePorts>[Name]>;
+  let selection: ReturnType<Profile['originalsForRuntime']> | undefined = select('originals');
   function current() {
-    assertCurrent();
+    assertCurrent!();
     const observed = select('originals');
     if (installedProjectOriginalsForRuntime(project, moon) !== projectOriginal ||
-        selection.configuration !== projectOriginal.configuration ||
-        observed.configuration !== selection.configuration ||
-        observed.selection !== selection.selection || observed.selected !== 'mock' ||
-        selection.selected !== 'mock') fail('ForeignInstalledMockPreparation');
+        selection!.configuration !== projectOriginal!.configuration ||
+        observed.configuration !== selection!.configuration ||
+        observed.selection !== selection!.selection || observed.selected !== 'mock' ||
+        selection!.selected !== 'mock') fail('ForeignInstalledMockPreparation');
   }
   current();
   const locators = select('locators');
@@ -98,56 +250,57 @@ async function prepareProjectMockDeclarations(moon, project, profile,
   // This reads only the explicitly selected connections declaration. The
   // original metadata reader owns its same FD, UTF8 bounds and close carrier;
   // no entry's credential resolver, env variable or network is consulted.
-  let connections = await loadInstalledProjectConnections(moon, project,
+  let connections: Connections | undefined = await loadInstalledProjectConnections(moon, project!,
     {assertCurrent: current, installationInventory, ...(openFile === undefined ? {} : {openFile})});
   current();
-  let connectionOriginal = connections.originalsForRuntime(moon);
+  let connectionOriginal: ConnectionOriginal | undefined = connections.originalsForRuntime(moon);
   if (connectionOriginal.project !== projectOriginal ||
       connectionOriginal.connections === undefined) fail('InstalledMockConnectionsUnavailable');
   const count = call('count', connectionOriginal.connections);
-  if (!Number.isSafeInteger(count) || count < 0 || count > 128) {
+  if (!Number.isSafeInteger(count) || count! < 0 || count! > 128) {
     fail('InstalledMockConnectionCountUnavailable');
   }
-  let catalog = await loadCatalog(moon, {directory: project.directory,
+  let catalog: Catalog | undefined = await loadCatalog(moon, {directory: project!.directory as string,
     catalogFile: locators.catalogFile, dataFile: locators.dataFile, connectionOriginal,
     connections: connectionOriginal.connections,
     assertCurrent: current, openFile, installationInventory});
-  let sources = catalog.sources;
-  let writables = catalog.writables;
+  let sources: Catalog['sources'] | undefined = catalog.sources;
+  let writables: Catalog['writables'] | undefined = catalog.writables;
   let writable = writables.length === 1 ? writables[0] : undefined;
   let mappingWire = writable?.write.mappingWire;
   current();
-  let originals = Object.freeze({physicalKind: 'declared-json-document',
-    project: projectOriginal, selection: selection.selection,
+  let originals: Frame | undefined = Object.freeze({physicalKind: 'declared-json-document',
+    project: projectOriginal!, selection: selection.selection,
     configuration: selection.configuration, connections: connectionOriginal,
-    dataFile: locators.dataFile, dataPath: resolve(project.directory, locators.dataFile),
+    dataFile: locators.dataFile, dataPath: resolve(project!.directory as string, locators.dataFile),
     sources, mappingWire, writable, writables, catalog});
-  let retired = false, view;
-  function same(runtime, receiver) {
+  let retired = false, view: Preparation;
+  function same(runtime: unknown, receiver: unknown) {
     if (runtime !== moon || receiver !== view) fail('ForeignInstalledMockPreparation');
   }
   view = Object.freeze({
-    originalsForRuntime(runtime) {
+    originalsForRuntime(runtime: unknown) {
       same(runtime, this);
       if (retired) fail('InstalledMockPreparationRetired');
       current();
-      if (connections.originalsForRuntime(moon) !== connectionOriginal) {
+      if (connections!.originalsForRuntime(moon) !== connectionOriginal) {
         fail('ForeignInstalledMockPreparation');
       }
-      return originals;
+      return originals!;
     },
-    async constructWritableRuntime(runtime, phase, source, projectImplementation) {
+    async constructWritableRuntime<Value extends Available>(runtime: unknown, phase: Phase,
+      source: CatalogSource | undefined, projectImplementation: () => Value) {
       same(runtime, this);
       if (retired || typeof projectImplementation !== 'function' || installationInventory === undefined) {
         fail('InstalledMockImplementationConstructionUnavailable');
       }
       current();
-      let value;
+      let value: Value | undefined;
       try {
       const result = installationInventory.prepareMetadataInput(Object.freeze({
         capacity() {
-          const {retained, workspace} = declaredProjectWritableRuntimeConstructionGeometry(sources, writables, phase, source);
-          return checked(moon.clientProgramInstalledSourceConstructionCapacity(
+          const {retained, workspace} = declaredProjectWritableRuntimeConstructionGeometry(sources!, writables!, phase, source);
+          return checked(moon.clientProgramInstalledSourceConstructionCapacity!(
             retained.nodes, retained.text, retained.wire, workspace.nodes, workspace.text, workspace.wire));
         }, project() {
           // Retain the actual physical owner BEFORE the reader's completion or
@@ -165,7 +318,7 @@ async function prepareProjectMockDeclarations(moon, project, profile,
         throw cause;
       }
     },
-    retire(runtime) {
+    retire(runtime: unknown) {
       same(runtime, this);
       if (retired) return;
       // Managed references only, after the actual Source parent's close. This
@@ -185,7 +338,7 @@ async function prepareProjectMockDeclarations(moon, project, profile,
 // Source/managed-Compute original; neither the profile label nor this factory
 // issues a permission, a runtime parent, or a replacement Run.
 export async function installPreparedProjectMockSources({moon, mockPreparation,
-  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset, prepareManagedModelRun, prepareManagedSourceRun, effectManagedRun, installationServices}) {
+  sourceManaged, baseEnvironmentWire, authorizationFor, readAsset, prepareManagedModelRun, prepareManagedSourceRun, effectManagedRun, installationServices}: SourceInstallOptions) {
   if (typeof authorizationFor !== 'function' || typeof readAsset !== 'function' ||
       typeof prepareManagedSourceRun !== 'function' ||
       typeof sourceManaged?.assertCurrent !== 'function' ||
@@ -197,28 +350,28 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   let closing = false;
   const prepareRequestModel = prepareManagedModelRun;
   const prepareRequestSource = prepareManagedSourceRun;
-  const records = new Map(), originalReads = new WeakMap();
+  const records = new Map<object, Run>(), originalReads = new WeakMap<object, {run: Run; read: Read}>();
   // Weak provenance for Source and Effect Runs already owned by this Host.
-  const effectRuns = new WeakMap(), effectReads = new Set(), keyedReads = new Set();
-  const sources = [], closedSources = new Set();
+  const effectRuns = new WeakMap<object, WeakRef<Run>>(), effectReads = new Set<Read>(), keyedReads = new Set<Read>();
+  const sources: InstalledSource[] = [], closedSources = new Set<InstalledSource>();
   const current = () => {
     if (closing) fail('InstalledMockSourceClosed');
     sourceManaged.assertCurrent();
     if (mockPreparation.originalsForRuntime(moon) !== bundle) fail('ForeignInstalledMockPreparation');
   };
-  const sameRun = prepared => {
+  const sameRun = (prepared: object | undefined) => {
     current();
-    const record = records.get(prepared) ?? effectRuns.get(prepared)?.deref();
+    const record = records.get(prepared!) ?? effectRuns.get(prepared!)?.deref();
     if (record === undefined || record.value === undefined) fail('NodeManagedRunAdmissionUnavailable');
     if (record.preparationKind === 'effect-plan') {
       if (typeof effectManagedRun !== 'function' ||
-          effectManagedRun(prepared, record.request) !== record) fail('ForeignInstalledModelPreparation');
+          effectManagedRun(prepared!, record.request) !== record) fail('ForeignInstalledModelPreparation');
       return record;
     }
     checked(moon.clientProgramInstalledManagedRunCheck(record.value, prepared, record.request));
     return record;
   };
-  function prepareManagedRun(facts) {
+  function prepareManagedRun(facts: ManagedSourceFacts) {
     if (arguments.length !== 1 || facts?.preparedProgram === undefined ||
         facts.requestIdentity === undefined || facts.effectful !== undefined) {
       fail('InvalidInstalledManagedRunRequest');
@@ -228,7 +381,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     if (typeof prepareRequestSource !== 'function') fail('NodeManagedRunAdmissionUnavailable');
     // The Host retains partial construction and the adopted original before
     // this callback returns. This weak index adds no Root or retirement owner.
-    const record = Reflect.apply(prepareRequestSource, undefined,
+    const record: Run = Reflect.apply(prepareRequestSource, undefined,
       [Object.freeze({preparedProgram: prepared, requestIdentity: request, prepareInvocation})]);
     if (record?.prepared !== prepared || record.request !== request ||
         record.runtime !== moon || record.closed || record.value === undefined) {
@@ -245,7 +398,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     }
     return value;
   }
-  function prepareManagedMockModelRun(prepared, request, control, plan, selection, publicationCapacity) {
+  function prepareManagedMockModelRun(prepared: object, request: unknown, control: Control, plan: Plan,
+    selection: Selection, publicationCapacity: () => unknown) {
     current();
     let record = records.get(prepared);
     if (record !== undefined) {
@@ -258,19 +412,19 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     }
     if (typeof prepareRequestModel !== 'function') fail('InstalledMockModelOperationalAdmissionUnavailable');
     if (records.size === 4096) fail('InstalledMockRunLimit');
-    const model = {control, compiled: plan.compiled, runDefinition: plan.runDefinition,
+    const model: Model = {control, compiled: plan.compiled, runDefinition: plan.runDefinition,
       graph: selection.graph, occurrence: selection.occurrence, selection, component: undefined,
       queryTimePreparation: plan.queryTimePreparation,
       scope: undefined, publicationCapacity, releaseAliases() {
         if (this !== model) fail('ForeignInstalledModelPreparation');
-        if (record.aliasesReleased) return;
+        if (record!.aliasesReleased) return;
         if (model.scope !== undefined && model.scopeFinished !== true || model.read !== undefined ||
-            record.reads.some(read => read !== undefined && !read.closed)) fail('InstalledMockModelCleanupPending');
-        records.delete(record.prepared);
-        for (const key of Object.keys(model)) model[key] = undefined;
+            record!.reads.some(read => read !== undefined && !read.closed)) fail('InstalledMockModelCleanupPending');
+        records.delete(record!.prepared!);
+        for (const key of Object.keys(model)) model[key as keyof Model] = undefined;
         model.closed = true;
-        record.prepared = record.request = record.original = record.value = record.model = record.managed = record.failure = undefined;
-        record.reads.length = 0; record.aliasesReleased = true; record.retired = true;
+        record!.prepared = record!.request = record!.original = record!.value = record!.model = record!.managed = record!.failure = undefined;
+        record!.reads.length = 0; record!.aliasesReleased = true; record!.retired = true;
       }};
     record = {prepared, request, model, requestOwned: true, effectful: false, original: undefined,
       value: undefined, reads: [], failure: undefined};
@@ -278,7 +432,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     try {
       // The original Host owns module/Scope/partial failure on this Request.
       // Local retains this SAME model carrier before either can be issued.
-      const run = Reflect.apply(prepareRequestModel, undefined, [prepared, request, model]);
+      const run: Run = Reflect.apply(prepareRequestModel, undefined, [prepared, request, model]);
       // The mutable Host record owns the real Run and cuts its heavyweight
       // fields at retirement. Do not copy its opaque Run into another owner.
       record.managed = run;
@@ -287,7 +441,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       return record.value;
     } catch (cause) {record.failure = cause; throw cause;}
   }
-  function modelPreparation(prepared, plan) {
+  function modelPreparation(prepared: object, plan: Plan) {
     const run = sameRun(prepared), model = run.model;
     if (model === undefined || model.compiled !== plan.compiled || model.runDefinition !== plan.runDefinition ||
         model.scope === undefined) fail('ForeignInstalledModelPreparation');
@@ -321,9 +475,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         publicationCurrent();
       },
       runDefinition: model.runDefinition, scope: model.scope, publicationCapacity,
-      readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
-      modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes,
-      prepareAcquiredLedger(capacities, registry, values, fragment, ordered) {
+      readRetainedBytes: model.budget!.readRetainedBytes, readExecutionBytes: model.budget!.readExecutionBytes,
+      modelRetainedBytes: model.budget!.modelRetainedBytes, modelExecutionBytes: model.budget!.modelExecutionBytes,
+      prepareAcquiredLedger(capacities: readonly AcquireCapacity[], registry: unknown, values: string, fragment?: string, ordered?: string) {
         sameRun(prepared);
         if (!run.requestOwned || model.closed || model.scopeFinished || model.taken || model.readAttempted ||
             !Array.isArray(capacities) || capacities.length !== moon.clientProgramAcquisitionCount(prepared) ||
@@ -342,7 +496,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
             fail('InvalidInstalledMockModelPreparation');
           }
           const ledger = checked(whole
-            ? moon.clientProgramInstalledManagedWholeSourcesLedger(original, prepared, request,
+            ? moon.clientProgramInstalledManagedWholeSourcesLedger!(original, prepared, request,
               capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
               capacities.map(value => value.executionBytes))
             : moon.clientProgramInstalledManagedRunPrepareLedger(original,
@@ -359,7 +513,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         if (model.closed || model.taken || model.readAttempted) fail('ForeignInstalledModelPreparation');
         model.taken = true;
       },
-      openSourceFreeHost(registry, values, fragment, ordered, providers) {
+      openSourceFreeHost(registry: unknown, values: string, fragment: string | undefined, ordered: string | undefined, providers: unknown) {
         sameRun(prepared);
         if (run.effectful || run.retired || model.closed || !model.taken || model.hostAttempted ||
             moon.clientProgramAcquisitionCount(prepared) !== 0) {
@@ -371,7 +525,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
           run.value, prepared, run.request, registry, values, fragment, ordered, providers));
       },
-      ...(moon.clientProgramAcquisitionCount(prepared) === 0 ? {} : {openCapturedHost(captures) {
+      ...(moon.clientProgramAcquisitionCount(prepared) === 0 ? {} : {openCapturedHost(captures: readonly SavedCapture[]) {
         sameRun(prepared);
         if (!run.requestOwned || run.effectful || run.retired || model.closed || !model.taken ||
             model.hostAttempted || !Array.isArray(captures) || captures.length !== 2 ||
@@ -392,12 +546,12 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         model.readAttempted = true;
         try {
           sameRun(prepared);
-          model.read = model.control.prepareCheckedClientInferOriginalRead(model.compiled,
-            model.runDefinition, model.graph, model.scope, model.budget);
+          model.read = model.control!.prepareCheckedClientInferOriginalRead(model.compiled,
+            model.runDefinition, model.graph, model.scope, model.budget!);
           return Object.freeze({control: model.control, compiled: model.compiled,
             runDefinition: model.runDefinition, scope: model.scope, read: model.read, publicationCapacity,
-            readRetainedBytes: model.budget.readRetainedBytes, readExecutionBytes: model.budget.readExecutionBytes,
-            modelRetainedBytes: model.budget.modelRetainedBytes, modelExecutionBytes: model.budget.modelExecutionBytes});
+            readRetainedBytes: model.budget!.readRetainedBytes, readExecutionBytes: model.budget!.readExecutionBytes,
+            modelRetainedBytes: model.budget!.modelRetainedBytes, modelExecutionBytes: model.budget!.modelExecutionBytes});
         } catch (error) {model.readFailure = error; throw error;}
       },
       async retire() {
@@ -407,7 +561,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         // is closed. The same scope then checks the whole original census.
         for (const read of run.reads) await closeRead(read);
         retireModelRead(model);
-        if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
+        if (model.control!.finishCheckedClientInferOriginalReadScope(model.compiled,
           model.runDefinition, model.graph, model.scope, true) !== true) return false;
         model.scopeFinished = true;
         if (run.requestOwned) {
@@ -420,12 +574,12 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         return true;
       }});
   }
-  function retireModelRead(model) {
+  function retireModelRead(model: Model) {
     if (model.read === undefined) return;
-    retireNodeInferOriginalRead(model);
+    retireNodeInferOriginalRead(model as Parameters<typeof retireNodeInferOriginalRead>[0]);
     model.read = undefined;
   }
-  function retireRunRecord(record) {
+  function retireRunRecord(record: Run) {
     if (record.retired) return;
     if (record.requestOwned) {
       if (!record.model?.closed) fail('InstalledMockModelCleanupPending');
@@ -439,7 +593,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
   // the existing payload-sever witness confirms it). This releases aliases,
   // never a physical child, native read or consumed occurrence. The separate
   // physical-close ACK for every original child must already be retained.
-  function releaseEffectSourceAliases(prepared, request) {
+  function releaseEffectSourceAliases(this: Run, prepared: object, request: unknown) {
     const run = this, direct = run.mockSourceReads;
     const reads = [...(direct ?? []), ...(run.mockKeyedReads ?? [])];
     if (effectRuns.get(prepared)?.deref() !== run || run.prepared !== prepared ||
@@ -464,7 +618,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     effectRuns.delete(prepared);
     run.mockSourceReads = run.mockKeyedReads = run.releaseMockSourceAliases = undefined;
   }
-  async function closeSource(index) {
+  async function closeSource(index: number) {
     for (const read of keyedReads) if (read.source === index) {
       await closeRead(read); keyedReads.delete(read);
     }
@@ -476,7 +630,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       for (const read of record.reads) if (read?.source === index) await closeRead(read);
     }
   }
-  async function closeRead(read) {
+  async function closeRead(read: Read | undefined) {
     if (read === undefined || read.closed) return;
     // A completed Promise or logical retirement cannot acknowledge the
     // physical child. Preserve this read and every projection until its ACK.
@@ -486,9 +640,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     read.closed = true;
     read.raw = read.close = read.bytes = read.observedBytes = read.document = read.projections = undefined;
   }
-  async function closePhysicalRead(read) {
+  async function closePhysicalRead(read: Read) {
     if (read.physicalClosed) return;
-    const observed = await Reflect.apply(read.close, read.raw, []);
+    const observed = await Reflect.apply(read.close!, read.raw, []);
     const pending = observed !== null && typeof observed === 'object'
       ? Object.getOwnPropertyDescriptor(observed, 'pending') : undefined;
     if (!pending || !Object.hasOwn(pending, 'value') || pending.value !== false) {
@@ -506,11 +660,11 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
     if (failures.length === 0) for (const record of records.values()) {
       try {
         if (record.requestOwned) {
-          const model = record.model;
+          const model = record.model!;
           if (model.taken && !model.closed) fail('InstalledMockModelCleanupPending');
           retireModelRead(model);
           if (model.scope !== undefined && model.scopeFinished !== true) {
-            if (model.control.finishCheckedClientInferOriginalReadScope(model.compiled,
+            if (model.control!.finishCheckedClientInferOriginalReadScope(model.compiled,
               model.runDefinition, model.graph, model.scope, true) !== true) fail('InstalledMockModelCleanupPending');
             model.scopeFinished = true;
           }
@@ -553,20 +707,20 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       const entry = original.catalogue, declaration = original.declaration;
       const preparedSource = original.sourcePrepared;
       if (typeof original.sourceMember?.load !== 'function' ||
-          preparedSource?.declaration !== declaration || preparedSource.wire !== original.wire) {
+          preparedSource?.declaration !== declaration || preparedSource!.wire !== original.wire) {
         fail('InstalledSourceInitializationUnavailable');
       }
-      const {declared, environment} = preparedSource;
+      const {declared, environment} = preparedSource as unknown as Readonly<{declared: Declared; environment: Readonly<{wire: string}>}>;
       const authorization = await authorizationFor(entry.connection);
       current();
-      const preparedReads = new WeakMap();
-      const knownResources = new Map();
+      const preparedReads = new WeakMap<object, Run>();
+      const knownResources = new Map<string, {binding: FileBinding; identity: string}>();
       const referenceIssuer = original.fileBindings.length === 0 ? undefined
         : moon.clientProgramResourceReferenceIssuer((kind, wire) => kind === 'file' && knownResources.has(wire),
           () => {try {current(); return true;} catch {return false;}});
-      async function readOriginal(options) {
+      async function readOriginal(options: ReadOptions) {
         const originalRead = options.rowRun.originalRead ?? options.rowRun.originalKeyedRead;
-        const held = originalReads.get(originalRead);
+        const held = originalReads.get(originalRead!);
         if (held === undefined) fail('InstalledSourcePreparationMismatch');
         const run = sameRun(held.run.prepared), read = held.read;
         if (run !== held.run || read.source !== index || read.value !== originalRead || read.closed) {
@@ -574,7 +728,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         }
         options.signal?.throwIfAborted(); await options.verifyRead();
         options.signal?.throwIfAborted(); sameRun(run.prepared);
-        const bytes = await Reflect.apply(read.bytes, read.raw, []);
+        const bytes: Buffer = await Reflect.apply(read.bytes!, read.raw, []);
         options.signal?.throwIfAborted(); sameRun(run.prepared);
         await options.verifyRead(); options.signal?.throwIfAborted(); sameRun(run.prepared);
         const siblings = [...(run.mockSourceReads ?? run.reads), ...(run.mockKeyedReads ?? [])];
@@ -583,8 +737,8 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         read.observedBytes = bytes;
         return bytes;
       }
-      function projectOriginal(physical, bytes, options) {
-        const held = originalReads.get(options.rowRun.originalRead ?? options.rowRun.originalKeyedRead);
+      function projectOriginal(physical: Physical, bytes: Uint8Array, options: ReadOptions) {
+        const held = originalReads.get((options.rowRun.originalRead ?? options.rowRun.originalKeyedRead)!);
         if (held === undefined || held.read.source !== index || held.read.observedBytes !== bytes ||
             held.read.document !== undefined || held.read.closed) fail('InstalledSourcePreparationMismatch');
         sameRun(held.run.prepared);
@@ -592,7 +746,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         // Retain the SAME raw backing and every bounded projection under the
         // managed read before another projection/current check can refuse.
         held.read.document = document;
-        const projections = held.read.projections = new Map();
+        const projections = held.read.projections = new Map<Physical, unknown>();
         for (const source of bundle.sources) for (const model of source.physical) {
           projections.set(model, checked(moon.clientProgramRelationProjectTargetDocument(document,
             model.declaration, model.resource, model.itemsPath, model.keyPath,
@@ -609,20 +763,20 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         const matches = moon.clientProgramRowSourceFileReadProfileMatches;
         if (contentView === undefined || typeof matches !== 'function' ||
             Reflect.apply(matches, moon, [declaration, contentView.source_ref,
-              physical.declaration, physical.resource, binding.identity_field,
+              physical!.declaration, physical!.resource, binding.identity_field,
               binding.name_field, binding.version_field, binding.media_type_field,
               binding.content_utf8_field, binding.path_field,
-              physical.itemsPath, physical.keyPath]) !== true) {
+              physical!.itemsPath, physical!.keyPath]) !== true) {
           fail('InstalledMockPhysicalBindingUnavailable');
         }
-        const supplier = createFixtureFileSupplier({moon, physical,
+        const supplier = createFixtureFileSupplier<RowRun>({moon, physical: physical!,
           fields: {identity: binding.identity_field, name: binding.name_field, version: binding.version_field,
             mediaType: binding.media_type_field, contentUtf8: binding.content_utf8_field,
             ...(binding.path_field === undefined ? {} : {path: binding.path_field})},
           limits: {maxBytes: 1048576, maxNodes: 4096, maxDepth: 32, maxRows: 100,
             maxWork: 16777216, maxPageBytes: 1048576, maxContentBytes: 1048576},
           assertCurrent: current, readOriginalBytes: readOriginal,
-          projectOriginalDocument: (bytes, options) => projectOriginal(physical, bytes, options),
+          projectOriginalDocument: (bytes, options) => projectOriginal(physical!, bytes, options),
           issueResource(identity) {
             current();
             const resource = Object.freeze({$actql_ref: 'resource', version: 'actql-resource-ref/0.1',
@@ -637,7 +791,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
             current(); const held = knownResources.get(canonical(resource));
             return held?.binding === binding ? held.identity : undefined;
           }});
-        return [binding, supplier];
+        return [binding, supplier] as const;
       }));
       const adapter = await original.sourceMember.load({moon, declaration, declared,
         environmentWire: environment.wire, connectorId: entry.connectorId,
@@ -646,7 +800,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           declaration: original.wire}), authorization, readOperation: 'read',
         site: Object.freeze({connection: entry.connection,
           async close() {await closeSource(index); knownResources.clear();},
-          issueReadGrant({operation, decision, resource, runInvocationCid, dispatchRequestCid, maxUses}) {
+          issueReadGrant({operation, decision, resource, runInvocationCid, dispatchRequestCid, maxUses}: GrantOptions) {
             current();
             if (operation !== 'read' || !declared.views.some(view => view.resource === resource) ||
                 !/^sha256:[0-9a-f]{64}$/u.test(runInvocationCid) ||
@@ -658,14 +812,14 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
             Reflect.apply(authorization.assertAccountCurrent, authorization, [decision]); current();
             return Object.freeze({runInvocationCid, dispatchRequestCid});
           }}),
-        physicalTarget: (resource, fields) => ({connection: entry.connection,
+        physicalTarget: (resource: string, fields: readonly string[]) => ({connection: entry.connection,
           resource, fields: [...fields], dataPath: bundle.dataPath}),
         readAsset, referenceIssuer,
         limits: {maxPages: 1, maxPageBytes: 1048576, maxPageRows: 100, maxCaptureRows: 100},
         // Match the existing RowRun page decoder's depth envelope. A wider
         // requested limit is rejected before even the original Mock read.
         originalPageLimits: {maxNodes: 4096, maxDepth: 32},
-        prepareSourceRead({checkedOwner, effectful, declaration: selected, occurrence, managedRun, originalRead}) {
+        prepareSourceRead({checkedOwner, effectful, declaration: selected, occurrence, managedRun, originalRead}: ReadPreparation) {
           const run = sameRun(checkedOwner);
           if (run.closed || run.retiringMockSources) fail('InstalledMockSourceCleanupPending');
           const count = effectful ? moon.clientProgramEffectAcquisitionCount(checkedOwner)
@@ -674,9 +828,9 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           const planned = shared || run.requestOwned;
           const reads = shared ? run.mockSourceReads ??= [] : run.reads;
           if (effectful !== (run.preparationKind === 'effect-plan' || run.effectful === true) || selected !== declaration ||
-              !['stage', 'input', 'task'].every(name => Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0) ||
+              !(['stage', 'input', 'task'] as const).every(name => Number.isSafeInteger(occurrence[name]) && occurrence[name] >= 0) ||
               reads.length >= count || reads.some(read => read !== undefined &&
-                ['stage', 'input', 'task'].every(name => read.occurrence[name] === occurrence[name])) ||
+                (['stage', 'input', 'task'] as const).every(name => read.occurrence![name] === occurrence[name])) ||
               planned && (managedRun !== run.value || originalRead === undefined)) fail('InstalledSourcePreparationMismatch');
           if (shared) {
             if (run.releaseMockSourceAliases !== undefined &&
@@ -685,7 +839,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           }
           const raw = sourceManaged.prepareRead(checkedOwner, declaration,
             shared || run.requestOwned ? run.value : run.original, occurrence);
-          const read = {raw, source: index, occurrence: Object.freeze({...occurrence}),
+          const read: Read = {raw, source: index, occurrence: Object.freeze({...occurrence}),
             close: undefined, bytes: undefined, value: undefined, closed: false};
           reads.push(read);
           if (shared) effectReads.add(read);
@@ -696,11 +850,11 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           }
           sourceManaged.assertCurrent();
           read.value = planned ? originalRead : checked(moon.clientProgramInstalledManagedRunSourceReadAt(
-            run.value, occurrence.stage, occurrence.input, occurrence.task));
-          originalReads.set(read.value, {run, read});
+            run.value, occurrence.stage, occurrence.input, occurrence.task)) as object;
+          originalReads.set(read.value!, {run, read});
           return read.value;
         },
-        async closeSourceRead(value) {
+        async closeSourceRead(value: object) {
           const held = originalReads.get(value);
           if (held === undefined || held.read.source !== index) fail('InstalledSourcePreparationMismatch');
           // Close the physical/raw child before Row completion. Core capture
@@ -708,7 +862,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           await closePhysicalRead(held.read);
           return Object.freeze({pending: false});
         },
-        prepareKeyedSourceRead({checkedOwner, keyedAcquisition, request, declaration: selected, managedRun, originalRead, rowLimits}) {
+        prepareKeyedSourceRead({checkedOwner, keyedAcquisition, request, declaration: selected, managedRun, originalRead, rowLimits}: KeyedPreparation) {
           const run = sameRun(checkedOwner);
           if (selected !== declaration || run.closed || run.retiringMockSources ||
               managedRun !== undefined && managedRun !== run.value ||
@@ -716,7 +870,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
           const reads = run.mockKeyedReads ??= [];
           if (reads.some(read => read.request === request)) fail('InstalledSourcePreparationMismatch');
           const raw = sourceManaged.prepareKeyedRead(checkedOwner, declaration, run.value, request);
-          const read = {raw, source: index, request, keyed: true, close: undefined, bytes: undefined,
+          const read: Read = {raw, source: index, request, keyed: true, close: undefined, bytes: undefined,
             value: undefined, closed: false};
           reads.push(read); keyedReads.add(read);
           read.close = Object.getOwnPropertyDescriptor(raw, 'close')?.value;
@@ -729,23 +883,24 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
               : moon.clientProgramInstalledManagedModelKeyedSourceRead)(run.value,
               keyedAcquisition, request, declaration,
               rowLimits.maxPageBytes, rowLimits.maxTextBytes, rowLimits.maxWork)
-            : moon.clientProgramInstalledManagedKeyedSourceRead(run.value, keyedAcquisition, request, declaration));
-          originalReads.set(read.value, {run, read}); return read.value;
+            : moon.clientProgramInstalledManagedKeyedSourceRead(run.value, keyedAcquisition, request, declaration)) as object;
+          originalReads.set(read.value!, {run, read}); return read.value;
         },
-        async closeKeyedSourceRead(value) {
+        async closeKeyedSourceRead(value: object) {
           const held = originalReads.get(value);
           if (held === undefined || held.read.source !== index || !held.read.keyed) fail('InstalledSourcePreparationMismatch');
           await closePhysicalRead(held.read);
           return Object.freeze({pending: false});
         },
-        async readPages(options) {
+        async readPages(options: Pages) {
           const {resource, rowRun, chargePage} = options;
           const fileBinding = original.fileBindings.find(binding =>
             binding.listing_resource === resource || binding.content_resource === resource);
           if (fileBinding !== undefined) {
-            const supplier = fileSuppliers.get(fileBinding);
+            const supplier = fileSuppliers.get(fileBinding)!;
             return resource === fileBinding.listing_resource
-              ? supplier.readListing(options) : supplier.readContent(options);
+              ? supplier.readListing(options as ListingPage)
+              : supplier.readContent(options as ContentPage);
           }
           const bytes = await readOriginal(options);
           const charge = chargePage(bytes);
@@ -758,7 +913,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
             : moon.clientProgramRelationAcceptChargedDocument(rowRun.run, charge,
               rowRun.acquisition, selected, 16777216));
           current();
-        }});
+        }}) as SourceAdapter;
       const queryAliases = Object.freeze(entry.queryAliases.map(alias => {
         const view = declared.views.find(view => view.resource === alias.resource);
         if (view === undefined) fail('InstalledMockCatalogueUnavailable');
@@ -769,35 +924,35 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
       }));
       sources.push(Object.freeze({...adapter, queryAliases,
         ...(original.fileBindings.length === 0 ? {} : {requiresRunContentCapture: true}),
-        async prepare(facts) {
+        async prepare(facts: SourceFacts) {
           const owner = facts.preparedEffect ?? facts.preparedProgram;
           if (facts.preparedEffect !== undefined) {
             if (typeof effectManagedRun !== 'function') fail('InstalledEffectPlanUnavailable');
-            const selected = effectManagedRun(owner, facts.requestIdentity);
+            const selected = effectManagedRun(owner!, facts.requestIdentity);
             if (selected.value !== facts.managedRun) fail('ForeignInstalledModelPreparation');
-            effectRuns.set(owner, new WeakRef(selected));
+            effectRuns.set(owner!, new WeakRef(selected));
           }
           const run = sameRun(owner);
           // The SAME adopted Plan retains its original Query/acquisition.
           // Let the existing Core borrower select it instead of preparing a
           // second requirement from the physical source description.
-          const forwarded = run.requestOwned || effectRuns.get(owner)?.deref() === run ? Object.freeze({...facts,
+          const forwarded = run.requestOwned || effectRuns.get(owner!)?.deref() === run ? Object.freeze({...facts,
             managedRun: run.value, requestIdentity: run.request}) : facts;
           const prepared = await adapter.prepare(forwarded);
           if (sameRun(owner) !== run) fail('ForeignInstalledModelPreparation');
           preparedReads.set(prepared, run);
           return prepared;
         },
-        ledgerCapacity(prepared) {
+        ledgerCapacity(prepared: object) {
           const run = preparedReads.get(prepared);
           if (run === undefined || run !== sameRun(run.prepared)) fail('InstalledSourcePreparationMismatch');
           return Object.freeze({...adapter.ledgerCapacity(prepared), managedRun: run.value});
         }}));
     }
-    let environmentOriginal;
+    let environmentOriginal: ReturnType<typeof composeInstalledSourceEnvironment> | undefined;
     for (const source of sources) environmentOriginal = composeInstalledSourceEnvironment(installationServices, moon,
       baseEnvironmentWire, environmentOriginal, source.environmentWire);
-    const environmentWire = environmentOriginal.wire;
+    const environmentWire = environmentOriginal!.wire;
     current();
     return Object.freeze({realizationKey: mockRealization, environmentWire, environmentOriginal,
       fileReadDeclarations: bundle.catalog.fileReadDeclarations,
@@ -806,7 +961,7 @@ export async function installPreparedProjectMockSources({moon, mockPreparation,
         : sources[bundle.sources.indexOf(bundle.writable.source)],
       connectorBindings: Object.freeze(sources.flatMap(source => source.connectorBindings)),
       queryAliases: Object.freeze(sources.flatMap(source => source.queryAliases)),
-      admitsSource: ref => sources.some(source => source.admitsSource(ref)),
+      admitsSource: (ref: string) => sources.some(source => source.admitsSource(ref)),
       prepareManagedRun, prepareManagedMockModelRun, modelPreparation, close});
   } catch (error) {
     throw await retainInstalledHostInitializationFailure(error,
