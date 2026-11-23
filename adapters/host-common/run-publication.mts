@@ -149,6 +149,12 @@ type Store = Readonly<{
   commitEffectfulIndex?(preparation: Readonly<EffectPreparation & {index: Contract}>,
     inventory: readonly string[]): Awaitable<CommittedIndex>;
 }>;
+type PublicationRecordStore = Pick<Store, 'latestRecordContract' | 'appendRecord'>;
+type PublicationResolutionStore = PublicationRecordStore &
+  Pick<Store, 'readPublicationContract' | 'retireUncommittedPublication'>;
+type PublicationRecordControl = Pick<Control, 'issuePublicationRecord'>;
+type PublicationFinalizationControl = PublicationRecordControl &
+  Pick<Control, 'committedPublicationFinalizationAction' | 'supersededPublicationFinalizationAction'>;
 type Options = Readonly<{
   store: Store; control: Control; evidence: Evidence; request: Request; attempt: Attempt;
   limits: Limits; now: Clock; signal: AbortSignal | undefined; preparedHandles?: readonly object[];
@@ -478,7 +484,7 @@ async function validateExistingCommit(
 }
 
 async function appendState(
-  store: Store, control: Control, attempt: Contract, previous: Contract | undefined, state: RecordState,
+  store: PublicationRecordStore, control: PublicationRecordControl, attempt: Contract, previous: Contract | undefined, state: RecordState,
   observedAt: string, limits: Limits, index?: Contract, uncommittedConfirmed = false,
 ) {
   const record = control.issuePublicationRecord(attempt, previous, {
@@ -567,7 +573,7 @@ async function appendInitialStates(store: Store, control: Control, attempt: Cont
 }
 
 async function finishCommittedAttempt(
-  store: Store, control: Control, attempt: Contract, index: Contract, now: Clock, limits: Limits,
+  store: PublicationRecordStore, control: PublicationFinalizationControl, attempt: Contract, index: Contract, now: Clock, limits: Limits,
 ) {
   const previous = await store.latestRecordContract(attempt.identity);
   const action = control.committedPublicationFinalizationAction(previous);
@@ -594,7 +600,7 @@ async function finishCommittedAttempt(
 }
 
 async function finishSupersededAttempt(
-  store: Store, control: Control, attempt: Contract, now: Clock, limits: Limits,
+  store: PublicationRecordStore, control: PublicationFinalizationControl, attempt: Contract, now: Clock, limits: Limits,
 ) {
   const previous = await store.latestRecordContract(attempt.identity);
   const action = control.supersededPublicationFinalizationAction(previous);
@@ -624,8 +630,9 @@ async function finishSupersededAttempt(
   }
 }
 
-async function finishResolvedCommit(
-  store: Store, control: Control, currentAttempt: Contract, candidateIndex: Contract, index: Contract, now: Clock, limits: Limits,
+export async function finishResolvedCommit(
+  store: PublicationResolutionStore, control: PublicationFinalizationControl, currentAttempt: Contract,
+  candidateIndex: Pick<Contract, 'identity'>, index: Contract, now: Clock, limits: Limits,
 ) {
   const value = JSON.parse(index.wire);
   const winner = await store.readPublicationContract(

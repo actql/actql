@@ -1,10 +1,29 @@
 import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync}from'node:fs';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// @ts-expect-error TS7016: The actual Common runtime facade is still authored JavaScript.
 import {runtimeCore} from './runtime-core.mjs';
-const control=runtimeCore(moon).publicationControl;
+import type {createPublicationContractControls} from './runtime-publication-contract-control.mjs';
+
+type ContractControls = ReturnType<typeof createPublicationContractControls>['contractControls'];
+type Original = ReturnType<ContractControls['issueResultManifest']>;
+type Limits = Parameters<ContractControls['issueResultManifest']>[4];
+type ContractWire = {name: string; wire: string};
+type Chain = Parameters<ContractControls['issueDurableResultBinding']>[0];
+type Fixture = {binding: string; schema: string; contracts: Record<keyof Chain | 'artifact' | 'ordering', ContractWire>};
+type BindingWire = {
+  codec_contract_cid: string; result_fields: string[]; material_generation_cid: string;
+  store_authority_cid: string; row_count: number; byte_count: number;
+  physical_sha256: string; durable_result_binding_cid: string;
+};
+
+const moon = await import(new URL(
+  '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url,
+).href);
+const control = runtimeCore(moon).publicationControl as ContractControls & {
+  admit(name: string, wire: string, limits: Limits): Original;
+};
 const limits={maxWireBytes:1000000,maxNodes:100000,maxDepth:100};
-const fixture=JSON.parse(readFileSync(new URL('./fixtures/publication-capacity-golden.json',import.meta.url),'utf8'));
-const body=JSON.parse(fixture.binding),chain=Object.fromEntries(Object.entries(fixture.contracts).map(([k,c])=>[k,control.admit(c.name,c.wire,limits)]));
+const fixture=JSON.parse(readFileSync(new URL('./fixtures/publication-capacity-golden.json',import.meta.url),'utf8')) as Fixture;
+const body=JSON.parse(fixture.binding) as BindingWire,chain=Object.fromEntries(Object.entries(fixture.contracts).map(([k,c])=>[k,control.admit(c.name,c.wire,limits)])) as Chain;
 const physical={codecContractCid:body.codec_contract_cid,resultFields:body.result_fields,resultSchemaWire:fixture.schema,materialGenerationCid:body.material_generation_cid,storeAuthorityCid:body.store_authority_cid,rowCount:body.row_count,byteCount:body.byte_count,physicalSha256:body.physical_sha256};
 test('shared durable emitter preserves pre-refactor wire and CID; exact/one-short byte boundary',()=>{
  const actual=control.issueDurableResultBinding(chain,physical,limits);assert.equal(actual.wire,fixture.binding);assert.equal(actual.identity,body.durable_result_binding_cid);

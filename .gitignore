@@ -2546,3 +2546,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/connector-authoring.cli.test.d.mts
 /adapters/host-common/runtime-publication-contract-control.mjs
 /adapters/host-common/runtime-publication-contract-control.d.mts
+/adapters/host-common/publication-capacity-common.test.mjs
+/adapters/host-common/publication-capacity-common.test.d.mts
+/adapters/host-common/publication-global-capacity.test.mjs
+/adapters/host-common/publication-global-capacity.test.d.mts
+/adapters/host-common/publication-capacity.test.mjs
+/adapters/host-common/publication-capacity.test.d.mts

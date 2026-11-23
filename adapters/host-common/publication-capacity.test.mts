@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {completedPublicationCapacity} from './publication-capacity.mjs';
-const contract = id => ({identity:id,wire:JSON.stringify({id})});
+import type {PublicationFrontierBounds} from './publication-capacity.mjs';
+const contract = (id: string) => ({identity:id,wire:JSON.stringify({id})});
 function fixture(n=1) {
   const retention=contract('retention');
   return {plan:{runDefinition:contract('run'),invocation:contract('invocation'),
@@ -10,7 +11,7 @@ function fixture(n=1) {
     definitions:Array.from({length:n},(_,i)=>contract('definition'+i)),
     request:contract('request'),attempt:contract('attempt'),bounds:Array.from({length:n},()=>[1000,1000,400,67000])};
 }
-const size=f=>completedPublicationCapacity(f.plan,f.definitions,f.request,f.attempt,f.bounds);
+const size=(f: ReturnType<typeof fixture>)=>completedPublicationCapacity(f.plan,f.definitions,f.request,f.attempt,f.bounds);
 test('100 Results sum per-kind objects rather than every object at payload ceiling',()=>{
   const f=fixture(100), result=size(f);
   assert.ok(result.requiredBytes < 23000000);
@@ -18,7 +19,7 @@ test('100 Results sum per-kind objects rather than every object at payload ceili
   // 100 definitions + one shared retention + four known roots +600 unknown
   // per-Result objects +nine independent global obligations (including a foreign winner terminal).
   assert.equal(result.objectCount,714);
-  const supports=budget=>budget>=result.requiredBytes;
+  const supports=(budget: number)=>budget>=result.requiredBytes;
   assert.equal(supports(result.requiredBytes),true);
   assert.equal(supports(result.requiredBytes-1),false);
 });
@@ -54,7 +55,7 @@ test('frontier sums current and foreign winner obligations, including exact/one-
  assert.equal(actual.objectCount,generic.objectCount);
  const withoutForeign={...frontier,possibleForeignWinnerTerminal:0};
  assert.equal(actual.requiredBytes-completedPublicationCapacity(f.plan,f.definitions,f.request,f.attempt,f.bounds,withoutForeign).requiredBytes,546);
- const supports=budget=>budget>=actual.requiredBytes;
+ const supports=(budget: number)=>budget>=actual.requiredBytes;
  assert.equal(supports(actual.requiredBytes),true);assert.equal(supports(actual.requiredBytes-1),false);
- assert.throws(()=>completedPublicationCapacity(f.plan,f.definitions,f.request,f.attempt,f.bounds,{...frontier,current:{}}),/InvalidPublicationFrontierByteBounds/);
+ assert.throws(()=>completedPublicationCapacity(f.plan,f.definitions,f.request,f.attempt,f.bounds,{...frontier,current:{}} as PublicationFrontierBounds),/InvalidPublicationFrontierByteBounds/);
 });

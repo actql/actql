@@ -11698,12 +11698,13 @@
     {
       "module": "adapters/host-common/run-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5a37b53c30e424354295aeba8a49971ea142d9f1656a2d125b52d1a9c4a46a01",
+      "sha256": "cde117c290b30eace38fe5afbccc26d2936c21a2dcced0d596a647424624f835",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
         "RunPublicationError",
         "constructEffectfulPublication",
+        "finishResolvedCommit",
         "publishEffectFreeRun",
         "publishEffectfulRun"
       ],
@@ -11731,6 +11732,19 @@
             "value"
           ],
           "async": false
+        },
+        {
+          "name": "finishResolvedCommit",
+          "parameters": [
+            "store",
+            "control",
+            "currentAttempt",
+            "candidateIndex",
+            "index",
+            "now",
+            "limits"
+          ],
+          "async": true
         },
         {
           "name": "invokeEffectfulPublication",
@@ -12766,6 +12780,73 @@
               {
                 "path": "docs/design/prepared-publication-custody.md",
                 "anchor": "## Publication retry diagnostic prefixes"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "finishResolvedCommit"
+          ],
+          "exports": [
+            "finishResolvedCommit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "export async function finishResolvedCommit("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "value.publication_attempt_cid, 'publication_attempt',"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "winner.identity !== currentAttempt.identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "store.readPublicationContract("
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "await finishCommittedAttempt(store, control, winner, index, now, limits)"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "InvalidCommittedPublicationAttempt"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "await finishSupersededAttempt("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/run-publication.mts",
+                "anchor": "store.retireUncommittedPublication("
+              }
+            ],
+            "extension": {
+              "notApplicable": "Internal finalization operation for the same publication owner."
+            },
+            "verification": [
+              {
+                "path": "adapters/host-common/publication-global-capacity.test.mts",
+                "anchor": "resolved foreign winner missing terminal adds its success and unknown loser cancellation"
               }
             ]
           }
@@ -131450,7 +131531,7 @@
             },
             "verification": [
               {
-                "path": "adapters/host-common/publication-capacity.test.mjs",
+                "path": "adapters/host-common/publication-capacity.test.mts",
                 "anchor": "frontier sums current and foreign winner obligations"
               },
               {
@@ -131516,7 +131597,7 @@
             },
             "verification": [
               {
-                "path": "adapters/host-common/publication-capacity.test.mjs",
+                "path": "adapters/host-common/publication-capacity.test.mts",
                 "anchor": "frontier sums current and foreign winner obligations"
               },
               {

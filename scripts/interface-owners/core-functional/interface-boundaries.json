@@ -20059,11 +20059,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-common/publication-capacity-common.test.mjs",
+                "path": "adapters/host-common/publication-capacity-common.test.mts",
                 "anchor": "shared durable emitter preserves pre-refactor wire and CID"
               },
               {
-                "path": "adapters/host-common/publication-global-capacity.test.mjs",
+                "path": "adapters/host-common/publication-global-capacity.test.mts",
                 "anchor": "shared index emitter retains original canonical wire and CID"
               }
             ]
