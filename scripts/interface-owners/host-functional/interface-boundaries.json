@@ -75442,7 +75442,7 @@
                 "anchor": "const earlier = (primary as ObservedFailure | null | undefined)?.cleanupHandle;"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "'SalesforceSiteOwnerFailed'"
               },
               {
@@ -75482,7 +75482,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "Compatibility entries delegate the same Site and primary failure"
               }
             ],

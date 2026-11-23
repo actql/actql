@@ -8507,7 +8507,7 @@
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "37bce8caf954671e7c12c8a2d40d046a86c6e933e69ac51dfbfb110220e82ba0",
+      "sha256": "aedb2f1a142be4c7abcd9f9c2b0faa8f2adcd724ddee032f67f535ed67bf7c06",
       "role": "connector-semantics",
       "owner": "Exact installed Salesforce org/Site binding with existing account gate, credential journal and release custody",
       "exports": [
@@ -9055,11 +9055,11 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "Host-owned Salesforce Site installation"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
@@ -9077,11 +9077,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "loadInstalledSalesforceSite"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
@@ -9089,8 +9089,8 @@
                 "anchor": "- Live publication inputs and outputs:"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
-                "anchor": "function bindRecordAcquisition(originalAuthorization, originalCurrent)"
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
+                "anchor": "function bindRecordAcquisition(originalAuthorization: Signed, originalCurrent: unknown)"
               },
               {
                 "path": "adapters/host-node/managed-source-reader.md",
@@ -9099,11 +9099,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "installedSalesforceSiteBinding"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
@@ -9115,7 +9115,7 @@
                 "anchor": "- Live publication identity:"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "recordAuthorizations.get(originalAuthorization)"
               },
               {
@@ -9129,7 +9129,7 @@
                 "anchor": "handOverCredentialSiteRelease"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
@@ -9141,7 +9141,7 @@
                 "anchor": "- Live publication ownership:"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "custody.bindRunAcquisition(originalAuthorization, firstCurrent)"
               },
               {
@@ -9151,11 +9151,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "installedDecisions"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
@@ -9167,7 +9167,7 @@
                 "anchor": "- Live publication synchronization:"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "const current = await readSourceProfileJson(path, {maxBytes: 8 * 1024 * 1024})"
               },
               {
@@ -9177,11 +9177,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "retainSalesforceSiteCleanup"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
@@ -9193,7 +9193,7 @@
                 "anchor": "- Live publication failure:"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "state.failure ??= cause"
               },
               {
@@ -9203,7 +9203,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "signal"
               },
               {
@@ -9211,7 +9211,7 @@
                 "anchor": "- Live publication cancellation:"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "state.retiring = true"
               },
               {
@@ -9221,7 +9221,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "DEFAULT_SALESFORCE_CATALOG_LIMITS"
               },
               {
@@ -9251,7 +9251,7 @@
                 "anchor": "# Credential interface references"
               },
               {
-                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mjs",
+                "path": "adapters/connectors/salesforce/host/installed-salesforce-site.mts",
                 "anchor": "assertAuthorizationAccountCurrent(decision);"
               },
               {
@@ -9439,7 +9439,7 @@
     {
       "module": "adapters/connectors/salesforce/host/salesforce-publication.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a2f0748b029c9cf4ff3f9e8875855c902da236114bd6d2d11dc029f615087d3a",
+      "sha256": "d924a48ab7c627b88fb4ccfc36a5262ae11b7cd4e31a0cf823b2a17dce0b37f5",
       "role": "connector-semantics",
       "owner": "Atomic installed declaration generation and retained historical describe bytes, not current authorization",
       "exports": [

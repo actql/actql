@@ -11,32 +11,20 @@ import {dirname, isAbsolute, join} from 'node:path';
 import {canonicalJson, contentCid} from
   '../../../host-node/local-account-config.mjs';
 import {readBoundedConfigurationText} from '../../../host-node/source-profile-json.mjs';
-// @ts-expect-error TS7016 The Site implementation is still authored JavaScript in this migration stage.
 import {observeInstalledSalesforcePublicationCurrent, withInstalledSalesforceDeclarationOriginals} from './installed-salesforce-site.mjs';
 
-import type {recoverNamedSalesforceObservation, withSalesforceNamedDescribeOriginals}
-  from '../site/salesforce-named-describe.mjs';
-import type {withHttpsCredentialRunResponseOriginal} from '../../../site-node/https-credential-resource.mjs';
+import type {recoverNamedSalesforceObservation} from '../site/salesforce-named-describe.mjs';
+import type {SalesforceDeclarationConstruction, SalesforcePublicationSite as Site,
+  SalesforceSiteDeclaration as Declared, SalesforceSiteOriginals as SiteFacts} from './installed-salesforce-site.mjs';
 import type {ResourceBinding} from './salesforce-resource-resolver.mjs';
 
 type NamedEvidence = Parameters<typeof recoverNamedSalesforceObservation>[0]['evidence'];
-type NamedOriginals = Parameters<Parameters<typeof withSalesforceNamedDescribeOriginals>[2]>[0];
-type CredentialOriginal = Parameters<typeof withHttpsCredentialRunResponseOriginal>;
-type SiteFacts = NamedOriginals & Readonly<{site: Site; declared: Declared; declaration: unknown;
-  declarationWire: string; control: CredentialOriginal[1]; journal: CredentialOriginal[2]}>;
 type PublishedFacts = SiteFacts & Readonly<{generationText: string; generationCid: string}>;
-type Declared = Readonly<{observationCid: string; evidence: NamedEvidence; catalog_cid: string;
-  declaration: unknown; catalog: string; source_views: readonly string[]; contracts: readonly string[]; manifest_entry: string}>;
 type Targets = Readonly<{connectorId: string; resources: readonly string[]; signal?: AbortSignal}>;
-type Site = Readonly<{
-  declareCatalog(options: Targets & Readonly<{retainPublicationOriginals?: boolean}>): Promise<Declared>;
-  restoreDeclaration(options: Pick<Targets, 'connectorId' | 'resources'> & Readonly<{evidence: NamedEvidence;
-    observationCid: string; catalogCid: string; construction?: unknown}>): Declared;
-}>;
 type Observe = Targets & Readonly<{site: Site; retainPublicationOriginals?: boolean}>;
 type Publish = Targets & Readonly<{site: Site; path: string}>;
 type Restore = Pick<Targets, 'connectorId' | 'resources'> & Readonly<{site: Site;
-  generation: PublicationGeneration | null; construction?: unknown}>;
+  generation: PublicationGeneration | null; construction?: SalesforceDeclarationConstruction}>;
 type PublicationGeneration = Readonly<{
   version: typeof SALESFORCE_PUBLICATION_VERSION; binding: ResourceBinding; catalog_cid: string;
   complete: false; connector_id: string; evidence: NamedEvidence; observation_cid: string;
@@ -196,9 +184,9 @@ export function withSalesforcePublicationOriginals<Value>(site: Site, declared: 
   consume: (facts: PublishedFacts) => Value): Value {
   const original = originalGeneration(site, declared, generationText);
   if (typeof consume !== 'function') fail('InvalidSalesforcePublicationConsumer');
-  return withInstalledSalesforceDeclarationOriginals(site, declared, (facts: SiteFacts) =>
+  return withInstalledSalesforceDeclarationOriginals(site, declared, facts =>
     consume(Object.freeze({...facts, generationText: original.body,
-      generationCid: bytesCid(original.body)}))) as Value;
+      generationCid: bytesCid(original.body)})));
 }
 
 // Describe the target Resources and publish them as the Site's generation
