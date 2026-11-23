@@ -18217,7 +18217,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18243,7 +18243,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18269,7 +18269,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18295,7 +18295,7 @@
             "ownership": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18325,7 +18325,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18351,7 +18351,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18381,7 +18381,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18403,7 +18403,7 @@
             "resources": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18433,7 +18433,7 @@
             "extension": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -18459,7 +18459,7 @@
             "verification": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -23613,6 +23613,7 @@
         {
           "operations": [
             "publicationControl",
+            "publicationControl/inspectSourceAdvance/inspectSourceAdvance",
             "publicationControl/effectRecoveryControls/effectRecoveryControls",
             "publicationControl/publicationControl",
             "publicationControl/inspectLocalEffectArtifact/inspectLocalEffectArtifact",
@@ -23634,9 +23635,7 @@
             "publicationControl/evidenceToken/evidenceToken",
             "publicationControl/init:admit/init:admit",
             "publicationControl/init:admitCheckedClientRunPublication/init:admitCheckedClientRunPublication",
-            "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
             "publicationControl/init:admitOriginal/init:admitOriginal",
-            "publicationControl/init:admitPendingSourceStateAdvance/init:admitPendingSourceStateAdvance",
             "publicationControl/init:admitRunEvidence/init:admitRunEvidence",
             "publicationControl/init:admitRunPublication/init:admitRunPublication",
             "publicationControl/init:admitSourceFreeResultPolicy/init:admitSourceFreeResultPolicy",
@@ -23664,12 +23663,6 @@
             "publicationControl/init:compiledRunResultTransformation/init:compiledRunResultTransformation",
             "publicationControl/init:composedInferSourcesFor/init:composedInferSourcesFor",
             "publicationControl/init:defineCheckedClientCompiledRun/init:defineCheckedClientCompiledRun",
-            "publicationControl/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
-            "publicationControl/init:effectComputationPreviewLedgerIdentity/init:effectComputationPreviewLedgerIdentity",
-            "publicationControl/init:effectComputationPreviewSemanticCid/init:effectComputationPreviewSemanticCid",
-            "publicationControl/init:effectComputationPreviewWire/init:effectComputationPreviewWire",
-            "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
-            "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
             "publicationControl/init:inspectInferInvocationEvidence/init:inspectInferInvocationEvidence",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
             "publicationControl/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals/init:installedModelRawSelectionOriginals",
@@ -23727,13 +23720,8 @@
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal/init:readStoredRunPlanOriginal",
             "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
-            "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
-            "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
-            "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
-            "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
             "publicationControl/init:retainResultReadMetadata/init:retainResultReadMetadata",
             "publicationControl/init:seal/init:seal",
-            "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
             "publicationControl/init:sealRunEvidence/init:sealRunEvidence",
             "publicationControl/init:selectInstalledInitialJevDecisionProfile/init:selectInstalledInitialJevDecisionProfile",
             "publicationControl/init:startInstalledOriginalComposedKeyedPrefix/init:startInstalledOriginalComposedKeyedPrefix",
@@ -25003,135 +24991,6 @@
         },
         {
           "operations": [
-            "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview",
-            "publicationControl/init:effectComputationReviewConstructionCapacity/init:effectComputationReviewConstructionCapacity"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "## Original sealed Effect review evidence"
-              },
-              {
-                "path": "src/run_publication/effect_review_projection.mbt",
-                "anchor": "pub fn project_effect_review_projection("
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
-              },
-              {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
-              },
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "effectComputationReviewConstructionCapacity(preview, limits, previewLimits = limits)"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
-              },
-              {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "body.effect_preview_cid !== subjectCid"
-              },
-              {
-                "path": "src/checkpoint_document/review_identity.mbt",
-                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "async artifactBytes(name, artifactCid, options)"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "await beforeDefer();"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-site.mjs",
-                "anchor": "facts.assertUpdateSelectionCurrent?.();"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "fail('OriginalEffectReviewUnavailable')"
-              },
-              {
-                "path": "adapters/host-node/local-continuation-evidence.mjs",
-                "anchor": "fail('ContinuationEvidenceRetired')"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "signal?.throwIfAborted();"
-              },
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "and cleanup custody remain with their existing Owners."
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "entry, bounded parser node and saved/read response overlap remain in the same"
-              },
-              {
-                "path": "src/run_publication_host/client_private_continuation_retention.mbt",
-                "anchor": "15L + 8L * max_entries.to_int64()"
-              },
-              {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
-                "anchor": "maxWireBytes: 256 * 1024"
-              },
-              {
-                "path": "docs/design/effect-constructor-frames.md",
-                "anchor": "### Sealed review construction and adoption"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/oss-host-authorization.md",
-                "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
-              },
-              {
-                "path": "src/checkpoint_document/profile.mbt",
-                "anchor": "fn review_data_keys(version : String) -> Bool?"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/sealed-effect-review-checkpoints.test.mjs",
-                "anchor": "test('copied and foreign Preview DATA"
-              },
-              {
-                "path": "adapters/host-node/sealed-effect-review-host.integration.test.mjs",
-                "anchor": "test('public Effect review keeps sealed original row evidence"
-              },
-              {
-                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
-                "anchor": "test('Effect semantic review verification rejects"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "publicationControl/init:takeSourceEvidenceOriginal/init:takeSourceEvidenceOriginal"
           ],
           "exports": [],
@@ -25403,7 +25262,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25425,7 +25284,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25451,7 +25310,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25477,7 +25336,7 @@
             "ownership": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25503,7 +25362,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25529,7 +25388,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25555,7 +25414,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25577,7 +25436,7 @@
             "resources": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25603,7 +25462,7 @@
             "extension": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -25629,7 +25488,7 @@
             "verification": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -26002,114 +25861,6 @@
               {
                 "path": "adapters/host-node/keyed-cached-inventory-option.test.mjs",
                 "anchor": "test('keyed Source borrows the actual boxed Some inventory"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "publicationControl/init:recoverInstalledEffectPreviewKeys/init:recoverInstalledEffectPreviewKeys"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "identity": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "failure": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "resources": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "extension": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
-                "anchor": "retain_installed_effect_dispatch_key_construction"
-              },
-              {
-                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
-                "anchor": "client_program_installed_effect_recovered_preview_keys"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/client_local_host/installed_effect_dispatch_keys_js_wbtest.mbt",
-                "anchor": "new command correlation cohort grows the same control before text construction"
-              },
-              {
-                "path": "adapters/host-node/installed-effect-plan.test.mjs",
-                "anchor": "funded key constructors do not exempt foreign substituted extra or executable arguments"
               }
             ]
           }
@@ -28338,16 +28089,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
-          "parameters": [
-            "wire",
-            "runDefinition",
-            "authoring",
-            "limits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:admitInferCapturedInput/init:admitInferCapturedInput",
           "parameters": [
             "prepared",
@@ -28364,15 +28105,6 @@
           "name": "publicationControl/init:admitOriginal/init:admitOriginal",
           "parameters": [
             "original",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:admitPendingSourceStateAdvance/init:admitPendingSourceStateAdvance",
-          "parameters": [
-            "completeWire",
-            "observation",
             "limits"
           ],
           "async": false
@@ -28801,52 +28533,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
-          "parameters": [
-            "runDefinition",
-            "storeAuthorityCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectComputationPreviewLedgerIdentity/init:effectComputationPreviewLedgerIdentity",
-          "parameters": [
-            "preview"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectComputationPreviewSemanticCid/init:effectComputationPreviewSemanticCid",
-          "parameters": [
-            "preview"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectComputationPreviewWire/init:effectComputationPreviewWire",
-          "parameters": [
-            "preview"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
-          "parameters": [
-            "runDefinition",
-            "storeAuthorityCid"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectComputationReviewConstructionCapacity/init:effectComputationReviewConstructionCapacity",
-          "parameters": [
-            "preview",
-            "limits",
-            "previewLimits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
           "parameters": [
             "original",
@@ -28859,14 +28545,6 @@
           "name": "publicationControl/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts/init:effectKeyedOriginalSourceEvidenceFacts",
           "parameters": [
             "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
-          "parameters": [
-            "preview",
-            "storeAuthorityCid"
           ],
           "async": false
         },
@@ -29484,16 +29162,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:projectEffectComputationReview/init:projectEffectComputationReview",
-          "parameters": [
-            "preview",
-            "policy",
-            "limits",
-            "previewLimits"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:readCheckedClientComposedInferSavedInputScope/init:readCheckedClientComposedInferSavedInputScope",
           "parameters": [
             "compiled",
@@ -29622,28 +29290,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:recoverInstalledEffectPreviewKeys/init:recoverInstalledEffectPreviewKeys",
-          "parameters": [
-            "run",
-            "prepared",
-            "request",
-            "plan",
-            "allowed",
-            "definition",
-            "invocation",
-            "preview",
-            "scope",
-            "maxMembers",
-            "maxRows",
-            "maxWork",
-            "maxKeyBytes",
-            "maxKeyNodes",
-            "maxKeyDepth",
-            "construction"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:registerCheckedClientInferRawCapture/init:registerCheckedClientInferRawCapture",
           "parameters": [
             "compiled",
@@ -29665,46 +29311,6 @@
           "async": false
         },
         {
-          "name": "publicationControl/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
-          "parameters": [
-            "original",
-            "identity",
-            "materials",
-            "invocation",
-            "preview",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
-          "parameters": [
-            "run",
-            "prepared",
-            "request",
-            "plan",
-            "allowed",
-            "definition",
-            "invocation",
-            "preview"
-          ],
-          "async": false
-        },
-        {
           "name": "publicationControl/init:retainResultReadMetadata/init:retainResultReadMetadata",
           "parameters": [
             "parent",
@@ -29720,16 +29326,6 @@
           "parameters": [
             "name",
             "bodyWire",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "publicationControl/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
-          "parameters": [
-            "original",
-            "bodyWire",
-            "continuationWire",
             "limits"
           ],
           "async": false
@@ -29920,6 +29516,13 @@
           "async": false
         },
         {
+          "name": "publicationControl/inspectSourceAdvance/inspectSourceAdvance",
+          "parameters": [
+            "advance"
+          ],
+          "async": false
+        },
+        {
           "name": "publicationControl/issuanceLimits/issuanceLimits",
           "parameters": [
             "limits",
@@ -30026,6 +29629,7 @@
         "./runtime-effect-artifact-control.mjs",
         "./runtime-effect-capture-control.mjs",
         "./runtime-effect-preparation-control.mjs",
+        "./runtime-effect-preview-control.mjs",
         "./runtime-effect-recovery-control.mjs",
         "./runtime-effect-unit-result-control.mjs",
         "./runtime-execution-control.mjs",
@@ -30041,7 +29645,521 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2ff36e8cfb0d2a34564d8bc8b48cd64723ea23eb118d9b94f1a89c6793069f23"
+      "sha256": "37f0f2e988e83d3ebc00b7650774e65eec9a6e39dec615e6630485537dedc2ee"
+    },
+    {
+      "module": "adapters/host-common/runtime-effect-preview-control.mjs",
+      "role": "physical-io",
+      "owner": "Original Common Effect Preview, holding, and Checkpoint stop custody",
+      "responsibilityFacet": "supplemental",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createEffectPreviewControls",
+            "createEffectPreviewControls/effectPreviewControls/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
+            "createEffectPreviewControls/pendingSourceAdvanceControls/init:admitPendingSourceStateAdvance/init:admitPendingSourceStateAdvance",
+            "createEffectPreviewControls/effectPreviewControls/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
+            "createEffectPreviewControls/effectPreviewControls/init:effectComputationPreviewLedgerIdentity/init:effectComputationPreviewLedgerIdentity",
+            "createEffectPreviewControls/effectPreviewControls/init:effectComputationPreviewSemanticCid/init:effectComputationPreviewSemanticCid",
+            "createEffectPreviewControls/effectPreviewControls/init:effectComputationPreviewWire/init:effectComputationPreviewWire",
+            "createEffectPreviewControls/effectPreviewControls/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
+            "createEffectPreviewControls/effectPreviewControls/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
+            "createEffectPreviewControls/effectPreviewControls/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
+            "createEffectPreviewControls/effectPreviewControls/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
+            "createEffectPreviewControls/effectPreviewControls/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
+            "createEffectPreviewControls/effectPreviewControls/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
+            "createEffectPreviewControls/effectPreviewControls/init:sealRequestedEffectStop/init:sealRequestedEffectStop"
+          ],
+          "exports": [
+            "createEffectPreviewControls"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "export function createEffectPreviewControls("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "moon.strategyAdmitEffectComputationPreview("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "computationPreviewTokens.set(owned, preview);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const computationPreviewTokens = new WeakMap();"
+              },
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "const computationPreviewWires = new WeakMap();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const admitted = computationPreviewTokens.get(preview as object);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "throw new TypeError('Foreign Effect computation Preview');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "moon.clientProgramRestoreRequestedEffectStop("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "previewLimits.maxDepth, limits.maxWireBytes, limits.maxNodes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-common/runtime-core.mjs",
+                "anchor": "...effectPreviewControls,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sealed-effect-review-checkpoints.test.mjs",
+                "anchor": "copied and foreign Preview DATA cannot reach the Common projection issuer"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectPreviewControls/effectPreviewControls/init:projectEffectComputationReview/init:projectEffectComputationReview",
+            "createEffectPreviewControls/effectPreviewControls/init:effectComputationReviewConstructionCapacity/init:effectComputationReviewConstructionCapacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "## Original sealed Effect review evidence"
+              },
+              {
+                "path": "src/run_publication/effect_review_projection.mbt",
+                "anchor": "pub fn project_effect_review_projection("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const originalReview = (subjectCid, claims) =>"
+              },
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "effectComputationReviewConstructionCapacity(preview: unknown, limits: Limits,"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "body.effect_preview_cid !== subjectCid"
+              },
+              {
+                "path": "src/checkpoint_document/review_identity.mbt",
+                "anchor": "string_field(value, \"review_projection_cid\") != Some(expected)"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "async artifactBytes(name, artifactCid, options)"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "same review holding: its historical `semantic_cid` still addresses complete"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "await beforeDefer();"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-site.mjs",
+                "anchor": "facts.assertUpdateSelectionCurrent?.();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "fail('OriginalEffectReviewUnavailable')"
+              },
+              {
+                "path": "adapters/host-node/local-continuation-evidence.mjs",
+                "anchor": "fail('ContinuationEvidenceRetired')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "signal?.throwIfAborted();"
+              },
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "and cleanup custody remain with their existing Owners."
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "entry, bounded parser node and saved/read response overlap remain in the same"
+              },
+              {
+                "path": "src/run_publication_host/client_private_continuation_retention.mbt",
+                "anchor": "15L + 8L * max_entries.to_int64()"
+              },
+              {
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
+                "anchor": "maxWireBytes: 256 * 1024"
+              },
+              {
+                "path": "docs/design/effect-constructor-frames.md",
+                "anchor": "### Sealed review construction and adoption"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/oss-host-authorization.md",
+                "anchor": "Historical unassociated holdings keep their old byte-addressed behavior"
+              },
+              {
+                "path": "src/checkpoint_document/profile.mbt",
+                "anchor": "fn review_data_keys(version : String) -> Bool?"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sealed-effect-review-checkpoints.test.mjs",
+                "anchor": "test('copied and foreign Preview DATA"
+              },
+              {
+                "path": "adapters/host-node/sealed-effect-review-host.integration.test.mjs",
+                "anchor": "test('public Effect review keeps sealed original row evidence"
+              },
+              {
+                "path": "packages/sdk/effect-review-checkpoints.test.mjs",
+                "anchor": "test('Effect semantic review verification rejects"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "createEffectPreviewControls/effectPreviewControls/init:recoverInstalledEffectPreviewKeys/init:recoverInstalledEffectPreviewKeys"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "identity": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "resources": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "extension": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys.mbt",
+                "anchor": "retain_installed_effect_dispatch_key_construction"
+              },
+              {
+                "path": "src/connectors_builtin_node/client_program_bridge.mbt",
+                "anchor": "client_program_installed_effect_recovered_preview_keys"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/client_local_host/installed_effect_dispatch_keys_js_wbtest.mbt",
+                "anchor": "new command correlation cohort grows the same control before text construction"
+              },
+              {
+                "path": "adapters/host-node/installed-effect-plan.test.mjs",
+                "anchor": "funded key constructors do not exempt foreign substituted extra or executable arguments"
+              }
+            ]
+          }
+        }
+      ],
+      "exports": [
+        "createEffectPreviewControls"
+      ],
+      "operations": [
+        {
+          "name": "createEffectPreviewControls",
+          "parameters": [
+            "moon",
+            "computationPreviewTokens",
+            "computationPreviewWires",
+            "issuanceLimits",
+            "token",
+            "evidenceToken",
+            "inspectEvidence",
+            "inspectSourceAdvance"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:admitEffectComputationPreview/init:admitEffectComputationPreview",
+          "parameters": [
+            "wire",
+            "runDefinition",
+            "authoring",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:effectComputationCaptureHoldingCid/init:effectComputationCaptureHoldingCid",
+          "parameters": [
+            "runDefinition",
+            "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:effectComputationPreviewLedgerIdentity/init:effectComputationPreviewLedgerIdentity",
+          "parameters": [
+            "preview"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:effectComputationPreviewSemanticCid/init:effectComputationPreviewSemanticCid",
+          "parameters": [
+            "preview"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:effectComputationPreviewWire/init:effectComputationPreviewWire",
+          "parameters": [
+            "preview"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:effectComputationRecordHoldingCid/init:effectComputationRecordHoldingCid",
+          "parameters": [
+            "runDefinition",
+            "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:effectComputationReviewConstructionCapacity/init:effectComputationReviewConstructionCapacity",
+          "parameters": [
+            "preview",
+            "limits",
+            "previewLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:effectPrivateEvidenceBinding/init:effectPrivateEvidenceBinding",
+          "parameters": [
+            "preview",
+            "storeAuthorityCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:projectEffectComputationReview/init:projectEffectComputationReview",
+          "parameters": [
+            "preview",
+            "policy",
+            "limits",
+            "previewLimits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:recoverInstalledEffectPreviewKeys/init:recoverInstalledEffectPreviewKeys",
+          "parameters": [
+            "run",
+            "prepared",
+            "request",
+            "plan",
+            "allowed",
+            "definition",
+            "invocation",
+            "preview",
+            "scope",
+            "maxMembers",
+            "maxRows",
+            "maxWork",
+            "maxKeyBytes",
+            "maxKeyNodes",
+            "maxKeyDepth",
+            "construction"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:requestedEffectStopIntentCid/init:requestedEffectStopIntentCid",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:requestedEffectStopLifetime/init:requestedEffectStopLifetime",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:restoreRequestedEffectStop/init:restoreRequestedEffectStop",
+          "parameters": [
+            "original",
+            "identity",
+            "materials",
+            "invocation",
+            "preview",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:retainInstalledEffectRecoveredInputInventory/init:retainInstalledEffectRecoveredInputInventory",
+          "parameters": [
+            "run",
+            "prepared",
+            "request",
+            "plan",
+            "allowed",
+            "definition",
+            "invocation",
+            "preview"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/effectPreviewControls/init:sealRequestedEffectStop/init:sealRequestedEffectStop",
+          "parameters": [
+            "original",
+            "bodyWire",
+            "continuationWire",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createEffectPreviewControls/pendingSourceAdvanceControls/init:admitPendingSourceStateAdvance/init:admitPendingSourceStateAdvance",
+          "parameters": [
+            "completeWire",
+            "observation",
+            "limits"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "./compiler-binding.generated.mjs",
+        "./runtime-result.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "sha256": "fac75c75b7f07058604bd69335ba61b58fc4a11c488b8576e801ee7fd143f6cd"
     },
     {
       "module": "adapters/host-common/runtime-effect-recovery-control.mjs",
@@ -31725,7 +31843,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31751,7 +31869,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31777,7 +31895,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31803,7 +31921,7 @@
             "ownership": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31833,7 +31951,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31859,7 +31977,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31889,7 +32007,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31911,7 +32029,7 @@
             "resources": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31941,7 +32059,7 @@
             "extension": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -31967,7 +32085,7 @@
             "verification": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -37890,7 +38008,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -37916,7 +38034,7 @@
             "inputsOutputs": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -37942,7 +38060,7 @@
             "identity": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -37968,7 +38086,7 @@
             "ownership": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -37998,7 +38116,7 @@
             "synchronization": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -38024,7 +38142,7 @@
             "failure": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -38054,7 +38172,7 @@
             "cancellation": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -38076,7 +38194,7 @@
             "resources": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -38106,7 +38224,7 @@
             "extension": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",
@@ -38132,7 +38250,7 @@
             "verification": [
               {
                 "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';"
+                "anchor": "import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
                 "path": "docs/development/js-compiler-bindings.md",

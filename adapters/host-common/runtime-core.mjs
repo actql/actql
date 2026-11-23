@@ -1,5 +1,5 @@
 import {installedEffectDependencyOriginal} from './installed-effect-dependency-original.mjs';
-import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome, runtimeUnboxedReferenceOption} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimeOptionalField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {outputExportControl} from './output-export-control.mjs';
 import {contentGenerationControl} from './content-generation-control.mjs';
@@ -30,6 +30,7 @@ import {createEffectPreparationControls} from './runtime-effect-preparation-cont
 import {createEffectUnitResultControls} from './runtime-effect-unit-result-control.mjs';
 import {createEffectArtifactControls} from './runtime-effect-artifact-control.mjs';
 import {createEffectRecoveryControls} from './runtime-effect-recovery-control.mjs';
+import {createEffectPreviewControls} from './runtime-effect-preview-control.mjs';
 import {validWirePlanViewShape} from '../../packages/client-wire/index.mjs';
 import {ledgerUsageSnapshot, ledgerUsageDiagnostic,
   ledgerUsageHasPendingResources, ledgerUsageSnapshotHasPendingResources} from './ledger-usage.mjs';
@@ -353,6 +354,11 @@ function publicationControl(moon) {
     tableInputTokens, tablePreviewTokens, recoveredTablePreviewTokens,
     compiledContent, issuanceLimits, token, effectSourceToken, currentControl: () => control,
   });
+  const {pendingSourceAdvanceControls, effectPreviewControls} =
+    createEffectPreviewControls(moon, {
+      computationPreviewTokens, computationPreviewWires, issuanceLimits, token,
+      evidenceToken, inspectEvidence, inspectSourceAdvance,
+    });
   control = Object.freeze({
     executionFailureExplanation(cause) {
       if (typeof cause !== 'string' || cause.length > 96 ||
@@ -1839,160 +1845,9 @@ function publicationControl(moon) {
     ...effectRecoveryControls,
     ...sourceControls,
     ...snapshotControls,
-    admitPendingSourceStateAdvance(completeWire, observation, limits) {
-      issuanceLimits(limits, 'pending source-state advance');
-      if (typeof completeWire !== 'string') {
-        throw new TypeError('Invalid pending source-state advance');
-      }
-      return inspectSourceAdvance(checked(
-        moon.strategyAdmitPendingSourceStateAdvance(
-          completeWire,
-          evidenceToken(observation),
-          limits.maxWireBytes,
-          limits.maxNodes,
-          limits.maxDepth,
-        ),
-      ));
-    },
+    ...pendingSourceAdvanceControls,
     ...effectFreeCaptureControls,
-    admitEffectComputationPreview(wire, runDefinition, authoring, limits) {
-      issuanceLimits(limits, 'Effect computation Preview');
-      if (typeof wire !== 'string' ||
-          typeof authoring?.identity !== 'string') {
-        throw new TypeError('Invalid Effect computation Preview');
-      }
-      token(runDefinition);
-      evidenceToken(authoring);
-      const preview = checked(moon.strategyAdmitEffectComputationPreview(
-        wire, runDefinition.identity,
-        authoring.identity,
-        limits.maxWireBytes, limits.maxNodes, limits.maxDepth,
-      ));
-      const owned = Object.freeze({kind: 'effect-computation-preview'});
-      computationPreviewTokens.set(owned, preview);
-      computationPreviewWires.set(owned, wire);
-      return owned;
-    },
-    effectComputationPreviewLedgerIdentity(preview) {
-      const admitted = computationPreviewTokens.get(preview);
-      if (admitted === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      return admitted;
-    },
-    retainInstalledEffectRecoveredInputInventory(run, prepared, request, plan,
-      allowed, definition, invocation, preview) {
-      const admitted = computationPreviewTokens.get(preview);
-      if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
-      return checked(moon.clientProgramInstalledEffectRecoveredInputInventoryRetain(
-        run, prepared, request, plan, allowed, definition, token(invocation), admitted));
-    },
-    recoverInstalledEffectPreviewKeys(run, prepared, request, plan,
-      allowed, definition, invocation, preview, scope, maxMembers, maxRows, maxWork,
-      maxKeyBytes, maxKeyNodes, maxKeyDepth, construction) {
-      const admitted = computationPreviewTokens.get(preview);
-      if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
-      if (typeof construction !== 'function') throw new TypeError('Missing original Effect construction');
-      return checked(construction(moon, moon.clientProgramInstalledEffectRecoveredPreviewKeys, [
-        run, prepared, request, plan, allowed, definition, token(invocation), admitted, scope,
-        maxMembers, maxRows, maxWork, maxKeyBytes, maxKeyNodes, maxKeyDepth]));
-    },
-    effectComputationPreviewSemanticCid(preview) {
-      const admitted = computationPreviewTokens.get(preview);
-      if (admitted === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      return moon.strategyEffectPreviewSemanticCid(admitted);
-    },
-    effectComputationPreviewWire(preview) {
-      const wire = computationPreviewWires.get(preview);
-      if (wire === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      return wire;
-    },
-    effectComputationReviewConstructionCapacity(preview, limits, previewLimits = limits) {
-      issuanceLimits(limits, 'Effect review projection');
-      issuanceLimits(previewLimits, 'Effect review Preview');
-      // SAME private admission key: the identity and immutable wire cannot be
-      // supplied independently or replaced by a copied/equal-CID Preview.
-      const original = computationPreviewTokens.get(preview);
-      const wire = computationPreviewWires.get(preview);
-      if (original === undefined || wire === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      return moon.clientProgramEffectReviewOriginalConstructionCapacity(original,
-        wire, previewLimits.maxWireBytes, previewLimits.maxNodes,
-        previewLimits.maxDepth, limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth);
-    },
-    projectEffectComputationReview(preview, policy, limits, previewLimits = limits) {
-      issuanceLimits(limits, 'Effect review projection');
-      issuanceLimits(previewLimits, 'Effect review Preview');
-      const original = computationPreviewTokens.get(preview);
-      const wire = computationPreviewWires.get(preview);
-      if (original === undefined || wire === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      return inspectEvidence(checked(moon.clientProgramProjectEffectReview(
-        original, wire, policy.authorityScopeCid, policy.approvalClaims,
-        policy.redactionPolicyCid, limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth, previewLimits.maxWireBytes, previewLimits.maxNodes,
-        previewLimits.maxDepth)));
-    },
-    // Private original Client/Checkpoint binding. These operations accept the
-    // Common-issued opaque view, never a wire/CID reconstructed substitute.
-    requestedEffectStopLifetime(original) {
-      const lifetime = checked(moon.clientProgramRequestedEffectStopLifetime(original));
-      return Object.freeze({createdAt: runtimeField(lifetime, 0),
-        validUntil: runtimeField(lifetime, 1)});
-    },
-    requestedEffectStopIntentCid(original) {
-      return moon.clientProgramRequestedEffectStopIntentCid(original);
-    },
-    restoreRequestedEffectStop(original, identity, materials, invocation, preview, limits) {
-      const admitted = computationPreviewTokens.get(preview);
-      if (admitted === undefined) throw new TypeError('Foreign Effect computation Preview');
-      return runtimeUnboxedReferenceOption(checked(moon.clientProgramRestoreRequestedEffectStop(
-        original.intent, original.referenceWire, identity, materials,
-        token(invocation), admitted, limits)));
-    },
-    sealRequestedEffectStop(original, bodyWire, continuationWire, limits) {
-      issuanceLimits(limits, 'Requested Effect stop');
-      return checked(moon.clientProgramRequestedEffectStopCheckpoint(original,
-        bodyWire, continuationWire, limits.maxWireBytes, limits.maxNodes,
-        limits.maxDepth));
-    },
-    effectPrivateEvidenceBinding(preview, storeAuthorityCid) {
-      const ownedPreview = computationPreviewTokens.get(preview);
-      if (ownedPreview === undefined) {
-        throw new TypeError('Foreign Effect computation Preview');
-      }
-      return Object.freeze({
-        name: 'effect_preview',
-        semanticCid: moon.strategyEffectPreviewSemanticCid(ownedPreview),
-        holdingCid: checked(moon.strategyEffectPreviewPrivateHoldingCid(
-          ownedPreview, storeAuthorityCid,
-        )),
-        wire: computationPreviewWires.get(preview),
-      });
-    },
-    effectComputationCaptureHoldingCid(runDefinition, storeAuthorityCid) {
-      if (typeof storeAuthorityCid !== 'string') {
-        throw new TypeError('Invalid Effect computation capture holding');
-      }
-      return checked(moon.strategyEffectComputationCaptureHoldingCid(
-        token(runDefinition), storeAuthorityCid,
-      ));
-    },
-    effectComputationRecordHoldingCid(runDefinition, storeAuthorityCid) {
-      if (typeof storeAuthorityCid !== 'string') {
-        throw new TypeError('Invalid Effect computation record holding');
-      }
-      return checked(moon.strategyEffectComputationRecordHoldingCid(
-        token(runDefinition), storeAuthorityCid,
-      ));
-    },
+    ...effectPreviewControls,
     ...inventoryControls,
     ...effectfulCaptureControls,
     prepareLocalEffectDependencyInventory(artifacts, bodies, limits, construction, originalArtifacts = []) {

@@ -4972,8 +4972,8 @@
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -4998,8 +4998,8 @@
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",

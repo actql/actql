@@ -20768,8 +20768,8 @@
                 "anchor": "\"request_optional_fields\""
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -20802,8 +20802,8 @@
                 "anchor": "fn check_requested_effect_stop_original("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -21098,8 +21098,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -21108,8 +21108,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -21457,8 +21457,8 @@
                 "anchor": "\"request_optional_fields\""
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -21491,8 +21491,8 @@
                 "anchor": "fn check_requested_effect_stop_original("
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -73442,8 +73442,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -73452,8 +73452,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -87456,8 +87456,8 @@
                 "anchor": "## Private Model raw response custody"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -87482,8 +87482,8 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -87729,8 +87729,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -87739,8 +87739,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -87982,8 +87982,8 @@
                 "anchor": "## Private Model raw response custody"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "projectEffectComputationReview(preview, policy, limits, previewLimits = limits)"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -88008,8 +88008,8 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-common/runtime-core.mjs",
-                "anchor": "const original = computationPreviewTokens.get(preview);"
+                "path": "adapters/host-common/runtime-effect-preview-control.mts",
+                "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
