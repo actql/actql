@@ -12,12 +12,13 @@ import {originalSdkCommonFixture} from './infer-original-sdk-common.fixture.mjs'
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
+import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
 
 const moon=await import(process.env.ACTQL_INFER_ORIGINAL_RUNTIME===undefined
   ? new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',import.meta.url).href
   : pathToFileURL(process.env.ACTQL_INFER_ORIGINAL_RUNTIME).href);
 
-const responseWire='{"id":"original-http-response","model":"reported-model",'+
+const responseWire='{"id":"original-http-response","model":"reported-model","system_fingerprint":"fp_observed",'+
   '"choices":[{"index":0,"message":{"role":"assistant",'+
   '"content":"{\\"risk\\":\\"low\\",\\"reason\\":null}"},"finish_reason":"stop"}],'+
   '"usage":{"prompt_tokens":3,"completion_tokens":2}}';
@@ -46,6 +47,9 @@ test('direct Chat HTTP retains an incomplete non-JSON refusal as the original un
 
 test('selected structured SDK settles the original verified Raw through Common and the journal',
   {timeout:15000}, t => originalHttpSettlement(t, 'registered'));
+
+test('registered SDK omits reported metadata excluded by its original Response Profile',
+  {timeout:15000}, t => originalHttpSettlement(t,'registered',{excludeReportedMetadata:true}));
 
 test('registered SDK rejects a separate equal profile before Entry and transport',
   {timeout:15000}, t => originalHttpSettlement(t, 'registered', {foreignRegisteredProfile:true}));
@@ -96,6 +100,7 @@ for (const [finish,outcome,usage] of [
       const reply=JSON.parse(responseWire);
       reply.usage=usage;
       if(finish==='refusal') {
+        delete reply.system_fingerprint;
         reply.choices[0].message.content=null;
         reply.choices[0].message.refusal='controlled refusal';
       } else {
@@ -111,7 +116,7 @@ test('selected structured SDK keeps a truncated provider response unknown',
 
 async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseResponse=false,
   status=200, contentType='application/json', outcome, wire=responseWire, usage=[3,2],
-  foreignRegisteredProfile=false, overrideCompletion} = {}) {
+  foreignRegisteredProfile=false, excludeReportedMetadata=false, overrideCompletion} = {}) {
     const calls=[],sockets=new Set();
     const server=createServer(async(request,response)=>{
       let body='';
@@ -148,8 +153,11 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       physicalAcquisitionLimits:{maxPlaintextBytes:65536,
         maxBorrowedBackingBytes:131072,maxReads:64}});
     const refusal = new Error('FixtureRawConfirmationUnavailable');
+    const reportedFailure=structuredSdk==='registered' && ['truncated','refusal'].includes(outcome);
+    let observedSettlement;
     const f=await originalSdkCommonFixture(t,moon,{physical:{endpoint,fetch},structuredSdk,foreignRegisteredProfile,
-      overrideCompletion,
+      excludeReportedMetadata, overrideCompletion,
+      observeSettlement:reportedFailure ? value=>{observedSettlement=value;} : undefined,
       beforeOriginalRead({read}) {
         if (refuseRaw && read === 2) throw refusal;
       }});
@@ -181,7 +189,8 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       // another invocation or acknowledging the uncertain remote outcome.
       await assert.rejects(f.operation.run(), {code:'MoonBitHostFailure'});
     } else {
-      await assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,usage);
+      await assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,usage,
+        reportedFailure ? ()=>observedSettlement : undefined, excludeReportedMetadata);
     }
     assert.equal(calls.length,1,'Settlement must not repeat the original physical request');
     const firstCaptureCleanup=await capture.custody.cleanup();
@@ -191,6 +200,10 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
       await until(()=>capture.custody.cleanup(),value=>value===true);
     }
     const firstContinuationCleanup=await f.opened.cleanup();
+    if (reportedFailure) {
+      assert.equal(firstCaptureCleanup,true);
+      assert.equal(firstContinuationCleanup,true);
+    }
     assert.equal(calls.length,1);
     if (firstContinuationCleanup !== true) {
       assert.equal(firstContinuationCleanup,false);
@@ -212,7 +225,7 @@ async function originalHttpSettlement(t, structuredSdk, {refuseRaw=false, loseRe
     t.diagnostic('Actual loopback/SDK/Common/raw Store/SQLite; synthetic funding and private Host fixture');
 }
 
-async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,usage) {
+async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,usage,readSettlement,excludeReportedMetadata) {
     const boundary=await f.operation.run();
     assert.equal(boundary.status,'settling');
     assert.equal(calls.length,1);
@@ -224,11 +237,14 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,us
     assert.ok(entry);
     assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown',
       'A saved raw response alone is not the settled slot');
-    const record=JSON.parse(moon.strategyRunEvidenceJson(f.operation.issuedSlotCapture(0)));
+    const captureWire=moon.strategyRunEvidenceJson(f.operation.issuedSlotCapture(0));
+    const record=JSON.parse(captureWire);
     assert.equal(record.outcome,outcome===undefined?'ok':'failed:'+outcome);
+    let accountingWire;
     if (structuredSdk) {
-      const accounting=JSON.parse(moon.strategyRunEvidenceJson(
-        moon.clientProgramInferAttemptLeaf(f.operation.attemptEvidence(0),'accounting')));
+      accountingWire=moon.strategyRunEvidenceJson(
+        moon.clientProgramInferAttemptLeaf(f.operation.attemptEvidence(0),'accounting'));
+      const accounting=JSON.parse(accountingWire);
       assert.deepEqual([accounting.input_tokens,accounting.output_tokens],usage);
     }
     if (structuredSdk && outcome===undefined) {
@@ -250,6 +266,8 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,us
         assert.equal(evidence.provider_reported_model_id,'reported-model');
         assert.equal(evidence.provider_request_id,'original-http-response');
         assert.equal(evidence.finish_reason,'stop');
+        assert.deepEqual(evidence.provider_metadata,excludeReportedMetadata ? null :
+          {system_fingerprint:'fp_observed'});
       } finally {
         assert.equal(checked(moon.clientProgramCleanupInferCaptureExport(exporter)),true);
       }
@@ -257,6 +275,57 @@ async function assertOriginalSettlement(f,capture,calls,structuredSdk,outcome,us
     const saved=await capture.persistSettlement(boundary.settlement,entry);
     const expected=outcome===undefined?'SavedSuccess':'SavedFailure';
     assert.equal(saved.state,expected);
+    if (readSettlement!==undefined) {
+      const proofCid=f.control.modelScopedPrivateHoldingCid(f.plan.runDefinition,
+        f.storeAuthorityCid,entry,'model_attempt_outcome','settled');
+      const proof=await f.store.inspectPhysicalHolding(proofCid);
+      assert.equal(proof.manifest_cid,record.outcome_evidence_cid);
+      const wire=Buffer.from(await f.store.readPrivateEvidence('model_attempt_outcome',proof.manifest_cid,proofCid));
+      const body=JSON.parse(wire.toString('utf8'));
+      assert.equal(body.version,'actql-model-attempt-outcome/0.1');
+      const report=body.reported_response;
+      const rawHoldingCid=f.control.modelScopedPrivateHoldingCid(f.plan.runDefinition,
+        f.storeAuthorityCid,entry,'model_raw_response','entered');
+      const raw=await f.store.inspectPhysicalHolding(rawHoldingCid);
+      assert.deepEqual(report,{
+        raw_response_artifact_cid:raw.manifest_cid,
+        response_profile_cid:JSON.parse(f.profileWire).self_cid,
+        observed_at:'2026-10-12T00:00:00.000Z',
+        provider_reported_model_id:'reported-model',
+        provider_request_id:'original-http-response',
+        finish_reason:outcome==='truncated'?'length':'stop',
+        response_complete:false,
+        ...(outcome==='truncated' ? {provider_metadata:{system_fingerprint:'fp_observed'}} : {}),
+      });
+      const rawWire=await f.store.readModelRawResponseDescriptor(raw.manifest_cid,rawHoldingCid,
+        (_bytes,owned)=>owned.releaseBytes());
+      await assertSavedReportBinding(readSettlement(),body,record,accountingWire,rawWire);
+    }
     assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,expected);
     assert.ok(await f.operation.run());
+}
+
+async function assertSavedReportBinding(original, outcome, capture, accounting, rawWire) {
+  const runtime=await loadCheckpointRuntime();
+  const seal=(name, {self_cid: _self, ...body}) =>
+    moon.strategyRunEvidenceJson(checked(moon.strategyRunEvidenceSeal(name,
+      JSON.stringify(body),16384,256,8)));
+  const admit=(savedOutcome, savedCapture, raw)=>JSON.parse(runtime.modelSavedCallAdmit(
+    JSON.stringify(original.originals),original.entry.ordinal,original.attemptWire,
+    original.authorityWire,accounting,savedOutcome,savedCapture,undefined,raw));
+  const outcomeWire=seal('model_attempt_outcome',outcome);
+  const captureWire=seal('model_slot_capture',capture);
+  assert.equal(admit(outcomeWire,captureWire,rawWire).state,'SavedFailure');
+  assert.equal(admit(outcomeWire,captureWire,undefined).detail,'InvalidModelSavedRawObservation');
+  for (const change of [
+    {response_profile_cid:'sha256:'+'f'.repeat(64)},
+    {raw_response_artifact_cid:'sha256:'+'f'.repeat(64)},
+    {observed_at:'2026-10-12T00:00:01.000Z'},
+  ]) {
+    const otherOutcome=seal('model_attempt_outcome',
+      {...outcome,reported_response:{...outcome.reported_response,...change}});
+    const otherCapture=seal('model_slot_capture',
+      {...capture,outcome_evidence_cid:JSON.parse(otherOutcome).self_cid});
+    assert.equal(admit(otherOutcome,otherCapture,rawWire).detail,'InvalidModelSavedRawObservation');
+  }
 }

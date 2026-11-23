@@ -50,6 +50,7 @@ export function readReportedResponse(body) {
   const choice = Array.isArray(body.choices) && body.choices.length === 1 ? body.choices[0] : undefined;
   const refusal = choice?.message?.refusal;
   return {model: body.model, requestId: body.id, finishReason: choice?.finish_reason,
+    metadataName: 'system_fingerprint', metadataValue: body.system_fingerprint,
     outcome: typeof refusal === 'string' && refusal.length > 0 ? 'refusal' : undefined};
 }
 

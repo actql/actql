@@ -43,8 +43,8 @@ export function originalHttpCommonFixture(t,moon,options) {
 }
 
 async function originalCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
-  storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false,
-  physical,rowTexts,structuredSdk=false,foreignRegisteredProfile=false,overrideCompletion}={},independentHttp) {
+  storeOriginals=true,beforeOriginalRead,observeSettlement,modelId='gpt-4.1-nano',nativeDecision=false,
+  physical,rowTexts,structuredSdk=false,foreignRegisteredProfile=false,excludeReportedMetadata=false,overrideCompletion}={},independentHttp) {
   // Explicit finite test inventory, not another normal capacity supplier.
   // This route has no installed ModelIoAccess and therefore remains serial;
   // a profile's active_slots declaration alone cannot enable a window.
@@ -149,6 +149,8 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   if (structuredSdk) {
     profileBody.adapter.codec_id='fixture/sdk-v4-saved-text';
     profileBody.completion.validator_id='fixture/sdk-v4-saved-text';
+    profileBody.observations=profileBody.observations.filter(name=>name!=='provider_metadata');
+    if (!excludeReportedMetadata) profileBody.observations.push('provider_metadata');
   }
   // The exact SDK lock is a DATA reference; this explicitly synthetic fixture
   // does not authenticate these otherwise fixture builder/runtime declarations.
@@ -297,10 +299,16 @@ async function originalCommonFixture(t,moon,{responseWire,signal=new AbortContro
   let cp;
   const controller=await installNodeModelContinuation({moon,control,store:selectedStore,storeAuthorityCid,
     namespaceId:'scope',authorityScopeCid:cid('3'),now,getCheckpoints:()=>cp});
+  const verifier=observeSettlement===undefined ? controller.verifier : Object.freeze({
+    ...controller.verifier, verifySettlement(input) {
+      observeSettlement(input);
+      return controller.verifier.verifySettlement(input);
+    },
+  });
   const keys=generateKeyPairSync('ed25519');
   cp=await installRemoteCheckpoints({root,namespaceId:'scope',authorityScopeCid:cid('3'),ownerPrincipal:'owner',
     siteKey:'local',realizationKey:'source-free-values',environmentCid:environmentCid,contractControl:control,
-    modelResumeVerifier:controller.verifier,now:()=>Date.parse(now()),
+    modelResumeVerifier:verifier,now:()=>Date.parse(now()),
     authorization:{resumeAfterAnswer:false,accountConfiguration:accountWire,
       reviewers:[{keyId:'reviewer',reviewerId:'reviewer',principalId:'reviewer',publicKey:keys.publicKey.export({type:'spki',format:'pem'})}],
       hostKey:{keyId:'host',privateKey:keys.privateKey.export({type:'pkcs8',format:'pem'})}}});

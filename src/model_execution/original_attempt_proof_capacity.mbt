@@ -14,9 +14,16 @@ priv struct ModelAttemptProofCapacity {
 fn model_attempt_proof_construction(
   state : ModelState,
   slot_cid : String,
+  reported_response? : Bool = false,
 ) -> (Int64, Int64)? {
   let names = "actql-model-call-attempt/0.1actql-model-attempt-accounting/0.1actql-model-attempt-outcome/0.1versionattempt_cidslot_cidrun_definition_cidmodel_task_cidfixed_request_cidauthority_evidence_cidprovider_idattemptcumulative_workuncertain_wire_bytesinput_tokensoutput_tokenscost_unitsduration_msreservationtokenscategoryfailure"
-  let text = names.length().to_int64() +
+  let report_keys = "reported_responseraw_response_artifact_cidresponse_profile_cidobserved_atprovider_reported_model_idprovider_request_idfinish_reasonresponse_completeprovider_metadata"
+  let report_text = if reported_response {
+    report_keys.length().to_int64() + 2L * 71L + 64L + 3L * 256L + 5L + 64L + 256L
+  } else {
+    0L
+  }
+  let text = names.length().to_int64() + report_text +
     @environment.model_task_connector(state.task).length().to_int64() +
     slot_cid.length().to_int64() +
     state.fixed_request_cid.length().to_int64() +
@@ -28,16 +35,19 @@ fn model_attempt_proof_construction(
     .to_int64() +
     12L * 20L
   let wire = Int64::min(16384L, 6L * text)
+  // Count the closed report fields plus its optional one-pair metadata.
+  // Include their parser/converter records and writer key/value tuples.
+  let report_fields = if reported_response { 9L } else { 0L }
   guard @shape.collection_construction_extent({
-      records: 96L,
-      record_references: 256L,
-      record_words: 96L,
-      reference_arrays: 16L,
-      reference_items: 192L,
+      records: 96L + 8L * report_fields,
+      record_references: 256L + 16L * report_fields,
+      record_words: 96L + 8L * report_fields,
+      reference_arrays: 16L + report_fields,
+      reference_items: 192L + 8L * report_fields,
       scalar_arrays: 0L,
       scalar_items: 0L,
-      maps: 3L,
-      map_entries: 48L,
+      maps: if reported_response { 5L } else { 3L },
+      map_entries: 48L + report_fields + (if reported_response { 1L } else { 0L }),
     })
     is Some(tree) &&
     @encode.text_writer_construction_inventory(wire.to_int(), 256, 8)
@@ -120,14 +130,51 @@ fn prepare_original_model_attempt_proof(
     model_attempt_proof_construction(state, slot_cid) is Some((r, e)) else {
     return Err(OutputIdentity)
   }
+  grow_original_model_attempt_proof(state, r, e)
+}
+
+///|
+fn prepare_saved_structured_attempt_report(
+  state : ModelState,
+  request : ModelRequest,
+) -> Result[Unit, ModelExecutionIssue] {
+  if state.original_startup is None ||
+    @relation.prepared_infer_rows_count(state.rows) <= 128 {
+    return Ok(())
+  }
+  // The original flat proof was prepaid during request construction. Only
+  // this selected SDK Plan can add a reported failure section to that proof.
+  guard request.slot == state.physical_next_slot &&
+    model_slot_send_eligible(state, request.slot) &&
+    original_model_attempt_proof_capacity_current(state) &&
+    model_attempt_proof_construction(state, request.slot_cid) is Some((base, _)) &&
+    model_attempt_proof_construction(state, request.slot_cid, reported_response=true)
+    is Some((retained, workspace)) && retained >= base else {
+    return Err(OutputIdentity)
+  }
+  grow_original_model_attempt_proof(state, retained - base, workspace, preserve_workspace=true)
+}
+
+///|
+fn grow_original_model_attempt_proof(
+  state : ModelState,
+  retained : Int64,
+  workspace : Int64,
+  preserve_workspace? : Bool = false,
+) -> Result[Unit, ModelExecutionIssue] {
   let old_r = state.attempt_proof_capacity
     .map(value => value.retained)
     .unwrap_or(0L)
   let old_e = state.attempt_proof_capacity
     .map(value => value.execution)
     .unwrap_or(0L)
-  guard @relation.checked_preparation_add_product(old_r, r, 1L) is Some(next_r) &&
-    @relation.checked_preparation_add_product(next_r, e, 1L) is Some(next_e) else {
+  let workspace = if preserve_workspace {
+    Int64::max(old_e - old_r, workspace)
+  } else {
+    workspace
+  }
+  guard @relation.checked_preparation_add_product(old_r, retained, 1L) is Some(next_r) &&
+    @relation.checked_preparation_add_product(next_r, workspace, 1L) is Some(next_e) else {
     return Err(InvalidLimits)
   }
   let next_e = Int64::max(old_e, next_e)

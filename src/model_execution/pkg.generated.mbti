@@ -33,6 +33,8 @@ pub fn admit_model_provider(ModelProvider, @check_environment.ModelExecutionCont
 
 pub fn admit_original_model_mock_provider(ModelMockInstallation, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies) -> Result[AdmittedModelProvider, ModelProviderAdmissionIssue]
 
+pub fn admit_saved_sdk_report_metadata(@check_environment.ModelResponseProfile, String, String) -> @canonical_json.CanonicalValue?
+
 pub fn admit_structured_model_provider(StructuredModelCapability, ResolvedStructuredModel, @check_environment.ModelExecutionContract, @check_environment.SingleAttemptModelDependencies, @check_environment.ModelResponseProfileInstallation, (@check_environment.ModelTaskContract, @check_environment.ModelDependency) -> Bool) -> Result[AdmittedStructuredModelProvider, StructuredModelCapabilityIssue]
 
 pub fn admitted_model_provider_for(AdmittedModelProvider, @check_environment.ModelExecutionContract) -> ModelProvider?

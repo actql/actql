@@ -301,6 +301,8 @@ pub fn client_program_model_structured_request_plan(
     String?,
     String?,
     Bool?,
+    String?,
+    String?,
   )?,
 ) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
   @model.bound_structured_model_async_request_plan(
@@ -322,6 +324,8 @@ pub fn client_program_model_structured_request_plan(
           request_id,
           reason,
           complete,
+          metadata_name,
+          metadata_value,
         ) = answer
         let answer : Result[String, @model.ModelProviderFailure] = match
           (finish, text) {
@@ -348,7 +352,11 @@ pub fn client_program_model_structured_request_plan(
             ),
             response_complete: complete,
             raw_response_artifact_cid: None,
-            provider_metadata: None,
+            provider_metadata: match (metadata_name, metadata_value) {
+              (Some(name), Some(value)) =>
+                @model.admit_saved_sdk_report_metadata(profile, name, value)
+              _ => None
+            },
             observed_at: "",
           },
         }
