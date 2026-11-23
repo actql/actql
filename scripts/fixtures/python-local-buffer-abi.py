@@ -70,8 +70,10 @@ try:
         left.store, left.nonce, handle, 2, 2097200) == -2
     assert left.exports['actql_publication_commit_export_count'](
         left.store, left.nonce, handle, handle) == -2
-    assert left.exports['actql_publication_commit_export_produce_material'](
-        left.store, right.nonce, handle, handle, 0, 0) == -2
+    for field in (0, 4):
+        export = left.exports['actql_publication_commit_export_produce_material']
+        for nonce in (left.nonce, right.nonce):
+            assert export(left.store, nonce, handle, handle, 0, field) == -2
     assert left.exports['actql_publication_commit_export_produce_index_key'](
         left.store, right.nonce, handle, handle) == -2
     assert left.exports['actql_publication_commit_export_produce'](

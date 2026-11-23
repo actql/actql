@@ -32,7 +32,7 @@ class IndexLookupProjectionTests(unittest.TestCase):
             with projection.serialized():
                 store.inspect_publication_projected_attached(inspect, original, current=lambda: None)
             self.assertEqual(observed, [StoredBytes(0, b'physically-saved-older-index')])
-            self.assertEqual(sum(name == 'reserve' for _, name, _ in calls), 1)
+            self.assertEqual([args[2] for _, name, args in calls if name == 'reserve_bounded'], [64])
             self.assertEqual(sum(name == 'produce_index_key' for _, name, _ in calls), 1)
             self.assertFalse(any(name in ('produce_material', 'produce_schema') for _, name, _ in calls))
             self.assertIs(core._loans[7], parent)
@@ -63,7 +63,7 @@ class IndexLookupProjectionTests(unittest.TestCase):
                 state['cleanup'] = True
                 self.assertTrue(projection.close())
                 self.assertIs(core._loans[7], parent)
-                self.assertEqual(sum(name == 'reserve' for _, name, _ in calls), 1)
+                self.assertEqual([args[2] for _, name, args in calls if name == 'reserve_bounded'], [64])
 
     def test_owner_refusal_bad_key_and_copied_parent_do_not_start_physical_lookup(self):
         core, parent, _, projection, calls, state, _, _, _ = self.bridge()

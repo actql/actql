@@ -215,6 +215,7 @@ class _Output:
 # Existing publication field selection is separate from scalar signatures.
 _CommitMaterialField = Literal['wire', 'name', 'identity_field', 'identity']
 _COMMIT_MATERIAL_FIELDS = {'wire': 0, 'name': 1, 'identity_field': 2, 'identity': 3}
+_COMMIT_SCHEMA_FIELDS = {'identity': 0, 'wire': 1, 'storage_extent': 2}
 
 
 # Scalar declarations are generated from the original MoonBit boundary.
@@ -1878,10 +1879,10 @@ class LocalCore:
 
             self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True,
                                                  journal=callbacks)
-            limit = 1_048_576
+            limit = 4096
             # Concurrent raw row/key and request/decode copies, bounded before
-            # the physical query; this is not a global Python/SQLite memory claim.
-            allowance = (2 * limit + 4096 + sys.getsizeof(callbacks)
+            # the physical query, are separate from the saved admission wire.
+            allowance = (2 * 1_048_576 + 4096 + sys.getsizeof(callbacks)
                          + self._journal_transfer_bytes()
                          + sys.getsizeof(self._inputs[ticket]))
             handle = self._call('journal', 'reserve', material.handle,
@@ -2655,6 +2656,20 @@ class LocalCore:
     def close_submission_lookup(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_lookup', 'close', abi_family='submission')
 
+    def retire_saved_result_transport(self, value: _Output) -> None:
+        """Return consumed wire capacity while keeping the same Saved parent."""
+        with self._lock:
+            self._owned_output(value, 'submission_lookup')
+            physical = self._inputs.get(value.ticket)
+            if physical is None or not physical.payload:
+                raise RuntimeError('Original Saved Result transport is unavailable')
+            # The matched caller has dropped its packet. Cut the cached byte
+            # alias before Wasm returns the quote. Even on refusal the original
+            # ticket, loan and cleanup callbacks remain for ordinary close.
+            physical.payload = b''
+            self._check('retire_saved_result_transport',
+                        self._call('submission', 'retire_output', value.handle))
+
     def retire_submission_append_output(self, value: _Output) -> bool:
         """Retire transport while Core retains original input/Run relationships."""
         with self._lock:
@@ -3186,7 +3201,7 @@ class LocalCore:
 
     def produce_publication_commit_material(self, value: _Output,
                                             current_configuration: int, ordinal: int, *,
-                                            field: _CommitMaterialField = 'wire') -> None:
+                                            field: _CommitMaterialField | Literal['storage_extent'] = 'wire') -> None:
         """Project one exact original field into a single accounted child.
 
         Core fixes the child's ordinal and field at first production. Changing
@@ -3200,11 +3215,14 @@ class LocalCore:
                 raise ValueError('Invalid current publication configuration')
             if type(ordinal) is not int or not 0 <= ordinal < 2**31:
                 raise ValueError('Invalid original commit material ordinal')
-            if type(field) is not str or field not in _COMMIT_MATERIAL_FIELDS:
+            if type(field) is not str:
+                raise ValueError('Invalid original commit material field')
+            code = 4 if field == 'storage_extent' else _COMMIT_MATERIAL_FIELDS.get(field)
+            if code is None:
                 raise ValueError('Invalid original commit material field')
             self._check('produce_publication_commit_material', self._call(
                 'publication_commit_export', 'produce_material', value.handle,
-                current_configuration, ordinal, _COMMIT_MATERIAL_FIELDS[field]))
+                current_configuration, ordinal, code))
 
     def produce_publication_lookup_reference(self, value: _Output,
                                              current_configuration: int, *,
@@ -3246,7 +3264,7 @@ class LocalCore:
 
     def produce_publication_observed_index(self, value: _Output,
                                            current_configuration: int, *,
-                                           field: _CommitMaterialField = 'wire') -> None:
+                                           field: _CommitMaterialField | Literal['storage_extent'] = 'wire') -> None:
         """Copy the actually stored index after a fresh current publisher check."""
         with self._lock:
             self._owned_output(value, 'publication_commit_export')
@@ -3254,11 +3272,14 @@ class LocalCore:
                 raise RuntimeError('Local Core is closing')
             if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
                 raise ValueError('Invalid current publication configuration')
-            if type(field) is not str or field not in _COMMIT_MATERIAL_FIELDS:
+            if type(field) is not str:
+                raise ValueError('Invalid observed index field')
+            code = 4 if field == 'storage_extent' else _COMMIT_MATERIAL_FIELDS.get(field)
+            if code is None:
                 raise ValueError('Invalid observed index field')
             self._check('produce_publication_observed_index', self._call(
                 'publication_commit_export', 'produce_observed_index', value.handle,
-                current_configuration, _COMMIT_MATERIAL_FIELDS[field]))
+                current_configuration, code))
 
     def produce_publication_observed_run_state(self, value: _Output,
                                                observed_at: _Input,
@@ -3285,18 +3306,46 @@ class LocalCore:
                                            source: _Input,
                                            current_configuration: int) -> None:
         """Prepare original durable observation metadata, never a COMMIT ACK."""
+        self._check('produce_publication_sdk_run_state', self._prepare_publication_sdk_run_state(
+            value, original_run, source, current_configuration, 'produce_sdk_run_state'))
+
+    def measure_publication_sdk_run_state(self, value: _Output, original_run: int,
+                                           source: _Input, current_configuration: int) -> int:
+        """Prepare the same original once and return its measured transfer extent."""
+        size = self._prepare_publication_sdk_run_state(
+            value, original_run, source, current_configuration, 'measure_sdk_run_state')
+        if type(size) is not int or not 0 < size <= 1_048_576:
+            raise LocalCoreError('measure_publication_sdk_run_state',
+                                 size if type(size) is int and size < 0 else -33)
+        return size
+
+    def _prepare_publication_sdk_run_state(self, value: _Output, original_run: int,
+                                            source: _Input, current_configuration: int,
+                                            operation: Literal['measure_sdk_run_state', 'produce_sdk_run_state']) -> int:
         with self._lock:
             self._owned_output(value, 'publication_commit_export')
             self._owned_input(source)
             if self._closing:
                 raise RuntimeError('Local Core is closing')
             if (type(original_run) is not int or not 0 < original_run < 2**31
-                    or type(current_configuration) is not int
-                    or not 0 < current_configuration < 2**31):
+                    or type(current_configuration) is not int or not 0 < current_configuration < 2**31):
                 raise ValueError('Invalid original SDK Run observation')
-            self._check('produce_publication_sdk_run_state', self._call(
-                'publication_commit_export', 'produce_sdk_run_state', value.handle,
-                original_run, source.handle, current_configuration))
+            return self._call('publication_commit_export', operation, value.handle,
+                              original_run, source.handle, current_configuration)
+
+    def emit_publication_sdk_run_state(self, value: _Output, original: _Output,
+                                       current_configuration: int) -> None:
+        """Emit the same original update into its separately funded output."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_output(original, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if value is original or type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid original SDK Run state transfer')
+            self._check('emit_publication_sdk_run_state', self._call(
+                'publication_commit_export', 'emit_sdk_run_state', value.handle,
+                original.handle, current_configuration))
 
     def validate_publication_sdk_run_state(self, value: _Output,
                                             current_configuration: int) -> None:
@@ -3690,7 +3739,7 @@ class LocalCore:
 
     def produce_publication_commit_schema(self, value: _Output,
                                            current_configuration: int, result: int, *,
-                                           field: Literal['identity', 'wire']) -> None:
+                                           field: Literal['identity', 'wire', 'storage_extent']) -> None:
         """Project one original receipt field, without schema/CID regeneration.
 
         Result follows the original preflight inventory, not material ordinals.
@@ -3705,11 +3754,11 @@ class LocalCore:
                 raise ValueError('Invalid current publication configuration')
             if type(result) is not int or not 0 <= result < 2**31:
                 raise ValueError('Invalid original schema Result index')
-            if type(field) is not str or field not in ('identity', 'wire'):
+            if type(field) is not str or field not in _COMMIT_SCHEMA_FIELDS:
                 raise ValueError('Invalid original schema field')
             self._check('produce_publication_commit_schema', self._call(
                 'publication_commit_export', 'produce_schema', value.handle,
-                current_configuration, result, 0 if field == 'identity' else 1))
+                current_configuration, result, _COMMIT_SCHEMA_FIELDS[field]))
 
     def validate_publication_commit_payload_binding(
             self, publication: _Output, record: _Output,

@@ -9,12 +9,12 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeMockAcceptanceObservations, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {captureNativeMockCommand, mockTemplates, nativeLauncherEnvelope, requireNativeMockWork, runNativeCliMockScenario,
-  runNativeNullableMockScenarios, runNativeSharedFileMockScenario}
+  runNativeMixedFileMockScenarios, runNativeNullableMockScenarios, runNativeSharedFileMockScenario}
   from './native-cli-mock-scenario.mjs';
 import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
 import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
   from './test-native-cli-source-free-install.mjs';
-import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {mixedDeleteUpdateMockProject, threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 import * as nullable from '../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs';
 
 test('Native shared-file fixture requests three ordered rows with independent complete oracles', () => {
@@ -270,6 +270,78 @@ test('installed Native shared-file selection preserves its own original Run and 
       assert.equal(receipt.lockPathAbsent, true);
       assert.deepEqual(calls.map(args => args[0]),
         ['--mode', 'run', 'status', 'status', 'approve', 'status', 'result', 'status', 'result']);
+    }
+  }
+});
+
+test('Native mixed file harness checks the original DELETE diff and both decision paths', async t => {
+  const fixture = mixedDeleteUpdateMockProject();
+  const original = JSON.parse(fixture.before);
+  for (const wrongAfter of [false, true]) {
+    const root = await mkdtemp(join(tmpdir(), 'actql-native-mixed-file-unit-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const calls = [], statuses = new Map();
+    const proof = runNativeMixedFileMockScenarios({root, async run(args, cwd) {
+      const file = join(cwd, 'mock/data.json'), decision = cwd.endsWith('-approve') ? 'approve' : 'reject';
+      const runId = 'run-' + decision, checkpoint = 'checkpoint-' + decision;
+      const cid = observedCid(decision === 'approve' ? 'b' : 'c');
+      const state = () => JSON.stringify({version: 'actql-run-state/0.1', run_id: runId,
+        status: statuses.get(cwd) ?? 'waiting_checkpoint', checkpoint: {checkpoint_id: checkpoint, checkpoint_cid: cid}});
+      calls.push([cwd, args[0]]);
+      let stdout = '', events = [];
+      if (args[0] === '--mode') {
+        assert.equal(await readFile(file, 'utf8'), fixture.before);
+      } else if (args[0] === 'run') {
+        assert.equal(await readFile(join(cwd, fixture.programFile), 'utf8'), fixture.files[fixture.programFile]);
+        stdout = state();
+      } else {
+        await assert.rejects(stat(join(cwd, fixture.programFile)), {code: 'ENOENT'});
+        if (args[0] === 'status' && args.includes('--json')) {
+          assert.equal(args[1], runId);
+          stdout = state();
+        } else if (args[0] === 'status') {
+          assert.equal(args[1], runId);
+          stdout = [`Run: "${runId}"`, `Checkpoint: "${checkpoint}"`, `  Original CID: "${cid}"`,
+            'Stored Effect Preview (read-only; not approval):',
+            ...[['delete', 'Account', 'a1', wrongAfter ? {state: 'present', value: null} : {state: 'absent'}],
+              ['update', 'Contact', 'c1', {state: 'present', value: {value: 'C-new'}}]]
+              .flatMap(([kind, resource, id, after]) => [
+                `  Effect: "${kind}"  Target: "connector://salesforce/${resource}"`,
+                '  Items: 1', '  Preview strength: "full_diff"', '  Changes:', `    Row: "${id}"`,
+                '      Before: ' + JSON.stringify({state: 'present', value: original.salesforce[resource].rows[0]}),
+                '      After: ' + JSON.stringify(after),
+              ])].join('\n') + '\n';
+        } else if (args[0] === decision) {
+          assert.equal(args[1], checkpoint);
+          assert.equal(statuses.has(cwd), false);
+          statuses.set(cwd, decision === 'approve' ? 'succeeded' : 'cancelled');
+          if (decision === 'approve') {
+            await writeFile(file, fixture.after);
+            events = [0, 1].flatMap(ordinal => [5, 6, 7, 8, 9, 10, 11].map(tag => ({
+              tag, ordinal: tag === 6 || tag === 7 ? -1 : 0,
+              identity: tag === 6 || tag === 7 ? '' : 'sha256:' + (ordinal * 16 + (tag === 8 ? 5 : tag))
+                .toString(16).padStart(64, '0'),
+            })));
+          }
+        } else {
+          assert.deepEqual(args, ['result', runId, '--result', 'updates', '--format', 'jsonl']);
+          assert.equal(decision, 'approve');
+          stdout = JSON.stringify(fixture.rows[0]) + '\n';
+        }
+      }
+      return {code: 0, signal: null, stdout, stderr: observation(200 + calls.length, events)};
+    }});
+    if (wrongAfter) {
+      await assert.rejects(proof, /Original Review must preserve ordered targets/u);
+      assert.equal(statuses.size, 0);
+    } else {
+      const [approved, rejected] = await proof;
+      assert.equal(approved.resultRows, 1);
+      assert.notEqual(approved.beforeSha256, approved.afterSha256);
+      assert.equal(rejected.beforeSha256, rejected.afterSha256);
+      assert(approved.lockPathAbsent && rejected.lockPathAbsent);
+      assert.deepEqual(calls.filter(([cwd]) => cwd.endsWith('-reject')).map(([, command]) => command),
+        ['--mode', 'run', 'status', 'status', 'reject', 'status']);
     }
   }
 });

@@ -241,6 +241,7 @@ class LocalJournalBridgeCustodyTests(unittest.TestCase):
         cleaned = []
         loan = core.reserve_journal_observation(material, 8, store=self.store, current=lambda: None,
                                                cleanup=lambda: cleaned.append('close') or ready[0])
+        self.assertEqual(loan.limit, 4096)
         reader = _NamespaceReader(lambda *a: None, lambda *a: None, self.store, lambda: None, check_fences=lambda *_: None, check_fences_and_current=scalar_reader_check)
         core.inspect_journal_observation(loan, reader)
         self.assertIsNone(core._journal_callbacks(2).reader)

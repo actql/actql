@@ -164,6 +164,19 @@ pub fn client_program_relation_prepare_target_update(
 }
 
 ///|
+#export_name("clientProgramRelationPrepareTargetDelete")
+pub fn client_program_relation_prepare_target_delete(
+  document : @client_row_source_host.RelationTargetDocument,
+  row : @client_row_source_host.RelationTargetRow,
+  expected_version : String,
+  max_work : Int,
+) -> Result[Bytes, @client_row_source_host.RowSourceIssue] {
+  @client_row_source_host.prepare_relation_target_delete(
+    document, row, expected_version, max_work,
+  )
+}
+
+///|
 #export_name("clientProgramRelationAcceptChargedDocument")
 pub fn client_program_relation_accept_charged_document(
   run : @client_row_source_host.RowRun,

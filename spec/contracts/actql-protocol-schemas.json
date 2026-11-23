@@ -17439,7 +17439,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:275dd05d4a3ccae01066d5bc3de4da903bfb17cc2f9d62b7df476d9c65773b65",
+  "artifact_registry_cid": "sha256:df5991827836c2e67e5cf8f7ee799d967bd2a63a0037cf6942d3c7c59a74b83e",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17516,7 +17516,7 @@
     "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a",
     "explanation": "sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c",
     "installation_publication_storage_binding": "sha256:99aa1c53014df8cb2bbaeef9768d461d55a7fcf0e765f8cc1d7c0ee496565b0d",
-    "effect_local_operation_receipt": "sha256:a5fd00444b48488f3f82154d04bb4949e0487e1f8d4e9fb970891a89a2956942"
+    "effect_local_operation_receipt": "sha256:285bc022729dbc31c236e58504211da98e85a14d14e3bf88a6953bd4b8840e6d"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -110382,7 +110382,10 @@
               "const": "json_file"
             },
             "operation_kind": {
-              "const": "update"
+              "enum": [
+                "update",
+                "delete"
+              ]
             },
             "replacement_status": {
               "const": "acknowledged"

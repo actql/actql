@@ -7,6 +7,7 @@ priv enum PublicationCommitExportProjection {
   ObservedIndex(Int)
   ObservedRunState(Int)
   SDKRunState(Int, Int)
+  SDKMeasuredRunState(Int, Int, Int, Bool)
   SDKReadOriginal(Int, Int, Int, Int)
   SDKReadEvidence(Int, Int, Int)
   SDKReadGrant(Int, Int, Int)
@@ -42,6 +43,8 @@ priv struct StoredPublicationCommitExport {
   mut sdk_payload_record : (Int, Int, Int)?
   mut sdk_payload_terminal : @local_run.LocalSDKDeliveryTerminal?
   mut sdk_run_state_update : @host.ClientSavedRunStateUpdate?
+  mut sdk_run_state_update_capacity : @resources.CapacityReservation?
+  mut sdk_run_state_transport : @resources.CapacityReservation?
 }
 
 ///|
@@ -131,6 +134,8 @@ pub fn reserve_bounded_publication_commit_export(
     sdk_payload_record: None,
     sdk_payload_terminal: None,
     sdk_run_state_update: None,
+    sdk_run_state_update_capacity: None,
+    sdk_run_state_transport: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -211,9 +216,22 @@ pub fn publication_commit_export_result_count(
 }
 
 ///|
-/// Copy one original field into the existing accounted output. Fields are
-/// wire=0, name=1, identity_field=2 and identity=3, all exact UTF-8 bytes.
-/// Raw fields avoid re-escaping a bounded contract inside a second JSON value.
+fn publication_storage_extent(
+  identity : String,
+  wire : String,
+) -> Result[String, Int] {
+  guard @scalar.utf8_length_within(wire, 1048576) is Some(bytes) && bytes > 0 else {
+    return Err(-4)
+  }
+  Ok(identity + ":" + bytes.to_string())
+}
+
+///|
+/// Copy one original field into the existing accounted output.
+/// Fields 0–3 return the exact UTF-8 wire, name, identity field and identity.
+/// Field 4 returns the original 71-byte CID, a colon and its wire capacity as decimal
+/// ASCII, measured from the same immutable canonical wire under its existing
+/// limit. No contract is copied or re-encoded to obtain the byte count.
 pub fn produce_publication_commit_material(
   nonce : Int64,
   handle : Int,
@@ -235,7 +253,7 @@ pub fn produce_publication_commit_material(
     Ok(original) => original
     Err(code) => return code
   }
-  if ordinal < 0 || field < 0 || field > 3 {
+  if ordinal < 0 || field < 0 || field > 4 {
     return -3
   }
   let projection = PublicationCommitExportProjection::Material(ordinal, field)
@@ -252,15 +270,24 @@ pub fn produce_publication_commit_material(
     Ok(contract) => contract
     Err(_) => return -32
   }
-  record.projection = Some(projection)
-  record.invoked = true
-  record.pending = true
   let text = match field {
     0 => @publication.publication_contract_json(contract)
     1 => @publication.publication_contract_name(contract)
     2 => @publication.publication_contract_identity_field(contract)
-    _ => @publication.publication_contract_identity(contract)
+    3 => @publication.publication_contract_identity(contract)
+    _ =>
+      match
+        publication_storage_extent(
+          @publication.publication_contract_identity(contract),
+          @publication.publication_contract_json(contract),
+        ) {
+        Ok(text) => text
+        Err(code) => return code
+      }
   }
+  record.projection = Some(projection)
+  record.invoked = true
+  record.pending = true
   let result = status(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(text)),
   )
@@ -274,6 +301,7 @@ pub fn produce_publication_commit_material(
 ///|
 /// Copy the actually inspected stored index, never the original candidate.
 /// Current publisher is checked again; this projection is not Store ACK.
+/// Field 4 describes the same admitted original used by the wire field.
 pub fn produce_publication_observed_index(
   nonce : Int64,
   handle : Int,
@@ -299,7 +327,7 @@ pub fn produce_publication_observed_index(
     parent.observation_publisher is Some(publisher) else {
     return -32
   }
-  if field < 0 || field > 3 {
+  if field < 0 || field > 4 {
     return -3
   }
   let auth = publication_observation_publisher(
@@ -322,15 +350,24 @@ pub fn produce_publication_observed_index(
   if record.invoked || record.pending {
     return -33
   }
-  record.projection = Some(projection)
-  record.invoked = true
-  record.pending = true
   let text = match field {
     0 => @publication.publication_contract_json(index)
     1 => @publication.publication_contract_name(index)
     2 => @publication.publication_contract_identity_field(index)
-    _ => @publication.publication_contract_identity(index)
+    3 => @publication.publication_contract_identity(index)
+    _ =>
+      match
+        publication_storage_extent(
+          @publication.publication_contract_identity(index),
+          @publication.publication_contract_json(index),
+        ) {
+        Ok(text) => text
+        Err(code) => return code
+      }
   }
+  record.projection = Some(projection)
+  record.invoked = true
+  record.pending = true
   let result = status(
     @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(text)),
   )
@@ -469,6 +506,7 @@ pub fn produce_publication_commit_index_key(
 ///|
 /// Copy one schema field from the same original completed Result receipt.
 /// Schema index follows the original preflight inventory, not contract ordinal.
+/// Field 2 measures the original schema wire and returns its CID and size.
 /// The existing buffer owns allocation/cleanup; no schema is reconstructed.
 pub fn produce_publication_commit_schema(
   nonce : Int64,
@@ -493,7 +531,7 @@ pub fn produce_publication_commit_schema(
   if result < 0 ||
     result >= parent.publications.length() ||
     field < 0 ||
-    field > 1 {
+    field > 2 {
     return -3
   }
   guard value.publication_preflights.get(parent.preflight)
@@ -511,10 +549,10 @@ pub fn produce_publication_commit_schema(
       result,
       parent.publications[result],
       current.account,
-      if field == 0 {
-        Identity
-      } else {
+      if field == 1 {
         Wire
+      } else {
+        Identity
       },
     ) {
     Ok(text) => text
@@ -525,6 +563,25 @@ pub fn produce_publication_commit_schema(
   }
   if record.invoked || record.pending {
     return -33
+  }
+  let text = if field == 2 {
+    let wire = match
+      @local_run.local_preflight_result_schema_field(
+        preflight,
+        result,
+        parent.publications[result],
+        current.account,
+        Wire,
+      ) {
+      Ok(wire) => wire
+      Err(_) => return -32
+    }
+    match publication_storage_extent(text, wire) {
+      Ok(descriptor) => descriptor
+      Err(code) => return code
+    }
+  } else {
+    text
   }
   record.projection = Some(projection)
   record.invoked = true
@@ -719,6 +776,19 @@ pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
       return result
     }
     record.state_borrow = None
+  }
+  if record.sdk_run_state_transport is Some(capacity) {
+    match @resources.settle_capacity(value.root, capacity) {
+      Err(_) => return -4
+      Ok(_) => record.sdk_run_state_transport = None
+    }
+  }
+  record.sdk_run_state_update = None
+  if record.sdk_run_state_update_capacity is Some(capacity) {
+    match @resources.settle_capacity(value.root, capacity) {
+      Err(_) => return -4
+      Ok(_) => record.sdk_run_state_update_capacity = None
+    }
   }
   value.commit_exports.remove(handle) |> ignore
   value.copies.remove(handle) |> ignore

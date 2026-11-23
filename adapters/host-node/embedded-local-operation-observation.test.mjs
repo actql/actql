@@ -4,16 +4,16 @@ import {readFileSync} from 'node:fs';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 import {checked} from '../host-common/runtime-result.mjs';
+import {installedEffectSettlements} from './embedded-local-lifecycle.mjs';
 import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 
 // Original Host expressions with explicit execution/observation ports. This
 // supplies no Account grant, Run claim, Store receipt or physical capacity.
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
 const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-const named = [], resultCaptures = [];
+const resultCaptures = [];
 function collect(node) {
   if (node === null || typeof node !== 'object') return;
-  if (node.type === 'VariableDeclarator' && node.id.name === 'submitEffect') named.push(node.init);
   if (node.type === 'Property' && node.key.name === 'captureResultOperation') resultCaptures.push(node.value);
   for (const value of Object.values(node)) {
     if (Array.isArray(value)) value.forEach(collect);
@@ -21,10 +21,6 @@ function collect(node) {
   }
 }
 collect(ast);
-assert.equal(named.length, 1);
-const install = compileFunction(`return ${source.slice(named[0].start, named[0].end)};`,
-  ['effectRun', 'checkpoints', 'runAcceptance', 'admitEffectDefinition', 'diagnostic',
-    'settleHeldRun', 'runIdOf', 'observation']);
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((yes, no) => {resolve = yes; reject = no;});
@@ -37,14 +33,17 @@ for (const failed of [false, true]) {
     const accepted = {ref: {runDefinitionCid: 'explicit-original'}, durability: 'explicit', revision: 1};
     const primary = new Error('OriginalEffectFailure');
     let starts = 0, settlements = 0;
-    const submit = install({checkSupported() {}, start(original) {
-      starts++; assert.equal(original, accepted); return work.promise;
-    }}, undefined, undefined, async () => accepted,
-    (...args) => diagnostics.push(args), async original => {
-      assert.equal(original, accepted); settlements++; entered.resolve(); await holding.promise;
-    }, () => 'explicit-run', {retainOperation(promise) {retained.push(promise);}});
+    const lifecycle = installedEffectSettlements({retainOperation(promise) {retained.push(promise);}});
     try {
-      assert.deepEqual(await submit({preparedProgram: {}, requestId: 'explicit-request'}, {}, []), accepted);
+      const result = lifecycle.start(accepted, {
+        effectRun: {start(original) {
+          starts++; assert.equal(original, accepted); return work.promise;
+        }},
+        diagnostic(...args) { diagnostics.push(args); },
+        async settle() { settlements++; entered.resolve(); await holding.promise; },
+      });
+      assert.deepEqual(result, accepted);
+      assert.equal(result.ref, accepted.ref);
       assert.equal(starts, 1);
       assert.equal(retained.length, 1);
       assert.notEqual(retained[0], work.promise);

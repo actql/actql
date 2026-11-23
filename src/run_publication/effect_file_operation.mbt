@@ -2,6 +2,7 @@
 /// Original file-operation binding DATA. Context and Resolution are bindings,
 /// not grants, write-use proofs or permission to replace a target.
 pub struct EffectFileOperation {
+  deleting : Bool
   effect_preview_cid : String
   member_preview_cid : String
   row_preview_cid : String
@@ -123,8 +124,12 @@ pub fn prepare_effect_file_operation(
       return Err(InvalidDispatch)
     }
   }
-  guard effect_preview_member_kind(preview, member_index) == Some("update") &&
-    effect_preview_member_identity(preview, member_index)
+  let deleting = match effect_preview_member_kind(preview, member_index) {
+    Some("update") => false
+    Some("delete") => true
+    _ => return Err(ForeignRow)
+  }
+  guard effect_preview_member_identity(preview, member_index)
     is Some(member_preview_cid) &&
     // The caller and terminal reducer use the execution ordinal. Guard
     // storage uses the raw changes index; join them through the original CID.
@@ -141,6 +146,7 @@ pub fn prepare_effect_file_operation(
     return Err(ForeignRow)
   }
   Ok({
+    deleting,
     effect_preview_cid: effect_preview_semantic_identity(preview),
     member_preview_cid,
     row_preview_cid,
@@ -228,7 +234,7 @@ pub fn prepare_effect_file_operation_receipt(
       (name, value) in [
         ("version", "actql-local-effect-operation-receipt/0.1"),
         ("backend_kind", "json_file"),
-        ("operation_kind", "update"),
+        ("operation_kind", if operation.deleting { "delete" } else { "update" }),
         ("replacement_status", "acknowledged"),
         ("effect_preview_cid", operation.effect_preview_cid),
         ("effect_member_preview_cid", operation.member_preview_cid),
@@ -354,7 +360,8 @@ pub fn issue_effect_row_outcome_receipt_from_file(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if operation.effect_preview_cid != expected.effect_preview_cid ||
+  if operation.deleting != expected.deleting ||
+    operation.effect_preview_cid != expected.effect_preview_cid ||
     operation.member_preview_cid != expected.member_preview_cid ||
     operation.row_preview_cid != expected.row_preview_cid ||
     operation.dispatch_entry_cid != dispatch_entry_cid {
@@ -442,6 +449,11 @@ pub fn admit_saved_effect_file_operation_receipt(
       _ => None
     }
   }
+  let deleting = match text(value, "operation_kind") {
+    Some("update") => false
+    Some("delete") => true
+    _ => return Err(ForeignResponse)
+  }
   guard text(value, "backend_kind") == Some("json_file") &&
     text(value, "effect_preview_cid") is Some(effect_preview_cid) &&
     text(value, "effect_member_preview_cid") is Some(member_preview_cid) &&
@@ -492,6 +504,7 @@ pub fn admit_saved_effect_file_operation_receipt(
     _ => return Err(Encoding)
   }
   let operation : EffectFileOperation = {
+    deleting,
     effect_preview_cid,
     member_preview_cid,
     row_preview_cid,

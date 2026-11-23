@@ -331,7 +331,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
                 observe(lambda _: None)
                 self.assertIn(original.reference, host._public_run_references)
                 self.assertIs(host._run_state_custody[run.handle], original.state)
-                self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+                self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             finally:
                 release.set()
                 await asyncio.wait_for(work.wait_stopped(), 2)
@@ -339,7 +339,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(original.reference, host._public_run_references)
             self.assertNotIn(work, host._physical_work)
             self.assertNotIn(original.publication, host._publications)
-            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             self.assertEqual(calls.count('confirm_sdk_run_state'), 2)
             self.assertEqual(store.read(key).payload, SAVED_STATE)
             await client.aclose()
@@ -387,7 +387,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(original.state, held)
             self.assertIs(held.output, output)
             self.assertIs(core._loans[output.ticket], output)
-            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             self.assertEqual(calls.count('confirm_sdk_run_state'), 2)
             self.assertEqual(store.read(key), saved)
             self.assertIn(original.reference, host._public_run_references)
@@ -396,7 +396,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn(publication, host._publications)
             self.assertNotIn(work, host._physical_work)
             self.assertFalse(host._run_state_custody)
-            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             await client.aclose()
 
     async def test_retirement_current_refusal_keeps_same_output_and_live_route(self):
@@ -413,7 +413,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertIn(original.reference, host._public_run_references)
             del codes['confirm_sdk_run_state']
             observe(lambda _: None)
-            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             self.assertNotIn(original.reference, host._public_run_references)
             await client.aclose()
 
@@ -512,7 +512,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(work._cleanup_error, failure)
             self.assertNotIn(original.reference, host._public_run_references)
             self.assertTrue(host._retire_original_execution(original))
-            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             self.assertEqual(calls.count('confirm_sdk_run_state'), 1)
             self.assertIs(work._cleanup_error, failure)
             await client.aclose()
@@ -647,7 +647,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
         store = host._installation._store
         key = store.namespaced_key('client_submitted_intents', submission_fixture.REQUEST)
         previous = core._call
-        outputs, packets, calls, codes = {}, {}, [], {}
+        outputs, bounds, packets, calls, codes = {}, {}, {}, [], {}
         def actual():
             callbacks = core._journal_callbacks(host._configuration.current.ticket)
             self.assertIsNotNone(callbacks.reader)
@@ -660,22 +660,32 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(args, (projection._publication.handle,))
                 self.assertTrue(all(ticket not in core._loans for ticket in outputs.values()))
                 return 0
-            if family == 'publication_commit_export' and name == 'reserve':
+            if family == 'publication_commit_export' and name in ('reserve', 'reserve_bounded'):
                 self.assertEqual(args[0], projection._publication.handle)
+                if name == 'reserve_bounded' and args[2] > 1 and 'reserve_body' in codes:
+                    return codes['reserve_body']
                 handle = 4000000 + args[1]
                 outputs[handle] = args[1]
+                if name == 'reserve_bounded':
+                    bounds[handle] = args[2]
                 return handle
             if family == 'publication_commit_export' and args[0] in outputs:
                 handle = args[0]
                 calls.append(name)
-                if name == 'produce_sdk_run_state':
+                if name == 'measure_sdk_run_state':
                     self.assertEqual((args[1], args[3]), (run.handle, host._configuration.handle))
+                    self.assertEqual(bounds[handle], 1)
                     if 'during_produce' in codes:
                         codes['during_produce']()
                     row = actual()
                     packets[handle] = wire_bytes({'kind': 'retained' if row.payload == SAVED_STATE else 'replace',
                         'key': submission_fixture.REQUEST, 'revision': str(row.generation),
                         'body': SAVED_STATE.decode(), 'state': wire_bytes(fixture.STATE).decode()})
+                    return codes.get(name, len(packets[handle]))
+                if name == 'emit_sdk_run_state':
+                    self.assertEqual(args[2], host._configuration.handle)
+                    self.assertEqual(bounds[handle], len(packets[args[1]]))
+                    packets[handle] = packets[args[1]]
                     return codes.get(name, 0)
                 if name == 'validate_sdk_run_state':
                     actual()
@@ -706,7 +716,8 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             observe(lambda raw: states.append(json.loads(raw)))
             self.assertEqual(store.read(key), saved)
             self.assertEqual(states, [fixture.STATE, fixture.STATE])
-            self.assertEqual(calls.count('produce_sdk_run_state'), 2)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 2)
+            self.assertEqual(calls.count('emit_sdk_run_state'), 2)
             self.assertEqual(calls.count('validate_sdk_run_state'), 1)
             self.assertEqual(calls.count('confirm_sdk_run_state'), 2)
             self.assertIs(host._runs._runs[run.handle], run)
@@ -732,9 +743,32 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(store.read(key), committed)
             self.assertEqual(states, [fixture.STATE])
             self.assertEqual(write.call_count, 1)
-            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             self.assertFalse(host._run_state_custody)
             await client.aclose()
+
+    async def test_measured_state_reservation_refusal_keeps_prepared_owner_and_skips_cas(self):
+        with TemporaryDirectory() as directory:
+            host, core, client, run, store, key, calls, codes, observe = await self.bridge(directory)
+            before = store.read(key)
+            codes['reserve_body'] = -4
+            with self.assertRaises(LocalCoreError) as refusal:
+                observe(lambda _: self.fail('Refused body reached the consumer'))
+            self.assertEqual(refusal.exception.code, -4)
+            held = host._run_state_custody[run.handle]
+            self.assertIsNotNone(held.output)
+            self.assertIs(core._loans[held.output.ticket], held.output)
+            self.assertIsNone(held.body_output)
+            self.assertFalse(held.write_attempted)
+            self.assertEqual(store.read(key), before)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
+            self.assertNotIn('emit_sdk_run_state', calls)
+            codes.clear()
+            with self.assertRaises(LocalProductCleanupPending):
+                observe(lambda _: self.fail('Retried original state preparation'))
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
+            await client.aclose()
+            self.assertTrue(core._closed)
 
     async def test_prior_row_refusal_keeps_original_without_write_or_replay(self):
         with TemporaryDirectory() as directory:
@@ -751,7 +785,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(host._run_state_custody[run.handle], held)
             self.assertIs(core._loans[source.ticket], source)
             self.assertIs(core._loans[output.ticket], output)
-            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             await client.aclose()
             self.assertTrue(core._closed)
 
@@ -767,7 +801,7 @@ class SDKRunStateStoreTests(unittest.IsolatedAsyncioTestCase):
             with patch.object(store, 'compare_exchange_many_inspected', side_effect=AssertionError('Metadata write replay')):
                 observe(lambda _: None)
             self.assertEqual(store.read(key), committed)
-            self.assertEqual(calls.count('produce_sdk_run_state'), 1)
+            self.assertEqual(calls.count('measure_sdk_run_state'), 1)
             self.assertEqual(calls.count('confirm_sdk_run_state'), 2)
             await client.aclose()
 

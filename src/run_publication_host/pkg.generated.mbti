@@ -2157,7 +2157,7 @@ pub fn issue_prepared_client_effect_normalization_materials(ClientEffectAllowedR
 
 pub fn issue_prepared_client_effect_run_materials(ClientEffectAllowedRun, @run_publication.PublicationContract, request? : ClientRequestIdentity?, normalization? : ClientEffectNormalization?, before_body? : ((String, Int, Int, Int) -> Bool)?) -> Result[String, ClientEffectRunMaterialsIssue]
 
-pub fn issue_prepared_client_effect_selected_normalization(PreparedClientEffectComputation, allow_source_completion? : Bool) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
+pub fn issue_prepared_client_effect_selected_normalization(PreparedClientEffectComputation, allow_source_completion? : Bool, allow_file_mutation? : Bool) -> Result[ClientEffectNormalization, ClientEffectNormalizationIssue]
 
 pub fn issue_prepared_client_effect_values_fragment(PreparedClientEffectComputation, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientValuesFragmentNode, ClientValuesFragmentIssue]
 
@@ -5426,7 +5426,7 @@ pub struct ClientSavedRunStateUpdate {
   prior_body : Bytes
   revision : Int64
   body : Bytes
-  state : ClientRunStateOriginal
+  state_wire : String
 }
 
 pub(all) enum ClientSavedRunStateUpdateIssue {

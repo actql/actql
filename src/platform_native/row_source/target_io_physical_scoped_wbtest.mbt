@@ -91,6 +91,7 @@ fn target_io_fixture_update_work(directory : String) -> Unit raise {
   )
   assert_true(update.replacement_attempted)
   let ack = update.replacement_acknowledgment().unwrap()
+  assert_false(ack.is_delete())
   assert_eq(ack.identity(), "first")
   assert_eq(ack.expected_version(), version)
   assert_eq(ack.changes_wire(), "{\"value\":9}")
@@ -149,6 +150,79 @@ fn target_io_fixture_update_work(directory : String) -> Unit raise {
   assert_eq(stale.snapshot(), None)
   assert_true(stale.replacement_acknowledgment() is None)
   assert_true(stale.close().unwrap())
+
+  // A fieldless DELETE Preview observes the same row/version without
+  // acquiring a Writer. The existing UPDATE entrance still requires fields.
+  assert_true(
+    prepare_native_relation_file_target_io(provider, [], "first")
+    is Err(InvalidInput),
+  )
+  assert_true(native_relation_file_target_io_capacity(provider, 0) is None)
+  assert_true(native_relation_file_target_read_io_capacity(provider, 0) is None)
+  let delete_maximum = native_relation_file_delete_target_io_capacity(provider).unwrap()
+  let observed_size = Ref(None)
+  let delete_preview = prepare_native_relation_file_delete_target_observation(
+    provider,
+    "first",
+    bytes => {
+      observed_size.val = Some(bytes)
+      native_relation_file_delete_target_read_io_capacity(
+        provider,
+        response_bytes=Some(bytes),
+      )
+      is Some(_)
+    },
+  ).unwrap()
+  target_io_fixture_run(delete_preview)
+  assert_eq(observed_size.val, Some(expected.length()))
+  assert_eq(delete_preview.snapshot(), Some((after, after_version)))
+  assert_eq(delete_preview.byte_counts(), (expected.length().to_int64(), 0L))
+  assert_true(delete_preview.check_update("{\"value\":8}") is Err(Unavailable))
+  assert_false(delete_preview.replacement_attempted)
+  assert_true(delete_preview.replacement_acknowledgment() is None)
+  assert_true(delete_preview.close().unwrap())
+  assert_true(delete_preview.snapshot() is None)
+
+  let staged = Ref(None)
+  let delete = prepare_native_relation_file_target_delete_io(
+    provider,
+    "first",
+    after_version,
+    "target-delete-stage",
+    bytes => {
+      staged.val = Some(bytes)
+      guard native_relation_file_target_delete_construction(provider, bytes)
+        is Some((actual, _)) else {
+        return false
+      }
+      @execution.execution_capacity_retained_bytes(actual) <=
+      @execution.execution_capacity_retained_bytes(delete_maximum) &&
+      @execution.execution_capacity_execution_bytes(actual) <=
+      @execution.execution_capacity_execution_bytes(delete_maximum)
+    },
+    predecessor=Some(ack),
+  ).unwrap()
+  target_io_fixture_run(delete)
+  assert_eq(staged.val, Some(expected.length()))
+  let removal = delete.replacement_acknowledgment().unwrap()
+  let remaining = " {\"items\":[{\"id\":\"second\",\"value\":2}],\"keep\":\"untouched\"}\n"
+  assert_true(removal.is_delete())
+  assert_eq(removal.expected_version(), after_version)
+  assert_eq(removal.replacement(), @utf8.encode(remaining))
+  assert_eq(
+    delete.byte_counts(),
+    (expected.length().to_int64(), remaining.length().to_int64()),
+  )
+  assert_true(delete.close().unwrap())
+  assert_true(delete.replacement_acknowledgment() is None)
+  let sibling = prepare_native_relation_file_target_io(
+    provider,
+    ["value"],
+    "second",
+  ).unwrap()
+  target_io_fixture_run(sibling)
+  assert_eq(sibling.snapshot().unwrap().0, "{\"id\":\"second\",\"value\":2}")
+  assert_true(sibling.close().unwrap())
 }
 
 ///|

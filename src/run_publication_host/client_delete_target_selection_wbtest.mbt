@@ -39,6 +39,7 @@ fn delete_selection_environment(
 fn delete_selection_prepare(
   update? : Bool = false,
   mixed? : Bool = false,
+  include_command? : Bool = true,
   delete_only? : Bool = false,
   foreign_publication? : Bool = false,
   member_limit? : Int = 3,
@@ -91,6 +92,13 @@ fn delete_selection_prepare(
     (
       #|{"version":"actql/0.1","id":"delete-selection","stages":[{"id":"source","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"string","nullable":false},"value":{"type":"string","nullable":false}},"rows":[{"id":"one","value":"original"}]},"as":"selected"}],"results":{"out":{"from":"selected","fields":["id","value"]}},"effects":{"save":{"delete":{"target":"connector://storage/archive","mapping":"mapping:fixture.archive.v1","from":{"result":"out"},"id":"id"}}}}],"results":{"published":{"from":{"stage":"source","result":"out"}}}}
     )
+  }
+  let document = if mixed && !include_command {
+    let command =
+      #|,"save":{"command":{"contract":"command:fixture.upload.v1","from":{"result":"out"},"input":{"id":{"field":"id"},"value":{"field":"value"}},"target":{"published_store":{"mapping_ref":"mapping:fixture.archive.v1","target_ref":"connector://storage/archive"}}}}
+    document.replace(old=command, new="")
+  } else {
+    document
   }
   prepare_client_effect_computation(
     document,
@@ -333,5 +341,109 @@ test "DELETE selection refuses foreign environment copied occurrence and stale i
   let foreign = delete_selection_prepare().unwrap()
   assert_false(
     client_effect_target_selection_current(original, foreign, observations),
+  )
+}
+
+///|
+test "file mutation normalization retains the checked mixed mapping set and restores the original journal" {
+  let owner = delete_selection_prepare(mixed=true, include_command=false).unwrap()
+  let headers = @checked.effect_program_static_headers(owner.candidate)
+  assert_eq(@syntax.effect_header_count(headers), 2)
+  assert_eq(
+    @syntax.effect_header_kind(@syntax.effect_header_at(headers, 0).unwrap()),
+    "update",
+  )
+  assert_eq(
+    @syntax.effect_header_kind(@syntax.effect_header_at(headers, 1).unwrap()),
+    "delete",
+  )
+  assert_true(
+    issue_prepared_client_effect_selected_normalization(owner)
+    is Err(Inventory(ProfileNotInstalled)),
+  )
+  let foreign_member = delete_selection_prepare(mixed=true).unwrap()
+  assert_true(
+    issue_prepared_client_effect_selected_normalization(
+      foreign_member,
+      allow_file_mutation=true,
+    )
+    is Err(Inventory(ProfileNotInstalled)),
+  )
+  let update = delete_selection_prepare(update=true).unwrap()
+  assert_true(
+    @checked.effect_program_common_file_mutation_normalization_inventory(
+      update.candidate,
+    )
+    is Err(ProfileNotInstalled),
+  )
+
+  let proof = issue_prepared_client_effect_selected_normalization(
+    owner,
+    allow_file_mutation=true,
+  ).unwrap()
+  assert_true(proof.inventory is FileMutation(_))
+  assert_true(
+    issue_prepared_client_effect_selected_normalization(owner)
+    is Err(Inventory(ProfileNotInstalled)),
+  )
+  let bounds = run_materials_limits()
+  let compilation = issue_prepared_client_effect_compilation(
+    owner,
+    run_materials_manifests(),
+    bounds.sequence,
+    bounds.max_sequence_steps,
+    bounds.max_sequence_work,
+    bounds.max_evidence_bytes,
+    bounds.max_evidence_nodes,
+    bounds.max_evidence_depth,
+    normalization=Some(proof),
+  ).unwrap()
+  let scope = "sha256:" + "a".repeat(64)
+  let allowed = issue_client_effect_allowed_run(
+    compilation,
+    scope,
+    "sha256:" + "b".repeat(64),
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let definition = issue_client_effect_run_definition(
+    allowed, "original-file-scope", "original-file-run", "2026-10-09T00:00:00.000Z",
+    "2026-10-10T00:00:00.000Z",
+  ).unwrap()
+  let request = prepare_client_effect_request_identity(
+    owner,
+    scope,
+    "original-file-caller",
+    source_free_caller_input_intent_cid(),
+  ).unwrap()
+  let issued = issue_prepared_client_effect_normalization_materials(
+    allowed,
+    definition,
+    proof,
+    request=Some(request),
+  ).unwrap()
+  let wire = client_effect_issued_normalization_materials_wire(issued)
+  let restored = delete_selection_admit(wire, definition, request).unwrap()
+  assert_true(restored.prepared.normalization is None)
+  assert_true(
+    restored.compilation.normalization_profile is Some(FileMutation(_)),
+  )
+  assert_eq(restored.request, Some(request))
+  let journal = restore_client_effect_run_normalization(restored).unwrap()
+  assert_eq(
+    @publication.run_evidence_value_identity(journal),
+    "sha256:7093ad10f844e6858a99c0c42325fcf987c80a1469a1b4732a1bf18f73242813",
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(journal),
+    @publication.run_evidence_value_json(proof.journal),
+  )
+  let (_, _, _, _, legacy) = original_local_update_materials_fixture()
+  let replaced = normalization_materials_replace(
+    wire,
+    @publication.run_evidence_value_json(legacy.original.journal),
+  )
+  assert_true(
+    delete_selection_admit(replaced, definition, request)
+    is Err(Normalization(SubstitutedJournal)),
   )
 }

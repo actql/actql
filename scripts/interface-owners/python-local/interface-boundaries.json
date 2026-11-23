@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "ba80654605785a6c8dd58297392e6e8341e90a66e08cdcfdc38d22ffe9194b22",
+      "sha256": "7f6d447400b871a1a058a39a9b12d4b8e57d421fe938ac7dd0d603bc41bdb2b6",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -4392,6 +4392,13 @@
         },
         {
           "async": false,
+          "name": "OriginalCommitProjection/_storage_extent",
+          "parameters": [
+            "raw"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalCommitProjection/authorize_commit",
           "parameters": [
             "self",
@@ -4615,7 +4622,7 @@
           ]
         }
       ],
-      "sha256": "92dc12afff901c1cc009fb7538981afa8df3ccf9467eb3d8e5dbed945944aacf",
+      "sha256": "974dfc49e7f9db32c9e274d6c57a45dd8557d837f0080962198c72b5b9e0500d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -4663,7 +4670,8 @@
             "OriginalCommitProjection/serialized",
             "OriginalCommitProjection/storage_count",
             "OriginalCommitProjection/validate_payload_binding",
-            "OriginalCommitProjection/validate_reader_facts"
+            "OriginalCommitProjection/validate_reader_facts",
+            "OriginalCommitProjection/_storage_extent"
           ],
           "exports": [
             "OriginalCommitProjection"
@@ -5725,6 +5733,18 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_prepare_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "original_run",
+            "source",
+            "current_configuration",
+            "operation"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_produce_output",
           "parameters": [
             "self",
@@ -6575,6 +6595,16 @@
         },
         {
           "async": false,
+          "name": "LocalCore/emit_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "original",
+            "current_configuration"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/feed_result_export",
           "parameters": [
             "self",
@@ -6679,6 +6709,17 @@
             "self",
             "value",
             "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/measure_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "original_run",
+            "source",
+            "current_configuration"
           ]
         },
         {
@@ -7967,6 +8008,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/retire_saved_result_transport",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/retire_submission_append_output",
           "parameters": [
             "self",
@@ -8367,7 +8416,7 @@
           ]
         }
       ],
-      "sha256": "bb822647ffb10952bfe7a9f8114126b619cfe36b7a515b7900dbb206435f8a7b",
+      "sha256": "3fb0fbe18c4ac663a0b79e5d67426284cf1ed526c39cca1f28fda3cb6a4dd65b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14287,7 +14336,10 @@
             "LocalCore/_publication_sdk_run_state_step",
             "LocalCore/confirm_publication_sdk_run_state",
             "LocalCore/produce_publication_sdk_run_state",
-            "LocalCore/validate_publication_sdk_run_state"
+            "LocalCore/validate_publication_sdk_run_state",
+            "LocalCore/_prepare_publication_sdk_run_state",
+            "LocalCore/emit_publication_sdk_run_state",
+            "LocalCore/measure_publication_sdk_run_state"
           ],
           "exports": [],
           "attributes": {
@@ -14462,7 +14514,8 @@
             "LocalCore/validate_saved_payload_binding",
             "LocalCore/_try_saved_reader_facts",
             "LocalCore/validate_submission_lookup",
-            "LocalCore/advance_and_read_saved_result"
+            "LocalCore/advance_and_read_saved_result",
+            "LocalCore/retire_saved_result_transport"
           ],
           "exports": [],
           "attributes": {
@@ -53068,6 +53121,14 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_close_sdk_run_state_outputs",
+          "parameters": [
+            "self",
+            "held"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_commit_original_run_rows",
           "parameters": [
             "self",
@@ -53730,6 +53791,13 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_project_original_sdk_run_state/prepare_and_emit",
+          "parameters": [
+            "_"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_raise_original_wait_failure",
           "parameters": [
             "self",
@@ -54213,7 +54281,7 @@
           "async": false
         }
       ],
-      "sha256": "57caa6bc9b6424f86bd010e84a61a3197972469dc98e74100c2673a34819b721",
+      "sha256": "dc277048f86859c66e1ae3faf5bda14b8f6244f656bd4f1a7a6d4a46bb981c3f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -55761,7 +55829,9 @@
             "InstalledLocalHost/_project_original_sdk_run_state/inspect",
             "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
             "_RunStateCustody",
-            "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume"
+            "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume",
+            "InstalledLocalHost/_close_sdk_run_state_outputs",
+            "InstalledLocalHost/_project_original_sdk_run_state/prepare_and_emit"
           ],
           "exports": [],
           "attributes": {
@@ -69787,7 +69857,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "ba80654605785a6c8dd58297392e6e8341e90a66e08cdcfdc38d22ffe9194b22",
+      "sha256": "7f6d447400b871a1a058a39a9b12d4b8e57d421fe938ac7dd0d603bc41bdb2b6",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -79102,7 +79172,7 @@
           ]
         }
       ],
-      "sha256": "5074670509943de1fc0df7f31214a71698d4b37c768d090b57295217cea71a9d",
+      "sha256": "58f27d714d9237c3aa137394985e50bd44f77de04169c3669ace4cc297b61584",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -86956,7 +87026,7 @@
           ]
         }
       ],
-      "sha256": "c012fdb5810604d67ded60beaf7440c1716a40a03adc82ba87884c29ed3fbfc3",
+      "sha256": "97b9b8b1dac269702e35e50b160d82e20ddeb0a3a2e7141ead72c5a85d3d1e91",
       "contracts": [
         {
           "operations": [

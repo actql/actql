@@ -113,10 +113,20 @@ the same entered physical journal snapshot. Leaving that snapshot does not make
 its normal current guard usable later; a refused guard retains the same output
 and cleanup duty without exposing the candidate response.
 
-Private scalar ABI 75 adds the SDK observation preparation, prior-row validation
-and saved-row confirmation entrances. Their generated declarations and compiled
-module must agree. The Client wire and journal formats retain their existing 0.1
-contracts, including legacy absent bytes in the generic row encoder.
+The SDK observation has separate preparation, prior-row validation and saved-row
+confirmation entrances. The measured live route prepares one update on its
+original Core holder. The same Root Ledger funds construction and then retains
+the prior and replacement row bytes, state text and original update controls.
+After the snapshot and constructor workspace have returned, the holder reduces
+its reservation to that retained backing. Retaining a row unchanged shares its
+original byte storage. The measured route reserves a separate body output for the
+actual escaped extent and funds writer and decoding workspace independently of
+transfer and physical copies.
+The body stops before its preparation and input. A refused reservation retains
+the same prepared update for cleanup. The validation and confirmation entrances
+continue to inspect that original update. Generated declarations, the exact
+compiled module and the SDK-bound artifact digest identify the private cohort.
+Client wire and journal formats retain their existing 0.1 contracts.
 
 ## Instance-private Wasm facade
 
@@ -311,6 +321,16 @@ Only successful completion of those steps releases the view. A failed step
 keeps the same parent, input custody and cancelled view for explicit cleanup
 retry. No new export, scalar ABI version or Client wire field is introduced by
 this custody connection; it is not a complete material transport or Store ACK.
+
+Private commit-material selector 4 and Result-schema selector 2 project the
+original 71-byte CID, a colon, and the exact decimal UTF-8 byte count of the
+immutable canonical wire. Core checks the original account, view and ordinal
+or completed Result receipt before measuring under the existing one-MiB
+bound. The Host uses these descriptors to reserve each body before Core
+rechecks and produces it. The public-index write reserves the fixed 64-byte
+key and 71-byte CID. Address and body keep separate copy allowances through
+the synchronous Store consumer. These selectors change no export signature,
+Store transaction authority or Client wire.
 
 ## Physical DuckDB boundary
 
@@ -3817,6 +3837,17 @@ remain valid. Kind 13 returns `1` from `submission.produce` while the original
 preparation is pending and `0` only after the result wire has been supplied.
 An unavailable or refused turn never supplies a partial wire. The normal wheel
 cohort binds the Host and module that implement this selector together.
+
+After the installed Host consumes and drops the kind-13 metadata packet, it
+clears the same ticket's original cached bytes under the Core lock before
+using the existing submission transport retirement call on that parent.
+The Core drops the consumed wire and returns its two Wasm transfer bounds and
+two matching physical copy bounds. The remaining physical allowance covers the
+original control holders. This leaves the same projection, input borrow,
+current checks and payload children active. Failure leaves the parent available
+for cleanup only. The slot's physical cleanup callback and final settlement
+still run during its ordinary close. There is no capacity increase or new
+scalar ABI entry.
 
 The same saved projection keeps the original commit owner, view, and captured
 rows. Each continuation opens a fresh current reader, checks the exact selected

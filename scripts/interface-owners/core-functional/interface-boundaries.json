@@ -69014,7 +69014,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "22bb917f70a85a74d29f6a71457f56633903e1910e4d4830e2cc802d1e87f190",
+      "sha256": "7fcacb3a9f6b32588dfb6dd9abbd49a6e9daa91f229ff870705acf59167e75d2",
       "exports": [],
       "operations": [
         {
@@ -70870,6 +70870,10 @@
           "declaration": "client_program_row_source_prepare_acquisition_with_contracts ( declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , contracts : @ planning . QueryEvidenceContracts , listing_policy : @ capacity_policy . Policy ? , ) - > Result [ @ client_row_source_host . RowAcquisition , @ client_row_source_host . RowHostIssue , ]"
         },
         {
+          "name": "client_program_row_source_prepare_delete_mapping",
+          "declaration": "client_program_row_source_prepare_delete_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , ) - > String"
+        },
+        {
           "name": "client_program_row_source_prepare_mapping",
           "declaration": "client_program_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , ) - > String"
         },
@@ -71120,6 +71124,10 @@
         {
           "name": "client_program_with_values_row_limit",
           "declaration": "client_program_with_values_row_limit ( prepared : @ publication_host . PreparedClientProgram , max_rows : Int , ) - > @ publication_host . PreparedClientProgram ?"
+        },
+        {
+          "name": "client_row_mapping_result_json",
+          "declaration": "client_row_mapping_result_json ( prepared : Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ] , ) - > String"
         },
         {
           "name": "client_row_source_prepare_mapping",
@@ -71692,7 +71700,9 @@
             "client_program_query_lowering_issue_code",
             "client_program_compile_local_effects_with_infers",
             "client_program_effect_compilation_infer_originals",
-            "client_program_effect_infer_occurrences"
+            "client_program_effect_infer_occurrences",
+            "client_program_row_source_prepare_delete_mapping",
+            "client_row_mapping_result_json"
           ],
           "exports": [],
           "attributes": {
@@ -71766,6 +71776,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
                 "anchor": "test \"Request checked Source ARRAY refusal reaches existing public rejection without recheck\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }

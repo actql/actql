@@ -194,6 +194,14 @@ test "file operation original refuses foreign uncertain and HTTP evidence" {
     )
     is Err(_),
   )
+  // foreign operation kind
+  assert_true(
+    admit_effect_file_operation_receipt(
+      operation, evidence, "{\"authorization_context_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"backend_kind\":\"json_file\",\"canonical_request_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"dispatch_entry_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"effect_member_preview_cid\":\"sha256:6d695f925df3fb3e7def1c1b31318d37f50b0a7189de0b5b78eb2901d80b8584\",\"effect_preview_cid\":\"sha256:3a14d7c0b9f2621348576dce89999b1603d11cd68555242a0b7c5fd9be5f0968\",\"installation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation_kind\":\"delete\",\"receipt_cid\":\"sha256:5038f31c9942520e1bc6b77f55a12712e177b988c508fc7de2bc8e6ac3dd99f1\",\"replacement_byte_count\":64,\"replacement_generation\":{\"device\":\"16777234\",\"inode\":\"18446744073709551615\",\"size\":\"64\"},\"replacement_physical_sha256\":\"e64f47a0258db63ce7b5f85121d4a4fd22679ec1fecc2c60bfde30d2a3eb3fdf\",\"replacement_status\":\"acknowledged\",\"resolution_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"row_preview_cid\":\"sha256:4531682e916a81a555998f41de7fef4c505a841b83d794d09d95db899d6e55c8\",\"target_cid\":\"sha256:9c8b13889918a09b3b24766920adc033cdf3e17d8d5e58dfe4173793aa13efcb\",\"target_version_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"typed_outcome\":{\"result\":{\"Id\":3,\"é\":\"raw\\r\\n\",\"é\":null},\"state\":\"applied\"},\"typed_outcome_cid\":\"sha256:ddf4274a393f4610550c660e8a06f971530b3e11813047f0ec5ba1e99bd50969\",\"version\":\"actql-local-effect-operation-receipt/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Err(_),
+  )
   // uncertain replacement
   assert_true(
     admit_effect_file_operation_receipt(
@@ -413,5 +421,63 @@ test "file operation evidence refuses noncanonical generation sizes and unobserv
       response, 20000, 2000, 32,
     )
     is Err(_),
+  )
+}
+
+///|
+test "file delete receipt binds the original Preview operation at issuance and restore" {
+  let original = admit_effect_preview_identity(
+    "{\"authoring_context\":{\"annotations\":[],\"authoring_context_cid\":\"sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a\",\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"version\":\"actql-authoring-context/0.1\"},\"barrier_provenance_cids\":[],\"check_environment_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"compiled_plan_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_preview_cid\":\"sha256:659029ecef5390fd48510b20e7799ab0c0340d7fce85425083fdca80029f1820\",\"effects\":[{\"approval\":\"required\",\"authority_scope_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"capability_evidence_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"changes\":[{\"after\":{\"state\":\"absent\"},\"before\":{\"state\":\"present\",\"value\":{\"Name\":\"Before\"}},\"intended_changes\":{\"state\":\"not_applicable\"},\"row_idempotency_key\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"row_preview_cid\":\"sha256:e7525f0b1a0337097ced5dad50bdfa86876a5b311b871a364596b5be093d837f\",\"target_guard\":{\"state\":\"version\",\"version_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"},\"target_row_identity\":\"001000000000001\"}],\"count\":1,\"effect_id\":\"WriteOne\",\"effect_identity_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"effect_kind\":\"delete\",\"effect_member_preview_cid\":\"sha256:e1ca830a92b62610acae96633b3e2e2996e7ff6e0956bf848f913bdd38fb3d7d\",\"executed\":false,\"mapping\":\"mapping:fixture\",\"max_items\":1,\"on_item_failure\":\"halt\",\"preview_strength\":\"full_diff\",\"required_permissions\":[\"write\"],\"resolved_mapping_contract_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"row_order\":[\"sha256:e7525f0b1a0337097ced5dad50bdfa86876a5b311b871a364596b5be093d837f\"],\"source_binding_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"target\":\"Object\",\"write_footprint\":{\"kind\":\"exact_targets\",\"provider_boundary_cid\":\"sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"provider_namespace\":\"fixture\",\"provider_object_identity_cids\":[\"sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"],\"resource_identity_scheme_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"resource_kind\":\"file\"}}],\"encryption_required\":true,\"executed\":false,\"invocation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"model_derived\":false,\"model_invocation_evidence_cids\":[],\"model_response_artifact_cids\":[],\"model_task_contract_cids\":[],\"program_definition_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"program_semantics_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"retention_class\":\"authority-evidence\",\"run_identity_cid\":\"sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\"sensitivity\":\"private\",\"version\":\"actql-effect-preview/0.1\"}",
+    "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a",
+    20000, 2000, 32,
+  ).unwrap()
+  let operation = prepare_effect_file_operation(
+    original, 0, 0, "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "sha256:9c8b13889918a09b3b24766920adc033cdf3e17d8d5e58dfe4173793aa13efcb", "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+    "sha256:4444444444444444444444444444444444444444444444444444444444444444", "sha256:7777777777777777777777777777777777777777777777777777777777777777",
+    "sha256:6666666666666666666666666666666666666666666666666666666666666666", "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  ).unwrap()
+  assert_true(operation.deleting)
+  let bytes = @utf8.encode(" {\"items\":[],\"keep\":true}\n")
+  let evidence = admit_effect_file_replacement_evidence(
+    bytes, "16777234", "18446744073709551615", 26L, 4096,
+  ).unwrap()
+  let receipt = prepare_effect_file_operation_receipt(
+    operation, evidence, "{\"result\":{\"Id\":3},\"state\":\"applied\"}", 20000,
+    2000, 32,
+  ).unwrap()
+  assert_eq(
+    effect_file_operation_receipt_wire(receipt),
+    "{\"authorization_context_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"backend_kind\":\"json_file\",\"canonical_request_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"dispatch_entry_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"effect_member_preview_cid\":\"sha256:e1ca830a92b62610acae96633b3e2e2996e7ff6e0956bf848f913bdd38fb3d7d\",\"effect_preview_cid\":\"sha256:659029ecef5390fd48510b20e7799ab0c0340d7fce85425083fdca80029f1820\",\"installation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation_kind\":\"delete\",\"receipt_cid\":\"sha256:b79506504bd83ae4c7ed6e0eac346365c046394d2d8b6159092f1ba571571d6b\",\"replacement_byte_count\":26,\"replacement_generation\":{\"device\":\"16777234\",\"inode\":\"18446744073709551615\",\"size\":\"26\"},\"replacement_physical_sha256\":\"9c52b3da44a7ef1085cddf66f1065c0a290e06965e0ef18d37045a7e3263c1d0\",\"replacement_status\":\"acknowledged\",\"resolution_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"row_preview_cid\":\"sha256:e7525f0b1a0337097ced5dad50bdfa86876a5b311b871a364596b5be093d837f\",\"target_cid\":\"sha256:9c8b13889918a09b3b24766920adc033cdf3e17d8d5e58dfe4173793aa13efcb\",\"target_version_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"typed_outcome\":{\"result\":{\"Id\":3},\"state\":\"applied\"},\"typed_outcome_cid\":\"sha256:54a9f4db6f21ef283c8a55c1b7bd31bd4b069d2ad07d7128ee04436e7abc0332\",\"version\":\"actql-local-effect-operation-receipt/0.1\"}",
+  )
+  let saved = admit_saved_effect_file_operation_receipt(
+    "{\"authorization_context_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"backend_kind\":\"json_file\",\"canonical_request_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"dispatch_entry_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"effect_member_preview_cid\":\"sha256:e1ca830a92b62610acae96633b3e2e2996e7ff6e0956bf848f913bdd38fb3d7d\",\"effect_preview_cid\":\"sha256:659029ecef5390fd48510b20e7799ab0c0340d7fce85425083fdca80029f1820\",\"installation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation_kind\":\"delete\",\"receipt_cid\":\"sha256:b79506504bd83ae4c7ed6e0eac346365c046394d2d8b6159092f1ba571571d6b\",\"replacement_byte_count\":26,\"replacement_generation\":{\"device\":\"16777234\",\"inode\":\"18446744073709551615\",\"size\":\"26\"},\"replacement_physical_sha256\":\"9c52b3da44a7ef1085cddf66f1065c0a290e06965e0ef18d37045a7e3263c1d0\",\"replacement_status\":\"acknowledged\",\"resolution_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"row_preview_cid\":\"sha256:e7525f0b1a0337097ced5dad50bdfa86876a5b311b871a364596b5be093d837f\",\"target_cid\":\"sha256:9c8b13889918a09b3b24766920adc033cdf3e17d8d5e58dfe4173793aa13efcb\",\"target_version_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"typed_outcome\":{\"result\":{\"Id\":3},\"state\":\"applied\"},\"typed_outcome_cid\":\"sha256:54a9f4db6f21ef283c8a55c1b7bd31bd4b069d2ad07d7128ee04436e7abc0332\",\"version\":\"actql-local-effect-operation-receipt/0.1\"}",
+    bytes, 4096, 20000, 2000, 32,
+  ).unwrap()
+  let row = issue_effect_row_outcome_receipt_from_file(
+    original, 0, 0, "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+    saved, 20000, 2000, 32,
+  ).unwrap()
+  assert_eq(
+    publication_contract_json(row),
+    "{\"dispatch_entry_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"effect_member_preview_cid\":\"sha256:e1ca830a92b62610acae96633b3e2e2996e7ff6e0956bf848f913bdd38fb3d7d\",\"effect_preview_cid\":\"sha256:659029ecef5390fd48510b20e7799ab0c0340d7fce85425083fdca80029f1820\",\"local_operation_receipt_cid\":\"sha256:b79506504bd83ae4c7ed6e0eac346365c046394d2d8b6159092f1ba571571d6b\",\"receipt_cid\":\"sha256:5af4a5d47521e47926d3cf6620abe11c12ace94dbfcb26772068195d903666c4\",\"response_byte_count\":1544,\"response_kind\":\"local_operation\",\"response_physical_sha256\":\"faee38cab7bad4561f0cd45bcf8826b7dc70654a747b48aa79a4920f83701dc3\",\"row_preview_cid\":\"sha256:e7525f0b1a0337097ced5dad50bdfa86876a5b311b871a364596b5be093d837f\",\"typed_outcome\":{\"result\":{\"Id\":3},\"state\":\"applied\"},\"typed_outcome_cid\":\"sha256:54a9f4db6f21ef283c8a55c1b7bd31bd4b069d2ad07d7128ee04436e7abc0332\",\"version\":\"actql-effect-row-outcome-receipt/0.1\"}",
+  )
+  assert_true(
+    admit_effect_file_operation_receipt(
+      operation, evidence, "{\"authorization_context_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"backend_kind\":\"json_file\",\"canonical_request_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"dispatch_entry_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"effect_member_preview_cid\":\"sha256:e1ca830a92b62610acae96633b3e2e2996e7ff6e0956bf848f913bdd38fb3d7d\",\"effect_preview_cid\":\"sha256:659029ecef5390fd48510b20e7799ab0c0340d7fce85425083fdca80029f1820\",\"installation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation_kind\":\"update\",\"receipt_cid\":\"sha256:957d2019af519f82ae2b3110bf040a88f233fe71a598b78b2e3a9d1082420479\",\"replacement_byte_count\":26,\"replacement_generation\":{\"device\":\"16777234\",\"inode\":\"18446744073709551615\",\"size\":\"26\"},\"replacement_physical_sha256\":\"9c52b3da44a7ef1085cddf66f1065c0a290e06965e0ef18d37045a7e3263c1d0\",\"replacement_status\":\"acknowledged\",\"resolution_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"row_preview_cid\":\"sha256:e7525f0b1a0337097ced5dad50bdfa86876a5b311b871a364596b5be093d837f\",\"target_cid\":\"sha256:9c8b13889918a09b3b24766920adc033cdf3e17d8d5e58dfe4173793aa13efcb\",\"target_version_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"typed_outcome\":{\"result\":{\"Id\":3},\"state\":\"applied\"},\"typed_outcome_cid\":\"sha256:54a9f4db6f21ef283c8a55c1b7bd31bd4b069d2ad07d7128ee04436e7abc0332\",\"version\":\"actql-local-effect-operation-receipt/0.1\"}",
+      20000, 2000, 32,
+    )
+    is Err(_),
+  )
+  let switched = admit_saved_effect_file_operation_receipt(
+    "{\"authorization_context_cid\":\"sha256:7777777777777777777777777777777777777777777777777777777777777777\",\"backend_kind\":\"json_file\",\"canonical_request_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"dispatch_entry_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"effect_member_preview_cid\":\"sha256:e1ca830a92b62610acae96633b3e2e2996e7ff6e0956bf848f913bdd38fb3d7d\",\"effect_preview_cid\":\"sha256:659029ecef5390fd48510b20e7799ab0c0340d7fce85425083fdca80029f1820\",\"installation_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"operation_kind\":\"update\",\"receipt_cid\":\"sha256:957d2019af519f82ae2b3110bf040a88f233fe71a598b78b2e3a9d1082420479\",\"replacement_byte_count\":26,\"replacement_generation\":{\"device\":\"16777234\",\"inode\":\"18446744073709551615\",\"size\":\"26\"},\"replacement_physical_sha256\":\"9c52b3da44a7ef1085cddf66f1065c0a290e06965e0ef18d37045a7e3263c1d0\",\"replacement_status\":\"acknowledged\",\"resolution_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"row_preview_cid\":\"sha256:e7525f0b1a0337097ced5dad50bdfa86876a5b311b871a364596b5be093d837f\",\"target_cid\":\"sha256:9c8b13889918a09b3b24766920adc033cdf3e17d8d5e58dfe4173793aa13efcb\",\"target_version_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"typed_outcome\":{\"result\":{\"Id\":3},\"state\":\"applied\"},\"typed_outcome_cid\":\"sha256:54a9f4db6f21ef283c8a55c1b7bd31bd4b069d2ad07d7128ee04436e7abc0332\",\"version\":\"actql-local-effect-operation-receipt/0.1\"}",
+    bytes, 4096, 20000, 2000, 32,
+  ).unwrap()
+  assert_true(
+    issue_effect_row_outcome_receipt_from_file(
+      original, 0, 0, "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      switched, 20000, 2000, 32,
+    )
+    is Err(ForeignRow),
   )
 }
