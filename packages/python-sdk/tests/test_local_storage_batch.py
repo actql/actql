@@ -9,7 +9,10 @@ from threading import Barrier
 import unittest
 from unittest.mock import patch
 
-from actql_sdk._local_storage import ByteWrite, LocalByteStore, LocalStorageError, StoredBytes
+from actql_sdk._local_storage import (
+    ByteWrite, LocalByteStore, LocalStorageError, StoredBytes,
+    LocalStorageCommitUnknown,
+)
 
 
 class AtomicByteBatchTests(unittest.TestCase):
@@ -120,9 +123,10 @@ class AtomicByteBatchTests(unittest.TestCase):
                        side_effect=lambda *a, **k: connect(*a, **(k | {'factory': LostCommit}))):
                 with self.store(Path(directory) / 'core.sqlite') as store:
                     store._connection.lose = True
-                    with self.assertRaises(OSError):
+                    with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.compare_exchange_many((ByteWrite('material', None, b'raw-material'),
                                                      ByteWrite('index', None, b'raw-index')))
+                    self.assertIs(caught.exception.cleanup_store, store)
                     self.assertEqual(store.read('material'), StoredBytes(0, b'raw-material'))
                     self.assertEqual(store.read('index'), StoredBytes(0, b'raw-index'))
                     self.assertEqual(store._connection.inserts, 2)
