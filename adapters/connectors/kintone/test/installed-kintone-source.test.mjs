@@ -102,7 +102,7 @@ test('foreign App metadata and missing typed runtime refuse before key entry or 
   await assert.rejects(f.load(), installedFailureCode('InvalidInstalledKintoneMetadata'));
   await writeFile(f.metadataPath, JSON.stringify(f.metadata));
   await writeFile(f.sitePath, JSON.stringify({...f.site, credentialPrivateKeyPath: f.site.credentialPrivateKeyPath + '.missing'}));
-  await assert.rejects(f.load({...common, clientProgramKintoneBorrowRead: undefined}), installedFailureCode('KintoneOriginalReadUnavailable'));
+  await assert.rejects(f.load({...common, clientProgramKintoneManagedFormRequest: undefined}), installedFailureCode('KintoneOriginalReadUnavailable'));
   assert.equal(f.tls.seen().length, 0);assert.equal(f.state.resolutions, 0);
 });
 

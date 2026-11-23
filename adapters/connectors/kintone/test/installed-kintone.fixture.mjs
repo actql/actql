@@ -128,7 +128,7 @@ export async function installedKintoneFixture(t, {formRead = 'allow', recordsRea
   await writeFile(path, JSON.stringify(profile));
   loaderParent = createInstalledLoaderParent({root, principalId: 'operator', moon: common});
   loaderParent.open();
-  const identity = () => installedSourceIdentity(path, {
+  const identity = () => installedSourceIdentity(path, {moon: common,
     configurationReader: installedSourceConfigurationReader(loaderParent.services)});
   const resolveSecret = async () => {
     state.resolutions++;
