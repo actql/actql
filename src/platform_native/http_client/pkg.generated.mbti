@@ -7,6 +7,8 @@ import {
 }
 
 // Values
+pub fn load_command_model_library_with_custody(@filesystem.NativeObservedComponentMember, Int) -> Result[Library, NativeHttpLibraryLoadError]
+
 pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeHttpIssue]
 
 pub fn load_library_with_custody(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeHttpLibraryLoadError]
@@ -17,13 +19,19 @@ pub fn load_library_with_custody(String, diagnostic_ceiling? : Int?) -> Result[L
 type Client
 pub fn Client::cancel(Self) -> Bool
 pub fn Client::close(Self) -> Bool
+pub fn Client::close_bearer_post_in_original_scope(Self) -> Result[Unit, NativeHttpIssue]
 pub fn Client::close_checked(Self) -> Result[Unit, NativeHttpIssue]
 pub fn Client::get_bearer_file(Self, String, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::get_local_preparation(Self, String, @filesystem.PrivateFileProjection, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
+pub fn Client::poll_bearer_post(Self, wait_milliseconds? : Int) -> Result[NativeHttpResponse?, NativeHttpIssue]
+pub fn Client::poll_measured_bearer_post(Self, FixedArray[Int64], wait_milliseconds? : Int) -> Result[NativeHttpResponse?, NativeHttpIssue]
 pub fn Client::post_json(Self, String, Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::request_bearer_file(Self, NativeHttpMethod, String, Array[NativeHttpHeader], Bytes, String, Int64) -> Result[NativeHttpResponse, NativeHttpIssue]
 pub fn Client::response_limit(Self) -> Result[Int64, NativeHttpIssue]
+pub fn Client::start_bearer_post(Self, String, Array[NativeHttpHeader], Bytes, String, Int64) -> Result[Unit, NativeHttpIssue]
+pub fn Client::start_projected_bearer_post(Self, String, Bytes, @filesystem.PrivateFileProjection, Int64) -> Result[Unit, NativeHttpIssue]
+pub fn Client::uses_library(Self, Library) -> Bool
 
 type Library
 pub fn Library::close_checked(Self) -> Result[Unit, NativeHttpIssue]
@@ -31,6 +39,8 @@ pub fn Library::create_authenticated_client(Self, String, NativeHttpAuthenticati
 pub fn Library::create_authenticated_client_with_custody(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
 pub fn Library::create_client(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
 pub fn Library::create_client_with_custody(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
+pub fn Library::create_projected_bearer_client_with_custody(Self, String, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
+pub fn Library::incremental_bearer_post_supported(Self) -> Bool
 pub fn Library::version(Self) -> String
 
 pub(all) enum NativeHttpAuthentication {

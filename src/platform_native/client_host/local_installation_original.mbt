@@ -168,11 +168,13 @@ fn local_installation_payload(
 fn local_installation_packet(
   host : NativeLocalHostConnection,
   payload : Bytes,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   local_installation_packet_in_transaction(
     host.database,
     host.epoch.crypto,
     payload,
+    reads~,
   )
 }
 
@@ -209,6 +211,7 @@ fn read_local_installation_authenticated_payload(
   host : NativeLocalHostConnection,
   packet : Bytes,
   signing_original? : NativeLocalInitialSigningOriginal? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   let (payload, tag) = match local_installation_packet_data(packet) {
     Err(issue) => return Err(issue)
@@ -220,6 +223,7 @@ fn read_local_installation_authenticated_payload(
       payload,
       tag,
       signing_original~,
+      reads~,
     ) {
     Err(issue) => Err(issue)
     Ok(_) => Ok(payload)
@@ -259,6 +263,7 @@ fn authenticate_local_installation_payload(
   payload : Bytes,
   tag : Bytes,
   signing_original? : NativeLocalInitialSigningOriginal? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Unit, NativeLocalAdoptionIssue] {
   if payload.length() > 2048 || tag.length() != 32 {
     return Err(CustodyLost)
@@ -266,7 +271,7 @@ fn authenticate_local_installation_payload(
   try {
     let valid = match signing_original {
       None => {
-        let (key, _, _) = read_epoch_custody(host.database)
+        let (key, _, _) = read_epoch_custody(host.database, reads~)
           .map_err(issue => NativeLocalAdoptionIssue::Epoch(issue))
           .map_err(issue => LocalInstallationAdoptionStop(issue))
           .unwrap_or_error()
@@ -306,23 +311,33 @@ fn read_local_installation_projection(
   host : NativeLocalHostConnection,
   file : NativeLocalSelectedFile,
   packet : Bytes,
+  capture? : NativeLocalJournalCapture? = None,
+  reads? : NativeClientJournalReadAccess? = None,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   try {
-    let payload = read_local_installation_authenticated_payload(host, packet)
+    let payload = read_local_installation_authenticated_payload(
+        host,
+        packet,
+        reads~,
+      )
       .map_err(issue => LocalInstallationAdoptionStop(issue))
       .unwrap_or_error()
     // The exact adopted configuration selects one closed role. No other file
     // is searched and an unknown role never repairs a retained original.
-    if local_preparation_installation_selection(file.body) is Err(_) {
-      return read_local_signing_installation_projection(host, file, payload)
+    let selection = match local_preparation_installation_selection(file.body) {
+      Ok(value) => value
+      Err(_) =>
+        return read_local_signing_installation_projection(
+          host,
+          file,
+          payload,
+          capture~,
+        )
     }
     let fields = local_adoption_fields(payload, [
         "adoption_cid", "installation_configuration_cid", "provider_configuration_cid",
         "projection", "version",
       ])
-      .map_err(issue => LocalInstallationAdoptionStop(issue))
-      .unwrap_or_error()
-    let selection = local_preparation_installation_selection(file.body)
       .map_err(issue => LocalInstallationAdoptionStop(issue))
       .unwrap_or_error()
     guard host.session.settings.files
@@ -353,17 +368,27 @@ fn read_local_installation_projection(
 ///|
 fn NativeLocalHostConnection::installation_custody(
   self : NativeLocalHostConnection,
+  capture? : NativeLocalJournalCapture? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[(Int, Int64), NativeLocalAdoptionIssue] {
+  let database = self.database
+  let reads = operations.map(value => value.reads)
   try {
-    guard self.database.scan_after("client_local_installation_custody", "")
+    guard scan_client_journal_value(
+        database, "client_local_installation_custody", "", reads,
+      )
       is Ok(host) &&
       host.key == "host" &&
       host.revision == 0L &&
-      valid_local_installation_control(self, host.body) &&
-      self.database.scan_after("client_local_installation_custody", "host")
+      valid_local_installation_control(self, host.body, reads~) &&
+      scan_client_journal_value(
+        database, "client_local_installation_custody", "host", reads,
+      )
       is Ok(witness) &&
       witness.key == "issued" &&
-      self.database.scan_after("client_local_installation_custody", "issued")
+      scan_client_journal_value(
+        database, "client_local_installation_custody", "issued", reads,
+      )
       is Err(@sqlite.NotFound) else {
       return Err(CustodyLost)
     }
@@ -381,34 +406,36 @@ fn NativeLocalHostConnection::installation_custody(
     }
     let mut cursor = ""
     for _ in 0..<count {
-      let row = self.database
-        .scan_after("client_local_installation_originals", cursor)
+      let row = scan_client_journal_value(
+          database, "client_local_installation_originals", cursor, reads,
+        )
         .map_err(issue => NativeLocalAdoptionIssue::Physical(issue))
         .map_err(issue => LocalInstallationAdoptionStop(issue))
         .unwrap_or_error()
       guard row.revision == 0L else { return Err(CustodyLost) }
-      // A new reservation during lookup is custody loss; the enclosing journal
-      // transaction rolls back instead of repairing the original budget.
-      guard self.database
-        .reserve_capacity_in_transaction(
+      // A custody observation may run inside another original transaction.
+      // Check the exact key without creating a reservation on refusal.
+      let capacity = match
+        read_client_journal_capacity(
+          database,
           "client_local_settings",
           "installation:" + row.key,
-          8192L,
-          1L,
-          65536L,
-          8L,
-        )
-        .map_err(issue => NativeLocalAdoptionIssue::Physical(issue))
-        .map_err(issue => LocalInstallationAdoptionStop(issue))
-        .unwrap_or_error() ==
-        false else {
+          operations,
+        ) {
+        Ok(value) => value
+        Err(@sqlite.NotFound) => return Err(CustodyLost)
+        Err(issue) => return Err(Physical(issue))
+      }
+      guard capacity.reserved_bytes == 8192L && capacity.reserved_objects == 1L else {
         return Err(CustodyLost)
       }
       if row.key == local_policy_upgrade_key {
-        read_local_policy_upgrade_original(self, {
-          body: row.body,
-          revision: row.revision,
-        })
+        read_local_policy_upgrade_original(
+          self,
+          { body: row.body, revision: row.revision, },
+          capture~,
+          reads~,
+        )
         .map_err(_ => LocalInstallationAdoptionStop(CustodyLost))
         .unwrap_or_error()
         |> ignore
@@ -419,20 +446,30 @@ fn NativeLocalHostConnection::installation_custody(
           is Some(file) else {
           return Err(CustodyLost)
         }
-        read_local_installation_projection(self, file, row.body)
+        read_local_installation_projection(
+          self,
+          file,
+          row.body,
+          capture~,
+          reads~,
+        )
         .map_err(issue => LocalInstallationAdoptionStop(issue))
         .unwrap_or_error()
         |> ignore
       }
       cursor = row.key
     }
-    guard self.database.scan_after(
-        "client_local_installation_originals", cursor,
+    guard scan_client_journal_value(
+        database, "client_local_installation_originals", cursor, reads,
       )
       is Err(@sqlite.NotFound) else {
       return Err(CustodyLost)
     }
-    guard self.database.capacity_usage("client_local_settings") is Ok(usage) &&
+    let usage = match operations {
+      None => database.capacity_usage("client_local_settings")
+      Some(original) => (original.capacity_usage)("client_local_settings")
+    }
+    guard usage is Ok(usage) &&
       usage.reserved_objects == count.to_int64() &&
       usage.reserved_bytes == count.to_int64() * 8192L else {
       return Err(CustodyLost)
@@ -468,31 +505,53 @@ fn NativeLocalHostConnection::installation_original_locked(
   selection : NativeLocalPreparationInstallationSelection,
   adopt : Bool,
   current : () -> Result[Unit, NativeClientRunJournalIssue],
+  capture? : NativeLocalJournalCapture? = None,
+  operations? : NativeClientJournalOperationAccess? = None,
 ) -> Result[@filesystem.PrivateFileProjection, NativeClientRunJournalIssue] {
+  match (capture, operations) {
+    (None, None) => ()
+    (Some(owner), Some(access)) => {
+      guard owner.opening is JournalAcquired(host) &&
+        physical_equal(host, self) &&
+        physical_equal(access.reads.database, self.database) else {
+        return Err(CustodyLost)
+      }
+    }
+    _ => return Err(CustodyLost)
+  }
+  let reads = operations.map(value => value.reads)
   try {
     current()
     .map_err(issue => LocalInstallationJournalStop(issue))
     .unwrap_or_error()
     let (count, revision) = self
-      .installation_custody()
+      .installation_custody(capture~, operations~)
       .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
       .map_err(issue => LocalInstallationJournalStop(issue))
       .unwrap_or_error()
-    let row = self.database.read(
+    let row = read_client_journal_value(
+      self.database,
       "client_local_installation_originals",
       file.name,
+      reads,
     )
     let original = match row {
       Ok(row) => {
         if row.revision != 0L {
           return Err(CustodyLost)
         }
-        let bytes = read_local_installation_projection(self, file, row.body)
+        let bytes = read_local_installation_projection(
+            self,
+            file,
+            row.body,
+            capture~,
+            reads~,
+          )
           .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
         self
-        .require_distinct_signing_key_locked(file, bytes)
+        .require_distinct_signing_key_locked(file, bytes, capture~, reads~)
         .map_err(issue => LocalInstallationJournalStop(issue))
         .unwrap_or_error()
         self.session.source_root
@@ -505,16 +564,26 @@ fn NativeLocalHostConnection::installation_original_locked(
         if !adopt || count >= 8 {
           return Err(CustodyLost)
         }
+        if operations is Some(access) {
+          // The existing packet holds a <=234-byte projection, three CIDs
+          // and one role marker, then a base64 envelope and SHA-256 tag.
+          // Reserve the simultaneous writer envelope before opening the file.
+          guard access.before_construction is Some(prepare) &&
+            prepare(4096, 24, 2) is Ok(_) else {
+            return Err(CapacityExceeded)
+          }
+        }
         // Reserve before exporting/copying descriptor material. This uses the
         // existing settings capacity and unchanged physical journal limit.
-        guard self.database
-          .reserve_capacity_in_transaction(
+        guard reserve_client_journal_capacity(
+            self.database,
             "client_local_settings",
             "installation:" + file.name,
             8192L,
             1L,
             65536L,
             8L,
+            operations,
           )
           .map_err(issue => NativeClientRunJournalIssue::Physical(issue))
           .map_err(issue => LocalInstallationJournalStop(issue))
@@ -532,32 +601,38 @@ fn NativeLocalHostConnection::installation_original_locked(
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
         self
-        .require_distinct_signing_key_locked(file, exported)
+        .require_distinct_signing_key_locked(file, exported, capture~, reads~)
         .map_err(issue => LocalInstallationJournalStop(issue))
         .unwrap_or_error()
         let payload = local_installation_payload(self, file, provider, exported)
           .map_err(_ => NativeClientRunJournalIssue::Encoding)
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
-        let packet = local_installation_packet(self, payload)
+        let packet = local_installation_packet(self, payload, reads~)
           .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
         current()
         .map_err(issue => LocalInstallationJournalStop(issue))
         .unwrap_or_error()
-        self.database
-        .insert("client_local_installation_originals", file.name, packet)
+        insert_client_journal_value(
+          self.database,
+          "client_local_installation_originals",
+          file.name,
+          packet,
+          operations,
+        )
         .map_err(issue => NativeClientRunJournalIssue::Physical(issue))
         .map_err(issue => LocalInstallationJournalStop(issue))
         .unwrap_or_error()
         |> ignore
-        self.database
-        .compare_exchange(
+        compare_exchange_client_journal_value(
+          self.database,
           "client_local_installation_custody",
           "issued",
           revision,
           @utf8.encode((count + 1).to_string()),
+          operations,
         )
         .map_err(issue => NativeClientRunJournalIssue::Physical(issue))
         .map_err(issue => LocalInstallationJournalStop(issue))

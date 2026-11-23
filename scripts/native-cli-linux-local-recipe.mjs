@@ -15,8 +15,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const args = process.argv.slice(2), options = {};
     const flags = {'--source': 'sourceSha', '--sqlite-component': 'sqliteDirectory',
       '--crypto-component': 'cryptoDirectory', '--output': 'outputDirectory',
-      '--remote-http-preparation': 'remoteHttpPreparation'};
-    assert(args.length === 8 || args.length === 10,
+      '--remote-http-preparation': 'remoteHttpPreparation', '--model-http-preparation': 'modelHttpPreparation'};
+    assert([8, 10, 12].includes(args.length),
       'Required: --source SHA --sqlite-component DIR --crypto-component DIR --output NEW_DIR');
     for (let i = 0; i < args.length; i += 2) {
       const key = flags[args[i]]; assert(key && !options[key] && args[i + 1]); options[key] = args[i + 1];

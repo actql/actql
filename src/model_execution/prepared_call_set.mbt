@@ -104,6 +104,22 @@ pub fn prepared_model_request(
 }
 
 ///|
+/// A portable HTTP Client is required only after Core has entered the
+/// selected physical response phase. Entry persistence and other provider
+/// waits retain their separate ownership and must not select this port.
+pub fn prepared_model_awaits_portable_http(
+  value : ModelPreparedCallSet,
+) -> Bool {
+  let state = value.owner.state
+  prepared_model_current(value) &&
+  state.progress.phase is AwaitPhysicalResponse &&
+  !(state.progress.call is Some(call) && call.settlement_acknowledged) &&
+  state.physical_plans.get(state.progress.slot) is Some(plan) &&
+  plan.invocation
+  is (AsynchronousHttpChat(_, _) | AsynchronousMeasuredHttpChat(_, _))
+}
+
+///|
 /// Retained provider-port originals after no-I/O preparation. Callers must
 /// reserve copy custody and authorize capture before saving these strings.
 pub fn prepared_model_physical_request(
@@ -186,14 +202,25 @@ pub fn bind_prepared_model_scope(
     slots.length() != value.owner.state.requests.length() {
     return Err(RequestIdentity)
   }
+  // Check the original provider selection before an Entry can be issued.
+  let provider_cid = @publication.model_invocation_scope_provider_cid(scope)
   for index in 0..<slots.length() {
-    // A matching connector name does not bind a selected SDK configuration.
-    // Refuse a different original approval before an Entry can be issued.
-    if value.owner.state.physical_plans.get(index) is Some(plan) &&
-      plan.invocation is AsynchronousSavedStructured(capability, _, _) &&
-      @publication.model_invocation_scope_provider_cid(scope) !=
-      @publication.run_evidence_value_identity(capability.binding) {
-      return Err(RequestIdentity)
+    if value.owner.state.physical_plans.get(index) is Some(plan) {
+      let provider_matches = match plan.invocation {
+        AsynchronousHttpChat(original, _)
+        | AsynchronousMeasuredHttpChat(original, _) =>
+          provider_cid ==
+          @publication.run_evidence_value_identity(
+            original.provider.capability.binding,
+          )
+        AsynchronousSavedStructured(capability, _, _) =>
+          provider_cid ==
+          @publication.run_evidence_value_identity(capability.binding)
+        _ => true
+      }
+      if !provider_matches {
+        return Err(RequestIdentity)
+      }
     }
     guard prepared_model_call_at(value, index) is Some(call) &&
       @publication.run_evidence_value_identity(call) == slots[index] else {

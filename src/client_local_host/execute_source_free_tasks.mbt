@@ -45,6 +45,11 @@ pub fn execute_source_free_local_tasks_guarded(
   max_finalization_rounds : Int,
   require_current : () -> Bool,
   require_live? : (() -> Bool)? = None,
+  drive_task? : ((Int, @local_driver.LocalManagedDispatchOperations[Int]) -> Result[
+    Unit,
+    LocalValuesExecutionIssue,
+  ])? = None,
+  cleanup_ready? : (() -> Bool)? = None,
 ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
   execute_local_tasks_guarded(
     setup,
@@ -53,6 +58,8 @@ pub fn execute_source_free_local_tasks_guarded(
     require_current,
     require_live~,
     first=0,
+    drive_task~,
+    cleanup_ready~,
   )
 }
 
@@ -349,6 +356,11 @@ fn execute_local_tasks_guarded(
   require_current : () -> Bool,
   require_live~ : (() -> Bool)?,
   first~ : Int,
+  drive_task? : ((Int, @local_driver.LocalManagedDispatchOperations[Int]) -> Result[
+    Unit,
+    LocalValuesExecutionIssue,
+  ])? = None,
+  cleanup_ready? : (() -> Bool)? = None,
   retained_effect? : @strategy.CapturedEffectRunDAG? = None,
   whole_source? : ClientInstalledManagedCapturePlan? = None,
   captured_source? : ClientInstalledManagedCapturePlan? = None,
@@ -364,7 +376,10 @@ fn execute_local_tasks_guarded(
   // Do not size the retained task table from an unsupported graph. Stopping
   // this original run is still its caller-owned cleanup, not another attempt.
   if count <= first {
-    let cleanup = () => close_local_values_tasks(run, [])
+    let cleanup = () => {
+      cleanup_ready.map(ready => ready()).unwrap_or(true) &&
+      close_local_values_tasks(run, [])
+    }
     return Err({ issue: UnsupportedGraph, cleanup, cleaned: cleanup(), })
   }
   let tasks : Array[LocalValuesTaskExecution?] = Array::make(count, None)
@@ -387,7 +402,12 @@ fn execute_local_tasks_guarded(
     issue : LocalValuesExecutionIssue,
   ) -> Result[LocalValuesExecution, LocalValuesExecutionFailure] {
     available.val = false
-    let cleanup = () => close_local_values_tasks(run, tasks)
+    // A Host pause can fail to restore the physical Compute scope. Keep
+    // the same task handles until their caller can enter cleanup there.
+    let cleanup = () => {
+      cleanup_ready.map(ready => ready()).unwrap_or(true) &&
+      close_local_values_tasks(run, tasks)
+    }
     Err(LocalValuesExecutionFailure::{ issue, cleanup, cleaned: cleanup(), })
   }
   if !current() {
@@ -573,9 +593,15 @@ fn execute_local_tasks_guarded(
     if !current() {
       return reject(Fenced)
     }
-    match (operations.execute)() {
+    // The selected Host may advance this one task across physical pauses.
+    // Finalization below still requires these operations' actual completion.
+    let executed = match drive_task {
+      None => (operations.execute)().map_err(issue => Driver(issue))
+      Some(drive) => drive(index, operations)
+    }
+    match executed {
       Ok(_) => ()
-      Err(issue) => return reject(Driver(issue))
+      Err(issue) => return reject(issue)
     }
     if !current() {
       return reject(Fenced)

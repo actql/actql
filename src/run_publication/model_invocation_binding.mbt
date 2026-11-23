@@ -166,6 +166,49 @@ pub fn check_model_observation_binding(
 }
 
 ///|
+/// Compare the admitted Model-only Invocation and its ordered captured inputs
+/// without another parse or write. The installing owner supplies the actual
+/// capture issuer and separately retains the durable slot inventory.
+pub fn source_free_model_invocation_matches(
+  template : RunEvidenceValue,
+  observation : RunEvidenceValue,
+  invocation : PublicationContract,
+  inputs : Array[String],
+  policy_cid : String,
+) -> Bool {
+  guard template.name == "bound_invocation_template" &&
+    model_template_requires_slots(template) &&
+    !content_template_requires_generation(template) &&
+    model_observation_slot_count(observation) is Some(_) &&
+    invocation.name == "run_invocation" &&
+    contract_string_from_value(observation.value, "invocation_template_cid") ==
+    Some(template.identity) &&
+    contract_string_from_value(invocation.value, "invocation_template_cid") ==
+    Some(template.identity) &&
+    contract_string_from_value(invocation.value, "observation_set_cid") ==
+    Some(observation.identity) &&
+    contract_string_from_value(observation.value, "data_policy_cid") ==
+    Some(policy_cid) &&
+    contract_string_from_value(observation.value, "consistency") ==
+    Some("no_external_sources") &&
+    @json.object_field(observation.value, "content_generation_cids") is None &&
+    @json.object_field(observation.value, "source_evidence_cids")
+    is Some(@json.Array(sources)) &&
+    @json.array_count(sources) == 0 &&
+    @json.object_field(observation.value, "captured_input_artifact_cids")
+    is Some(@json.Array(originals)) &&
+    @json.array_count(originals) == inputs.length() else {
+    return false
+  }
+  for index, expected in inputs {
+    if optional_string(@json.array_at(originals, index)) != Some(expected) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Verify the original saved Run, not a fresh dispatch permit or current clock.
 /// The current input owner supplies its actual checked identities and artifact.
 pub fn check_saved_source_free_model_observation(

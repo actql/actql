@@ -70,8 +70,8 @@
       "sha256": "0444df0c78d0fda6a23ffeb29f4b9e38f531cfc8fc758ea1e328b7819f85f149"
     },
     "src/platform_native/host_bootstrap/command_platform.h": {
-      "bytes": 8490,
-      "sha256": "f54403498057bbb284393d9dc08d04539408ec24791bce2fdcbe742b355932d1"
+      "bytes": 8539,
+      "sha256": "07626802aceb869d6813eec6c4d196581c73b563ba191d8ad0e7cb6621d452d7"
     },
     "src/platform_native/host_bootstrap/command_platform_unavailable.h": {
       "bytes": 2102,

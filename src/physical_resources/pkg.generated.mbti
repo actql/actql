@@ -554,6 +554,8 @@ pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, 
 
 pub fn[P, C, R] report_backed_execution_live_child(BackedExecutionLiveProjection[P, C, R], R, LedgerUsage) -> Result[Unit, BackedExecutionIssue]
 
+pub fn[I] report_backed_initialization_cleanup_usage(BackedInitializationAdmission[I]) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> Result[Unit, LedgerIssue]
 
 pub fn report_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
@@ -661,6 +663,8 @@ pub fn[P, C] settle_backed_execution_after_owner_ack(BackedExecutionRegion[P, C]
 pub fn settle_capacity(Ledger, CapacityReservation) -> Result[Unit, LedgerIssue]
 
 pub fn settle_completed_output_reservation(Ledger, Reservation, Holding?, Int64, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn settle_entered_transfer(Ledger, Reservation, Int64, Int64?) -> Result[Bool, LedgerIssue]
 
 pub fn settle_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage?) -> Result[Unit, LedgerIssue]
 
