@@ -142,6 +142,39 @@ test "Native lease takeover restores original possibly-sent row rather than issu
     claimant="host-second",
     at=1100L,
   )
+  assert_eq(first.claim.generation, 1L)
+  assert_eq(second.claim.generation, 2L)
+  guard journal.lookup(request, true) is Ok(Retained(before)) else {
+    fail("original Run missing after takeover")
+  }
+  let (other_locator, other_key, other_basis) = effect_row_test_binding(
+    request,
+    row="row-2",
+  )
+  for
+    (target, dispatch_key, row_basis) in [
+      (locator, key, basis),
+      (other_locator, other_key, other_basis),
+    ] {
+    assert_true(
+      journal.record_effect_row_dispatch(
+        first,
+        target,
+        dispatch_key,
+        row_basis,
+        () => true,
+        () => 1101L,
+      )
+      is Err(Checkpoint(StaleRevision)),
+    )
+  }
+  assert_true(
+    journal.lookup_effect_row(request, other_locator, () => true) is Ok(None),
+  )
+  guard journal.lookup(request, true) is Ok(Retained(after)) else {
+    fail("original Run missing after stale claim")
+  }
+  assert_eq(after.revision, before.revision)
   guard journal.record_effect_row_dispatch(
       second,
       locator,
