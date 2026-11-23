@@ -102212,9 +102212,117 @@
       "referenceQualification": "Existing original Host/Resource responsibility references; neither syntax coverage nor a helper call supplies operational business capacity or installed acceptance."
     },
     {
+      "module": "adapters/host-node/sqlite-checkpoint-journal-close.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "35ee16a7b5a3a1bbc356122e9700088cea318d5d8dfb409b7b85b98d6b295530",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "checkpointJournalClose"
+      ],
+      "operations": [
+        {
+          "name": "checkpointJournalClose",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        },
+        {
+          "name": "checkpointJournalClose/checkpointJournalClose",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "checkpointJournalClose/init:close/init:close",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "checkpointJournalClose",
+            "checkpointJournalClose/checkpointJournalClose",
+            "checkpointJournalClose/init:close/init:close"
+          ],
+          "exports": [
+            "checkpointJournalClose"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-close.mts",
+                "anchor": "export function checkpointJournalClose("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-close.mts",
+                "anchor": "export function checkpointJournalClose(database: Pick<DatabaseSync, 'close' | 'isOpen'>)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "anchor": "const closeControl = checkpointJournalClose(database);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-close.mts",
+                "anchor": "// same private connection before attempting another physical close."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-close.mts",
+                "anchor": "if (databaseClosed) return;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-close.mts",
+                "anchor": "if (closed && database.isOpen === false) {"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "anchor": "if (closeControl.closed) fail('CheckpointJournalClosed');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-close.mts",
+                "anchor": "database.close();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/portable-execution-boundary.md",
+                "anchor": "## Composition and Host lifetime"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.test.mjs",
+                "anchor": "test(`Checkpoint Journal retries an original lost reply ${phase} physical close`"
+              }
+            ]
+          }
+        }
+      ],
+      "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "05a6d1aea333cd9e3de88c3f74ec7ae40c95657eb25d581ca75f1fb8c60a8990",
+      "sha256": "35f5aace1229f75df1bc5493888ce988f43c4cc84357de76c5a5c30aea33ba13",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -103194,6 +103302,10 @@
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.test.mjs",
+                "anchor": "test(`Checkpoint Journal retries an original lost reply ${phase} physical close`"
               }
             ]
           }
@@ -103422,6 +103534,7 @@
       "imports": [
         "../host-common/sqlite-transaction.mjs",
         "./model-resume-state.mjs",
+        "./sqlite-checkpoint-journal-close.mjs",
         "node:fs",
         "node:path",
         "node:sqlite"

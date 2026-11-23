@@ -17,6 +17,7 @@ import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
 import {createModelResumeTables, createModelResumeState} from
   './model-resume-state.mjs';
+import {checkpointJournalClose} from './sqlite-checkpoint-journal-close.mjs';
 
 const runtimeUrl = new URL(
   '../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js',
@@ -250,8 +251,7 @@ export function openSqliteCheckpointJournal(root, {
     assertUsable: originalTransaction.assertUsable,
     get connectionUsable() {return originalTransaction.connectionUsable;},
   });
-  let closed = false;
-  let databaseClosed = false;
+  const closeControl = checkpointJournalClose(database);
   try {
     // Several Host processes (run, approve, resume) share one journal; a
     // writer waits for the current transaction instead of failing.
@@ -537,7 +537,7 @@ export function openSqliteCheckpointJournal(root, {
   };
 
   const alive = () => {
-    if (closed) fail('CheckpointJournalClosed');
+    if (closeControl.closed) fail('CheckpointJournalClosed');
     transaction.assertUsable();
   };
   const changed = (result, code) => {
@@ -937,12 +937,12 @@ export function openSqliteCheckpointJournal(root, {
     // operation, policy, key and current authority. A successful transition is
     // observed only after the original FULL transaction confirms its COMMIT.
     localSigningRecord(operationCid) {
-      if (closed) fail('CheckpointJournalClosed');
+      if (closeControl.closed) fail('CheckpointJournalClosed');
       if (!cid(operationCid)) fail('InvalidLocalSigningOperation');
       return statements.localSigning.get('local-signing/' + operationCid)?.value;
     },
     transitionLocalSigningRecord(operationCid, previous, next) {
-      if (closed) fail('CheckpointJournalClosed');
+      if (closeControl.closed) fail('CheckpointJournalClosed');
       if (!cid(operationCid) || typeof next !== 'string' ||
           Buffer.byteLength(next, 'utf8') > 32768 ||
           previous !== undefined && typeof previous !== 'string') {
@@ -2194,10 +2194,7 @@ export function openSqliteCheckpointJournal(root, {
     },
 
     close() {
-      closed = true;
-      if (databaseClosed) return;
-      database.close();
-      databaseClosed = true;
+      closeControl.close();
     },
   });
 
