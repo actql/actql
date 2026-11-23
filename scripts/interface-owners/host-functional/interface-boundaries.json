@@ -52480,7 +52480,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/stored-content-consumption.test.mjs",
+                "path": "adapters/host-node/stored-content-consumption.test.mts",
                 "anchor": "test('stored Content restore confirms captured proof inventory"
               }
             ]
@@ -67000,7 +67000,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/stored-content-consumption.test.mjs",
+                "path": "adapters/host-node/stored-content-consumption.test.mts",
                 "anchor": "test('stored Content family refuses copied input"
               }
             ]

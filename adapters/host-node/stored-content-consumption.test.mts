@@ -6,20 +6,34 @@ import {consumeStoredContentOriginal,closeStoredContentReaders,
   restoreStoredGeneratedContentOriginal} from './generated-content-holding.mjs';
 import {installEffectContentFamily} from './installed-content-family.mjs';
 
+type Consume = Parameters<typeof consumeStoredContentOriginal>[0];
+type ReadArguments = Parameters<Consume['store']['consumePhysicalHolding']>;
+type Restore = Parameters<typeof restoreStoredGeneratedContentOriginal>[0];
+type Retained = Parameters<Restore['retainOriginal']>[0];
+type Family = Parameters<typeof installEffectContentFamily>[0];
+type FamilyRead = (...args: ReadArguments) => unknown;
+type RestoreFixtureOptions = {-readonly [Key in keyof Restore]: Restore[Key]};
+type FixtureIssuer = Readonly<{
+  available: Parameters<Restore['control']['issuer']>[0];
+  authorize: Parameters<Restore['control']['issuer']>[1];
+}>;
+
 const original=Object.freeze({storeAuthorityCid:'same Store',holding:{namespace:'content',
-  holding_cid:'same holding',objects:[{cid:'same bytes'}]}});
+  holding_cid:'same holding',objects:[{cid:'same bytes'}]}}) as unknown as Consume['original'];
 
 test('stored Content reader retains the same failed close and never reports a pending FD retired',async()=>{
-  const readers=new Set();let pending=true,reads=0,closes=0;
-  const primary=new Error('original read and close failed');
+  const readers: Consume['readers'] = new Set();let pending=true,reads=0,closes=0;
+  const primary=new Error('original read and close failed') as Error & {
+    cleanupHandle?: {status(): {pending: boolean}; retry(): unknown};
+  };
   const cleanup=Object.freeze({status:()=>({pending}),async retry(){closes++;return {pending};}});
   primary.cleanupHandle=cleanup;
   const store={storeAuthorityCid:original.storeAuthorityCid,
-    async consumePhysicalHolding(holding,index,accept){
+    async consumePhysicalHolding(holding: ReadArguments[0],index: ReadArguments[1],accept: ReadArguments[2]){
       reads++;assert.equal(holding,original.holding.holding_cid);assert.equal(index,0);
       await accept(Buffer.from('original'));throw primary;
-    }};
-  const observed=[];
+    }} as unknown as Consume['store'];
+  const observed: Uint8Array[]=[];
   await assert.rejects(consumeStoredContentOriginal({store,original,readers,
     assertCurrent(){},accept:bytes=>observed.push(bytes)}),error=>error===primary);
   assert.equal(observed.length,1);assert.equal(readers.size,1);
@@ -31,27 +45,27 @@ test('stored Content reader retains the same failed close and never reports a pe
 });
 
 test('stored Content checks the same current selection after a receiving callback',async()=>{
-  const readers=new Set();let live=true,checks=0;
+  const readers: Consume['readers'] = new Set();let live=true,checks=0;
   const retired=new Error('same selection retired');
   const store={storeAuthorityCid:original.storeAuthorityCid,
-    async consumePhysicalHolding(_holding,_index,accept){await accept(Buffer.from('original'));}};
+    async consumePhysicalHolding(_holding: ReadArguments[0],_index: ReadArguments[1],accept: ReadArguments[2]){await accept(Buffer.from('original'));}} as unknown as Consume['store'];
   await assert.rejects(consumeStoredContentOriginal({store,original,readers,
     assertCurrent(){checks++;if(!live)throw retired;},accept(){live=false;}}),error=>error===retired);
   assert.equal(checks,3);assert.equal(readers.size,0);
 });
 
-function familyFixture(consumePhysicalHolding) {
+function familyFixture(consumePhysicalHolding: FamilyRead) {
   const binding={},issued={};
   const stored=Object.freeze({...original,issued});
   const owner=installEffectContentFamily({
-    moon:{clientProgramEffectCommandContentMatchesIssued:(value,ref)=>value===binding&&ref===issued},
+    moon:{clientProgramEffectCommandContentMatchesIssued:(value: unknown,ref: unknown)=>value===binding&&ref===issued},
     control:{effectFamily:()=>({})},publications:{
       checkedClientSerializationGenerationLimits:()=>({maxRows:100,maxBytes:10000})},bodies:{},prepared:{},
     plan:{serializationGraph:{},runDefinition:{wire:'{"valid_until":"2099-01-01T00:00:00.000Z"}'}},
     store:{storeAuthorityCid:stored.storeAuthorityCid,status:()=>({closed:false}),consumePhysicalHolding},
     principalId:'same principal',ownerPrincipal:'same principal',now:()=>'2026-10-21T00:00:00.000Z',
     authorize:()=>true,storeAuthorityCid:stored.storeAuthorityCid,outputLimits:{},
-    restored:{generation:{},completion:{},recovery:{},storedOriginal:stored}});
+    restored:{generation:{},completion:{},recovery:{},storedOriginal:stored}} as unknown as Family);
   return {owner,binding,stored};
 }
 
@@ -60,7 +74,7 @@ test('stored Content family refuses copied input before consuming its captured S
   const f=familyFixture(async(_holding,_index,accept)=>{reads++;await accept(Buffer.from('original'));});
   assert.throws(()=>f.owner.consumeContent({...f.binding},()=>{}),/OriginalEffectContentUnavailable/);
   assert.equal(reads,0);
-  let bytes;
+  let bytes: Uint8Array | undefined;
   await f.owner.consumeContent(f.binding,value=>{bytes=value;});
   assert.deepEqual(bytes,Buffer.from('original'));assert.equal(reads,1);
   assert.equal(await f.owner.cleanup(),true);
@@ -69,8 +83,8 @@ test('stored Content family refuses copied input before consuming its captured S
 });
 
 test('stored Content family keeps the original read pending when cleanup retires its selection',async()=>{
-  let enter,release;
-  const entered=new Promise(resolve=>{enter=resolve;}),barrier=new Promise(resolve=>{release=resolve;});
+  let enter!: () => void,release!: () => void;
+  const entered=new Promise<void>(resolve=>{enter=resolve;}),barrier=new Promise<void>(resolve=>{release=resolve;});
   const f=familyFixture(async(_holding,_index,accept)=>{await accept(Buffer.from('original'));});
   const flight=f.owner.consumeContent(f.binding,async()=>{enter();await barrier;});
   const outcome=flight.then(()=>({ok:true}),error=>({error}));
@@ -78,48 +92,48 @@ test('stored Content family keeps the original read pending when cleanup retires
   assert.equal(await f.owner.cleanup(),false);
   assert.equal(f.owner.cleanupPending(),true);
   release();
-  assert.match((await outcome).error?.message,/OriginalEffectContentUnavailable/);
+  assert.match((await outcome as {error: Error}).error?.message,/OriginalEffectContentUnavailable/);
   assert.equal(await f.owner.cleanup(),true);
   assert.equal(f.owner.cleanupPending(),false);
 });
 
 function recoveryFixture() {
-  const candidate={},issued={},capturedRun={},runDefinition={},readers=new Set(),events=[];
+  const candidate={},issued={},capturedRun={},runDefinition={},readers: Restore['readers']=new Set(),events: string[]=[];
   const proofs=['input','derivation','generation'].map(name=>Object.freeze({name}));
   const holding=Object.freeze({holding_cid:'same holding',namespace:'content',manifest_cid:'reference',
     objects:[{cid:'bytes',byte_count:3}]});
   const description={storeCid:'same Store',identity:'reference',workspaceScopeCid:'same workspace',
     effectiveDataPolicyCid:'same policy',contentCid:'bytes',sizeBytes:3,wire:'original wire'};
-  let live=true,missing,failed,retained;
+  let live=true,missing: string | undefined,failed: unknown,retained: Retained | undefined;
   const store={storeAuthorityCid:'same Store',status:()=>({closed:false}),
-    async confirmPrivateEvidence(proof){events.push(proof.name);if(failed!==undefined)throw failed;
+    async confirmPrivateEvidence(proof: {name: string}){events.push(proof.name);if(failed!==undefined)throw failed;
       return proof.name===missing?undefined:proof;},
-    async inspectPhysicalHolding(cid){assert.equal(cid,holding.holding_cid);events.push('holding');return holding;},
-    async commitPhysicalHolding(value,prepared){assert.strictEqual(value,holding);assert.deepEqual(prepared,[]);
+    async inspectPhysicalHolding(cid: string){assert.equal(cid,holding.holding_cid);events.push('holding');return holding;},
+    async commitPhysicalHolding(value: unknown,prepared: readonly unknown[]){assert.strictEqual(value,holding);assert.deepEqual(prepared,[]);
       events.push('commit same holding');}};
-  const publications={capturedContentGenerationCount(value){assert.strictEqual(value,capturedRun);return 1;},
-    capturedContentGenerationStorage(value,definition,authority,index){
+  const publications={capturedContentGenerationCount(value: unknown){assert.strictEqual(value,capturedRun);return 1;},
+    capturedContentGenerationStorage(value: unknown,definition: unknown,authority: string,index: number){
       assert.strictEqual(value,capturedRun);assert.strictEqual(definition,runDefinition);
       assert.equal(authority,store.storeAuthorityCid);assert.equal(index,0);
       return{holdingCid:holding.holding_cid,manifestCid:'reference',contentCid:'bytes',byteCount:3n,bindings:proofs};}};
-  const control={inspect(value){assert.strictEqual(value,candidate);return description;},
-    issuer(available,authorize){return{available,authorize};},
-    issue(value,issuer){assert.strictEqual(value,candidate);
+  const control={inspect(value: unknown){assert.strictEqual(value,candidate);return description;},
+    issuer(available: FixtureIssuer['available'],authorize: FixtureIssuer['authorize']){return{available,authorize};},
+    issue(value: unknown,issuer: FixtureIssuer){assert.strictEqual(value,candidate);
       assert.equal(issuer.available(undefined,'original wire'),true);
       assert.equal(issuer.authorize('original wire'),true);events.push('issue');return issued;}};
   const options={store,publications,control,capturedRun,runDefinition,index:0,candidate,
     workspaceScopeCid:description.workspaceScopeCid,effectiveDataPolicyCid:description.effectiveDataPolicyCid,
     available:()=>live,authorize:()=>live,assertCurrent(){if(!live)throw new Error('OriginalRunRetired');},
-    readers,limits:{},retainOriginal(value){events.push('retain');retained=value;}};
+    readers,limits:{},retainOriginal(value: Retained){events.push('retain');retained=value;}} as unknown as RestoreFixtureOptions;
   return{options,events,readers,issued,holding,description,retained:()=>retained,
-    missing(name){missing=name;},fail(error){failed=error;},retire(){live=false;}};
+    missing(name: string){missing=name;},fail(error: unknown){failed=error;},retire(){live=false;}};
 }
 
 test('stored Content restore confirms captured proof inventory and retains the same issued physical original',async()=>{
   const f=recoveryFixture();
   assert.strictEqual(await restoreStoredGeneratedContentOriginal(f.options),f.issued);
   assert.deepEqual(f.events,['input','derivation','generation','holding','commit same holding','issue','retain']);
-  assert.strictEqual(f.retained().holding,f.holding);assert.strictEqual(f.retained().issued,f.issued);
+  assert.strictEqual(f.retained()!.holding,f.holding);assert.strictEqual(f.retained()!.issued,f.issued);
   assert.equal(f.readers.size,0);
 });
 
@@ -143,6 +157,6 @@ test('stored Content restore keeps the same failed reader cleanup and post-issua
   const retired=recoveryFixture(),retain=retired.options.retainOriginal;
   retired.options.retainOriginal=value=>{retain(value);retired.retire();};
   await assert.rejects(restoreStoredGeneratedContentOriginal(retired.options));
-  assert.strictEqual(retired.retained().issued,retired.issued);
+  assert.strictEqual(retired.retained()!.issued,retired.issued);
   assert.equal(retired.readers.size,0,'no physical FD is fabricated by reference retirement');
 });
