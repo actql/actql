@@ -66867,7 +66867,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-content-command-restart.test.mjs",
+                "path": "adapters/host-node/installed-content-command-restart.test.mts",
                 "anchor": "import assert from 'node:assert/strict';"
               },
               {
@@ -67236,7 +67236,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-content-command-restart.test.mjs",
+                "path": "adapters/host-node/installed-content-command-restart.test.mts",
                 "anchor": "import assert from 'node:assert/strict';"
               },
               {

@@ -9,30 +9,49 @@ import test from 'node:test';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {cid, resource} from './fixtures/file-listing-source.fixture.mjs';
 
+import type {RunReference, RunState} from '../../packages/sdk/index.d.ts';
+
+type Entrance = 'Local' | 'HTTPS';
+type SourceFormat = 'program' | 'sql' | 'aql-text';
+type Fault = 'lost_reply' | 'stop_projection';
+type Phase = 'capture' | 'approve' | 'read';
+type Receipt = Pick<RunState, 'status' | 'result_available'> & Readonly<{
+  pid: number;
+  ref: RunReference;
+  reads: number;
+  sends: number;
+  writeGrants: number;
+  generations: number;
+  rows?: readonly unknown[];
+  projections: readonly Readonly<{useCid: string; statusCode: number; body: string}>[];
+}>;
+type StoredContent = Readonly<{description: Readonly<{wire: string; contentCid: string}>}>;
+type ReceiverReceipt = Readonly<{content_cid: string; request_cid: string}>;
+
 const child = promisify(execFile);
-async function processFixture(root, entrance, fault, sourceFormat = 'program') {
+async function processFixture(root: string, entrance: Entrance, fault?: Fault, sourceFormat: SourceFormat = 'program') {
   const keys = generateKeyPairSync('ed25519');
   const path = join(root, 'fixture.json');
   await writeFile(path, JSON.stringify({root, entrance, fault, sourceFormat,
     expiresAt: new Date(Date.now() + 120000).toISOString(),
     privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'}),
     publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}));
-  return async phase => {
+  return async (phase: Phase): Promise<Receipt> => {
     const {stdout} = await child(process.execPath,
       [fileURLToPath(new URL('./fixtures/content-command-restart.mjs', import.meta.url)), path, phase],
       {cwd: fileURLToPath(new URL('../../', import.meta.url)), timeout: 30000, maxBuffer: 1024 * 1024});
-    return JSON.parse(stdout.trim().split('\n').at(-1));
+    return JSON.parse(stdout.trim().split('\n').at(-1)!) as Receipt;
   };
 }
 // Text submits the same normal Source/COMMAND contract without a SERIALIZE
 // step. This is issued-Content consumer recovery, not keyed capture acceptance.
 for (const [entrance, format, fault] of [
   ['Local', 'sql', undefined], ['HTTPS', 'aql-text', 'lost_reply'],
-]) {
+] as const) {
   test(`public ${entrance} ${format} Content COMMAND process recovery retains issued bytes without regeneration`, async t => {
     const parent = fileURLToPath(new URL('../../_build/', import.meta.url));
     const unknown = fault === 'lost_reply';
-    let root, scratch;
+    let root: string, scratch: Awaited<ReturnType<typeof createOwnedScratch>> | undefined;
     if (unknown) {
       await mkdir(parent, {recursive: true});
       root = await mkdtemp(join(parent, 'source-text-command-unknown-'));
@@ -57,8 +76,8 @@ for (const [entrance, format, fault] of [
     assert.equal(third.status, unknown ? 'needs_reconciliation' : 'succeeded');
     assert.deepEqual([third.reads, third.generations, third.sends, third.writeGrants], [0, 0, 0, 0]);
     assert.deepEqual(await readFile(join(root, 'approved.csv')), Buffer.from('id\n'));
-    const receipt = JSON.parse(await readFile(join(root, 'receiver-receipt.json'), 'utf8'));
-    const saved = JSON.parse(await readFile(join(root, 'content-custody.json'), 'utf8'));
+    const receipt = JSON.parse(await readFile(join(root, 'receiver-receipt.json'), 'utf8')) as ReceiverReceipt;
+    const saved = JSON.parse(await readFile(join(root, 'content-custody.json'), 'utf8')) as StoredContent;
     assert.equal(receipt.content_cid, saved.description.contentCid);
     assert.match(receipt.request_cid, /^sha256:[0-9a-f]{64}$/u);
     if (unknown) {
@@ -70,11 +89,11 @@ for (const [entrance, format, fault] of [
         content: JSON.parse(saved.description.wire)}];
       assert.deepEqual(second.rows, expected);
       assert.deepEqual(third.rows, expected);
-      scratch.passed();
+      scratch!.passed();
     }
   });
 }
-for (const entrance of ['Local', 'HTTPS']) {
+for (const entrance of ['Local', 'HTTPS'] as const) {
   test(`public ${entrance} Content COMMAND recovers approval in a different process without recapture`, async () => {
     const scratch = await createOwnedScratch({parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
       prefix: 'content-command-restart-', label: 'Content Command process recovery'});
@@ -94,7 +113,7 @@ for (const entrance of ['Local', 'HTTPS']) {
     assert.equal(third.reads, 0);
     assert.equal(third.sends, 0);
     assert.deepEqual(third.ref, first.ref);
-    const saved = JSON.parse(await readFile(join(scratch.path, 'content-custody.json'), 'utf8'));
+    const saved = JSON.parse(await readFile(join(scratch.path, 'content-custody.json'), 'utf8')) as StoredContent;
     const expected = [{destination: resource('d'), name: 'approved.csv',
       content: JSON.parse(saved.description.wire)}];
     assert.deepEqual(second.rows, expected);
@@ -129,8 +148,8 @@ for (const entrance of ['Local', 'HTTPS']) {
     assert.equal(third.reads, 0);
     assert.equal(third.sends, 0);
     assert.deepEqual(await readFile(join(root, 'approved.csv')), Buffer.from('id\n'));
-    const receipt = JSON.parse(await readFile(join(root, 'receiver-receipt.json'), 'utf8'));
-    const custody = JSON.parse(await readFile(join(root, 'content-custody.json'), 'utf8'));
+    const receipt = JSON.parse(await readFile(join(root, 'receiver-receipt.json'), 'utf8')) as ReceiverReceipt;
+    const custody = JSON.parse(await readFile(join(root, 'content-custody.json'), 'utf8')) as StoredContent;
     assert.equal(receipt.content_cid, custody.description.contentCid);
     assert.match(receipt.request_cid, /^sha256:[0-9a-f]{64}$/u);
     await writeFile(join(root, 'process-evidence.json'), JSON.stringify({first, second, third}));
@@ -161,7 +180,7 @@ for (const entrance of ['Local', 'HTTPS']) {
     assert.equal(third.sends, 0);
     assert.equal(third.writeGrants, 0, 'a saved response is not a new write authorization');
     assert.deepEqual(third.projections, expectedResponse);
-    const saved = JSON.parse(await readFile(join(scratch.path, 'content-custody.json'), 'utf8'));
+    const saved = JSON.parse(await readFile(join(scratch.path, 'content-custody.json'), 'utf8')) as StoredContent;
     assert.deepEqual(third.rows, [{destination: resource('d'), name: 'approved.csv',
       content: JSON.parse(saved.description.wire)}]);
     assert.deepEqual(await readFile(join(scratch.path, 'approved.csv')), Buffer.from('id\n'));
