@@ -3056,3 +3056,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/github/test/github-publication-cleanup.test.d.mts
 /adapters/connectors/github/test/github-comment-mapping.test.mjs
 /adapters/connectors/github/test/github-comment-mapping.test.d.mts
+/adapters/connectors/github/test/github-read.fixture.mjs
+/adapters/connectors/github/test/github-read.fixture.d.mts
+/adapters/connectors/github/test/github-installed-comment-source.test.mjs
+/adapters/connectors/github/test/github-installed-comment-source.test.d.mts
+/adapters/host-node/fixtures/ledger-usage.mjs
+/adapters/host-node/fixtures/ledger-usage.d.mts

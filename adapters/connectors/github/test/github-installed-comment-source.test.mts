@@ -8,7 +8,6 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {inspect} from 'node:util';
 import test from 'node:test';
-import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
 import {loadInstalledSource, publishInstalledSourceProfile} from '../../../host-node/installed-source.mjs';
@@ -16,17 +15,38 @@ import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixtur
 import {INSTALLED_GITHUB_SITE_VERSION, INSTALLED_GITHUB_SOURCE_VERSION} from '../host/installed-github-source.mjs';
 import {graphqlRoute} from './github-graphql.fixture.mjs';
 import {createInstalledLoaderParent} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
+import type {TestContext} from 'node:test';
+import type {GitHubReadCommon} from './github-read.fixture.mjs';
+
+type Capture = Readonly<{capture: Readonly<{source(): unknown}>; requirement: unknown; close(): Promise<unknown>}>;
+type Prepared = Readonly<{preparedProgram: unknown; registry: unknown; values: string; fragment: string; ordered: string}>;
+type Source = Awaited<ReturnType<typeof loadInstalledSource>> & Readonly<{
+  connectorRegistration: string; sourceReadAccesses: readonly Readonly<{resource?: string}>[];
+  prepare(options: Prepared): Promise<unknown>;
+  openCapture(options: Prepared & Readonly<{preparedSource: unknown; ledger: unknown}>): Promise<Capture>;
+}>;
+type LoaderInput = Parameters<typeof createInstalledLoaderParent>[0];
+type PublishInput = Parameters<typeof publishInstalledSourceProfile>[1];
+type Native = GitHubReadCommon & LoaderInput['moon'] & PublishInput['moon'] & Readonly<{
+  clientProgramPrepareEffectFreeWithParameters(program: string, format: string, environment: unknown,
+    parameters: undefined): unknown;
+  clientProgramPreparationIssue(preparation: unknown): unknown;
+  clientProgramExportSourceCapture(source: unknown, requirement: unknown, name: string): unknown;
+  clientProgramSourceCaptureExportRows(exported: unknown): string[];
+}>;
+type Contracts = Readonly<{execution_contracts: Readonly<Record<string, unknown>>}>;
+const common = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href) as Native;
 
 const repo = new URL('../../../../', import.meta.url);
 const runtimeUrl = new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
-const read = path => readFile(new URL(path, repo), 'utf8');
-const comment = (id, body) => ({id, nodeId: `IC_${id}`, author: null, body,
+const read = (path: string) => readFile(new URL(path, repo), 'utf8');
+const comment = (id: string, body: string) => ({id, nodeId: `IC_${id}`, author: null, body,
   createdAt: '2026-10-01T00:00:00Z', updatedAt: '2026-10-02T00:00:00Z'});
 
-function diagnoseOriginalFailure(t, cause) {
+function diagnoseOriginalFailure(t: TestContext, cause: unknown) {
   // Report only bounded codes and compiler tags. Inputs, credential material
   // and retained cleanup owners stay with the original failure.
-  const pending = [cause], seen = new Set(), codes = [];
+  const pending = [cause], seen = new Set<object>(), codes: object[] = [];
   try {
     while (pending.length && seen.size < 12) {
       const value = pending.shift();
@@ -50,7 +70,7 @@ function diagnoseOriginalFailure(t, cause) {
   } catch { /* Diagnostics never replace the original failure. */ }
 }
 
-async function fixture(t, {commentsRead = 'allow'} = {}) {
+async function fixture(t: TestContext, {commentsRead = 'allow'}: Readonly<{commentsRead?: 'allow' | 'deny'}> = {}) {
   const state = {repositories: new Map([['R_original', {databaseId: 1296269,
     nameWithOwner: 'octo/hello', issues: [{number: 7, id: 'I_original',
       commentRows: [comment('9007199254740993', ' é\n')]}],
@@ -83,7 +103,7 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
   const resolveSecret = async () => {resolutions++; return 'test-only-token';};
   const options = {root: join(root, 'host'), principalId: 'operator', moon: common,
     runtimeUrl, resolveSecret};
-  const sources = [], captures = [], loaderParents = [];
+  const sources: Source[] = [], captures: Capture[] = [], loaderParents: ReturnType<typeof createInstalledLoaderParent>[] = [];
   t.after(async () => {
     const failures = [];
     for (const capture of captures) try {await capture.close();} catch (cause) {failures.push(cause);}
@@ -100,7 +120,7 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
     loaderParents.push(parent);parent.open();
     try {
       const source = await parent.load(loadInstalledSource, profilePath, {...options,
-        baseEnvironmentWire: await read('spec/local-check-environment.json')});
+        baseEnvironmentWire: await read('spec/local-check-environment.json')}) as Source;
       sources.push(source);return source;
     } catch (cause) {
       diagnoseOriginalFailure(t, cause);
@@ -109,14 +129,14 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
   };
   // Match the installed Host boundary: interpret these fixed contracts once,
   // then reuse the same Common-issued original for each Program preparation.
-  const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json'));
+  const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json')) as Contracts;
   const values = JSON.stringify(aoa.execution_contracts['REL.values']);
   const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
   const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
   const registry = checked(common.clientPrepareInstalledSequenceContracts(
     await read('spec/dependencies/aoa-pipeline-registry.json'), values, fragment, ordered));
-  const prepare = async source => {
-    const environment = JSON.parse(source.environmentWire);
+  const prepare = async (source: Source) => {
+    const environment = JSON.parse(source.environmentWire) as Readonly<{evidence_bundle_cid: string}>;
     const checkedEnvironment = common.clientProgramCheckEnvironment(source.environmentWire,
       environment.evidence_bundle_cid, false, false, true, false, false, false, false);
     assert.ok(checkedEnvironment);
@@ -138,10 +158,10 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
   // the retired 100 MB fixture envelope that omitted the managed Reader.
   const ledger = () => checked(common.clientProgramAcquisitionLedger(1, 1,
     100000000n, 536870912n, 536870912n, 0));
-  const prepareSource = async (source, inputs) => {
+  const prepareSource = async (source: Source, inputs: Prepared) => {
     try { return await source.prepare(inputs); }
     catch (cause) {
-      t.diagnostic(`Original installed Source preparation cause: ${inspect(cause.cause, {depth: 10})}`);
+      t.diagnostic(`Original installed Source preparation cause: ${inspect((cause as {cause?: unknown}).cause, {depth: 10})}`);
       throw cause;
     }
   };
@@ -149,7 +169,7 @@ async function fixture(t, {commentsRead = 'allow'} = {}) {
     resolutions: () => resolutions};
 }
 
-const released = ledger => assert.deepEqual(
+const released = (ledger: unknown) => assert.deepEqual(
   ledgerUsageFieldsFor(common.clientProgramMultiCapturedLedgerUsage(ledger), ["reservedTransferBytes","heldBytes","reservedRetentionBytes","reservedExecutionBytes"]), [0n, 0n, 0n, 0n]);
 
 test('installed GitHub comments retain their declared contracts through the original accounted Source capture', async t => {
@@ -170,7 +190,7 @@ test('installed GitHub comments retain their declared contracts through the orig
   });f.captures.push(opened);
   const exported = checked(common.clientProgramExportSourceCapture(opened.capture.source(),
     opened.requirement, 'installed-github-comments'));
-  assert.deepEqual(common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse), [
+  assert.deepEqual(common.clientProgramSourceCaptureExportRows(exported).map(JSON.parse as (line: string) => unknown), [
     {id: '9007199254740993', subject_number: '7', author: null, body: ' é\n'},
     {id: '9223372036854775807', subject_number: '8', author: null, body: ''}]);
   const requests = f.api.seen().slice(before).map(value => JSON.parse(value.body));

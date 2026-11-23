@@ -7,8 +7,6 @@ import {generateKeyPairSync, randomUUID} from 'node:crypto';
 import {mkdtemp, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import * as commonMoon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
-import * as moon from '../../../../_build/js/release/build/connectors/github/host_node/host_node.js';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {openHttpsExchangeFixture} from '../../../site-node/https-exchange-fixture.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -18,12 +16,61 @@ import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
 import {GITHUB_GRAPHQL_READ_OPERATION, readGitHubIssuesByNode, readGitHubPullRequestsByNode, readGitHubIssueCommentsByNode} from '../site/github-issue-graphql-read.mjs';
 import {graphqlRoute} from './github-graphql.fixture.mjs';
+import type {TestContext} from 'node:test';
+
+type DriverOptions = Parameters<typeof readGitHubIssuesByNode>[0];
+type World = ReturnType<Parameters<typeof graphqlRoute>[0]>;
+type ServerOptions = NonNullable<Parameters<typeof openHttpsExchangeFixture>[1]>;
+type Resource = 'issues' | 'pull_requests' | 'issue_comments';
+type FixtureOptions = Readonly<{faults?: ServerOptions['faults']; beforeAuthorize?: (index: number) => unknown;
+  accounted?: boolean; resource?: Resource}>;
+type Binding = ReturnType<typeof openHttpsCredentialBinding>;
+type Credential = Pick<Parameters<typeof openHttpsCredentialBinding>[0], 'resolveSecret'> & {
+  control: ReturnType<typeof runtimeCore>['remoteCredentialControl'];
+  journal: ReturnType<typeof openSqliteCredentialJournal>;
+  ca: Awaited<ReturnType<typeof openHttpsExchangeFixture>>['ca'];
+  now: () => number;
+  binding?: Binding;
+};
+type SourceView = Readonly<{resource: string; source_ref: string; view_cid: string; carrier_schema_cid: string}>;
+type Declared = Parameters<typeof rowSourceCheckEnvironment>[1] & Readonly<{views: readonly SourceView[]}>;
+type SequenceContracts = Readonly<{execution_contracts: Readonly<Record<string, unknown>>}>;
+export type GitHubReadCommon = Parameters<typeof import('../host/installed-github-source.mjs').restoreGitHubDeclaration>[0] & Readonly<{
+  clientProgramCheckEnvironment(wire: string, cid: string, textTime: boolean, veca: boolean, rela: boolean,
+    sga: boolean, tea: boolean, calendar: boolean, textRank: boolean): unknown;
+  clientProgramPrepareSourceWithParameters(program: string, format: string, environment: unknown,
+    publication: string, parameters: undefined, optional: undefined): unknown;
+  clientProgramPreparationReady(preparation: unknown): unknown;
+  clientProgramPreparationIssueCode(preparation: unknown): string;
+  clientPrepareInstalledSequenceContracts(registry: string, values: string, fragment: string, ordered: string): unknown;
+  clientProgramPrepareLocalQueryRequirement(program: unknown, stageIndex: number, inputIndex: number,
+    contracts: unknown, values: string, fragment: string, ordered: string): unknown;
+  clientProgramRowSourcePrepareAcquisition(declaration: unknown, requirement: unknown, query: string, evidence: string): unknown;
+  clientProgramAcquisitionLedger(sources: number, parallelism: number, transfer: bigint,
+    retention: bigint, execution: bigint, mode: number): unknown;
+  clientProgramMultiCapturedLedgerUsage(ledger: unknown): unknown;
+  clientProgramRowSourceStartAccounted(acquisition: unknown, request: string, stopped: () => boolean,
+    ledger: unknown, transfer: bigint, execution: bigint): unknown;
+  clientProgramRowSourceBegin(run: unknown, bytes: number, pages: number, rows: number, capacity: undefined): unknown;
+  clientProgramRowSourceChargePage(run: unknown, body: Uint8Array): unknown;
+  clientProgramRowSourceConsumeObservationCharge(run: unknown, charge: unknown): unknown;
+  clientProgramRowSourceAcceptChargedPage(run: unknown, charge: unknown, body: Uint8Array): unknown;
+  clientProgramRowSourceFinish(run: unknown): unknown;
+  clientProgramRowSourceCapture(run: unknown): unknown;
+  clientProgramRowSourceCaptureSource(capture: unknown): unknown;
+  clientProgramIdentifyCapturedSourceRelation(source: unknown): unknown;
+  clientProgramCapturedSourceRowCount(relation: unknown): bigint;
+  clientProgramRowSourceCloseAccounted(run: unknown): unknown;
+}>;
+const commonMoon = await import(new URL('../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url).href) as GitHubReadCommon;
+const moon = await import(new URL('../../../../_build/js/release/build/connectors/github/host_node/host_node.js', import.meta.url).href) as DriverOptions['moon'];
 
 const control = runtimeCore(commonMoon).remoteCredentialControl;
-const cid = digit => `sha256:${digit.repeat(64)}`;
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
 const A = {nodeId: 'R_A', databaseId: 1296269, nameWithOwner: 'octo/hello'};
 
-export async function openGitHubReadFixture(t, state, {faults = [], beforeAuthorize, accounted = false, resource = 'issues'} = {}) {
+export async function openGitHubReadFixture(t: TestContext, state: World,
+  {faults = [], beforeAuthorize, accounted = false, resource = 'issues'}: FixtureOptions = {}) {
   assert.ok(resource === 'issues' || resource === 'pull_requests' || resource === 'issue_comments');
   const readRows = resource === 'issues' ? readGitHubIssuesByNode
     : resource === 'pull_requests' ? readGitHubPullRequestsByNode : readGitHubIssueCommentsByNode;
@@ -37,8 +84,8 @@ export async function openGitHubReadFixture(t, state, {faults = [], beforeAuthor
     credentialAuthorities: new Map([['authority-a',
       new Map([['key-a', authority.publicKey]])]]),
   });
-  let binding;
-  let rowRun;
+  let binding: Binding | undefined;
+  let rowRun: Awaited<ReturnType<typeof accountedGitHubRows>> | undefined;
   t.after(async () => {
     if (binding !== undefined) assert.equal(closeHttpsCredentialBinding(binding), 'closed');
     if (rowRun !== undefined) rowRun.close();
@@ -60,15 +107,15 @@ export async function openGitHubReadFixture(t, state, {faults = [], beforeAuthor
   const grant = control.prepare(scope);
   journal.acceptGrant(signRemoteCredentialGrant(grant, control,
     {keyId: 'key-a', privateKey: authority.privateKey}), control);
-  const credential = {control, journal, resolveSecret: async () => 'token-a',
+  const credential: Credential = {control, journal, resolveSecret: async () => 'token-a',
     ca: fixture.ca, now: () => 1_999_999_999_999};
   if (accounted) {
     binding = openHttpsCredentialBinding({...credential, scope, maxSecretBytes: 128});
     credential.binding = binding;
-    rowRun = await accountedGitHubRows(() => closeHttpsCredentialBinding(binding) === 'closed', resource);
+    rowRun = await accountedGitHubRows(() => closeHttpsCredentialBinding(binding!) === 'closed', resource);
   }
   let reads = 0;
-  const read = (overrides = {}) => {
+  const read = (overrides: Partial<DriverOptions> = {}) => {
     const id = reads++;
     return readRows({moon, repository: A,
       credential,
@@ -87,11 +134,11 @@ export async function openGitHubReadFixture(t, state, {faults = [], beforeAuthor
   return {fixture, journal, read, rowRun, credential};
 }
 
-export async function accountedGitHubRows(verifyTransport, resource = 'issues') {
-  const read = name => readFile(new URL('../../../../' + name, import.meta.url), 'utf8');
+export async function accountedGitHubRows(verifyTransport: () => boolean, resource: Resource = 'issues') {
+  const read = (name: string) => readFile(new URL('../../../../' + name, import.meta.url), 'utf8');
   const declaration = checked(commonMoon.clientProgramRowSourceRestoreRelationDeclaration(
     'gh', 'github', 'github/0.1', await read('src/connectors/github/source-views.json'), undefined));
-  const declared = JSON.parse(commonMoon.clientProgramRowSourceDeclarationJson(declaration));
+  const declared = JSON.parse(commonMoon.clientProgramRowSourceDeclarationJson(declaration)) as Declared;
   const environment = rowSourceCheckEnvironment((await read('spec/local-check-environment.json')).trimEnd(), declared);
   const check = commonMoon.clientProgramCheckEnvironment(environment.wire, environment.evidenceCid,
     false, false, true, false, false, false, false);
@@ -108,7 +155,7 @@ export async function accountedGitHubRows(verifyTransport, resource = 'issues') 
     'sql', check, publication, undefined, undefined);
   const program = commonMoon.clientProgramPreparationReady(preparation);
   assert.ok(program, commonMoon.clientProgramPreparationIssueCode(preparation));
-  const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json'));
+  const aoa = JSON.parse(await read('spec/contracts/actql-aoa.json')) as SequenceContracts;
   const values = JSON.stringify(aoa.execution_contracts['REL.values']);
   const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
   const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
@@ -126,9 +173,9 @@ export async function accountedGitHubRows(verifyTransport, resource = 'issues') 
   let observations = 0;
   let receivedBytes = 0;
   return {
-    charge: body => { charges++; receivedBytes += body.byteLength; return checked(commonMoon.clientProgramRowSourceChargePage(run, body)); },
-    observe: charge => { observations++; return checked(commonMoon.clientProgramRowSourceConsumeObservationCharge(run, charge)); },
-    page: (rows, _page, {charge}) => checked(commonMoon.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
+    charge: (body: Uint8Array) => { charges++; receivedBytes += body.byteLength; return checked(commonMoon.clientProgramRowSourceChargePage(run, body)); },
+    observe: (charge: unknown) => { observations++; return checked(commonMoon.clientProgramRowSourceConsumeObservationCharge(run, charge)); },
+    page: (rows: readonly unknown[], _page: number, {charge}: Readonly<{charge: unknown}>) => checked(commonMoon.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
     finish() {
       checked(commonMoon.clientProgramRowSourceFinish(run));
       const capture = checked(commonMoon.clientProgramRowSourceCapture(run));
