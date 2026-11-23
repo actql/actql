@@ -58,19 +58,40 @@ Program syntax rather than Result row encoding.
 
 ## Starting a project
 
-Embedded Local state has one active Host owner. Independent CLI processes must
-not open the same project's state concurrently. An ownership refusal is not a
-reason to delete the lock, retry adoption or create a replacement Run. Let the
-current owner finish and close before another Embedded Local command uses that
-state. If a submission response was uncertain, retain its original reference
-for lookup instead of submitting it again.
+Embedded Local state has one active Host owner. A second Embedded Local command
+that tries to open the same project's state concurrently receives an ownership
+refusal. Let the current owner finish and close before opening that state from
+another Embedded Local command. Keep the lock and any original Run references
+for recovery.
 
-Remote connection options address an explicitly running authenticated Host;
-they do not start a daemon or make Embedded Local multi-process. The selected
-[single-Host design](design/shared-cli-host.md) keeps exclusive storage ownership
-while allowing clients to share Runs and Saved results. Its complete installed
-parallel CLI, client/owner exit and recovery acceptance is tracked in
-[#3611](https://github.com/actql/actql/issues/3611).
+### Share one authenticated Remote Host
+
+An operator explicitly starts one public Host with an authenticated HTTPS
+listener. The Host alone opens the project's storage. Independent CLI
+processes connect over Remote transport to submit queries and read shared
+Saved results. Follow the [shared Host setup](design/shared-cli-host.md#existing-execution-and-transport-owners).
+
+For this route, use a package cohort with a verified `remote-http` member. Pass
+that installed library's absolute path as `--http-library` with the endpoint,
+connection, token and mTLS options on each command. See the
+[Remote transport options](../src/cmd/native_client/README.md).
+
+1. Before sending input, use `new-submission --request-id <nonce>` and save
+   the returned candidate Submission reference. Save an invocation attempt ID
+   for the command as well.
+2. Submit with Remote `start` or `aql`, `--request-name <name>`,
+   `--submission-ref-file <file>`, `--operation-attempt-id <id>` and the
+   program's input format. Save the response. On `observed`, retain
+   `outcome.submissionRef`, which is the Host's original and may have an
+   earlier epoch. A ready outcome also carries the Run reference for later
+   reads. A name already bound to different input returns `conflict`.
+3. If the response is lost, use `lookup-submission --submission-ref-file <file>`
+   with the saved original when you have it. Otherwise, look up the candidate.
+   A candidate for an already-bound name can remain `unresolvable` if you
+   never received the original. Keep the reference and attempt for recovery,
+   and use lookup without resending the submission.
+
+### Initialize a Local project
 
 ```text
 actql init [--template churn-risk-mock] [<directory>]

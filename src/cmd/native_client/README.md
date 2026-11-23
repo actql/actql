@@ -453,7 +453,15 @@ commands require a caller-saved `--submission-ref-file` and an explicit
 `--operation-attempt-id` for the invocation. Allocate deliberate new
 work with `new-submission --request-id <nonce>` and save its full epoch/nonce
 JSON before sending input. `--request-id` on `start` or `aql` only asserts that
-saved nonce. `lookup-submission --submission-ref-file <file>` observes the
+saved nonce. For a scoped name shared by Remote clients, add
+`--request-name <name>` to `aql` or `start` and retain the candidate reference
+and attempt ID as usual. Save the complete named response. An `observed` response
+carries the Host's original Submission reference, which can have an earlier
+epoch. A `conflict` means that the name already identifies a different intent.
+A lost response remains unresolved until the original reference can be looked
+up. The CLI never automatically resends it.
+
+`lookup-submission --submission-ref-file <file>` observes the
 original identity, including after a reconnect or epoch expiry; it never
 replaces the original epoch or dispatches work. Retain input and parameters
 alongside that file. A missing lookup record is unresolved, not retry permission.
