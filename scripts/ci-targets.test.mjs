@@ -1405,20 +1405,22 @@ const scheduled = (name, needs, inputs = {}, isCancelled = false, trigger = {}) 
     {}, {...trigger, event: {repository: {visibility: 'public', private: false}}},
     JSON.stringify, JSON.parse, (values, value) => values.includes(value));
 };
-test('one branch-scoped Model dispatch selects only the existing Linux producer', () => {
+test('one branch-scoped Model dispatch selects only the retained Linux artifact consumer', () => {
   const branch = {event_name: 'workflow_dispatch', ref: 'refs/heads/e/ci-native-model-linux-a4d67'};
   const input = {native_model_linux: true};
   const skipped = {'select-targets': {result: 'skipped', outputs: {profile: ''}}};
   const normal = {'select-targets': {result: 'success', outputs: {profile: 'full'}}};
   assert.equal(workflow.on.workflow_dispatch.inputs.native_model_linux.default, false);
-  assert.equal(scheduled('native-cli-linux-local', skipped, input, false, branch), true);
-  assert.equal(scheduled('native-cli-linux-local', skipped, input, true, branch), false);
-  assert.equal(scheduled('native-cli-linux-local', normal, input, false, branch), false);
+  const retained = 'native-model-linux-retained';
+  assert.equal(scheduled(retained, skipped, input, false, branch), true);
+  assert.equal(scheduled(retained, skipped, input, true, branch), false);
+  assert.equal(scheduled(retained, normal, input, false, branch), false);
+  assert.equal(scheduled(retained, skipped, {native_model_linux: false}, false, branch), false);
   for (const foreign of [{...branch, ref: 'refs/heads/main'}, {...branch, event_name: 'pull_request'}]) {
-    assert.equal(scheduled('native-cli-linux-local', skipped, input, false, foreign), false);
+    assert.equal(scheduled(retained, skipped, input, false, foreign), false);
   }
   for (const name of ['select-targets', 'preflight', 'lint', 'spec', 'check',
-    'native-cli-linux-local-installed', 'native-cli-linux-local-mock']) {
+    'native-cli-linux-local', 'native-cli-linux-local-installed', 'native-cli-linux-local-mock']) {
     assert.equal(scheduled(name, skipped, input, false, branch), false, name);
   }
   assert.equal(scheduled('native-cli-linux-local', normal, {}, false, branch), true);

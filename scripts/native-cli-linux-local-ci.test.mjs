@@ -21,7 +21,7 @@ test('normal Linux Local job is separate, mandatory and explicitly bounded', () 
   assert(job);
   assert.deepEqual(job.needs, ['select-targets']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
-  assert.equal(job['timeout-minutes'], '${{ inputs.native_model_linux && 90 || 50 }}');
+  assert.equal(job['timeout-minutes'], 50);
   assert.match(job.if, /outputs\.profile == 'full'/u);
   assert.equal(job['continue-on-error'], undefined);
   assert(gateJobs.includes('native-cli-linux-local'));
@@ -117,7 +117,7 @@ test('Mock workflows require a fresh runner and the successful exact producer co
     'artifact-id': '${{ steps.local_evidence.outputs.artifact-id }}',
     'artifact-run-id': '${{ github.run_id }}',
     'artifact-run-attempt': '${{ github.run_attempt }}',
-    'artifact-source-sha': "${{ inputs.native_model_linux && 'a4d67fbb9fe0072c543e355083efd123015b4c2e' || github.sha }}",
+    'artifact-source-sha': '${{ github.sha }}',
   });
   const authentication = mockJob.steps.find(step => step.run?.includes('inspect-native-approval-source'));
   assert.equal(mockJob.permissions.actions, 'read');

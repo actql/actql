@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict';
 import {createHash, randomUUID} from 'node:crypto';
 import {execFile, execFileSync, spawn} from 'node:child_process';
-import {mkdir, mkdtemp, readFile, writeFile} from 'node:fs/promises';
+import {constants} from 'node:fs';
+import {mkdir, mkdtemp, open, readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {dirname, join, resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {promisify} from 'node:util';
 
-const [source, packaged] = process.argv.slice(2);
-assert(source && source === resolve(source) && packaged && packaged === resolve(packaged),
-  'Supply the exact-source checkout and its private Linux package directory');
+const [source, packaged, observations] = process.argv.slice(2);
+assert([source, packaged, observations].every(path => path && path === resolve(path)),
+  'Supply the exact-source checkout, retained packages and a fresh observation directory');
 assert.equal(process.platform, 'linux');
 assert.equal(process.arch, 'x64');
-const root = await mkdtemp(join(packaged, 'qualification-installed-'));
+const root = await mkdtemp(join(observations, 'qualification-installed-'));
 console.log(root);
 const sha = 'a4d67fbb9fe0072c543e355083efd123015b4c2e';
 assert.equal(execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], {cwd: source, encoding: 'utf8'}).trim(), sha);
@@ -30,9 +31,6 @@ const {providerBindingOriginals} = await dependency('scripts/fixtures/model-prov
 const {nativeLauncherEnvelope} = await dependency('scripts/native-cli-mock-scenario.mjs');
 const {nativeMockAcceptanceObservations} = await dependency('packages/native-cli/lib/project-scaffold.mjs');
 
-const {verifiedNativeRemoteHttpPackage, verifiedNativeModelHttpPackage} =
-  await dependency('scripts/native-preparation-originals.mjs');
-
 const digest = wire => createHash('sha256').update(wire).digest('hex');
 const cid = body => 'sha256:' + digest(canonicalText(body));
 const seal = body => ({...body, self_cid: cid(body)});
@@ -40,6 +38,16 @@ const json = async path => JSON.parse(await readFile(path, 'utf8'));
 const write = async (path, body, flag = 'wx') =>
   writeFile(path, canonicalText(body), {mode: 0o600, flag});
 const cohortDir = join(packaged, 'release');
+// The workflow authenticates the complete original artifact before extraction.
+// Its verifier already admitted both component preparations with all compiler inputs.
+assert.deepEqual(await json(join(packaged, 'qualification-origin.json')), {
+  productSource: sha, runnerSource: '43ab287059eac7b411425a7b6ae0c6e4673a9d46',
+  runId: '45101801774', runAttempt: '1', platform: 'linux', arch: 'x64',
+});
+const prior = await json(join(packaged, 'qualification-installed-mL7HCC/controlled-native.json'));
+assert.equal(prior.source, sha);
+assert.equal(prior.platform, platform);
+assert.deepEqual(prior.verifiedRoles.map(role => role.role), ['remote-http', 'model-http']);
 const record = await json(join(producer, 'artifact.json'));
 assert.equal(record.sourceSha, sha);
 assert.equal(record.platform, platform);
@@ -84,25 +92,36 @@ try {
   const expected = {sourceSha: sha, platform, localRuntimeSha256: record.localRuntime.sha256};
   const localRuntime = admitInstalledLocalRuntime({root: installed, expected, metadata: record.localRuntime});
 
-  for (const [role, name, verify] of [
-    ['remote-http','libcurl.so.4',verifiedNativeRemoteHttpPackage],
-    ['model-http','libcurl-model.so.4',verifiedNativeModelHttpPackage],
+  for (const [role, name] of [
+    ['remote-http','libcurl.so.4'],
+    ['model-http','libcurl-model.so.4'],
   ]) {
     const preparationPath = join(packaged, role, 'preparation.json');
     const preparationWire = await readFile(preparationPath);
     const preparation = JSON.parse(preparationWire);
     assert.equal(preparation.source, sha);
-    const selected = verify({path: preparationPath, source: sha,
-      bytes: preparationWire.length, sha256: digest(preparationWire)},
-      {source: sha, target: 'linux-x64'});
+    assert.equal(preparation.target, 'linux-x64');
+    const componentWire = await readFile(join(packaged, role, 'component/build.json'));
+    assert.equal(componentWire.length, preparation.component.bytes);
+    assert.equal(digest(componentWire), preparation.component.sha256);
+    const component = JSON.parse(componentWire);
+    assert.equal(component.source, sha);
+    assert.equal(component.target, 'linux-x64');
+    assert.equal(component.modelResolver?.addressLookup, role === 'model-http' ? 'c-ares' : undefined);
+    const tlsWire = await readFile(join(packaged, role, 'owned-tls/build.json'));
+    assert.equal(tlsWire.length, preparation.tls.bytes);
+    assert.equal(digest(tlsWire), preparation.tls.sha256);
+    for (const field of ['path', 'bytes', 'sha256']) {
+      assert.equal(component.ownedOpenSSLReceipt[field], preparation.tls[field]);
+    }
     const matches = localRuntime.libraries.filter(item => item.role === role);
     assert.equal(matches.length, 1);
     const path = join(installed, matches[0].path);
     assert.equal(path.split('/').at(-1), name);
-    assert.equal(matches[0].sha256, selected.library.sha256);
+    assert.equal(matches[0].sha256, component.library.sha256);
     const installedBytes = await readFile(path);
-    assert.equal(installedBytes.length, selected.library.bytes);
-    assert.equal(digest(installedBytes), selected.library.sha256);
+    assert.equal(installedBytes.length, component.library.bytes);
+    assert.equal(digest(installedBytes), component.library.sha256);
     const dynamic = execFileSync('/usr/bin/readelf', ['-d', path], {encoding: 'utf8'});
     const matchesOf = field => dynamic.split('\n').filter(line => line.includes('(' + field + ')'))
       .map(line => {
@@ -113,9 +132,11 @@ try {
     const identity = matchesOf('SONAME');
     assert.deepEqual(identity, [name]);
     const loadedDependencies = matchesOf('NEEDED');
-    assert.deepEqual(loadedDependencies.sort(), [...selected.dependencies].sort());
-    verifiedRoles.push({role, path:matches[0].path, bytes:installedBytes.length, sha256:digest(installedBytes),
-      preparationSha256:digest(preparationWire), identity:identity[0], dependencies:[...selected.dependencies].sort()});
+    assert.deepEqual(loadedDependencies.sort(), [...component.systemDependencies].sort());
+    const installedRole = {role, path:matches[0].path, bytes:installedBytes.length, sha256:digest(installedBytes),
+      preparationSha256:digest(preparationWire), identity:identity[0], dependencies:loadedDependencies};
+    assert.deepEqual(installedRole, prior.verifiedRoles.find(item => item.role === role));
+    verifiedRoles.push(installedRole);
   }
   assert.equal(new Set(verifiedRoles.map(role=>role.path)).size, 2);
   assert.equal(new Set(verifiedRoles.map(role=>role.sha256)).size, 2);
@@ -282,26 +303,48 @@ try {
 
   async function cli(phase, args, {expected = 0} = {}) {
     const startedAt = Date.now();
-    const child = spawn(original, [...selected.configuration, ...args], {cwd:project, env});
-    const stdout = [], stderr = [];
-    child.stdout.on('data', chunk => stdout.push(chunk));
-    child.stderr.on('data', chunk => stderr.push(chunk));
-    const timer = setTimeout(() => child.kill('SIGKILL'), 90000);
-    let code, signal;
+    const path = join(root, phase + '.stderr');
+    const output = await open(path, 'wx', 0o600);
+    const stdout = [];
+    let child, code, signal, identity;
     try {
-      [code, signal] = await new Promise((resolve,reject) => {
-        child.once('error',reject);
-        child.once('close',(...values) => resolve(values));
-      });
-    } finally {clearTimeout(timer);}
+      identity = await output.stat();
+      child = spawn(original, [...selected.configuration, ...args],
+        {cwd:project, env, stdio:['ignore', 'pipe', output.fd]});
+      child.stdout.on('data', chunk => stdout.push(chunk));
+      const timer = setTimeout(() => child.kill('SIGKILL'), 90000);
+      try {
+        [code, signal] = await new Promise((resolve,reject) => {
+          child.once('error',reject);
+          child.once('close',(...values) => resolve(values));
+        });
+      } finally {clearTimeout(timer);}
+    } finally {await output.close();}
+    const saved = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+    let stderr;
+    try {
+      const file = await saved.stat();
+      assert(file.isFile() && file.dev === identity.dev && file.ino === identity.ino);
+      assert(file.size > 0 && file.size <= 65536, 'Invalid native stderr extent');
+      const bytes = Buffer.alloc(file.size);
+      let offset = 0;
+      while (offset < bytes.length) {
+        const {bytesRead} = await saved.read(bytes, offset, bytes.length - offset, offset);
+        assert(bytesRead > 0, 'Truncated native stderr file');
+        offset += bytesRead;
+      }
+      assert.equal((await saved.stat()).size, file.size);
+      stderr = bytes.toString('utf8');
+    } finally {await saved.close();}
     const result = {phase,pid:child.pid,code,signal,startedAt,endedAt:Date.now(),
-      stdout:Buffer.concat(stdout).toString('utf8'), stderr:Buffer.concat(stderr).toString('utf8'),
+      stdout:Buffer.concat(stdout).toString('utf8'), stderr,
       physicalRequests:calls.length, connections: {...connections}};
     phases.push(result);
     await save();
     assert.equal(signal,null);
     if (expected !== undefined && expected !== null) assert.equal(code,expected,`${phase} exited ${code}`);
     const {native} = nativeLauncherEnvelope(result.stderr, 'optional');
+    assert(native.endsWith('\n'), 'Truncated original Native diagnostic stream');
     const telemetry = [];
     const diagnostics = [];
     for (const row of native.trimEnd().split('\n')) {
