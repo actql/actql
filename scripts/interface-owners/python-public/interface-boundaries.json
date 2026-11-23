@@ -9852,7 +9852,7 @@
           ]
         }
       ],
-      "sha256": "a0cae180e5efe05761a32f72764515aac19b6a36a33e0634bcb31aa41650a1f1",
+      "sha256": "5227615025c4bb048dd186f45934f1772db151cee28dca89216db66bb497c061",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -9990,6 +9990,14 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "ValueTests"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_boundaries.py",
+                "anchor": "test_wire_classifies_only_bounded_ecmascript_array_indices"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_boundaries.py",
+                "anchor": "test_long_digit_object_key_survives_original_row_reader"
               }
             ]
           }

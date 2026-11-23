@@ -135,6 +135,13 @@ pub fn Journal::accept(
 }
 
 ///|
+pub fn Journal::require_operational(
+  _self : Journal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Journal::require(
   _self : Journal,
   request : @remote.DispatchRequest,
