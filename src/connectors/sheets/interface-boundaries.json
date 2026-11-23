@@ -511,7 +511,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -671,7 +671,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -1014,7 +1014,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -1150,7 +1150,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -1189,7 +1189,7 @@
   {
     "module": "adapters/connectors/sheets/site/sheets-exchange.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "002676e5bfd8589762e07fb90000388c3341eb07e6cccff54ba96890215698bf",
+    "sha256": "4f10ba286beef46c4cd3471ed1ca391599ff3a78fe8276718390a0425545d8a6",
     "exports": [
       "SHEETS_APPEND_OPERATION",
       "SHEETS_CLEAR_OPERATION",
@@ -1493,7 +1493,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -1619,7 +1619,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -1729,7 +1729,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -1834,7 +1834,7 @@
               "anchor": "Pure catalog operations cannot cancel I/O"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "signal?.throwIfAborted()"
             }
           ],
@@ -1844,7 +1844,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -1879,7 +1879,7 @@
   {
     "module": "adapters/connectors/sheets/site/sheets-owned-request.mjs",
     "responsibilityFacet": "primary",
-    "sha256": "7bfaa5a2de2fc92999b22e8077a8f9755dd36d19985b166ccd49e3d4184f532e",
+    "sha256": "43ffb3b6ba19778e4f56b06d0648d4dab59995e88ed1b5b095b533c5a1be9d3e",
     "exports": [
       "ownedSheetsRequestCid",
       "prepareOwnedSheetsRequest",
@@ -2035,7 +2035,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -2278,7 +2278,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -2817,7 +2817,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -2946,7 +2946,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -3084,7 +3084,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -3421,7 +3421,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -3640,7 +3640,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -3912,7 +3912,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -4076,7 +4076,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -4471,7 +4471,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -4598,7 +4598,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -4726,7 +4726,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -5123,7 +5123,7 @@
               "anchor": "A byte clamp is"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             },
             {
@@ -5394,7 +5394,7 @@
               "anchor": "Pure catalog operations cannot cancel I/O"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "signal?.throwIfAborted()"
             }
           ],
@@ -5404,7 +5404,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -5438,7 +5438,7 @@
   },
   {
     "module": "adapters/connectors/sheets/site/sheets-clear-request.mjs",
-    "sha256": "565369edb40e4836cfe2cd6bf902ede11062982fe3a7ff1aea81c450581f1e60",
+    "sha256": "17ce53b8f143861e9f190b48c8e1b03b944893d31e6a862e540d74393dbfb688",
     "exports": [
       "ownedSheetsClearOutcome",
       "ownedSheetsClearRecoveryEntry",
@@ -5601,7 +5601,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -5721,7 +5721,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -5896,7 +5896,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -6041,7 +6041,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -6270,7 +6270,7 @@
               "anchor": "Clear keeps the same finite codec"
             },
             {
-              "path": "adapters/connectors/sheets/site/sheets-exchange.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-exchange.mts",
               "anchor": "SHEETS_LIMITS"
             }
           ],
@@ -6304,7 +6304,7 @@
   },
   {
     "module": "adapters/connectors/sheets/site/sheets-grid-pages.mjs",
-    "sha256": "116fa746a73414f7ffe1eb409c189f347a341f9722d5618dbeac61ce3c2e86e0",
+    "sha256": "d3a82e934be2f3e9f123330f7818ae55409b414e034b868fec855ce96d5b4205",
     "exports": [
       "SHEETS_GRID_PAGES_OPERATION",
       "SheetsGridPagesFailure",
@@ -6508,7 +6508,7 @@
           ],
           "inputsOutputs": [
             {
-              "path": "adapters/connectors/sheets/site/sheets-grid-pages.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-grid-pages.mts",
               "anchor": "export function prepareSheetsGridPages"
             }
           ],
@@ -6786,7 +6786,7 @@
   },
   {
     "module": "adapters/connectors/sheets/site/sheets-tabs-pages.mjs",
-    "sha256": "ebba3982319b804b5503847f6b5337e8bc2831213e33e6dd539348eab0e28e0d",
+    "sha256": "1e317c8223f3392cb2c93c18da596b6867fd1e18a11a48c72aeb14e21271f93d",
     "exports": [
       "SHEETS_TABS_PAGES_OPERATION",
       "SheetsTabsPagesFailure",
@@ -6906,7 +6906,7 @@
           ],
           "inputsOutputs": [
             {
-              "path": "adapters/connectors/sheets/site/sheets-tabs-pages.mjs",
+              "path": "adapters/connectors/sheets/site/sheets-tabs-pages.mts",
               "anchor": "export function prepareSheetsTabsPages"
             }
           ],

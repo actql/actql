@@ -2968,3 +2968,15 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/gmail/test/installed-gmail-threads.test.d.mts
 /adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.mjs
 /adapters/connectors/gmail/test/gmail-label-shared-pages.actual.test.d.mts
+/adapters/connectors/sheets/site/sheets-grid-pages.mjs
+/adapters/connectors/sheets/site/sheets-grid-pages.d.mts
+/adapters/connectors/sheets/site/sheets-owned-request.mjs
+/adapters/connectors/sheets/site/sheets-owned-request.d.mts
+/adapters/connectors/sheets/site/sheets-clear-request.mjs
+/adapters/connectors/sheets/site/sheets-clear-request.d.mts
+/adapters/connectors/sheets/site/sheets-tabs-pages.mjs
+/adapters/connectors/sheets/site/sheets-tabs-pages.d.mts
+/adapters/connectors/sheets/site/sheets-exchange.mjs
+/adapters/connectors/sheets/site/sheets-exchange.d.mts
+/adapters/connectors/sheets/test/sheets-grid-pages.test.mjs
+/adapters/connectors/sheets/test/sheets-grid-pages.test.d.mts
