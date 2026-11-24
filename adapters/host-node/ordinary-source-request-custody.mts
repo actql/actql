@@ -1,11 +1,12 @@
 // The same funded Request retains compilation and Explanation custody until
 // the original admission's children can return. This path never grants a Run.
 import {checked} from '../host-common/runtime-result.mjs';
-import {assertRequestPreparationControl, cleanupRequestInput, requestPreparationAvailable}
+import {assertRequestPreparationControl, beginRequestInput, beginHttpRequestInput, cleanupRequestInput, requestPreparationAvailable}
   from '../local-node/request-preparation-adapter.mjs';
 import {checkedRequestProgramPreparation} from './client-program-preparation.mjs';
 import {assertOriginalClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
+import resourceRuntime from './ordinary-node-resource-runtime.cjs';
 
 import type {RequestPreparationState} from '../local-node/request-preparation-adapter.mjs';
 import type {SourceProducerCustody} from './ordinary-source-producer-custody.mjs';
@@ -42,18 +43,19 @@ type Explanation = {
 export type OrdinarySourceRequestState = RequestPreparationState & {
   context: Readonly<{runtime: Runtime; retainedRelationOutput: boolean}> &
     Parameters<typeof assertRequestPreparationControl>[0];
-  requiresQueryTime?: boolean; originalExplanation?: Explanation; staticExplanationDelivery?: unknown;
+  requiresQueryTime?: boolean; phase?: unknown; originalExplanation?: Explanation; staticExplanationDelivery?: unknown;
   staticPlanRead?: boolean; staticModelOccurrences?: unknown; staticModelExecutions?: unknown; staticModelGraphs?: unknown;
 };
 type State = OrdinarySourceRequestState;
 type Producer = Pick<SourceProducerCustody, 'finished' | 'preparation' | 'receipt'>;
-type RequestProducer = SourceProducerCustody & Readonly<{kind?: string; body?: object}> & {preparation?: State};
+type RequestProducer = SourceProducerCustody & {kind?: string; body?: object; preparation?: State};
+type RequestConnection = Parameters<typeof beginRequestInput>[2];
 type OpenParent = (state: State, receipt: object,
-  assertCurrent: () => void, childrenPending: () => boolean) => unknown;
+  assertCurrent: () => undefined, childrenPending: () => boolean) => unknown;
 
 type Ports = Readonly<{
   originals: Readonly<{installation: Readonly<{sequenceContractOriginal?: Contracts}>}>;
-  current(): void; fail(code: string): never; closed: boolean;
+  current(): void; fail(code: string): never; closing: boolean; closed: boolean;
   callbacks: Readonly<{
     preparationContext?(originals: unknown): State['context'] | undefined;
     validator(originals: unknown): void;
@@ -63,11 +65,12 @@ type Ports = Readonly<{
   retainSourceInitializationMaterial(producer: RequestProducer): unknown;
   retainedRunCurrent(run: OrdinarySourceRun): void;
   releaseFinishedProducer(producer: RequestProducer): boolean;
+  producerFor(receipt: object): RequestProducer;
 }>;
 
 export function createOrdinarySourceRequestCustody(ports: Ports) {
   const {originals, current, fail, callbacks, receipts, producers, runs, liveRuns,
-    retainSourceInitializationMaterial, retainedRunCurrent, releaseFinishedProducer} = ports;
+    retainSourceInitializationMaterial, retainedRunCurrent, releaseFinishedProducer, producerFor} = ports;
   function originalTimedInvocation<Value>(state: State, producer: Producer, prepared: unknown, construct: (artifact: unknown) => Value, contracts?: Contracts) {
     if (state.requiresQueryTime !== true) return undefined;
     const moon = state.context.runtime, compile = moon.clientProgramPrepareRequestProgramCompilation;
@@ -216,7 +219,7 @@ export function createOrdinarySourceRequestCustody(ports: Ports) {
             Object.getOwnPropertyDescriptor(context, 'preparedEnvironment')?.value !== sourceEnvironment) {
           fail('ForeignInstalledSourceProducer');
         }
-        const assertOriginalCurrent = () => {
+        const assertOriginalCurrent = (): undefined => {
           // Cleanup may continue while the manager is closing. Exact
           // membership/current installation, not raw Prepared, is retained.
           if (ports.closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
@@ -261,5 +264,67 @@ export function createOrdinarySourceRequestCustody(ports: Ports) {
     return receipt;
   }
   return {originalTimedInvocation, prepareOriginalExplanation, disposeOriginalExplanation,
-    cleanupOriginalRequestInput, beginProducer};
+    cleanupOriginalRequestInput, beginProducer, requestInput: {
+    assertSourceSnapshotCurrent(receipt: object) {
+      current();
+      const producer = producerFor(receipt), preparation = producer.preparation;
+      if (producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
+      if (preparation !== undefined) {
+        const original = preparation.original;
+        if (original === undefined || preparation.adopting ||
+            preparation.parent === undefined && preparation.phase === undefined) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        resourceRuntime.assertOrdinaryManagedRunCurrent(original!, receipt);
+        if (producer.preparation !== preparation || preparation.original !== original) {
+          fail('ForeignInstalledSourceProducer');
+        }
+      }
+      // A current callback may synchronously retire this same producer. Its
+      // original receipt/Resource tuple must still own this pre-freeze phase.
+      if (ports.closing || ports.closed || receipts.get(receipt) !== producer ||
+          producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
+    },
+    beforeSourceSnapshot(kind: string, input: unknown, options: unknown, originalConnection: RequestConnection) {
+      return beginProducer(kind, (state, receipt, assertCurrent, childrenPending) =>
+        beginRequestInput(state, receipt, originalConnection, assertCurrent, childrenPending));
+    },
+    beforeHttpRequestBody() {
+      return beginProducer(undefined, (state, receipt, assertCurrent, childrenPending) =>
+        beginHttpRequestInput(state, receipt, assertCurrent, childrenPending), true);
+    },
+    reserveHttpRequestBody(receipt: object, bytes: number, chunks: number, quantum: number, wireLimit: number) {
+      current();
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (producer.finished || producer.body !== undefined || state?.parent === undefined ||
+          state.snapshotting || state.snapshot !== undefined) fail('ForeignInstalledSourceProducer');
+      const moon = state!.context.runtime;
+      checked(Reflect.apply(moon.clientProgramReserveRequestHttpInput as (...args: unknown[]) => unknown, moon,
+        [state!.parent, receipt, bytes, chunks, quantum, wireLimit]));
+    },
+    prepareHttpRequestJson(receipt: object, wire: string) {
+      current();
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (producer.finished || producer.body !== undefined || state?.parent === undefined ||
+          state.snapshotting || state.snapshot !== undefined || typeof wire !== 'string') {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state!.context.runtime;
+      checked(Reflect.apply(moon.clientProgramPrepareRequestHttpJson as (...args: unknown[]) => unknown, moon,
+        [state!.parent, receipt, wire]));
+    },
+    bindHttpRequestKind(receipt: object, kind: string, connection: RequestConnection) {
+      current();
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (producer.finished || producer.kind !== undefined || producer.body !== undefined ||
+          state?.parent === undefined || state.snapshotting || state.snapshot !== undefined ||
+          !['program', 'aql'].includes(kind) || !Object.isFrozen(connection) ||
+          !['local', 'remote'].includes(connection.mode) || connection.owner !== connection.mode ||
+          !Array.isArray(connection.consentRefs) || !Array.isArray(connection.runners)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      producer.kind = kind;
+    },
+  }};
+
 }

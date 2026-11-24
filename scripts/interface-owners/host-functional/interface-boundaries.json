@@ -119796,7 +119796,6 @@
             "prepareOrdinaryManagedInstallation/status/status",
             "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
             "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:bindSourceRequest/init:bindSourceRequest",
             "prepareOrdinaryManagedInstallation/view/init:bindSourceSnapshot/init:bindSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:close/init:close",
@@ -119820,7 +119819,9 @@
             "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#2",
             "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#3",
             "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#4",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#5"
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#5",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#6",
+            "prepareOrdinaryManagedInstallation/producerFor/producerFor"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -122125,9 +122126,7 @@
           }
         },
         {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -123729,7 +123728,6 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
             "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput/receipt/receipt"
           ],
@@ -124320,13 +124318,7 @@
           }
         },
         {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
-            "prepareOrdinaryManagedInstallation/view/init:beforeHttpRequestBody/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
-            "prepareOrdinaryManagedInstallation/view/init:bindHttpRequestKind/init:bindHttpRequestKind",
-            "prepareOrdinaryManagedInstallation/view/init:prepareHttpRequestJson/init:prepareHttpRequestJson",
-            "prepareOrdinaryManagedInstallation/view/init:reserveHttpRequestBody/init:reserveHttpRequestBody"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -124335,7 +124327,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -124345,7 +124337,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -124355,7 +124347,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -124365,7 +124357,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -124375,7 +124367,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -124385,7 +124377,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -124395,7 +124387,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -124405,7 +124397,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -124415,7 +124407,7 @@
                 "anchor": "## Authenticated HTTP input on the same Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "beforeHttpRequestBody()"
               }
             ],
@@ -125161,6 +125153,18 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#6",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/producerFor/producerFor",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/retireInitialPreparation/retireInitialPreparation",
           "parameters": [
             "prepared"
@@ -125320,32 +125324,10 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
-          "parameters": [
-            "receipt"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareOrdinaryManagedInstallation/view/init:authoringContextOriginal/init:authoringContextOriginal",
           "parameters": [
             "prepared",
             "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeHttpRequestBody/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
-          "parameters": [
-            "state",
-            "receipt",
-            "assertCurrent",
-            "childrenPending"
           ],
           "async": false
         },
@@ -125362,35 +125344,6 @@
             "parameters",
             "options",
             "originalConnection"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-          "parameters": [
-            "kind",
-            "input",
-            "options",
-            "originalConnection"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
-          "parameters": [
-            "state",
-            "receipt",
-            "assertCurrent",
-            "childrenPending"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:bindHttpRequestKind/init:bindHttpRequestKind",
-          "parameters": [
-            "receipt",
-            "kind",
-            "connection"
           ],
           "async": false
         },
@@ -125767,14 +125720,6 @@
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareHttpRequestJson/init:prepareHttpRequestJson",
-          "parameters": [
-            "receipt",
-            "wire"
-          ],
           "async": false
         },
         {
@@ -126270,17 +126215,6 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:reserveHttpRequestBody/init:reserveHttpRequestBody",
-          "parameters": [
-            "receipt",
-            "bytes",
-            "chunks",
-            "quantum",
-            "wireLimit"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareOrdinaryManagedInstallation/view/init:reservePublication/init:reservePublication",
           "parameters": [
             "prepared"
@@ -126504,7 +126438,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "350859f929e75dc19c065fc160172c2229cc889e0449e2f32092b896395eb693"
+      "sha256": "dc41e4da4292ec074666d02e03dd8ae24515cd83d7eb760dfc072e95690f521d"
     },
     {
       "module": "adapters/host-node/ordinary-source-run-custody.mjs",
@@ -126665,7 +126599,7 @@
     {
       "module": "adapters/host-node/ordinary-source-request-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aa5d66a994a229e01078599290d7b625f3885313c355be1a4f0b1478cb2316d4",
+      "sha256": "f33e6819efe87fa55acb3888686bd395175b3087f12f8d9705454131bce32177",
       "role": "physical-io",
       "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
       "exports": [
@@ -126722,6 +126656,76 @@
           "async": false
         },
         {
+          "name": "createOrdinarySourceRequestCustody/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
+          "parameters": [
+            "receipt"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/init:beforeHttpRequestBody/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
+          "parameters": [
+            "state",
+            "receipt",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "kind",
+            "input",
+            "options",
+            "originalConnection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+          "parameters": [
+            "state",
+            "receipt",
+            "assertCurrent",
+            "childrenPending"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/init:bindHttpRequestKind/init:bindHttpRequestKind",
+          "parameters": [
+            "receipt",
+            "kind",
+            "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/init:prepareHttpRequestJson/init:prepareHttpRequestJson",
+          "parameters": [
+            "receipt",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/init:reserveHttpRequestBody/init:reserveHttpRequestBody",
+          "parameters": [
+            "receipt",
+            "bytes",
+            "chunks",
+            "quantum",
+            "wireLimit"
+          ],
+          "async": false
+        },
+        {
           "name": "createOrdinarySourceRequestCustody/originalTimedInvocation",
           "parameters": [
             "state",
@@ -126756,7 +126760,15 @@
             "createOrdinarySourceRequestCustody/beginProducer",
             "createOrdinarySourceRequestCustody/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
             "createOrdinarySourceRequestCustody/beginProducer/childrenPending/childrenPending",
-            "createOrdinarySourceRequestCustody/beginProducer/childrenPending/childrenPending/childrenPending"
+            "createOrdinarySourceRequestCustody/beginProducer/childrenPending/childrenPending/childrenPending",
+            "createOrdinarySourceRequestCustody/init:assertSourceSnapshotCurrent/init:assertSourceSnapshotCurrent",
+            "createOrdinarySourceRequestCustody/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
+            "createOrdinarySourceRequestCustody/init:beforeHttpRequestBody/init:beforeHttpRequestBody/init:beforeHttpRequestBody",
+            "createOrdinarySourceRequestCustody/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "createOrdinarySourceRequestCustody/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
+            "createOrdinarySourceRequestCustody/init:bindHttpRequestKind/init:bindHttpRequestKind",
+            "createOrdinarySourceRequestCustody/init:prepareHttpRequestJson/init:prepareHttpRequestJson",
+            "createOrdinarySourceRequestCustody/init:reserveHttpRequestBody/init:reserveHttpRequestBody"
           ],
           "exports": [
             "createOrdinarySourceRequestCustody"
@@ -126783,7 +126795,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "cleanupOriginalRequestInput, beginProducer} = createOrdinarySourceRequestCustody({originals, current, fail,"
+                "anchor": "cleanupOriginalRequestInput, beginProducer, requestInput} = createOrdinarySourceRequestCustody({originals, current, fail,"
               }
             ],
             "synchronization": [
@@ -126828,6 +126840,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "normal default Request retains one parent before the original SDK snapshot growth"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "HTTP manager retains one original Request from raw copies through the existing Source snapshot"
               }
             ]
           }
@@ -126838,7 +126854,8 @@
         "../local-node/request-preparation-adapter.mjs",
         "./client-program-preparation.mjs",
         "./client-request-journal.mjs",
-        "./local-values-plan.mjs"
+        "./local-values-plan.mjs",
+        "./ordinary-node-resource-runtime.cjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

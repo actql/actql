@@ -1,5 +1,5 @@
 import {snapshotClientRequest} from '@actql/client-wire';
-import {requestPreparationAvailable,beginRequestInput,beginHttpRequestInput,openRequestPreparation,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
+import {requestPreparationAvailable,openRequestPreparation,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {types} from 'node:util';
@@ -107,9 +107,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     originals, callbacks, runs, liveRuns, receipts, retiredRuns, pendingRunRegistrations,
     producerForRequest, current, fail, get closed() { return closed; }});
   const {originalTimedInvocation, prepareOriginalExplanation, disposeOriginalExplanation,
-    cleanupOriginalRequestInput, beginProducer} = createOrdinarySourceRequestCustody({originals, current, fail,
+    cleanupOriginalRequestInput, beginProducer, requestInput} = createOrdinarySourceRequestCustody({originals, current, fail,
       callbacks, receipts, producers, runs, liveRuns, retainSourceInitializationMaterial, retainedRunCurrent,
-      releaseFinishedProducer, get closed() { return closed; }});
+      releaseFinishedProducer, producerFor,
+      get closing() { return closing; }, get closed() { return closed; }});
   function constructRequestDomain(state, construct) {
     state.preparing = true;
     try {return construct();}
@@ -181,66 +182,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   }
   const view = Object.freeze({
     assertCurrent: current,
-    assertSourceSnapshotCurrent(receipt) {
-      current();
-      const producer = producerFor(receipt), preparation = producer.preparation;
-      if (producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
-      if (preparation !== undefined) {
-        const original = preparation.original;
-        if (original === undefined || preparation.adopting ||
-            preparation.parent === undefined && preparation.phase === undefined) {
-          fail('ForeignInstalledSourceProducer');
-        }
-        resourceRuntime.assertOrdinaryManagedRunCurrent(original, receipt);
-        if (producer.preparation !== preparation || preparation.original !== original) {
-          fail('ForeignInstalledSourceProducer');
-        }
-      }
-      // A current callback may synchronously retire this same producer. Its
-      // original receipt/Resource tuple must still own this pre-freeze phase.
-      if (closing || closed || receipts.get(receipt) !== producer ||
-          producer.finished || producer.body !== undefined) fail('ForeignInstalledSourceProducer');
-    },
-    beforeSourceSnapshot(kind, input, options, originalConnection) {
-      return beginProducer(kind, (state, receipt, assertCurrent, childrenPending) =>
-        beginRequestInput(state, receipt, originalConnection, assertCurrent, childrenPending));
-    },
-    beforeHttpRequestBody() {
-      return beginProducer(undefined, (state, receipt, assertCurrent, childrenPending) =>
-        beginHttpRequestInput(state, receipt, assertCurrent, childrenPending), true);
-    },
-    reserveHttpRequestBody(receipt, bytes, chunks, quantum, wireLimit) {
-      current();
-      const producer = producerFor(receipt), state = producer.preparation;
-      if (producer.finished || producer.body !== undefined || state?.parent === undefined ||
-          state.snapshotting || state.snapshot !== undefined) fail('ForeignInstalledSourceProducer');
-      const moon = state.context.runtime;
-      checked(Reflect.apply(moon.clientProgramReserveRequestHttpInput, moon,
-        [state.parent, receipt, bytes, chunks, quantum, wireLimit]));
-    },
-    prepareHttpRequestJson(receipt, wire) {
-      current();
-      const producer = producerFor(receipt), state = producer.preparation;
-      if (producer.finished || producer.body !== undefined || state?.parent === undefined ||
-          state.snapshotting || state.snapshot !== undefined || typeof wire !== 'string') {
-        fail('ForeignInstalledSourceProducer');
-      }
-      const moon = state.context.runtime;
-      checked(Reflect.apply(moon.clientProgramPrepareRequestHttpJson, moon,
-        [state.parent, receipt, wire]));
-    },
-    bindHttpRequestKind(receipt, kind, connection) {
-      current();
-      const producer = producerFor(receipt), state = producer.preparation;
-      if (producer.finished || producer.kind !== undefined || producer.body !== undefined ||
-          state?.parent === undefined || state.snapshotting || state.snapshot !== undefined ||
-          !['program', 'aql'].includes(kind) || !Object.isFrozen(connection) ||
-          !['local', 'remote'].includes(connection.mode) || connection.owner !== connection.mode ||
-          !Array.isArray(connection.consentRefs) || !Array.isArray(connection.runners)) {
-        fail('ForeignInstalledSourceProducer');
-      }
-      producer.kind = kind;
-    },
+    ...requestInput,
     // Only the installed Host supplies this Journal-retained opaque original.
     // It is a new physical-process input lifetime for the SAME logical Request,
     // not an SDK snapshot publication, semantic issuer or physical read grant.
