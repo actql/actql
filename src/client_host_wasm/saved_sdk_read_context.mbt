@@ -31,6 +31,7 @@ fn saved_sdk_read_context(
   run : Int,
   current_configuration : Int,
   same_reader_census? : Bool = false,
+  reuse_proven_fence_rows? : Bool = false,
 ) -> Result[OriginalSDKReadContext, Int] {
   guard run == record.publication &&
     saved_result_export_parent(value, record.publication)
@@ -44,10 +45,13 @@ fn saved_sdk_read_context(
     saved.view is Some(view) else {
     return Err(-2)
   }
-  let (principal, connection, _, result_name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let (principal, connection, _, _, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     sdk.read,
   )
-  if result_name != saved.result_name ||
+  if !@publication.local_sdk_result_read_selection_accepts_name(
+      sdk.read,
+      saved.result_name,
+    ) ||
     principal != current.tuple.principal ||
     connection != current.tuple.connection {
     return Err(-32)
@@ -56,11 +60,13 @@ fn saved_sdk_read_context(
   // only while the physical Owner proves that the same reader is unchanged.
   match
     check_saved_sdk_read_context(
-      value, record, parent, saved, current, source, false,
+      value, record, parent, saved, current, source, false, false,
     ) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }
+  // The complete rebind above checked the exact fence rows. Only callbacks
+  // on this same Saved original may reuse that evidence after a live proof.
   let same_reader_census = if same_reader_census &&
     parent.kind == INCREMENTAL_SAVED_RESULT_KIND {
     // Ticket zero cannot name a physical loan. The original suppliers
@@ -81,12 +87,12 @@ fn saved_sdk_read_context(
     current,
     owner,
     view,
-    result_name,
+    result_name: saved.result_name,
     format,
     same_reader_census,
     check_current: () => {
       check_saved_sdk_read_context(
-        value, record, parent, saved, current, source, same_reader_census,
+        value, record, parent, saved, current, source, same_reader_census, reuse_proven_fence_rows,
       )
     },
   })
@@ -101,6 +107,7 @@ fn check_saved_sdk_read_context(
   current : StoredRunConfiguration,
   source : @local_run.LocalSDKReadSource,
   same_reader_census : Bool,
+  reuse_proven_fence_rows : Bool,
 ) -> Result[Unit, Int] {
   if value.closing || value.runtime_closing || record.closing {
     return Err(-5)
@@ -111,7 +118,13 @@ fn check_saved_sdk_read_context(
     _ => return Err(-32)
   }
   match
-    validate_saved_result_read(value, parent, current, same_reader_census~) {
+    validate_saved_result_read(
+      value,
+      parent,
+      current,
+      same_reader_census~,
+      reuse_proven_fence_rows~,
+    ) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }

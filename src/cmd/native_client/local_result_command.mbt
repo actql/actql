@@ -238,19 +238,6 @@ fn local_public_result(
       )
     }
     let result_name = local_result_name(names, optional(child, "result"))
-    let current = () => {
-      local_delivery_lookup_allowed(
-        host,
-        settings,
-        crypto,
-        scope,
-        result_name,
-        capture=prepared.map(value => value.capture),
-      )
-    }
-    if !current() {
-      stop("LocalReadAuthorizationDenied")
-    }
     let request : @local_result.NativeResultAccessRequest = {
       namespace_id: selected.namespace_id,
       authority_scope_cid: scope,
@@ -260,6 +247,30 @@ fn local_public_result(
       result_name,
       format,
       attempt_id,
+    }
+    let current = if binding.installed_original_result_read_selected() {
+      () => {
+        binding.authorize_selected_result_lookup(
+          selected.request,
+          request,
+          local_utc_now(),
+        )
+        is Ok(_)
+      }
+    } else {
+      () => {
+        local_delivery_lookup_allowed(
+          host,
+          settings,
+          crypto,
+          scope,
+          result_name,
+          capture=prepared.map(value => value.capture),
+        )
+      }
+    }
+    if !current() {
+      stop("LocalReadAuthorizationDenied")
     }
     let material = if material_table {
       guard prepared is Some(actual) &&

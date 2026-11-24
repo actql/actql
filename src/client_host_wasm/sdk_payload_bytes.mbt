@@ -108,6 +108,7 @@ pub fn prepare_publication_sdk_payload_input(
       run,
       current_configuration,
       same_reader_census=true,
+      reuse_proven_fence_rows=true,
     ) {
     Ok(context) => context
     Err(code) => return code

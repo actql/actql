@@ -90,6 +90,12 @@ pub fn local_mock_profile_identity() -> BootstrapProfile
 
 pub fn local_mock_profile_predecessor_body() -> String
 
+pub let local_original_result_read_entry_id : String
+
+pub let local_original_result_read_resource : String
+
+pub fn local_result_read_authority_resource(AdmittedAccountConfiguration, AccessTuple, Bool) -> String?
+
 pub fn local_standard_account_configuration(LocalStandardAccountSubjects) -> Result[String, LocalStandardProfileIssue]
 
 pub fn local_standard_account_configuration_prepared(LocalStandardAccountSubjects, (AccountConfigurationConstruction) -> Bool) -> Result[String, LocalStandardProfileIssue]?

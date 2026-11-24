@@ -277,3 +277,19 @@ pub fn[Store, E] client_local_adopted_account_outcome(
   // across an external callback or dispatch boundary.
   Ok(@authorization.evaluate_account(account, tuple))
 }
+
+///|
+/// Check the second read tuple through the original adopted Account. The
+/// caller owns the checked Run, result membership and retained read purpose.
+pub fn[Store, E] client_local_adopted_result_read_resource(
+  material : ClientLocalAdoptedHostMaterial[Store, E],
+  store : Store,
+  named_tuple : @authorization.AccessTuple,
+  installed_original_result : Bool,
+) -> Result[String?, ClientLocalAdoptedCurrentIssue[E]] {
+  client_local_adopted_current_account(material, store).map(account => {
+    @authorization.local_result_read_authority_resource(
+      account, named_tuple, installed_original_result,
+    )
+  })
+}

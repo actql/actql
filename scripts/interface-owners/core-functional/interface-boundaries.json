@@ -42844,8 +42844,12 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "f20f90632d02e32c18f3a92610b3f4522459cc4b8cec6f3f5cd6a373bbf8df37",
+      "sha256": "4b81bf284400069766f012efe5a5f65b926e43458f04736d747c95cb5128a3f7",
       "operations": [
+        {
+          "name": "installed_calendar_artifact_construction_capacity",
+          "declaration": "installed_calendar_artifact_construction_capacity ( bytes : Int , max_nodes : Int , max_depth : Int , max_zones : Int , max_transitions : Int , policy_fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "installed_gmail_thread_reader_capacity",
           "declaration": "installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -42931,7 +42935,8 @@
             "installed_json_source_reader_capacity",
             "installed_slack_source_reader_capacity",
             "installed_source_reader_policy",
-            "installed_source_response_workspace"
+            "installed_source_response_workspace",
+            "installed_calendar_artifact_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -42993,6 +42998,10 @@
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "funded Calendar admission publishes the checker carrying the original artifact"
               }
             ]
           }
@@ -54856,7 +54865,7 @@
     {
       "module": "src/client_local_preparation/client_check_original_outcome.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c3f3ee7aaa565a5c31c56328ee36543d26a0d62710879ec6efd1f1b54486da53",
+      "sha256": "db9ee8ed5046d140db280b9eae990312fa28253bf0629ab77f28544f506940dc",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -54962,7 +54971,7 @@
     {
       "module": "src/client_local_preparation/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0aa6744687e0935afc691fc82aac15413d280049cfe6f37053d7848fa331f8ea",
+      "sha256": "7db408b6c2f8a963bde8d03041faeb033f209c0623a0d513bf994c869be12b93",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -56848,7 +56857,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "50d1c007d6f6ef308f3d5d3da3defe8de55231d547c7bad2918d0a44ee28713d",
+      "sha256": "ba2003c33829c2bedab5e589d261eeb0b9c7bfdb2d248255e23200a4ff13859f",
       "exports": [],
       "operations": [
         {
@@ -56902,6 +56911,14 @@
         {
           "name": "row_response_workspace_capture_current",
           "declaration": "row_response_workspace_capture_current ( value : RowRunResponseBorrow ) - > Bool"
+        },
+        {
+          "name": "row_run_response_charge_current",
+          "declaration": "row_run_response_charge_current ( borrow : RowRunResponseBorrow , charge : RowPageCharge , ) - > Bool"
+        },
+        {
+          "name": "row_run_response_original",
+          "declaration": "row_run_response_original ( borrow : RowRunResponseBorrow , ) - > Result [ ( RowRun , RowResponseSelection ) , RowHostIssue ]"
         },
         {
           "name": "row_run_response_selection",
@@ -57097,7 +57114,9 @@
         },
         {
           "operations": [
-            "row_run_response_selection"
+            "row_run_response_selection",
+            "row_run_response_charge_current",
+            "row_run_response_original"
           ],
           "exports": [],
           "attributes": {
@@ -63825,8 +63844,12 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "7a1d1e64a27f24dfaa2556c984e2893a577dd9f6c9851a75c64ad78d9af893af",
+      "sha256": "f586e62682a73b25cc2bea7de7a5108da80e71c6ad17ad9a352dc8ac9fe255db",
       "operations": [
+        {
+          "name": "client_program_installed_calendar_artifact_construction_capacity",
+          "declaration": "client_program_installed_calendar_artifact_construction_capacity ( bytes : Int , nodes : Int , depth : Int , zones : Int , transitions : Int , policy_fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
           "declaration": "client_program_installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -63904,7 +63927,8 @@
             "client_program_installed_json_source_reader_capacity",
             "client_program_installed_json_source_reader_profile",
             "client_program_installed_slack_source_reader_capacity",
-            "client_program_installed_source_reader_policy"
+            "client_program_installed_source_reader_policy",
+            "client_program_installed_calendar_artifact_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -63966,6 +63990,10 @@
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "funded Calendar admission publishes the checker carrying the original artifact"
               }
             ]
           }
@@ -69028,7 +69056,7 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "d728e42bb9a466ce9f63b1b210d84527475b895bbef7dda908881cf4c63cd443"
+      "sha256": "a92add69a7a942a37683e8430f46d3d7fef05617f43e32d496bb599b7de4cb67"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
@@ -105167,7 +105195,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "ccdce529383ecfa90b0ac3cce3f706d19d5fc84259a552d1c02e560a5d46c9dd",
+      "sha256": "06f565b5792f6ee2dd42bd6904aa0ed1d77b3952ba60e15aeaced5646a37819d",
       "exports": [],
       "operations": [
         {
@@ -105379,7 +105407,7 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
-      "sha256": "d045c4f868e2b76c3e403f030c76c2f82c74ac983f4321e4dded0e60e111b618",
+      "sha256": "d42e21bffc68c1b84dbc9e46973848d3a311ccf1a4c20f21ac3555352729a4ad",
       "exports": [],
       "operations": [
         {
@@ -108198,8 +108226,12 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_installed_source_reader_bridge.mbt",
-      "sha256": "d3573f05561a3d33eaa5f1df251c2f5a8313e082bb4deb0b6760d8a62e4b6512",
+      "sha256": "088cc40706e3cee69e5f4a1557f6d53d4c8b54d1a352837ea981230ec505454b",
       "operations": [
+        {
+          "name": "client_program_installed_calendar_artifact_construction_capacity",
+          "declaration": "client_program_installed_calendar_artifact_construction_capacity ( bytes : Int , nodes : Int , depth : Int , zones : Int , transitions : Int , policy_fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
           "declaration": "client_program_installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -108277,7 +108309,8 @@
             "client_program_installed_json_source_reader_capacity",
             "client_program_installed_json_source_reader_profile",
             "client_program_installed_slack_source_reader_capacity",
-            "client_program_installed_source_reader_policy"
+            "client_program_installed_source_reader_policy",
+            "client_program_installed_calendar_artifact_construction_capacity"
           ],
           "exports": [],
           "attributes": {
@@ -108339,6 +108372,10 @@
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "funded Calendar admission publishes the checker carrying the original artifact"
               }
             ]
           }
@@ -115794,6 +115831,100 @@
               {
                 "path": "scripts/test_native_timings.py",
                 "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_retained_intent.mbt",
+      "operations": [
+        {
+          "name": "[I]check_request_owned_submitted_intent",
+          "declaration": "[ I ] check_request_owned_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , public_primary ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestRetainedIntentIssue , ]"
+        },
+        {
+          "name": "[I]check_request_retained_submitted_intent",
+          "declaration": "[ I ] check_request_retained_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , intent : @ publication_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , public_primary ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestRetainedIntentIssue , ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "3f21f95e4c58dff08c81de0f8e27dc172d3791d4255f2cb9526512edff02cadd",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Original funded Local Request retained-intent check",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]check_request_owned_submitted_intent",
+            "[I]check_request_retained_submitted_intent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "src/platform_native/client_host/native_test/request_effect_test.mbt",
+                "anchor": "test \"Native same Request carries original Effect preparation and retires original borrow\""
               }
             ]
           }

@@ -23,7 +23,7 @@ fn dependency_workspace_remainder(max_bytes : Int) -> Int64 raise {
     32,
     8,
     [],
-    dependency_bodies=Some([body]),
+    dependencies=Unmeasured([body]),
   ).unwrap()
   assert_true(lookup.retained_bytes > basis)
   assert_true(lookup.retained_bytes < peak)
@@ -64,7 +64,7 @@ test "dependency extent refusal keeps its constructor backing until original cle
       1,
       8,
       [],
-      dependency_bodies=Some([body]),
+      dependencies=Unmeasured([body]),
     )
     is Err(Identity(@publication.Contract(Encoding))),
   )
@@ -76,7 +76,8 @@ test "dependency extent refusal keeps its constructor backing until original cle
 test "serial dependency admission retains adopted extent and reuses completed workspace at exact and one short" {
   for (deeper, short) in [(false, 0L), (false, 1L), (true, 0L), (true, 1L)] {
     let (lookup, cleanup) = keyed_wire_usage_fixture()
-    let cursor = begin_keyed_dependency_serial_cursor(lookup).unwrap()
+    let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
+    let cursor = begin_keyed_dependency_serial_cursor(lookup, phase).unwrap()
     let r = lookup.retained_bytes
     let e = lookup.execution_bytes
     let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
@@ -130,6 +131,7 @@ test "serial dependency admission retains adopted extent and reuses completed wo
       cursor.available_execution,
       first_retained + first_cursor - first_keep,
     )
+    let witness = 6L * 16L + (32L + 8L + 6L) * 8L
     let charged = @resources.ledger_usage(lookup.ledger)
     let limits = @resources.ledger_limits(lookup.ledger)
     let (wire, cid, second_bytes, second_nodes) = if deeper {
@@ -178,11 +180,17 @@ test "serial dependency admission retains adopted extent and reuses completed wo
       assert_eq(@publication.captured_effect_dependency_body_json(body), wire)
       assert_eq(
         lookup.retained_bytes,
-        r + first_stack + first_retained + requested_r + second_stack,
+        r + first_stack + first_retained + witness + requested_r + second_stack,
       )
       assert_eq(
         lookup.execution_bytes,
-        e + first_stack + first_retained + first_cursor + grown_e + second_stack,
+        e +
+        first_stack +
+        first_retained +
+        first_cursor +
+        witness +
+        grown_e +
+        second_stack,
       )
       assert_true(
         grow_keyed_dependency_body(lookup, 2, 1, 1, Some(cursor))
@@ -196,10 +204,13 @@ test "serial dependency admission retains adopted extent and reuses completed wo
     } else {
       assert_true(second is Err(ConstructionRefused))
       assert_true(primary.val is Some(Physical(@resources.ExecutionLimit)))
-      assert_eq(lookup.retained_bytes, r + first_stack + first_retained)
+      assert_eq(
+        lookup.retained_bytes,
+        r + first_stack + first_retained + witness,
+      )
       assert_eq(
         lookup.execution_bytes,
-        e + first_stack + first_retained + first_cursor,
+        e + first_stack + first_retained + first_cursor + witness,
       )
       assert_eq(cursor.pending_retained, -1L)
       assert_eq(cursor.extent_workspace_depth, 2)
@@ -221,7 +232,7 @@ test "measured dependency extent binds the adopted collector Array before settle
     let basis_r = lookup.retained_bytes
     let basis_e = lookup.execution_bytes
     let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
-    let cursor = begin_keyed_dependency_serial_cursor(lookup).unwrap()
+    let cursor = begin_keyed_dependency_serial_cursor(lookup, phase).unwrap()
     let body = admit_client_effect_dependency_capture_body(
         "request_values",
         Some(
@@ -243,14 +254,18 @@ test "measured dependency extent binds the adopted collector Array before settle
     let adopted = if foreign { [body] } else { bodies }
     let peak_r = lookup.retained_bytes
     let peak_e = lookup.execution_bytes
-    let done = finish_keyed_lookup_protocol_metadata(
-      lookup,
-      phase,
-      32,
-      8,
-      [],
-      dependencies=Measured(adopted, cursor.seal(lookup).unwrap().unwrap()),
-    )
+    let done = match cursor.seal(lookup, adopted) {
+      Err(issue) => Err(issue)
+      Ok(dependencies) =>
+        finish_keyed_lookup_protocol_metadata(
+          lookup,
+          phase,
+          32,
+          8,
+          [],
+          dependencies~,
+        )
+    }
     if foreign {
       assert_true(done is Err(Assembly("foreign_dependency_body_extent")))
       assert_true(lookup.retained_bytes >= peak_r)
@@ -282,7 +297,7 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
   let basis_r = lookup.retained_bytes
   let basis_e = lookup.execution_bytes
   let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
-  let cursor = begin_keyed_dependency_serial_cursor(lookup).unwrap()
+  let cursor = begin_keyed_dependency_serial_cursor(lookup, phase).unwrap()
   let serial = Some(cursor)
   let bodies = Array(capacity=3)
   fn collect(
@@ -348,7 +363,7 @@ test "policy batch keeps both construction quotes and settles disjoint adopted r
     32,
     8,
     [],
-    dependencies=Measured(bodies, cursor.seal(lookup).unwrap().unwrap()),
+    dependencies=cursor.seal(lookup, bodies).unwrap(),
   ).unwrap()
   // Two measured bodies and the unmeasured gap, independently priced.
   // The outer Array is H3/R6/W3, including its adopted alias.
@@ -363,7 +378,8 @@ test "a foreign cursor and its completed proof cannot use another live lookup" {
   defer assert_true(close_original())
   let (foreign, close_foreign) = keyed_wire_usage_fixture()
   defer assert_true(close_foreign())
-  let cursor = begin_keyed_dependency_serial_cursor(original).unwrap()
+  let original_phase = grow_keyed_lookup_protocol_metadata(original, 8192, 16L).unwrap()
+  let cursor = begin_keyed_dependency_serial_cursor(original, original_phase).unwrap()
   let body = admit_client_effect_dependency_capture_body(
       "request_values",
       Some(
@@ -400,14 +416,14 @@ test "a foreign cursor and its completed proof cannot use another live lookup" {
     is Err(Assembly("foreign_dependency_cursor")),
   )
   assert_true(
-    cursor.seal(foreign) is Err(Assembly("foreign_dependency_cursor")),
+    cursor.seal(foreign, bodies) is Err(Assembly("foreign_dependency_cursor")),
   )
   assert_eq(cursor.batch_start, -1)
   assert_eq((cursor.available_retained, cursor.available_execution), reusable)
   assert_eq(@resources.ledger_usage(original.ledger), original_usage)
-  let proof = cursor.seal(original).unwrap().unwrap()
+  let proof = cursor.seal(original, bodies).unwrap()
   assert_true(
-    cursor.seal(original) is Err(Assembly("retired_dependency_cursor")),
+    cursor.seal(original, bodies) is Err(Assembly("retired_dependency_cursor")),
   )
   assert_true(
     finish_keyed_lookup_protocol_metadata(
@@ -416,7 +432,7 @@ test "a foreign cursor and its completed proof cannot use another live lookup" {
       32,
       8,
       [],
-      dependencies=Measured(bodies, proof),
+      dependencies=proof,
     )
     is Err(Assembly("foreign_dependency_cursor")),
   )
@@ -430,7 +446,8 @@ test "a foreign cursor and its completed proof cannot use another live lookup" {
 test "a stopped lookup keeps its original reservation but refuses cursor use" {
   let (lookup, cleanup) = keyed_wire_usage_fixture()
   defer assert_true(cleanup())
-  let cursor = begin_keyed_dependency_serial_cursor(lookup).unwrap()
+  let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
+  let cursor = begin_keyed_dependency_serial_cursor(lookup, phase).unwrap()
   grow_keyed_dependency_body(lookup, 2, 1, 1, Some(cursor)).unwrap()
   let original = (lookup.retained_bytes, lookup.execution_bytes)
   let usage = @resources.ledger_usage(lookup.ledger)
@@ -438,7 +455,7 @@ test "a stopped lookup keeps its original reservation but refuses cursor use" {
   stop_client_keyed_lookup_input(lookup)
   assert_true(@resources.reservation_open(lookup.reservation))
   assert_true(
-    begin_keyed_dependency_serial_cursor(lookup)
+    begin_keyed_dependency_serial_cursor(lookup, phase)
     is Err(Assembly("retired_dependency_cursor")),
   )
   assert_true(
@@ -452,7 +469,9 @@ test "a stopped lookup keeps its original reservation but refuses cursor use" {
     cursor.record_body(lookup, [], 32)
     is Err(Assembly("retired_dependency_cursor")),
   )
-  assert_true(cursor.seal(lookup) is Err(Assembly("retired_dependency_cursor")))
+  assert_true(
+    cursor.seal(lookup, []) is Err(Assembly("retired_dependency_cursor")),
+  )
   assert_eq(cursor.pending_retained, pending)
   assert_eq((lookup.retained_bytes, lookup.execution_bytes), original)
   assert_eq(@resources.ledger_usage(lookup.ledger), usage)
@@ -462,10 +481,12 @@ test "a stopped lookup keeps its original reservation but refuses cursor use" {
 test "the cursor factory funds control backing exactly or refuses before issuing" {
   // Original 43H/67R/71W, plus ownership and overlapping Result carriers:
   // four new headers, eight references and four scalar words.
-  let required = 43L * 16L + (67L + 71L) * 8L + 4L * 16L + (8L + 4L) * 8L
+  // Include the phase and witness aliases and the sealed body count.
+  let required = 43L * 16L + (67L + 71L) * 8L + 4L * 16L + (8L + 4L + 7L) * 8L
   for short in [0L, 1L] {
     let (lookup, cleanup) = keyed_wire_usage_fixture()
     defer assert_true(cleanup())
+    let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
     let before = @resources.ledger_usage(lookup.ledger)
     let limit = @resources.ledger_limits(lookup.ledger).execution_bytes
     let blocker = @resources.reserve_capacity(
@@ -477,7 +498,7 @@ test "the cursor factory funds control backing exactly or refuses before issuing
     let charged = @resources.ledger_usage(lookup.ledger)
     let retained = lookup.retained_bytes
     let execution = lookup.execution_bytes
-    let cursor = begin_keyed_dependency_serial_cursor(lookup)
+    let cursor = begin_keyed_dependency_serial_cursor(lookup, phase)
     if short == 0L {
       let cursor = cursor.unwrap()
       assert_true(physical_equal(cursor.lookup, lookup))
@@ -496,6 +517,219 @@ test "the cursor factory funds control backing exactly or refuses before issuing
       )
       assert_eq(@resources.ledger_usage(lookup.ledger), charged)
       assert_true(@resources.reservation_open(lookup.reservation))
+    }
+  }
+}
+
+///|
+fn measured_test_body(
+  lookup : ClientKeyedLookupInput,
+  cursor : KeyedDependencySerialCursor,
+  wire : String,
+  nodes : Int,
+) -> @publication.CapturedEffectDependencyBody {
+  admit_client_effect_dependency_capture_body(
+    "request_values",
+    Some("sha256:" + @sha.text_hex(wire).unwrap()),
+    wire,
+    1024,
+    32,
+    8,
+    Some((bytes, count, depth) => {
+      grow_keyed_dependency_body(lookup, bytes, count, depth, Some(cursor))
+      is Ok(_)
+    }),
+    () => true,
+    wire_extent=Some((wire.length(), nodes)),
+  ).unwrap().0
+}
+
+///|
+test "measured proof refuses replacements moves and appends after seal on the same array" {
+  for mutation in ["equal-wire", "large", "move", "delete", "late-append"] {
+    let (lookup, cleanup) = keyed_wire_usage_fixture()
+    defer assert_true(cleanup())
+    let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
+    let cursor = begin_keyed_dependency_serial_cursor(lookup, phase).unwrap()
+    let first = measured_test_body(lookup, cursor, "{}", 1)
+    let bodies = [first]
+    cursor.record_body(lookup, bodies, 32).unwrap()
+    let second = measured_test_body(lookup, cursor, "{\"x\":{}}", 2)
+    bodies.push(second)
+    cursor.record_body(lookup, bodies, 32).unwrap()
+    let dependencies = cursor.seal(lookup, bodies).unwrap()
+    match mutation {
+      "equal-wire" => {
+        let replacement = @publication.admit_captured_effect_dependency_body(
+          "request_values",
+          Some("sha256:" + @sha.text_hex("{}").unwrap()),
+          "{}",
+          1024,
+          32,
+          8,
+        ).unwrap()
+        assert_false(physical_equal(replacement, first))
+        assert_eq(
+          @publication.captured_effect_dependency_body_cid(replacement),
+          @publication.captured_effect_dependency_body_cid(first),
+        )
+        bodies[0] = replacement
+      }
+      "large" => {
+        let wire = "{\"value\":\"" + "x".repeat(90) + "\"}"
+        let replacement = @publication.admit_captured_effect_dependency_body(
+          "request_values",
+          Some("sha256:" + @sha.text_hex(wire).unwrap()),
+          wire,
+          1024,
+          32,
+          8,
+        ).unwrap()
+        bodies[0] = replacement
+      }
+      "move" => {
+        bodies[0] = second
+        bodies[1] = first
+      }
+      "delete" => bodies.pop() |> ignore
+      _ => bodies.push(first)
+    }
+    let peak_r = lookup.retained_bytes
+    let peak_e = lookup.execution_bytes
+    assert_true(
+      finish_keyed_lookup_protocol_metadata(
+        lookup,
+        phase,
+        32,
+        8,
+        [],
+        dependencies~,
+      )
+      is Err(Assembly("foreign_dependency_body_extent")),
+    )
+    assert_true(phase.finished)
+    assert_true(
+      lookup.retained_bytes >= peak_r && lookup.execution_bytes >= peak_e,
+    )
+    assert_true(@resources.reservation_open(lookup.reservation))
+  }
+}
+
+///|
+test "measured proof belongs to one exact construction even on the same live lookup" {
+  let (lookup, cleanup) = keyed_wire_usage_fixture()
+  defer assert_true(cleanup())
+  let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
+  let cursor = begin_keyed_dependency_serial_cursor(lookup, phase).unwrap()
+  let body = measured_test_body(lookup, cursor, "{}", 1)
+  let bodies = [body]
+  cursor.record_body(lookup, bodies, 32).unwrap()
+  let dependencies = cursor.seal(lookup, bodies).unwrap()
+  let newer = grow_keyed_lookup_protocol_metadata(lookup, 1, 0L).unwrap()
+  let before = @resources.ledger_usage(lookup.ledger)
+  assert_true(
+    finish_keyed_lookup_protocol_metadata(
+      lookup,
+      newer,
+      32,
+      8,
+      [],
+      dependencies~,
+    )
+    is Err(Assembly("foreign_dependency_cursor")),
+  )
+  assert_eq(@resources.ledger_usage(lookup.ledger), before)
+  assert_false(newer.finished)
+}
+
+///|
+test "completed dependency proof cannot settle the same construction twice" {
+  let (lookup, cleanup) = keyed_wire_usage_fixture()
+  defer assert_true(cleanup())
+  let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
+  let cursor = begin_keyed_dependency_serial_cursor(lookup, phase).unwrap()
+  let body = measured_test_body(lookup, cursor, "{}", 1)
+  let bodies = [body]
+  cursor.record_body(lookup, bodies, 32).unwrap()
+  let dependencies = cursor.seal(lookup, bodies).unwrap()
+  finish_keyed_lookup_protocol_metadata(lookup, phase, 32, 8, [], dependencies~).unwrap()
+  let before = @resources.ledger_usage(lookup.ledger)
+  assert_true(
+    finish_keyed_lookup_protocol_metadata(
+      lookup,
+      phase,
+      32,
+      8,
+      [],
+      dependencies~,
+    )
+    is Err(Assembly("retired_protocol_construction")),
+  )
+  assert_eq(@resources.ledger_usage(lookup.ledger), before)
+}
+
+///|
+test "witness backing is prepaid once per fixed chunk and refuses one byte short" {
+  for short in [0L, 1L] {
+    let (lookup, cleanup) = keyed_wire_usage_fixture()
+    defer assert_true(cleanup())
+    let phase = grow_keyed_lookup_protocol_metadata(lookup, 8192, 16L).unwrap()
+    let cursor = begin_keyed_dependency_serial_cursor(lookup, phase).unwrap()
+    let body = measured_test_body(lookup, cursor, "{}", 1)
+    let bodies = [body]
+    let required = 6L * 16L + (32L + 8L + 6L) * 8L
+    let limits = @resources.ledger_limits(lookup.ledger)
+    let before = @resources.ledger_usage(lookup.ledger)
+    let blocker = @resources.reserve_capacity(
+      lookup.ledger,
+      0L,
+      limits.execution_bytes -
+      before.reserved_execution_bytes -
+      required +
+      short,
+    ).unwrap()
+    let charged = @resources.ledger_usage(lookup.ledger)
+    let pending = cursor.pending_retained
+    let result = cursor.record_body(lookup, bodies, 32)
+    if short == 1L {
+      assert_true(result is Err(Physical(@resources.ExecutionLimit)))
+      assert_eq(@resources.ledger_usage(lookup.ledger), charged)
+      assert_eq(cursor.pending_retained, pending)
+      assert_true(cursor.measured is None && cursor.serial_witness is None)
+    } else {
+      result.unwrap()
+      assert_eq(
+        @resources.ledger_usage(lookup.ledger).reserved_execution_bytes,
+        limits.execution_bytes,
+      )
+      assert_eq(cursor.serial_witness.unwrap().used, 1)
+    }
+    @resources.settle_capacity(lookup.ledger, blocker).unwrap()
+    if short == 0L {
+      for i in 1..<33 {
+        let next = measured_test_body(lookup, cursor, "{}", 1)
+        bodies.push(next)
+        cursor.record_body(lookup, bodies, 32).unwrap()
+        if i < 32 {
+          assert_true(cursor.serial_witness.unwrap().previous is None)
+        }
+      }
+      assert_eq(cursor.serial_witness.unwrap().used, 1)
+      assert_eq(cursor.serial_witness.unwrap().previous.unwrap().used, 32)
+      let dependencies = cursor.seal(lookup, bodies).unwrap()
+      assert_true(cursor.serial_witness is None)
+      finish_keyed_lookup_protocol_metadata(
+        lookup,
+        phase,
+        32,
+        8,
+        [],
+        dependencies~,
+      ).unwrap()
+      guard dependencies is Measured(proof) else {
+        fail("original measured proof")
+      }
+      assert_true(proof.serial_witness is None && proof.serial_range is None)
     }
   }
 }

@@ -178,6 +178,12 @@ export function nativeCoreHttpArguments(args) {
 }
 
 const residentSourceDirectory = 'src/platform_native/remote_resident_source_compute_tests';
+// Packages owning a case that needs the HTTP peer, resident Source or scoped
+// allocation fixture. Only the Darwin partitions prepare those fixtures.
+export const nativeCorePhysicalDirectories = Object.freeze([...new Set([
+  'src/platform_native/http_client', residentSourceDirectory,
+  ...[...nativeScopedTestFiles, ...nativeCoreHttpTestFiles].map(file => file.slice(0, file.lastIndexOf('/'))),
+])].sort());
 const selectedGeometryFiles = new Set([
   'src/cmd/native_client/local_command_business_wbtest.mbt',
   'src/cmd/native_client/local_command_installed_profile_wbtest.mbt',

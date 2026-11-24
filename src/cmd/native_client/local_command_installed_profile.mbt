@@ -148,6 +148,7 @@ fn local_command_preparation_selected(
     matches.subcommand is Some(("lookup-cancellation", _)) ||
     local_checkpoint_action_selected(matches, "approve") ||
     local_checkpoint_action_selected(matches, "reject") ||
+    matches.subcommand is Some(("reconcile", _)) ||
     (
       matches.subcommand is Some(("result", child)) &&
       optional(child, "run") is Some(_)
@@ -181,8 +182,7 @@ fn local_command_profile_selection(
       static_profile,
     )
     (profile, Some(business))
-  } else if matches.subcommand is Some(("approve", _)) ||
-    matches.subcommand is Some(("reject", _)) {
+  } else if matches.subcommand is Some(("approve" | "reject" | "reconcile", _)) {
     let (profile, business) = local_command_backed_business_profile(
       static_profile,
       SavedEffectApply,
@@ -214,6 +214,7 @@ fn prepare_native_command_invocation(
         local_quick_query_requested(operation, child)
       ) ||
       matches.subcommand is Some(("status", _)) ||
+      matches.subcommand is Some(("reconcile", _)) ||
       matches.subcommand is Some(("new-submission", _)) ||
       matches.subcommand is Some(("lookup-submission", _)) ||
       matches.subcommand is Some(("lookup-request", _)) ||

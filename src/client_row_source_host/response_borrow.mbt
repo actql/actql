@@ -124,6 +124,27 @@ pub fn row_run_response_selection(
 }
 
 ///|
+/// Project the accounted Run and selection from their same bound response
+/// borrow. This does not issue another borrow or retire the physical reader.
+pub fn row_run_response_original(
+  borrow : RowRunResponseBorrow,
+) -> Result[(RowRun, RowResponseSelection), RowHostIssue] {
+  row_run_response_selection(borrow).map(selection => (borrow.run, selection))
+}
+
+///|
+/// The managed reader already charged the wire. Its provider codec may adopt
+/// only that exact outstanding charge on the same current RowRun.
+pub fn row_run_response_charge_current(
+  borrow : RowRunResponseBorrow,
+  charge : RowPageCharge,
+) -> Bool {
+  row_run_response_selection(borrow) is Ok(_) &&
+  borrow.run.page_charge is Some(expected) &&
+  physical_equal(expected, charge)
+}
+
+///|
 /// Install this reader's original physical-stop observation before its I/O.
 /// Logical abort/close keeps the same observer for cleanup; it does not require
 /// a Reading state after the owner has already closed admission.

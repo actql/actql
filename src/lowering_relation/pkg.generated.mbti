@@ -438,7 +438,13 @@ pub fn graph_traverse_bounds(PreparedGraphTraverse) -> (Int64, Int64)?
 
 pub fn graph_traverse_emits_paths(PreparedGraphTraverse) -> Bool
 
+pub fn graph_traverse_endpoint_at(PreparedGraphTraverse, @relation_schema.FieldName) -> (Int, Bool)?
+
+pub fn graph_traverse_endpoint_position(PreparedGraphTraverse, Int, Int) -> Int?
+
 pub fn graph_traverse_graph_path_mode(PreparedGraphTraverse) -> @graph_typing.GraphPathMode
+
+pub fn graph_traverse_has_endpoint_properties(PreparedGraphTraverse) -> Bool
 
 pub fn graph_traverse_hop_count(PreparedGraphTraverse) -> Int
 

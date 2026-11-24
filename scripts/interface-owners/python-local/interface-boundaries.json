@@ -8416,7 +8416,7 @@
           ]
         }
       ],
-      "sha256": "3fb0fbe18c4ac663a0b79e5d67426284cf1ed526c39cca1f28fda3cb6a4dd65b",
+      "sha256": "2ae59ac517744fe8bc11ff893bdbd710333be5f22902758692dbf1721c45f5c1",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -80852,7 +80852,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "743227b7afb0c1075a89e7efdaaaaa7bb55526e9a4dd8837f2e62efaa9720868",
+      "sha256": "9a8bf8d39165c99b90d49a81320eb72a8e19cc60a4e80c36f01759b8206a36bc",
       "exports": [],
       "operations": [
         {
@@ -80892,6 +80892,10 @@
           "declaration": "reobserve_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , retained : StoredSavedResultRead , incremental ? : Bool"
         },
         {
+          "name": "retire_saved_result_transport",
+          "declaration": "retire_saved_result_transport ( value : Instance , handle : Int , record : StoredSubmissionProjection , ) - > Int"
+        },
+        {
           "name": "saved_result_read_current",
           "declaration": "saved_result_read_current ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , result_name : String , ) - > Result [ Unit , Int ]"
         },
@@ -80922,7 +80926,8 @@
             "produce_incremental_saved_result",
             "reobserve_saved_result_read",
             "supply_saved_result_read",
-            "rebind_saved_result_originals"
+            "rebind_saved_result_originals",
+            "retire_saved_result_transport"
           ],
           "exports": [],
           "attributes": {
@@ -81056,6 +81061,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
                 "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
+              },
+              {
+                "path": "src/client_host_wasm/cancellation_saved_inventory_wbtest.mbt",
+                "anchor": "test \"Saved input reuses checked fence rows only within the same proven reader\""
               }
             ]
           }

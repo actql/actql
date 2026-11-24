@@ -44,7 +44,7 @@ test "managed protocol construction fences reentry but allows original internal 
     16L,
     32,
     8,
-    fn() {
+    fn(_) {
       building.val = lookup.growing
       reentry_refused.val = grow_keyed_lookup_protocol_metadata(lookup, 1, 1L)
         is Err(Assembly("unavailable_protocol_construction"))
@@ -84,7 +84,7 @@ test "managed protocol partial adoption preserves its first error and live backi
     16L,
     32,
     8,
-    fn() {
+    fn(_) {
       peak.val = lookup.retained_bytes
       Ok(keyed_protocol_built((), texts=[wire]))
     },
@@ -113,7 +113,7 @@ test "managed protocol extent refusal retains already adopted originals for clea
     16L,
     1,
     8,
-    fn() {
+    fn(_) {
       let body = @publication.admit_captured_effect_dependency_body(
         "request_values",
         Some(
@@ -125,7 +125,7 @@ test "managed protocol extent refusal retains already adopted originals for clea
         8,
       ).unwrap()
       peak.val = lookup.retained_bytes
-      Ok(keyed_protocol_built((), dependency_bodies=Some([body])))
+      Ok(keyed_protocol_built((), dependencies=Unmeasured([body])))
     },
     _ => {
       lookup.identity_bodies = Some((wire, "schema"))
@@ -152,7 +152,7 @@ test "managed protocol typed build failure retains original reservation until cl
     16L,
     32,
     8,
-    fn() -> Result[KeyedProtocolBuilt[Unit], ClientKeyedRequestIssue] {
+    fn(_) -> Result[KeyedProtocolBuilt[Unit], ClientKeyedRequestIssue] {
       Err(Assembly("original_builder_failure"))
     },
     _ => {
@@ -179,7 +179,7 @@ test "managed protocol cancellation after adoption keeps backing without a settl
     16L,
     32,
     8,
-    fn() {
+    fn(_) {
       peak.val = lookup.retained_bytes
       Ok(keyed_protocol_built((), texts=[wire]))
     },

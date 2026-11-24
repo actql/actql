@@ -728,8 +728,50 @@ fn traverse_node_value(
 }
 
 ///|
+fn traverse_endpoint_value(
+  state : TraversePathsState,
+  path : TraversalPath,
+  field : @schema.FieldName,
+) -> @value.Value? {
+  guard @lower.graph_traverse_endpoint_at(state.prepared, field)
+    is Some((index, at_start)) else {
+    return None
+  }
+  let node = if at_start { path.nodes[0] } else { path.nodes.last().unwrap() }
+  guard graph_read_node_definition(state.source, node) is Some(definition) &&
+    @lower.graph_traverse_endpoint_position(state.prepared, index, definition)
+    is Some(property) else {
+    return None
+  }
+  graph_read_node_property(state.source, node, property).map(value => {
+    value.value
+  })
+}
+
+///|
+// The legacy cursor rows have fixed widths. Endpoint properties extend
+// that width and must reserve each extra row holding before append.
+fn append_traverse_row_value(
+  state : TraversePathsState,
+  value : @value.Value,
+) -> Bool {
+  if @lower.graph_traverse_has_endpoint_properties(state.prepared) {
+    if state.workspace_slots >= state.max_workspace_slots {
+      return false
+    }
+    state.workspace_slots += 1
+    state.row_value_slots += 1
+    state.workspace_peak = Int::max(state.workspace_peak, state.workspace_slots)
+  }
+  state.row_values.push(value)
+  true
+}
+
+///|
 fn traverse_uses_output_cursor(state : TraversePathsState) -> Bool {
-  state.shortest is Some(_) || @lower.graph_traverse_is_reach(state.prepared)
+  state.shortest is Some(_) ||
+  @lower.graph_traverse_is_reach(state.prepared) ||
+  @lower.graph_traverse_has_endpoint_properties(state.prepared)
 }
 
 ///|
@@ -1893,12 +1935,14 @@ fn traverse_paths_step(
                     )
                   }
                   match field.name {
-                    @schema.Unqualified("source_id") =>
+                    @schema.Unqualified("source_id")
+                    | @schema.Unqualified("start_id") =>
                       graph_read_node_identity(state.source, path.nodes[0]).map(value => {
                           value.value
                         },
                       )
-                    @schema.Unqualified("target_id") =>
+                    @schema.Unqualified("target_id")
+                    | @schema.Unqualified("end_id") =>
                       graph_read_node_identity(
                         state.source,
                         path.nodes.last().unwrap(),
@@ -1911,7 +1955,7 @@ fn traverse_paths_step(
                           @value.number_value(cost)
                         _ => None
                       }
-                    _ => None
+                    _ => traverse_endpoint_value(state, path, field.name)
                   }
                 }
                 guard value is Some(value) else {
@@ -1921,7 +1965,13 @@ fn traverse_paths_step(
                     used,
                   )
                 }
-                state.row_values.push(value)
+                if !append_traverse_row_value(state, value) {
+                  return @bounded.Failed(
+                    TraversePathsWorkspaceLimit,
+                    progress,
+                    used,
+                  )
+                }
                 state.column += 1
                 continue
               }
@@ -1990,10 +2040,12 @@ fn traverse_paths_step(
           @value.finish_array_value(builder) is Some(array) else {
           return @bounded.Failed(TraversePathsOutputLimit, progress, used)
         }
-        if state.shortest is Some(_) {
+        if traverse_uses_output_cursor(state) {
           // Keep raw immutable material private. The existing row cursor
           // performs both nested contract admission and logical measurement.
-          state.row_values.push(array)
+          if !append_traverse_row_value(state, array) {
+            return @bounded.Failed(TraversePathsWorkspaceLimit, progress, used)
+          }
         } else {
           guard @schema.field_at(state.schema, state.column) is Some(field) &&
             @value.recheck_runtime_value(

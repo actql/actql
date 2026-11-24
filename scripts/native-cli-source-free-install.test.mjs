@@ -386,7 +386,8 @@ test('real registry callback failure cannot produce even provisional observation
 });
 
 import {chmod, mkdir, utimes, writeFile} from 'node:fs/promises';
-import {observeNativeInitializationSupport, observeCatalogOnlyMockRefusal, observeTimingEnabledPlainInitialization} from './test-native-cli-source-free-install.mjs';
+import {observeNativeInitializationSupport, observeCatalogOnlyMockRefusal, observeTimingEnabledPlainInitialization,
+  observeNativeNamedResults} from './test-native-cli-source-free-install.mjs';
 
 const supportReply = {code: 0, signal: null, stderr: '',
   stdout: '{"version":"actql-project-init-support/0.1","sourceFree":true,"mock":false}\n'};
@@ -401,6 +402,49 @@ async function initRoot(t) {
   t.after(() => rm(root, {recursive: true, force: true}));
   return root;
 }
+
+test('named Result harness distinguishes original stdout reads from unknown and foreign refusals', async t => {
+  const root = await initRoot(t);
+  const project = join(root, 'named-results'), foreignProject = join(root, 'foreign-named-results');
+  const input = join(project, 'named-results.aql');
+  const fixture = JSON.parse(await readFile(new URL('./fixtures/named-result-publication.json', import.meta.url), 'utf8'));
+  const calls = [];
+  const state = {version: 'actql-run-state/0.1', status: 'succeeded', run_id: 'original-run',
+    result_availability: {before_change: 'available', after_change: 'available'}};
+  const report = await observeNativeNamedResults({root, cli: async (args, cwd, code = 0) => {
+    calls.push([args[0], cwd, code]);
+    if (args[0] === 'init') return mkdir(args[1]);
+    if (args[0] === 'run') {
+      assert.equal(cwd, project);
+      assert.equal(await readFile(input, 'utf8'), fixture.aql);
+      return {stdout: JSON.stringify(state), sourceFreeWork: {pid: calls.length}};
+    }
+    assert.equal(args[1], state.run_id);
+    if (args[0] === 'status') {
+      assert(!existsSync(input));
+      return {stdout: JSON.stringify(state)};
+    }
+    const name = args[3];
+    if (code === 1) {
+      assert.equal(cwd, name === 'undeclared' ? project : foreignProject);
+      return {stdout: '', stderr: name === 'undeclared' ? 'LocalResultNotDeclared' : 'LocalOriginalRunStateUnavailable'};
+    }
+    assert.equal(cwd, project);
+    const body = fixture.results[name].map(row => JSON.stringify(row)).join('\n') + '\n';
+    if (args.includes('--output')) {
+      assert(!existsSync(input));
+      assert.equal(name, 'before_change');
+      await writeFile(join(project, args.at(-1)), body, {flag: 'wx'});
+    }
+    return {stdout: args.includes('--output') ? '' : body, sourceFreeWork: {pid: calls.length}};
+  }});
+  assert.equal(calls.filter(([command]) => command === 'run').length, 1);
+  assert.equal(calls.filter(([command, , code]) => command === 'result' && code === 1).length, 2);
+  assert.equal(report.nativeRunAndResultProcesses, 6);
+  assert.equal(report.coldNamedFileDelivered, true);
+  assert.equal(report.foreignRunRefused, true);
+  assert.equal(report.coldSavedWithoutProgram, true);
+});
 
 test('init harness independently requires both templates, both target states and repeated no-write refusals', async t => {
   const root = await initRoot(t), calls = [];

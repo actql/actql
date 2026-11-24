@@ -662,6 +662,7 @@ pub fn NativeLocalEffectResumeOriginal::record_file_row_receipt_in_original_read
     Err(issue) => return Err(issue)
   }
   guard !self.retired &&
+    !self.settlement_only &&
     physical_equal(dispatch.journal, self.host.journal) &&
     dispatch.request == self.request &&
     self.record.checkpoint is Some(checkpoint) &&

@@ -74,6 +74,19 @@ const reviewedPortableFiles = new Set([
   'src/source_span/span.mbt',
   'scripts/worktree-inventory.mjs',
 ]);
+// A Ready PR that changes none of these runs JS core only; main integration
+// runs every target and catches a remaining cross-target regression there.
+// The policy is a short directory list: Core source, vendored code, specs,
+// portability and proof inputs, workflows, and the Python SDK and Local
+// Runtime. Manifests, the toolchain pin, native sources and binaries, and this
+// selector also keep every target. Ordinary scripts, including fixtures and
+// test drivers, do not: a regression there can first fail on main.
+function coreTargetInput(path) {
+  return /^(?:src|vendor|spec|portability|proofs|\.github|packages\/python-sdk|packages\/python-local-runtime)\//u.test(path)
+    || /(?:^|\/)(?:moon\.mod|moon\.pkg|toolchain\.json|package(?:-lock)?\.json)$/u.test(path)
+    || /\.(?:c|h|cc|cpp|inc|s|a|so|dylib|wasm)$/iu.test(path)
+    || path === 'scripts/ci-targets.mjs';
+}
 // Deep campaigns use their real source snapshot plus orchestration and safety
 // boundaries. The snapshot currently includes ALL Core source and vendor code;
 // narrowing that closure requires a separate proof-input review. Unknown roots
@@ -264,6 +277,12 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
     catch { return full('Invalid focused test family inventory'); }
     return {...full('Reviewed fixed-request tests: execute changed files and owning JS family; unrelated runtime/proof families not applicable'),
       profile: 'focused-tests', targets: ['js'], macos: false, darwinWheels: false, maintenanceChanges, focusedChanges, focusedTests};
+  }
+  // The existing macOS workload and wheel selectors still decide those jobs;
+  // a change that selects either keeps the complete selection.
+  if (!paths.some(coreTargetInput)) {
+    const result = full('No Core target input directory changed: PR core uses JS; full targets run on main integration');
+    if (!result.macos && !result.darwinWheels) return {...result, targets: ['js']};
   }
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
   if (moonTests && moonGraphCandidate(paths)) {

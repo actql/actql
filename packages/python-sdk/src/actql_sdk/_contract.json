@@ -10444,6 +10444,29 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
                           }
                         ]
                       }
@@ -11549,6 +11572,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -11834,6 +11858,61 @@
                         }
                       },
                       {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "required": [
+                                "issue",
+                                "supplier",
+                                "stage"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
                         "not": {
                           "properties": {
                             "code": {
@@ -11841,7 +11920,8 @@
                                 "parameter_value_required",
                                 "parameter_consumer_condition",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "calendar_profile_required"
                               ]
                             }
                           }
@@ -11866,7 +11946,8 @@
                           "parameter_value_required",
                           "parameter_consumer_condition",
                           "host_capacity_policy_required",
-                          "numeric_reduction_profile_required"
+                          "numeric_reduction_profile_required",
+                          "calendar_profile_required"
                         ]
                       },
                       "location": {
@@ -12752,6 +12833,29 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
                           }
                         ]
                       }
@@ -13857,6 +13961,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -14140,6 +14245,61 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "required": [
+                                "issue",
+                                "supplier",
+                                "stage"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
                       }
                     ]
                   }
@@ -14357,7 +14517,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -15572,6 +15732,29 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
                           }
                         ]
                       }
@@ -16677,6 +16860,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -16962,6 +17146,61 @@
                         }
                       },
                       {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "required": [
+                                "issue",
+                                "supplier",
+                                "stage"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
                         "not": {
                           "properties": {
                             "code": {
@@ -16969,7 +17208,8 @@
                                 "parameter_value_required",
                                 "parameter_consumer_condition",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "calendar_profile_required"
                               ]
                             }
                           }
@@ -16994,7 +17234,8 @@
                           "parameter_value_required",
                           "parameter_consumer_condition",
                           "host_capacity_policy_required",
-                          "numeric_reduction_profile_required"
+                          "numeric_reduction_profile_required",
+                          "calendar_profile_required"
                         ]
                       },
                       "location": {
@@ -17880,6 +18121,29 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
                           }
                         ]
                       }
@@ -18985,6 +19249,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -19268,6 +19533,61 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "required": [
+                                "issue",
+                                "supplier",
+                                "stage"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
                       }
                     ]
                   }
@@ -19503,7 +19823,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -19549,7 +19869,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -20849,11 +21169,11 @@
     "locations_match_input",
     "fix_targets_match_exact_eof"
   ],
-  "check_reason_schema_cid": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652",
-  "check_outcome_schema_cid": "sha256:cd072f277d0b6f0910e5e4930f5345dc202eda6167cb487a98202725895c26bf",
+  "check_reason_schema_cid": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f",
+  "check_outcome_schema_cid": "sha256:12497b50d1f2a20ef355b6a3a59ae497bd8dd86ebaca33797ed47af4e2f08423",
   "reasons": {
     "version": "actql-check-reason-catalog/0.1",
-    "revision": "2026-11-21.1",
+    "revision": "2026-11-23.2",
     "reason_schema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "$id": "https://smooth.dev/schemas/actql-check-reason-0.1.json",
@@ -21751,6 +22071,29 @@
                   }
                 }
               ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "issue",
+                "supplier",
+                "stage"
+              ],
+              "properties": {
+                "issue": {
+                  "enum": [
+                    "selection_missing",
+                    "artifact_missing"
+                  ]
+                },
+                "supplier": {
+                  "const": "checking_context_owner"
+                },
+                "stage": {
+                  "const": "checking"
+                }
+              }
             }
           ]
         }
@@ -22856,6 +23199,7 @@
                     "implementation_limit",
                     "host_capacity_policy_required",
                     "numeric_reduction_profile_required",
+                    "calendar_profile_required",
                     "program_structure_invalid",
                     "source_selector_unregistered",
                     "query_alias_absent",
@@ -23139,6 +23483,61 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "calendar_profile_required"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "issue",
+                  "supplier",
+                  "stage"
+                ],
+                "properties": {
+                  "issue": {
+                    "enum": [
+                      "selection_missing",
+                      "artifact_missing"
+                    ]
+                  },
+                  "supplier": {
+                    "const": "checking_context_owner"
+                  },
+                  "stage": {
+                    "const": "checking"
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "location"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "fixes"
+                  ]
+                }
+              }
+            ]
+          }
         }
       ]
     },
@@ -23396,6 +23795,45 @@
             "scenario": "typed Requirement frontiers retain context and ignore presentation order"
           }
         ]
+      },
+      {
+        "code": "calendar_profile_required",
+        "condition": "The Common checker requires a Calendar profile selection or the artifact matching the selected Calendar profile.",
+        "facts_schema": "#/reason_schema",
+        "disclosure": "Only the missing Calendar input category is disclosed. No selected table CID, artifact contents or source location is emitted.",
+        "locations": [],
+        "default_severity": "info",
+        "family": "requirement",
+        "examples": [
+          {
+            "file": "src/program_check/public_calendar_requests_test.mbt",
+            "scenario": "Calendar selection and matching artifact are distinct checking requests."
+          }
+        ],
+        "presentation": {
+          "variants": [
+            {
+              "when": {
+                "issue": "selection_missing"
+              },
+              "key": "calendar.selection_missing",
+              "english": [
+                "The checking context has no Calendar profile selected.",
+                "Select a Calendar profile with its matching artifact for the named time zone, then check again. In Node Local, pass it as installation.calendarArtifact."
+              ]
+            },
+            {
+              "when": {
+                "issue": "artifact_missing"
+              },
+              "key": "calendar.artifact_missing",
+              "english": [
+                "The checking context is missing the artifact for its selected Calendar profile.",
+                "Install the Calendar artifact matching the selected profile, then check again. In Node Local, pass it as installation.calendarArtifact."
+              ]
+            }
+          ]
+        }
       },
       {
         "code": "carrier_mismatch",

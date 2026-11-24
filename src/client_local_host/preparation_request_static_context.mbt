@@ -128,6 +128,25 @@ fn[I] construct_static_effect_context_working(
   limits : (Int, Int, Int),
   max_work : Int,
 ) -> Result[String, ClientRequestStaticContextIssue] {
+  construct_static_context_working(
+    capacity,
+    input,
+    EffectProjection(original, prepared, compiled),
+    original_current,
+    limits,
+    max_work,
+  )
+}
+
+///|
+fn[I, P] construct_static_context_working(
+  capacity : @resources.PreparationCapacity[I, P],
+  input : I,
+  projection : StaticExplanationProjection,
+  original_current : () -> Bool,
+  limits : (Int, Int, Int),
+  max_work : Int,
+) -> Result[String, ClientRequestStaticContextIssue] {
   let (bytes, nodes, depth) = limits
   let entry = static_context_measurement_bytes +
     client_static_plan_quote_construction_bytes()
@@ -138,10 +157,16 @@ fn[I] construct_static_effect_context_working(
   if !original_current() {
     return Err(Preparation(ForeignOriginal))
   }
-  let geometry = match
-    @publication_host.measure_client_static_effect_explanation_context(
-      original, prepared, compiled, bytes, nodes, depth, max_work,
-    ) {
+  let measured = try {
+    let writer = @encode.construction_measuring_writer(bytes, nodes, depth)
+    match write_static_context_projection(projection, writer, max_work) {
+      Err(issue) => Err(issue)
+      Ok(_) => Ok(@encode.finish_construction_measurement(writer))
+    }
+  } catch {
+    issue => Err(@publication_host.Encoding(issue))
+  }
+  let geometry = match measured {
     Err(issue) => return Err(Context(issue))
     Ok(value) => value
   }
@@ -171,10 +196,7 @@ fn[I] construct_static_effect_context_working(
   }
   let wire = try {
     let writer = @encode.writer(bytes, nodes, depth)
-    match
-      @publication_host.write_client_static_effect_explanation_context(
-        original, prepared, compiled, writer, max_work,
-      ) {
+    match write_static_context_projection(projection, writer, max_work) {
       Err(issue) => return Err(Context(issue))
       Ok(_) => ()
     }
@@ -190,6 +212,24 @@ fn[I] construct_static_effect_context_working(
     Ok(_) => ()
   }
   Ok(wire)
+}
+
+///|
+fn write_static_context_projection(
+  projection : StaticExplanationProjection,
+  writer : @encode.Writer,
+  max_work : Int,
+) -> Result[Unit, @publication_host.ClientStaticExplanationSourceIssue] {
+  match projection {
+    EffectProjection(original, prepared, compiled) =>
+      @publication_host.write_client_static_effect_explanation_context(
+        original, prepared, compiled, writer, max_work,
+      )
+    PureProjection(original) =>
+      @publication_host.write_client_static_pure_explanation_context(
+        original, writer, max_work,
+      )
+  }
 }
 
 ///|
@@ -223,15 +263,23 @@ pub fn[I] construct_request_static_effect_context(
 }
 
 ///|
+priv enum StaticExplanationProjection {
+  EffectProjection(
+    @publication_host.ClientStaticEffectExplanationOriginal,
+    @publication_host.PreparedClientEffectComputation,
+    @publication_host.ClientEffectCompilation
+  )
+  PureProjection(@publication_host.ClientStaticPureExplanationOriginal)
+}
+
+///|
 // Facts keep their existing closed envelope and storage identity. The paired
 // Context remains charged after its construction while both Facts writers,
 // admitted geometry and sealed bytes are allocated on the same Request.
-fn[I] construct_static_effect_facts_working(
-  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+fn[I, P] construct_static_facts_working(
+  capacity : @resources.PreparationCapacity[I, P],
   input : I,
-  original : @publication_host.ClientStaticEffectExplanationOriginal,
-  prepared : @publication_host.PreparedClientEffectComputation,
-  compiled : @publication_host.ClientEffectCompilation,
+  projection : StaticExplanationProjection,
   original_current : () -> Bool,
   limits : (Int, Int, Int),
 ) -> Result[String, ClientRequestStaticContextIssue] {
@@ -250,10 +298,17 @@ fn[I] construct_static_effect_facts_working(
   if !original_current() {
     return Err(Preparation(ForeignOriginal))
   }
-  let geometry = match
-    @publication_host.measure_client_static_effect_explanation_facts(
-      original, prepared, compiled, bytes, nodes, depth,
-    ) {
+  let measured = match projection {
+    EffectProjection(original, prepared, compiled) =>
+      @publication_host.measure_client_static_effect_explanation_facts(
+        original, prepared, compiled, bytes, nodes, depth,
+      )
+    PureProjection(original) =>
+      @publication_host.measure_client_static_pure_explanation_facts(
+        original, bytes, nodes, depth,
+      )
+  }
+  let geometry = match measured {
     Err(issue) => return Err(Facts(issue))
     Ok(value) => value
   }
@@ -282,9 +337,17 @@ fn[I] construct_static_effect_facts_working(
     return Err(Preparation(ForeignOriginal))
   }
   let (bytes, nodes, depth) = geometry.complete
-  @publication_host.seal_client_static_effect_explanation_facts(
-    original, prepared, compiled, bytes, nodes, depth,
-  )
+  let result = match projection {
+    EffectProjection(original, prepared, compiled) =>
+      @publication_host.seal_client_static_effect_explanation_facts(
+        original, prepared, compiled, bytes, nodes, depth,
+      )
+    PureProjection(original) =>
+      @publication_host.seal_client_static_pure_explanation_facts(
+        original, bytes, nodes, depth,
+      )
+  }
+  result
   .map(@publication.run_evidence_value_json)
   .map_err(issue => Facts(issue))
 }
@@ -337,8 +400,12 @@ fn[I] construct_static_effect_explanation_working(
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  construct_static_effect_facts_working(
-    capacity, input, original, prepared, compiled, current, limits,
+  construct_static_facts_working(
+    capacity,
+    input,
+    EffectProjection(original, prepared, compiled),
+    current,
+    limits,
   ).map(facts => (facts, context))
 }
 
@@ -534,26 +601,59 @@ fn[I] prepare_static_effect_explanation_facets(
         Err(issue) => return Err(Context(issue))
         Ok(value) => value
       }
-      let (facts, context) = match
-        construct_static_effect_explanation_working(
-          capacity, input, original, prepared, compiled, current, limits, max_work,
-        ) {
-        Err(issue) => return Err(issue)
-        Ok(value) => value
-      }
-      if reserve_js_delivery {
-        guard static_effect_explanation_delivery_construction(limits, max_bytes)
-          is Some(delivery) else {
-          return Err(Preparation(Policy))
-        }
-        match reserve_static_context_construction(capacity, input, delivery) {
-          Err(issue) => return Err(issue)
-          Ok(_) => ()
-        }
-      }
-      Ok({ plan, facts, context, })
+      construct_static_explanation_facets_working(
+        capacity,
+        input,
+        EffectProjection(original, prepared, compiled),
+        plan,
+        current,
+        limits,
+        max_work,
+        max_bytes,
+        reserve_js_delivery,
+      )
     },
   )
+}
+
+///|
+fn[I, P] construct_static_explanation_facets_working(
+  capacity : @resources.PreparationCapacity[I, P],
+  input : I,
+  projection : StaticExplanationProjection,
+  plan : String,
+  current : () -> Bool,
+  limits : (Int, Int, Int),
+  max_work : Int,
+  max_bytes : Int,
+  reserve_js_delivery : Bool,
+) -> Result[
+  ClientRequestStaticEffectExplanation,
+  ClientRequestStaticContextIssue,
+] {
+  let context = match
+    construct_static_context_working(
+      capacity, input, projection, current, limits, max_work,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  let facts = match
+    construct_static_facts_working(capacity, input, projection, current, limits) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  if reserve_js_delivery {
+    guard static_effect_explanation_delivery_construction(limits, max_bytes)
+      is Some(delivery) else {
+      return Err(Preparation(Policy))
+    }
+    match reserve_static_context_construction(capacity, input, delivery) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+  }
+  Ok({ plan, facts, context, })
 }
 
 ///|
@@ -641,66 +741,78 @@ fn[I] request_prepared_static_effect_explanation_output(
     max_depth,
     max_work,
     (capacity, _, current, limits) => {
-      let (bytes, nodes, depth) = limits
-      let extent = static_explanation_shell_bytes() +
-        static_explanation_utf8_bytes(facets.plan) +
-        static_explanation_utf8_bytes(facets.facts) +
-        static_explanation_utf8_bytes(facets.context)
-      if extent > bytes {
-        return Err(Encoding(@encode.OutputLimit))
-      }
-      // The original wires stay held while the aggregate writer, returned
-      // text and closed arbitrary-wire validator overlap. Use the same
-      // working capacity and keep the additional bound until cleanup.
-      guard result_read_data_cost(
-          16L,
-          6L * extent.to_int64(),
-          2L * extent.to_int64(),
-        )
-        is Some(output) &&
-        explanation_read_codec_cost(
-          "static_explanation_view", extent, nodes, depth,
-        )
-        is Some(codec) &&
-        @execution.checked_preparation_add_product(output, codec, 1L)
-        is Some(delivery) else {
-        return Err(Preparation(Policy))
-      }
-      match reserve_static_context_construction(capacity, input, delivery) {
-        Err(issue) => return Err(issue)
-        Ok(_) => ()
-      }
-      guard current() else { return Err(Preparation(ForeignOriginal)) }
-      let builder = StringBuilder(size_hint=extent)
-      builder.write_string(static_explanation_context_prefix)
-      builder.write_string(facets.context)
-      builder.write_string(static_explanation_facts_prefix)
-      builder.write_string(facets.facts)
-      builder.write_string(static_explanation_plan_prefix)
-      builder.write_string(facets.plan)
-      builder.write_string(static_explanation_version_suffix)
-      let wire = builder.to_string()
-      let admitted = match
-        @publication.parse_interactive_run_control_shape(
-          "static_explanation_view", wire, extent, nodes, depth,
-        ) {
-        Err(issue) => return Err(Contract(issue))
-        Ok(value) => value
-      }
-      match language {
-        None => Ok(wire)
-        Some(selected) =>
-          render_working_static_explanation(
-            capacity, input, admitted, current, bytes, nodes, depth, selected,
-          )
-      }
+      finish_request_static_explanation_output(
+        capacity, input, facets, current, limits, language,
+      )
     },
   )
 }
 
 ///|
-fn[I] render_working_static_explanation(
-  capacity : @resources.PreparationCapacity[I, ClientInstalledEffectManagedPlan],
+fn[I, P] finish_request_static_explanation_output(
+  capacity : @resources.PreparationCapacity[I, P],
+  input : I,
+  facets : ClientRequestStaticEffectExplanation,
+  current : () -> Bool,
+  limits : (Int, Int, Int),
+  language : @publication_host.ClientExplanationLanguage?,
+) -> Result[String, ClientRequestStaticContextIssue] {
+  let (bytes, nodes, depth) = limits
+  let extent = static_explanation_shell_bytes() +
+    static_explanation_utf8_bytes(facets.plan) +
+    static_explanation_utf8_bytes(facets.facts) +
+    static_explanation_utf8_bytes(facets.context)
+  if extent > bytes {
+    return Err(Encoding(@encode.OutputLimit))
+  }
+  // The original wires stay held while the aggregate writer, returned
+  // text and closed arbitrary-wire validator overlap. Use the same
+  // working capacity and keep the additional bound until cleanup.
+  guard result_read_data_cost(
+      16L,
+      6L * extent.to_int64(),
+      2L * extent.to_int64(),
+    )
+    is Some(output) &&
+    explanation_read_codec_cost("static_explanation_view", extent, nodes, depth)
+    is Some(codec) &&
+    @execution.checked_preparation_add_product(output, codec, 1L)
+    is Some(delivery) else {
+    return Err(Preparation(Policy))
+  }
+  match reserve_static_context_construction(capacity, input, delivery) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard current() else { return Err(Preparation(ForeignOriginal)) }
+  let builder = StringBuilder(size_hint=extent)
+  builder.write_string(static_explanation_context_prefix)
+  builder.write_string(facets.context)
+  builder.write_string(static_explanation_facts_prefix)
+  builder.write_string(facets.facts)
+  builder.write_string(static_explanation_plan_prefix)
+  builder.write_string(facets.plan)
+  builder.write_string(static_explanation_version_suffix)
+  let wire = builder.to_string()
+  let admitted = match
+    @publication.parse_interactive_run_control_shape(
+      "static_explanation_view", wire, extent, nodes, depth,
+    ) {
+    Err(issue) => return Err(Contract(issue))
+    Ok(value) => value
+  }
+  match language {
+    None => Ok(wire)
+    Some(selected) =>
+      render_working_static_explanation(
+        capacity, input, admitted, current, bytes, nodes, depth, selected,
+      )
+  }
+}
+
+///|
+fn[I, P] render_working_static_explanation(
+  capacity : @resources.PreparationCapacity[I, P],
   input : I,
   view : @identity.CanonicalValue,
   current : () -> Bool,

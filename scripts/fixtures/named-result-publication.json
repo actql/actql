@@ -1,0 +1,15 @@
+{
+  "aql": "SELECT 3 AS n |> RESULT before_change |> EXTEND n + 4 AS after_n\n|> SELECT after_n |> RESULT after_change\n",
+  "results": {
+    "before_change": [
+      {
+        "n": 3
+      }
+    ],
+    "after_change": [
+      {
+        "after_n": 7
+      }
+    ]
+  }
+}
