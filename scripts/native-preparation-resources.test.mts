@@ -7,7 +7,7 @@ import {preparationProcessSample, appendPreparationResourceSample,
   startNativePreparationResourceObserver, withNativePreparationResources} from './native-preparation-resources.mjs';
 
 const start = 'Tue Nov 17 21:00:00 2026';
-const row = (pid, parent, rss, cpu, began = start) => `${pid} ${parent} ${rss} ${cpu} ${began}`;
+const row = (pid: number, parent: number, rss: number, cpu: string, began = start) => `${pid} ${parent} ${rss} ${cpu} ${began}`;
 
 test('preparation samples sum only observed descendants and separate own CPU counters', () => {
   const first = preparationProcessSample([
@@ -37,19 +37,20 @@ test('preparation PID/start identity excludes reused counters and refuses missin
 });
 
 test('preparation observations stop at sample and output bounds without retaining the rejected data', () => {
-  const count = {samples: []};
+  const count: {samples: {n: number}[]; unavailable?: string} = {samples: []};
   assert(appendPreparationResourceSample(count, {n: 1}, {maximumSamples: 1}));
   assert(!appendPreparationResourceSample(count, {n: 2}, {maximumSamples: 1}));
   assert.deepEqual(count.samples, [{n: 1}]); assert.equal(count.unavailable, 'sample-count-bound');
-  const bytes = {samples: []};
+  const bytes: {samples: {large: string}[]; unavailable?: string} = {samples: []};
   assert(!appendPreparationResourceSample(bytes, {large: 'x'.repeat(1024)}, {maximumSamples: 2, maximumBytes: 512}));
   assert.deepEqual(bytes.samples, []); assert.equal(bytes.unavailable, 'output-bound');
 });
 
 class WorkerPort extends EventEmitter {
   stops = 0; terminations = 0;
-  constructor(mode) {super(); this.mode = mode;}
-  postMessage(message) {
+  declare readonly mode: string;
+  constructor(mode: string) {super(); this.mode = mode;}
+  postMessage(message: string) {
     assert.equal(message, 'stop'); this.stops++;
     if (this.mode === 'throw') throw new Error('StopPortFailure');
     if (this.mode === 'unavailable') this.emit('message', {unavailable: true});
@@ -73,7 +74,7 @@ test('preparation observer closes once and joins normal, unavailable and bounded
 test('original preparation result and error survive observer startup, shutdown and diagnostic failures', async () => {
   const original = {}, primary = new Error('OriginalCompilerFailure');
   for (const mode of ['normal', 'startup', 'close']) {
-    const order = [];
+    const order: string[] = [];
     const startObserver = () => {
       order.push('start'); if (mode === 'startup') throw new Error('ObserverUnavailable');
       return {async close() {order.push('join'); if (mode === 'close') throw new Error('CloseUnavailable');}};
@@ -98,12 +99,14 @@ test('original preparation result and error survive observer startup, shutdown a
 });
 
 test('resource observations select only the existing Mac preparation and preserve original upload and job geometry', () => {
-  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const ci = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')) as {
+    jobs: Record<string, {steps?: {env?: Record<string, string>; run?: string; with?: {name?: string; path?: string}}[]}>;
+  };
   const selected = Object.entries(ci.jobs).flatMap(([job, value]) => (value.steps ?? [])
     .filter(step => step.env?.ACTQL_NATIVE_PREPARATION_RESOURCE_OBSERVER === '1').map(step => ({job, step})));
   assert.deepEqual(selected.map(value => value.job), ['native-macos-workloads']);
-  assert(selected[0].step.run.includes('--lanes 2'));
-  const upload = ci.jobs['native-macos-workloads'].steps.find(step => step.with?.name?.startsWith('native-scoped-preparation-'));
-  assert(upload.with.path.includes('/native-scoped-preparation/**/*.json'));
-  assert(!upload.with.path.includes('observation.json'), 'Reuse existing diagnostic metadata, not another artifact layout');
+  assert(selected[0].step.run!.includes('--lanes 2'));
+  const upload = ci.jobs['native-macos-workloads'].steps!.find(step => step.with?.name?.startsWith('native-scoped-preparation-'));
+  assert(upload!.with!.path!.includes('/native-scoped-preparation/**/*.json'));
+  assert(!upload!.with!.path!.includes('observation.json'), 'Reuse existing diagnostic metadata, not another artifact layout');
 });

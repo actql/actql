@@ -6,11 +6,38 @@ import {openSync, closeSync, writeSync, ftruncateSync, constants} from 'node:fs'
 import {availableParallelism, totalmem} from 'node:os';
 import {availableVerificationMemory} from './local-checks-guard.mjs';
 
+type ProcessRow = {pid: number; parent: number; rss: number; us: number; start: string};
+type Samples<Record> = {samples: Record[]; unavailable?: string};
+type ResourceSample = ReturnType<typeof preparationProcessSample>['record'] & {
+  elapsedNs: number; observed_system_available_memory_bytes: number;
+};
+type ResourceConfiguration = Readonly<{rootPid: number; output: string; deadline: number; source: string; target: string}>;
+type ResourceReport = Samples<ResourceSample> & {
+  kind: string; source: string; target: string; rootPid: number; intervalMs: number; startedEpochMs: number;
+  complete: boolean; cpuThreads: number; totalMemoryBytes: number; scope: string; endedEpochMs?: number;
+  max_sample_sum_process_rss_bytes?: number; originalStart?: string;
+};
+type WorkerPort = {
+  on(event: 'message', handle: (value?: {unavailable?: boolean}) => void): unknown;
+  on(event: 'error', handle: () => void): unknown;
+  on(event: 'exit', handle: (code: number) => void): unknown;
+  postMessage(message: 'stop'): void;
+  terminate(): Promise<number>;
+};
+type JoinResult = {failed: boolean};
+type Observer = {close(): Promise<JoinResult | void>};
+type ObserverOptions = {createWorker?: () => WorkerPort; joinMs?: number};
+type ResourceOptions<Configuration> = {
+  startObserver?: (configuration: Configuration) => Observer;
+  unavailable?: () => void;
+};
+
 const intervalMs = 5000, maxBytes = 1024 * 1024, metadataTimeoutMs = 1000;
 const kind = 'native-preparation-process-observation';
-export function preparationProcessSample(text, rootPid, originalStart, previous = new Map()) {
+export function preparationProcessSample(text: string, rootPid: number, originalStart?: string,
+  previous: ReadonlyMap<number, ProcessRow> = new Map()) {
   const lines = text.trim().split('\n'); assert(lines.length <= 4096, 'Process metadata row bound');
-  const processes = new Map();
+  const processes = new Map<number, ProcessRow>();
   for (const line of lines) {
     const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+([\d:.\-]+)\s+([ -~]{1,64})$/u.exec(line);
     assert(match, 'Unavailable process metadata');
@@ -44,7 +71,8 @@ export function preparationProcessSample(text, rootPid, originalStart, previous 
   }};
 }
 
-export function appendPreparationResourceSample(report, record, {maximumSamples, maximumBytes = maxBytes}) {
+export function appendPreparationResourceSample<Record>(report: Samples<Record>, record: Record,
+  {maximumSamples, maximumBytes = maxBytes}: {maximumSamples: number; maximumBytes?: number}) {
   if (report.samples.length >= maximumSamples) {report.unavailable = 'sample-count-bound'; return false;}
   report.samples.push(record);
   // Reserve the bounded terminal fields before retaining another sample.
@@ -56,17 +84,18 @@ export function appendPreparationResourceSample(report, record, {maximumSamples,
 
 // The worker is independent of the synchronous compiler calls in the main
 // thread. It has no command/environment/body/Store reader and controls no builder.
-function observe(configuration) {
+function observe(configuration: ResourceConfiguration) {
   const {rootPid, output, deadline, source, target} = configuration;
-  const started = process.hrtime.bigint(), samples = [];
+  const started = process.hrtime.bigint(), samples: ResourceSample[] = [];
   const maximumSamples = Math.ceil((deadline - Date.now()) / intervalMs) + 1;
   assert(Number.isSafeInteger(rootPid) && rootPid > 0 && Number.isFinite(deadline) &&
     maximumSamples > 0 && maximumSamples <= 10000, 'Finite original observation deadline required');
   const fd = openSync(output, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-  const report = {kind, source, target, rootPid, intervalMs, startedEpochMs: Date.now(), complete: false,
+  const report: ResourceReport = {kind, source, target, rootPid, intervalMs, startedEpochMs: Date.now(), complete: false,
     cpuThreads: availableParallelism(), totalMemoryBytes: totalmem(), samples,
     scope: 'Snapshot-observed preparation descendants; own user+system CPU without ps -S. Fast/exited/reparented processes and sub-second PID reuse may be missed. RSS sums double-count shared pages. The max sample is a lower bound only on the peak of that same sum metric, never on unique physical RAM/headroom/allocation. System availability is global and unreserved. Observer overhead is included.'};
-  let timer, previous = new Map(), originalStart, stopped = false;
+  let timer: NodeJS.Timeout | undefined, previous = new Map<number, ProcessRow>(),
+    originalStart: string | undefined, stopped = false;
   const save = () => {
     const bytes = JSON.stringify(report) + '\n';
     assert(Buffer.byteLength(bytes) <= maxBytes, 'Observation output bound');
@@ -76,8 +105,8 @@ function observe(configuration) {
     if (stopped) return; stopped = true; clearInterval(timer);
     report.endedEpochMs = Date.now(); report.complete = report.unavailable === undefined;
     report.max_sample_sum_process_rss_bytes = Math.max(0, ...samples.map(x => x.sample_sum_process_rss_bytes));
-    try {save(); parentPort.postMessage({unavailable: report.unavailable !== undefined});}
-    finally {closeSync(fd); parentPort.close();}
+    try {save(); parentPort!.postMessage({unavailable: report.unavailable !== undefined});}
+    finally {closeSync(fd); parentPort!.close();}
   };
   const sample = () => {
     try {
@@ -98,28 +127,32 @@ function observe(configuration) {
       save(); if (!retained) stop();
     } catch {report.unavailable = 'metadata-unavailable'; stop();}
   };
-  parentPort.on('message', message => {if (message === 'stop') stop();});
+  parentPort!.on('message', message => {if (message === 'stop') stop();});
   sample();
   if (!stopped) timer = setInterval(sample, intervalMs);
 }
 
-export function startNativePreparationResourceObserver(configuration, {createWorker = () =>
+export function startNativePreparationResourceObserver(configuration: ResourceConfiguration, options?: ObserverOptions):
+  {close(): Promise<JoinResult>};
+export function startNativePreparationResourceObserver(configuration: object,
+  options: ObserverOptions & {createWorker: () => WorkerPort}): {close(): Promise<JoinResult>};
+export function startNativePreparationResourceObserver(configuration: object, {createWorker = () =>
   new Worker(new URL(import.meta.url), {workerData: {kind, configuration},
-    resourceLimits: {maxOldGenerationSizeMb: 64}}), joinMs = 3000} = {}) {
+    resourceLimits: {maxOldGenerationSizeMb: 64}}), joinMs = 3000}: ObserverOptions = {}) {
   assert(Number.isSafeInteger(joinMs) && joinMs > 0 && joinMs <= 2147483647);
   const worker = createWorker();
   // Always join a worker exit, including a startup failure, before returning.
   let failed = false;
-  const exited = new Promise(resolve => {
+  const exited = new Promise<JoinResult>(resolve => {
     worker.on('message', value => {if (value?.unavailable) failed = true;});
     worker.on('error', () => {failed = true;});
     worker.on('exit', code => resolve({failed: failed || code !== 0}));
   });
-  let closing;
+  let closing: Promise<JoinResult> | undefined;
   return {close() {return closing ??= (async () => {
     try {worker.postMessage('stop');} catch {failed = true;}
-    let timeout;
-    const bounded = new Promise(resolve => {timeout = setTimeout(() => resolve(null), joinMs);});
+    let timeout: NodeJS.Timeout | undefined;
+    const bounded = new Promise<null>(resolve => {timeout = setTimeout(() => resolve(null), joinMs);});
     let result = await Promise.race([exited, bounded]); clearTimeout(timeout);
     if (result === null) {await worker.terminate(); result = {failed: true};}
     return result;
@@ -128,12 +161,19 @@ export function startNativePreparationResourceObserver(configuration, {createWor
 
 // Diagnostics never change the original constructor return/error or authorize
 // publication. The original publisher runs only after original construction.
-export async function withNativePreparationResources(configuration, construct, publish,
-  {startObserver = startNativePreparationResourceObserver,
-    unavailable = () => console.error('Native preparation resource observation unavailable')} = {}) {
+export function withNativePreparationResources<Value, Result>(configuration: ResourceConfiguration | undefined,
+  construct: () => Value | PromiseLike<Value>, publish: (value: Value) => Result,
+  options?: ResourceOptions<ResourceConfiguration>): Promise<Awaited<Result>>;
+export function withNativePreparationResources<Configuration extends object, Value, Result>(configuration: Configuration,
+  construct: () => Value | PromiseLike<Value>, publish: (value: Value) => Result,
+  options: ResourceOptions<Configuration> & {startObserver: (configuration: Configuration) => Observer}): Promise<Awaited<Result>>;
+export async function withNativePreparationResources<Configuration extends object, Value, Result>(
+  configuration: Configuration | undefined, construct: () => Value | PromiseLike<Value>, publish: (value: Value) => Result,
+  {startObserver = startNativePreparationResourceObserver as (configuration: Configuration) => Observer,
+    unavailable = () => console.error('Native preparation resource observation unavailable')}: ResourceOptions<Configuration> = {}) {
   if (configuration === undefined) return publish(await construct());
   const note = () => {try {unavailable();} catch { /* Diagnostic-only failure. */ }};
-  let observer, value;
+  let observer: Observer | undefined, value: Value;
   try {observer = startObserver(configuration);} catch {note();}
   try {value = await construct();}
   finally {

@@ -3,7 +3,6 @@ import {realpathSync} from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {initRestConnector, writeRestConnector} from './connector-authoring.mjs';
-// @ts-expect-error TS7016: The existing pre-emit local check guard is authored JavaScript.
 import {durationSeconds, runLocalCheck} from './local-checks-guard.mjs';
 import {readRestConformanceInput} from './connector-conformance-input.mjs';
 import {isInstalledAuthoringToolkit} from './connector-authoring-toolkit.mjs';
@@ -14,7 +13,7 @@ const usage = 'Usage: connector.mjs init <directory> <id> | build|test <connecto
 // archive, Account, installation, public read and original Saved validation.
 export function connectorConformancePlan(root: string, args: readonly string[]) {
   if (args.length !== 3 || args[1] !== '--timeout-seconds') throw new Error(usage);
-  const timeoutSeconds = durationSeconds(args[2]) as number;
+  const timeoutSeconds = durationSeconds(args[2]);
   const input = resolve(args[0]);
   const selected = readRestConformanceInput(input);
   const installed = isInstalledAuthoringToolkit(root);
