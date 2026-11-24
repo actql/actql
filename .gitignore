@@ -14,6 +14,12 @@ target/
 
 # Compiled runtime bundles are generated before tests and npm pack.
 /packages/run-host-core/dist/
+/adapters/workers/finite.mjs
+/adapters/workers/finite.d.mts
+/adapters/workers/finite-runtime.mjs
+/adapters/workers/finite-runtime.d.mts
+/adapters/workers/host.mjs
+/adapters/workers/host.d.mts
 /packages/run-host-core/index.mjs
 /packages/run-host-core/index.d.mts
 /packages/coordinator-core/dist/

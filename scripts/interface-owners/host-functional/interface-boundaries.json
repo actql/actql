@@ -107738,7 +107738,7 @@
     {
       "module": "adapters/workers/finite-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4ce7e98920384621e2ce653381df2a525cea57417582f12d87f5eb3ebd71bd10",
+      "sha256": "b05801f962b0317c1e0e2e8e6c60ec0fd561d288e518069d524a80cf0914cd31",
       "role": "physical-io",
       "owner": "Existing invocation-scoped common Host/finite Workers adapter",
       "exports": [
@@ -107773,8 +107773,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -107787,8 +107787,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -107801,7 +107801,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
+                "path": "adapters/workers/finite-runtime.mts",
                 "anchor": "// driving one original Run. Do not cache the returned assembly across requests."
               },
               {
@@ -107815,8 +107815,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -107829,8 +107829,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -107843,7 +107843,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
+                "path": "adapters/workers/finite-runtime.mts",
                 "anchor": "throw new TypeError('InvalidWorkersFiniteAuthorizationOptions');"
               },
               {
@@ -107857,8 +107857,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -107871,7 +107871,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
+                "path": "adapters/workers/finite-runtime.mts",
                 "anchor": "import {instantiate} from '../../_build/workers/modules/bridge.mjs';"
               },
               {
@@ -107885,7 +107885,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
+                "path": "adapters/workers/finite-runtime.mts",
                 "anchor": "// Trusted installation only. Every opaque handle and authorization gate in"
               },
               {
@@ -107917,8 +107917,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -107931,8 +107931,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "src/run_publication_host/pkg.generated.mbti",
@@ -107945,7 +107945,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
+                "path": "adapters/workers/finite-runtime.mts",
                 "anchor": "// driving one original Run. Do not cache the returned assembly across requests."
               },
               {
@@ -107959,8 +107959,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -107973,8 +107973,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -107987,7 +107987,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
+                "path": "adapters/workers/finite-runtime.mts",
                 "anchor": "throw new TypeError('InvalidWorkersFiniteAuthorizationOptions');"
               },
               {
@@ -108001,8 +108001,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
-                "anchor": "export function createWorkersFiniteRuntime(hashSeed, configuration) {"
+                "path": "adapters/workers/finite-runtime.mts",
+                "anchor": "export function createWorkersFiniteRuntime(hashSeed: number, configuration: WorkersFiniteConfiguration)"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -108015,7 +108015,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
+                "path": "adapters/workers/finite-runtime.mts",
                 "anchor": "import {instantiate} from '../../_build/workers/modules/bridge.mjs';"
               },
               {
@@ -108029,7 +108029,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite-runtime.mjs",
+                "path": "adapters/workers/finite-runtime.mts",
                 "anchor": "// Trusted installation only. Every opaque handle and authorization gate in"
               },
               {

@@ -34813,7 +34813,7 @@
     },
     {
       "module": "adapters/workers/finite.mjs",
-      "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
+      "sha256": "8e7b3a79a84bcd76e61268302849a13811d9805317b1a6a0dcc770356f24509d",
       "role": "physical-io",
       "exports": [
         "bindWorkersFiniteHost"
@@ -34986,8 +34986,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
-                "anchor": "export function bindWorkersFiniteHost(runtime, configuration) {"
+                "path": "adapters/workers/finite.mts",
+                "anchor": "export function bindWorkersFiniteHost(runtime: WorkersRuntime, configuration: Configuration): WorkersFiniteHost {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -35000,8 +35000,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
-                "anchor": "export function bindWorkersFiniteHost(runtime, configuration) {"
+                "path": "adapters/workers/finite.mts",
+                "anchor": "export function bindWorkersFiniteHost(runtime: WorkersRuntime, configuration: Configuration): WorkersFiniteHost {"
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
@@ -35014,7 +35014,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -35024,7 +35024,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "// Private ABI projection of the existing Owner's records. All fields are"
               },
               {
@@ -35034,8 +35034,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
-                "anchor": "export function bindWorkersFiniteHost(runtime, configuration) {"
+                "path": "adapters/workers/finite.mts",
+                "anchor": "export function bindWorkersFiniteHost(runtime: WorkersRuntime, configuration: Configuration): WorkersFiniteHost {"
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
@@ -35044,8 +35044,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
-                "anchor": "const invalid = () => { throw new TypeError('InvalidWorkersFiniteInstallation'); };"
+                "path": "adapters/workers/finite.mts",
+                "anchor": "const invalid: () => never = () => { throw new TypeError('InvalidWorkersFiniteInstallation'); };"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -35054,7 +35054,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "// second task owner. Retain this exact setup through completion/cleanup."
               },
               {
@@ -35064,7 +35064,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {installStrategyContributions} from '../connectors-workers/strategy.generated.mjs';"
               },
               {
@@ -35078,7 +35078,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {installStrategyContributions} from '../connectors-workers/strategy.generated.mjs';"
               },
               {
@@ -35110,8 +35110,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
-                "anchor": "export function bindWorkersFiniteHost(runtime, configuration) {"
+                "path": "adapters/workers/finite.mts",
+                "anchor": "export function bindWorkersFiniteHost(runtime: WorkersRuntime, configuration: Configuration): WorkersFiniteHost {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -35124,8 +35124,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
-                "anchor": "export function bindWorkersFiniteHost(runtime, configuration) {"
+                "path": "adapters/workers/finite.mts",
+                "anchor": "export function bindWorkersFiniteHost(runtime: WorkersRuntime, configuration: Configuration): WorkersFiniteHost {"
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
@@ -35138,7 +35138,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -35148,7 +35148,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "// Private ABI projection of the existing Owner's records. All fields are"
               },
               {
@@ -35158,8 +35158,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
-                "anchor": "export function bindWorkersFiniteHost(runtime, configuration) {"
+                "path": "adapters/workers/finite.mts",
+                "anchor": "export function bindWorkersFiniteHost(runtime: WorkersRuntime, configuration: Configuration): WorkersFiniteHost {"
               },
               {
                 "path": "src/connectors_workers/pkg.generated.mbti",
@@ -35168,8 +35168,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
-                "anchor": "const invalid = () => { throw new TypeError('InvalidWorkersFiniteInstallation'); };"
+                "path": "adapters/workers/finite.mts",
+                "anchor": "const invalid: () => never = () => { throw new TypeError('InvalidWorkersFiniteInstallation'); };"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -35178,7 +35178,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "// second task owner. Retain this exact setup through completion/cleanup."
               },
               {
@@ -35188,7 +35188,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {installStrategyContributions} from '../connectors-workers/strategy.generated.mjs';"
               },
               {
@@ -35202,7 +35202,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {installStrategyContributions} from '../connectors-workers/strategy.generated.mjs';"
               },
               {

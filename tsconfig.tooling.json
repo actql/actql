@@ -84,6 +84,7 @@
     "adapters/local-node/**/*.mts",
     "adapters/reference-compute-node/**/*.mts",
     "adapters/workers/**/*.mts",
+    "adapters/workers/compiled-bindings.d.ts",
     "adapters/connectors/**/*.mts",
     "packages/client-wire/**/*.mts",
     "packages/explorer/**/*.mts",

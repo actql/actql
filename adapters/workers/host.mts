@@ -3,16 +3,19 @@ import {installStrategyContributions} from '../connectors-workers/strategy.gener
 import {bindWorkersFiniteHost} from './finite.mjs';
 import {bindLocalJsHost} from '../host-common/local-js-host.mjs';
 
+import type {WorkersRuntime} from './finite.mjs';
+
 // Standard Local-only entry: no request-supplied implementations or verifiers.
-export function createWorkersHost(hashSeed) {
+export function createWorkersHost(hashSeed: number) {
   return bindWorkersHost(instantiate(hashSeed));
 }
 
 // Host-implementation assembly, never request data. Preparation and execution
 // must be linked into this same MoonBit runtime, including its Error tag table.
 // Snapshot trusted exports before any await; a request cannot swap callbacks.
-export function bindWorkersHost(runtime) {
-  return bindLocalJsHost(runtime, installStrategyContributions);
+export function bindWorkersHost(runtime: WorkersRuntime) {
+  return bindLocalJsHost(runtime, installStrategyContributions as
+    Parameters<typeof bindLocalJsHost<WorkersRuntime>>[1]);
 }
 
 // Trusted source-free installation. The accepting request Owner links its

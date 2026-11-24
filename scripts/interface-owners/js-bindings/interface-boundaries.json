@@ -131173,9 +131173,9 @@
     {
       "module": "adapters/workers/finite.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "dce72ee5465ad9556e2f2b84758eb0008e491acc0d60f24610f2befe91a52e1a",
+      "sha256": "8e7b3a79a84bcd76e61268302849a13811d9805317b1a6a0dcc770356f24509d",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "bindWorkersFiniteHost"
       ],
@@ -131335,7 +131335,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131345,7 +131345,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131355,7 +131355,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131365,7 +131365,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131375,7 +131375,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131385,7 +131385,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131395,7 +131395,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131405,7 +131405,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131415,7 +131415,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131425,7 +131425,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "bindWorkersFiniteHost"
               },
               {
@@ -131447,7 +131447,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131457,7 +131457,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131467,7 +131467,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131477,7 +131477,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131487,7 +131487,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131497,7 +131497,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131507,7 +131507,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131517,7 +131517,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131527,7 +131527,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131537,7 +131537,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "boolean"
               },
               {
@@ -131559,7 +131559,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131569,7 +131569,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131579,7 +131579,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131589,7 +131589,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131599,7 +131599,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131609,7 +131609,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131619,7 +131619,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131629,7 +131629,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131639,7 +131639,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131649,7 +131649,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "integer"
               },
               {
@@ -131669,7 +131669,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131679,7 +131679,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131689,7 +131689,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131699,7 +131699,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131709,7 +131709,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131719,7 +131719,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131729,7 +131729,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131739,7 +131739,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131749,7 +131749,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131759,7 +131759,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "invalid"
               },
               {
@@ -131779,7 +131779,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131789,7 +131789,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131799,7 +131799,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131809,7 +131809,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131819,7 +131819,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131829,7 +131829,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131839,7 +131839,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131849,7 +131849,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131859,7 +131859,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131869,7 +131869,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "protectedGate"
               },
               {
@@ -131891,7 +131891,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131901,7 +131901,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131911,7 +131911,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131921,7 +131921,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131931,7 +131931,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131941,7 +131941,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131951,7 +131951,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131961,7 +131961,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131971,7 +131971,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -131981,7 +131981,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "quantity"
               },
               {
@@ -132008,7 +132008,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132018,7 +132018,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132028,7 +132028,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132038,7 +132038,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132048,7 +132048,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132058,7 +132058,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132068,7 +132068,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132078,7 +132078,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132088,7 +132088,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132098,7 +132098,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "snapshot"
               },
               {
@@ -132120,7 +132120,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132130,7 +132130,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132140,7 +132140,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132150,7 +132150,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132160,7 +132160,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132170,7 +132170,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132180,7 +132180,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132190,7 +132190,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132200,7 +132200,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132210,7 +132210,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "text"
               },
               {
@@ -132232,7 +132232,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132242,7 +132242,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132252,7 +132252,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132262,7 +132262,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132272,7 +132272,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132282,7 +132282,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132292,7 +132292,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132302,7 +132302,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132312,7 +132312,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
@@ -132322,7 +132322,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/workers/finite.mjs",
+                "path": "adapters/workers/finite.mts",
                 "anchor": "import {runtimeField} from '../host-common/compiler-binding.generated.mjs';"
               },
               {
