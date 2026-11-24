@@ -59,7 +59,7 @@ async function fixture(t, variants = [{}, {}]) {
     driver: {kinds: [kind], prepareRequest: unused('request'),
       requestFacts: unused('facts'), writeOperation: unused('operation'),
       send: unused('send'), project: unused('project'), footprint: unused('footprint'),
-      ...(kind === 'update' ? {targetRead: {operation: 'read'},
+      ...(['update', 'upsert'].includes(kind) ? {targetRead: {operation: 'read'},
         observeTargets: unused('observe targets'), recoveryEntry: unused('recovery entry'),
         recoverRequests: unused('recover all'),
         recoverMemberRequests: unused('recover members'), requestCid: unused('request CID')} : {}),
@@ -74,6 +74,27 @@ async function fixture(t, variants = [{}, {}]) {
   }
   return {moon, effects, descriptors, installations, calls, root};
 }
+
+test('only the installed UPSERT kind can retain two presence-bound writes', async t => {
+  const rowOperations = Object.freeze(['rows:create', 'rows:update'].map(operation =>
+    Object.freeze({operation, extent: {}})));
+  const credentialOperations = Object.freeze(['absent', 'present'].map((slot, operationIndex) =>
+    Object.freeze({phase: 'write', slot, operationIndex, maxRequestBytes: 32, maxResponseBytes: 64})));
+  const recipe = Object.freeze({memberOperations: Object.freeze([]), rowOperations, credentialOperations});
+  const direct = await fixture(t, [{kind: 'upsert', managedPlanRecipe: recipe}]);
+  const selected = await fixture(t, [{kind: 'upsert', managedPlanRecipes: Object.freeze({upsert: recipe})}]);
+  for (const f of [direct, selected]) {
+    assert.deepEqual(f.calls, []);
+    await f.effects[0].close();
+    assert.deepEqual(f.calls, ['close:owner-0']);
+  }
+  for (const kind of ['create', 'update']) {
+    await assert.rejects(fixture(t, [{kind, managedPlanRecipe: recipe}]),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+    await assert.rejects(fixture(t, [{kind, managedPlanRecipes: Object.freeze({[kind]: recipe})}]),
+      {code: 'InvalidInstalledEffectPlanRecipe'});
+  }
+});
 
 test('composed UPDATE retains checked Source preparation without issuing provider authority', async t => {
   const f = await fixture(t, [{kind: 'update'}, {kind: 'update'}]);

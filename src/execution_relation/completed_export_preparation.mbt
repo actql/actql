@@ -269,13 +269,14 @@ pub fn advance_completed_output_export_preparation(
 }
 
 ///|
-// Only the same latched identity scan passes its just-observed original
-// Source. Metadata transitions invoke no external callbacks, so internal
-// helpers need not repeat the parent's same current observation per frame.
+// The identity scan passes its just-observed original Source. Callers with a
+// funding callback recheck the same Source after that boundary before taking
+// the next metadata transition.
 fn advance_completed_export_metadata_owned(
   value : CompletedOutputExportPreparation,
   quantum : Int,
   observed_source : CompletedOutput?,
+  before_metadata? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(Bool, Int), CompletedExportIssue] {
   if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
@@ -303,9 +304,34 @@ fn advance_completed_export_metadata_owned(
       if value.closed {
         return Err(Closed)
       }
+      if before_metadata is Some(fund) {
+        guard completed_export_metadata_next_inventory(value).bind(
+            identity_scan_capacity,
+          )
+          is Some(capacity) else {
+          return Err(Admission(CaptureLimit))
+        }
+        let funded = fund(capacity)
+        if value.closed {
+          return Err(Closed)
+        }
+        if !completed_output_available(source) || value.closed {
+          return Err(Unavailable)
+        }
+        if !funded {
+          return Err(Admission(CaptureLimit))
+        }
+      }
       if value.phase == 0 {
         let (done, used) = match
-          advance_row_wire_order(value.order_cursor, quantum - steps) {
+          advance_row_wire_order(
+            value.order_cursor,
+            if before_metadata is Some(_) {
+              1
+            } else {
+              quantum - steps
+            },
+          ) {
           Ok(value) => value
           Err(issue) => {
             value.poll_work = steps + value.order_cursor.poll_work

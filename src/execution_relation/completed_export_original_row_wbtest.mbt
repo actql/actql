@@ -45,6 +45,209 @@ fn original_export_row_field(
 }
 
 ///|
+test "Result export funds metadata before creation and preserves the captured row" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["plain","day","whole","amount"],"order_by":[{"id":"desc"}]}}
+    ),
+  )
+  for accept in [false, true] {
+    let preparation = start_completed_result_relation_export(
+      source,
+      occurrence,
+      result_view_limits(),
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      row_wire_limits(),
+      publication_schema_limits(),
+      4096,
+    ).unwrap()
+    let mut visits = 0
+    let mut saw_schema = false
+    let mut saw_stream_start = false
+    let mut valid_quote = true
+    let fund = fn(capacity) {
+      let size = execution_capacity_execution_bytes(capacity)
+      visits += 1
+      if visits == 1 {
+        valid_quote = preparation.metadata is None && preparation.stream is None
+        // Initial 55H/108R/155W plus three slots for each co-held name.
+        let expected = 2984L +
+          24L * preparation.rows.names.capacity().to_int64()
+        valid_quote = valid_quote && size == expected
+        return size <= expected - (if accept { 0L } else { 1L })
+      }
+      let metadata = preparation.metadata.unwrap()
+      if metadata.phase == 3 {
+        saw_schema = true
+      }
+      if metadata.phase == 4 {
+        saw_stream_start = true
+        valid_quote = valid_quote && metadata.stream is None
+      }
+      valid_quote = valid_quote && size > 0L
+      true
+    }
+    let finished = while true {
+      match
+        advance_completed_result_relation_export(
+          preparation,
+          31,
+          before_metadata=Some(fund),
+        ) {
+        Ok((false, _)) => continue
+        value => break value
+      }
+    } nobreak {
+      Err(Closed)
+    }
+    assert_true(valid_quote)
+    if accept {
+      assert_true(finished is Ok((true, _)) && saw_schema && saw_stream_start)
+      let stream = finish_completed_result_relation_export_preparation(
+        preparation,
+      ).unwrap()
+      let (_, row) = next_completed_output_export_original_row(
+          stream, 100, 10, 4096,
+        )
+        .unwrap()
+        .unwrap()
+      assert_true(
+        completed_result_export_preparation_matches_original_row(
+          preparation, row,
+        ),
+      )
+      assert_true(
+        original_export_row_field(row, "whole").value
+        is @admitted.Signed64(-9223372036854775808L),
+      )
+      retire_completed_output_export_original_row(row)
+      cancel_completed_output_export(stream)
+    } else {
+      assert_true(
+        finished is Err(Admission(CaptureLimit)) && preparation.closed,
+      )
+      assert_eq(visits, 1)
+      assert_true(preparation.metadata is None && preparation.stream is None)
+    }
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
+test "Result export metadata cancellation cannot publish an open stream" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["day","whole"]}}
+    ),
+  )
+  let preparation = start_completed_result_relation_export(
+    source,
+    occurrence,
+    result_view_limits(),
+    2,
+    stream_value_limits(),
+    row_wire_limits(),
+    row_wire_limits(),
+    publication_schema_limits(),
+    4096,
+  ).unwrap()
+  let mut cancelled = false
+  let mut reentry_refused = true
+  let mut schema_was_owned = false
+  let fund = fn(_) {
+    reentry_refused = reentry_refused &&
+      advance_completed_result_relation_export(preparation, 1) is Err(Closed)
+    if preparation.metadata is Some(metadata) && metadata.phase == 3 {
+      schema_was_owned = metadata.schema_cursor is Some(_)
+      cancelled = cancel_completed_result_relation_export(preparation)
+    }
+    true
+  }
+  let finished = while true {
+    match
+      advance_completed_result_relation_export(
+        preparation,
+        31,
+        before_metadata=Some(fund),
+      ) {
+      Ok((false, _)) => continue
+      value => break value
+    }
+  } nobreak {
+    Ok((false, 0))
+  }
+  assert_true(finished is Err(Closed) && reentry_refused && schema_was_owned)
+  assert_true(cancelled && preparation.closed && preparation.stream is None)
+  assert_true(
+    finish_completed_result_relation_export_preparation(preparation)
+    is Err(Closed),
+  )
+  assert_true(completed_output_available(source))
+}
+
+///|
+test "Result export retains the original receipt and closed stream metadata once" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["plain","day","whole","amount"],"order_by":[{"id":"desc"}]}}
+    ),
+  )
+  let finish = fn(stream : CompletedOutputExport) {
+    while next_completed_output_export_canonical_row(stream, 100, 10, 4096).unwrap()
+          is Some(_) {
+      ()
+    }
+    finish_completed_relation_export(stream).unwrap().0
+  }
+  let (original, stream) = original_export_row_preparation(source, occurrence)
+  let (_, other_stream) = original_export_row_preparation(source, occurrence)
+  let receipt = finish(stream)
+  let other = finish(other_stream)
+  assert_eq(receipt.rows.content.cid, other.rows.content.cid)
+  assert_true(receipt.rows.references is None)
+  assert_true(
+    completed_result_export_retained_metadata_capacity(original, other) is None,
+  )
+  let retained = completed_result_export_retained_metadata_capacity(
+    original, receipt,
+  ).unwrap()
+  let receipt_only = completed_relation_export_retained_capacity(receipt).unwrap()
+  // Fixed controls 24H/72R/80W, 15 current array wrappers at 56B each,
+  // four 32B order tuples, and the actual order/projection backing slots.
+  // The existing receipt quote already counts both shared name arrays.
+  let extra = 2568L +
+    8L *
+    (
+      stream.order.columns.capacity().to_int64() +
+      stream.rows.columns.unwrap().capacity().to_int64()
+    )
+  let bytes = execution_capacity_retained_bytes(receipt_only) + extra
+  assert_eq(execution_capacity_retained_bytes(retained), bytes)
+  assert_eq(execution_capacity_execution_bytes(retained), bytes)
+  cancel_completed_relation_export_receipt(receipt)
+  assert_true(
+    completed_result_export_retained_metadata_capacity(original, receipt)
+    is None,
+  )
+  cancel_completed_relation_export_receipt(other)
+  assert_true(completed_output_available(source))
+}
+
+///|
 test "original export row keeps typed cells and exact selected projection order" {
   let owner = original_export_row_owner()
   let source = export_fixture(owner)
@@ -247,4 +450,166 @@ test "original export row fences cancellation performed by physical availability
   )
   assert_false(completed_output_export_original_row_available(row))
   retire_completed_output_export_original_row(row)
+}
+
+///|
+test "Result export admits the original row measurement before allocating its cursor" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["plain","day","whole","amount"],"order_by":[{"id":"desc"}]}}
+    ),
+  )
+  let (first_preparation, first) = original_export_row_preparation(
+    source, occurrence,
+  )
+  let (other_preparation, other) = original_export_row_preparation(
+    source, occurrence,
+  )
+  assert_true(
+    completed_result_export_open_metadata_capacity(first_preparation, other)
+    is None,
+  )
+  let live_bytes = execution_capacity_execution_bytes(
+    completed_result_export_open_metadata_capacity(first_preparation, first).unwrap(),
+  )
+  let schema = first.schema.unwrap()
+  // 26H/74R/85W, 15 Array wrappers, four 32B order entries,
+  // exact scalar/name/order slots and the two original schema Strings.
+  let scalar_slots = first.column_rows.capacity() +
+    first.column_bytes.capacity() +
+    first.column_nodes.capacity() +
+    first.column_max_value_bytes.capacity() +
+    first.column_null_rows.capacity() +
+    first.column_admitted_depths.capacity() +
+    first.rows.columns.unwrap().capacity()
+  let reference_slots = first.order.columns.capacity() +
+    first.rows.names.capacity() +
+    schema.field_names.capacity()
+  assert_eq(
+    live_bytes,
+    2656L +
+    8L * (scalar_slots + reference_slots).to_int64() +
+    2L * (schema.cid.length() + schema.wire.length()).to_int64(),
+  )
+  let exact = Ref(0L)
+  for
+    (accept, preparation, stream) in [
+      (true, first_preparation, first),
+      (false, other_preparation, other),
+    ] {
+    assert_eq(
+      execution_capacity_execution_bytes(
+        completed_result_export_open_metadata_capacity(preparation, stream).unwrap(),
+      ),
+      live_bytes,
+    )
+    let mut starts = 0
+    let mut emits = 0
+    let mut before_cursor = false
+    let mut reentry_closed = false
+    let fund = fn(capacity) {
+      starts += 1
+      before_cursor = stream.pending_row is None &&
+        stream.row == 0 &&
+        completed_output_export_poll_steps(stream) == 0
+      reentry_closed = next_completed_output_export_canonical_row(
+          stream, 100, 10, 4096,
+        )
+        is Err(Closed)
+      let quote = execution_capacity_execution_bytes(capacity) + live_bytes
+      if accept {
+        exact.val = quote
+      }
+      quote <= exact.val - (if accept { 0L } else { 1L })
+    }
+    let result = next_completed_output_export_canonical_row(
+      stream,
+      100,
+      10,
+      4096,
+      before_measure=Some(fund),
+      before_emit=Some(_ => {
+        emits += 1
+        true
+      }),
+    )
+    assert_eq(starts, 1)
+    assert_true(before_cursor && reentry_closed)
+    if accept {
+      assert_true(result is Ok(Some((0, _, _))))
+      assert_eq(emits, 1)
+      cancel_completed_output_export(stream)
+    } else {
+      assert_true(result is Err(Admission(CaptureLimit)))
+      assert_eq(emits, 0)
+      assert_eq(completed_output_export_poll_steps(stream), 0)
+      assert_true(stream.pending_row is None && stream.row == 0)
+    }
+    assert_true(
+      completed_result_export_open_metadata_capacity(preparation, stream)
+      is None,
+    )
+    assert_true(completed_output_available(source))
+  }
+}
+
+///|
+test "Result export funds the original final receipt beside both open writers" {
+  let owner = original_export_row_owner()
+  let source = export_fixture(owner)
+  let occurrence = result_export_occurrence(
+    owner,
+    "answer",
+    (
+      #|{"answer":{"from":"selected","fields":["day","whole"]}}
+    ),
+  )
+  let exact = Ref(0L)
+  for accept in [true, false] {
+    let (_, stream) = original_export_row_preparation(source, occurrence)
+    let mut visits = 0
+    let mut reentry_closed = false
+    let reserve = fn(capacity) {
+      visits += 1
+      // Receipt cannot start on a reentrant request or after the wrong row.
+      reentry_closed = finish_completed_relation_export(stream) is Err(Closed)
+      let quote = execution_capacity_execution_bytes(capacity)
+      if accept {
+        exact.val = quote
+      }
+      quote <= exact.val - (if accept { 0L } else { 1L })
+    }
+    assert_true(
+      finish_completed_relation_export(stream, before_finish=Some(reserve))
+      is Err(NotFinished),
+    )
+    assert_eq(visits, 0)
+    while next_completed_output_export(stream).unwrap() is Some(_) {
+      ()
+    }
+    let result = finish_completed_relation_export(
+      stream,
+      before_finish=Some(reserve),
+    )
+    assert_eq(visits, 1)
+    assert_true(reentry_closed && exact.val > 0L)
+    if accept {
+      let (receipt, tail) = result.unwrap()
+      assert_eq(tail, "]")
+      assert_eq(receipt.measurement.row_count, 2)
+      assert_true(stream.source is None)
+      cancel_completed_relation_export_receipt(receipt)
+    } else {
+      assert_true(result is Err(Admission(CaptureLimit)))
+      assert_true(stream.source is Some(_))
+      assert_eq(stream.column_rows, [2, 2])
+      assert_eq(stream.row, 2)
+      cancel_completed_output_export(stream)
+    }
+    assert_true(completed_output_available(source))
+  }
 }

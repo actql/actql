@@ -292,12 +292,8 @@ pub fn NativeClientMockModelWork::persist_settlement_evidence_in_original_read(
           Ok(value) => value
           Err(issue) => return Err(Journal(issue))
         }
-        if !record.dispatch_reserved ||
-          !record.physical_start_claimed ||
-          record.effect_material_originals is None ||
-          record.publication_binding != Some(binding) ||
-          @publication.publication_contract_identity(record.definition) !=
-          @publication.publication_contract_identity(self.definition) {
+        if !self.matches_model_call_journal_run(record) ||
+          record.publication_binding != Some(binding) {
           return Err(Journal(ForeignRun))
         }
         native_mock_model_evidence_key(host, binding, operations.reads)

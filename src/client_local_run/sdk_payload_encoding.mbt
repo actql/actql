@@ -370,7 +370,7 @@ pub fn[E] prepare_local_sdk_payload_encoding_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[LocalSDKPayloadEncoding, LocalSDKPayloadPreparationIssue[E]] {
   prepare_local_sdk_payload_encoding_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,
@@ -410,7 +410,7 @@ pub fn[E] validate_local_sdk_payload_encoding_current(
   current : () -> Result[Unit, E],
 ) -> Result[Unit, LocalSDKReadPayloadCodecIssue[E]] {
   validate_local_sdk_payload_encoding_source_current(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,

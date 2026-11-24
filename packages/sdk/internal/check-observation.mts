@@ -118,7 +118,8 @@ export function getCheckParameterAdmission(outcome: CheckOutcome, parameter: str
 // Existing caller-owned response custody; this advice grants no configuration write.
 export function getCheckContextRequirements(outcome: unknown): readonly CheckContextRequirement[] | undefined {
   if (!checkInputs.has(outcome as object) || (outcome as CheckOutcome).outcome !== 'completed') return undefined;
-  return Object.freeze((outcome as CompleteOutcome).report.requirements.filter(reason => ['host_capacity_policy_required', 'numeric_reduction_profile_required'].includes(reason.code)) as readonly CheckContextRequirement[]);
+  return Object.freeze((outcome as CompleteOutcome).report.requirements.filter(reason => ['host_capacity_policy_required', 'numeric_reduction_profile_required',
+    'calendar_profile_required'].includes(reason.code)) as readonly CheckContextRequirement[]);
 }
 
 export function getCheckRequirementFrontier(outcome: CheckOutcome): CheckRequirementFrontier | undefined {

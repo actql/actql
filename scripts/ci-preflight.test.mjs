@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {assertCurrentRevision, readRef, revisionToCheck} from './ci-preflight.mjs';
 import {gateJobs, selectTargets, verifyGate} from './ci-targets.mjs';
@@ -70,6 +71,33 @@ test('preflight remains mandatory at the final gate without delaying independent
       assert.deepEqual(jobs[name].needs, ['select-targets']);
       assert(jobs[name].if.includes("always() && !cancelled() && needs.select-targets.result == 'success'"));
       assert(!jobs[name].if.includes('needs.lint') && !jobs[name].if.includes('needs.core-js'));
+    } else if (name === 'native-cli-linux-local') {
+      assert.deepEqual(jobs[name].needs, ['select-targets']);
+      const condition = jobs[name].if.slice(3, -3)
+        .replaceAll('needs.select-targets', "needs['select-targets']");
+      const enabled = ({event = 'pull_request', result = 'success', profile = 'full',
+        manual = false, cancelled = false, privateRepo = false} = {}) => runInNewContext(condition, {
+        github: {event_name: event, event: {repository: {
+          visibility: privateRepo ? 'private' : 'public', private: privateRepo,
+        }}},
+        needs: {'select-targets': {result, outputs: {profile}}},
+        inputs: {native_shared_remote_linux: manual},
+        always: () => true, cancelled: () => cancelled, toJSON: JSON.stringify,
+      }, {timeout: 100});
+      for (const event of ['pull_request', 'push']) {
+        assert.equal(enabled({event}), true);
+        for (const result of ['failure', 'cancelled', 'skipped'])
+          assert.equal(enabled({event, result}), false);
+        assert.equal(enabled({event, profile: 'draft'}), false);
+        assert.equal(enabled({event, privateRepo: true}), false);
+        assert.equal(enabled({event, cancelled: true}), false);
+        assert.equal(enabled({event, result: 'skipped', manual: true}), false);
+      }
+      const dispatch = {event: 'workflow_dispatch', result: 'skipped', manual: true};
+      assert.equal(enabled(dispatch), true);
+      for (const refusal of [{manual: false}, {result: 'failure'}, {result: 'cancelled'},
+        {cancelled: true}, {privateRepo: true}])
+        assert.equal(enabled({...dispatch, ...refusal}), false);
     } else assert(!/always\(|failure\(|cancelled\(/u.test(jobs[name].if), `${name} must retain implicit success()`);
     assert.equal(jobs[name]['continue-on-error'], undefined);
   }

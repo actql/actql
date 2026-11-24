@@ -1,6 +1,7 @@
 // These are acceptance-harness unit tests with explicit doubles. A green result
 // here does not establish that the Native mock workflow is implemented.
 import assert from 'node:assert/strict';
+import {parse} from 'acorn';
 import {test} from 'node:test';
 import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -9,12 +10,12 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {nativeMockAcceptanceObservations, scaffoldProject} from '../packages/native-cli/lib/project-scaffold.mjs';
 import {captureNativeMockCommand, mockTemplates, nativeLauncherEnvelope, requireNativeMockWork, runNativeCliMockScenario,
-  runNativeNullableMockScenarios, runNativeSharedFileMockScenario}
+  runNativeMixedFileMockScenarios, runNativeNullableMockScenarios, runNativeSharedFileMockScenario}
   from './native-cli-mock-scenario.mjs';
 import {nativeMockInstallOptions} from './test-native-cli-mock-install.mjs';
 import {observeNativeJournalExhaustion, requireNativeJournalCapacityRefusal}
   from './test-native-cli-source-free-install.mjs';
-import {threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
+import {mixedDeleteUpdateMockProject, threeWriteMockProject} from '../adapters/host-node/fixtures/mock-multiple-targets.fixture.mjs';
 import * as nullable from '../adapters/host-node/fixtures/mock-nullable-update.fixture.mjs';
 
 test('Native shared-file fixture requests three ordered rows with independent complete oracles', () => {
@@ -270,6 +271,78 @@ test('installed Native shared-file selection preserves its own original Run and 
       assert.equal(receipt.lockPathAbsent, true);
       assert.deepEqual(calls.map(args => args[0]),
         ['--mode', 'run', 'status', 'status', 'approve', 'status', 'result', 'status', 'result']);
+    }
+  }
+});
+
+test('Native mixed file harness checks the original DELETE diff and both decision paths', async t => {
+  const fixture = mixedDeleteUpdateMockProject();
+  const original = JSON.parse(fixture.before);
+  for (const wrongAfter of [false, true]) {
+    const root = await mkdtemp(join(tmpdir(), 'actql-native-mixed-file-unit-'));
+    t.after(() => rm(root, {recursive: true, force: true}));
+    const calls = [], statuses = new Map();
+    const proof = runNativeMixedFileMockScenarios({root, async run(args, cwd) {
+      const file = join(cwd, 'mock/data.json'), decision = cwd.endsWith('-approve') ? 'approve' : 'reject';
+      const runId = 'run-' + decision, checkpoint = 'checkpoint-' + decision;
+      const cid = observedCid(decision === 'approve' ? 'b' : 'c');
+      const state = () => JSON.stringify({version: 'actql-run-state/0.1', run_id: runId,
+        status: statuses.get(cwd) ?? 'waiting_checkpoint', checkpoint: {checkpoint_id: checkpoint, checkpoint_cid: cid}});
+      calls.push([cwd, args[0]]);
+      let stdout = '', events = [];
+      if (args[0] === '--mode') {
+        assert.equal(await readFile(file, 'utf8'), fixture.before);
+      } else if (args[0] === 'run') {
+        assert.equal(await readFile(join(cwd, fixture.programFile), 'utf8'), fixture.files[fixture.programFile]);
+        stdout = state();
+      } else {
+        await assert.rejects(stat(join(cwd, fixture.programFile)), {code: 'ENOENT'});
+        if (args[0] === 'status' && args.includes('--json')) {
+          assert.equal(args[1], runId);
+          stdout = state();
+        } else if (args[0] === 'status') {
+          assert.equal(args[1], runId);
+          stdout = [`Run: "${runId}"`, `Checkpoint: "${checkpoint}"`, `  Original CID: "${cid}"`,
+            'Stored Effect Preview (read-only; not approval):',
+            ...[['delete', 'Account', 'a1', wrongAfter ? {state: 'present', value: null} : {state: 'absent'}],
+              ['update', 'Contact', 'c1', {state: 'present', value: {value: 'C-new'}}]]
+              .flatMap(([kind, resource, id, after]) => [
+                `  Effect: "${kind}"  Target: "connector://salesforce/${resource}"`,
+                '  Items: 1', '  Preview strength: "full_diff"', '  Changes:', `    Row: "${id}"`,
+                '      Before: ' + JSON.stringify({state: 'present', value: original.salesforce[resource].rows[0]}),
+                '      After: ' + JSON.stringify(after),
+              ])].join('\n') + '\n';
+        } else if (args[0] === decision) {
+          assert.equal(args[1], checkpoint);
+          assert.equal(statuses.has(cwd), false);
+          statuses.set(cwd, decision === 'approve' ? 'succeeded' : 'cancelled');
+          if (decision === 'approve') {
+            await writeFile(file, fixture.after);
+            events = [0, 1].flatMap(ordinal => [5, 6, 7, 8, 9, 10, 11].map(tag => ({
+              tag, ordinal: tag === 6 || tag === 7 ? -1 : 0,
+              identity: tag === 6 || tag === 7 ? '' : 'sha256:' + (ordinal * 16 + (tag === 8 ? 5 : tag))
+                .toString(16).padStart(64, '0'),
+            })));
+          }
+        } else {
+          assert.deepEqual(args, ['result', runId, '--result', 'updates', '--format', 'jsonl']);
+          assert.equal(decision, 'approve');
+          stdout = JSON.stringify(fixture.rows[0]) + '\n';
+        }
+      }
+      return {code: 0, signal: null, stdout, stderr: observation(200 + calls.length, events)};
+    }});
+    if (wrongAfter) {
+      await assert.rejects(proof, /Original Review must preserve ordered targets/u);
+      assert.equal(statuses.size, 0);
+    } else {
+      const [approved, rejected] = await proof;
+      assert.equal(approved.resultRows, 1);
+      assert.notEqual(approved.beforeSha256, approved.afterSha256);
+      assert.equal(rejected.beforeSha256, rejected.afterSha256);
+      assert(approved.lockPathAbsent && rejected.lockPathAbsent);
+      assert.deepEqual(calls.filter(([cwd]) => cwd.endsWith('-reject')).map(([, command]) => command),
+        ['--mode', 'run', 'status', 'status', 'reject', 'status']);
     }
   }
 });
@@ -728,9 +801,44 @@ test('the required Node caller cannot silently become a direct Native caller', a
   const options = await fixture(t,'deal-review-mock'); options.launcherTimings='required';
   await assert.rejects(runNativeCliMockScenario(options),/Required Node launcher timing trailer missing/u);
   const installed = await readFile(new URL('./test-native-cli-mock-install.mjs',import.meta.url),'utf8');
-  assert.match(installed, /const runScenarioCommand = \(args, cwd\) => run\(process\.execPath, \[launcher, \.\.\.args\], cwd\);/u);
-  assert.match(installed, /runNativeCliMockScenario\(\{\s*root, template, launcherTimings: 'required', run: runScenarioCommand\s*\}/u);
-  assert.match(installed, /runNativeSharedFileMockScenario\(\{\s*root,\s*launcherTimings: 'required', run: runScenarioCommand\s*\}/u);
+  const declarations = [], invocations = new Map();
+  function collect(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === 'runScenarioCommand') declarations.push(node.init);
+    if (node.type === 'CallExpression' && ['runNativeCliMockScenario', 'runNativeSharedFileMockScenario',
+      'runNativeNullableMockScenarios', 'runNativeMixedFileMockScenarios'].includes(node.callee.name)) {
+      assert.equal(invocations.has(node.callee.name), false);
+      invocations.set(node.callee.name, node.arguments[0]);
+    }
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) child.forEach(collect);
+      else if (child !== null && typeof child === 'object') collect(child);
+    }
+  }
+  collect(parse(installed, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(declarations.length, 1);
+  const [launcherBinding] = declarations;
+  assert.equal(launcherBinding.type, 'ArrowFunctionExpression');
+  assert.deepEqual(launcherBinding.params.map(param => param.name), ['args', 'cwd']);
+  const launch = launcherBinding.body;
+  assert.equal(launch.type, 'CallExpression');
+  assert.equal(launch.callee.name, 'run');
+  const [nodeExecutable, launchArguments, directory] = launch.arguments;
+  assert.equal(nodeExecutable.object.name, 'process');
+  assert.equal(nodeExecutable.property.name, 'execPath');
+  assert.equal(launchArguments.elements[0].name, 'launcher');
+  assert.equal(launchArguments.elements[1].type, 'SpreadElement');
+  assert.equal(launchArguments.elements[1].argument.name, 'args');
+  assert.equal(directory.name, 'cwd');
+  assert.equal(invocations.size, 4);
+  for (const [name, options] of invocations) {
+    assert.equal(options.type, 'ObjectExpression');
+    const byName = new Map(options.properties.map(property => [property.key.name, property.value]));
+    assert.equal(byName.get('root').name, 'root', name);
+    assert.equal(byName.get('run').name, 'runScenarioCommand', name);
+    assert.equal(byName.get('launcherTimings').value, 'required', name);
+    if (name === 'runNativeCliMockScenario') assert.equal(byName.get('template').name, 'template');
+  }
 });
 
 for (const [name, envelope] of [
@@ -772,6 +880,7 @@ test('Native mock command capture preserves complete diagnostics on an owned reg
   const payload = join(root, 'original.txt'), stderrPath = join(root, 'command.stderr');
   await writeFile(payload, original);
   const source = `import assert from 'node:assert/strict';
+import {parse} from 'acorn';
     import {fstatSync,readFileSync,writeSync} from 'node:fs';
     assert(fstatSync(2).isFile());
     const reply=await fetch(process.argv[2]);

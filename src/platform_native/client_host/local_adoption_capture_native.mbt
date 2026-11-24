@@ -12,6 +12,17 @@ pub(all) struct NativeLocalExistingAdoptionInput {
 }
 
 ///|
+/// The optional Model selection comes from the same protected operator file.
+/// Its dependent configuration names are resolved on the same source Root.
+pub(all) struct NativeLocalModelConfigurationSelection {
+  provider_id : String
+  files : NativeModelHttpConfigurationFiles
+  execution : String?
+  policy : String?
+  limits : @environment.Limits
+}
+
+///|
 /// Physical operation identity, independent of opening/current/cleanup outcome.
 pub(all) enum NativeLocalAdoptionCaptureOperation {
   OpenCapturedAdoption
@@ -43,6 +54,7 @@ pub(all) enum NativeLocalAdoptionCaptureIssue {
 /// Preparation performs no I/O and supplies no capacity or current authority.
 struct NativeLocalAdoptionCapture {
   input : NativeLocalExistingAdoptionInput
+  model_configuration : NativeLocalModelConfigurationSelection?
   crypto : @crypto.Library
   root_opening : NativeLocalAdoptionRootOpening
   existing_only : Bool
@@ -66,15 +78,32 @@ fn prepare_local_existing_adoption_capture(
   crypto : @crypto.Library,
   root_opening : NativeLocalAdoptionRootOpening,
   existing_only? : Bool = true,
+  model_configuration? : NativeLocalModelConfigurationSelection? = None,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   // Reuse the existing configuration limit before copying caller-owned DATA.
   // Selection, ordering and all physical validation remain in Adoption itself.
-  if input.configuration_files.length() > 11 ||
-    (
-      input.configuration_files.length() == 11 &&
-      !input.configuration_files.contains("host.json")
+  if !local_adoption_configuration_count_supported(
+      input.configuration_files,
+      model_configuration,
     ) {
     return Err(ConfigurationLimit)
+  }
+  if model_configuration is Some(_) {
+    guard construction is Some(prepare) else { return Err(ConfigurationLimit) }
+    let slots = input.configuration_files.length().to_int64()
+    // Snapshot array, input record, selected Model reference and bounded
+    // capture controls before copying the selected names.
+    let inventory : @authorization.AccountConfigurationConstructionUnits = {
+      record_headers: 8L,
+      reference_slots: slots + 24L,
+      scalar_words: 6L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 0L,
+    }
+    if !prepare({ retained: inventory, execution: inventory, }) {
+      return Err(ConfigurationLimit)
+    }
   }
   let snapshot = {
     ..input,
@@ -82,6 +111,7 @@ fn prepare_local_existing_adoption_capture(
   }
   Ok({
     input: snapshot,
+    model_configuration,
     crypto,
     root_opening,
     existing_only,
@@ -110,11 +140,15 @@ pub fn prepare_native_local_existing_adoption_capture_in_current_read_context(
   input : NativeLocalExistingAdoptionInput,
   crypto : @crypto.Library,
   diagnostic_ceiling : Int,
+  model_configuration? : NativeLocalModelConfigurationSelection? = None,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   prepare_local_existing_adoption_capture(
     input,
     crypto,
     CurrentOriginalReadRoots(diagnostic_ceiling),
+    model_configuration~,
+    construction~,
   )
 }
 
@@ -126,11 +160,15 @@ pub fn prepare_native_local_initial_adoption_capture_in_current_read_context(
   input : NativeLocalExistingAdoptionInput,
   crypto : @crypto.Library,
   diagnostic_ceiling : Int,
+  model_configuration? : NativeLocalModelConfigurationSelection? = None,
+  construction? : ((@authorization.AccountConfigurationConstruction) -> Bool)? = None,
 ) -> Result[NativeLocalAdoptionCapture, NativeLocalAdoptionIssue] {
   prepare_local_existing_adoption_capture(
     input,
     crypto,
     CurrentOriginalReadRoots(diagnostic_ceiling),
+    model_configuration~,
+    construction~,
     existing_only=false,
   )
 }
@@ -184,6 +222,7 @@ pub fn NativeLocalAdoptionCapture::open(
         self.input.account_id,
         self.crypto,
         configuration_files=self.input.configuration_files,
+        model_configuration=self.model_configuration,
         managed_root_path=self.input.managed_root_path,
         existing_only=self.existing_only,
         custody=Some(self.original),

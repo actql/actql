@@ -1,5 +1,5 @@
 import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';
-import {prepareOpenAIChatRequest, readReportedUsage} from './openai-chat.mjs';
+import {prepareOpenAIChatRequest, readReportedUsage, readReportedResponse} from './openai-chat.mjs';
 import {isDeepStrictEqual} from 'node:util';
 import {createSdkModelPreflight, createSdkStructuredModelPreflight,
   originalSdkCallOptions, sdkProjectionBounds} from './model-port.mjs';
@@ -158,5 +158,5 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
     ...(rawCaptureBinder === undefined ? {} : {rawCaptureBinder})};
   return structuredAdmission === undefined ? createSdkModelPreflight(options)
     : createSdkStructuredModelPreflight(options as unknown as Parameters<typeof createSdkStructuredModelPreflight>[0],
-      structuredAdmission, readReportedUsage);
+      structuredAdmission, readReportedUsage, readReportedResponse);
 }

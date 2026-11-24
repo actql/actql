@@ -164,9 +164,12 @@ fn github_read_prefix_construction_capacity(
   // their nine Some carriers and two original continuation+progress records.
   // Comment rows are smaller; original subjects add1H4R1W each.
   guard @shape.collection_construction_extent({
-      records: 16L * rows + subjects + 10L * pages.to_int64(),
-      // One retained original constructor cleanup-projector alias.
-      record_references: 1L +
+      // The Catalog's outer cursor-history wrapper adds 1H1R to the
+      // growing map that replaces the Site's previous outer cursor Set.
+      records: 1L + 16L * rows + subjects + 10L * pages.to_int64(),
+      // One retained original constructor cleanup-projector alias and the
+      // wrapper's reference to its own map.
+      record_references: 2L +
       39L * rows +
       4L * subjects +
       32L * pages.to_int64(),
@@ -181,8 +184,12 @@ fn github_read_prefix_construction_capacity(
       6L * pages.to_int64(),
       scalar_arrays: 1L,
       scalar_items: rows,
+      // Grow the outer history for at most one cursor per original
+      // response. Its key borrows the already quoted parsed cursor.
+      // The retained escape Set can hold the original prefix failure and
+      // its stopped-read wrapper at the same time.
       maps: 2L,
-      map_entries: pages.to_int64(),
+      map_entries: pages.to_int64() + 2L,
     })
     is Some(typed) &&
     github_read_request_inventory() is Some(request) else {

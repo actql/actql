@@ -982,12 +982,33 @@ test('Core HTTP arguments retain only the existing credential peer callers and N
 
 
 test('Native physical consumers retain scoped file/index identities and exclude ordinary profile', t => {
+  const captureFile = 'local_effect_capture_wbtest.mbt';
+  const captureSource = readFileSync(new URL('../src/cmd/native_client/' + captureFile, import.meta.url), 'utf8');
+  const captureNames = [...captureSource.matchAll(/^test "([^"]+)"/gmu)].map(match => match[1]);
+  assert.deepEqual(captureNames, [
+    'Native Work capture exposes the original owner method without a supplied journal',
+    'Native first member retains one original capture before input and full recipe growth',
+    'Native returned import funds next Model body on the exact original reservation',
+    'Native lookup measures beside its current tables on the original capture reservation',
+    'Native Model Result Artifact reserves measured bodies beside its original census',
+    'Native Unit Result row funding keeps its own writer beside its decoder',
+    'Native proposal projection funds both pair arrays beside the decoded row',
+    'Native proposal return drops only its old workspace before the next construction',
+    'Native proposal append reserves the returned strings and replacement slots',
+    'Native completed canonical dependencies retain data without accumulating parser scratch',
+    'Native serial capture retains every row and one original constructor workspace',
+    'Native complete Unit inventory keeps an unconsumed Result alias',
+    'Native serial Source snapshots reuse the actual overlapping constructor peak',
+    'Native inventory Source binding funds the same operation before checking roots',
+    'Native Preview target parsing funds overlapping original rows before entry',
+    'Native Preview draft counts both positions of one original row value',
+  ]);
   for (const [directory, file, cases, profile] of [
     ['src/platform_native/installed_arena_control', 'request_source_frame_physical_scoped_wbtest.mbt', 2, 'scoped-review-values'],
     ['src/platform_native/installed_arena_control', 'owned_body_extent_physical_scoped_wbtest.mbt', 3, 'scoped-review-values'],
     ['src/platform_native/installed_arena_control', 'publication_read_construction_physical_scoped_wbtest.mbt', 3, 'scoped-review-values'],
     ['src/cmd/native_client', 'local_project_mock_request_physical_scoped_wbtest.mbt', 2, 'runtime-values'],
-    ['src/cmd/native_client', 'local_effect_capture_wbtest.mbt', 5, 'runtime-values'],
+    ['src/cmd/native_client', captureFile, captureNames.length, 'runtime-values'],
     ['src/cmd/native_client', 'local_project_mock_content_physical_scoped_wbtest.mbt', 4, 'runtime-values'],
     ['src/platform_native/row_source', 'target_io_physical_scoped_wbtest.mbt', 4, 'scoped-review-values'],
     ['src/platform_native/row_source', 'target_io_lineage_physical_scoped_wbtest.mbt', 3, 'scoped-review-values'],
@@ -1009,7 +1030,8 @@ test('Native physical consumers retain scoped file/index identities and exclude 
       const output = resolve(root, args[args.indexOf('--output-metadata')+1]);
       mkdirSync(dirname(output), {recursive: true});
       writeFileSync(output, JSON.stringify({tests: {
-        [file]: indexes.map(index => ({index, name:'Source original '+index, attrs:[], line_number:index+1})),
+        [file]: indexes.map(index => ({index, name: file === captureFile ? captureNames[index] : 'Source original '+index,
+          attrs:[], line_number:index+1})),
         [ordinaryFile]: [{index:0, name:'ordinary sibling', attrs:[], line_number:1}],
       }}));
       return '';

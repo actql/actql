@@ -15,6 +15,7 @@ export interface AnswerPrimitives {
   canonicalJson(value: unknown, options?: {dataKeys?: boolean}): string;
   bytesCid(bytes: Uint8Array<ArrayBuffer>): string | PromiseLike<string>;
 }
+export declare function hasCanonicalReviewContentPadding(value: string): boolean;
 export declare function createCheckpointAnswerCodec(primitives: AnswerPrimitives): Readonly<{
   prepareAnswerCandidate(summary: unknown, decision: unknown, actor: unknown,
     decidedAt: unknown, limits: AnswerLimits): Promise<AnswerCandidate>;

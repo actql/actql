@@ -76,6 +76,7 @@ test "Business child cleanup retries the same failed physical entry after origin
     request_retiring: false,
     model_work: [],
     effect_model: None,
+    model_run: None,
     saved_effect_rows: [],
     saved_effect_files: None,
     values_work: None,

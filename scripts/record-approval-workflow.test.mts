@@ -200,9 +200,12 @@ test('record rejection resolves the same signed Checkpoint and cold lookup only 
     })}]};
   }});
   assert.deepEqual(original.events.slice(cursor), ['load:captured', 'attach', 'effect:status',
-    'save:reject-status', 'review', 'reject', 'effect:wait', 'save:reject-wait', 'save:rejected', 'close']);
+    'save:reject-status', 'review', 'reject', 'effect:wait', 'save:reject-wait', 'save:rejected',
+    'submit:read', 'save:after-reject-ref', 'read:wait', 'read:rows', 'save:after-reject', 'close']);
   assert.equal(rejectionCalls, 1);
   assert.equal(original.saved.get('rejected').status, 'cancelled');
+  assert.deepEqual(original.saved.get('after-reject').rows, value.read.beforeRows);
+  assert.notDeepEqual(original.saved.get('after-reject').ref, original.effect.ref);
   original.effect.status = async () => {original.events.push('effect:status');return resolved;};
   cursor = original.events.length;
   await phase('recover', value, original, {decision, reject: () => assert.fail('Repeated rejection')});
@@ -257,7 +260,7 @@ test('shared command reopens the same externally authored Program, parameters an
   value.effect.parameters.next_name = 'Selected alternate value';
   value.effect.expectedRows[0].next_name = 'Selected alternate value';
   value.read.afterRows[0].Subject = 'Selected alternate value';
-  value.review.changes.Subject = 'Selected alternate value';
+  value.review.changes!.Subject = 'Selected alternate value';
   const control = {id: 'alternate-control', name: 'Retain this control'};
   const schema = {sourceRef: 'connector://kintone/inquiries#records',
     sourceViewContractCid: cid('a'), carrierSchemaContractCid: cid('b')};
@@ -329,19 +332,28 @@ test('authored schema pins compare each original provider schema reference indep
   }
 });
 
-test('the standard HubSpot and kintone case files keep the original Programs and independent oracles', async () => {
-  for (const [connector, build] of [['hubspot', hubspotUpdateCase], ['kintone', kintoneUpdateCase]] as const) {
+test('the standard HubSpot and kintone cases keep one write and read both independent rows', async () => {
+  for (const [connector, build, field] of [
+    ['hubspot', hubspotUpdateCase, 'name'], ['kintone', kintoneUpdateCase, 'Subject'],
+  ] as const) {
     const directory = new URL(`./fixtures/${connector}-approval/`, import.meta.url);
     const authored = await readAuthoredCase(fileURLToPath(new URL('case.json', directory)));
     const selected = sharedRecordUpdateSelections[connector];
     const update = await readFile(new URL('update.aql', directory), 'utf8');
     const read = await readFile(new URL('read.aql', directory), 'utf8');
-    const {fixture, ...original} = authored;
-    assert.deepEqual(original, build({update, read}, selected));
+    const {fixture, read: verification, ...original} = authored;
+    const {read: targetOnly, ...effectCase} = build({update, read}, selected);
+    assert.deepEqual(original, effectCase);
     assert.deepEqual(fixture!.expected, recordUpdateFixtureState(selected));
-    const {id: recordId, name: previousName} = fixture!.expected.before.target;
+    const {id: recordId, name: previousName} = fixture!.expected.before.target!;
     const {id: controlId, name: controlName} = fixture!.expected.before.control;
     assert.deepEqual(fixture!.seed, {recordId, previousName, controlId, controlName});
+    assert.deepEqual(verification.parameterDeclarations,
+      {...targetOnly.parameterDeclarations, control_id: {type: 'string'}});
+    assert.deepEqual(verification.parameters, {...targetOnly.parameters, control_id: controlId});
+    const control = {id: controlId, [field]: controlName};
+    assert.deepEqual(verification.beforeRows, [...targetOnly.beforeRows, control]);
+    assert.deepEqual(verification.afterRows, [...targetOnly.afterRows, control]);
   }
 });
 
@@ -983,15 +995,15 @@ function hubspotProviderFixture(alternate: ProviderFields = {}) {
 
 test('HubSpot approval provider retains independent original records and accepts one exact marked update', () => {
   const f = hubspotProviderFixture(), before = f.value.snapshot();
-  assert.equal(before.target.name, selection.previousName);
+  assert.equal(before.target!.name, selection.previousName);
   assert.equal(before.writes, 0);
   const response = f.apply(f.body);
   assert.equal((response.body as HubSpotResult).status, 'COMPLETE');
   assert.equal((response.body as HubSpotResult).results[0].id, selection.recordId);
   const after = f.value.snapshot();
   assert.equal(after.writes, 1);
-  assert.equal(after.target.name, selection.nextName);
-  assert.equal(after.target.marker, cid('b'));
+  assert.equal(after.target!.name, selection.nextName);
+  assert.equal(after.target!.marker, cid('b'));
   assert.deepEqual(after.control, before.control);
   assert.throws(() => f.apply(f.body));
   assert.equal(f.value.snapshot().writes, 1);
@@ -1007,7 +1019,7 @@ test('HubSpot approval provider refuses wrong targets, malformed values and mark
     mutate(f.body);
     assert.throws(() => f.apply(f.body));
     assert.equal(f.value.snapshot().writes, 0);
-    assert.equal(f.value.snapshot().target.name, selection.previousName);
+    assert.equal(f.value.snapshot().target!.name, selection.previousName);
     assert.equal(f.value.snapshot().failures.length, 1, 'The rejected route remains an independent fixture failure');
   }
 });
@@ -1081,12 +1093,39 @@ test('kintone approval provider keeps string identity and original revision for 
   assert.deepEqual((f.apply(f.body).body as {records: unknown[]}).records,
     [{id: f.selected.recordId, revision: '9007199254740995'}]);
   const after = f.value.snapshot();
-  assert.equal(after.target.name, selection.nextName);
-  assert.equal(after.target.revision, '9007199254740995');
+  assert.equal(after.target!.name, selection.nextName);
+  assert.equal(after.target!.revision, '9007199254740995');
   assert.equal(after.writes, 1);
   assert.deepEqual(after.control, before.control);
   assert.throws(() => f.apply(f.body));
   assert.equal(f.value.snapshot().writes, 1);
+});
+
+test('authored kintone DELETE distinguishes absent target from unchanged control and rejects stale revision', async () => {
+  const path = fileURLToPath(new URL('./fixtures/kintone-approval/delete.case.json', import.meta.url));
+  const declared = await readAuthoredCase(path);
+  const {provider, write} = kintoneApprovalInstallation(declared.fixture!.seed, declared.review.kind);
+  assert.deepEqual(write, {resource: 'inquiries', kind: 'delete'});
+  const start = provider.snapshot();
+  const {recordId} = declared.fixture!.seed;
+  const {pathname, method, bodyIncludes} = provider.writeRequest;
+  const route = provider.routes.find(route => route.method === method && route.pathname === pathname &&
+    (route as {bodyIncludes?: string}).bodyIncludes === bodyIncludes)!;
+  const exchange = (revision: string): Exchange => ({method, pathname, path: pathname, query: {}, authorized: true, headers: {'x-http-method-override': 'DELETE'},
+    body: JSON.stringify({app: '12', ids: [recordId], revisions: [revision]})});
+  assert.throws(() => route.handle(exchange('9007199254740993')), {code: 'ERR_ASSERTION'});
+  assert.equal(provider.snapshot().writes, 0);
+  assert.deepEqual(provider.snapshot().target, start.target);
+  assert.deepEqual(route.handle(exchange('9007199254740994')).body, {});
+  assert.throws(() => route.handle(exchange('9007199254740994')), {code: 'ERR_ASSERTION'});
+  const final = provider.snapshot();
+  assert.equal(final.writes, 1);
+  assertRecordApprovalTarget(final, declared.fixture!.expected.after);
+  assert.deepEqual(final.control, start.control);
+  assert.throws(() => assertRecordApprovalTarget(start, declared.fixture!.expected.after), /Independent provider target state/u);
+  assert.equal(recordUpdateReplyLossFaults(provider)[0].bodyIncludes, '"ids":');
+  provider.reset();
+  assert.deepEqual(provider.snapshot(), start);
 });
 
 test('record approval target oracle refuses protocol-valid writes with unexpected values', () => {
@@ -1101,7 +1140,7 @@ test('record approval target oracle refuses protocol-valid writes with unexpecte
     const after = fixture.value.snapshot();
     assert.equal(after.writes, 1);
     assert.deepEqual(after.failures, []);
-    assert.equal(after.target.name, wrongValue);
+    assert.equal(after.target!.name, wrongValue);
     assert.deepEqual(after.control, before.control);
     assert.throws(() => assertRecordApprovalTarget(after, expected.after), /Independent provider target state/u);
   }
@@ -1134,7 +1173,7 @@ for (const [connector, makeFixture, buildMockFromSeed, resource, idField, nameFi
   assert.equal(fixture.value.snapshot().failures.length, 1);
   (after.target as {name: string}).name = 'Changed snapshot';
   after.requests.length = 0;
-  assert.equal(fixture.value.snapshot().target.name, alternate.nextName);
+  assert.equal(fixture.value.snapshot().target!.name, alternate.nextName);
   assert.equal(fixture.value.snapshot().requests.length, 2);
   fixture.value.reset();
   assert.deepEqual(fixture.value.snapshot(), before);
@@ -1189,7 +1228,7 @@ for (const [connector, builder, resource, idField, valueField, makeProvider, mak
   assert.deepEqual(definition.effect.parameters, {record_id: '9007199254740993', next_name: afterName});
   assert.deepEqual(definition.effect.expectedRows, [{id: '9007199254740993', previous_name: beforeName, next_name: afterName}]);
   const provider = makeProvider(selected), before = provider.snapshot();
-  assert.deepEqual({id: before.target.id, name: before.target.name}, expectedBefore.target);
+  assert.deepEqual({id: before.target!.id, name: before.target!.name}, expectedBefore.target);
   assert.deepEqual({id: before.control.id, name: before.control.name}, expectedBefore.control);
   assert.equal(before.writes, 0);
   if (connector === 'hubspot') {
@@ -1199,7 +1238,7 @@ for (const [connector, builder, resource, idField, valueField, makeProvider, mak
     }]})};
     update.handle(exchange as Exchange);
     assert.equal((provider.snapshot().target as {marker: string}).marker, cid('b'));
-    assert.equal(Object.hasOwn(provider.snapshot().target, 'revision'), false, 'HubSpot does not gain atomic revision semantics');
+    assert.equal(Object.hasOwn(provider.snapshot().target!, 'revision'), false, 'HubSpot does not gain atomic revision semantics');
     assert.throws(() => update.handle(exchange as Exchange), 'A repeated fixture 200 must not prove another write');
   } else {
     const update = provider.routes.find(route => route.method === 'PUT')!;
@@ -1208,11 +1247,11 @@ for (const [connector, builder, resource, idField, valueField, makeProvider, mak
         record: {Subject: {value: selected.nextName}}}], upsert: false})};
     update.handle(exchange as Exchange);
     assert.equal((provider.snapshot().target as {revision: string}).revision, '9007199254740995');
-    assert.equal(Object.hasOwn(provider.snapshot().target, 'marker'), false);
+    assert.equal(Object.hasOwn(provider.snapshot().target!, 'marker'), false);
     assert.throws(() => update.handle(exchange as Exchange), 'Original revision cannot authorize another write');
   }
   const after = provider.snapshot();
-  assert.deepEqual({id: after.target.id, name: after.target.name}, expectedAfter.target);
+  assert.deepEqual({id: after.target!.id, name: after.target!.name}, expectedAfter.target);
   assert.deepEqual(after.control, before.control);assert.equal(after.writes, 1);
   assert.equal(after.failures.length, 1, 'The explicit repeated-write refusal remains a separate fixture failure');
 });
@@ -1313,7 +1352,7 @@ for (const [connector, makeProvider, credentialHeader] of [
   const selected = sharedRecordUpdateSelections[connector];
   const expected = recordUpdateFixtureState(selected), provider = makeProvider(selected);
   const before = provider.snapshot();
-  assert.deepEqual({id: before.target.id, name: before.target.name}, expected.before.target);
+  assert.deepEqual({id: before.target!.id, name: before.target!.name}, expected.before.target);
   const faults = recordUpdateReplyLossFaults(provider);
   const tls = await openRecordApprovalExchange(t, {provider, faults});
   const body = connector === 'hubspot' ? {inputs: [{id: selected.recordId,
@@ -1346,15 +1385,15 @@ for (const [connector, makeProvider, credentialHeader] of [
   assert.equal(JSON.stringify(tls.seen()).includes('loopback-loss-credential'), false);
   const after = provider.snapshot();
   assert.equal(after.writes, 1);
-  assert.deepEqual({id: after.target.id, name: after.target.name}, expected.after.target);
+  assert.deepEqual({id: after.target!.id, name: after.target!.name}, expected.after.target);
   assert.deepEqual(after.control, before.control);
   assert.equal(after.failures.length, 0, 'Socket failure followed a real successful provider apply');
   if (connector === 'hubspot') {
     assert.equal((after.target as {marker: string}).marker, cid('b'));
-    assert.equal(Object.hasOwn(after.target, 'revision'), false);
+    assert.equal(Object.hasOwn(after.target!, 'revision'), false);
   } else {
     assert.equal((after.target as {revision: string}).revision, '9007199254740995');
-    assert.equal(Object.hasOwn(after.target, 'marker'), false);
+    assert.equal(Object.hasOwn(after.target!, 'marker'), false);
   }
   provider.reset();
   assert.deepEqual(provider.snapshot(), before);

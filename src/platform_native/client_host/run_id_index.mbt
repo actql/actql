@@ -104,6 +104,33 @@ fn NativeClientRunJournal::run_id_original_locked(
   )?,
   NativeClientRunJournalIssue,
 ] {
+  self
+  .run_reference_original_locked(authority, reference, scope, reads~)
+  .map(selected => {
+    match selected {
+      Some((_, _, definition)) if @publication.run_definition_run_id(definition)
+        is Ok(original_id) &&
+        original_id == id => selected
+      _ => None
+    }
+  })
+}
+
+///|
+fn NativeClientRunJournal::run_reference_original_locked(
+  self : NativeClientRunJournal,
+  authority : NativeClientEpochAuthority,
+  reference : NativeClientSubmissionReference,
+  scope : String,
+  reads? : NativeClientJournalReadAccess? = None,
+) -> Result[
+  (
+    NativeClientSubmissionReference,
+    @host.ClientRequestIdentity,
+    @publication.PublicationContract,
+  )?,
+  NativeClientRunJournalIssue,
+] {
   match
     self.verify_submission_locked(authority, reference, scope, true, reads~) {
     Ok(_) => ()
@@ -118,9 +145,7 @@ fn NativeClientRunJournal::run_id_original_locked(
   guard submission.run_admission is Some(admission) && selected is Some(run) else {
     return Ok(None)
   }
-  if @host.client_request_authority_scope_cid(admission.request) != scope ||
-    !(@publication.run_definition_run_id(run.definition) is Ok(original_id) &&
-    original_id == id) {
+  if @host.client_request_authority_scope_cid(admission.request) != scope {
     return Ok(None)
   }
   Ok(Some((reference, run.request, run.definition)))

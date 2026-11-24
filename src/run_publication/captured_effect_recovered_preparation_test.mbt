@@ -126,3 +126,45 @@ test "prepared dependency inventory retains exact nonempty root DATA without cal
     )
   }
 }
+
+///|
+test "aligned prepared inventory rechecks the closure when an original Source selects no root" {
+  let chain = captured_run_test_chain()
+  let preview = final_test_preview(chain)
+  let source = final_test_local_source(chain, final_test_source(chain, preview))
+  let cid = "sha256:58aca71c9645edf63bfebadb8d0717cccebbc1a7092ad6f12ee9192304401bc3"
+  let wire = "{\"self_cid\":\"" +
+    cid +
+    "\",\"sources\":[],\"version\":\"actql-acquisition-scope/0.1\"}"
+  let body = admit_publication_effect_dependency_body(
+    "acquisition_scope", wire, 8192, 1000, 32,
+  ).unwrap()
+  let prepared = prepare_captured_effect_dependency_inventory(
+    [body],
+    [body],
+    1000,
+    32,
+    _ => true,
+  ).unwrap()
+  let issued = issue_prepared_captured_effect_dependency_inventory(prepared, _ => {
+    true
+  }).unwrap()
+  let legacy = admit_captured_effect_source_dependencies(
+    [source],
+    captured_effect_dependency_inventory_json(issued),
+    8192,
+    1000,
+    32,
+  )
+  assert_true(legacy is Err(UnusedDependency))
+  assert_true(
+    bind_aligned_prepared_effect_dependency_sources(
+      prepared,
+      [source],
+      8192,
+      1000,
+      32,
+    )
+    is Err(UnusedDependency),
+  )
+}

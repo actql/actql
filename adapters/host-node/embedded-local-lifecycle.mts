@@ -62,6 +62,47 @@ type ComputeRegistry = {
 };
 
 
+type EffectReference = Readonly<{ref: unknown; durability: unknown; revision: unknown}>;
+type EffectDiagnostic = (event: string, detail: Readonly<Record<string, unknown>>) => unknown;
+type EffectStart<Accepted extends EffectReference> = Readonly<{
+  effectRun: Readonly<{start(accepted: Accepted): Promise<unknown>}>;
+  settle(): void;
+  diagnostic: EffectDiagnostic;
+}>;
+type EffectObservation = Readonly<{retainOperation?(operation: Promise<unknown>): unknown}>;
+type SettlementFailure = {code?: unknown; message?: unknown; cause?: unknown} | null | undefined;
+
+export function installedEffectSettlements(observation?: EffectObservation) {
+  const starts = new Set<Promise<unknown>>();
+  const retain = (settlement: Promise<unknown>) => {
+    // Run-state observation can open Store readers after dispatch retires.
+    // Keep this original continuation through Host stop as well.
+    starts.add(settlement);
+    const retire = () => { starts.delete(settlement); };
+    settlement.then(retire, retire);
+    try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
+  };
+  return Object.freeze({
+    start<Accepted extends EffectReference>(accepted: Accepted,
+      {effectRun, settle, diagnostic}: EffectStart<Accepted>) {
+      // Return the durable original Ref before physical work settles.
+      const settlement = effectRun.start(accepted).catch((error: SettlementFailure) => {
+        diagnostic('effect_start_failed', {ref: accepted.ref,
+          code: error?.code ?? error?.message, cause: error?.cause});
+      }).finally(settle).catch((error: SettlementFailure) => diagnostic('effect_settlement_failed', {
+        ref: accepted.ref, code: error?.code ?? error?.message}));
+      retain(settlement);
+      return {ref: accepted.ref, durability: accepted.durability, revision: accepted.revision};
+    },
+    retain,
+    async drain(resumes: ReadonlyMap<unknown, unknown>, retirements: ReadonlyMap<unknown, unknown>) {
+      // Host stop has joined the last sweep. Only its admitted work remains.
+      await Promise.allSettled([...starts, ...resumes.values()]);
+      await Promise.allSettled([...retirements.values()]);
+    },
+  });
+}
+
 export function installedHostShutdown(host: ShutdownHost) {
   const retireRuntime = host.retireModelRuntime;
   const initialControl = host.initialControl;

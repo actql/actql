@@ -195,6 +195,24 @@ pub fn bind_model_invocation_scope(
 }
 
 ///|
+/// Borrow the canonical configuration identities from the already sealed
+/// provider binding. These facts carry no installation or dispatch authority.
+pub fn model_provider_binding_configuration_cids(
+  value : RunEvidenceValue,
+) -> (String, String, String)? {
+  guard value.name == "model_provider_binding" &&
+    contract_string_from_value(value.value, "installation_revision_cid")
+    is Some(installation) &&
+    contract_string_from_value(value.value, "configuration_contract_cid")
+    is Some(contract) &&
+    contract_string_from_value(value.value, "configuration_cid")
+    is Some(configuration) else {
+    return None
+  }
+  Some((installation, contract, configuration))
+}
+
+///|
 /// Exact identity facts only; callers cannot use them as execution authority.
 pub fn model_invocation_scope_cid(value : BoundModelInvocationScope) -> String {
   value.scope.identity

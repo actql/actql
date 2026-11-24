@@ -602,7 +602,19 @@ fn assemble_native_effect_free_publication_owned(
   let artifacts = outputs.map(output => output.artifact)
   let derivations = outputs.map(output => output.derivation)
   let orderings = outputs.map(output => output.ordering)
-  let retentions = outputs.map(output => output.retention)
+  // Results keep their individual Artifact and Binding. The commit takes a
+  // set of retention contracts, which multiple Results may share by CID.
+  let retentions : Array[@publication.PublicationContract] = Array(
+    capacity=outputs.length(),
+  )
+  for output in outputs {
+    if !@publication.append_unique_result_retention_evidence(
+        retentions,
+        output.retention,
+      ) {
+      return Err(InvalidAssembly)
+    }
+  }
   let bindings = outputs.map(output => output.binding)
   let binding_schema_wires = outputs.map(output => output.binding_schema_wire)
   let snapshots = outputs.map(output => output.snapshot)

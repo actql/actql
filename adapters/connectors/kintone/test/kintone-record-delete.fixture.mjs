@@ -21,6 +21,7 @@ const read = name => readFile(new URL(name, repo), 'utf8');
 const bytes = value => Buffer.from(JSON.stringify(value));
 const cid = value => 'sha256:' + createHash('sha256').update(value).digest('hex');
 const ids = ['9007199254740992', '9007199254740993'];
+const controlId = '9007199254740994';
 const fields = ['RecordNumber', 'Subject', 'Tags'];
 const limits = Object.freeze({maxResponseBytes: 8192, maxRequestBytes: 4096,
   maxNodes: 2000, maxDepth: 20, maxFields: 16, maxNameUnits: 512, maxRows: 2,
@@ -31,8 +32,18 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
   const parent = new URL('../../../../_build/kintone-delete-fixtures/', import.meta.url);
   await mkdir(parent, {recursive: true});
   const root = await mkdtemp(join(parent.pathname, 'delete-'));
+  const records = new Map([
+    ...ids.map(id => [id, record(id)]),
+    [controlId, record(controlId, 'APP-KEEP')],
+  ]);
+  const snapshot = () => structuredClone([...records.values()]);
+  function advanceRevision(id, revision) {
+    const entry = records.get(id);
+    assert.ok(entry);
+    records.set(id, {...entry, $revision: {...entry.$revision, value: revision}});
+  }
   const state = {secret: 'original-test-kintone-token', resolutions: 0, forms: 0,
-    targets: 0, writes: 0, charges: 0, consumed: 0, active: false, closing: false,
+    targets: 0, writes: 0, appliedWrites: 0, charges: 0, consumed: 0, active: false, closing: false,
     fixtureFailures: [], form: undefined, records: undefined, reply: undefined,
     resolve: undefined, current: undefined, afterCharge: undefined};
   const tls = await openHttpsExchangeFixture(t, {faults, routes: [
@@ -55,12 +66,19 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
         assert.equal(exchange.headers['x-http-method-override'], 'GET');
         assert.deepEqual(body, {app: '12', fields: ['$id', '$revision', ...fields],
           query: '$id in (9007199254740992,9007199254740993) order by $id asc limit 2'});
-        return {body: await state.records?.() ?? {records: ids.map(id => record(id)), totalCount: null}};
+        return {body: await state.records?.() ?? {records: ids.map(id => records.get(id)).filter(Boolean), totalCount: null}};
       }
       state.writes++;
       assert.equal(exchange.headers['x-http-method-override'], 'DELETE');
       assert.deepEqual(body, {app: '12', ids, revisions: ['9', '9']});
-      return await state.reply?.() ?? {body: {}};
+      const forcedReply = await state.reply?.();
+      if (forcedReply !== undefined) return forcedReply;
+      if (!body.ids.every((id, index) => records.get(id)?.$revision.value === body.revisions[index])) {
+        return {status: 409, body: {code: 'GAIA_CO02'}};
+      }
+      for (const id of body.ids) records.delete(id);
+      state.appliedWrites++;
+      return {body: {}};
     } catch (cause) {
       state.fixtureFailures.push({kind, code: cause.code, message: cause.message,
         actual: cause.actual, expected: cause.expected});
@@ -77,7 +95,8 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
     try {site?.close();} catch (cause) {failures.push(cause);}
     await writeFile(join(root, 'original-observations.json'), JSON.stringify({
       tlsCertificatePath: tls.caPath, exchanges: tls.seen(), fixtureFailures: state.fixtureFailures,
-      charges: state.charges, consumed: state.consumed}, null, 2) + '\n', {mode: 0o600});
+      charges: state.charges, consumed: state.consumed, appliedWrites: state.appliedWrites,
+      records: snapshot()}, null, 2) + '\n', {mode: 0o600});
     t.diagnostic(`Retained owned kintone delete fixture: ${root}`);
     if (failures.length) throw new AggregateError(failures, 'KintoneDeleteFixtureCleanupUnconfirmed');
   });
@@ -157,6 +176,7 @@ export async function deleteFixture(t, {effect = 'allow', faults = []} = {}) {
       return await send({...options, ...selected});} finally {state.active = false;}
   };
   return {root, tls, state, site, binding, row, options, common, catalog, request, send, writeAccount,
+    snapshot, advanceRevision,
     closeRoot: () => {state.closing = true; return row.close();},
     journal: site.credential.journal, authorizationFor};
 }

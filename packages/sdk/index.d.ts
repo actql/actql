@@ -105,6 +105,13 @@ export type CheckContextRequirement = Readonly<{
 }> | Readonly<{
   code: 'numeric_reduction_profile_required';
   facts: Extract<NonNullable<CompletedCheckReport['requirements'][number]['facts']>, {profile_cid: string}>;
+}> | Readonly<{
+  code: 'calendar_profile_required';
+  facts: Readonly<{
+    issue: 'selection_missing' | 'artifact_missing';
+    supplier: 'checking_context_owner';
+    stage: 'checking';
+  }>;
 }>;
 export declare function getCheckContextRequirements(outcome: unknown): readonly CheckContextRequirement[] | undefined;
 /** Copied, partial and uninterpretable reports have no comparable frontier. */

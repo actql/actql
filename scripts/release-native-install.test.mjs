@@ -16,6 +16,8 @@ test('Native fixed consumer selects only explicit shared clients without replaci
   assert.equal(original.sharedClients, false);
   const shared = nativeCliReleaseInstallSelection(['native', 'node', '--shared-clients']);
   assert.deepEqual(shared, {...original, sharedClients: true});
+  const verified = nativeCliReleaseInstallSelection(['native', 'node', '--verified-remote-http']);
+  assert.deepEqual(verified, {...shared, verifiedRemoteHttp: true});
   for (const input of [undefined, [], ['native'], ['', 'node'], ['native', 1],
     ['native', 'node', '--fallback'], ['native', 'node', '--shared-clients', '--shared-clients']]) {
     assert.throws(() => nativeCliReleaseInstallSelection(input));

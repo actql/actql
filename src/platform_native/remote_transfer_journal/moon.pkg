@@ -17,6 +17,7 @@ import {
 options(
   targets: {
     "journal_native.mbt": [ "native" ],
+    "journal_transaction_fault_native_wbtest.mbt": [ "native" ],
     "destination_admission_native_wbtest.mbt": [ "native" ],
     "open_close_custody_native_wbtest.mbt": [ "native" ],
     "journal_unsupported.mbt": [ "not", "native" ],

@@ -30,6 +30,8 @@ fn saved_sdk_read_context(
   record : StoredPublicationCommitExport,
   run : Int,
   current_configuration : Int,
+  same_reader_census? : Bool = false,
+  reuse_proven_fence_rows? : Bool = false,
 ) -> Result[OriginalSDKReadContext, Int] {
   guard run == record.publication &&
     saved_result_export_parent(value, record.publication)
@@ -43,61 +45,107 @@ fn saved_sdk_read_context(
     saved.view is Some(view) else {
     return Err(-2)
   }
-  let (principal, connection, _, result_name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let (principal, connection, _, _, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     sdk.read,
   )
-  if result_name != saved.result_name ||
+  if !@publication.local_sdk_result_read_selection_accepts_name(
+      sdk.read,
+      saved.result_name,
+    ) ||
     principal != current.tuple.principal ||
     connection != current.tuple.connection {
     return Err(-32)
   }
-  let check_current = () => {
-    if value.closing || value.runtime_closing || record.closing {
-      return Err(-5)
-    }
-    match saved_result_export_parent(value, record.publication) {
-      Some((actual, original)) if physical_equal(actual, parent) &&
-        physical_equal(original, saved) => ()
-      _ => return Err(-32)
-    }
-    match validate_saved_result_read(value, parent, current) {
-      Err(code) => return Err(code)
-      Ok(_) => ()
-    }
-    match
-      @local_run.validate_local_sdk_read_source_current(
-        source,
-        current.account,
-        result_name,
-      ) {
-      Err(Preflight(_)) => return Err(-35)
-      Err(_) => return Err(-32)
-      Ok(_) => ()
-    }
-    // This is the actual same Host/Store current port, not the saved Allow.
-    match run_configuration_current(value, current) {
-      Err(code) => Err(code)
-      Ok(_) =>
-        if record.closing || parent.output_closed {
-          Err(-5)
-        } else {
-          Ok(())
-        }
-    }
+  // Every export begins with the full census. Subsequent checks may use it
+  // only while the physical Owner proves that the same reader is unchanged.
+  match
+    check_saved_sdk_read_context(
+      value, record, parent, saved, current, source, false, false,
+    ) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
   }
-  match check_current() {
+  // The complete rebind above checked the exact fence rows. Only callbacks
+  // on this same Saved original may reuse that evidence after a live proof.
+  let same_reader_census = if same_reader_census &&
+    parent.kind == INCREMENTAL_SAVED_RESULT_KIND {
+    // Ticket zero cannot name a physical loan. The original suppliers
+    // refuse this discovery request without observing Store currentness.
+    // Only a positive opt-in enables the subsequent real-ticket proof.
+    match physical_journal_current_operation(0) {
+      1L => true
+      0L | -41L => false
+      _ => return Err(-41)
+    }
+  } else {
+    false
+  }
+  Ok({
+    source,
+    finite,
+    sdk,
+    current,
+    owner,
+    view,
+    result_name: saved.result_name,
+    format,
+    same_reader_census,
+    check_current: () => {
+      check_saved_sdk_read_context(
+        value, record, parent, saved, current, source, same_reader_census, reuse_proven_fence_rows,
+      )
+    },
+  })
+}
+
+///|
+fn check_saved_sdk_read_context(
+  value : Instance,
+  record : StoredPublicationCommitExport,
+  parent : StoredSubmissionProjection,
+  saved : StoredSavedResultRead,
+  current : StoredRunConfiguration,
+  source : @local_run.LocalSDKReadSource,
+  same_reader_census : Bool,
+  reuse_proven_fence_rows : Bool,
+) -> Result[Unit, Int] {
+  if value.closing || value.runtime_closing || record.closing {
+    return Err(-5)
+  }
+  match saved_result_export_parent(value, record.publication) {
+    Some((actual, original)) if physical_equal(actual, parent) &&
+      physical_equal(original, saved) => ()
+    _ => return Err(-32)
+  }
+  match
+    validate_saved_result_read(
+      value,
+      parent,
+      current,
+      same_reader_census~,
+      reuse_proven_fence_rows~,
+    ) {
+    Err(code) => return Err(code)
+    Ok(_) => ()
+  }
+  match
+    @local_run.validate_local_sdk_read_source_current(
+      source,
+      current.account,
+      saved.result_name,
+    ) {
+    Err(Preflight(_)) => return Err(-35)
+    Err(_) => return Err(-32)
+    Ok(_) => ()
+  }
+  // This is the actual same Host/Store current port, not the saved Allow.
+  match run_configuration_current(value, current) {
     Err(code) => Err(code)
     Ok(_) =>
-      Ok({
-        source,
-        finite,
-        sdk,
-        current,
-        owner,
-        view,
-        result_name,
-        format,
-        check_current,
-      })
+      if record.closing || parent.output_closed {
+        Err(-5)
+      } else {
+        Ok(())
+      }
   }
 }

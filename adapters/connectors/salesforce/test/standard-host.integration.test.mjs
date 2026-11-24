@@ -78,6 +78,19 @@ async function assertNoSnapshotFiles(t, root) {
   }
   assert.deepEqual(entries, []);
 }
+
+// Call after the original Host close drains dispatch. Public wait can see a
+// committed Store index before the dispatch emits its computed observation.
+function assertRetainedFileOutputs(observations, ref) {
+  const computed = observations.filter(({name, detail}) =>
+    name === 'computed' && detail.ref.runDefinitionCid === ref.runDefinitionCid);
+  assert.equal(computed.length, 1, 'one computed observation for the original Run');
+  assert.deepEqual(computed[0].detail.ref, ref);
+  const {outputRepresentations} = computed[0].detail;
+  assert.ok(outputRepresentations?.length > 0);
+  assert.ok(outputRepresentations.every(value => value.representation === 'retained-file'));
+}
+
 // Checkpoint review for Hosts installed with Run-acceptance protection.
 const reviewerKeys = generateKeyPairSync('ed25519');
 const hostKeys = generateKeyPairSync('ed25519');
@@ -380,7 +393,7 @@ test('non-first Salesforce source view retains two public consumer Results',
       writableObjects: ['Other_Record__c'], retainedRelationOutput: true});
     await setup.publish();
     const authorization = checkpointAuthorization({
-      observe(name, detail) { observations.push([name, detail]); },
+      observe(name, detail) { observations.push({name, detail}); },
       faultInjection(name, detail) {
         if (name === 'local_retained_output_sealed') sealed.push(detail);
       },
@@ -398,7 +411,7 @@ test('non-first Salesforce source view retains two public consumer Results',
     const execution = await client.startSource(JSON.stringify(document),
       {format: 'json', submissionRef});
     const state = await execution.wait();
-    assert.equal(state.status, 'succeeded', JSON.stringify({state, failures: observations.filter(([name]) => name === 'dispatch_failed')}));
+    assert.equal(state.status, 'succeeded', JSON.stringify({state, failures: observations.filter(({name}) => name === 'dispatch_failed')}));
     assert.deepEqual(await execution.result('records').all(), [
       {External_Key__c: 'key-1', Name: 'record-1'},
       {External_Key__c: 'key-3', Name: 'record-3'},
@@ -411,10 +424,6 @@ test('non-first Salesforce source view retains two public consumer Results',
       / FROM Other_Record__c(?:&|$)/u);
     // Explicit retained output owns real row files. A temporary snapshot's
     // revoke/reload receipt describes a different installed representation.
-    const representations = observations.filter(([name]) => name === 'computed')
-      .at(-1)?.[1].outputRepresentations;
-    assert.ok(representations?.length > 0);
-    assert.ok(representations.every(value => value.representation === 'retained-file'));
     for (const expected of [
       [{External_Key__c: 'key-1', Name: 'record-1'},
         {External_Key__c: 'key-3', Name: 'record-3'}],
@@ -429,8 +438,9 @@ test('non-first Salesforce source view retains two public consumer Results',
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, reads);
     await close();
+    assertRetainedFileOutputs(observations, execution.ref);
     await assertNoSnapshotFiles(t, setup.root);
-    const cleaned = observations.filter(([name]) => name === 'dispatch_cleanup_completed').at(-1)?.[1];
+    const cleaned = observations.filter(({name}) => name === 'dispatch_cleanup_completed').at(-1)?.detail;
     assert.ok(cleaned);
     for (const key of ['reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
       'reservedExecutionBytes', 'uncertainTransferBytes']) {
@@ -510,9 +520,6 @@ test('two Salesforce views retain a joined public Result', async t => {
   const state = await execution.wait();
   assert.equal(state.status, 'succeeded', JSON.stringify({state,
     failures: diagnostics.filter(item => item.name === 'dispatch_failed')}));
-  const representations = diagnostics.filter(item => item.name === 'computed').at(-1)?.detail.outputRepresentations;
-  assert.ok(representations?.length > 0);
-  assert.ok(representations.every(value => value.representation === 'retained-file'));
   assert.deepEqual(await execution.result('joined').all(), [
     {key: 'key-1', left_name: 'record-1', right_name: 'other-1'},
     {key: 'key-3', left_name: 'record-3', right_name: 'other-3'},
@@ -527,13 +534,20 @@ test('two Salesforce views retain a joined public Result', async t => {
   ]);
   const captured = diagnostics.filter(item => item.name ===
     'acquisition_completed');
-  const released = diagnostics.filter(item => item.name ===
-    'acquisition_cleanup_completed');
   assert.equal(captured.length, 2);
-  assert.equal(released.length, 2);
   assert.ok(captured.every(item =>
     BigInt(item.detail.resourceUsage.transferredBytes) > 0n));
   assert.equal(captured.at(-1).detail.resourceUsage.holdings, '2');
+  assert.equal(setup.queries().length, 2);
+  const resent = await client.startSource(JSON.stringify(document),
+    {format: 'json', submissionRef});
+  assert.deepEqual(resent.ref, execution.ref);
+  assert.equal(setup.queries().length, 2);
+  await close();
+  assertRetainedFileOutputs(diagnostics, execution.ref);
+  const released = diagnostics.filter(item => item.name ===
+    'acquisition_cleanup_completed');
+  assert.equal(released.length, 2);
   const cleaned = diagnostics.filter(item => item.name ===
     'dispatch_cleanup_completed');
   assert.ok(cleaned.length > 0);
@@ -542,12 +556,6 @@ test('two Salesforce views retain a joined public Result', async t => {
     'uncertainTransferBytes']) {
     assert.equal(cleaned.at(-1).detail.resourceUsage[key], '0', key);
   }
-  assert.equal(setup.queries().length, 2);
-  const resent = await client.startSource(JSON.stringify(document),
-    {format: 'json', submissionRef});
-  assert.deepEqual(resent.ref, execution.ref);
-  assert.equal(setup.queries().length, 2);
-  await close();
   const reopened = await setup.open({authorization: checkpointAuthorization()});
   const attached = await reopened.client.attach(execution.ref);
   assert.deepEqual(await attached.result('joined').all(), [
@@ -582,9 +590,6 @@ test('two installed Salesforce sources retain exact Join input ports',
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify({state,
       failures: observations.filter(item => item.name === 'dispatch_failed')}));
-    const representations = observations.filter(item => item.name === 'computed').at(-1)?.detail.outputRepresentations;
-    assert.ok(representations?.length > 0);
-    assert.ok(representations.every(value => value.representation === 'retained-file'));
     assert.deepEqual(await execution.result('joined').all(), [
       {key: 'key-1', left_name: 'record-1', right_name: 'other-1'},
       {key: 'key-3', left_name: 'record-3', right_name: 'other-3'},
@@ -605,6 +610,7 @@ test('two installed Salesforce sources retain exact Join input ports',
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
     await close();
+    assertRetainedFileOutputs(observations, execution.ref);
     const reopened = await setup.open({authorization:
       checkpointAuthorization()});
     const attached = await reopened.client.attach(execution.ref);
@@ -632,9 +638,6 @@ test('one Salesforce view can fill two distinct acquisition slots',
     const state = await execution.wait();
     assert.equal(state.status, 'succeeded', JSON.stringify({state,
       failures: observations.filter(item => item.name === 'dispatch_failed')}));
-    const representations = observations.filter(item => item.name === 'computed').at(-1)?.detail.outputRepresentations;
-    assert.ok(representations?.length > 0);
-    assert.ok(representations.every(value => value.representation === 'retained-file'));
     assert.deepEqual(await execution.result('joined').all(), [
       {key: 'key-1', left_name: 'record-1', right_name: 'record-1'},
       {key: 'key-2', left_name: 'record-2', right_name: 'record-2'},
@@ -658,6 +661,7 @@ test('one Salesforce view can fill two distinct acquisition slots',
     assert.deepEqual(resent.ref, execution.ref);
     assert.equal(setup.queries().length, 2);
     await close();
+    assertRetainedFileOutputs(observations, execution.ref);
     const reopened = await setup.open({authorization: checkpointAuthorization()});
     const attached = await reopened.client.attach(execution.ref);
     assert.deepEqual(await attached.result('joined').all(), [

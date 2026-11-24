@@ -12,7 +12,7 @@ pub(all) struct WireEmitConstructionInventory {
 ///|
 fn wire_emit_construction_inventory(
   pending : Int64,
-  decimal : DecimalValue?,
+  decimal_precision : Int,
 ) -> WireEmitConstructionInventory? {
   if pending < 0 {
     return None
@@ -37,25 +37,16 @@ fn wire_emit_construction_inventory(
   let mut decimal_headers = 0L
   let mut decimal_refs = 0L
   let mut decimal_words = 0L
-  if decimal is Some(value) {
-    if value.precision < 1 ||
-      value.precision > 38 ||
-      value.scale < 0 ||
-      value.scale > value.precision ||
-      value.coefficient.length() > value.precision + 1 {
-      return None
-    }
-    if value.scale != 0 {
-      // decimal_wire_text: detached digits, zero padding, padded digits,
-      // two detached slices and three concatenation results. Three borrowed
-      // slice views have 1R2W each. Each actual bounded spelling is <=P+3;
-      // pinned concat/builder alternatives use <=3L+1 UTF16 backing slots.
-      let length = (value.precision + 3).to_int64()
-      decimal_units = 8L * (3L * length + 1L)
-      decimal_headers = 11L
-      decimal_refs = 3L
-      decimal_words = 6L
-    }
+  if decimal_precision > 0 {
+    // decimal_wire_text: detached digits, zero padding, padded digits,
+    // two detached slices and three concatenation results. Three borrowed
+    // slice views have 1R2W each. Each actual bounded spelling is <=P+3;
+    // pinned concat/builder alternatives use <=3L+1 UTF16 backing slots.
+    let length = (decimal_precision + 3).to_int64()
+    decimal_units = 8L * (3L * length + 1L)
+    decimal_headers = 11L
+    decimal_refs = 3L
+    decimal_words = 6L
   }
   Some({
     record_headers: controls.record_headers + decimal_headers,
@@ -67,7 +58,16 @@ fn wire_emit_construction_inventory(
 
 ///|
 pub fn wire_emit_start_construction_inventory() -> WireEmitConstructionInventory {
-  wire_emit_construction_inventory(1L, None).unwrap()
+  wire_emit_construction_inventory(1L, 0).unwrap()
+}
+
+///|
+/// Peak for one typed wire cursor under an existing caller's live frame
+/// ceiling. Backing growth and the largest admitted decimal leaf coexist.
+pub fn wire_emit_workspace_construction_inventory(
+  slots : Int,
+) -> WireEmitConstructionInventory? {
+  wire_emit_construction_inventory(slots.to_int64(), 38)
 }
 
 ///|
@@ -75,8 +75,21 @@ pub fn wire_emit_next_construction_inventory(
   cursor : WireEmitCursor,
 ) -> WireEmitConstructionInventory? {
   let decimal = match cursor.pending.last() {
-    Some(Read(Decimal(value))) => Some(value)
-    _ => None
+    Some(Read(Decimal(value))) => {
+      if value.precision < 1 ||
+        value.precision > 38 ||
+        value.scale < 0 ||
+        value.scale > value.precision ||
+        value.coefficient.length() > value.precision + 1 {
+        return None
+      }
+      if value.scale == 0 {
+        0
+      } else {
+        value.precision
+      }
+    }
+    _ => 0
   }
   // Native arrays retain capacity after pop. Vacated slots are explicitly
   // payload-free, so only the current original reference child retains its

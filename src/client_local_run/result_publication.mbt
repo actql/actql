@@ -373,10 +373,17 @@ pub fn start_local_publication_commit_check(
   @publication.PublicationCommitPreparation,
   LocalResultPublicationIssue,
 ] {
+  let retentions = Array(capacity=value.results.length())
   for result in value.results {
     match validate_local_result_publication_current(result, account) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
+    }
+    if !@publication.append_unique_result_retention_evidence(
+        retentions,
+        result.retention,
+      ) {
+      return Err(ForeignPublication)
     }
   }
   // A separately sealed Receipt cannot replace the original admission,
@@ -402,7 +409,7 @@ pub fn start_local_publication_commit_check(
       value.results.map(result => result.artifact),
       value.results.map(result => result.derivation),
       value.results.map(result => result.ordering),
-      value.results.map(result => result.retention),
+      retentions,
       bindings,
       value.manifest,
       original_receipt,

@@ -137,6 +137,7 @@ class _RunStateCustody:
     prepared: bool = False
     write_attempted: bool = False
     first_failure: BaseException | None = None
+    body_output: _Output | None = None
     metadata_confirmed: bool = False
 
 
@@ -798,10 +799,8 @@ class InstalledLocalHost:
             try:
                 with self._core._host_cleanup():
                     if held is not None:
-                        if held.output is not None:
-                            if not self._core.close_publication_commit_export(held.output):
-                                raise LocalProductCleanupPending(self)
-                            held.output = None
+                        if not self._close_sdk_run_state_outputs(held):
+                            raise LocalProductCleanupPending(self)
                         if not self._core.close_input(held.source):
                             raise LocalProductCleanupPending(self)
                         self._inputs.remove(held.source)
@@ -1308,20 +1307,30 @@ class InstalledLocalHost:
                 if execution is not None:
                     execution.state = held
                 created_output = self._reserve(lambda: self._core.reserve_publication_commit_export(
-                    projection._publication, cleanup=lambda: True))
+                    projection._publication, cleanup=lambda: True, maximum=1))
                 held.output = created_output
+
+                def prepare_and_emit(_: _Output) -> None:
+                    size = self._core.measure_publication_sdk_run_state(
+                        created_output, run.handle, source, configuration.handle)
+                    body = self._reserve(lambda: self._core.reserve_publication_commit_export(
+                        projection._publication, cleanup=lambda: True, maximum=size))
+                    held.body_output = body
+                    self._core.emit_publication_sdk_run_state(body, created_output, configuration.handle)
+
                 with observation._serialized_facts():
-                    installation.binding.inspect(lambda _:
-                        self._core.produce_publication_sdk_run_state(
-                            created_output, run.handle, source, configuration.handle))
+                    installation.binding.inspect(prepare_and_emit)
                 held.prepared = True
             if held.run is not run or held.projection is not projection or not held.prepared:
                 raise LocalProductCleanupPending(self)
-            output = held.output
-            if output is None:
+            output, body = held.output, held.body_output
+            if output is None or body is None:
                 raise LocalProductCleanupPending(self)
             self._core._owned_output(output, 'publication_commit_export')
-            candidate = _object(self._core.read_publication_commit_material(output), 1048576)
+            raw_packet = self._core.read_publication_commit_material(body)
+            if len(raw_packet) != body.limit:
+                raise LocalCoreError('sdk_run_state_transport_extent', -33)
+            candidate = _object(raw_packet, body.limit)
             fields = {'kind', 'key', 'revision', 'body', 'state'}
             if (set(candidate) != fields or any(type(candidate[key]) is not str for key in fields)
                     or candidate['kind'] not in ('retained', 'replace')):
@@ -1369,9 +1378,11 @@ class InstalledLocalHost:
                 # retirement. After the SAME Core confirmation and reader
                 # handoff, return this transport as before; keep its Run,
                 # publication, original failure and Unknown/cleanup custody.
-                if not self._core.close_publication_commit_export(output):
+                # The parsed candidate and synchronous Store callback have
+                # returned. Drop the transport alias before closing its slot.
+                del candidate, raw_packet
+                if not self._close_sdk_run_state_outputs(held):
                     raise LocalProductCleanupPending(self)
-                held.output = None
                 if not self._core.close_input(held.source):
                     raise LocalProductCleanupPending(self)
                 self._inputs.remove(held.source)
@@ -1379,11 +1390,22 @@ class InstalledLocalHost:
                 if execution is not None and execution.state is held:
                     execution.state = None
         if execution is not None and retain_state:
-            # One original output per Run, even when the first observation
-            # precedes physical Thread exit or overlaps a Result reader.
-            # Retry the same confirmation on later ordinary observations;
-            # never manufacture a second candidate or poll-owned receipt.
+            # The same prepared update and body stay owned through retries.
+            # The synchronous candidate/transport aliases must unwind before
+            # physical execution retirement closes either original.
+            del candidate, raw_packet
             self._retire_original_execution(execution)
+
+    def _close_sdk_run_state_outputs(self, held: _RunStateCustody) -> bool:
+        if held.body_output is not None:
+            if not self._core.close_publication_commit_export(held.body_output):
+                return False
+            held.body_output = None
+        if held.output is not None:
+            if not self._core.close_publication_commit_export(held.output):
+                return False
+            held.output = None
+        return True
 
     def _original_sdk_read_response(self, run: _Run,
                                     projection: OriginalCommitProjection,
@@ -4265,9 +4287,8 @@ class InstalledLocalHost:
                         state_custody.output = None
                         del self._run_state_custody[key]
                         continue
-                    if not self._core.close_publication_commit_export(state_custody.output):
-                        return False
-                    state_custody.output = None
+                if not self._close_sdk_run_state_outputs(state_custody):
+                    return False
                 if not self._core.close_input(state_custody.source):
                     return False
                 self._inputs.remove(state_custody.source)

@@ -138,6 +138,32 @@ or input files. The fixed `eb2f8b3` installed cohort exercised this Local `run`
 entry. The earlier `109564ef` baseline keeps its original `aql` command and
 source-specific evidence.
 
+## Configured Local Model INFER
+
+A Native package can include an optional `model-http` runtime member for
+configured Local Model Tasks. The operator configuration selects the adopted
+Provider revision, configuration contract, response profile, execution
+contract and run policy through `native.local.model_http_installation`. The
+Task, selected model, Provider and credential reference must agree with those
+originals. The credential stays in its owner-readable file. Account policy
+must permit the exact inference and any required Raw capture.
+
+The current portable profile builds OpenAI-compatible Chat Completions
+requests. It uses one original Model Call's prepared body, a bounded verified
+HTTPS member with cancellable address resolution, and the original Journal and
+Store. The checked response supplies the typed result. `check` and Saved Result
+reads do not send a Model request. After an interrupted response, keep the
+original request ID and use `lookup-request --request-id <id>` to recover the
+admitted reference. The reference alone cannot confirm the provider outcome or
+physical cleanup. Do not resubmit the original operation.
+
+The existing Native package recipe accepts the verified Model component receipt
+through `--model-http-preparation`. The synchronous Remote component uses its
+own `--remote-http-preparation` input. The two members have distinct roles and
+paths when present together. A Remote HTTPS supplier cannot satisfy the
+selected Model profile, and a package missing the Model member refuses that
+profile before dispatch.
+
 ## Saved Local status
 
 `status --ref-file <run.json> --submission-ref-file <submission.json> --json`
@@ -453,7 +479,15 @@ commands require a caller-saved `--submission-ref-file` and an explicit
 `--operation-attempt-id` for the invocation. Allocate deliberate new
 work with `new-submission --request-id <nonce>` and save its full epoch/nonce
 JSON before sending input. `--request-id` on `start` or `aql` only asserts that
-saved nonce. `lookup-submission --submission-ref-file <file>` observes the
+saved nonce. For a scoped name shared by Remote clients, add
+`--request-name <name>` to `aql` or `start` and retain the candidate reference
+and attempt ID as usual. Save the complete named response. An `observed` response
+carries the Host's original Submission reference, which can have an earlier
+epoch. A `conflict` means that the name already identifies a different intent.
+A lost response remains unresolved until the original reference can be looked
+up. The CLI never automatically resends it.
+
+`lookup-submission --submission-ref-file <file>` observes the
 original identity, including after a reconnect or epoch expiry; it never
 replaces the original epoch or dispatches work. Retain input and parameters
 alongside that file. A missing lookup record is unresolved, not retry permission.

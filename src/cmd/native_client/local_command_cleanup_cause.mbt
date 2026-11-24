@@ -139,6 +139,7 @@ fn command_preparation_cleanup_cause(
         Original(_) => "SavedPublicationOriginal"
         Journal(_) => "SavedPublicationJournal"
         Service(_) => "SavedPublicationService"
+        Observation(_) => "SavedPublicationObservation"
         Construction => "SavedPublicationConstruction"
         Publisher(_) => "SavedPublicationPublisher"
       }
@@ -454,6 +455,34 @@ fn command_preparation_cleanup_cause(
         ModelGraph(_) => "ModelGraphConstruction"
         _ => "ModelGraphRequest"
       }
+    CommandBusinessModelPlan(cause) =>
+      match cause {
+        ForeignOriginal => "ModelPlanForeignOriginal"
+        InsufficientCapacity => "ModelPlanCapacity"
+        Resource(_) | Ledger(_) | Preparation(_) => "ModelPlanResource"
+        CleanupPending => "ModelPlanCleanupPending"
+        _ => "ModelPlan"
+      }
+    CommandBusinessModelHttp(cause) =>
+      match cause {
+        ForeignOriginal => "ForeignOriginal"
+        Original(_) => "Original"
+        Library(Unavailable) => "ModelHttpLibraryUnavailable"
+        Library(Runtime(_)) => "ModelHttpLibraryRuntime"
+        Library(Load(_)) => "ModelHttpLibraryLoad"
+        Execution(_) => "ModelHttpExecutionContract"
+        Dependencies(_) => "ModelHttpDependencies"
+        Dispatch(_) => "Dispatch"
+        RawPolicy(_) => "RawPolicy"
+        Raw(_) => "Raw"
+        RawStore(ForeignOriginal) => "RawStoreForeignOriginal"
+        RawStore(Original(_)) => "RawStoreOriginalRead"
+        RawStore(Capture(_)) => "RawStoreCapture"
+        RawStore(Store(store)) =>
+          "RawStore/" +
+          command_preparation_cleanup_cause(CommandBusinessStore(store))
+        Http(_) => "Http"
+      }
     CommandBusinessModel(cause) =>
       match cause {
         ForeignOriginal => "ModelForeignOriginal"
@@ -468,6 +497,8 @@ fn command_preparation_cleanup_cause(
         Evidence(_) => "ModelEvidence"
         Capture(_) => "ModelCapture"
         Store(_) => "ModelStore"
+        Transport(issue) =>
+          command_preparation_cleanup_cause(CommandBusinessModelHttp(issue))
         Start(_) => "ModelStart"
         Review(_) => "EffectReview"
         Encoding => "ModelEncoding"
@@ -773,6 +804,7 @@ fn command_preparation_cleanup_cause(
         InvalidUtf8 => "InvalidUtf8"
         PreparationUnavailable => "PreparationUnavailable"
       }
+    CommandRemoteHttpCleanup => "RetirementUnconfirmed"
     CommandFilesystemCleanup(cause) =>
       match cause {
         UnsupportedTarget => "UnsupportedTarget"

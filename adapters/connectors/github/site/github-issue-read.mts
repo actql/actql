@@ -28,12 +28,17 @@ type Codec = Readonly<{
   githubRequestHeadersJson(): string; githubResponseHeadersJson(): string;
   githubClassifyFailureJson(status: number, names: string[], values: string[]): string;
   githubIssuePageJson(body: Uint8Array, maxBytes: number, maxNodes: number, maxDepth: number, maxRows: number): string;
+  githubIssueListStartJson(owner: string, repo: string, perPage: number): string;
+  githubIssueListFilterAllowed(name: string): boolean;
   githubNextPageJson(present: boolean, link: string, origin: string, path: string, page: number, maxLocatorUnits: number): string;
   githubRateLimitBasisJson(names: string[], values: string[]): string;
 }>;
 type Basis = Readonly<{remaining?: number}>;
 type Failure = Readonly<{kind: string; basis?: Basis}>;
 type PageReply = Readonly<{page: Page; refused?: undefined}> | Readonly<{refused: string}>;
+type ListingStart = Readonly<{first: Locator; refused?: undefined}>
+  | Readonly<{refused: 'InvalidRepository'}>
+  | Readonly<{refused: 'InvalidPageSize'}>;
 type LocatorReply = Readonly<{next?: Locator | null; refused?: string}>;
 type Cause = Readonly<{code?: string}> | null | undefined;
 type Options = Readonly<{
@@ -48,22 +53,11 @@ const fail: (code: string, details?: object) => never = (code, details = {}) => 
   throw Object.assign(new Error(code), {code, ...details});
 };
 const count = (value: number) => Number.isSafeInteger(value) && value > 0;
-const segment = /^[A-Za-z0-9._-]{1,100}$/u;
-
-// The Issue listing path of one repository, from its access owner/repo.
-export function githubIssueListPath(owner: Component, repo: Component) {
-  if (!segment.test(owner ?? '') || !segment.test(repo ?? '') ||
-      owner === '.' || owner === '..' || repo === '.' || repo === '..') {
-    fail('InvalidGitHubRepository');
-  }
-  return `/repos/${owner}/${repo}/issues`;
-}
-
 function checkLimits(limits: Limits) {
   if (!limits || !count(limits.maxPages) || !count(limits.maxRows) ||
       !count(limits.maxBytes) || !count(limits.maxNodes) ||
       !count(limits.maxDepth) || !count(limits.maxLocatorUnits) ||
-      !count(limits.perPage) || limits.perPage > 100) {
+      !count(limits.perPage) || limits.perPage > 2147483647) {
     fail('InvalidGitHubReadLimits');
   }
   return Object.freeze({...limits});
@@ -81,24 +75,28 @@ export async function readGitHubIssues({moon, origin, owner, repo,
   filters = [], credential, authorizationFor, limits, consumePage,
   callResource = callHttpsCredentialResource, signal}: Options) {
   if (!moon || typeof moon.githubIssuePageJson !== 'function' ||
+      typeof moon.githubIssueListStartJson !== 'function' ||
+      typeof moon.githubIssueListFilterAllowed !== 'function' ||
       typeof authorizationFor !== 'function' || !credential ||
       typeof origin !== 'string') {
     fail('InvalidGitHubRead');
   }
   const owned = checkLimits(limits);
-  const path = githubIssueListPath(owner, repo);
-  const allowed = new Set(['state', 'since', 'labels', 'sort', 'direction']);
+  const start = JSON.parse(moon.githubIssueListStartJson(
+    typeof owner === 'string' ? owner : '', typeof repo === 'string' ? repo : '', owned.perPage)) as ListingStart;
+  if (start.refused === 'InvalidRepository') fail('InvalidGitHubRepository');
+  if (start.refused === 'InvalidPageSize') fail('InvalidGitHubReadLimits');
   if (!Array.isArray(filters) || filters.some(pair => !Array.isArray(pair) ||
-      pair.length !== 2 || !allowed.has(pair[0]) ||
-      typeof pair[1] !== 'string')) {
+      pair.length !== 2 || typeof pair[0] !== 'string' ||
+      !moon.githubIssueListFilterAllowed(pair[0]) || typeof pair[1] !== 'string')) {
     fail('InvalidGitHubReadFilters');
   }
+  const {path, query, page} = start.first;
   const headers = JSON.parse(moon.githubRequestHeadersJson());
   const responseHeaders = JSON.parse(moon.githubResponseHeadersJson());
   const accepted: AcceptedPage[] = [];
   const rows: Row[] = [];
-  let next: Locator | undefined = {path, query: [...filters, ['per_page', String(owned.perPage)]],
-    page: 1};
+  let next: Locator | undefined = {path, query: [...filters, ...query], page};
   const stopped: (code: string, details?: object) => never = (code, details) => fail(code, {stopped: true,
     acceptedPages: Object.freeze([...accepted]),
     unfetched: next === undefined ? undefined

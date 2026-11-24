@@ -5,7 +5,7 @@ import {managedPreparationRetirementContinuation, bindManagedComputeRunObservati
 import {ledgerLimitsFields, ledgerUsageFields} from '../host-common/ledger-contract.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 type ManagedRun = Parameters<typeof managedPreparationRetirementContinuation>[0];
-type Registry = Parameters<typeof managedPreparationRetirementContinuation>[1];
+type Registry = Parameters<typeof bindManagedComputeRunObservation>[0] & {computeLiveRuns?: Set<ManagedRun>};
 type RunReference = Parameters<typeof managedComputeUsageReader>[1];
 type RuntimeFixture = {
   clientProgramInstalledManagedRunAccounting?: (value: unknown) => unknown;
@@ -17,7 +17,7 @@ const ok = (value: unknown) => ({$tag: 1, _0: value});
 // Actual Host observation/retirement consumers with explicit Core ports. No
 // physical Run, Resource admission or cleanup acknowledgement is issued here.
 function observationFixture() {
-  const record = {} as Registry;
+  const record: Registry = {};
   return {record, bind(prepared: object, ref: RunReference) {
     bindManagedComputeRunObservation(record, prepared, ref,
       code => Object.assign(new Error(code), {code}));
@@ -90,7 +90,7 @@ test('final managed accounting retains every original scalar after actual retire
   const observed = read();
   assert.deepEqual(observed, f.first); assert.equal(Object.isFrozen(observed), true);
   assert.equal(f.run.value, undefined); assert.equal(f.run.runtime, undefined); assert.equal(f.run.manager, undefined);
-  assert.equal(f.record.computeLiveRuns.has(f.run), false);
+  assert.equal(f.record.computeLiveRuns!.has(f.run), false);
   assert.deepEqual(f.counts(), {reads: 1, retires: 1, acknowledgements: 1});
   assert.throws(() => {(observed as bigint[])[0] = 0n;}, TypeError);
   f.record.computeRunObservations = undefined;
@@ -101,7 +101,7 @@ test('pending final Core retirement keeps the same live usage and resamples only
   const f = finalAccountingFixture(), read = f.bind(), primary = new Error('OriginalFinalRetirementPending');
   f.failRetire(primary); assert.throws(f.finish, error => error === primary);
   assert.equal(f.run.closed, true); assert.equal(f.run.finalAccounting, undefined);
-  assert.equal(f.record.computeLiveRuns.has(f.run), true);
+  assert.equal(f.record.computeLiveRuns!.has(f.run), true);
   assert.deepEqual(f.counts(), {reads: 1, retires: 1, acknowledgements: 0});
   const changed = f.first.map(value => value + 100n); f.change(changed);
   assert.equal(read(), undefined, 'The closing fence does not acknowledge physical retirement or publish old DATA');
@@ -114,7 +114,7 @@ test('failed manager retirement retains original custody and publishes final DAT
   const f = finalAccountingFixture(), read = f.bind(), primary = new Error('OriginalManagerRetirementPending');
   f.failManager(primary); assert.throws(f.finish, error => error === primary);
   assert.equal(f.run.closed, true); assert.equal(f.run.finalAccounting, undefined);
-  assert.equal(f.record.computeLiveRuns.has(f.run), true);
+  assert.equal(f.record.computeLiveRuns!.has(f.run), true);
   assert.equal(read(), undefined, 'Manager cleanup is still pending');
   assert.throws(f.readCore, error => error === f.retiredRead, 'No invented live Ledger after Core retirement');
   f.failManager(undefined); f.finish(); assert.deepEqual(read(), f.first);

@@ -381,7 +381,7 @@ fn prepare_keyed_lookup_request_metadata(
     slots,
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       // The existing builder retains static documents on this original and
       // returns the identity/order into the managed returning frame.
       let (identity, order) = match
@@ -579,7 +579,7 @@ fn grow_keyed_lookup_protocol_metadata(
 // Canonical nodes are conservatively charged as payload-bearing variants;
 // FrozenArray/Array/backing and object entry tuples include spare slots.
 // Contract/evidence control, optional wire-usage tuple and Strings remain.
-fn keyed_lookup_protocol_extent_cost(
+fn publication_protocol_extent_cost(
   extent : @publication.PublicationRepresentationExtent,
 ) -> Int64? {
   @execution.canonical_preparation_retained_bytes(
@@ -630,7 +630,6 @@ fn finish_keyed_lookup_protocol_metadata(
   contracts : Array[@publication.PublicationContract],
   evidence? : Array[@publication.RunEvidenceValue] = [],
   texts? : Array[String] = [],
-  dependency_bodies? : Array[@publication.CapturedEffectDependencyBody]? = None,
   dependencies? : KeyedProtocolDependencies = NoDependencies,
 ) -> Result[Unit, ClientKeyedRequestIssue] {
   if !physical_equal(phase.lookup, lookup) {
@@ -642,6 +641,20 @@ fn finish_keyed_lookup_protocol_metadata(
   if max_nodes < 1 || max_depth < 1 || lookup.closed || lookup.growing {
     return Err(Assembly("unavailable_protocol_workspace_return"))
   }
+  if dependencies is Measured(completion) {
+    match
+      validate_keyed_dependency_cursor_owner(
+        lookup,
+        completion.lookup,
+        completion.reservation,
+      ) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    if !physical_equal(phase, completion.phase) {
+      return Err(Assembly("foreign_dependency_cursor"))
+    }
+  }
   // This construction attempt is consumed before any fallible measurement
   // or settlement. Cleanup retains the same reservation on failure; it never
   // retries construction or turns low-level absolute reduction single-use.
@@ -651,9 +664,11 @@ fn finish_keyed_lookup_protocol_metadata(
   // Dependency bodies are visited sequentially. Only one body/extent/control
   // tuple and its Some/Result/arithmetic carriers coexist; no extent array.
   let dependency_frames = match dependencies {
-    NoDependencies => if dependency_bodies is Some(_) { 16L } else { 0L }
+    NoDependencies => 0L
     Unmeasured(_) => 20L
-    Measured(_, _) => 34L
+    // The ordered range walk also holds the witness cursor/index and
+    // the original chunk and body operands during each identity check.
+    Measured(_) => 34L + 3L
   }
   let frames = 4L * (max_depth.to_int64() + 1L) +
     4L * (contracts.length().to_int64() + evidence.length().to_int64() + 1L) +
@@ -685,7 +700,7 @@ fn finish_keyed_lookup_protocol_metadata(
       Ok(value) => value
       Err(issue) => return Err(Identity(@publication.Contract(issue)))
     }
-    guard keyed_lookup_protocol_extent_cost(extent) is Some(bytes) &&
+    guard publication_protocol_extent_cost(extent) is Some(bytes) &&
       @execution.checked_preparation_add_product(retained, bytes, 1L)
       is Some(total) else {
       return Err(Assembly("capacity_overflow"))
@@ -700,7 +715,7 @@ fn finish_keyed_lookup_protocol_metadata(
       Ok(value) => value
       Err(issue) => return Err(Identity(@publication.Contract(issue)))
     }
-    guard keyed_lookup_protocol_extent_cost(extent) is Some(bytes) &&
+    guard publication_protocol_extent_cost(extent) is Some(bytes) &&
       @execution.checked_preparation_add_product(retained, bytes, 1L)
       is Some(total) else {
       return Err(Assembly("capacity_overflow"))
@@ -723,9 +738,9 @@ fn finish_keyed_lookup_protocol_metadata(
     retained = total
   }
   let dependency_bodies = match dependencies {
-    NoDependencies => dependency_bodies
+    NoDependencies => None
     Unmeasured(bodies) => Some(bodies)
-    Measured(bodies, _) => Some(bodies)
+    Measured(completion) => Some(completion.bodies)
   }
   if dependency_bodies is Some(bodies) {
     guard @shape.reference_array_retained_extent(
@@ -750,10 +765,18 @@ fn finish_keyed_lookup_protocol_metadata(
     // Preserve the original order of unmeasured bodies and their failures.
     // The range bound follows the original Request, policy and Catalog sites.
     let ranges = match dependencies {
-      Measured(_, last) => {
+      Measured(completion) => {
         let ordered = Array(capacity=keyed_dependency_measured_range_capacity)
         let mut limit = bodies.length()
-        let mut current = Some(last)
+        if limit != completion.body_count {
+          return Err(Assembly("foreign_dependency_body_extent"))
+        }
+        let mut current = completion.serial_range
+        let mut witness = completion.serial_witness
+        let mut witness_index = match witness {
+          Some(chunk) => chunk.used
+          None => 0
+        }
         while current is Some(range) {
           let ReturnedKeyedDependencyRange(
             bodies=original,
@@ -769,9 +792,27 @@ fn finish_keyed_lookup_protocol_metadata(
             end <= limit else {
             return Err(Assembly("foreign_dependency_body_extent"))
           }
+          for index = end - 1; index >= start; index = index - 1 {
+            guard witness is Some(chunk) &&
+              witness_index > 0 &&
+              physical_equal(chunk.members[witness_index - 1], bodies[index]) else {
+              return Err(Assembly("foreign_dependency_body_extent"))
+            }
+            witness_index -= 1
+            if witness_index == 0 {
+              witness = chunk.previous
+              witness_index = match witness {
+                Some(prior) => prior.used
+                None => 0
+              }
+            }
+          }
           ordered.push(range)
           limit = start
           current = previous
+        }
+        if witness is Some(_) || ordered.is_empty() {
+          return Err(Assembly("foreign_dependency_body_extent"))
         }
         Some(ordered)
       }
@@ -823,6 +864,12 @@ fn finish_keyed_lookup_protocol_metadata(
     )
     is Some(e) else {
     return Err(Assembly("capacity_overflow"))
+  }
+  // The collector is still behind the original Lookup mutation fence. Its
+  // witness has no public alias and is discarded before returning its bytes.
+  if dependencies is Measured(completion) {
+    completion.serial_witness = None
+    completion.serial_range = None
   }
   lookup.growing = true
   let reduced = @resources.reduce_execution_reservation_capacity(

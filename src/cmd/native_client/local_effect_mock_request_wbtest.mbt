@@ -1,7 +1,7 @@
 ///|
 // Independent literal six-field JSON preimage; not a target observation or ACK.
 test "Native warm and saved Mock request projection preserves the complete original" {
-  let actual = native_mock_effect_update_request_wire(
+  let actual = native_mock_effect_file_request_wire(
     "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     Json::string("row-1"),
@@ -27,7 +27,7 @@ test "Native warm and saved Mock request projection preserves the complete origi
 
 ///|
 test "Native Mock request projection preserves explicit null and omitted fields distinctly" {
-  let present = native_mock_effect_update_request_wire(
+  let present = native_mock_effect_file_request_wire(
     "binding",
     "mapping",
     Json::string("row"),
@@ -35,7 +35,7 @@ test "Native Mock request projection preserves explicit null and omitted fields 
     {},
     "version",
   ).unwrap()
-  let absent = native_mock_effect_update_request_wire(
+  let absent = native_mock_effect_file_request_wire(
     "binding",
     "mapping",
     Json::string("row"),

@@ -602,6 +602,18 @@ export function createInstalledCredentialSourceReader(options: unknown) {
               return callProjection(project,prepared,[response]);
             });
           },
+          ...(responseBorrow === undefined ? {} : {consumeChargedResponse(accept: unknown) {
+            return perform(async () => {
+              if (metadataRead || lastCharge === undefined || typeof accept !== 'function') {
+                fail('InvalidInstalledSourceReadChildPage');
+              }
+              await verify();
+              const rows = callProjection(accept as Method<number>, undefined, [lastCharge]);
+              if (!Number.isSafeInteger(rows) || rows < 0) fail('InvalidInstalledSourceDecodedPage');
+              lastCharge = undefined; rowCount += rows;
+              await verify();
+            });
+          }}),
           consumePage(rows: unknown) {
             return perform(async () => {
               if (metadataRead) fail('InstalledSourceMetadataRowsUnavailable');
@@ -693,7 +705,11 @@ export function createInstalledCredentialSourceReader(options: unknown) {
             // Socket close cannot erase that separate retirement duty.
             escapedResponseGraph ||= Array.isArray((cause as {observations?: unknown} | null | undefined)?.observations) && (cause as {observations: readonly unknown[]}).observations.length > 0;
             phase = 'failed'; primary = cause;
-            if (onError !== undefined) throw callProjection(onError,provider,[cause]);
+            if (onError !== undefined) {
+              // A native protocol can distinguish remote uncertainty from
+              // confirmed local transport stop after its original read joined.
+              throw callProjection(onError, provider, [cause, responses!.at(-1), closeTransport]);
+            }
             throw cause;
           } finally {
             readPending = false;

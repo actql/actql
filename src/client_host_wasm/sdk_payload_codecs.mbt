@@ -88,7 +88,13 @@ pub fn prepare_publication_sdk_payload_codecs(
     return -33
   }
   let context = match
-    original_sdk_read_context(value, record, run, current_configuration) {
+    original_sdk_read_context(
+      value,
+      record,
+      run,
+      current_configuration,
+      same_reader_census=true,
+    ) {
     Ok(context) => context
     Err(code) => return code
   }

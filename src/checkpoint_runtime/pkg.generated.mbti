@@ -19,6 +19,8 @@ pub fn admit_immediate_resolution(CheckpointRequest, String, String?, HostAuthen
 
 pub fn admit_run_state_wire(String, WireLimits) -> Result[RunStateView, RunStateWireIssue]
 
+pub fn approval_verification_input(String, WireLimits) -> Result[ApprovalVerificationInput, ResolutionIssue]
+
 pub fn bind_model_checkpoint(SealedCheckpoint, @run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValue) -> Result[ModelCheckpointBinding, ResolutionIssue]
 
 pub fn checkpoint_artifact_type(CheckpointKind) -> String
@@ -115,6 +117,8 @@ pub fn seal_prepared_resolution_proof(PreparedResolutionProof, String, String) -
 
 pub fn seal_verified_resolution(AdmittedResolution, String, String, WireLimits) -> Result[VerifiedResolution, ResolutionIssue]
 
+pub fn signed_resolution_from_verified(String, WireLimits) -> Result[String, ResolutionIssue]
+
 pub fn verified_resolution_attestation_preimage(String, WireLimits) -> Result[String, ResolutionIssue]
 
 pub fn waiting_exit_status(Array[String]) -> @run_publication.RunOutcomeStatus
@@ -132,6 +136,14 @@ pub struct AdmittedResolution {
 }
 pub fn AdmittedResolution::approval_proof_materials(Self, WireLimits) -> Result[(String, String, String)?, ResolutionIssue]
 pub fn AdmittedResolution::prepared_wire(Self, WireLimits) -> Result[String, ResolutionIssue]
+
+pub struct ApprovalVerificationInput {
+  key_id : String
+  approver : String
+  authority_scope_cid : String?
+  preimage : String
+  signature : String
+}
 
 pub struct AttestedEffectResolution {
   resolution : VerifiedResolution

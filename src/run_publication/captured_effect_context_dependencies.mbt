@@ -244,3 +244,95 @@ fn captured_effect_dependency_source_values_match(
   }
   found.length() == expected.length()
 }
+
+///|
+fn admitted_dependency_list_count(value : @json.CanonicalValue?) -> Int? {
+  guard value is Some(@json.Array(items)) else { return None }
+  let count = @json.array_count(items)
+  for index in 0..<count {
+    if !(@json.array_at(items, index) is Some(@json.String(_))) {
+      return None
+    }
+  }
+  Some(count)
+}
+
+///|
+/// Bind one typed root per original admitted local Source, in capture order,
+/// before the envelope issuer runs. Non-dependent Sources contribute no root.
+/// Re-check their actual closure on the same bodies when that removes a root.
+pub fn bind_aligned_prepared_effect_dependency_sources(
+  prepared : PreparedCapturedEffectDependencyInventory,
+  sources : Array[CapturedLocalEffectSourceEvidence],
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  PreparedCapturedEffectDependencyInventory,
+  CapturedEffectDependencyIssue,
+] {
+  if sources.length() != prepared.roots.length() {
+    return Err(InvalidBody)
+  }
+  let selected : Array[CapturedEffectDependencyBody] = []
+  for index, source in sources {
+    guard @json.object_field(source.value, "invocation") is Some(invocation) &&
+      admitted_dependency_list_count(
+        @json.object_field(invocation, "observation_cids"),
+      )
+      is Some(observations) &&
+      @json.object_field(source.value, "derivation") is Some(derivation) &&
+      admitted_dependency_list_count(
+        @json.object_field(derivation, "input_relation_cids"),
+      )
+      is Some(relations) else {
+      return Err(InvalidBody)
+    }
+    if observations == 0 && relations == 0 {
+      continue
+    }
+    guard @json.object_field(source.value, "artifact") is Some(artifact) &&
+      @json.object_field(source.value, "definition") is Some(definition) else {
+      return Err(InvalidBody)
+    }
+    let kind = match evidence_string(definition, "version") {
+      Some("actql-local-result-definition/0.1") => "result_artifact"
+      Some("actql-local-table-input-definition/0.1") => "table_input_artifact"
+      _ => return Err(InvalidBody)
+    }
+    let root = prepared.roots[index]
+    if root.node.kind != kind {
+      return Err(WrongDependencyKind)
+    }
+    if evidence_string(artifact, "result_artifact_cid") !=
+      Some(root.node.identity) {
+      return Err(MissingDependency)
+    }
+    let matches = try {
+      let writer = @encode.comparing_writer(
+        root.wire,
+        max_bytes,
+        max_nodes,
+        max_depth,
+      )
+      defer @encode.cancel_writer(writer)
+      @json.emit_value(artifact, writer)
+      @encode.finish_comparison_usage(writer).0
+    } catch {
+      _ => false
+    }
+    if !matches {
+      return Err(InvalidBody)
+    }
+    selected.push(root)
+  }
+  if selected.length() == prepared.roots.length() {
+    return Ok(prepared)
+  }
+  dependency_inventory_validate_size(
+    prepared.bodies,
+    selected,
+    prepared.geometry.bytes,
+    prepared.limits,
+  ).map(_ => { ..prepared, roots: selected.copy(), })
+}

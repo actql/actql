@@ -226,9 +226,13 @@ pub fn cancel_completed_result_relation_export(
 }
 
 ///|
+/// An optional metadata funding port admits the absolute next overlapping
+/// inventory of this view. The caller has already backed Result mapping and
+/// order. The original borrow is checked again before the funded step.
 pub fn advance_completed_result_relation_export(
   value : CompletedResultRelationExportPreparation,
   quantum : Int,
+  before_metadata? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(Bool, Int), CompletedExportIssue] {
   if value.closed || value.advancing || quantum <= 0 {
     return Err(Closed)
@@ -246,7 +250,12 @@ pub fn advance_completed_result_relation_export(
     while steps < quantum {
       if value.metadata is Some(metadata) {
         let (done, used) = match
-          advance_completed_output_export_preparation(metadata, quantum - steps) {
+          advance_completed_export_metadata_owned(
+            metadata,
+            quantum - steps,
+            None,
+            before_metadata~,
+          ) {
           Ok(value) => value
           Err(issue) => {
             value.poll_work = steps + metadata.poll_work
@@ -268,6 +277,25 @@ pub fn advance_completed_result_relation_export(
       } else if value.rows.done {
         steps += 1
         value.poll_work = steps
+        if before_metadata is Some(fund) {
+          guard completed_export_metadata_start_capacity(
+              value.rows.names.capacity().to_int64(),
+              false,
+            )
+            is Some(capacity) else {
+            return Err(Admission(CaptureLimit))
+          }
+          let funded = fund(capacity)
+          if value.closed {
+            return Err(Closed)
+          }
+          if !completed_output_available(value.rows.source) || value.closed {
+            return Err(ResultView(Unavailable))
+          }
+          if !funded {
+            return Err(Admission(CaptureLimit))
+          }
+        }
         let rows = match finish_completed_result_rows(value.rows) {
           Ok(value) => value
           Err(issue) => return Err(ResultView(issue))
@@ -534,6 +562,16 @@ pub fn next_completed_output_export(
   value : CompletedOutputExport,
   batch? : Bool = false,
 ) -> Result[String?, CompletedExportIssue] {
+  next_completed_output_export_with_growth(value, batch, None)
+}
+
+///|
+fn next_completed_output_export_with_growth(
+  value : CompletedOutputExport,
+  batch : Bool,
+  before_batch_growth : ((Int) -> Result[Bool, CompletedExportIssue])?,
+  before_row_start? : (() -> Result[Bool, CompletedExportIssue])? = None,
+) -> Result[String?, CompletedExportIssue] {
   guard completed_output_export_workspace_slots(value.budget.limits, {
       max_columns: 0,
       max_order_work: 0,
@@ -546,7 +584,9 @@ pub fn next_completed_output_export(
   }
   while true {
     let result = match
-      advance_completed_output_export(value, 64, slots, batch~) {
+      advance_completed_output_export_with_row_start(
+        value, 64, slots, batch, before_batch_growth, before_row_start,
+      ) {
       Ok(result) => result
       Err(issue) => return Err(issue)
     }
@@ -567,17 +607,79 @@ pub fn next_completed_output_export(
 /// parsed at a time; no environment adapter reconstructs the full Relation.
 /// The leading array delimiter is part of the stored byte batch, but not of
 /// the row value. A conversion failure poisons this export occurrence.
+/// before_measure funds the row cursor, measurement writer and open export
+/// writers before traversal. before_emit uses the measured row bound before
+/// either writer emits it. before_decode then receives the emitted
+/// batch bytes, row nodes and enclosing-array-adjusted depth before decoding.
 pub fn next_completed_output_export_canonical_row(
   value : CompletedOutputExport,
   max_nodes : Int,
   max_depth : Int,
   max_utf16_units : Int,
+  before_decode? : ((Int, Int, Int) -> Bool)? = None,
+  before_emit? : ((ExecutionCapacity) -> Bool)? = None,
+  before_measure? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(Int, String, @identity.CanonicalValue)?, CompletedExportIssue] {
   if max_nodes < 1 || max_depth < 1 || max_utf16_units < 0 {
     return Err(CanonicalRow)
   }
   let index = value.row
-  let batch = match next_completed_output_export(value) {
+  let (before_bytes, before_nodes, _) = if before_decode is Some(_) {
+    @encode.observed_writer_usage(value.writer)
+  } else {
+    (0, 0, 0)
+  }
+  let traversal = if before_measure is Some(_) {
+    guard completed_output_export_workspace_slots(value.budget.limits, {
+        max_columns: 0,
+        max_order_work: 0,
+        max_bytes: value.measurement_max_bytes,
+        max_nodes: value.measurement_max_nodes,
+        max_depth: value.measurement_max_depth,
+      })
+      is Some(slots) &&
+      completed_export_row_traversal_capacity(value, slots) is Some(capacity) else {
+      return Err(Admission(CaptureLimit))
+    }
+    Some(capacity)
+  } else {
+    None
+  }
+  let fund_measure = before_measure.map(fund => {
+    fn() {
+      let pending = @encode.observed_writer_usage(value.writer).0 -
+        value.drained_bytes
+      guard traversal is Some(traversal) &&
+        completed_export_row_writer_capacity(value, pending).bind(writers => {
+          add_execution_capacity(writers, traversal)
+        })
+        is Some(capacity) else {
+        return Err(CompletedExportIssue::Admission(CaptureLimit))
+      }
+      Ok(fund(capacity))
+    }
+  })
+  let fund_emit = before_emit.map(fund => {
+    fn(bytes) {
+      let writers = completed_export_row_writer_capacity(value, bytes)
+      let quote = match traversal {
+        Some(traversal) =>
+          writers.bind(writers => add_execution_capacity(writers, traversal))
+        None => writers
+      }
+      guard quote is Some(capacity) else {
+        return Err(CompletedExportIssue::Admission(CaptureLimit))
+      }
+      Ok(fund(capacity))
+    }
+  })
+  let batch = match
+    next_completed_output_export_with_growth(
+      value,
+      false,
+      fund_emit,
+      before_row_start=fund_measure,
+    ) {
     Ok(Some(batch)) => batch
     Ok(None) => return Ok(None)
     Err(issue) => return Err(issue)
@@ -586,6 +688,34 @@ pub fn next_completed_output_export_canonical_row(
     batch[0].to_int() != (if index == 0 { 91 } else { 44 }) {
     value.source = None
     return Err(CanonicalRow)
+  }
+  if before_decode is Some(reserve) {
+    let (bytes, nodes, depth) = @encode.observed_writer_usage(value.writer)
+    let prefix = if index == 0 { 1 } else { 0 }
+    guard value.source is Some(source) &&
+      !value.reading &&
+      value.row == index + 1 &&
+      bytes > before_bytes &&
+      nodes > before_nodes &&
+      depth > 1 else {
+      cancel_completed_output_export(value)
+      return Err(CanonicalRow)
+    }
+    value.reading = true
+    let admitted = reserve(
+      bytes - before_bytes + prefix,
+      nodes - before_nodes,
+      depth - 1,
+    )
+    let current = value.source is Some(_) &&
+      completed_output_available(source) &&
+      value.source.map(original => physical_equal(original, source)) ==
+      Some(true)
+    value.reading = false
+    if !current || !admitted {
+      cancel_completed_output_export(value)
+      return Err(if current { Admission(CaptureLimit) } else { Unavailable })
+    }
   }
   let row = @identity.from_json(
     @json.parse(batch[1:].to_owned()),
@@ -675,12 +805,13 @@ pub fn finish_completed_output_export(
 ///|
 pub fn finish_completed_relation_export(
   value : CompletedOutputExport,
+  before_finish? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[(CompletedRelationExportReceipt, String), CompletedExportIssue] {
   if value.reading {
     return Err(Closed)
   }
   value.reading = true
-  let result = finish_completed_export_stream(value)
+  let result = finish_completed_export_stream(value, before_finish~)
   value.reading = false
   result.bind(finished => {
     guard finished.2 is Some(logical) else { return Err(Closed) }
@@ -819,6 +950,7 @@ pub fn completed_relation_export_measurement(
 ///|
 fn finish_completed_export_stream(
   value : CompletedOutputExport,
+  before_finish? : ((ExecutionCapacity) -> Bool)? = None,
 ) -> Result[
   (CompletedOutputExportReceipt, String, LogicalRelationIdentity?),
   CompletedExportIssue,
@@ -833,6 +965,21 @@ fn finish_completed_export_stream(
   }
   if value.row != IndexedRows::row_count(value.rows) {
     return Err(NotFinished)
+  }
+  if before_finish is Some(reserve) {
+    guard completed_relation_export_finish_workspace(value) is Some(capacity) else {
+      return Err(Admission(CaptureLimit))
+    }
+    let funded = reserve(capacity)
+    if value.source is None ||
+      !completed_output_available(source) ||
+      value.source.map(original => physical_equal(original, source)) !=
+      Some(true) {
+      return Err(Unavailable)
+    }
+    if !funded {
+      return Err(Admission(CaptureLimit))
+    }
   }
   value.source = None
   let owner = @lower.sequence_owner(source.completion.sequence)
@@ -894,6 +1041,38 @@ fn finish_completed_export_stream(
 }
 
 ///|
+// Fund the last delimiter, two original hash sinks and their final hash
+// scratch, plus the new receipt records and CIDs. The original schema,
+// field names and six populated summary arrays transfer without a copy.
+// Their still-live backing is supplied by the caller's open view quote.
+fn completed_relation_export_finish_workspace(
+  value : CompletedOutputExport,
+) -> ExecutionCapacity? {
+  let pending = @encode.observed_writer_usage(value.writer).0 -
+    value.drained_bytes
+  guard pending >= 0 &&
+    pending < 2147483647 &&
+    completed_export_row_writer_capacity(value, pending + 1) is Some(writers) &&
+    @shape.reference_array_retained_extent(6L, 0L) is Some(empty) else {
+    return None
+  }
+  // Logical identity and two CIDs, row/content receipt and usage,
+  // result/tuple/Option carriers, measurement/Relation receipt, and the
+  // six empty arrays installed after their populated backing moves.
+  preparation_representation_cost({
+    record_headers: 17L + empty.record_headers,
+    reference_slots: 41L + empty.reference_slots,
+    scalar_words: 26L + empty.scalar_words,
+    owned_utf16_units: 2L * 71L,
+    owned_wire_bytes: 0L,
+  }).bind(bytes => {
+    execution_capacity(0L, bytes).bind(receipt => {
+      add_execution_capacity(writers, receipt)
+    })
+  })
+}
+
+///|
 pub fn completed_export_content(
   receipt : CompletedOutputExportReceipt,
 ) -> AdmittedOutputStreamReceipt {
@@ -932,10 +1111,17 @@ pub fn cancel_completed_export_receipt(
 }
 
 ///|
+/// Discard the already-revoked reference view when the caller retains only
+/// the receipt's immutable metadata. Transferred reference custody remains
+/// with the owner that already took it from the receipt.
 pub fn cancel_completed_relation_export_receipt(
   receipt : CompletedRelationExportReceipt,
+  discard_reference_inventory? : Bool = false,
 ) -> Unit {
   cancel_completed_export_receipt(receipt.rows)
+  if discard_reference_inventory {
+    receipt.rows.references = None
+  }
 }
 
 ///|

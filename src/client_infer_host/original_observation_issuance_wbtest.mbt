@@ -855,6 +855,27 @@ test "complete original observation keeps compiler order when the second Model o
   }
   assert_eq(calls[0].val + calls[1].val, 2)
   let ordered = [owners[0].unwrap(), owners[1].unwrap()]
+  let before_quote = @resources.ledger_usage(ledger)
+  let (publication_limits, publication_bytes) = original_source_free_model_observation_requirements(
+    ordered, plans,
+  ).unwrap()
+  assert_eq(publication_limits.max_slots, 2)
+  assert_eq(@resources.ledger_usage(ledger), before_quote)
+  assert_true(
+    original_source_free_model_observation_requirements(
+      [ordered[1], ordered[0]],
+      plans,
+    )
+    is None,
+  )
+  assert_true(
+    original_source_free_model_observation_requirements(ordered, [
+      plans[1],
+      plans[0],
+    ])
+    is None,
+  )
+
   // Join the ordinary sequence: both Model inputs already grew on the same
   // Read, then the original parent window grows before publication uses its
   // retained descriptor. Its first snapshot remains the original minimum.
@@ -874,36 +895,96 @@ test "complete original observation keeps compiler order when the second Model o
   assert_eq(after_window.attempts, before_window.attempts)
   assert_eq(after_window.planning_work, before_window.planning_work)
   assert_eq(@resources.quantity_usage(ledger), quantities)
-  // Actual flat metadata still needs 16*4096 +2*128 +1*256 =66048.
-  // Start with fixed bytes, then exercise the same parent growth below.
+  let publication_extent = @model.original_model_publication_payload_extent(
+    publication_bytes,
+  ).unwrap()
   let publication = reserve_original_infer_publication_capacity(
     ordered[1],
-    1L,
-    7L,
+    publication_bytes - 1L,
+    publication_bytes,
   ).unwrap()
-  // Publication is a sibling byte-only lifetime on the actual shared parent,
-  // not new Model work. Its next constructor may exceed one Model component's
-  // work ceiling while the same parent admits it. Neither ceiling is raised.
   let child = ordered[1].limits.model.ledger
   let parent = @resources.ledger_limits(ledger)
-  grow_original_infer_publication_capacity(
-    ordered[1],
-    publication,
-    child.retained_bytes + 1L,
-    child.execution_bytes + 1L,
-  ).unwrap()
-  assert_eq(ordered[1].limits.model.ledger, child)
-  assert_eq(@resources.ledger_limits(ledger), parent)
+  assert_eq(
+    @model.original_model_publication_retained_bytes(publication),
+    publication_extent - 1L,
+  )
   let before = @resources.ledger_usage(ledger)
   let issued = start_complete_original_observation_issuance(
-    ordered,
-    publication,
-    issuance_limits(),
+    ordered, publication, publication_limits,
   ).unwrap()
   assert_eq(@resources.ledger_usage(ledger), before)
   issuance_finish(issued)
-  let (observation, _) = observation_issuance_value(issued).unwrap()
+  let (observation, invocation) = observation_issuance_value(issued).unwrap()
   assert_eq(@publication.model_observation_slot_count(observation), Some(2))
+  let before_projection = @resources.ledger_usage(ledger)
+  assert_true(
+    original_source_free_model_publication_inputs(issued, compiled, definition)
+    is None,
+  )
+  assert_eq(@resources.ledger_usage(ledger), before_projection)
+  grow_original_infer_publication_capacity(
+    ordered[1],
+    publication,
+    publication_extent,
+    publication_extent,
+  ).unwrap()
+  assert_eq(ordered[1].limits.model.ledger, child)
+  assert_eq(@resources.ledger_limits(ledger), parent)
+  {
+    let (inputs, evidence) = original_source_free_model_publication_inputs(
+      issued, compiled, definition,
+    ).unwrap()
+    let template = @publication_host.client_compiled_run_template(compiled)
+    let policy = invocation_fixture_policy_cid()
+    assert_true(
+      @publication.source_free_model_invocation_matches(
+        template, observation, invocation, inputs, policy,
+      ),
+    )
+    assert_not_eq(inputs[0], inputs[1])
+    assert_false(
+      @publication.source_free_model_invocation_matches(
+        template,
+        observation,
+        invocation,
+        [inputs[1], inputs[0]],
+        policy,
+      ),
+    )
+    assert_false(
+      @publication.source_free_model_invocation_matches(
+        template,
+        observation,
+        invocation,
+        inputs,
+        "sha256:" + "9".repeat(64),
+      ),
+    )
+    for index, owner in ordered {
+      assert_eq(
+        inputs[index],
+        @publication.run_evidence_value_identity(
+          @publication_host.client_infer_call_scope_artifact(
+            owner.call_scope.unwrap(),
+          ),
+        ),
+      )
+      assert_true(
+        physical_equal(evidence[index], invocation_evidence(owner, 0).unwrap()),
+      )
+    }
+  }
+  // This publication lifetime may exceed the immutable component limit if
+  // the same parent Ledger admits it, with no Model work or extra authority.
+  grow_original_infer_publication_capacity(
+    ordered[1],
+    publication,
+    Int64::max(publication_extent, child.retained_bytes + 1L),
+    Int64::max(publication_extent, child.execution_bytes + 1L),
+  ).unwrap()
+  assert_eq(ordered[1].limits.model.ledger, child)
+  assert_eq(@resources.ledger_limits(ledger), parent)
   // Bind EVERY original execution to the SAME complete issuer. The second
   // execution still owns the one publication borrow; child order is not a
   // substitute for the checked Unit coordinate in either observation.
@@ -962,6 +1043,10 @@ test "complete original observation keeps compiler order when the second Model o
     assert_true(original_local_model_observation_coordinates(original) is None)
   }
   assert_true(cleanup_observation_issuance(issued).unwrap())
+  assert_true(
+    original_source_free_model_publication_inputs(issued, compiled, definition)
+    is None,
+  )
   assert_true(release_original_infer_publication_capacity(publication).unwrap())
   for index in 0..<2 {
     assert_true(cleanup(ordered[index]).unwrap())

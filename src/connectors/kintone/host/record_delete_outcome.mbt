@@ -34,6 +34,64 @@ pub fn project_record_delete_preview_outcome(
   values : @catalog.RecordValueLimits,
   limits : @catalog.RecordMutationLimits,
 ) -> Result[RecordDeletePreviewOutcome, RecordDeleteOutcomeIssue] {
+  let target = match delete_outcome_target(mapping, request, response) {
+    Ok(target) => target
+    Err(issue) => return Err(issue)
+  }
+  let before = match
+    prepare_record_delete_preview(mapping, target, values, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(Before(issue))
+  }
+  project_record_delete_outcome(
+    mapping, request, response, before, preview, member_index, row_index, limits,
+  )
+}
+
+///|
+/// Decode the acknowledgement against the held request and original target
+/// projection already admitted before the physical send.
+pub fn project_record_delete_observed_outcome(
+  mapping : RecordDeleteMapping,
+  request : @catalog.RecordDeleteRequest,
+  before : RecordDeletePreview,
+  status : Int,
+  bytes : Bytes,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  limits : @catalog.RecordMutationLimits,
+) -> Result[RecordDeletePreviewOutcome, RecordDeleteOutcomeIssue] {
+  let response = match
+    @catalog.project_record_delete_acknowledgement(
+      request,
+      status,
+      bytes,
+      limits.max_output_bytes,
+      limits.max_output_nodes,
+      limits.max_output_depth,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Response(issue))
+  }
+  let target = match delete_outcome_target(mapping, request, response) {
+    Ok(target) => target
+    Err(issue) => return Err(issue)
+  }
+  if !record_delete_preview_matches(before, mapping, target) {
+    return Err(ForeignPreview)
+  }
+  project_record_delete_outcome(
+    mapping, request, response, before, preview, member_index, row_index, limits,
+  )
+}
+
+///|
+fn delete_outcome_target(
+  mapping : RecordDeleteMapping,
+  request : @catalog.RecordDeleteRequest,
+  response : @catalog.RecordDeleteAcknowledgement,
+) -> Result[@catalog.OriginalRecordTarget, RecordDeleteOutcomeIssue] {
   if !record_delete_mapping_matches_request(mapping, request) {
     return Err(MappingMismatch)
   }
@@ -46,11 +104,20 @@ pub fn project_record_delete_preview_outcome(
     ) {
     return Err(Response(@catalog.UncorrelatedResult))
   }
-  let before = match
-    prepare_record_delete_preview(mapping, targets[0], values, limits) {
-    Ok(value) => value
-    Err(issue) => return Err(Before(issue))
-  }
+  Ok(targets[0])
+}
+
+///|
+fn project_record_delete_outcome(
+  mapping : RecordDeleteMapping,
+  request : @catalog.RecordDeleteRequest,
+  response : @catalog.RecordDeleteAcknowledgement,
+  before : RecordDeletePreview,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  limits : @catalog.RecordMutationLimits,
+) -> Result[RecordDeletePreviewOutcome, RecordDeleteOutcomeIssue] {
   guard @publication.effect_preview_member_kind(preview, member_index) ==
     Some("delete") &&
     @publication.effect_preview_member_resolved_contract(preview, member_index) ==

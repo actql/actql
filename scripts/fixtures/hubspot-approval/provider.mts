@@ -14,7 +14,7 @@ export function hubspotApprovalProvider(selection: RecordApprovalSeed) {
   const {route} = state;
   const properties = {results: ['actql_request_id', 'name'].map(name => ({name,
     type: 'string', fieldType: 'text', calculated: false, modificationMetadata: {readOnlyValue: false}}))};
-  const record = (value: typeof state.target) => ({id: value.id, archived: false, updatedAt: value.updatedAt,
+  const record = (value: NonNullable<typeof state.target>) => ({id: value.id, archived: false, updatedAt: value.updatedAt,
     properties: {name: value.name, actql_request_id: value.marker}});
   const writeRoute = route('POST', '/crm/v3/objects/companies/batch/update', exchange => {
     const body = JSON.parse(exchange.body);
@@ -33,13 +33,13 @@ export function hubspotApprovalProvider(selection: RecordApprovalSeed) {
   const routes = [
     route('GET', '/account-info/v3/details', () => ({portalId: 7, accountType: 'STANDARD'})),
     route('GET', '/crm/v3/properties/companies', () => structuredClone(properties)),
-    route('GET', '/crm/v3/objects/companies', () => ({results: [record(state.target), record(state.control)]})),
+    route('GET', '/crm/v3/objects/companies', () => ({results: [record(state.target!), record(state.control)]})),
     route('POST', '/crm/v3/objects/companies/batch/read', exchange => {
       const body = JSON.parse(exchange.body);
       sameKeys(body, ['inputs', 'properties']);
       assert.deepEqual(body.inputs, [{id: recordId}]);
       assert.deepEqual(body.properties, ['name']);
-      return {status: 'COMPLETE', results: [record(state.target)]};
+      return {status: 'COMPLETE', results: [record(state.target!)]};
     }),
     writeRoute,
   ];

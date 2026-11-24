@@ -85,7 +85,7 @@ fn prepare_client_keyed_declared_file_activation_record_original(
     15L,
     15,
     2,
-    fn() {
+    fn(_) {
       // Growth observes the same current owner. A reentered retirement cannot
       // turn an old activation into a new dispatch or Journal constructor.
       guard !state.identifying &&
@@ -234,7 +234,7 @@ pub fn prepare_client_keyed_declared_file_retention(
     11L,
     11,
     2,
-    fn() {
+    fn(_) {
       guard !lookup.closed &&
         lookup.planned_requests is None &&
         lookup.left.lookup_issue is None &&
@@ -409,7 +409,7 @@ fn prepare_client_keyed_declared_file_page_record_original(
     9L,
     9,
     2,
-    fn() {
+    fn(_) {
       guard client_keyed_native_captured_page_matches_original(
           page, keyed_request, request, compiled, definition, original,
         ) &&
@@ -623,7 +623,7 @@ pub fn prepare_client_keyed_declared_file_raw_capture(
     12L,
     12,
     2,
-    fn() {
+    fn(_) {
       guard !state.closed &&
         state.left.lookup_issue is None &&
         state.selected_request is Some(same) &&
@@ -713,13 +713,13 @@ fn prepare_declared_file_lookup_dependencies(
     64L + 2L * max_depth.to_int64(),
     max_nodes,
     max_depth,
-    fn() {
-      match reserve_keyed_dependency_serial_controls(lookup) {
-        Ok(_) => ()
+    fn(phase) {
+      let cursor = match begin_keyed_dependency_serial_cursor(lookup, phase) {
+        Ok(value) => value
         Err(issue) => return Err(issue)
       }
+      defer cursor.retire()
       let primary : Ref[ClientKeyedRequestIssue?] = Ref(None)
-      let cursor = new_keyed_dependency_serial_cursor()
 
       let before = (
         bytes : Int,
@@ -749,7 +749,7 @@ fn prepare_declared_file_lookup_dependencies(
           before(bytes, nodes, depth, serial_cursor)
         }),
         begin_batch: first => {
-          match cursor.begin_batch(first) {
+          match cursor.begin_batch(lookup, first) {
             Ok(_) => true
             Err(issue) => {
               primary.val = Some(issue)
@@ -758,7 +758,7 @@ fn prepare_declared_file_lookup_dependencies(
           }
         },
         record: bodies => {
-          match cursor.record_body(bodies, max_nodes) {
+          match cursor.record_body(lookup, bodies, max_nodes) {
             Ok(_) => true
             Err(issue) => {
               primary.val = Some(issue)
@@ -788,13 +788,9 @@ fn prepare_declared_file_lookup_dependencies(
         Ok(value) => value
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
       }
-      Ok(
-        keyed_protocol_built(
-          bodies,
-          dependency_bodies=Some(bodies),
-          measured_bodies=cursor.measured,
-        ),
-      )
+      cursor
+      .seal(lookup, bodies)
+      .map(dependencies => keyed_protocol_built(bodies, dependencies~))
     },
     bodies => {
       guard !lookup.closed &&

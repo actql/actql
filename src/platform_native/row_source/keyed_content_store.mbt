@@ -133,74 +133,118 @@ fn native_relation_file_content(
 }
 
 ///|
-fn native_relation_file_content_capacity(
-  input : NativeRelationFileContentInput,
-  physical : NativeRelationFilePreparedProvider?,
-  response_bytes? : Int? = None,
-  storage_candidate? : @publication.CapturedContentReference? = None,
-  raw_candidate? : @publication.PublicationContract? = None,
-) -> (Int64, Int64)? {
-  // The Store child does not exist until its original candidate has been
-  // built. Its exact constructor is grown on this SAME reservation below,
-  // before the child is prepared or can perform any I/O.
-  let storage : @execution.PreparationRepresentationUnits? = match
-    (storage_candidate, physical) {
-    (None, _) =>
-      Some({
-        record_headers: 0L,
-        reference_slots: 0L,
-        scalar_words: 0L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      })
-    (Some(original), Some(provider)) =>
-      input.store.captured_content_custody_construction_inventory(
-        provider.limits.chunk_bytes,
+priv enum NativeFileStorageCapacity {
+  ConstructRaw(@publication.PublicationContract)
+  ConstructContent(@publication.CapturedContentReference)
+  RetainStorage(@store.CapturedContentCustody)
+}
+
+///|
+priv enum NativeFileContentWorkspace {
+  NoContentWorkspace
+  ProjectContentWorkspace
+  RetainProjectedContentBytes(Int)
+  BuildContentPageWorkspace
+}
+
+///|
+let no_file_content_workspace : @execution.PreparationRepresentationUnits = {
+  record_headers: 0L,
+  reference_slots: 0L,
+  scalar_words: 0L,
+  owned_utf16_units: 0L,
+  owned_wire_bytes: 0L,
+}
+
+///|
+fn file_storage_capacity_inventory(
+  store : @store.Store,
+  chunk_bytes : Int,
+  phase : NativeFileStorageCapacity?,
+) -> @execution.PreparationRepresentationUnits? {
+  match phase {
+    None => Some(no_file_content_workspace)
+    Some(ConstructRaw(original)) =>
+      store.lookup_raw_custody_construction_inventory(chunk_bytes, original)
+    Some(ConstructContent(original)) =>
+      store.captured_content_custody_construction_inventory(
+        chunk_bytes,
         candidate=Some(original),
       )
-    _ => None
+    Some(RetainStorage(original)) => original.retained_inventory()
   }
-  let raw_storage : @execution.PreparationRepresentationUnits? = match
-    (raw_candidate, physical) {
-    (None, _) =>
-      Some({
-        record_headers: 0L,
-        reference_slots: 0L,
-        scalar_words: 0L,
-        owned_utf16_units: 0L,
-        owned_wire_bytes: 0L,
-      })
-    (Some(original), Some(provider)) =>
-      input.store.lookup_raw_custody_construction_inventory(
-        provider.limits.chunk_bytes,
-        original,
-      )
-    _ => None
-  }
-  guard raw_storage is Some(raw_storage) &&
-    physical is Some(provider) &&
-    file_listing_fields_valid(provider, input.fields) &&
-    file_content_construction_inventory(
-      provider,
-      response_bytes
-      .map(bytes => Int::min(input.max_content_bytes, Int::max(1, bytes)))
-      .unwrap_or(input.max_content_bytes),
-      response_bytes,
+}
+
+///|
+fn native_relation_file_content_capacity(
+  input : NativeRelationFileContentInput,
+  provider : NativeRelationFilePreparedProvider,
+  response_bytes? : Int? = None,
+  storage? : NativeFileStorageCapacity? = None,
+  raw_storage? : NativeFileStorageCapacity? = None,
+  workspace? : NativeFileContentWorkspace = NoContentWorkspace,
+) -> (Int64, Int64)? {
+  guard file_storage_capacity_inventory(
+      input.store,
+      provider.limits.chunk_bytes,
+      storage,
     )
-    is Some(projection) &&
-    storage is Some(storage) &&
+    is Some(storage) &&
+    file_storage_capacity_inventory(
+      input.store,
+      provider.limits.chunk_bytes,
+      raw_storage,
+    )
+    is Some(raw_storage) &&
+    file_listing_fields_valid(provider, input.fields) &&
     @publication_host.client_captured_content_workspace_capacity(
       input.reference_limits.max_bytes,
     )
-    is Some((reference_retained, reference_execution)) &&
-    @encode.text_writer_construction_inventory(
-      provider.limits.page.max_bytes,
-      provider.limits.page.max_nodes,
-      provider.limits.page.max_depth,
-    )
-    is Some(page) &&
-    @execution.compose_preparation_representation([
-      projection,
+    is Some((reference_retained, reference_execution)) else {
+    return None
+  }
+  let phase : @execution.PreparationRepresentationUnits = match workspace {
+    NoContentWorkspace => no_file_content_workspace
+    ProjectContentWorkspace =>
+      match
+        file_content_projection_workspace(
+          provider,
+          response_bytes
+          .map(bytes => Int::min(input.max_content_bytes, Int::max(1, bytes)))
+          .unwrap_or(input.max_content_bytes),
+          response_bytes,
+        ) {
+        Some(inventory) => inventory
+        None => return None
+      }
+    RetainProjectedContentBytes(bytes) =>
+      // The same projected Bytes leave the constructor and stay with the
+      // Source through Content Store persist and verification.
+      {
+        ..no_file_content_workspace,
+        record_headers: 1L,
+        owned_wire_bytes: bytes.to_int64(),
+      }
+    BuildContentPageWorkspace => {
+      guard @encode.text_writer_construction_inventory(
+          provider.limits.page.max_bytes,
+          provider.limits.page.max_nodes,
+          provider.limits.page.max_depth,
+        )
+        is Some(writer) else {
+        return None
+      }
+      {
+        record_headers: writer.record_headers,
+        reference_slots: writer.reference_slots,
+        scalar_words: writer.scalar_words,
+        owned_utf16_units: writer.owned_utf16_units,
+        owned_wire_bytes: provider.limits.page.max_bytes.to_int64(),
+      }
+    }
+  }
+  guard @execution.compose_preparation_representation([
+      phase,
       storage,
       raw_storage,
       {
@@ -216,39 +260,42 @@ fn native_relation_file_content_capacity(
         // Raw retention/response/custody: three field refs, three Some
         // carriers H3/R3/W3, and bind/advance Result/clock frames H4/R5/W4.
         // Captured-page field+Some adds1H2R1W. Its fixed pre-entry
-        // call frame6R6W and two Result carriers add3H8R8W. Dynamic
-        // identity/protocol bodies are backed by the original lookup.
+        // call frame6R6W and two Result carriers add3H8R8W. Phase quote
+        // inputs add two optional storage variants and their backing
+        // references, one workspace variant, and resize/quote frames
+        // and results H9/R16/W14.
+        // Dynamic identity/protocol bodies are backed by the original lookup.
         record_headers: 11L +
-        page.record_headers +
         1L +
         8L +
         7L +
         2L +
         24L +
         9L +
+        9L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
         reference_slots: 21L +
-        page.reference_slots +
         8L +
         8L +
         10L +
         30L +
         5L +
         1L +
+        16L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
         scalar_words: 16L +
-        page.scalar_words +
         4L +
         8L +
         3L +
         24L +
         93L +
+        14L +
         (if input.read_profile is Some(_) { 1L } else { 0L }),
         // The original raw Bytes are already included in the provider's
         // transport/document overlap. Retaining their alias makes no copy;
         // the one raw digest is additional to the later Content digest.
-        owned_utf16_units: page.owned_utf16_units + 263L + 71L,
-        owned_wire_bytes: provider.limits.page.max_bytes.to_int64() + 96L,
+        owned_utf16_units: 263L + 71L,
+        owned_wire_bytes: 96L,
       },
     ])
     is Some(inventory) &&
@@ -379,6 +426,19 @@ fn NativeRelationFileCapture::advance_content(
     | VerifyRaw
     | RetireRawIO => return Err(Unavailable)
     ProjectContent => {
+      // Raw Store I/O has retired. The same provider quote already funds
+      // the target projection. Add the Content-specific workspace before
+      // the original resolver callback or any construction.
+      match
+        self.resize_keyed_content_capacity(
+          input,
+          self.offset,
+          raw_storage=content.raw_custody.map(custody => RetainStorage(custody)),
+          workspace=ProjectContentWorkspace,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
       let identity = (input.resolve_identity)(reference)
       guard self.retained_keyed_original() && identity is Some(identity) else {
         return Err(ForeignOriginal)
@@ -416,37 +476,38 @@ fn NativeRelationFileCapture::advance_content(
       content.phase = PrepareContentStore
     }
     PrepareContentStore => {
+      guard content.bytes is Some(bytes) else { return Err(Unavailable) }
       let candidate = content.candidate.unwrap()
-      guard self.ledger is Some(ledger) && self.metadata is Some(metadata) else {
-        return Err(Unavailable)
-      }
-      let (retained, execution) = match
-        file_capture_construction_capacity(
-          self.selection.unwrap(),
-          self.limits,
-          self.acquisition.unwrap(),
-          self.response_provider,
-          Some(input),
-          Some(self.offset),
-          storage_candidate=Some(
-            @publication_host.client_captured_content_candidate(candidate),
-          ),
-          raw_candidate=content.raw_response.map(value => value.metadata),
-        ) {
-        Some(value) => value
-        None => return Err(Capacity)
-      }
+      let original = @publication_host.client_captured_content_candidate(
+        candidate,
+      )
+      let raw_storage = content.raw_custody.map(custody => {
+        RetainStorage(custody)
+      })
+      let workspace = RetainProjectedContentBytes(bytes.length())
+      // The preceding advance has returned, including target, text and hash
+      // constructors. Keep the actual returned bytes while reserving Store I/O.
       match
-        @resources.grow_capacity_reservation(
-          ledger, metadata, retained, execution,
+        self.resize_keyed_content_capacity(
+          input,
+          self.offset,
+          raw_storage~,
+          workspace~,
+          return_workspace=true,
         ) {
-        Err(issue) => return Err(Resource(issue))
+        Err(issue) => return Err(issue)
         Ok(_) => ()
       }
-      // A successful debit remains with the same owner after reentrant close;
-      // it never permits a stale Store constructor or another candidate.
-      if !self.retained_keyed_original() {
-        return Err(Unavailable)
+      match
+        self.resize_keyed_content_capacity(
+          input,
+          self.offset,
+          storage=Some(ConstructContent(original)),
+          raw_storage~,
+          workspace~,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
       }
       let holding = match
         @publication_host.client_captured_content_holding_cid(candidate) {
@@ -454,10 +515,7 @@ fn NativeRelationFileCapture::advance_content(
         None => return Err(ForeignOriginal)
       }
       let child = match
-        input.store.prepare_captured_content_custody(
-          @publication_host.client_captured_content_candidate(candidate),
-          holding,
-        ) {
+        input.store.prepare_captured_content_custody(original, holding) {
         Ok(value) => value
         Err(issue) => return Err(Store(issue))
       }
@@ -485,7 +543,8 @@ fn NativeRelationFileCapture::advance_content(
       content.phase = RetireContentIO
     }
     RetireContentIO => {
-      match content.custody.unwrap().retry_cleanup() {
+      let custody = content.custody.unwrap()
+      match custody.retry_cleanup() {
         Err(issue) => return Err(Store(issue))
         Ok(false) => return Err(Unavailable)
         Ok(true) => ()
@@ -494,6 +553,17 @@ fn NativeRelationFileCapture::advance_content(
         return Err(Unavailable)
       }
       content.bytes = None
+      match
+        self.resize_keyed_content_capacity(
+          input,
+          self.offset,
+          storage=Some(RetainStorage(custody)),
+          raw_storage=content.raw_custody.map(custody => RetainStorage(custody)),
+          return_workspace=true,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
       content.phase = IssueContent
     }
     IssueContent => {
@@ -513,6 +583,17 @@ fn NativeRelationFileCapture::advance_content(
       content.phase = CompleteContentPage
     }
     CompleteContentPage => {
+      match
+        self.resize_keyed_content_capacity(
+          input,
+          self.offset,
+          storage=Some(RetainStorage(content.custody.unwrap())),
+          raw_storage=content.raw_custody.map(custody => RetainStorage(custody)),
+          workspace=BuildContentPageWorkspace,
+        ) {
+        Err(issue) => return Err(issue)
+        Ok(_) => ()
+      }
       let body = try {
         let writer = @encode.writer(
           self.limits.page.max_bytes,
@@ -544,8 +625,9 @@ fn NativeRelationFileCapture::advance_content(
 
 ///|
 // Completed Content keeps its original candidate/issuer/value and Store child.
-// Retain the Common reference workspace until the Model input receipt; only
-// the finished Native projection/page writer/storage constructors disappear.
+// After issuance and page construction have returned, use the matched
+// reference's actual wire size with the existing Common envelope/control
+// allowance. Currentness still checks the same candidate and Store custody.
 fn native_relation_file_content_retained_capacity(
   content : NativeRelationFileContent,
 ) -> (Int64, Int64)? {
@@ -576,15 +658,23 @@ fn native_relation_file_content_retained_capacity(
     content.raw_snapshot_cid is Some(_) &&
     content.input is Some(input) &&
     content.candidate is Some(candidate) &&
-    content.value is Some(_) &&
+    content.value is Some(value) &&
+    value.value is @admitted.Reference(reference) &&
     content.issuer is Some(_) &&
     content.custody is Some(custody) &&
     custody.matches_confirmed(
       @publication_host.client_captured_content_candidate(candidate),
     ) &&
     custody.retained_inventory() is Some(storage) &&
-    @publication_host.client_captured_content_workspace_capacity(
+    @publication_host.client_captured_content_wire(candidate) ==
+    @admitted.reference_wire(reference) &&
+    @scalar.admit_utf8_length(
+      @admitted.reference_wire(reference),
       input.reference_limits.max_bytes,
+    )
+    is Ok(reference_bytes) &&
+    @publication_host.client_captured_content_workspace_capacity(
+      reference_bytes,
     )
     is Some((reference_retained, reference_execution)) &&
     @execution.compose_preparation_representation([

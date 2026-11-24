@@ -38,3 +38,12 @@ export function readReportedUsage(body: unknown) {
   const tokenCount = (value: unknown) => Number.isSafeInteger(value) && (value as number) >= 0 ? BigInt(value as number) : undefined;
   return {inputTokens: tokenCount(usage.input_tokens), outputTokens: tokenCount(usage.output_tokens)};
 }
+
+export function readReportedResponse(body: unknown) {
+  if (body === null || typeof body !== 'object') return undefined;
+  const reported = body as {
+    model?: unknown; id?: unknown; stop_reason?: unknown;
+  };
+  return {model: reported.model, requestId: reported.id, finishReason: reported.stop_reason,
+    outcome: reported.stop_reason === 'refusal' ? 'refusal' : undefined};
+}

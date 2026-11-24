@@ -77,7 +77,7 @@ fn prepare_client_keyed_native_transport(
     34L + nodes.to_int64(),
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       match
         @publication.issue_file_lookup_transport(
           profile, document, max_bytes, max_nodes, max_depth,

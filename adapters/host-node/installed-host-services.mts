@@ -801,10 +801,11 @@ export function createInstalledHostServices({root, principalId, moon, assertCurr
   const acquisitionContractsCapacity = moon.clientProgramRowSourceAcquisitionContractsConstructionCapacity;
   const prepareMapping = moon.clientProgramRowSourcePrepareMapping;
   const prepareUpdateMapping = moon.clientProgramRowSourcePrepareUpdateMapping;
+  const prepareDeleteMapping = moon.clientProgramRowSourcePrepareDeleteMapping;
   const prepareUpdateMappingCapacity = moon.clientProgramRowSourceUpdateMappingConstructionCapacity;
   installations.set(services, {selected, current, sites, siteInstallations, implementations,
     sourceImplementations, sourceProfiles, moon, root, principalId, initialPreparation, accountCurrent, restoreDeclaration, restoreAuthoredDeclaration, declarationJson,
-    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping,
+    admitAcquisitionContracts, acquisitionContractsCapacity, prepareMapping, prepareUpdateMapping, prepareDeleteMapping,
     prepareUpdateMappingCapacity});
   return services;
 }

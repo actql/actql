@@ -835,6 +835,7 @@
         }
       ],
       "imports": [
+        "../../../../_build/js/release/build/connectors/duckdb/host_node/host_node.js",
         "../../../host-common/compiler-binding.generated.mjs",
         "../../../store-local/files.mjs",
         "../../../store-local/import.mjs",
@@ -857,9 +858,7 @@
         "./transport-bounds.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/native-host-query.mjs",
@@ -2288,7 +2287,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
-      "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
+      "sha256": "9491ec6084bae553aa2aa920a45aa301cc6383c90bb3455b3e8b4a5e16c2f89d",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing bounded physical poll adapter; Common managed-output owner issues receipts and keeps partial roots",
@@ -2387,7 +2386,7 @@
     },
     {
       "module": "adapters/connectors/duckdb/node/runtime-result.mjs",
-      "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
+      "sha256": "11e537bc3ea42ce2a61246e62269294b4d846b997e4d55fd1016c334a34bdda8",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing DuckDB typed-result/failure translation; compiler field decoding remains the separate A binding facet",
@@ -2726,7 +2725,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-effect.mjs",
-      "sha256": "dfaa700be221ae7119a849d2d3abb8be671dee2fe89759299ea7e6c7a7a5c47a",
+      "sha256": "f808e23e2a8b94af610ee6ecae322c50200bffff4f3a259091b3fc0ca522b75d",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce Effect installation/publication/Mapping and target-read inventory; Common row Effect governs the Set",
@@ -3283,7 +3282,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/installed-salesforce-source.mjs",
-      "sha256": "da3d62be59a2d7aabd9ff68d15a68a128de4b769e7293de49cab23c3736b7299",
+      "sha256": "d79cc8f4e59cf8c0d0193387f4501c6f67e2ba26bc38aef54fcc67d0d8456483",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing published Salesforce source installation; provider protocol stays Salesforce and RowRun remains the capture owner",
@@ -3822,7 +3821,7 @@
     },
     {
       "module": "adapters/connectors/salesforce/host/salesforce-write-driver.mjs",
-      "sha256": "dfb77892969030ac0d4702840c0b5ffa7be0f33c302f05050910c3770cdaa9c8",
+      "sha256": "1090dddf8ead9c8d26f32e5490920de65ebfb0e1a320d31a7e05d24cb3df1930",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Existing Salesforce request/projection/target-read/capability/response and recovery functions under Common installed Effect",
@@ -4872,7 +4871,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-authorization.mjs",
-      "sha256": "d7df8dd7b92f73f2608b9bbea28552d7c2f17937b7edf1b4f949459fb4a9e3fe",
+      "sha256": "de9ec3aa8a1dcdbbbe05acf0e06d8484d1583223ef067827f8ff18aa58b26af7",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -4887,6 +4886,7 @@
           "parameters": [
             "moon",
             "ownerOf",
+            "recipeOf",
             "cid",
             "cidPattern",
             "CAPABILITY_VERSION",
@@ -5222,7 +5222,8 @@
         }
       ],
       "imports": [
-        "../host-common/runtime-result.mjs"
+        "../host-common/runtime-result.mjs",
+        "./installed-effect-recipe.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -7990,7 +7991,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-construction.mjs",
-      "sha256": "568fce846298deec781321bbe6d81237f09557b1c749d12facbf37bb2496f6af",
+      "sha256": "5bee9c9f5f4fc8f420144f36859047e1fc02968666d9fe893f02918a1f338cf3",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -8061,12 +8062,26 @@
         {
           "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect",
           "parameters": [
-            "rule"
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect/createInstalledRowEffect",
+          "parameters": [
+            "kind"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#3",
           "parameters": [
             "item"
           ],
@@ -8172,7 +8187,9 @@
             "createInstalledRowEffectConstruction/installedRowEffectDescriptors",
             "createInstalledRowEffectConstruction/installedRowEffectDescriptors/installedRowEffectDescriptors",
             "createInstalledRowEffectConstruction/installedRowEffectUnit",
-            "createInstalledRowEffectConstruction/installedRowEffectUnit/units/units"
+            "createInstalledRowEffectConstruction/installedRowEffectUnit/units/units",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect/createInstalledRowEffect",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#3"
           ],
           "exports": [
             "createInstalledRowEffectConstruction"
@@ -10126,7 +10143,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-physical-route.mjs",
-      "sha256": "2a26ed6f3d391e5e924988d992f9037ccba5d1814525603cbf6b5274f2a2b307",
+      "sha256": "453870cf68c9810258a868822800b383bf86b458d6406486a960cbe0005c4f62",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10154,6 +10171,7 @@
             "scopeKey",
             "admitRow",
             "installedEffectWriteOperation",
+            "permissionsOf",
             "projectOwnedResponse",
             "settle"
           ],
@@ -10422,14 +10440,15 @@
       ],
       "imports": [
         "../host-common/owned-invocation-context.mjs",
-        "./effect-physical-dispatch.mjs"
+        "./effect-physical-dispatch.mjs",
+        "./installed-effect-recipe.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
-      "sha256": "feaae38084589a6542f439be5b6bd77c6420ed6d6df6e00b5b4c47d16c30d739",
+      "sha256": "c5c4ccfcdf7f05a9a6a6e66f66621866923affa03e1d86121b8219d82084d3ef",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -10506,6 +10525,13 @@
           "name": "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes",
           "parameters": [
             "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes/captureManagedPlanRecipes",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -10656,7 +10682,8 @@
             "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes",
             "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes#2",
             "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes",
-            "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
+            "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+            "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes/captureManagedPlanRecipes"
           ],
           "exports": [],
           "attributes": {
@@ -12955,7 +12982,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
-      "sha256": "d0f95c2568447a87ef9fb64cc7bdadf9fb3bb98ff30560b11432acd8adb8fc63",
+      "sha256": "41a7903d3fa88f7bf72d500afebcf84ce6d48a5bb4bce4f320ba5303a5fc1a2a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing provider-neutral installed row/Command Effect hooks; original capture/Preview/Ledger/apply/publication owners retain authority",
@@ -13228,6 +13255,13 @@
           "async": false
         },
         {
+          "name": "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
           "name": "exportLimits/exportLimits",
           "parameters": [
             "output"
@@ -13361,7 +13395,8 @@
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/openLedger/openLedger",
             "exportLimits/exportLimits",
-            "createRowEffectStage/checkSubject/checkSubject"
+            "createRowEffectStage/checkSubject/checkSubject",
+            "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf"
           ],
           "exports": [
             "composeInstalledRowEffectOwners",
@@ -17161,7 +17196,7 @@
     },
     {
       "module": "adapters/host-node/installed-row-run.mjs",
-      "sha256": "5f61b3e40445748976fbb347bdd6ba5187f0ca9be3d20584e1901d355dc276cb",
+      "sha256": "881240b536294e001e6a592e9b0d8b18e6cd3f59512f688cf34407b07acd9796",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing RowRun acquisition/capture/release plumbing; physical provider and original current authority stay with the adapter",
@@ -25899,7 +25934,7 @@
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "83e4f960ae440009944d4d76931942cdd20855cb061d378269e1a794c25808da",
+      "sha256": "553246d28cd65538282f0ca12c2de72864002f846176985e7e8c0ec1512b089f",
       "contracts": [
         {
           "operations": [
@@ -25931,7 +25966,15 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-source-mapping.mts",
-                "anchor": "[declaration, writesJson, resource, sourceWire]"
+                "anchor": "clientProgramRowSourcePrepareDeleteMapping"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "Reflect.apply(prepare, moon, [declaration, writesJson, resource])"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "sourcesJson === undefined ? JSON.stringify(sources) : sourcesJson"
               }
             ],
             "ownership": [
@@ -26648,10 +26691,12 @@
         "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
+        "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
+        "./effect-result-work.mjs",
         "./installed-effect-managed-plan.mjs",
         "./installed-effect-recipe-construction.mjs",
         "./installed-host-services.mjs",
@@ -28761,7 +28806,8 @@
         "prepareInstalledEffectRequestChild",
         "prepareInstalledPhysicalWritePlanRecipe",
         "prepareInstalledStandardCreatePlanRecipe",
-        "selectInstalledEffectCredentialOperation"
+        "selectInstalledEffectCredentialOperation",
+        "selectInstalledEffectWriteBranch"
       ],
       "operations": [
         {
@@ -28977,7 +29023,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "77da865cfe8639ce7c7cdb901599d61d9658adcb2849905502b512246bb8f01b",
+      "sha256": "be349c2ee956134d114dba5df452528e69d588c6661ef863cfc79d3dcc7176af",
       "contracts": [
         {
           "operations": [
@@ -29805,7 +29851,8 @@
         {
           "operations": [],
           "exports": [
-            "selectInstalledEffectCredentialOperation"
+            "selectInstalledEffectCredentialOperation",
+            "selectInstalledEffectWriteBranch"
           ],
           "attributes": {
             "responsibility": [
@@ -30476,7 +30523,8 @@
         "installedEffectSavedControlEntryLimit",
         "installedEffectSavedControlResponseLimit",
         "rejectInstalledEffectPlan",
-        "selectInstalledEffectCredentialOperation"
+        "selectInstalledEffectCredentialOperation",
+        "selectInstalledEffectWriteBranch"
       ],
       "operations": [
         {
@@ -30484,6 +30532,13 @@
           "parameters": [
             "recipe",
             "maxOperations"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledEffectPlanRecipe/absent/absent",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -30537,6 +30592,13 @@
           "name": "captureInstalledEffectPlanRecipe/own/own/own",
           "parameters": [
             "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureInstalledEffectPlanRecipe/present/present",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -30601,6 +30663,15 @@
           "async": false
         },
         {
+          "name": "selectInstalledEffectWriteBranch",
+          "parameters": [
+            "recipe",
+            "kind",
+            "previewRow"
+          ],
+          "async": false
+        },
+        {
           "name": "text/text",
           "parameters": [
             "value"
@@ -30614,7 +30685,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a6f4634c4c0bbc551fc88363a0bab665589823614dee70ffb6d01d069d3c8a6e",
+      "sha256": "df6700c6e87849d58af5f258de33047fdad20084150fcd51c370b195de071a94",
       "contracts": [
         {
           "operations": [
@@ -30628,7 +30699,9 @@
             "captureInstalledEffectPlanRecipe/entries/entries",
             "captureInstalledEffectPlanRecipe/operations/operations/entries/entries",
             "captureInstalledEffectPlanRecipe/operations/operations/operations",
-            "captureInstalledEffectPlanRecipe/own/own/own"
+            "captureInstalledEffectPlanRecipe/own/own/own",
+            "captureInstalledEffectPlanRecipe/absent/absent",
+            "captureInstalledEffectPlanRecipe/present/present"
           ],
           "exports": [
             "captureInstalledEffectPlanRecipe",
@@ -30966,10 +31039,12 @@
         {
           "operations": [
             "selectInstalledEffectCredentialOperation",
-            "selectInstalledEffectCredentialOperation/selectInstalledEffectCredentialOperation"
+            "selectInstalledEffectCredentialOperation/selectInstalledEffectCredentialOperation",
+            "selectInstalledEffectWriteBranch"
           ],
           "exports": [
-            "selectInstalledEffectCredentialOperation"
+            "selectInstalledEffectCredentialOperation",
+            "selectInstalledEffectWriteBranch"
           ],
           "attributes": {
             "responsibility": [

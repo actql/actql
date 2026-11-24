@@ -83,6 +83,88 @@ print('original physical phase complete', flush=True)
         self.addCleanup(store.close)
         return store
 
+    def test_durable_profile_precedes_owned_schema_and_is_verified_on_reopen(self):
+        startup = []
+        connections = []
+        connect = sqlite3.connect
+
+        class ObserveProfile(sqlite3.Connection):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, **kwargs)
+                # Make the original SQLite runtime's default insufficient.
+                super().execute('PRAGMA main.synchronous = OFF')
+
+            def execute(self, sql, *args, **kwargs):
+                if sql.startswith('BEGIN') or sql.startswith('CREATE TABLE'):
+                    startup.append((sql.split()[0:2],
+                        super().execute('PRAGMA main.journal_mode').fetchone(),
+                        super().execute('PRAGMA main.synchronous').fetchone()))
+                return super().execute(sql, *args, **kwargs)
+
+        def acquire(*args, **kwargs):
+            connections.append(kwargs)
+            return connect(*args, **(kwargs | {'factory': ObserveProfile}))
+
+        path, root, original = self.fixture()
+        filename = path / original.name
+        with patch('actql_sdk._local_storage.sqlite3.connect', side_effect=acquire):
+            store = self.open(filename, root, original)
+            self.assertEqual(startup, [
+                (['BEGIN', 'IMMEDIATE'], ('delete',), (3,)),
+                (['CREATE', 'TABLE'], ('delete',), (3,)),
+                (['CREATE', 'TABLE'], ('delete',), (3,)),
+            ])
+            self.assertEqual(store.compare_exchange('opaque', None, b'original'), 0)
+            store.close()
+            startup.clear()
+            with LocalByteStore(filename, max_records=8, max_record_bytes=4096,
+                                max_payload_bytes=32768) as reopened:
+                self.assertEqual(startup, [(['BEGIN'], ('delete',), (0,))])
+                self.assertEqual(reopened._connection.execute(
+                    'PRAGMA main.journal_mode').fetchone(), ('delete',))
+                self.assertEqual(reopened._connection.execute(
+                    'PRAGMA main.synchronous').fetchone(), (3,))
+                version, source_id = reopened._connection.execute(
+                    'SELECT sqlite_version(), sqlite_source_id()').fetchone()
+                self.assertEqual(version, sqlite3.sqlite_version)
+                self.assertTrue(source_id)
+                self.assertEqual(reopened.read('opaque').payload, b'original')
+        self.assertEqual(len(connections), 2)
+        for options in connections:
+            self.assertIsNone(options['isolation_level'])
+            if hasattr(sqlite3, 'LEGACY_TRANSACTION_CONTROL'):
+                self.assertEqual(options['autocommit'], sqlite3.LEGACY_TRANSACTION_CONTROL)
+
+    def test_unavailable_profile_refuses_before_owned_schema_mutation(self):
+        class ObserveDowngrade(sqlite3.Connection):
+            def execute(self, sql, *args, **kwargs):
+                if sql == 'PRAGMA main.synchronous = EXTRA':
+                    sql = 'PRAGMA main.synchronous = FULL'
+                if sql.startswith('CREATE '):
+                    self.fail_schema = True
+                return super().execute(sql, *args, **kwargs)
+
+        path, root, original = self.fixture()
+        filename = path / original.name
+        connect = sqlite3.connect
+        opened = []
+
+        def acquire(*args, **kwargs):
+            database = connect(*args, **(kwargs | {'factory': ObserveDowngrade}))
+            database.fail_schema = False
+            opened.append(database)
+            return database
+
+        with patch('actql_sdk._local_storage.sqlite3.connect', side_effect=acquire):
+            with self.assertRaisesRegex(LocalStorageError, 'synchronous'):
+                self.open(filename, root, original)
+        self.assertTrue(original.store_claimed)
+        self.assertEqual(len(opened), 1)
+        self.assertFalse(opened[0].fail_schema)
+        self.assertEqual(filename.read_bytes(), b'')
+        with self.assertRaises(sqlite3.ProgrammingError):
+            opened[0].execute('SELECT 1')
+
     def test_owned_journal_format_keeps_unique_definition_in_original_transaction(self):
         path, root, original = self.fixture()
         store = self.open(path / original.name, root, original)

@@ -337,7 +337,10 @@ pub fn admit_client_effect_prepared_original(
     (None, None) => None
     (Some(key), Some(cid)) => {
       let inventory = match
-        checked_client_effect_normalization_inventory(prepared) {
+        checked_client_effect_normalization_inventory(
+          prepared,
+          allow_file_mutation=true,
+        ) {
         Ok(value) => value
         Err(issue) => return Err(Normalization(issue))
       }

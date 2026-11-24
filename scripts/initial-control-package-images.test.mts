@@ -306,6 +306,28 @@ test('unprepared optional SDK coverage does not discard original mandatory packa
   assert.equal('dependencyCoverage' in value, false);
 });
 
+test('prepared optional SDK inventory binds the emitted adapters through the real package files list', t => {
+  const f = fixture(t), selected = 'packages/provider-ai-sdk';
+  const manifest = JSON.parse(readFileSync(new URL('../' + selected + '/package.json', import.meta.url), 'utf8'));
+  f.put(selected + '/package.json', JSON.stringify({...manifest, dependencies: {}, peerDependencies: {}}));
+  const generated = '_internal/mistral-chat.mjs';
+  const adapters = new Map([
+    ['_internal/openai-chat.mjs', 'export const chat = "openai";\n'],
+    ['_internal/anthropic-messages.mjs', 'export const messages = "anthropic";\n'],
+    ['_internal/google-generate-content.mjs', 'export const generate = "google";\n'],
+    [generated, 'export const chat = "mistral";\n'],
+  ]);
+  for (const [path, source] of adapters) f.put(selected + '/' + path, source);
+  const value = f.read(f.render());
+  assert.equal(value.optionalSdkCoverage, 'prepared');
+  assert(typeof value.optionalSdk === 'number');
+  const images = value.packages[value.optionalSdk].images;
+  for (const [path, source] of adapters) {
+    assert.deepEqual(images.find(image => image.path === path),
+      {path, bytes: Buffer.byteLength(source), sha256: sha(source)});
+  }
+});
+
 test('dependency reuse cannot conceal a foreign exact-version requirement', t => {
   const f = fixture(t);
   f.put('packages/sdk/package.json', JSON.stringify({name: '@actql/sdk',

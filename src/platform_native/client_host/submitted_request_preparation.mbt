@@ -1,79 +1,4 @@
 ///|
-// Private views of this caller's own parsed intent. They perform no Resource,
-// current, permission or provider operation and cannot supply an input grant.
-let submitted_request_source_reader : @source.JsonDataReader[@source.Node?] = {
-  kind: value => {
-    match value {
-      None => 6
-      Some(node) =>
-        match node.value {
-          @source.Null => 0
-          @source.Bool(_) => 1
-          @source.Number(_) => 2
-          @source.String(_) => 3
-          @source.Array(_) => 4
-          @source.Object(_) => 5
-        }
-    }
-  },
-  boolean: value => {
-    match value {
-      Some({ value: @source.Bool(value), .. }) => value
-      _ => false
-    }
-  },
-  number_text: value => {
-    match value {
-      Some({ value: @source.Number(value), .. }) => value.to_string()
-      _ => ""
-    }
-  },
-  text: value => {
-    match value {
-      Some({ value: @source.String(value), .. }) => value
-      _ => ""
-    }
-  },
-  keys: value => {
-    match value {
-      Some({ value: @source.Object(fields), .. }) => {
-        let keys = FixedArray::make(fields.length(), "")
-        for index, field in fields {
-          keys[index] = field.key
-        }
-        keys
-      }
-      _ => []
-    }
-  },
-  length: value => {
-    match value {
-      Some({ value: @source.Array(values), .. }) => values.length()
-      _ => 0
-    }
-  },
-  field: (value, key) => {
-    match value {
-      Some({ value: @source.Object(fields), .. }) => {
-        let mut selected : @source.Node? = None
-        for field in fields {
-          if field.key == key {
-            selected = Some(field.value)
-            break
-          }
-        }
-        selected
-      }
-      Some({ value: @source.Array(values), .. }) => {
-        let index = @string.parse_int(key) catch { _ => -1 }
-        values.get(index)
-      }
-      _ => None
-    }
-  },
-}
-
-///|
 /// Original body borrow selected by the SAME Request checker/compiler. Neither
 /// variant creates another preparation, body, permission or cleanup Owner.
 pub enum NativeClientSubmittedRequestBody {
@@ -117,6 +42,21 @@ pub fn[I] borrow_native_client_request_plan_input(
       .map(value => Effect(value))
       .map_err(issue => RequestPreparation(issue))
   }
+}
+
+///|
+/// Select the Model Plan phase of the same checked Request and retain its
+/// borrow in the existing Native cleanup carrier.
+pub fn[I] borrow_native_client_model_plan_input(
+  owner : @local.ClientRequestPreparation[I],
+  input : I,
+) -> Result[
+  NativeClientSubmittedRequestBody,
+  @local.ClientRequestPreparationIssue,
+] {
+  @local.borrow_request_model_plan_input(owner, input).map(value => {
+    Program(value)
+  })
 }
 
 ///|
@@ -235,85 +175,19 @@ pub fn[I] check_native_client_submitted_request_input(
   publication : @source_publication.PreparedPublishedQueryEnvironment,
   verify_request_value_policy? : ((String) -> String?)? = None,
 ) -> Result[Unit, NativeClientSubmittedPreparationIssue] {
-  match @local.retain_request_submitted_intent(owner, input, intent) {
-    Err(issue) => return Err(RequestPreparation(issue))
-    Ok(_) => ()
-  }
-  let limits = match
-    @local.reserve_request_retained_intent_source(owner, input) {
-    Err(issue) => return Err(RequestPreparation(issue))
-    Ok(value) => value
-  }
-  let source = match
-    @source.parse_json_bytes_preserving(
-      @utf8.encode(@host.client_submitted_intent_wire(intent)),
-      {
-        max_input_bytes: limits.max_input_bytes,
-        max_nodes: limits.max_nodes,
-        max_depth: limits.max_depth,
-      },
-    ) {
-    Err(_) => return Err(InvalidSubmittedInput)
-    Ok(value) => value
-  }
-  let reader = submitted_request_source_reader
-  let source = Some(source)
-  let kind = (reader.text)((reader.field)(source, "kind"))
-  // Program and Source select the same observed default inventory. The Source
-  // entrance selects it once below, after retaining its original document.
-  let program_limits = if kind == "program" {
-    match @local.request_default_program_preparation_limits(owner, input) {
-      Err(issue) => return Err(Request(issue))
-      Ok(value) => value
-    }
-  } else {
-    @host.client_standard_program_preparation_limits()
-  }
-  let supplied = (reader.field)(source, "parameters")
-  let supplied = if (reader.kind)(supplied) == 0 {
-    None
-  } else {
-    Some(supplied)
-  }
-  let selected = (reader.field)(source, "input")
-  let effect_limits = {
-    ..@host.client_standard_effect_computation_limits(),
-    program: program_limits,
-  }
-  let prepared = if kind == "program" {
-    @local.prepare_request_native_computation_check(
+  let program_limits = match
+    @local.check_request_retained_submitted_intent(
       owner,
       input,
-      selected,
-      reader,
+      intent,
       environment,
       publication,
-      [],
-      program_limits,
-      effect_limits,
-      supplied~,
-    )
-  } else if kind == "aql" {
-    @local.prepare_request_default_source_computation_check(
-      owner,
-      input,
-      selected,
-      reader,
-      environment,
-      publication,
-      [],
-      program_limits.values_max_rows,
-      effect_limits,
-      supplied~,
-      // Preserve this installed Native entry's original result convention.
       public_primary=false,
-    )
-  } else {
-    return Err(InvalidSubmittedInput)
-  }
-  match prepared {
-    Err(issue) => return Err(Request(issue))
-    Ok(_) => ()
+    ) {
+    Ok(limits) => limits
+    Err(InvalidInput) => return Err(InvalidSubmittedInput)
+    Err(Preparation(issue)) => return Err(RequestPreparation(issue))
+    Err(Request(issue)) => return Err(Request(issue))
   }
   if verify_request_value_policy is Some(verify) {
     // The original semantic check is complete; no compiler has run yet.

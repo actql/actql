@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "27edece6466b49782e00884c209b023aa4ead249275fa19ef56d0e82fb67cbe2",
+      "sha256": "155a6bebde644f30d5f7e312ac1b3bb646023e6501890d327f4c2b4f1b67f304",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -503,16 +503,16 @@
           "async": false
         },
         {
-          "name": "updateWriteFacts/updateWriteFacts",
+          "name": "wire/wire",
           "parameters": [
-            "spec"
+            "value"
           ],
           "async": false
         },
         {
-          "name": "wire/wire",
+          "name": "writeFacts/writeFacts",
           "parameters": [
-            "value"
+            "spec"
           ],
           "async": false
         }
@@ -544,25 +544,25 @@
             "loadDeclaredProjectCatalog",
             "projectDeclaredCatalog/admit/admit",
             "projectDeclaredCatalog/facts/facts",
-            "projectDeclaredCatalog/facts/facts#2",
             "projectDeclaredCatalog/facts/facts/content/content",
-            "projectDeclaredCatalog/facts/facts/factViews/factViews",
             "projectDeclaredCatalog/facts/facts/facts",
             "projectDeclaredCatalog/facts/facts/facts#2",
+            "projectDeclaredCatalog/facts/facts/factViews/factViews",
             "projectDeclaredCatalog/facts/facts/listing/listing",
+            "projectDeclaredCatalog/facts/facts#2",
             "projectDeclaredCatalog/fileMethods/fileMethods",
             "projectDeclaredCatalog/finalInput/finalInput",
             "projectDeclaredCatalog/finalInput/finalInput#2",
             "projectDeclaredCatalog/inputStage/inputStage/projection/init:capacity/init:capacity",
             "projectDeclaredCatalog/mappingInput/mappingInput",
-            "projectDeclaredCatalog/mappingInput/mappingInput#2",
             "projectDeclaredCatalog/mappingInput/mappingInput/mappings/mappings",
+            "projectDeclaredCatalog/mappingInput/mappingInput#2",
             "projectDeclaredCatalog/methods/methods",
             "projectDeclaredCatalog/original/init:capacity/init:capacity",
             "projectDeclaredCatalog/overrideCount/overrideCount",
             "projectDeclaredCatalog/overrideInputs/overrideInputs",
-            "projectDeclaredCatalog/overrideInputs/overrideInputs#2",
             "projectDeclaredCatalog/overrideInputs/overrideInputs/overrideInputs",
+            "projectDeclaredCatalog/overrideInputs/overrideInputs#2",
             "projectDeclaredCatalog/parsed/parsed",
             "projectDeclaredCatalog/parsed/parsed#2",
             "projectDeclaredCatalog/projectDeclaredCatalog",
@@ -591,21 +591,21 @@
             "projectDeclaredCatalog/savedInput/savedInput/savedInput#6",
             "projectDeclaredCatalog/savedInput/savedInput/savedInput#7",
             "projectDeclaredCatalog/selected/selected",
-            "projectDeclaredCatalog/selected/selected#2",
             "projectDeclaredCatalog/selected/selected/queryAliases/queryAliases",
             "projectDeclaredCatalog/selected/selected/selected",
             "projectDeclaredCatalog/selected/selected/selected#2",
             "projectDeclaredCatalog/selected/selected/selected#3",
             "projectDeclaredCatalog/selected/selected/selected#4",
+            "projectDeclaredCatalog/selected/selected#2",
             "projectDeclaredCatalog/source/source",
-            "projectDeclaredCatalog/source/source#2",
             "projectDeclaredCatalog/source/source/source",
             "projectDeclaredCatalog/source/source/source/source",
             "projectDeclaredCatalog/source/source/writes/writes",
+            "projectDeclaredCatalog/source/source#2",
             "text/text",
             "updateSources/updateSources/updateSources",
-            "updateWriteFacts/updateWriteFacts",
-            "wire/wire"
+            "wire/wire",
+            "writeFacts/writeFacts"
           ],
           "exports": [
             "inspectDeclaredProjectCatalog",
@@ -766,6 +766,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "test('installed Mock mapping retains only the declared nullable write policy'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }

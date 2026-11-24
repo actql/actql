@@ -1,9 +1,18 @@
 ///|
+/// Observations from the same complete saved response apply even when the
+/// selected codec rejects the answer.
+pub(all) struct ModelSavedStructuredDecoded {
+  answer : Result[String, ModelProviderFailure]
+  observation : @publication.ModelCaptureObservation
+}
+
+///|
 /// Selected structured output from an installed decoder, with the original
 /// Store receipt as a separate nominal borrow. The decoded text is never Raw.
 pub struct ModelPhysicalSavedStructuredResponse {
   priv receipt : ModelSavedRawReceipt
   priv result : Result[ModelPhysicalEncodedResponse, ModelProviderFailure]
+  priv observation : @publication.ModelCaptureObservation?
 }
 
 ///|
@@ -76,7 +85,11 @@ pub fn model_physical_saved_structured_response(
       _ => ProviderError
     }
     return Ok(
-      PhysicalSavedStructuredResponse({ receipt, result: Err(failure), }),
+      PhysicalSavedStructuredResponse({
+        receipt,
+        result: Err(failure),
+        observation: None,
+      }),
     )
   }
   let selected = read_decoded(call, receipt, bytes)
@@ -87,7 +100,11 @@ pub fn model_physical_saved_structured_response(
   }
   guard selected is Some(decoded) else {
     return Ok(
-      PhysicalSavedStructuredResponse({ receipt, result: Err(SchemaInvalid), }),
+      PhysicalSavedStructuredResponse({
+        receipt,
+        result: Err(SchemaInvalid),
+        observation: None,
+      }),
     )
   }
   let observation = {
@@ -99,15 +116,113 @@ pub fn model_physical_saved_structured_response(
     ),
     observed_at,
   }
-  if !valid_reported_model_observation(
-      profile,
-      observation,
-      transport_eof,
-      decoded.endpoint_complete,
-      decoded.answer_complete,
-    ) {
+  if !valid_reported_model_observation_fields(profile, observation) ||
+    observation.observed_at.length() > 64 ||
+    observation.provider_model.unwrap_or("").length() > 256 ||
+    observation.provider_request_id.unwrap_or("").length() > 256 ||
+    observation.provider_finish_reason.unwrap_or("").length() > 256 ||
+    !valid_saved_sdk_report_metadata(profile, observation.provider_metadata) ||
+    (decoded.answer is Ok(_) && observation.response_complete != Some(true)) {
     return Err(OutputIdentity)
   }
-  let encoded = { ..decoded, observation, transport_eof, }
-  Ok(PhysicalSavedStructuredResponse({ receipt, result: Ok(encoded), }))
+  let result = decoded.answer.map(body => {
+    body,
+    observation,
+    transport_eof,
+    endpoint_complete: true,
+    answer_complete: true,
+  })
+  Ok(
+    PhysicalSavedStructuredResponse({
+      receipt,
+      result,
+      observation: Some(observation),
+    }),
+  )
+}
+
+///|
+fn saved_sdk_report_metadata_selected(
+  profile : @environment.ModelResponseProfile,
+) -> Bool {
+  for
+    index in 0..<@environment.model_response_profile_observation_count(profile) {
+    if @environment.model_response_profile_observation_at(profile, index) ==
+      Some("provider_metadata") {
+      return true
+    }
+  }
+  false
+}
+
+///|
+fn valid_saved_sdk_metadata_scalar(name : String, value : String) -> Bool {
+  !name.is_empty() &&
+  name.length() <= 64 &&
+  name.iter().all(c => c is ('a'..='z' | '0'..='9' | '_')) &&
+  !value.is_empty() &&
+  value.length() <= 256
+}
+
+///|
+/// Registered SDK observations currently carry one named scalar selected by
+/// their verified codec. The original Profile limits its wire and shape.
+pub fn admit_saved_sdk_report_metadata(
+  profile : @environment.ModelResponseProfile,
+  name : String,
+  value : String,
+) -> @canonical.CanonicalValue? {
+  if !saved_sdk_report_metadata_selected(profile) ||
+    !valid_saved_sdk_metadata_scalar(name, value) {
+    return None
+  }
+  let limits = @environment.model_response_profile_limits(profile)
+  try {
+    let fields : Map[String, Json] = Map([])
+    fields[name] = Json::string(value)
+    let metadata = @canonical.from_json(
+      Json::object(fields),
+      Int::min(2, limits.metadata_nodes),
+      limits.metadata_depth,
+      name.length() + value.length(),
+    )
+    @canonical.measure_value(
+      metadata,
+      limits.metadata_bytes,
+      limits.metadata_nodes,
+      limits.metadata_depth,
+    )
+    |> ignore
+    Some(metadata)
+  } catch {
+    _ => None
+  }
+}
+
+///|
+fn valid_saved_sdk_report_metadata(
+  profile : @environment.ModelResponseProfile,
+  metadata : @canonical.CanonicalValue?,
+) -> Bool {
+  guard metadata is Some(metadata) else { return true }
+  guard saved_sdk_report_metadata_selected(profile) &&
+    @canonical.object_field_count(metadata) == Some(1) &&
+    @canonical.object_fields(metadata) is Some(fields) &&
+    fields[0] is (name, @canonical.String(value)) &&
+    valid_saved_sdk_metadata_scalar(name, value) else {
+    return false
+  }
+  let limits = @environment.model_response_profile_limits(profile)
+  try {
+    @canonical.measure_value(
+      metadata,
+      limits.metadata_bytes,
+      limits.metadata_nodes,
+      limits.metadata_depth,
+    )
+    |> ignore
+    true
+  } catch {
+    _ => false
+  }
 }

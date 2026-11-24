@@ -330,7 +330,7 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
     effect_preview_row_key(semantic, 0, 0),
     effect_preview_row_identity(semantic, 0, 0),
   )
-  let final_wire = complete_effect_preview_dispatch_keys(
+  let (final_wire, final_identity) = complete_effect_preview_dispatch_keys_with_identity(
     semantic_wire,
     [[preview_identity_test_cid("4")]],
     run,
@@ -339,9 +339,44 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
     256,
     12,
   ).unwrap()
-  let final_identity = admit_effect_preview_identity(
+  let authored = prepare_authored_effect_preview(
+    template, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  let prepared = prepare_effect_preview_dispatch_completion(authored, [
+    [preview_identity_test_cid("4")],
+  ]).unwrap()
+  let (typed_wire, typed_identity) = admit_prepared_effect_preview_dispatch(
+    prepared,
+  ).unwrap()
+  assert_eq(typed_wire, final_wire)
+  let parsed = parse_effect_preview_shape(final_wire, 8192, 256, 12).unwrap()
+  let (_, bytes, nodes, depth) = @json.stringify_value_with_usage(
+    parsed, 8192, 256, 12,
+  )
+  assert_eq(
+    prepared_effect_preview_dispatch_usage(prepared),
+    (bytes, nodes, depth),
+  )
+  assert_eq(bytes, @utf8.encode(final_wire).length())
+  assert_eq(
+    effect_preview_semantic_identity(authored_effect_preview_identity(authored)),
+    effect_preview_semantic_identity(typed_identity),
+  )
+  assert_true(
+    prepare_effect_preview_dispatch_completion(authored, [])
+    is Err(InvalidMember),
+  )
+  let readmitted = admit_effect_preview_identity(
     final_wire, run, authoring, 8192, 256, 12,
   ).unwrap()
+  assert_eq(
+    effect_preview_semantic_identity(readmitted),
+    effect_preview_semantic_identity(final_identity),
+  )
+  assert_eq(
+    effect_preview_row_key(readmitted, 0, 0),
+    effect_preview_row_key(final_identity, 0, 0),
+  )
   assert_eq(
     effect_preview_member_effect_identity_cid(final_identity, 0),
     Some(preview_identity_test_cid("a")),
@@ -376,6 +411,117 @@ test "Preview authoring seals row, member, set and late dispatch bindings" {
       12,
     )
     is Err(RunBindingMismatch),
+  )
+}
+
+///|
+test "Authored Preview dispatch preserves a nontrivial original row order" {
+  let run = preview_identity_test_cid("b")
+  let authoring = "sha256:633e8876a362716def8f98ac40a7cc85b5583602690954e890c43372517b4e0a"
+  let original_key = preview_identity_test_cid("4")
+  let template = preview_identity_test_wire(
+    run,
+    authoring,
+    original_key,
+    "001000000000002",
+    preview_identity_test_cid("a"),
+    preview_identity_test_cid("a"),
+  )
+  guard @json.object_field(
+      parse_effect_preview_shape(template, 8192, 256, 12).unwrap(),
+      "effects",
+    )
+    is Some(@json.Array(members)) &&
+    @json.object_field(@json.array_at(members, 0).unwrap(), "changes")
+    is Some(@json.Array(rows)) else {
+    abort("Expected an update with one original row")
+  }
+  let first = @json.stringify_value(
+    @json.array_at(rows, 0).unwrap(),
+    8192,
+    256,
+    12,
+  )
+  let second = first.replace_all(old="001000000000002", new="001000000000001")
+  let template = template
+    .replace_all(old=first, new=first + "," + second)
+    .replace_all(old="\"count\":1", new="\"count\":2")
+    .replace_all(old="\"max_items\":1", new="\"max_items\":2")
+    .replace_all(old="\"kind\":\"exact_targets\"", new="\"kind\":\"opaque\"")
+    .replace_all(old="[\"" + preview_identity_test_cid("1") + "\"]", new="[]")
+  // The Native author starts from empty row_order with fixed CID placeholders.
+  let parsed = parse_effect_preview_shape(template, 8192, 256, 12).unwrap()
+  guard @json.object_field(parsed, "effects")
+    is Some(@json.Array(augmented_members)) &&
+    @json.object_field(
+      @json.array_at(augmented_members, 0).unwrap(),
+      "row_order",
+    )
+    is Some(old_order) else {
+    abort("Expected the original authored order placeholder")
+  }
+  let order = @json.stringify_value(old_order, 8192, 256, 12)
+  let template = template.replace_all(
+    old="\"row_order\":" + order,
+    new="\"row_order\":[]",
+  )
+  let (_, bytes, nodes, depth) = @json.stringify_value_with_usage(
+    parse_effect_preview_shape(template, 8192, 256, 12).unwrap(),
+    8192,
+    256,
+    12,
+  )
+  let geometry = effect_preview_semantic_authoring_construction_inventory(
+    bytes, nodes, depth, 2, 8192, 256,
+  )
+  assert_true(geometry is Some(_))
+  let authored = prepare_authored_effect_preview(
+    template, run, authoring, 8192, 256, 12,
+  ).unwrap()
+  let (_, written_bytes, written_nodes, written_depth) = @json.stringify_value_with_usage(
+    parse_effect_preview_shape(authored.wire, 8192, 256, 12).unwrap(),
+    8192,
+    256,
+    12,
+  )
+  assert_eq(
+    (written_bytes, written_nodes, written_depth),
+    (bytes + 147, nodes + 2, depth),
+  )
+  let semantic = authored_effect_preview_identity(authored)
+  let second_key = preview_identity_test_cid("5")
+  let keys = [[original_key, second_key]]
+  let prepared = prepare_effect_preview_dispatch_completion(authored, keys).unwrap()
+  let (wire, completed) = admit_prepared_effect_preview_dispatch(prepared).unwrap()
+  assert_eq(
+    wire,
+    complete_effect_preview_dispatch_keys(
+      authored.wire,
+      keys,
+      run,
+      authoring,
+      8192,
+      256,
+      12,
+    ).unwrap(),
+  )
+  // Source rows are [002, 001], but dispatch order is [001, 002].
+  assert_eq(
+    effect_preview_ordered_row_identity(completed, 0, 0),
+    effect_preview_row_identity(semantic, 0, 1),
+  )
+  assert_eq(
+    effect_preview_ordered_row_identity(completed, 0, 1),
+    effect_preview_row_identity(semantic, 0, 0),
+  )
+  assert_eq(effect_preview_row_key(completed, 0, 0), Some(original_key))
+  assert_eq(effect_preview_row_key(completed, 0, 1), Some(second_key))
+  let duplicate = prepare_effect_preview_dispatch_completion(authored, [
+    [original_key, original_key],
+  ]).unwrap()
+  assert_true(
+    admit_prepared_effect_preview_dispatch(duplicate)
+    is Err(RowInventoryMismatch(0)),
   )
 }
 

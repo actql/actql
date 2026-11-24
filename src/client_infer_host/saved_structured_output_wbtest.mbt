@@ -11,22 +11,14 @@ fn structured_raw_fixture_profile() -> @environment.ModelResponseProfile {
 }
 
 ///|
-fn structured_raw_fixture_binding() -> (
-  @publication.RunEvidenceValue,
-  String,
-  String,
-  String,
-) {
+fn structured_raw_fixture_binding(
+  configuration : String,
+) -> (@publication.RunEvidenceValue, String, String, String) {
   let binding = @publication_host.issue_client_model_provider_binding(
-    "models/fixture", "{}", "{}", structured_raw_configuration,
+    "models/fixture", "{}", "{}", configuration,
   ).unwrap()
   let empty = "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
-  (
-    binding,
-    empty,
-    empty,
-    "sha256:" + @sha.hex(@utf8.encode(structured_raw_configuration)),
-  )
+  (binding, empty, empty, "sha256:" + @sha.hex(@utf8.encode(configuration)))
 }
 
 ///|
@@ -83,6 +75,8 @@ fn structured_raw_fixture_plan(
   profile : @environment.ModelResponseProfile,
   start : (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
   foreign_decoder_profile : Bool,
+  configuration : String,
+  measured : Bool,
 ) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
   let execution = @publication_host.client_infer_plan_graph_execution_contract(
     active.plan.unwrap(),
@@ -99,13 +93,21 @@ fn structured_raw_fixture_plan(
   let selected : @model.ResolvedStructuredModel = {
     selector: "fixture-risk-model",
     model_id: "actual-sdk-model",
-    adapter_kind: "fixture-sdk",
-    api_mode: "structured",
+    adapter_kind: if measured {
+      "portable-http"
+    } else {
+      "fixture-sdk"
+    },
+    api_mode: if measured {
+      "chat-completions"
+    } else {
+      "structured"
+    },
     endpoint: installation.endpoint,
   }
   guard active.source is Physical(original) else { abort("fixture Provider") }
   let capability = @model.register_structured_model_capability(
-    original, binding, structured_raw_configuration, selected, profile, true, true,
+    original, binding, configuration, selected, profile, true, true,
   ).unwrap()
   let admitted = @model.admit_structured_model_provider(
     capability,
@@ -115,6 +117,18 @@ fn structured_raw_fixture_plan(
     installation,
     (_, _) => true,
   ).unwrap()
+  if measured {
+    let original = @model.prepare_model_http_chat_request(
+      admitted, request, installation, 100,
+    ).unwrap()
+    return @model.prepared_model_http_chat_plan(
+      original,
+      installation,
+      { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+      start,
+      measured_transfer=true,
+    )
+  }
   @model.structured_model_async_request_plan(
     admitted,
     capability,
@@ -167,7 +181,7 @@ fn observe_structured_fixture_raw(
 fn decode_structured_fixture(
   profile : @environment.ModelResponseProfile,
   bytes : Bytes,
-) -> @model.ModelPhysicalEncodedResponse? {
+) -> @model.ModelSavedStructuredDecoded? {
   let parsed = @json.parse(@utf8.decode(bytes[:])) catch { _ => return None }
   guard parsed is Object(raw) &&
     raw.get("answer") is Some(answer) &&
@@ -176,19 +190,15 @@ fn decode_structured_fixture(
     return None
   }
   Some({
-    body: answer.stringify(),
+    answer: Ok(answer.stringify()),
     observation: {
       ..async_response_observation(None).observation,
       response_profile_cid: Some(
         @environment.model_response_profile_identity(profile),
       ),
-      raw_response_artifact_cid: Some("sha256:" + "f".repeat(64)),
       input_tokens: Some(input.to_int64()),
       output_tokens: Some(output.to_int64()),
     },
-    transport_eof: true,
-    endpoint_complete: true,
-    answer_complete: true,
   })
 }
 
@@ -280,12 +290,23 @@ test "structured answer adoption requires the original saved raw receipt" {
 ///|
 test "structured execution rejects a substituted encoded answer without the checked decoder" {
   let fixture = raw_save_fixture(structured=true)
-  fixture.response.val = @model.PhysicalEncodedResponse(
-    decode_structured_fixture(
-      structured_raw_fixture_profile(),
-      @utf8.encode(structured_raw_wire.replace(old="high", new="fake")),
-    ).unwrap(),
-  )
+  fixture.response.val = @model.PhysicalEncodedResponse({
+    body: "{\"reason\":null,\"risk\":\"fake\"}",
+    observation: {
+      ..async_response_observation(None).observation,
+      response_profile_cid: Some(
+        @environment.model_response_profile_identity(
+          structured_raw_fixture_profile(),
+        ),
+      ),
+      raw_response_artifact_cid: Some("sha256:" + "f".repeat(64)),
+      input_tokens: Some(3L),
+      output_tokens: Some(0L),
+    },
+    transport_eof: true,
+    endpoint_complete: true,
+    answer_complete: true,
+  })
   fixture.ready.val = true
   assert_true(
     fixture_finish(fixture.active, initial_work=fixture.work)

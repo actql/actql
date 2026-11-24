@@ -3230,12 +3230,13 @@
       ],
       "imports": [
         "./compiler-binding.generated.mjs",
+        "./dispatch-failure-observation.mjs",
         "./result-output-limits.mjs",
         "./runtime-result.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "7bd760959676157ebb70590feaae65911f4be95998239b34c23b6e906589da27"
+      "sha256": "9d34ad0e806a34e1478b9bf64c5312f7abdd329e62d65e6bdeec5beac8a36d80"
     },
     {
       "module": "adapters/host-common/publication-progress-control.mjs",
@@ -5758,7 +5759,7 @@
     },
     {
       "module": "adapters/host-common/effect-preparation-result.mjs",
-      "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
+      "sha256": "84e27e964c2e40f03abf8acb330d9dae71320f0226684bc1d384b581d76d570b",
       "role": "physical-io",
       "exports": [
         "checkedEffectPreparation",
@@ -6268,7 +6269,7 @@
     },
     {
       "module": "adapters/host-common/installation-preparation-metadata.mjs",
-      "sha256": "c8187ef427d3afd103f2b731046af6b75bc09e81da462f39afb173f1c1e0d30c",
+      "sha256": "e81a43c591e8ffec059a4821eb550c007006a08751584d62256651d24ef057be",
       "exports": [
         "createInstallationPreparationMetadata"
       ],
@@ -6817,7 +6818,7 @@
     },
     {
       "module": "adapters/host-common/local-signing-metadata.mjs",
-      "sha256": "4fd8fd6205507a38c02f4a32198a5fcb56abbafb7a58d8d54e6f2019d6e9f846",
+      "sha256": "076c391724fc250c75458710bcd55695cee866dff0e2cd506c8622d36ffd9316",
       "exports": [
         "createLocalSigningMetadata"
       ],
@@ -24130,7 +24131,7 @@
     },
     {
       "module": "adapters/host-common/runtime-result.mjs",
-      "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
+      "sha256": "60312ec4a0ebdcf0f32c5767177aa5b111dd2dd2de548f42be1bd717d139f7db",
       "role": "physical-io",
       "exports": [
         "checked"
@@ -27697,7 +27698,7 @@
     },
     {
       "module": "adapters/host-node/installed-composed-infer-run.mjs",
-      "sha256": "95800b9c2139a1a1f233b89ba47f46619111b0247690d5cebe250dd920cf75de",
+      "sha256": "211b157e6bbcd9e29f830790e51e7b25e68c0db04cd81d0a96d8ed604cba20bd",
       "role": "physical-io",
       "exports": [
         "runInstalledComposedInfers"
@@ -31255,7 +31256,7 @@
     {
       "module": "adapters/host-node/installed-model-continuation-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d6aa509947accadf60e7004485309fe995cdd06fe43f70005dac148e74209cea",
+      "sha256": "cd3ec98eeaacd4aa2de7bd5d7e51cf1c7231264af5a5e262a89b6ceb64d3b62b",
       "role": "physical-io",
       "owner": "Existing Model/Checkpoint/Store continuation and original Resource fence",
       "exports": [
@@ -31373,6 +31374,14 @@
             "role"
           ],
           "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/readSettled/readSettled#4",
+          "parameters": [
+            "_bytes",
+            "raw"
+          ],
+          "async": true
         },
         {
           "name": "createInstalledModelContinuationCustody/retireReceipt",
@@ -31561,7 +31570,8 @@
             "fail/fail",
             "same/same",
             "select/select",
-            "select/select/select"
+            "select/select/select",
+            "createInstalledModelContinuationCustody/readSettled/readSettled#4"
           ],
           "exports": [
             "createInstalledModelContinuationCustody",
@@ -34387,7 +34397,7 @@
     },
     {
       "module": "adapters/reference-compute-node/strategy-bundle.mjs",
-      "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
+      "sha256": "8d5b6d84bb3746448165fb6f2e7120a3776641feb240856085d593f38e3d0f63",
       "role": "physical-io",
       "exports": [
         "numericStrategyContribution"
@@ -48504,8 +48514,12 @@
     },
     {
       "module": "src/client_local_host/installed_source_reader_capacity.mbt",
-      "sha256": "f20f90632d02e32c18f3a92610b3f4522459cc4b8cec6f3f5cd6a373bbf8df37",
+      "sha256": "4b81bf284400069766f012efe5a5f65b926e43458f04736d747c95cb5128a3f7",
       "operations": [
+        {
+          "name": "installed_calendar_artifact_construction_capacity",
+          "declaration": "installed_calendar_artifact_construction_capacity ( bytes : Int , max_nodes : Int , max_depth : Int , max_zones : Int , max_transitions : Int , policy_fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "installed_gmail_thread_reader_capacity",
           "declaration": "installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -48587,6 +48601,7 @@
         {
           "operations": [
             "<module>",
+            "installed_calendar_artifact_construction_capacity",
             "installed_gmail_thread_reader_capacity",
             "installed_json_source_reader_capacity",
             "installed_slack_source_reader_capacity",
@@ -48653,6 +48668,10 @@
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "funded Calendar admission publishes the checker carrying the original artifact"
               }
             ]
           }
@@ -49024,9 +49043,9 @@
         {
           "operations": [
             "installed_json_cursor_source_reader_capacity",
-            "installed_source_cursor_progress_inventory",
             "installed_json_cursor_source_reader_capacity_with_request",
-            "installed_json_identity_cursor_source_reader_capacity_with_request"
+            "installed_json_identity_cursor_source_reader_capacity_with_request",
+            "installed_source_cursor_progress_inventory"
           ],
           "exports": [],
           "attributes": {
@@ -60516,7 +60535,7 @@
     {
       "module": "src/client_local_preparation/client_check_original_outcome.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "c3f3ee7aaa565a5c31c56328ee36543d26a0d62710879ec6efd1f1b54486da53",
+      "sha256": "db9ee8ed5046d140db280b9eae990312fa28253bf0629ab77f28544f506940dc",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -60622,7 +60641,7 @@
     {
       "module": "src/client_local_preparation/client_check_program.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "0aa6744687e0935afc691fc82aac15413d280049cfe6f37053d7848fa331f8ea",
+      "sha256": "7db408b6c2f8a963bde8d03041faeb033f209c0623a0d513bf994c869be12b93",
       "role": "observation-presentation",
       "owner": "Existing Request check, preparation capacity and public observation owners",
       "exports": [],
@@ -62508,7 +62527,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "50d1c007d6f6ef308f3d5d3da3defe8de55231d547c7bad2918d0a44ee28713d",
+      "sha256": "ba2003c33829c2bedab5e589d261eeb0b9c7bfdb2d248255e23200a4ff13859f",
       "exports": [],
       "operations": [
         {
@@ -62562,6 +62581,14 @@
         {
           "name": "row_response_workspace_capture_current",
           "declaration": "row_response_workspace_capture_current ( value : RowRunResponseBorrow ) - > Bool"
+        },
+        {
+          "name": "row_run_response_charge_current",
+          "declaration": "row_run_response_charge_current ( borrow : RowRunResponseBorrow , charge : RowPageCharge , ) - > Bool"
+        },
+        {
+          "name": "row_run_response_original",
+          "declaration": "row_run_response_original ( borrow : RowRunResponseBorrow , ) - > Result [ ( RowRun , RowResponseSelection ) , RowHostIssue ]"
         },
         {
           "name": "row_run_response_selection",
@@ -62757,7 +62784,9 @@
         },
         {
           "operations": [
-            "row_run_response_selection"
+            "row_run_response_selection",
+            "row_run_response_charge_current",
+            "row_run_response_original"
           ],
           "exports": [],
           "attributes": {
@@ -65338,7 +65367,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "3639a5b19607e3ff4b81ac7533331032b8ef4538021b3e64f0247eac282def15",
+      "sha256": "e968eb8b2228ac41045688efe5e4e755cd451d14a11a0656ef1719c038af5a48",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -65354,6 +65383,10 @@
         {
           "name": "[T]install_local_managed_input_read",
           "declaration": "[ T ] install_local_managed_input_read ( reads : Array [ T ? ] , pending : Ref [ Int ] , index : Int , value : T , ) - > Bool"
+        },
+        {
+          "name": "[T]local_managed_canonical_transfer_quote",
+          "declaration": "[ T ] local_managed_canonical_transfer_quote ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > Int64 ?"
         },
         {
           "name": "[T]local_managed_captured_relation_input",
@@ -65463,13 +65496,13 @@
             "[T]prepare_local_managed_dispatch_with_outputs",
             "[T]start_local_managed_dispatch",
             "bind_physical_operation_input",
+            "local_managed_finalization_diagnostic_control_capacity",
             "local_managed_import_next_extent",
             "local_managed_import_start_bytes",
             "local_managed_snapshot_reload_extent",
             "local_relation_snapshot_reload_capacity",
             "managed_row_transfer_bytes",
-            "start_local_managed_dispatch_node",
-            "local_managed_finalization_diagnostic_control_capacity"
+            "start_local_managed_dispatch_node"
           ],
           "exports": [],
           "attributes": {
@@ -66073,9 +66106,10 @@
         },
         {
           "operations": [
+            "[T]local_managed_canonical_transfer_quote",
             "local_managed_import_working_overlap",
-            "local_managed_scalar_overlap_control_capacity",
             "local_managed_logical_work_diagnostic_capacity",
+            "local_managed_scalar_overlap_control_capacity",
             "local_managed_task_capacity"
           ],
           "exports": [],
@@ -66194,6 +66228,10 @@
               {
                 "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
                 "anchor": "managed task projection adds only its complete diagnostic frame"
+              },
+              {
+                "path": "src/client_local_run/ordinary_product_compute_wbtest.mbt",
+                "anchor": "test \"ordinary Python numeric PIVOT completes on the finite original root\""
               }
             ]
           }
@@ -69476,8 +69514,12 @@
     },
     {
       "module": "src/connectors_builtin_node/client_installed_source_reader_bridge.mbt",
-      "sha256": "7a1d1e64a27f24dfaa2556c984e2893a577dd9f6c9851a75c64ad78d9af893af",
+      "sha256": "f586e62682a73b25cc2bea7de7a5108da80e71c6ad17ad9a352dc8ac9fe255db",
       "operations": [
+        {
+          "name": "client_program_installed_calendar_artifact_construction_capacity",
+          "declaration": "client_program_installed_calendar_artifact_construction_capacity ( bytes : Int , nodes : Int , depth : Int , zones : Int , transitions : Int , policy_fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
           "declaration": "client_program_installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -69551,6 +69593,7 @@
         {
           "operations": [
             "<module>",
+            "client_program_installed_calendar_artifact_construction_capacity",
             "client_program_installed_gmail_thread_reader_capacity",
             "client_program_installed_json_source_reader_capacity",
             "client_program_installed_json_source_reader_profile",
@@ -69617,6 +69660,10 @@
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "funded Calendar admission publishes the checker carrying the original artifact"
               }
             ]
           }
@@ -70658,6 +70705,7 @@
             "client_program_prepare_program_check_values",
             "client_program_prepare_program_check_views",
             "client_program_prepare_request_computation_check",
+            "client_program_prepare_request_declared_file_model_graph",
             "client_program_prepare_request_native_computation",
             "client_program_prepare_request_native_program_input",
             "client_program_prepare_request_policy_subjects",
@@ -70687,10 +70735,9 @@
             "client_program_reserve_request_effect_capture_recovery",
             "client_program_reserve_request_snapshot",
             "client_program_retire_installed_effect_capture_recovery",
+            "prepare_request_model_graph_with_file_declarations",
             "strategy_begin_original_effect_free_captured_run",
-            "strategy_captured_run_preparation_limits",
-            "client_program_prepare_request_declared_file_model_graph",
-            "prepare_request_model_graph_with_file_declarations"
+            "strategy_captured_run_preparation_limits"
           ],
           "exports": [],
           "attributes": {
@@ -71233,16 +71280,23 @@
           "operations": [
             "client_program_adopt_request_content_preparation",
             "client_program_adopt_request_effect_model_preparation",
+            "client_program_adopt_request_effect_models_preparation",
             "client_program_adopt_request_model_preparation",
+            "client_program_adopt_request_models_preparation",
             "client_program_borrow_request_content_plan_input",
             "client_program_borrow_request_model_plan_input",
             "client_program_complete_request_content_preparation",
             "client_program_complete_request_model_preparation",
             "client_program_complete_request_serialization_preparation",
+            "client_program_installed_effect_models_demand_prepare",
             "client_program_installed_managed_keyed_content_prepare",
             "client_program_prepare_request_acquired_serialization_graph",
             "client_program_prepare_request_effect_model_read_scope",
+            "client_program_prepare_request_effect_model_read_scope_with_quantities",
+            "client_program_prepare_request_effect_models_read_scopes",
+            "client_program_prepare_request_effect_models_read_scopes_with_quantities",
             "client_program_prepare_request_keyed_serialization_compilation",
+            "client_program_prepare_request_model_acquired_serialization_graph",
             "client_program_prepare_request_model_capture_module",
             "client_program_prepare_request_model_compilation",
             "client_program_prepare_request_model_contract_materials",
@@ -71250,27 +71304,20 @@
             "client_program_prepare_request_model_provider_binding",
             "client_program_prepare_request_model_read_scope",
             "client_program_prepare_request_model_read_scope_with_quantities",
+            "client_program_prepare_request_model_recovery_read_scopes",
+            "client_program_prepare_request_model_recovery_read_scopes_with_quantities",
+            "client_program_prepare_request_model_serialization_graph",
             "client_program_prepare_request_model_source_free_module",
+            "client_program_prepare_request_models_compilation",
+            "client_program_prepare_request_models_read_scopes",
+            "client_program_prepare_request_models_read_scopes_with_planned_quantities",
+            "client_program_prepare_request_models_read_scopes_with_quantities",
             "client_program_prepare_request_program_compilation",
             "client_program_prepare_request_serialization_compilation",
             "client_program_prepare_request_serialization_graph",
             "client_program_prepare_request_serialized_model_graph",
             "client_program_prepared_installed_managed_model_requirements",
-            "client_program_prepare_request_model_serialization_graph",
-            "client_program_prepare_request_model_acquired_serialization_graph",
-            "client_program_adopt_request_models_preparation",
-            "client_program_prepare_request_models_compilation",
-            "client_program_prepare_request_models_read_scopes",
-            "client_program_prepare_request_models_read_scopes_with_quantities",
-            "client_program_prepare_request_effect_model_read_scope_with_quantities",
-            "client_program_prepare_request_model_recovery_read_scopes",
-            "client_program_prepare_request_model_recovery_read_scopes_with_quantities",
-            "prepare_request_model_recovery_scopes_original",
-            "client_program_adopt_request_effect_models_preparation",
-            "client_program_installed_effect_models_demand_prepare",
-            "client_program_prepare_request_effect_models_read_scopes",
-            "client_program_prepare_request_effect_models_read_scopes_with_quantities",
-            "client_program_prepare_request_models_read_scopes_with_planned_quantities"
+            "prepare_request_model_recovery_scopes_original"
           ],
           "exports": [],
           "attributes": {
@@ -72424,6 +72471,10 @@
           }
         },
         {
+          "operations": [
+            "client_program_adopt_request_program_with_explanation"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -72493,13 +72544,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_adopt_request_program_with_explanation"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_begin_request_explanation_read"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -72569,13 +72620,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_begin_request_explanation_read"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_capture_request_original_explanation"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -72645,13 +72696,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_capture_request_original_explanation"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_original_explanation_facts_wire"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -72721,13 +72772,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_original_explanation_facts_wire"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_original_explanation_plan_wire"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -72797,13 +72848,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_original_explanation_plan_wire"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_prepare_request_original_explanation"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -72873,13 +72924,16 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_prepare_request_original_explanation"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_begin_request_explanation_context_read",
+            "client_program_read_request_explanation",
+            "client_program_read_request_explanation_context",
+            "client_program_reserve_request_explanation_context_read"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -72953,16 +73007,13 @@
                 "anchor": "test \"first Effect Run Explanation borrows"
               }
             ]
-          },
-          "operations": [
-            "client_program_read_request_explanation",
-            "client_program_begin_request_explanation_context_read",
-            "client_program_read_request_explanation_context",
-            "client_program_reserve_request_explanation_context_read"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_request_explanation_read_issue_code"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -73032,13 +73083,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_request_explanation_read_issue_code"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_request_program_compilation_original"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -73108,13 +73159,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_request_program_compilation_original"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_reserve_request_explanation_read"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -73184,13 +73235,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_reserve_request_explanation_read"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_return_original_explanation_capture"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -73260,13 +73311,13 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_return_original_explanation_capture"
-          ],
-          "exports": []
+          }
         },
         {
+          "operations": [
+            "client_program_return_request_original_explanation"
+          ],
+          "exports": [],
           "attributes": {
             "responsibility": [
               {
@@ -73336,11 +73387,7 @@
                 "anchor": "test \"structural read uses one original Request and excludes Result work\""
               }
             ]
-          },
-          "operations": [
-            "client_program_return_request_original_explanation"
-          ],
-          "exports": []
+          }
         },
         {
           "operations": [
@@ -73895,12 +73942,12 @@
         },
         {
           "operations": [
+            "client_program_discard_effect_run_explanation",
+            "client_program_effect_run_explanation_wires",
             "client_program_read_request_checked_static_effect_explanation",
             "client_program_static_effect_explanation_context_wire",
             "client_program_static_effect_explanation_facts_wire",
             "client_program_static_effect_explanation_plan_wire",
-            "client_program_discard_effect_run_explanation",
-            "client_program_effect_run_explanation_wires",
             "client_program_try_capture_effect_run_explanation"
           ],
           "exports": [],
@@ -74679,11 +74726,11 @@
           "declaration": "strategy_captured_run_preparation_limits ( original : @ publication . CapturedRunIssuancePreparation , ) - > Array [ Int ] ?"
         }
       ],
-      "sha256": "d728e42bb9a466ce9f63b1b210d84527475b895bbef7dda908881cf4c63cd443"
+      "sha256": "a92add69a7a942a37683e8430f46d3d7fef05617f43e32d496bb599b7de4cb67"
     },
     {
       "module": "src/connectors_builtin_node/client_program_bridge.mbt",
-      "sha256": "22bb917f70a85a74d29f6a71457f56633903e1910e4d4830e2cc802d1e87f190",
+      "sha256": "7fcacb3a9f6b32588dfb6dd9abbd49a6e9daa91f229ff870705acf59167e75d2",
       "exports": [],
       "operations": [
         {
@@ -76539,6 +76586,10 @@
           "declaration": "client_program_row_source_prepare_acquisition_with_contracts ( declaration : @ client_row_source_host . RowDeclaration , requirement : @ planning . QueryRequirement , contracts : @ planning . QueryEvidenceContracts , listing_policy : @ capacity_policy . Policy ? , ) - > Result [ @ client_row_source_host . RowAcquisition , @ client_row_source_host . RowHostIssue , ]"
         },
         {
+          "name": "client_program_row_source_prepare_delete_mapping",
+          "declaration": "client_program_row_source_prepare_delete_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , ) - > String"
+        },
+        {
           "name": "client_program_row_source_prepare_mapping",
           "declaration": "client_program_row_source_prepare_mapping ( declaration : @ client_row_source_host . RowDeclaration , writes_json : String , resource : String , sources_json : String , ) - > String"
         },
@@ -76789,6 +76840,10 @@
         {
           "name": "client_program_with_values_row_limit",
           "declaration": "client_program_with_values_row_limit ( prepared : @ publication_host . PreparedClientProgram , max_rows : Int , ) - > @ publication_host . PreparedClientProgram ?"
+        },
+        {
+          "name": "client_row_mapping_result_json",
+          "declaration": "client_row_mapping_result_json ( prepared : Result [ @ client_row_source_host . RowMapping , @ client_row_source_host . RowMappingIssue , ] , ) - > String"
         },
         {
           "name": "client_row_source_prepare_mapping",
@@ -77361,7 +77416,9 @@
             "client_program_query_lowering_issue_code",
             "client_program_compile_local_effects_with_infers",
             "client_program_effect_compilation_infer_originals",
-            "client_program_effect_infer_occurrences"
+            "client_program_effect_infer_occurrences",
+            "client_program_row_source_prepare_delete_mapping",
+            "client_row_mapping_result_json"
           ],
           "exports": [],
           "attributes": {
@@ -77435,6 +77492,10 @@
               {
                 "path": "src/connectors_builtin_node/client_preparation_diagnostic_wbtest.mbt",
                 "anchor": "test \"Request checked Source ARRAY refusal reaches existing public rejection without recheck\""
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }
@@ -78288,7 +78349,7 @@
     },
     {
       "module": "src/connectors_builtin_node/client_serialization_bridge.mbt",
-      "sha256": "5c79243cd2034bc8cdc0e2538a014e7f181874511380c4c2fc99bfa327973efe",
+      "sha256": "d3bc6d8ff0e9bb524303b233cb036e160da9e40c8f73c3d9ed2c5dd230027bf5",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Content component workspace and checked input-shape owners",
@@ -78495,6 +78556,10 @@
           "declaration": "client_program_serialization_input_identity_start ( input : @ publication_host . ClientSerializationInput , limits : @ publication_host . PublicationOutputExportLimits , max_work : Int , max_workspace_slots : Int , ) - > Result [ @ execution . CompletedRelationIdentityScan , @ execution . CompletedExportIssue , ]"
         },
         {
+          "name": "client_program_serialization_input_is_row_limit",
+          "declaration": "client_program_serialization_input_is_row_limit ( issue : @ publication_host . ClientSerializationInputIssue , ) - > Bool"
+        },
+        {
           "name": "client_program_serialization_input_row",
           "declaration": "client_program_serialization_input_row ( input : @ publication_host . ClientSerializationInput , row : Int , ) - > Result [ Unit , @ publication_host . ClientSerializationInputIssue ]"
         },
@@ -78636,6 +78701,7 @@
             "client_program_acquired_serialization_plan_component",
             "client_program_acquired_serialization_plan_graph",
             "client_program_admit_serialization_captured_input",
+            "client_program_admit_serialization_whole_captured_input",
             "client_program_compile_local_serialization",
             "client_program_compiled_run_has_serialization",
             "client_program_compiled_run_serialization_graph",
@@ -78655,6 +78721,7 @@
             "client_program_issue_stored_generated_content",
             "client_program_prepare_request_keyed_content_plan",
             "client_program_prepare_request_model_serialization_plan",
+            "client_program_prepare_request_serialization_output_demand",
             "client_program_prepare_request_serialization_plan",
             "client_program_prepare_serialization",
             "client_program_prepared_installed_keyed_prefix_requirements",
@@ -78679,7 +78746,9 @@
             "client_program_serialization_input_identity_finish",
             "client_program_serialization_input_identity_receipt_cancel",
             "client_program_serialization_input_identity_start",
+            "client_program_serialization_input_is_row_limit",
             "client_program_serialization_input_row",
+            "client_program_serialization_input_row_bound",
             "client_program_serialization_input_rows",
             "client_program_serialization_json_leaf_field_count",
             "client_program_serialization_occurrences",
@@ -78710,10 +78779,7 @@
             "client_program_stored_generated_content_candidate",
             "client_program_stored_generated_content_candidate_wire",
             "client_program_stored_generated_content_storage",
-            "serialization_prefix_limits",
-            "client_program_admit_serialization_whole_captured_input",
-            "client_program_prepare_request_serialization_output_demand",
-            "client_program_serialization_input_row_bound"
+            "serialization_prefix_limits"
           ],
           "exports": [],
           "attributes": {
@@ -82338,7 +82404,7 @@
     },
     {
       "module": "src/physical_resources/backed_initialization_admission.mbt",
-      "sha256": "9658cc33de738fb6fdd68f6968f0e9a105c64c89f894e7136b4738821de64e8e",
+      "sha256": "7f3c72ccaf6e2e2db12b6ae9b1cb25902a30b0de7885d58652e9b05a492fc652",
       "exports": [],
       "operations": [
         {
@@ -82362,6 +82428,10 @@
           "declaration": "[ I ] cleanup_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         },
         {
+          "name": "[I]report_backed_initialization_cleanup_usage",
+          "declaration": "[ I ] report_backed_initialization_cleanup_usage ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
+        },
+        {
           "name": "[I]start_backed_initialization_admission",
           "declaration": "[ I ] start_backed_initialization_admission ( owner : BackedInitializationAdmission [ I ] , ) - > Result [ Ledger , ImportedChildLedgerIssue ]"
         },
@@ -82376,6 +82446,10 @@
         {
           "name": "[P,C,I]prepare_backed_initialization_admission",
           "declaration": "[ P , C , I ] prepare_backed_initialization_admission ( projection : BackedExecutionLiveProjection [ P , C , I ] , input : I , acquire_window ? : ( ( Int64 , Int64 ) - > Result [ Unit , LedgerIssue ] ) ?"
+        },
+        {
+          "name": "backed_initialization_cleanup_quiescent",
+          "declaration": "backed_initialization_cleanup_quiescent ( ledger : Ledger , ) - > Result [ Unit , ImportedChildLedgerIssue ]"
         }
       ],
       "responsibilityFacet": "primary",
@@ -82393,7 +82467,9 @@
             "[I]start_backed_initialization_admission",
             "[I]take_backed_initialization_admission",
             "[P,C,I]prepare_backed_initialization_admission",
-            "[I]take_backed_initialization_for_host"
+            "[I]take_backed_initialization_for_host",
+            "[I]report_backed_initialization_cleanup_usage",
+            "backed_initialization_cleanup_quiescent"
           ],
           "exports": [],
           "attributes": {
@@ -85975,9 +86051,13 @@
     },
     {
       "module": "src/platform_native/host_bootstrap/backed_initialization_native.mbt",
-      "sha256": "248287e46993958e3827ee2bfcb08d272d9467f2d8f1b96dfa6a04b5d00c4ab3",
+      "sha256": "52ad69bcf0304d08e56e50cc19d4fc8c11a3dfd2a941f875795d19456160877c",
       "exports": [],
       "operations": [
+        {
+          "name": "[T,C,I]NativeHostBootstrap::borrow_initialized_preparation_ledger",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : borrow_initialized_preparation_ledger ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , ) - > Result [ @ resources . Ledger , NativeBackedInitializationIssue ]"
+        },
         {
           "name": "[T,C,I]NativeHostBootstrap::close_backed_preparation",
           "declaration": "[ T , C , I ] NativeHostBootstrap : : close_backed_preparation ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , ) - > Result [ Unit , NativeBackedInitializationIssue ]"
@@ -85992,11 +86072,27 @@
         },
         {
           "name": "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_original",
-          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_original ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , state : NativeBackedInitialization [ T , C , I ] , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_original ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , state : NativeBackedInitialization [ T , C , I ] , request : Bool , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_selected",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_preparation_selected ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , request : Bool , ) - > Result [ @ resources . BackedInitializationAdmission [ I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::initialize_backed_request_preparation",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : initialize_backed_request_preparation ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , budget : NativeBackedInitializationBudget , ) - > Result [ @ resources . BackedPreparationAdmission [ I ] , NativeBackedInitializationIssue , ]"
         },
         {
           "name": "[T,C,I]NativeHostBootstrap::original_initialization_cleanup",
           "declaration": "[ T , C , I ] NativeHostBootstrap : : original_initialization_cleanup ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , ) - > Result [ NativeBackedInitialization [ T , C , I ] , NativeBackedInitializationIssue , ]"
+        },
+        {
+          "name": "[T,C,I]NativeHostBootstrap::prepare_initialized_working_window",
+          "declaration": "[ T , C , I ] NativeHostBootstrap : : prepare_initialized_working_window ( self : NativeHostBootstrap [ T ] , original : T , record : NativeBackedLiveChild [ T , C , I ] , input : I , retained : Int64 , execution : Int64 , ) - > Result [ Unit , NativeBackedExecutionIssue ]"
+        },
+        {
+          "name": "copy_native_working_issue_data",
+          "declaration": "copy_native_working_issue_data ( issue : NativeBackedExecutionIssue , ) - > NativeBackedExecutionIssue"
         },
         {
           "name": "initialization_control_scope_clear_ffi",
@@ -86015,7 +86111,12 @@
             "[T,C,I]NativeHostBootstrap::initialize_backed_preparation",
             "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_original",
             "[T,C,I]NativeHostBootstrap::original_initialization_cleanup",
-            "initialization_control_scope_clear_ffi"
+            "initialization_control_scope_clear_ffi",
+            "[T,C,I]NativeHostBootstrap::borrow_initialized_preparation_ledger",
+            "[T,C,I]NativeHostBootstrap::initialize_backed_preparation_selected",
+            "[T,C,I]NativeHostBootstrap::initialize_backed_request_preparation",
+            "[T,C,I]NativeHostBootstrap::prepare_initialized_working_window",
+            "copy_native_working_issue_data"
           ],
           "exports": [],
           "attributes": {
@@ -98162,6 +98263,7 @@
             "retain_allocation",
             "return_unused_attempt",
             "settle_completed_output_reservation",
+            "settle_entered_transfer",
             "settle_execution_reservation",
             "settle_reservation",
             "settle_reservation_current",
@@ -98272,7 +98374,7 @@
           }
         }
       ],
-      "sha256": "b80c915960bf4c62a6912cc5d8b27ac12d57478790054539f7cbe7246562183c",
+      "sha256": "044dc7b97a688db7762fb847173cbbe031c5da80fc0bf44c03e7347b5c1c9839",
       "operations": [
         {
           "name": "charge_planning",
@@ -98377,6 +98479,10 @@
         {
           "name": "settle_completed_output_reservation",
           "declaration": "settle_completed_output_reservation ( ledger : Ledger , reservation : Reservation , holding : Holding ? , output_bytes : Int64 , remaining_execution : Int64 , ) - > Result [ Unit , LedgerIssue ]"
+        },
+        {
+          "name": "settle_entered_transfer",
+          "declaration": "settle_entered_transfer ( ledger : Ledger , reservation : Reservation , ceiling : Int64 , observed : Int64 ? , ) - > Result [ Bool , LedgerIssue ]"
         },
         {
           "name": "settle_execution_reservation",
@@ -99677,7 +99783,7 @@
     },
     {
       "module": "src/connectors/github/host_node/read_construction.mbt",
-      "sha256": "35be1420b64225932796c068304aa70e8e89caa3778c13ab3494064a6b41cdf8",
+      "sha256": "d251edbe174bd370eba400a249d800e77248d1c93f55442d737b523302b4eca2",
       "exports": [],
       "operations": [
         {
@@ -99794,6 +99900,10 @@
               {
                 "path": "adapters/connectors/github/test/github-managed-source-read.test.mjs",
                 "anchor": "test('GitHub Source grows the original prefix for each equal-sized response before decode'"
+              },
+              {
+                "path": "src/connectors/github/host_node/read_construction_wbtest.mbt",
+                "anchor": "test \"GitHub Source quotes outer cursor history and bounded failure aliases\""
               }
             ]
           }
@@ -99802,7 +99912,7 @@
     },
     {
       "module": "src/client_local_host/installed_described_effect_recipe.mbt",
-      "sha256": "9f19220c914939b21b435ceb9304829a4c4bb196cdc7a7228c66804945f14e9d",
+      "sha256": "3a503a361770da3bf9c3cc905799cf541bc9441a61aef01174f9a5e6e093b918",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Salesforce Catalog/driver, run_publication identity and shared Core constructor/Plan Owners; no authority transfer",
@@ -104051,7 +104161,8 @@
             "client_program_kintone_update_mapping_cid",
             "client_program_kintone_update_mapping_matches_declaration",
             "client_program_kintone_update_mapping_matches_request",
-            "client_program_kintone_update_mapping_ref"
+            "client_program_kintone_update_mapping_ref",
+            "kintone_guarded_recipe_capacities"
           ],
           "exports": [],
           "attributes": {
@@ -104347,7 +104458,7 @@
           }
         }
       ],
-      "sha256": "312216e5d7fd9a73d0de9e8275fee0b8d40e887cf5cb1a4914ef06f28636e0df",
+      "sha256": "3b59631bcfe178f3bbd01a8092187f108ed0864d20fd85562acc89b4e9253bbb",
       "operations": [
         {
           "name": "client_kintone_original_update_mapping",
@@ -104484,6 +104595,10 @@
         {
           "name": "client_program_kintone_update_target_read_body",
           "declaration": "client_program_kintone_update_target_read_body ( proposal : @ kintone_host . RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_host . RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "kintone_guarded_recipe_capacities",
+          "declaration": "kintone_guarded_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , metadata_occurrences : Int , cold_includes_request : Bool , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         }
       ]
     },
@@ -104504,7 +104619,8 @@
             "client_program_kintone_update_mapping_cid",
             "client_program_kintone_update_mapping_matches_declaration",
             "client_program_kintone_update_mapping_matches_request",
-            "client_program_kintone_update_mapping_ref"
+            "client_program_kintone_update_mapping_ref",
+            "kintone_guarded_recipe_capacities"
           ],
           "exports": [],
           "attributes": {
@@ -104800,7 +104916,7 @@
           }
         }
       ],
-      "sha256": "53eb1b356816ab129e776b82da8cfce6a416b7596a1d2c9a2e365ddce74d6d83",
+      "sha256": "c82dac78c67a17b69b064cf7992ccd9daf3667ee20fc0739d874a84a91064eb9",
       "operations": [
         {
           "name": "client_kintone_original_update_mapping",
@@ -104937,6 +105053,10 @@
         {
           "name": "client_program_kintone_update_target_read_body",
           "declaration": "client_program_kintone_update_target_read_body ( proposal : @ kintone_host . RecordUpdateProposal , max_fields : Int , max_bytes : Int , max_nodes : Int , max_depth : Int , ) - > Result [ String , @ kintone_host . RecordUpdateExecutionIssue ]"
+        },
+        {
+          "name": "kintone_guarded_recipe_capacities",
+          "declaration": "kintone_guarded_recipe_capacities ( original : Array [ @ execution . ExecutionCapacity ] , output_limits : Array [ Int ] , cold_original : @ execution . ExecutionCapacity ? , limits : Array [ Int ] , metadata_units : Int64 , response_read_quantum : Int , control_wire_bytes : Int , host_input_bytes : Int , metadata_occurrences : Int , cold_includes_request : Bool , ) - > Result [ Array [ @ execution . ExecutionCapacity ] , @ client_local_host . ClientInstalledManagedRunIssue , ]"
         }
       ]
     },
@@ -106466,7 +106586,7 @@
     },
     {
       "module": "adapters/local-node/managed-advance-diagnostic.mjs",
-      "sha256": "c6f98a995874dd679d16b6b6d34525c23de1df7cf44cd78c10fa2c465ca6760f",
+      "sha256": "dcebce7c39365f65d2e2e5c6b2429be271a5acaff20343a23716e2ac43842526",
       "exports": [
         "checkedLocalManagedAdvance"
       ],
@@ -109242,7 +109362,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_preparation.mbt",
-      "sha256": "2683f5434a19a94c9a3c94960d3e929d8278f3086f7d90e290b3f93b6de8e78f",
+      "sha256": "5512992307a7aa3cc93760fa9cbbdba4f2a7ed51913f7a0dce5c6b9cc50e0670",
       "exports": [],
       "operations": [
         {
@@ -109264,6 +109384,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "LocalCommandBusinessPreparation::current",
             "LocalCommandPreparationOriginal::prepare_business_submission",
             "LocalCommandPreparationOriginal::select_business_file_source"
@@ -110744,7 +110865,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_request.mbt",
-      "sha256": "376f0146de470ddd460f0134d19165130861c0776bcf362745a0c9b4e8b91ca2",
+      "sha256": "06f565b5792f6ee2dd42bd6904aa0ed1d77b3952ba60e15aeaced5646a37819d",
       "exports": [],
       "operations": [
         {
@@ -110773,7 +110894,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_business_request",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_business_request ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , intent : @ run_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , ) - > ( @ local_host . NativeClientSubmittedPreparation , @ run_host . ClientLocalNormalization ? , ) raise ClientStop"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_business_request ( self : LocalCommandPreparationOriginal , capture : @ local_host . NativeLocalJournalCapture , intent : @ run_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , ) - > ( @ local_host . NativeClientSubmittedPreparation , @ run_host . ClientLocalNormalization ? , @ run_host . ClientAuthoringContextPreparation ? , ) raise ClientStop"
         }
       ],
       "responsibilityFacet": "primary",
@@ -110782,6 +110903,7 @@
       "contracts": [
         {
           "operations": [
+            "<module>",
             "[I]prepare_local_native_whole_file_request_module",
             "[T]LocalCommandPreparationOriginal::with_business_request",
             "LocalCommandBusinessPreparation::adopt_request_run",
@@ -110955,9 +111077,17 @@
     },
     {
       "module": "src/platform_native/client_host/submitted_request_preparation.mbt",
-      "sha256": "56d75e2e4b27de899eafec685090ac7ab2cdafe8960d82cd4c15e44be9669710",
+      "sha256": "d42e21bffc68c1b84dbc9e46973848d3a311ccf1a4c20f21ac3555352729a4ad",
       "exports": [],
       "operations": [
+        {
+          "name": "[I]borrow_native_client_model_plan_input",
+          "declaration": "[ I ] borrow_native_client_model_plan_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , ) - > Result [ NativeClientSubmittedRequestBody , @ local . ClientRequestPreparationIssue , ]"
+        },
+        {
+          "name": "[I]borrow_native_client_request_plan_input",
+          "declaration": "[ I ] borrow_native_client_request_plan_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , ) - > Result [ NativeClientSubmittedRequestBody , NativeClientSubmittedPreparationIssue , ]"
+        },
         {
           "name": "[I]check_native_client_submitted_request_input",
           "declaration": "[ I ] check_native_client_submitted_request_input ( owner : @ local . ClientRequestPreparation [ I ] , input : I , intent : @ host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , verify_request_value_policy ? : ( ( String ) - > String ? ) ?"
@@ -110982,10 +111112,12 @@
         {
           "operations": [
             "<module>",
+            "[I]borrow_native_client_request_plan_input",
             "[I]check_native_client_submitted_request_input",
             "[I]prepare_native_client_submitted_request_input",
             "prepare_native_client_submitted_request",
-            "return_native_client_submitted_request_body"
+            "return_native_client_submitted_request_body",
+            "[I]borrow_native_client_model_plan_input"
           ],
           "exports": [],
           "attributes": {
@@ -111011,6 +111143,10 @@
               {
                 "path": "docs/design/local-input-preparation.md",
                 "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "src/platform_native/client_host/submitted_request_preparation.mbt",
+                "anchor": "borrow_native_client_request_plan_input"
               }
             ],
             "synchronization": [
@@ -112079,7 +112215,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_account_construction.mbt",
-      "sha256": "291855f5b7d1ceb1032107d8510bb194de3c64d5c63ee508bd08a80873c5c740",
+      "sha256": "53b9a09a17bdf0941c1cf01bd4a0bd5246dea998e78e9458fb27c6fe56408634",
       "exports": [],
       "operations": [
         {
@@ -112089,6 +112225,10 @@
         {
           "name": "local_account_decode",
           "declaration": "local_account_decode ( body : Bytes , construction : ( ( @ authorization . AccountConfigurationConstruction ) - > Bool ) ? , ) - > Result [ @ authorization . AdmittedAccountConfiguration , NativeLocalAdoptionIssue , ]"
+        },
+        {
+          "name": "local_account_file_read_construction",
+          "declaration": "local_account_file_read_construction ( size : Int64 , retain : Bool , ) - > @ authorization . AccountConfigurationConstruction"
         },
         {
           "name": "local_account_read",
@@ -112109,7 +112249,8 @@
             "local_account_construction_cost",
             "local_account_decode",
             "local_account_read",
-            "NativeLocalJournalOriginalResources::prepare_account_construction"
+            "NativeLocalJournalOriginalResources::prepare_account_construction",
+            "local_account_file_read_construction"
           ],
           "exports": [],
           "attributes": {
@@ -112293,7 +112434,7 @@
     },
     {
       "module": "src/run_publication_host/client_model_defaults_construction.mbt",
-      "sha256": "5afaa40d0c77e58cfb5ec47a3ce65735b1279d3876da57a5a7e29eb004926bf5",
+      "sha256": "214974f0f61b78afb7d9d865fa500722b58ea9ffb0165dc897792d54eedb8e8a",
       "exports": [],
       "operations": [
         {
@@ -112307,6 +112448,10 @@
         {
           "name": "client_model_provider_defaults_resolution_extents",
           "declaration": "client_model_provider_defaults_resolution_extents ( original : ClientModelProviderDefaults , tokens : Int64 ? , ) - > ( @ environment . RegistryConstructionExtent , @ environment . RegistryConstructionExtent , )"
+        },
+        {
+          "name": "client_model_provider_defaults_retained_bound",
+          "declaration": "client_model_provider_defaults_retained_bound ( bytes : Int , n : Int , binding_units : Int , ) - > @ environment . RegistryConstructionExtent ?"
         },
         {
           "name": "client_model_provider_defaults_retained_extent",
@@ -112323,7 +112468,8 @@
             "client_model_metadata_add",
             "client_model_provider_defaults_construction_extent",
             "client_model_provider_defaults_resolution_extents",
-            "client_model_provider_defaults_retained_extent"
+            "client_model_provider_defaults_retained_extent",
+            "client_model_provider_defaults_retained_bound"
           ],
           "exports": [],
           "attributes": {
@@ -113232,7 +113378,7 @@
     },
     {
       "module": "adapters/host-node/client-dispatch-diagnostic.mjs",
-      "sha256": "0b317e1e8997bc84bfe2a48ba4f6ab1bb8b37d7cc4f708379a7a254f07459881",
+      "sha256": "433222cc02461932f6b9ed0192e82152f8a93ff20e81b4b040fea615fb24b8b2",
       "exports": [
         "dispatchFailureCodeSite",
         "dispatchFailureSnapshot",
@@ -113304,18 +113450,18 @@
         {
           "operations": [
             "<module>",
+            "dispatchFailureCodeSite",
             "dispatchFailureSnapshot",
             "dispatchFailureSnapshot/dispatchFailureSnapshot",
             "publicBudgetFailureMessage",
             "retainedBudgetFailureMessage",
-            "retainedBudgetFailureMessage/retainedBudgetFailureMessage",
-            "dispatchFailureCodeSite"
+            "retainedBudgetFailureMessage/retainedBudgetFailureMessage"
           ],
           "exports": [
+            "dispatchFailureCodeSite",
             "dispatchFailureSnapshot",
             "publicBudgetFailureMessage",
-            "retainedBudgetFailureMessage",
-            "dispatchFailureCodeSite"
+            "retainedBudgetFailureMessage"
           ],
           "attributes": {
             "responsibility": [
@@ -113750,8 +113896,12 @@
     },
     {
       "module": "src/connectors_builtin_node_rela/client_installed_source_reader_bridge.mbt",
-      "sha256": "d3573f05561a3d33eaa5f1df251c2f5a8313e082bb4deb0b6760d8a62e4b6512",
+      "sha256": "088cc40706e3cee69e5f4a1557f6d53d4c8b54d1a352837ea981230ec505454b",
       "operations": [
+        {
+          "name": "client_program_installed_calendar_artifact_construction_capacity",
+          "declaration": "client_program_installed_calendar_artifact_construction_capacity ( bytes : Int , nodes : Int , depth : Int , zones : Int , transitions : Int , policy_fields : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "client_program_installed_gmail_thread_reader_capacity",
           "declaration": "client_program_installed_gmail_thread_reader_capacity ( limits : Array [ Int ] , columns : Int , secret_bytes : Int , list_pages : Int , mailbox_bytes : Int , ) - > @ execution . ExecutionCapacity ?"
@@ -113825,6 +113975,7 @@
         {
           "operations": [
             "<module>",
+            "client_program_installed_calendar_artifact_construction_capacity",
             "client_program_installed_gmail_thread_reader_capacity",
             "client_program_installed_json_source_reader_capacity",
             "client_program_installed_json_source_reader_profile",
@@ -113891,6 +114042,10 @@
               {
                 "path": "adapters/connectors/slack/test/slack-source-read.test.mjs",
                 "anchor": "test('managed Slack messages keeps original channel history reply and nanosecond coalescence'"
+              },
+              {
+                "path": "adapters/host-node/installed-check-environment-original.test.mjs",
+                "anchor": "funded Calendar admission publishes the checker carrying the original artifact"
               }
             ]
           }
@@ -116716,10 +116871,11 @@
     },
     {
       "module": "adapters/host-common/dispatch-failure-observation.mjs",
-      "sha256": "49605dd0d0548c1b9be427729b06697bd358f649c5f7f24c3b55ac189ceb6f7b",
+      "sha256": "9ac1f2d682e912fc8eb81db6d6ab880d01e6d7c7050f7e070e26c73546d7edc0",
       "exports": [
         "originalDispatchFailureSnapshot",
-        "rememberOriginalDispatchFailure"
+        "rememberOriginalDispatchFailure",
+        "rememberOriginalSerializationRowLimit"
       ],
       "operations": [
         {
@@ -116741,6 +116897,13 @@
           "name": "rememberOriginalDispatchFailure/assessments/assessments",
           "parameters": [
             "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "rememberOriginalSerializationRowLimit",
+          "parameters": [
+            "error"
           ],
           "async": false
         }
@@ -116829,6 +116992,76 @@
               {
                 "path": "adapters/host-node/dispatch-failure-observation.test.mts",
                 "anchor": "test('actual imported next retains its original Err"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "rememberOriginalSerializationRowLimit"
+          ],
+          "exports": [
+            "rememberOriginalSerializationRowLimit"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
+                "anchor": "const serializationRowLimitMessage ="
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "src/connectors_builtin_node/client_serialization_bridge.mbt",
+                "anchor": "pub fn client_program_serialization_input_is_row_limit("
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-common/content-generation-control.mts",
+                "anchor": "rememberOriginalSerializationRowLimit(cause as object);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "function retainBudgetFailureObservation(entry: CleanupEntry<Ref>) {"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
+                "anchor": "control.physical_stop !== 'confirmed') return undefined;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "src/connectors_builtin_node/client_serialization_bridge.mbt",
+                "anchor": "RowLimit | Encoding(@publication.ContentRowLimit) => true"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-dispatch-cleanup.mts",
+                "anchor": "if (message === undefined || !entry.stopObserved) return;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-content-run.mts",
+                "anchor": "input = control.bindInput(barrier, output, encoder);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-dispatch-diagnostic.mts",
+                "anchor": "if (message === serializationRowLimitMessage) return message;"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-content-run.test.mjs",
+                "anchor": "failure preserves the original Run without partial Content"
               }
             ]
           }
@@ -117292,9 +117525,13 @@
     },
     {
       "module": "src/cmd/native_client/local_command_business_children.mbt",
-      "sha256": "29945269a3b4ebecf04e49dc652bdcc1ccdaccdc9b249b7383340648eaaf689f",
+      "sha256": "48cdc5596544dfe306733d6b364db9cb1b0fdc0b4e4263c396e5d0b526263bd6",
       "exports": [],
       "operations": [
+        {
+          "name": "finish_native_keyed_lookup_cleanup",
+          "declaration": "finish_native_keyed_lookup_cleanup ( lookup : @ run_host . ClientKeyedLookupInput , ) - > Result [ Bool , @ run_host . ClientKeyedRequestIssue ]"
+        },
         {
           "name": "LocalCommandBusinessOriginal::enter_children_cleanup",
           "declaration": "LocalCommandBusinessOriginal : : enter_children_cleanup ( business : LocalCommandBusinessOriginal , host : @ initial_arena . InstalledArenaHost , ) - > Result [ Unit , LocalCommandPreparationIssue ]"
@@ -117314,6 +117551,10 @@
         {
           "name": "LocalCommandBusinessPreparation::prepare_file_work_entry",
           "declaration": "LocalCommandBusinessPreparation : : prepare_file_work_entry ( self : Self , prepared : @ run_host . PreparedClientProgram , compiled : @ run_host . ClientCompiledRun , definition : @ publication . PublicationContract , request : @ run_host . ClientRequestIdentity , ) - > @ local_host . NativeClientRelationFileWorkEntry raise ClientStop"
+        },
+        {
+          "name": "LocalCommandBusinessPreparation::publication_authoring",
+          "declaration": "LocalCommandBusinessPreparation : : publication_authoring ( self : LocalCommandBusinessPreparation , prepared : @ run_host . PreparedClientProgram , ) - > @ publication . RunEvidenceValue raise ClientStop"
         },
         {
           "name": "LocalCommandPreparationOriginal::close_business_children",
@@ -117338,7 +117579,9 @@
             "LocalCommandBusinessPreparation::open_values_work",
             "LocalCommandBusinessPreparation::prepare_file_work_entry",
             "LocalCommandPreparationOriginal::close_business_children",
-            "LocalCommandPreparationOriginal::open_business_store"
+            "LocalCommandPreparationOriginal::open_business_store",
+            "finish_native_keyed_lookup_cleanup",
+            "LocalCommandBusinessPreparation::publication_authoring"
           ],
           "exports": [],
           "attributes": {
@@ -117412,7 +117655,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_cleanup_cause.mbt",
-      "sha256": "4c72bf8127b5a75e258554479af084a774ccffbd04cb30185ab8b1ca649072f8",
+      "sha256": "14c5271e557f75a5cddc63e162bc23e59e735f6f68c0d9704bac46be375e7e89",
       "exports": [],
       "operations": [
         {
@@ -118275,7 +118518,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_values_original_operation.mbt",
-      "sha256": "a8a3f0eff3d01e426de2aaf3a0d6949fbbc174812b2d6b03ddf801f9f1c7b5a2",
+      "sha256": "fe7b39332e2bcdcf9cbf7a4d1b755edc861bc073c071d26fc8c7827f715c48df",
       "exports": [],
       "operations": [
         {
@@ -118753,7 +118996,7 @@
     },
     {
       "module": "src/platform_native/client_host/local_packaged_runtime.mbt",
-      "sha256": "c8e146745cbf0a34150bf9ca5ee5b0d75c66645db085f73edd36b4ba4971b03c",
+      "sha256": "82d493e117f8a2d908bb0cf882ce6f1a43b40e2511c2d7d809e0656b8db36f20",
       "exports": [],
       "operations": [
         {
@@ -118811,6 +119054,10 @@
         {
           "name": "NativeLocalPackagedRuntime::bind_original_host_resources",
           "declaration": "NativeLocalPackagedRuntime : : bind_original_host_resources ( self : NativeLocalPackagedRuntime , resources : @ arena . InstalledArenaLocalHostResources , ) - > Result [ Unit , NativeLocalPackagedRuntimeIssue ]"
+        },
+        {
+          "name": "NativeLocalPackagedRuntime::borrow_model_http_library",
+          "declaration": "NativeLocalPackagedRuntime : : borrow_model_http_library ( self : NativeLocalPackagedRuntime , diagnostic_ceiling : Int , ) - > Result [ @ http . Library , NativeLocalModelHttpIssue ]"
         },
         {
           "name": "NativeLocalPackagedRuntime::check_current",
@@ -118887,6 +119134,7 @@
             "local_runtime_retain_root",
             "NativeLocalPackagedRuntime::assets",
             "NativeLocalPackagedRuntime::bind_original_host_resources",
+            "NativeLocalPackagedRuntime::borrow_model_http_library",
             "NativeLocalPackagedRuntime::check_current",
             "NativeLocalPackagedRuntime::close",
             "NativeLocalPackagedRuntime::command_library_members",
@@ -118969,7 +119217,7 @@
     },
     {
       "module": "src/run_publication_host/client_native_local_runtime.mbt",
-      "sha256": "f5c645d5036a2998487f39261b40959d64a56b5e4f92372bcd41667ac185570b",
+      "sha256": "e0488f882d3a8c25b7b031f65eb17cdd69cbd50be37a38caac6cd6e6d33042e9",
       "exports": [],
       "operations": [
         {
@@ -118999,6 +119247,10 @@
         {
           "name": "client_native_local_runtime_original",
           "declaration": "client_native_local_runtime_original ( value : ClientNativeLocalRuntime , ) - > String"
+        },
+        {
+          "name": "native_local_http_system",
+          "declaration": "native_local_http_system ( platform : String , dependency : String ) - > Bool"
         },
         {
           "name": "runtime_assemble",
@@ -119044,6 +119296,7 @@
             "client_native_local_product_originals",
             "client_native_local_runtime_members",
             "client_native_local_runtime_original",
+            "native_local_http_system",
             "runtime_assemble",
             "runtime_elements",
             "runtime_filename",
@@ -119481,7 +119734,7 @@
     },
     {
       "module": "src/client_local_host/execute_source_free_tasks.mbt",
-      "sha256": "698f01a8ccb014bcb0bcbecd2c84e1b42e5c38de6058cbf12cc91dd82c9391a9",
+      "sha256": "2679f364a3d70e4a48fd10afdf7ddbdc20a63668c85db68da3e981709a4da07e",
       "exports": [],
       "operations": [
         {
@@ -119506,7 +119759,7 @@
         },
         {
           "name": "execute_local_tasks_guarded",
-          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , retained_effect ? : @ strategy . CapturedEffectRunDAG ?"
+          "declaration": "execute_local_tasks_guarded ( setup : @ builtin . ConfiguredComputeHost [ @ strategy . RunIssue ] , finalization_quantum : Int , max_finalization_rounds : Int , require_current : ( ) - > Bool , require_live ~ : ( ( ) - > Bool ) ? , first ~ : Int , drive_task ? : ( ( Int , @ local_driver . LocalManagedDispatchOperations [ Int ] ) - > Result [ Unit , LocalValuesExecutionIssue , ] ) ?"
         },
         {
           "name": "execute_retained_effect_local_tasks_guarded",
@@ -120105,7 +120358,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "7758aac50d1cf30b86504bf0acf40c23e329aad54851ffd92813b34c1099d4fb",
+      "sha256": "3dfa1ba6f2470fe05e8ee6afd6c699c99a71c8f39daa08fa3515f4d90c09adfe",
       "exports": [],
       "operations": [
         {
@@ -120162,7 +120415,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_adoption",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , ) - > Result [ @ local_host . NativeLocalAdoptionSession , LocalCommandPreparationIssue , ]"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configuration ? : @ local_host . NativeLocalModelConfigurationSelection ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::read_command",
@@ -121248,6 +121501,100 @@
               {
                 "path": "scripts/test_native_timings.py",
                 "anchor": "def test_file_capacity_first_original_refusal_is_opt_in_and_same_lexical_scope"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/client_local_host/preparation_request_retained_intent.mbt",
+      "operations": [
+        {
+          "name": "[I]check_request_owned_submitted_intent",
+          "declaration": "[ I ] check_request_owned_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , public_primary ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestRetainedIntentIssue , ]"
+        },
+        {
+          "name": "[I]check_request_retained_submitted_intent",
+          "declaration": "[ I ] check_request_retained_submitted_intent ( owner : ClientRequestPreparation [ I ] , input : I , intent : @ publication_host . ClientSubmittedIntent , environment : @ checked . CheckEnvironment , publication : @ source_publication . PreparedPublishedQueryEnvironment , public_primary ~ : Bool , ) - > Result [ @ publication_host . ClientProgramPreparationLimits , ClientRequestRetainedIntentIssue , ]"
+        }
+      ],
+      "exports": [],
+      "sha256": "3f21f95e4c58dff08c81de0f8e27dc172d3791d4255f2cb9526512edff02cadd",
+      "responsibilityFacet": "primary",
+      "role": "common-semantics",
+      "owner": "Original funded Local Request retained-intent check",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "[I]check_request_owned_submitted_intent",
+            "[I]check_request_retained_submitted_intent"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/local-input-preparation.md",
+                "anchor": "### Original normalization on the same Request"
+              },
+              {
+                "path": "src/platform_native/client_host/native_test/request_effect_test.mbt",
+                "anchor": "test \"Native same Request carries original Effect preparation and retires original borrow\""
               }
             ]
           }

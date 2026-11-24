@@ -1,5 +1,6 @@
 import {runtimeField, runtimeIsError} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
+import {rememberOriginalSerializationRowLimit} from './dispatch-failure-observation.mjs';
 import type {SynchronousRuntimeData} from './runtime-result.mjs';
 import {resultOutputLimitFields, validResultOutputLimits} from './result-output-limits.mjs';
 
@@ -166,6 +167,7 @@ type CommonContentGenerationBindings = {
     encoder: unknown, quantum: number,
   ): readonly [boolean, string, number, unknown];
   clientProgramSerializationBindInput(barrier: unknown, input: unknown, encoder: unknown): unknown;
+  clientProgramSerializationInputIsRowLimit(issue: unknown): boolean;
   clientProgramSerializationCancel(encoder: unknown): void;
   clientProgramSerializationCapacityBytes(capacity: unknown): readonly [bigint, bigint];
   clientProgramSerializationEncoder(
@@ -562,9 +564,21 @@ export function contentGenerationControl(
         owned(encoders, encoder, 'Content encoder'))) as undefined;
     },
     bindInput(barrier: CommonObject, output: unknown, encoder: CommonObject) {
-      const input = checked(moon.clientProgramSerializationBindInput(
+      const result = moon.clientProgramSerializationBindInput(
         owned(barriers, barrier, 'Content barrier'), output,
-        owned(encoders, encoder, 'Content encoder'))) as CommonObject;
+        owned(encoders, encoder, 'Content encoder'));
+      let input: CommonObject;
+      try {
+        input = checked(result) as CommonObject;
+      } catch (cause) {
+        try {
+          if (runtimeIsError(result) &&
+              moon.clientProgramSerializationInputIsRowLimit(runtimeField(result, 0))) {
+            rememberOriginalSerializationRowLimit(cause as object);
+          }
+        } catch { /* Optional diagnostic DATA cannot replace the original failure. */ }
+        throw cause;
+      }
       inputs.set(input, encoder);
       return input;
     },

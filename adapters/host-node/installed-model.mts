@@ -767,4 +767,3 @@ function originalModelMaterialArrays(installation: unknown) {
   return {executions: executions.value as readonly ExecutionBody[], bodies: bodies.value as readonly DependencyBody[], ordinaryOriginal,
     emptyOriginal: ordinaryOriginal && executions.value.length === 0};
 }
-

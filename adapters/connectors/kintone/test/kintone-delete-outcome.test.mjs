@@ -8,6 +8,7 @@ import {checked} from '../../../host-common/runtime-result.mjs';
 import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
 import {canonicalJson} from '../../../host-node/local-account-config.mjs';
+import {createKintoneDeleteRequestAdapter} from '../host/kintone-delete-request.mjs';
 import {sendMappedKintoneDelete, projectMappedKintoneDeleteOutcome} from '../site/kintone-delete-execution.mjs';
 import {projectKintoneDeleteObservation} from '../site/kintone-record-delete.mjs';
 import {deleteFixture} from './kintone-record-delete.fixture.mjs';
@@ -91,6 +92,48 @@ test('actual Common DELETE outcome binds wide API ID and exact revision to the o
     f.mapping, f.request, f.previewOf(), 0, 0), false);
   assert.equal(moon.clientProgramKintoneDeleteBody(f.request),
     '{"app":"12","ids":["9007199254740993"],"revisions":["9007199254740994"]}');
+});
+
+test('row Effect DELETE response uses the retained target and exact approved Preview after restore', () => {
+  const f = fixture(), identity = '9007199254740993', requestTag = cid('original row dispatch');
+  const options = {moon, mapping: f.mapping, declaration: f.declaration, origin: 'https://tenant.example.test',
+    appId: '12', connectorId: 'kintone', resource: 'inquiries', siteBindingCid: cid('original site'),
+    generationCid: cid('original generation'), limits: {maxResponseBytes: limits.maxResponseBytes,
+      maxRequestBytes: limits.maxRequestBytes, maxNodes: limits.maxNodes, maxDepth: limits.maxDepth,
+      maxComparisonWork: limits.maxComparisonWork, maxIdentityBytes: limits.maxIdentityBytes,
+      maxColumns: limits.maxColumns, maxNameUnits: limits.maxNameUnits, maxValueNodes: limits.maxValueNodes,
+      maxValueDepth: limits.maxValueDepth, maxValueTextBytes: limits.maxValueTextBytes,
+      maxFields: 16, maxCells: 32, maxTableRows: 16, maxRecoveryBytes: 65536}};
+  const active = createKintoneDeleteRequestAdapter(options);
+  const {request} = active.prepare({selector: identity});
+  active.projectTarget(request, {statusCode: 200, body: bytes({records: [{
+    $id: {type: '__ID__', value: identity}, $revision: {type: '__REVISION__', value: '9007199254740994'},
+    Subject: {type: 'SINGLE_LINE_TEXT', value: 'original'},
+  }], totalCount: null})});
+  const finalized = active.finalize({request, requestTag});
+  const cold = createKintoneDeleteRequestAdapter(options);
+  const restored = cold.restore({wire: active.savedWire(finalized.request), requestTag});
+  const response = {statusCode: 200, body: Buffer.from('{}')};
+  const facts = {preview: f.preview, memberIndex: 0, rowIndex: 0, observation: response};
+  for (const [adapter, physical] of [[active, finalized], [cold, restored]]) {
+    const original = {...facts, request: physical.request};
+    const projected = adapter.projectResponse(original);
+    assert.equal(projected.kind, 'typed-success-response');
+    assert.deepEqual(projected.outcome, {result: {}, state: 'applied'});
+    assert.equal(projected.rowPreviewCid, moon.strategyEffectPreviewOrderedRowCid(f.preview, 0, 0));
+    assert.equal(projected.responseSha256, createHash('sha256').update('{}').digest('hex'));
+    for (const observation of [{statusCode: 409, body: Buffer.from('{}')},
+      {statusCode: 200, body: Buffer.from('{"accepted":true}')}]) {
+      const ambiguous = adapter.projectResponse({...original, observation});
+      assert.equal(ambiguous.kind, 'unclassified-response');
+      assert.strictEqual(ambiguous.observation, observation);
+      assert.equal(ambiguous.outcome, undefined);
+    }
+    for (const preview of [f.previewOf({version: cid('foreign revision')}),
+      f.previewOf({target: '9007199254740992'})]) {
+      assert.equal(adapter.projectResponse({...original, preview}).kind, 'unclassified-response');
+    }
+  }
 });
 
 test('DELETE outcome refuses another approved target guard Mapping or row', () => {

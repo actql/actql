@@ -4,6 +4,14 @@ type Selection = Readonly<{recordId: string; previousName: string; nextName: str
 type Programs = Readonly<{read: string; update: string}>;
 type SeedInput = Readonly<{recordId?: unknown; previousName?: unknown; controlId?: unknown; controlName?: unknown}>;
 export type RecordApprovalSeed = Readonly<{recordId: string; previousName: string; controlId: string; controlName?: string}>;
+export type RecordMutationFixtureSeed = Readonly<Omit<RecordApprovalSeed, 'previousName'> & {
+  previousName: string | null;
+  key?: string;
+}>;
+export type RecordFixtureKind = 'update' | 'delete' | 'upsert';
+type RecordFixtureRow = Readonly<{id: string; name: string}>;
+export type RecordApprovalFixtureState = Readonly<{target: RecordFixtureRow | null; control: RecordFixtureRow}>;
+type PresentFixtureState = RecordApprovalFixtureState & Readonly<{target: RecordFixtureRow}>;
 
 const select = (value: Selection) => {
   for (const key of ['recordId', 'previousName', 'nextName'] as const) {
@@ -24,17 +32,22 @@ export const sharedRecordUpdateSelections = Object.freeze({
 
 export const maxRecordUpdateFixtureTextUnits = 16_384;
 
-export function recordUpdateFixtureSeed({recordId, previousName, controlId, controlName = 'Untouched control'}: SeedInput) {
-  if (typeof recordId !== 'string' || !recordId || typeof previousName !== 'string' || !previousName) {
+export function recordUpdateFixtureSeed(seed: SeedInput, options: {allowAbsent?: boolean}): RecordApprovalFixtureState;
+export function recordUpdateFixtureSeed(seed: SeedInput, options?: {allowAbsent?: false}): PresentFixtureState;
+export function recordUpdateFixtureSeed({recordId, previousName, controlId, controlName = 'Untouched control'}: SeedInput,
+  {allowAbsent = false}: {allowAbsent?: boolean} = {}): RecordApprovalFixtureState {
+  const absent = allowAbsent && previousName === null;
+  if (typeof recordId !== 'string' || !recordId || !absent && (typeof previousName !== 'string' || !previousName)) {
     throw new TypeError('InvalidRecordApprovalSelection');
   }
   if (typeof controlId !== 'string' || !controlId || controlId === recordId || typeof controlName !== 'string') {
     throw new TypeError('InvalidRecordApprovalControl');
   }
-  if ([recordId, previousName, controlId, controlName].some(text => text.length > maxRecordUpdateFixtureTextUnits)) {
+  if ([recordId, previousName, controlId, controlName].some(text =>
+    text !== null && (text as string).length > maxRecordUpdateFixtureTextUnits)) {
     throw new RangeError('RecordApprovalFixtureSeedLimit');
   }
-  return Object.freeze({target: Object.freeze({id: recordId, name: previousName}),
+  return Object.freeze({target: absent ? null : Object.freeze({id: recordId, name: previousName as string}),
     control: Object.freeze({id: controlId, name: controlName})});
 }
 
@@ -100,14 +113,17 @@ export function kintoneUpdateCase(programs: Programs, selected: Selection) {
 
 // Existing shared HTTPS fixture fault DATA only. A provider owns the exact
 // write route; this does not issue a request, classify Run state or grant send.
-export function recordUpdateReplyLossFaults(provider: {writeRequest?: {method?: unknown; pathname?: unknown}} | null | undefined) {
-  const {method, pathname} = provider?.writeRequest ?? {};
+export function recordUpdateReplyLossFaults(provider: {writeRequest?: {method?: unknown; pathname?: unknown; bodyIncludes?: unknown}} | null | undefined) {
+  const {method, pathname, bodyIncludes} = provider?.writeRequest ?? {};
   if (typeof method !== 'string' || !/^[A-Z]{3,16}$/u.test(method) ||
       typeof pathname !== 'string' || !pathname.startsWith('/') ||
       pathname.startsWith('//') || pathname.length > 4096 || !pathname.isWellFormed() ||
       pathname.includes('?') || pathname.includes('#') ||
-      pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92))) {
+      pathname.includes(String.fromCharCode(0)) || pathname.includes(String.fromCharCode(92)) ||
+      (bodyIncludes !== undefined && (typeof bodyIncludes !== 'string' ||
+        bodyIncludes.length < 1 || bodyIncludes.length > 128 || !bodyIncludes.isWellFormed()))) {
     throw new TypeError('InvalidRecordApprovalWriteRoute');
   }
-  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply' as const, method, pathname, times: 1})]);
+  return Object.freeze([Object.freeze({kind: 'apply-then-lose-reply' as const, method, pathname, times: 1,
+    ...(bodyIncludes === undefined ? {} : {bodyIncludes})})]);
 }

@@ -23,6 +23,35 @@ let local_account_construction_zero : @authorization.AccountConfigurationConstru
 }
 
 ///|
+// Destination, UTF8 byte conversion and one original Reader chunk coexist.
+fn local_account_file_read_construction(
+  size : Int64,
+  retain : Bool,
+) -> @authorization.AccountConfigurationConstruction {
+  let body : @authorization.AccountConfigurationConstructionUnits = {
+    record_headers: 2L,
+    reference_slots: 0L,
+    scalar_words: 0L,
+    owned_utf16_units: 0L,
+    owned_wire_bytes: size,
+  }
+  {
+    retained: if retain {
+      body
+    } else {
+      local_account_construction_zero
+    },
+    execution: {
+      record_headers: 24L,
+      reference_slots: 32L,
+      scalar_words: 32L,
+      owned_utf16_units: 0L,
+      owned_wire_bytes: 2L * size + Int64::min(size, 65536L),
+    },
+  }
+}
+
+///|
 fn local_account_read(
   root : @filesystem.Root,
   name : String,
@@ -47,32 +76,7 @@ fn local_account_read(
     name,
     max_bytes,
     prepare=construction.map(prepare => {
-      fn(size) {
-        // Destination FixedArray/Bytes conversion and one original 65536-byte
-        // Reader chunk coexist. Fixed reader/finish/refusal controls are included
-        // before open, so even a failed child keeps its constructor reservation.
-        let body : @authorization.AccountConfigurationConstructionUnits = {
-          record_headers: 2L,
-          reference_slots: 0L,
-          scalar_words: 0L,
-          owned_utf16_units: 0L,
-          owned_wire_bytes: size,
-        }
-        prepare({
-          retained: if retain {
-            body
-          } else {
-            local_account_construction_zero
-          },
-          execution: {
-            record_headers: 24L,
-            reference_slots: 32L,
-            scalar_words: 32L,
-            owned_utf16_units: 0L,
-            owned_wire_bytes: 2L * size + Int64::min(size, 65536L),
-          },
-        })
-      }
+      size => prepare(local_account_file_read_construction(size, retain))
     }),
   )
 }

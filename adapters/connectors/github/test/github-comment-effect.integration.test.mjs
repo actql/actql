@@ -4,8 +4,9 @@
 // is written by hand from the fixture's tables; nothing is derived from
 // product output.
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, fork} from 'node:child_process';
 import {generateKeyPairSync, sign} from 'node:crypto';
+import {once} from 'node:events';
 import {mkdir, mkdtemp, readdir, readFile, rm, writeFile} from
   'node:fs/promises';
 import {createServer} from 'node:https';
@@ -82,6 +83,9 @@ const accountConfiguration = (connection, {commit = 'delegate'} = {}) =>
   canonicalJson({version: 'actql-execution-account-config/0.1',
     account_id: 'github-comment-host', entries: [
       entry('comment-commit', commit, connection, 'issue_comments', 'effect'),
+      {entry_id: 'host-result-read', outcome: 'allow', exclusions: [],
+        principal: {any_of: [owner]}, connection: {any_of: ['actql-remote-host']},
+        resource: {any_of: ['result/answer']}, operation: {any_of: ['read']}},
       {entry_id: 'host-run', outcome: 'allow', exclusions: [],
         principal: {all: true}, connection: {all: true},
         resource: {all: true}, operation: {any_of: ['write']}},
@@ -201,8 +205,29 @@ async function installation(t, {faults = [], commit} = {}) {
     bytes[bytes.length - 1] ^= 0x01;
     await writeFile(objects[0], bytes);
   };
-  return {api, state, mapping, openHost, alterEffectInput,
+  const coldSaved = (ref, readResult) => readColdSaved({directory: hostRoot,
+    effectProfilePath, authorization: checkpointAuthorization(configuration),
+    key: tlsKey.toString('utf8'), cert: tlsCertificate.toString('utf8'),
+    owner, ref, readResult});
+  return {api, state, mapping, openHost, coldSaved, alterEffectInput,
     program: rows => commentProgram(mapping, rows)};
+}
+
+async function readColdSaved(input) {
+  const child = fork(fileURLToPath(new URL('./github-comment-saved-child.fixture.mjs',
+    import.meta.url)), [], {execArgv: [], timeout: 20_000,
+    stdio: ['ignore', 'inherit', 'inherit', 'ipc']});
+  const closed = once(child, 'close');
+  let receipt;
+  let sendFailure;
+  child.once('message', message => { receipt = message; });
+  child.send(input, error => { sendFailure = error; });
+  const exit = await closed;
+  if (sendFailure) throw sendFailure;
+  assert.deepEqual(exit, [0, null], 'the cold reader and its Host returned');
+  assert.equal(receipt?.pid, child.pid);
+  assert.equal(receipt?.firstClose, true);
+  return receipt;
 }
 
 async function waitFor(check, {attempts = 400} = {}) {
@@ -280,7 +305,7 @@ const confirmationReads = api => api.seen().filter(entry => entry.pathname === '
   .map(entry => JSON.parse(entry.body))
   .filter(request => request.query.startsWith('query ActqlConfirmComment('));
 
-test('a comment waits for approval across a restart, is sent once and never again',
+test('an approved comment is sent once and its original Result survives a process restart',
   async t => {
     const setup = await installation(t);
     const first = await setup.openHost();
@@ -308,13 +333,49 @@ test('a comment waits for approval across a restart, is sent once and never agai
     // The subject was checked again before the approved send.
     assert.equal(subjectChecks(setup.api).length, 3);
     await third.close();
-    // A further restart sends nothing more.
-    const fourth = await setup.openHost();
-    const again = await (await fourth.as('owner-token')).attach(execution.ref);
-    assert.equal((await again.status()).status, 'succeeded');
+    const priorRequests = setup.api.seen().length;
+    const saved = await setup.coldSaved(execution.ref, true);
+    assert.equal(saved.runId, done.run_id);
+    assert.equal(saved.status, 'succeeded');
+    assert.deepEqual(saved.rows, [{node_id: 'I_7', comment: 'hello from actql'}]);
+    assert.equal(setup.api.seen().length, priorRequests);
     assert.equal(commentSends(setup.api).length, 1);
     assert.equal(setup.state.comments.length, 1);
   });
+
+test('signed rejection cancels the original comment without a provider mutation', async t => {
+  const setup = await installation(t);
+  const host = await setup.openHost();
+  const {execution, state} = await submitted(setup, host, 'comment-reject',
+    [{node_id: 'I_7', comment: 'must not appear'}]);
+  assert.equal(state.status, 'waiting_checkpoint');
+  assert.equal(commentSends(setup.api).length, 0);
+  const reviewer = await host.as('reviewer-token');
+  const {items} = await reviewer.checkpoints({checkpointId: state.checkpoint.id});
+  assert.equal(items.length, 1);
+  const [checkpoint] = items;
+  assert.equal(checkpoint.kind, 'effect_set');
+  assert.equal(checkpoint.checkpointCid, state.checkpoint.checkpoint_cid);
+  const answer = await reviewer.resolveCheckpoints([{checkpoint, decision: 'rejected'}],
+    {signer: {...signer, authorityScopeCid: execution.ref.authorityScopeCid}});
+  assert.deepEqual(answer.results.map(item => item.status), ['committed']);
+  assert.equal(answer.signed.length, 1);
+  const signed = JSON.parse(answer.signed[0].resolutionWire);
+  assert.equal(signed.decision, 'rejected');
+  assert.equal(signed.checkpoint_id, state.checkpoint.id);
+  assert.equal(signed.checkpoint_cid, state.checkpoint.checkpoint_cid);
+  assert.equal(signed.run_id, state.run_id);
+  assert.equal(signed.run_definition_cid, execution.ref.runDefinitionCid);
+  await host.close();
+
+  const priorRequests = setup.api.seen().length;
+  const saved = await setup.coldSaved(execution.ref, false);
+  assert.equal(saved.runId, state.run_id);
+  assert.equal(saved.status, 'cancelled');
+  assert.equal(setup.api.seen().length, priorRequests);
+  assert.deepEqual(setup.state.comments, []);
+  assert.equal(commentSends(setup.api).length, 0);
+});
 
 test('a recovered Ledger whose first close fails is retried by its Host owner, once',
   async t => {
@@ -396,13 +457,11 @@ test('a reply lost after the comment was created stays unknown and is never rese
     assert.equal(setup.state.comments.length, 1);
     assert.equal(commentSends(setup.api).length, 1);
     await second.close();
-    // A restart does not resend it.
-    const third = await setup.openHost();
-    const again = await (await third.as('owner-token')).attach(execution.ref);
-    assert.equal((await waitFor(async () => {
-      const current = await again.status();
-      return terminal.includes(current.status) ? current : undefined;
-    })).status, 'needs_reconciliation');
+    const priorRequests = setup.api.seen().length;
+    const saved = await setup.coldSaved(execution.ref, false);
+    assert.equal(saved.runId, state.run_id);
+    assert.equal(saved.status, 'needs_reconciliation');
+    assert.equal(setup.api.seen().length, priorRequests);
     assert.equal(commentSends(setup.api).length, 1);
     assert.equal(setup.state.comments.length, 1);
   });

@@ -142,6 +142,39 @@ test "Native lease takeover restores original possibly-sent row rather than issu
     claimant="host-second",
     at=1100L,
   )
+  assert_eq(first.claim.generation, 1L)
+  assert_eq(second.claim.generation, 2L)
+  guard journal.lookup(request, true) is Ok(Retained(before)) else {
+    fail("original Run missing after takeover")
+  }
+  let (other_locator, other_key, other_basis) = effect_row_test_binding(
+    request,
+    row="row-2",
+  )
+  for
+    (target, dispatch_key, row_basis) in [
+      (locator, key, basis),
+      (other_locator, other_key, other_basis),
+    ] {
+    assert_true(
+      journal.record_effect_row_dispatch(
+        first,
+        target,
+        dispatch_key,
+        row_basis,
+        () => true,
+        () => 1101L,
+      )
+      is Err(Checkpoint(StaleRevision)),
+    )
+  }
+  assert_true(
+    journal.lookup_effect_row(request, other_locator, () => true) is Ok(None),
+  )
+  guard journal.lookup(request, true) is Ok(Retained(after)) else {
+    fail("original Run missing after stale claim")
+  }
+  assert_eq(after.revision, before.revision)
   guard journal.record_effect_row_dispatch(
       second,
       locator,
@@ -455,6 +488,42 @@ test "Native row dispatch distinguishes precommit failure from lost committed re
         0
       },
     )
+    assert_eq(restored.checkpoint_companion, reply_lost)
+    let physical_run = reopened
+      .read("client_runs", @host.client_request_scope_cid(request))
+      .unwrap()
+    if reply_lost {
+      assert_true(
+        @host.decode_client_run_journal_row_with_observation_originals(
+          physical_run.body,
+        )
+        is Err(_),
+      )
+      for entry in restored.checkpoint.unwrap().effect_ledger {
+        let key = native_effect_ledger_entry_key(
+          @host.client_request_scope_cid(request),
+          restored.checkpoint.unwrap().artifact.checkpoint_cid,
+          @effect.effect_ledger_entry_cid(entry),
+        )
+        let stored = reopened.read(effect_ledger_entry_table, key).unwrap()
+        assert_eq(stored.revision, 0L)
+        assert_eq(
+          stored.body,
+          @utf8.encode(@effect.effect_ledger_entry_wire(entry)),
+        )
+      }
+    } else {
+      assert_true(
+        reopened.scan_after(effect_ledger_entry_table, "")
+        is Err(@sqlite.NotFound),
+      )
+      assert_true(
+        @host.decode_client_run_journal_row_with_observation_originals(
+          physical_run.body,
+        )
+        is Ok(_),
+      )
+    }
     let next = effect_row_test_claim(
       journal,
       request,
@@ -566,13 +635,17 @@ test "Native missing or rewritten row history is refused against independent ori
         ..record,
         checkpoint: Some({ ..record.checkpoint.unwrap(), effect_ledger: [], }),
       }
+      assert_true(record.checkpoint_companion)
+      assert_true(run_record_body(corrupt) is Err(Encoding))
+      // The companion writer rejects empty history before touching SQLite.
+      // Persist a readable legacy inline row so the independent witness must
+      // detect the erased history.
+      let body = run_record_body({ ..corrupt, checkpoint_companion: false, }).unwrap()
+      let inline = read_run_record({ body, revision: record.revision, }).unwrap()
+      assert_false(inline.checkpoint_companion)
+      assert_true(inline.checkpoint.unwrap().effect_ledger.is_empty())
       database
-      .compare_exchange(
-        "client_runs",
-        scope,
-        record.revision,
-        run_record_body(corrupt).unwrap(),
-      )
+      .compare_exchange("client_runs", scope, record.revision, body)
       .unwrap()
       |> ignore
     } else {

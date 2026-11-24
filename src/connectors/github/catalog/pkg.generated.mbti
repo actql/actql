@@ -50,6 +50,10 @@ pub fn issue_comments_read_take_page(IssueCommentsRead) -> Result[GraphqlIssueCo
 
 pub fn issue_comments_request(IssueCommentSubject, Int, String?) -> Result[String, GraphqlRequestIssue]
 
+pub fn issue_list_filter_allowed(String) -> Bool
+
+pub fn issue_list_start(String, String, Int) -> Result[NextPage, IssueListStartIssue]
+
 pub fn issue_page_read_accept(IssuePageRead, Bytes) -> Result[Unit, GraphqlResponseIssue]
 
 pub fn issue_page_read_close(IssuePageRead) -> Unit
@@ -67,6 +71,8 @@ pub let max_comment_characters : Int
 pub let max_comment_subject_units : Int
 
 pub fn next_page(String?, String, String, Int, Int) -> Result[NextPage?, LinkIssue]
+
+pub fn prepare_graphql_outer_cursor_history() -> GraphqlOuterCursorHistory
 
 pub fn project_comment_confirmation_response(Bytes, PageLimits, Int64, String, String, GraphqlRepository, String, String) -> Result[Unit, GraphqlResponseIssue]
 
@@ -97,6 +103,8 @@ pub let pull_requests_query : String
 pub fn pull_requests_request(String, Int, String?, PullRequestFilters) -> Result[String, GraphqlRequestIssue]
 
 pub fn rate_limit_basis(HeaderObservation) -> RateLimitBasis
+
+pub fn record_graphql_outer_cursor(GraphqlOuterCursorHistory, String) -> Bool
 
 pub fn repository_access_valid(String, String) -> Bool
 
@@ -164,6 +172,10 @@ pub(all) struct GraphqlIssuePage {
   has_next_page : Bool
   end_cursor : String?
 } derive(Eq, @debug.Debug)
+
+pub struct GraphqlOuterCursorHistory {
+  seen : Map[String, Bool]
+}
 
 pub(all) struct GraphqlPullRequestPage {
   repository : GraphqlRepository
@@ -272,6 +284,11 @@ pub(all) struct IssueFilters {
   state : String
   labels : Array[String]
   since : String?
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IssueListStartIssue {
+  InvalidRepository
+  InvalidPageSize
 } derive(Eq, @debug.Debug)
 
 pub(all) struct IssuePage {

@@ -210,8 +210,24 @@ class LinuxInspectionTools(unittest.TestCase):
             self.assertFalse((root/'output').exists())
 
 
+class ModelResolverImageInspection(unittest.TestCase):
+    def test_refuses_external_cares_functions_and_allocator_slots(self):
+        require_private = P.HTTP.require_private_model_resolver
+        for exports, imports in [
+            ('000000000011bbc0 T _ares_library_init_mem\n', ''),
+            ('', '                 U _ares_cancel\n'),
+            ('000000000011bbc0 D __ares_malloc@@CARES_1\n', ''),
+            ('', '                 U ares_library_cleanup@CARES_1\n'),
+        ]:
+            with self.subTest(exports=exports, imports=imports):
+                with self.assertRaisesRegex(ValueError, 'symbols must remain private'):
+                    require_private(exports, imports)
+        require_private('000000000001 T _curl_multi_cleanup\n',
+                        '                 U _getaddrinfo\n')
+
+
 class ExistingProducerComposition(unittest.TestCase):
-    def compose(self,target,fail=False,key_fingerprint='A'*40,tls_jobs=1):
+    def compose(self,target,fail=False,key_fingerprint='A'*40,tls_jobs=1,model_resolver=False):
         with tempfile.TemporaryDirectory() as raw:
             root=Path(raw).resolve();(root/'scripts').mkdir()
             data=b'pinned Source-only input';pin={'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
@@ -219,6 +235,8 @@ class ExistingProducerComposition(unittest.TestCase):
                 'releaseKey':{'url':'https://key.invalid/key',**pin},'signerFingerprint':'A'*40},
                 'ownedOpenSSLSource':{'url':'https://tls.invalid/source','archive':pin}}
             (root/'scripts/native-http-component-source.json').write_text(json.dumps(recipe))
+            resolver = root/'scripts/native-model-http-resolver-source.json'
+            resolver.write_text(json.dumps({'url':'https://resolver.invalid/source','archive':pin}))
             files=[]
             for name in ('curl','signature','key','tls','cc','make','perl','gpg','gpgv'):
                 path=root/name;path.write_bytes(data);files.append(path)
@@ -239,7 +257,11 @@ class ExistingProducerComposition(unittest.TestCase):
                 stage=destination/'stage';stage.mkdir()
                 (destination/'build.json').write_text(json.dumps({'source':args[0],'target':args[-2]}))
                 return {'stage':str(stage)}
-            def build_http(*args):
+            resolver_input = root/'output/c-ares.tar.gz'
+            def build_http(*args,**kwargs):
+                self.assertEqual(kwargs, {'model_resolver_archive':resolver_input} if model_resolver else {})
+                if model_resolver:
+                    self.assertEqual(resolver_input.read_bytes(),data)
                 calls.append(('http',args))
                 if fail: raise ValueError('original signed component refusal')
                 args[9].mkdir();(args[9]/'build.json').write_text(json.dumps({'source':args[0]}))
@@ -249,9 +271,11 @@ class ExistingProducerComposition(unittest.TestCase):
                     patch.object(P.subprocess,'run',side_effect=gpg_run),\
                     patch.object(P.HTTP.TLS,'build',side_effect=build_tls),\
                     patch.object(P.HTTP,'build',side_effect=build_http),\
-                    patch.object(P.urllib.request,'urlopen',side_effect=AssertionError('duplicate download')):
+                    patch.object(P.HTTP,'MODEL_RESOLVER_RECIPE',resolver),\
+                    patch.object(P.urllib.request,'urlopen',return_value=SignedInputs.response(data)) as download:
                 invoke=lambda:P.prepare(source,target,cc,sdk,make,perl,gpg,gpgv,output,60,
-                    curl_archive=curl,curl_signature=signature,release_key=key,tls_archive=tls,tls_jobs=tls_jobs)
+                    curl_archive=curl,curl_signature=signature,release_key=key,tls_archive=tls,
+                    tls_jobs=tls_jobs,model_resolver=model_resolver)
                 if key_fingerprint!='A'*40:
                     with self.assertRaisesRegex(ValueError,'release key fingerprint differs'):invoke()
                     self.assertFalse(calls);self.assertFalse((output/'preparation.json').exists());return
@@ -259,6 +283,12 @@ class ExistingProducerComposition(unittest.TestCase):
                     with self.assertRaisesRegex(ValueError,'original signed component refusal'): invoke()
                     self.assertFalse((output/'preparation.json').exists());return
                 result=invoke()
+                if model_resolver:
+                    self.assertEqual(download.call_count,1)
+                    self.assertEqual(download.call_args.args[0].full_url,'https://resolver.invalid/source')
+                    self.assertIn(P.HTTP.NATIVE.original(resolver_input),result['inputs'])
+                else:
+                    download.assert_not_called()
             minimum='11.0' if sdk else None
             self.assertEqual([name for name,_ in calls],['tls','http'])
             self.assertEqual(calls[0][1][-2:],(target,minimum))
@@ -271,6 +301,10 @@ class ExistingProducerComposition(unittest.TestCase):
     def test_same_existing_producers_select_linux_and_compatible_macos_explicitly(self):
         for target in ('linux-x64','darwin-arm64'):
             with self.subTest(target=target):self.compose(target)
+
+    def test_model_preparation_fetches_and_retains_the_pinned_resolver_for_each_target(self):
+        for target in ('linux-x64','darwin-arm64'):
+            with self.subTest(target=target):self.compose(target,model_resolver=True)
 
     def test_explicit_two_jobs_reach_the_same_tls_producer(self):
         self.compose('darwin-arm64',tls_jobs=2)

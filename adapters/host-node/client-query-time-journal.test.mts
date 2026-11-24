@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdir, mkdtemp, readFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import * as compiledMoon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {openClientRequestJournal, installNodeClientEffectRun} from './client-effect-run.mjs';
@@ -10,6 +10,19 @@ import {openClientRequestJournal, installNodeClientEffectRun} from './client-eff
 type Installation = Parameters<typeof installNodeClientEffectRun>[0];
 type Execution = Parameters<Installation['execute']>[0];
 type AcceptRequest = Parameters<ReturnType<typeof installNodeClientEffectRun>['accept']>[0];
+type JournalRuntime = Parameters<ReturnType<typeof openClientRequestJournal>['lookupRunDefinition']>[1];
+type QueryTimeRuntime = Readonly<{
+  clientProgramCheckEnvironment(wire: string, evidenceCid: string, textTime: boolean,
+    veca: boolean, rela: boolean, sga: boolean, tea: boolean, calendar: boolean, textRank: boolean): unknown;
+  clientProgramPrepareEffectComputationWithParameters(document: string, format: string,
+    environment: unknown, parameters: string | undefined, evidence: readonly unknown[]): unknown;
+  clientProgramEffectPreparationReady(outcome: unknown): unknown;
+  clientProgramEffectPreparationIssueCode(outcome: unknown): string | undefined;
+  clientProgramEffectRequiresQueryTime(prepared: unknown, bytes: number, nodes: number): unknown;
+  clientProgramEffectRunQueryTimeMatches(run: unknown, queryTime: unknown, identity: unknown): boolean;
+  clientProgramQueryTimeCreatedAt(queryTime: unknown): string;
+}>;
+const moon = compiledMoon as typeof compiledMoon & Installation['moon'] & JournalRuntime & QueryTimeRuntime;
 
 const cid = (digit: string) => 'sha256:' + digit.repeat(64);
 const root = new URL('../../', import.meta.url);
@@ -61,7 +74,7 @@ test('actual Common and request Journal retain the new invocation time across re
     requestId: 'original-query', namespaceId: 'query-time-journal',
     lookupExpiresAt: '2099-01-01T00:00:00.000Z',
     principalId: 'fixture-principal', connection: {mode: 'local', owner: 'local'} as AcceptRequest['connection']});
-  const install = () => installNodeClientEffectRun({moon: moon as Installation['moon'], publicationControl: control,
+  const install = () => installNodeClientEffectRun({moon, publicationControl: control,
     journal, authorizeRequest: async () => policy, authorizeRunStart: async () => true,
     // The callback tests the original prepared Run/context boundary only. It
     // deliberately installs no physical Effect or publication implementation.

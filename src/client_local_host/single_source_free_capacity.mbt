@@ -223,6 +223,35 @@ fn prepare_local_requirements_result(
 }
 
 ///|
+/// Project Result and finalization bounds from the already configured Model
+/// module. The same compiled sequences and publication tariff are borrowed;
+/// physical Resource admission still belongs to the original Request.
+pub fn ClientInstalledManagedSourceFreePreparation::model_local_requirements(
+  self : Self,
+  prepared : @publication_host.PreparedClientProgram,
+) -> ClientLocalRequirements? {
+  guard self.owner is Pure(original) &&
+    physical_equal(original, prepared) &&
+    self.compilation is Some(@publication_host.Tasks(compilation)) &&
+    !compilation.infers.is_empty() &&
+    self.configuration is Some(configuration) &&
+    client_prepared_local_configuration_capacity(configuration, self.limits)
+    is Some(capacity) else {
+    return None
+  }
+  Some({
+    prepared,
+    registry: self.installed_contracts,
+    values: self.values_body,
+    fragment: self.fragment_body,
+    ordered: self.ordered_body,
+    sequences: self.sequences,
+    capacity_plan: self.capacity_plan,
+    capacity,
+  })
+}
+
+///|
 pub fn ClientLocalRequirements::maximum_limits(
   self : ClientLocalRequirements,
 ) -> @resources.LedgerLimits {

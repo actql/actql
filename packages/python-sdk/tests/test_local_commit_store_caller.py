@@ -35,7 +35,7 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                  1: b'original-invocation', 7: b'original-index-body'}
         key = b'd' * 64
         state = {'cleanup': True, 'produce': 0, 'publisher': 0, 'count': 14,
-                 'reserve_fail_at': None, 'identity_override': None, 'close_calls': [],
+                 'reserve_fail_at': None, 'identity_override': None, 'extent_override': None, 'close_calls': [],
                  'schema_identity': b'sha256:1397f3486d94d87d6affa84e5258a36a23def0f068df837fa8aa746839d2c513',
                  'schema_wire': b'{"id":{"nullable":false,"type":"number"}}'}
 
@@ -69,8 +69,14 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 index, field = args[2:]
                 if index != 0:
                     return -3
-                self.assertIn(field, (0, 1))
-                outputs[args[0]] = state['schema_identity' if field == 0 else 'schema_wire']
+                self.assertIn(field, (0, 1, 2))
+                if field == 2:
+                    extent = state['extent_override']
+                    if extent is None:
+                        extent = str(len(state['schema_wire'])).encode('ascii')
+                    outputs[args[0]] = state['schema_identity'] + b':' + extent
+                else:
+                    outputs[args[0]] = state['schema_identity' if field == 0 else 'schema_wire']
                 return 0
             if name in ('produce_material', 'produce_index_key'):
                 self.assertEqual(args[1], 31)
@@ -82,10 +88,15 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                     ordinal, field = args[2:]
                     if ordinal not in identities:
                         return -32
-                    self.assertIn(field, (0, 3))
-                    outputs[args[0]] = ((identities[ordinal] if state['identity_override'] is None
-                                        else state['identity_override'])
-                                       if field == 3 else wires[ordinal])
+                    self.assertIn(field, (0, 3, 4))
+                    identity = identities[ordinal] if state['identity_override'] is None else state['identity_override']
+                    if field == 4:
+                        extent = state['extent_override']
+                        if extent is None:
+                            extent = str(len(wires[ordinal])).encode('ascii')
+                        outputs[args[0]] = identity + b':' + extent
+                    else:
+                        outputs[args[0]] = identity if field == 3 else wires[ordinal]
                 return 0
             if name == 'length':
                 return len(outputs[args[0]])
@@ -103,11 +114,15 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
         caller = OriginalCommitProjection(core, parent, 31, cleanup=lambda: state['cleanup'])
         return core, parent, publisher, caller, calls, state, identities, wires, key
 
-    def test_original_identity_and_full_body_keep_pair_with_bounded_wire_overlap(self):
+    def test_all_three_storage_projections_fit_with_the_held_reader_charge(self):
         core, parent, _, caller, _, state, identities, wires, _ = self.bridge()
         original_call = core._call
         capacities = {}
-        limit = 6 * 1048576
+        # Preserve the originally observed co-held Saved reader and other
+        # loans. The old one-MiB body quote could not fit this remainder.
+        occupied = 8866616
+        limit = 12582912
+        self.assertGreater(occupied + 4 * 1048576, limit)
         peak = 0
 
         def call(family, name, *args):
@@ -120,12 +135,11 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                     selected_parent, ticket, wire_limit, physical_bytes = args
                 self.assertEqual(selected_parent, parent.handle)
                 charge = physical_bytes + 2 * wire_limit
-                if sum(capacities.values()) + charge > limit:
+                if occupied + sum(capacities.values()) + charge > limit:
                     return -4
                 # This is an explicit physical buffer port, not an installed
                 # Core/Store or a claim about E's unrecorded numeric usage.
-                result = original_call(family, 'reserve', selected_parent, ticket,
-                                       max(physical_bytes, 2 * 1048576))
+                result = original_call(family, name, *args)
                 capacities[result] = charge
                 peak = max(peak, sum(capacities.values()))
                 return result
@@ -136,16 +150,26 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
 
         core._call = original_byte_fixture_port(call)
         delivered = []
-        def consume(write):
-            self.assertEqual(len(caller.pending_outputs), 2)
-            self.assertEqual([value.limit for value in caller.pending_outputs], [71, 1048576])
-            self.assertEqual(write.key, 'namespace:20:publication_contract:' + identities[0].decode())
-            self.assertEqual(write.payload, wires[0])
-            self.assertEqual(state['close_calls'], [])
-            delivered.append(True)
-        caller.project_contract(0, consume)
-        self.assertEqual(delivered, [True])
-        self.assertLessEqual(peak, limit)
+
+        def consume(expected_key, expected_payload, address_limit):
+            def verify(write):
+                originals = caller.pending_outputs
+                self.assertEqual([value.limit for value in originals],
+                                 [address_limit, len(expected_payload)])
+                self.assertTrue(all(core._loans[value.ticket] is value for value in originals))
+                self.assertTrue(all(value.handle in capacities for value in originals))
+                self.assertEqual((write.key, write.payload), (expected_key, expected_payload))
+                delivered.append(write.key)
+            return verify
+
+        contract = 'namespace:20:publication_contract:' + identities[0].decode()
+        schema = 'namespace:13:result_schema:' + state['schema_identity'].decode()
+        index = 'namespace:12:public_index:' + (b'd' * 64).decode()
+        caller.project_contract(0, consume(contract, wires[0], 79))
+        caller.project_schema(0, consume(schema, state['schema_wire'], 79))
+        caller.project_index_reference(consume(index, identities[7], 64))
+        self.assertEqual(delivered, [contract, schema, index])
+        self.assertLessEqual(occupied + peak, limit)
         self.assertEqual(capacities, {})
         self.assertEqual(caller.pending_outputs, ())
         self.assertIs(core._loans[parent.ticket], parent)
@@ -167,10 +191,33 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
         self.assertEqual(caller.pending_outputs, ())
         self.assertEqual(set(core._loans), {6, 7})
         self.assertIs(core._loans[7], parent)
-        self.assertIn(('publication_commit_export', 'produce_material', (208, 31, 0, 3)), calls)
+        self.assertIn(('publication_commit_export', 'produce_material', (208, 31, 0, 4)), calls)
         self.assertIn(('publication_commit_export', 'produce_material', (209, 31, 0, 0)), calls)
         self.assertFalse(any(f in ('run', 'source', 'task', 'model', 'effect', 'publication')
                              for f, _, _ in calls))
+
+    def test_original_storage_extent_accepts_existing_maximum_and_refuses_one_short(self):
+        core, parent, _, caller, _, _, _, wires, _ = self.bridge()
+        wires[0] = b'x' * 1048576
+        caller.project_contract(0, lambda write: self.assertEqual(write.payload, wires[0]))
+        self.assertEqual(caller.pending_outputs, ())
+        self.assertIs(core._loans[parent.ticket], parent)
+
+        core, _, _, caller, _, state, _, wires, _ = self.bridge()
+        state['extent_override'] = str(len(wires[0]) - 1).encode('ascii')
+        with self.assertRaises(LocalCoreError):
+            caller.project_contract(0, lambda _: self.fail('Short output must not reach Store'))
+        self.assertEqual(len(caller.pending_outputs), 2)
+        self.assertTrue(caller.close())
+
+    def test_unavailable_original_ordinal_never_allocates_body_or_enters_store(self):
+        _, _, _, caller, calls, _, _, _, _ = self.bridge()
+        with self.assertRaises(LocalCoreError) as issue:
+            caller.project_contract(6, lambda _: self.fail('Foreign ordinal reached Store'))
+        self.assertEqual(issue.exception.code, -32)
+        self.assertEqual([value.limit for value in caller.pending_outputs], [79])
+        self.assertEqual(len([call for call in calls if call[1] == 'reserve_bounded']), 1)
+        self.assertTrue(caller.close())
 
     def test_public_index_consumes_owner_key_and_original_cid_not_index_body(self):
         _, _, _, caller, calls, _, identities, wires, key = self.bridge()
@@ -430,7 +477,7 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
         caller.project_schema(0, consume, expected_generation=3)
         self.assertEqual(observed, [True])
         produced = [args[1:] for _, name, args in calls if name == 'produce_schema']
-        self.assertEqual(produced, [(31, 0, 0), (31, 0, 1)])
+        self.assertEqual(produced, [(31, 0, 2), (31, 0, 1)])
         self.assertFalse(any(name in ('produce_material', 'produce_index_key', 'authorize')
                              for _, name, _ in calls))
         self.assertIs(core._loans[7], parent)
@@ -464,6 +511,17 @@ class OriginalCommitStoreCallerTests(unittest.TestCase):
                 self.assertEqual(sum(name == 'produce_schema' for _, name, _ in calls), 1)
                 self.assertEqual(len(caller.pending_outputs), 1)
                 self.assertTrue(caller.close())
+
+    def test_schema_measures_utf8_and_rechecks_the_wire_before_store(self):
+        _, _, _, caller, _, state, _, _, _ = self.bridge()
+        state['schema_wire'] = '{"é😀":{"nullable":false,"type":"number"}}'.encode('utf-8')
+        caller.project_schema(0, lambda write: self.assertEqual(write.payload, state['schema_wire']))
+        self.assertFalse(caller.pending_outputs)
+        state['extent_override'] = str(len(state['schema_wire']) - 1).encode('ascii')
+        with self.assertRaises(LocalCoreError):
+            caller.project_schema(0, lambda _: self.fail('One-short schema reached Store'))
+        self.assertEqual(len(caller.pending_outputs), 2)
+        self.assertTrue(caller.close())
 
     def test_schema_consumer_error_retains_pair_and_cleanup_retry_is_same_handles(self):
         core, parent, _, caller, calls, state, _, _, _ = self.bridge()

@@ -1,4 +1,3 @@
-// @ts-expect-error TS7016: the shared test ledger projection is still authored JavaScript.
 import {ledgerUsageFieldsFor} from '../../../host-node/fixtures/ledger-usage.mjs';
 // Source component fixture: actual Common RowRun, Account, signed Credential,
 // SQLite and TLS. No normal packed/live Google or numeric-profile qualification.

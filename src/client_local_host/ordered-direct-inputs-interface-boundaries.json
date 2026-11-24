@@ -1734,7 +1734,7 @@
     {
       "module": "src/client_local_host/preparation_request_program_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "1fb978c2bf3512052077a666da9bfd11edc6c687adbaa53871a7dc054f44398e",
+      "sha256": "3fad7bdbd63ee81e18151f8728b937238de55aa4b990d79775d335b4b664817e",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -1916,6 +1916,10 @@
               {
                 "path": "docs/design/published-store-target-custody.md",
                 "anchor": "## Managed Local file quantity selection"
+              },
+              {
+                "path": "src/client_local_host/preparation_request_program_body.mbt",
+                "anchor": "request_program_compilation_original"
               }
             ],
             "synchronization": [
@@ -2034,7 +2038,7 @@
     {
       "module": "src/client_local_host/preparation_request_effect_body.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "515aec8b431bb4d4297a26d5bc9670b700eca7f40f5c27504d0117b04f4089d0",
+      "sha256": "2aa5bee40daaaf2acf53cab27f90e9038faa388153937181775e365d8a16ce31",
       "role": "common-semantics",
       "owner": "Existing checked Source, Request/Effect Plan, Row and managed Run owners; exact borrowed original inventory only",
       "exports": [],
@@ -2053,7 +2057,7 @@
         },
         {
           "name": "[I]borrow_request_effect_plan_input",
-          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , ) - > Result [ @ resources . PreparationBodyBorrow [ @ publication_host . PreparedClientEffectComputation , ] , ClientRequestPreparationIssue , ]"
+          "declaration": "[ I ] borrow_request_effect_plan_input ( owner : ClientRequestPreparation [ I ] , input : I , static_models ? : Bool"
         },
         {
           "name": "[I]borrow_request_effect_preparation",

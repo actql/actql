@@ -14,14 +14,14 @@ import {promisify} from 'node:util';
 import {openHttpsExchangeFixture} from '../../../adapters/site-node/https-exchange-fixture.mjs';
 import {recordApprovalFixtureResultNames, recordApprovalHostAccountConfiguration} from './host-account.fixture.mjs';
 import {recordUpdateFixtureState, recordUpdateReplyLossFaults} from './cases.mjs';
-import type {RecordApprovalSeed} from './cases.mjs';
+import type {RecordApprovalFixtureState, RecordFixtureKind, RecordMutationFixtureSeed} from './cases.mjs';
 import {readAuthoredCase} from './command.mjs';
 import {recordApprovalReplyLossExpectation} from './workflow.mjs';
 export {recordApprovalReplyLossExpectationFromEnvironment as installedRecordReplyLossExpectation} from './workflow.mjs';
 
 type Decision = 'approved' | 'rejected';
 type ExchangeOptions = NonNullable<Parameters<typeof openHttpsExchangeFixture>[1]>;
-type Rows = ReturnType<typeof recordUpdateFixtureState>['before'];
+type Rows = RecordApprovalFixtureState;
 type Snapshot = Rows & {
   writes: number;
   requests: readonly {method: string; pathname: string}[];
@@ -30,13 +30,13 @@ type Snapshot = Rows & {
 type Provider = {
   routes: NonNullable<ExchangeOptions['routes']>;
   snapshot: () => Snapshot;
-  writeRequest: {method: string; pathname: string};
+  writeRequest: {method: string; pathname: string; methodOverride?: string | null; bodyIncludes?: string};
 };
 type OriginalFixture = {
   connectorId: string;
   resource: string;
   alias: string;
-  selection: RecordApprovalSeed;
+  selection: RecordMutationFixtureSeed;
   provider: Provider;
   metadata: Record<string, unknown>;
   source: Record<string, unknown>;
@@ -53,7 +53,7 @@ type AuthoredFixtureInput = {
   casePath: string;
   selection?: never;
   provider?: never;
-  createInstallation: (seed: RecordApprovalSeed) => OriginalFixture;
+  createInstallation(seed: RecordMutationFixtureSeed, kind: RecordFixtureKind): OriginalFixture;
 };
 type FixtureInput = FixtureOptions & (
   (OriginalFixture & {selection: Parameters<typeof recordUpdateFixtureState>[0]}) | AuthoredFixtureInput);
@@ -109,8 +109,8 @@ export function openRecordApprovalExchange(t: Parameters<typeof openHttpsExchang
 }
 
 export function assertRecordApprovalTarget(snapshot: Pick<Rows, 'target'>, expected: Pick<Rows, 'target'>) {
-  const {id, name} = snapshot.target;
-  assert.deepEqual({id, name}, expected.target, 'Independent provider target state');
+  const target = snapshot.target === null ? null : {id: snapshot.target.id, name: snapshot.target.name};
+  assert.deepEqual(target, expected.target, 'Independent provider target state');
 }
 
 function assertRecordApprovalControl(snapshot: Pick<Rows, 'control'>, expected: Pick<Rows, 'control'>) {
@@ -133,7 +133,10 @@ export async function runInstalledRecordApprovalFixture(t: Pick<TestContext, 'di
     assert.equal(typeof (input as AuthoredFixtureInput).createInstallation,
       'function', 'Select an original provider fixture adapter');
     assert(input.selection === undefined && input.provider === undefined, 'Select one original provider seed');
-    fixture = {...input, ...(input as AuthoredFixtureInput).createInstallation(authoredFixture.seed)};
+    const kind = authored!.review.kind ?? 'update';
+    fixture = {...input, ...(input as AuthoredFixtureInput).createInstallation(authoredFixture.seed, kind)};
+    assert.equal((fixture.write as {kind?: unknown} | undefined)?.kind ?? 'update', kind,
+      'The provider admits the original authored effect kind');
   }
   const {connectorId, resource, alias, selection, provider, decision = 'approved'} = fixture;
   assert(['approved', 'rejected'].includes(decision));
@@ -297,11 +300,11 @@ export async function runInstalledRecordApprovalFixture(t: Pick<TestContext, 'di
       if (loss !== undefined) {
         assert.equal(tls.remainingFaults(), phase === 'capture' ? 1 : 0);
       }
-      if (rejecting || loss !== undefined) {
-        const writeCount = (snapshot: Snapshot) => snapshot.requests.filter(request =>
-          request.method === provider.writeRequest.method && request.pathname === provider.writeRequest.pathname).length;
-        assert.equal(writeCount(after), writesExpected, 'Count every selected write request, including refused attempts');
-      }
+      const {method, pathname, methodOverride, bodyIncludes} = provider.writeRequest;
+      const writeCount: number = tls.seen().filter(request => request.method === method && request.pathname === pathname &&
+        (methodOverride === undefined || (request.headers['x-http-method-override'] ?? null) === methodOverride) &&
+        (bodyIncludes === undefined || request.body.includes(bodyIncludes))).length;
+      assert.equal(writeCount, writesExpected, 'Count every selected write request, including refused attempts');
       phases.push({phase, startedAt, endedAt: new Date().toISOString(), ...outcome,
         requestsBefore: before.requests.length, requestsAfter: after.requests.length, writes: after.writes});
     }

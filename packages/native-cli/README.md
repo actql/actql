@@ -49,12 +49,14 @@ uses `actql --mode local adopt --json`; `connect` cannot silently adopt. The
 finite default source-free profile grants no external I/O authority. `check`
 returns `kind: prepared`, not Run admission. See the [CLI reference](../../docs/cli.md).
 
-Explicit Remote mode uses the existing HTTPS/mTLS Client–Host protocol. A
-connection to a Local Host over HTTPS is Remote transport, rather than embedded
-Local execution. The Host and its credentials are supplied separately.
+Embedded Local permits one active Host per state directory and refuses a
+second owner. For concurrent CLI processes, start one authenticated public Host
+explicitly and connect each CLI using Remote HTTPS/mTLS. The Host owns the
+project's storage, and the CLI clients submit queries and read Saved results
+through that connection. See the [shared Host setup](https://github.com/actql/actql/blob/main/docs/design/shared-cli-host.md#existing-execution-and-transport-owners).
 
 For Remote mode, supply a Host URL, connection file, scoped token file and mTLS
-credentials:
+credentials.
 
 ```sh
 actql --endpoint https://host.example/ \
@@ -65,12 +67,21 @@ actql --endpoint https://host.example/ \
 ```
 
 Set `ACTQL_HTTP_LIBRARY` to the absolute path of the installed `libcurl.so.4`
-on Linux or `libcurl.4.dylib` on macOS.
-Installation does not register a Runner or grant execution authority. Protect
-the token, keys and saved operation
-references. See the [transport usage](https://github.com/actql/actql/blob/main/src/cmd/native_client/README.md)
-for command arguments. Allocate and save a submission reference before sending
-input. Save the exact admitted Run reference for subsequent operations.
+on Linux or `libcurl.4.dylib` on macOS. For the shared route, use the library
+admitted as the package's `remote-http` member and pass that path explicitly
+with `--http-library`. Runner registration and execution grants come from the
+Host. Protect the token, keys and saved operation references. See the
+[Remote transport options](https://github.com/actql/actql/blob/main/src/cmd/native_client/README.md).
+
+Save a candidate Submission reference from `new-submission --request-id <nonce>`
+and an invocation attempt ID. Use `--request-name <name>` on Remote `start` or `aql` with
+`--submission-ref-file`, `--operation-attempt-id` and an explicit format.
+On `observed`, save `outcome.submissionRef` as the original, including its
+epoch, and save the Run reference when ready. A name bound to different input
+returns `conflict`. After a lost response, use
+`lookup-submission` with the saved original, or the candidate if no original
+was returned. A candidate for an already-bound name may remain unresolved.
+Keep its reference and attempt for lookup without resending.
 
 | Operation | Native CLI |
 | --- | --- |

@@ -134,7 +134,7 @@ test('serial dependency growth rejects unclassified direct and aliased callers',
   for (const body of [
     'grow_keyed_dependency_body(lookup, 1, 2, 3, None)',
     'let grow = grow_keyed_dependency_body',
-    'let reserve = reserve_keyed_dependency_serial_controls',
+    'let reserve = begin_keyed_dependency_serial_cursor',
   ]) {
     const extra = [['src/run_publication_host/new_serial_receiver.mbt',
       `fn added(lookup : ClientKeyedLookupInput) -> Unit { ${body} }`]];
@@ -153,9 +153,9 @@ test('measured dependency ranges only come from the returned body recorder', () 
     assert(problems(guardedConstruction(''), extra).some(issue =>
       issue.function === 'added' && issue.rule === 'unclassified-measured-dependency-range'));
   }
-  const missingQuote = 'keyed_protocol_built(value, dependency_bodies=Some(bodies), measured_bodies=Some(forged))';
-  assert(problems(guardedConstruction(missingQuote)).some(issue =>
-    issue.rule === 'unclassified-measured-dependency-input'));
+  const foreignProof = 'keyed_protocol_built(value, dependencies=Measured(forged))';
+  assert(problems(guardedConstruction(foreignProof)).some(issue =>
+    issue.rule === 'private-serial-dependency-forgery'));
   const settlement = [['src/run_publication_host/client_keyed_lookup_identity.mbt',
     'fn finish_keyed_lookup_protocol_metadata() -> Unit { let make = ReturnedKeyedDependencyRange }']];
   assert(problems(guardedConstruction(''), settlement).some(issue =>
@@ -164,6 +164,23 @@ test('measured dependency ranges only come from the returned body recorder', () 
     'fn added() -> String { "\\{ReturnedKeyedDependencyRange(bodies~, start=0, end=1, bytes=0L, previous=None)}" }']];
   assert(problems(guardedConstruction(''), embedded).some(issue =>
     issue.rule === 'unclassified-interpolation'));
+});
+
+test('only the funded Cursor and its seal may construct same-package controls', () => {
+  const bodies = [
+    'KeyedDependencySerialCursor::{ lookup, reservation, extent_workspace_depth: -1 }',
+    'KeyedDependencySerialCompletion::{ lookup, reservation, serial_range: None }',
+    'let cursor = {lookup, reservation, extent_workspace_depth: -1}',
+    'let proof = {lookup, reservation, serial_witness: None}',
+  ];
+  for (const body of bodies) {
+    assert(problems(guardedConstruction(body)).some(issue =>
+      issue.rule === 'private-serial-dependency-forgery'));
+    const sameModule = [['src/run_publication_host/client_keyed_dependency_serial_cursor.mbt',
+      `fn counterfeit() -> Unit { ${body} }`]];
+    assert(problems(guardedConstruction(''), sameModule).some(issue =>
+      issue.function === 'counterfeit' && issue.rule === 'private-serial-dependency-forgery'));
+  }
 });
 
 test('managed scan guard keeps private phase and builder references inside the original wrapper', () => {

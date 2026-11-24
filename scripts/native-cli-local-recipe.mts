@@ -3,15 +3,19 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {constants, closeSync, fstatSync, lstatSync, openSync, readSync, mkdirSync, writeFileSync} from 'node:fs';
-import {dirname, join, resolve, parse} from 'node:path';
+import {basename, dirname, join, resolve, parse} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {nativeLocalDefaultAssets} from './native-cli-default-assets.mjs';
 import {inspectLocalLibrary} from './native-cli-local-runtime.mjs';
+import {verifiedNativeRemoteHttpPackage, verifiedNativeModelHttpPackage} from './native-preparation-originals.mjs';
 import {LOCAL_RUNTIME_MAX_BYTES, localRuntimeHash, admitLocalLibraryBytes, validateLocalRuntimeManifest} from '../packages/native-cli/lib/local-runtime.mjs';
 
 type Identity = {bytes: number; sha256: string};
 type RecipeOptions = {sourceSha: string; platform: string; sqliteDirectory: string;
-  cryptoDirectory: string; outputDirectory: string; sourceRoot?: string};
+  cryptoDirectory: string; outputDirectory: string; sourceRoot?: string;
+  remoteHttpPreparation?: string; modelHttpPreparation?: string};
+type HttpPreparation = Parameters<typeof verifiedNativeRemoteHttpPackage>[0];
+type Library = {role: string; name: string; original: Identity & {path: string}; license: string; dependencies: string[]};
 type Inspect = NonNullable<Parameters<typeof inspectLocalLibrary>[3]>;
 type Execute = (file: string, args: readonly string[], options: Parameters<Inspect>[2] & {cwd?: string}) => string;
 
@@ -70,7 +74,7 @@ const pythonWire = (value: unknown) => Buffer.from(JSON.stringify(sorted(value))
   char => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`) + '\n');
 
 export function assembleNativeLocalRecipe({sourceSha, platform, sqliteDirectory, cryptoDirectory, outputDirectory,
-  sourceRoot = root}: RecipeOptions, execute: Execute = execFileSync) {
+  remoteHttpPreparation, modelHttpPreparation, sourceRoot = root}: RecipeOptions, execute: Execute = execFileSync) {
   assert(['linux-x64-gnu', 'darwin-arm64'].includes(platform), 'Select an existing Local platform');
   const linux = platform === 'linux-x64-gnu';
   const target = linux ? 'x86_64-unknown-linux-gnu' : 'aarch64-apple-darwin';
@@ -190,7 +194,7 @@ export function assembleNativeLocalRecipe({sourceSha, platform, sqliteDirectory,
   const extension = linux ? 'so' : 'dylib';
   const names = new Set([`libactql_sqlite_component.${extension}`, `libactql_crypto_component.${extension}`]);
   const observations: ReturnType<typeof inspectLocalLibrary>[] = [];
-  const libraries = ([['sqlite', sqlite, sqliteDirectory], ['crypto', crypto, cryptoDirectory]] as const).map(([role, receipt, directory]) => {
+  const libraries: Library[] = ([['sqlite', sqlite, sqliteDirectory], ['crypto', crypto, cryptoDirectory]] as const).map(([role, receipt, directory]) => {
     const name = `libactql_${role}_component.${extension}`, path = join(directory, name);
     const bytes = capture(path, LOCAL_RUNTIME_MAX_BYTES, receipt.library);
     admitLocalLibraryBytes(bytes, platform);
@@ -211,14 +215,38 @@ export function assembleNativeLocalRecipe({sourceSha, platform, sqliteDirectory,
   capture(join(sourceRoot, 'spec/contracts/actql-query-acquisition.json'), 65536);
   capture(join(sourceRoot, 'spec/contracts/actql-query-process-evidence.json'), 65536);
   const defaults = nativeLocalDefaultAssets(sourceRoot);
-  const contents = new Map([...defaults].map(([role, bytes]) => [`${role}.json`, bytes]));
+  const contents = new Map<string, Buffer>([...defaults].map(([role, bytes]) => [`${role}.json`, bytes]));
   contents.set('sqlite.txt', sqliteNotice); contents.set('crypto.txt', combined);
   contents.set('sqlite-process-producer.json', sqliteReceipt); contents.set('crypto-producer.json', cryptoReceipt);
+  const httpMembers: Partial<Record<'remoteHttpPreparation' | 'modelHttpPreparation', HttpPreparation>> = {};
+  const licenseNames = ['sqlite.txt', 'crypto.txt'];
+  for (const [role, key, supplied, verify] of [
+    ['remote-http', 'remoteHttpPreparation', remoteHttpPreparation, verifiedNativeRemoteHttpPackage],
+    ['model-http', 'modelHttpPreparation', modelHttpPreparation, verifiedNativeModelHttpPackage],
+  ] as const) {
+    if (supplied === undefined) continue;
+    const path = resolve(supplied);
+    const wire = capture(path, 32 * 1024 * 1024);
+    const selected = {path, ...identity(wire), source: json<{source?: string}>(wire).source};
+    const {library, dependencies, notice} = verify(selected,
+      {source: sourceSha, target: linux ? 'linux-x64' : platform});
+    const bytes = capture(library.path, LOCAL_RUNTIME_MAX_BYTES, library);
+    admitLocalLibraryBytes(bytes, platform);
+    const observed = inspectLocalLibrary(library.path, platform, names, execute, role);
+    assert.deepEqual([...observed.dependencies].sort(), [...dependencies].sort());
+    const license = `${role}.txt`;
+    const name = basename(library.path);
+    libraries.push({role, name, original: library, license, dependencies: observed.dependencies});
+    observations.push(observed);
+    licenseNames.push(license);
+    contents.set(license, notice);
+    httpMembers[key] = selected;
+  }
   const assets = [...defaults].map(([role, bytes]) => ({role,
     original: {path: join(outputDirectory, `${role}.json`), ...identity(bytes)}}));
-  const licenses = ['sqlite', 'crypto'].map(role => ({name: `${role}.txt`,
-    original: {path: join(outputDirectory, `${role}.txt`), ...identity(contents.get(`${role}.txt`)!)}}));
-  const recipe = {sourceSha, platform, libraries, assets, licenses};
+  const licenses = licenseNames.map(name => ({name,
+    original: {path: join(outputDirectory, name), ...identity(contents.get(name)!)}}));
+  const recipe = {sourceSha, platform, libraries, assets, licenses, ...httpMembers};
   validateLocalRuntimeManifest({sourceSha, platform,
     libraries: libraries.map((item, index) => ({role: item.role, path: `lib/${item.name}`, ...identity(read(item.original.path, LOCAL_RUNTIME_MAX_BYTES, item.original)),
       license: `licenses/${item.license}`, dependencies: item.dependencies, abi: observations[index].abi})),
@@ -241,8 +269,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   try {
     const args = process.argv.slice(2), options: Partial<RecipeOptions> = {};
     const flags = {'--source': 'sourceSha', '--platform': 'platform', '--sqlite-component': 'sqliteDirectory',
-      '--crypto-component': 'cryptoDirectory', '--output': 'outputDirectory'} as const;
-    assert.equal(args.length, 10, 'Select source, platform, both original components and fresh output');
+      '--crypto-component': 'cryptoDirectory', '--output': 'outputDirectory',
+      '--remote-http-preparation': 'remoteHttpPreparation', '--model-http-preparation': 'modelHttpPreparation'} as const;
+    assert([10, 12, 14].includes(args.length), 'Select source, platform, both original components and fresh output');
     for (let index = 0; index < args.length; index += 2) {
       const key = flags[args[index] as keyof typeof flags];
       assert(key && args[index + 1] && options[key] === undefined, 'Unknown, duplicate or incomplete recipe selection');

@@ -6,7 +6,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {rejectInstalledEffectPlan as fail} from './installed-effect-recipe.mjs';
-export {captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation,
+export {captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation, selectInstalledEffectWriteBranch,
   installedEffectSavedControlEntryLimit, installedEffectSavedControlResponseLimit,
   installedEffectRecipeForControlEntryLimit} from './installed-effect-recipe.mjs';
 export {prepareInstalledEffectManagedPlan} from './installed-effect-managed-plan.mjs';

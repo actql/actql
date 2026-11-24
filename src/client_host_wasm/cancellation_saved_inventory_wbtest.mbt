@@ -172,3 +172,77 @@ test "Saved rebind observes the fresh cancellation witness on every invocation" 
   assert_eq(witness_reads.val, 2)
   assert_true(physical_equal(retained.snapshot, snapshot))
 }
+
+///|
+test "Saved input reuses checked fence rows only within the same proven reader" {
+  let rows = cancellation_saved_rows()
+  let retained : StoredSavedResultRead = {
+    snapshot: targeted_original(rows),
+    result_name: "answer",
+    fences: [("publication_attempt", "original", 7L, b"first")],
+    source: None,
+    finite: None,
+    owner: None,
+    view: None,
+    schema_phase: -3,
+    advances_remaining: 0,
+  }
+  let scans = Ref(0)
+  let selected_reads = Ref(0)
+  let fence_reads = Ref(0)
+  let body = Ref(b"first")
+  let proof_ticket = Ref(0)
+  let run = (ticket, proof, reuse) => {
+    rebind_saved_result_originals(
+      retained,
+      1,
+      (table, cursor) => {
+        scans.val += 1
+        targeted_row_scan(rows, table, cursor)
+      },
+      (table, key) => {
+        if table == "publication_attempt" && key == "original" {
+          fence_reads.val += 1
+          return Ok(Some({ key, revision: 7L, body: body.val, }))
+        }
+        if table == "client_submitted_intents" || table == "client_runs" {
+          selected_reads.val += 1
+        }
+        targeted_row_read(rows, table, key)
+      },
+      census_ticket=ticket,
+      census_current=actual => {
+        proof_ticket.val = actual
+        proof
+      },
+      reuse_proven_fence_rows=reuse,
+    )
+  }
+  // An initial observation always reads the fence and performs the census.
+  assert_eq(run(0, -41L, true), Ok(()))
+  assert_eq(fence_reads.val, 1)
+  assert_eq(proof_ticket.val, 0)
+  let first_scans = scans.val
+  let first_selected_reads = selected_reads.val
+  assert_true(first_scans > 0 && first_selected_reads > 0)
+
+  // Only the selected caller also reuses its proven physical fence reads.
+  assert_eq(run(17, 1L, true), Ok(()))
+  assert_eq(proof_ticket.val, -17)
+  assert_eq(fence_reads.val, 1)
+  assert_eq(scans.val, first_scans)
+  assert_true(selected_reads.val > first_selected_reads)
+  assert_eq(run(17, 1L, false), Ok(()))
+  assert_eq(fence_reads.val, 2)
+  assert_eq(scans.val, first_scans)
+
+  body.val = b"other"
+  // A failed proof returns the original physical refusal without a requery.
+  assert_eq(run(17, -41L, true), Err(-41))
+  assert_eq(fence_reads.val, 2)
+  assert_eq(scans.val, first_scans)
+  // A physical effect or unsupported supplier requires the full checks.
+  assert_eq(run(17, 0L, true), Err(-32))
+  assert_eq(fence_reads.val, 3)
+  assert_eq(scans.val, first_scans * 2)
+}

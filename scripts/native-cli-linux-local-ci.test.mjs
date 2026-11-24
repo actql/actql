@@ -6,10 +6,12 @@ import {join} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {test} from 'node:test';
+import {runInNewContext} from 'node:vm';
 import {parse} from 'yaml';
 import {gateJobs} from './ci-targets.mjs';
 import {classifyJob} from './local-checks-policy.mjs';
 import {nativeInstalledIngressSelection} from './test-native-cli-source-free-install.mjs';
+import {nativeCliReleaseInstallSelection} from './release-native-install.mjs';
 import {nativeInstalledSourceQueries} from './fixtures/native-file-source-queries.mjs';
 
 const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
@@ -21,7 +23,9 @@ test('normal Linux Local job is separate, mandatory and explicitly bounded', () 
   assert(job);
   assert.deepEqual(job.needs, ['select-targets']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
-  assert.equal(job['timeout-minutes'], 50);
+  const timeout = job['timeout-minutes'].slice(3, -3);
+  assert.equal(runInNewContext(timeout, {inputs: {}}, {timeout: 100}), 75);
+  assert.equal(runInNewContext(timeout, {inputs: {native_shared_remote_linux: true}}, {timeout: 100}), 90);
   assert.match(job.if, /outputs\.profile == 'full'/u);
   assert.equal(job['continue-on-error'], undefined);
   assert(gateJobs.includes('native-cli-linux-local'));
@@ -29,6 +33,97 @@ test('normal Linux Local job is separate, mandatory and explicitly bounded', () 
   assert.equal(classifyJob('native-cli-linux-local').heavy, true);
   assert(!job.steps.some(step => step.uses === './.github/actions/download-client-packages'),
     'Source-free acceptance cannot borrow a Node Host package cohort');
+});
+
+test('manual shared Remote qualification selects only the existing Linux producer', () => {
+  const input = 'native_shared_remote_linux';
+  assert.equal(workflow.on.workflow_dispatch.inputs[input].type, 'boolean');
+  assert.equal(workflow.on.workflow_dispatch.inputs[input].default, false);
+  const evaluate = (value, {event = 'workflow_dispatch', inputs = {[input]: true},
+    repository = {visibility: 'public', private: false}, result = 'skipped',
+    profile, cancelled = false} = {}) => runInNewContext(
+    value.replace(/^\$\{\{\s*|\s*\}\}$/gu, '')
+      .replace(/needs\.([a-z][a-z0-9-]*)/gu, (_, name) => `needs[${JSON.stringify(name)}]`),
+    {github: {event_name: event, event: {repository}}, inputs,
+      needs: {'select-targets': {result, outputs: {profile}}, 'native-cli-linux-local': {result: 'success'}},
+      always: () => true, cancelled: () => cancelled, toJSON: JSON.stringify}, {timeout: 100});
+  assert.equal(evaluate(job.if), true);
+  assert.equal(evaluate(workflow.jobs['select-targets'].if), false);
+  assert.equal(evaluate(workflow.jobs.check.if), false);
+  for (const consumer of [installedJob, mockJob]) assert.equal(evaluate(consumer.if), false);
+  for (const option of [
+    {event: 'pull_request'}, {result: 'failure'}, {result: 'success', profile: 'full'},
+    {cancelled: true}, {repository: {visibility: 'private', private: true}},
+    {inputs: {[input]: true, performance_matrix: true}},
+    {inputs: {[input]: true, packed_query_evidence_probe: true}},
+  ]) assert.equal(evaluate(job.if, option), false);
+  const ordinary = {event: 'pull_request', inputs: {}, result: 'success', profile: 'full'};
+  assert.equal(evaluate(job.if, ordinary), true);
+  assert.equal(evaluate(workflow.jobs.check.if, ordinary), true);
+  for (const option of [{...ordinary, profile: 'draft'}, {...ordinary, result: 'failure'}])
+    assert.equal(evaluate(job.if, option), false);
+
+  const prep = job.steps.find(step => step.run?.includes('prepare-native-resident-http-component.py'));
+  const produce = job.steps.find(step => step.run?.includes('produce-native-cli-linux-local.mjs'));
+  const pack = job.steps.find(step => step.id === 'local_cohort');
+  const consumer = job.steps.find(step => step.run?.includes('test-native-cli-release-install.mjs'));
+  assert(job.steps.indexOf(prep) < job.steps.indexOf(produce));
+  assert(job.steps.indexOf(pack) < job.steps.indexOf(consumer));
+  assert.equal(prep['continue-on-error'], undefined);
+  assert.equal(consumer['continue-on-error'], undefined);
+  assert.match(prep.run, /test "\$\(uname -m\)" = x86_64/u);
+  assert.match(prep.run, /--source "\$\(git rev-parse HEAD\)" --target linux-x64/u);
+  assert.match(consumer.run,
+    /node scripts\/test-native-cli-release-install\.mjs "\$output\/release" "\$output\/node-release" --verified-remote-http/u);
+  assert(consumer.run.includes('release/0.0.2/node-cohort.json'));
+  assert.equal(prep.if, undefined);
+  assert.equal(evaluate(consumer.if), true);
+  assert.equal(evaluate(consumer.if, ordinary), false);
+
+  // Execute the actual shell argument selection with closed recording ports.
+  const port = 'node() { printf "%s\\n" "$@"; }\n' +
+    'git() { printf "commit\\n"; }\nrealpath() { printf "%s\\n" "$1"; }\n';
+  const temp = '/tmp/with spaces';
+  const install = spawnSync('bash', ['-eo', 'pipefail', '-c', port + consumer.run], {
+    encoding: 'utf8', timeout: 5000, env: {...process.env, RUNNER_TEMP: temp},
+  });
+  assert.equal(install.status, 0, install.stderr);
+  const invocations = install.stdout.trimEnd().split('\n');
+  const selection = invocations.indexOf('scripts/test-native-cli-release-install.mjs');
+  assert(selection > 0);
+  assert.deepEqual(nativeCliReleaseInstallSelection(invocations.slice(selection + 1)), {
+    cliDirectory: temp + '/native-cli-linux-local/release',
+    sdkDirectory: temp + '/native-cli-linux-local/node-release',
+    sharedClients: true,
+    verifiedRemoteHttp: true,
+  });
+  for (const selected of ['false', 'true']) {
+    const env = {...process.env, RUNNER_TEMP: temp, SHARED_REMOTE_LINUX: selected};
+    const child = spawnSync('bash', ['-eo', 'pipefail', '-c', port + produce.run], {
+      encoding: 'utf8', timeout: 5000, env,
+    });
+    assert.equal(child.status, 0, child.stderr);
+    const args = child.stdout.trimEnd().split('\n');
+    assert.equal(args[0], 'scripts/produce-native-cli-linux-local.mjs');
+    const role = selected === 'true' ? 'remote' : 'model';
+    const directory = temp + '/native-cli-linux-local/' + (role === 'model' ? 'model-http' : 'http');
+    assert.deepEqual(args.filter(arg => arg.endsWith('-http-preparation')), [`--${role}-http-preparation`]);
+    assert.deepEqual(args.slice(-2), [`--${role}-http-preparation`, directory + '/preparation.json']);
+
+    const tools = [
+      'uname() { printf "x86_64\\n"; }',
+      'sudo() { :; }',
+      'python3() { printf "%s\\n" "$@"; }',
+    ].join('\n') + '\n';
+    const preparation = spawnSync('bash', ['-eo', 'pipefail', '-c', port + tools + prep.run], {
+      encoding: 'utf8', timeout: 5000, env,
+    });
+    assert.equal(preparation.status, 0, preparation.stderr);
+    const preparationArgs = preparation.stdout.trimEnd().split('\n');
+    assert.equal(preparationArgs[0], 'scripts/prepare-native-resident-http-component.py');
+    assert.deepEqual(preparationArgs.slice(-2), ['--destination', directory]);
+    assert.equal(preparationArgs.includes('--model-resolver'), role === 'model');
+  }
 });
 
 test('Local CI finishes normal production and packaging before independent installed acceptance', () => {
@@ -315,7 +410,7 @@ test('mandatory Local installation retains ingress controls on its actual instal
   const selection=nativeInstalledIngressSelection();
   for(const file of ['test-native-local-cli.test.mjs','test-native-file-source-queries.test.mjs'])
     assert.equal(selection.files.filter(path=>path.endsWith('/'+file)).length,1,file);
-  assert.equal(selection.expectedTests,13+nativeInstalledSourceQueries.length);
+  assert.equal(selection.expectedTests,16+nativeInstalledSourceQueries.length);
   assert(installed.includes('const {files,expectedTests}=nativeInstalledIngressSelection()'));
   assert(installed.includes('admitInstalledLocalRuntime({root:platformRoot,metadata:artifact.localRuntime'));
   for(const key of ['ACTQL_TEST_NATIVE_CLIENT_LAUNCHER','ACTQL_TEST_NATIVE_CLIENT_BINARY']) {
@@ -353,7 +448,7 @@ test('selected Linux compiler acquisition keeps official signed sources and fini
 
 // Exercise only the selected shell control flow. No APT, network, compiler or
 // system repository is invoked; the absolute paths use private fixtures.
-function compilerAcquisitionControl(failure, {closedDiagnostic = false} = {}) {
+function compilerAcquisitionControl(failure, {closedDiagnostic = false, args = []} = {}) {
   const root = mkdtempSync(join(tmpdir(), 'actql-compiler-acquisition-'));
   try {
     const bin = join(root, 'bin'), mirror = join(root, 'apt-mirrors.txt');
@@ -382,11 +477,20 @@ if [[ "$*" == *' install '* ]]; then
 fi
 `);
     chmodSync(sudo, 0o755);
+    writeFileSync(join(bin, 'apt-cache'), `#!/bin/bash
+set -euo pipefail
+printf 'apt-cache %s\\n' "$*" >> "$ACQUISITION_CALLS"
+case "$ACQUISITION_FAILURE" in
+  version-query) exit 98 ;;
+  version-missing) printf '  Candidate: (none)\\n' ;;
+  *) printf '  Candidate: 1:19.1.1-1ubuntu1~24.04.2\\n' ;;
+esac
+`, {mode: 0o755});
     const shell = compilerCommands.replaceAll('/etc/apt/apt-mirrors.txt', mirror)
       .replaceAll('/etc/apt/sources.list.d/ubuntu.sources', sources)
       .replaceAll('/usr/bin/clang-19', compiler);
     // Bound the fake-command probe without making shell startup a 3s CI target.
-    const result = spawnSync('bash', ['-c', (closedDiagnostic ? 'exec 2>&-\n' : '') + shell], {encoding: 'utf8', timeout: 10000,
+    const result = spawnSync('bash', ['-c', (closedDiagnostic ? 'exec 2>&-\n' : '') + shell, 'compiler-acquisition', ...args], {encoding: 'utf8', timeout: 10000,
       env: {...process.env, PATH: bin + ':/usr/bin:/bin', ACQUISITION_CALLS: calls,
         ACQUISITION_COMPILER: compiler, ACQUISITION_FAILURE: failure}});
     assert.equal(result.error, undefined);assert.equal(result.signal, null);
@@ -430,6 +534,35 @@ test('compiler acquisition diagnostic failure cannot replace the original comman
   assert.equal(result.stderr, '');
 });
 
+test('packed Native Graph resolves one signed clang version and keeps its matching compiler runtime', () => {
+  const result = compilerAcquisitionControl('none', {args: ['--packed-query-native']});
+  const options = `-o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 -o Dir::Etc::sourcelist=${result.sources} -o Dir::Etc::sourceparts=-`;
+  assert.equal(result.status, 0);
+  assert.equal(result.stderr, '');
+  assert.deepEqual(result.calls, [
+    `apt-get ${options} update --error-on=any`,
+    `apt-cache ${options} policy clang-19`,
+    `apt-get ${options} install --yes --no-install-recommends clang-19=1:19.1.1-1ubuntu1~24.04.2 libclang-rt-19-dev=1:19.1.1-1ubuntu1~24.04.2`,
+  ]);
+});
+
+test('packed Native Graph compiler acquisition rejects unknown profiles and incomplete selections', () => {
+  for (const [failure, args, code, calls, stage] of [
+    ['none', ['--other'], 1, 0, 'select-clang-profile'],
+    ['none', ['--packed-query-native', '--other'], 1, 0, 'select-clang-profile'],
+    ['update', ['--packed-query-native'], 100, 1, 'update-ubuntu-index'],
+    ['version-query', ['--packed-query-native'], 98, 2, 'resolve-clang-version'],
+    ['version-missing', ['--packed-query-native'], 1, 2, 'resolve-clang-version'],
+    ['install', ['--packed-query-native'], 100, 3, 'install-clang'],
+    ['missing', ['--packed-query-native'], 1, 3, 'verify-selected-clang'],
+  ]) {
+    const result = compilerAcquisitionControl(failure, {args});
+    assert.equal(result.status, code, failure);
+    assert.equal(result.calls.length, calls, failure);
+    assert.equal(result.stdout, '');
+    assert.equal(result.stderr, `ActQL Linux compiler preparation failed: stage=${stage} status=${code}\n`);
+  }
+});
 
 test('packed Native Graph shares bounded compiler acquisition before exact compiler aliases', () => {
   const step = workflow.jobs['client-packed'].steps.find(step =>
@@ -437,7 +570,7 @@ test('packed Native Graph shares bounded compiler acquisition before exact compi
   assert.equal(step['timeout-minutes'], 5);
   assert.equal(step['continue-on-error'], undefined);
   assert.equal(compilerStep.run.trim(), 'bash scripts/ci-install-linux-clang.sh');
-  assert.equal(step.run.split('\n')[0], compilerStep.run.trim());
+  assert.equal(step.run.split('\n')[0], 'bash scripts/ci-install-linux-clang.sh --packed-query-native');
   assert.deepEqual(step.run.trim().split('\n').slice(1), [
     'compiler_bin="$RUNNER_TEMP/packed-query-compiler"',
     'mkdir -m 700 "$compiler_bin"',

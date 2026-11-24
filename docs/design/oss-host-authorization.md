@@ -31,7 +31,18 @@ the selected configuration again, including current Deny. Changed, missing or
 invalid bytes never reuse an earlier operation's Allow. Delegate still
 requires the existing configured answer and post-application-callback current
 check, and cannot manufacture a Checkpoint or
-approval. Standard Local bootstrap adoption remains the distinct initialization
+approval.
+
+Fresh ordinary Local installations may explicitly select the fixed
+`result/read` role in the installed read policy. The Host binds this role to the
+same original Request and Run and proves the requested name in the original
+Result Manifest before disclosure. The current `run/read` decision remains
+independent, and an explicit named denial still applies. Scoped authorization
+evidence records the two checked permissions and the original Result name
+separately. Previously selected and operator-supplied named read policies retain
+their `result/<name>/read` decisions and canonical evidence.
+
+Standard Local bootstrap adoption remains the distinct initialization
 responsibility required by `policy-routing.standard-local-bootstrap`; absence
 of an adopted configuration is not an Allow.
 

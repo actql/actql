@@ -43,7 +43,7 @@ import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
 import {existsSync} from 'node:fs';
 import {validClientConnection} from '../../packages/client-wire/index.mjs';
-import {createEmbeddedHostRegistry, installedHostShutdown, managedPreparationRetirementContinuation,
+import {createEmbeddedHostRegistry, installedEffectSettlements, installedHostShutdown, managedPreparationRetirementContinuation,
   bindManagedComputeRunObservation, managedComputeUsageReader} from './embedded-local-lifecycle.mjs';
 import {installHttpRequestPreparation} from './http-request-preparation.mjs';
 import {openClientRequestJournal, observeOriginalClientRequestJournalCustody,
@@ -937,7 +937,7 @@ import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {snapshotInstalledCalendar, installedCalendarIdentityCid,
-  installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
+  installedCalendarSelection} from './installed-calendar.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installedRunWaitDecision, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
@@ -3143,7 +3143,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     environmentBody = undefined;
     if (projectTasks !== undefined && mockModels === undefined) {
       finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
-        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined,
+        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined, calendarArtifact,
           numericProfileCid, graphLawCid: contentCid(graphLaw)});
       environment = finalEnvironmentOriginal.admitted;
     } else if (calendarArtifact === undefined && environmentWire === composedEnvironment.wire) {
@@ -3155,12 +3155,9 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       // its measured, funded raw/checker original through completion instead
       // of admitting an unowned compatibility body and estimating it again.
       finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
-        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined,
+        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined, calendarArtifact,
           numericProfileCid, graphLawCid: contentCid(graphLaw)});
       environment = finalEnvironmentOriginal.admitted;
-    }
-    if (environment !== undefined) {
-      environment = admitInstalledCalendar(moon, environment, calendarArtifact);
     }
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
@@ -5810,6 +5807,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     lookupExpiresAt: plus(now(), 7 * 24 * 60 * 60 * 1000),
     });
   };
+  const effectSettlements = installedEffectSettlements(observation);
   const submitEffect = async (submission: EmbeddedSubmission, requested: unknown, resultNames: readonly string[]) => {
     const {requestId, principalId: actual, connection, kind, input,
       parameters, preparedProgram} = submission;
@@ -5857,15 +5855,8 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
     const accepted = await admitEffectDefinition(submission);
     // The durable accepted Ref is returned before physical work settles.
     // Its start claim cannot be reset by a lost response or a second submit.
-    const settlement = effectRun!.start(accepted).catch(error => {
-      diagnostic('effect_start_failed', {ref: accepted.ref,
-        code: error?.code ?? error?.message, cause: error?.cause});
-    }).finally(() => settleHeldRun(accepted, runIdOf(accepted)))
-      .catch(error => diagnostic('effect_settlement_failed', {
-        ref: accepted.ref, code: error?.code ?? error?.message}));
-    try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
-    return {ref: accepted.ref, durability: accepted.durability,
-      revision: accepted.revision};
+    return effectSettlements.start(accepted, {effectRun: effectRun!, diagnostic,
+      settle: () => settleHeldRun(accepted, runIdOf(accepted))});
   };
   const prepareTimedRunInvocation: ManagedRunInvocation = (preparedProgram, requestIdentity, compilationOriginal, retainedInvocation) => {
     const retained = journal!.resolveDefinition(requestIdentity, {namespaceId}, moon, control);
@@ -6278,7 +6269,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       }).finally(() => settleHeldRun(accepted, runId))
         .catch(error => diagnostic('effect_settlement_failed', {
           ref: accepted.ref, code: error?.code ?? error?.message}));
-      try {observation?.retainOperation?.(settlement);} catch { /* Optional metadata. */ }
+      effectSettlements.retain(settlement);
       return await observedStart;
     }
     const held = {preparedSource, preparedSources, keyedSource, managedRun,
@@ -6652,6 +6643,9 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
   };
   const retireTerminalEffects = async () => {
     if (effectRun === undefined || checkpoints === undefined) return;
+    // Shutdown has already drained the admitted work. Leave durable
+    // capture discovery to a later authorized opener if this Journal fenced.
+    if (checkpoints.journal.connectionFenced) return;
     let after = '';
     const failures = [];
     try { await retireIncompleteEffects(); }
@@ -7475,10 +7469,7 @@ async function openInstalledHost(originalInstallation: ReadyEmbeddedInstallation
       effects: effectRun === undefined ? undefined : {
         sweep: sweepEffectRuns,
         async drain() {
-          // Stop has joined the last sweep. These are only its SAME admitted
-          // continuations, not another sweep, start, read or cleanup ACK.
-          await Promise.allSettled([...effectResumeFlights.values()]);
-          await Promise.allSettled([...effectRetirementFlights.values()]);
+          await effectSettlements.drain(effectResumeFlights, effectRetirementFlights);
         },
       }});
   }

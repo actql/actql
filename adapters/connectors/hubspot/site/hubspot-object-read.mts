@@ -2,6 +2,7 @@
 // compiled HubSpot projection; authority, nominal uses and physical cleanup
 // remain with the existing Host/Credential/RowRun owners.
 import {checked} from '../../../host-common/runtime-result.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {ownInvocationContext, ownInvocationAuthorization, invocationBindingsMatch,
   invokeScopedCredentialOperation} from '../../../host-common/owned-invocation-context.mjs';
 import {callHttpsCredentialResource} from '../../../site-node/https-credential-resource.mjs';
@@ -20,7 +21,7 @@ type Native = Readonly<{
     maxNodes: number, maxDepth: number, maxRows: number, maxColumns: number,
     maxCursorUnits: number, maxValueNodes: number, maxValueTextBytes: number): unknown;
   hubspotObjectPageRowsWire(page: unknown, maxBytes: number, maxNodes: number, maxDepth: number): unknown;
-  hubspotObjectPageMetadataJson(page: unknown): string;
+  hubspotObjectPageProgress(page: unknown): unknown;
 }>;
 type Limits = Readonly<Record<(typeof limitFields)[number], number>>;
 type Callbacks = Readonly<{authorizationFor(original: Readonly<{operation: string; index: number; objectType: string}>): unknown;
@@ -31,7 +32,6 @@ type Options = Omit<Callbacks, 'callResource'> & Readonly<{moon: Native; origina
   originalCatalog: unknown; initialAuthorization: unknown; credential: {binding?: unknown}; limits: Limits;
   signal?: AbortSignal; callResource?: HubSpotResourceCall; objectType: string; properties: readonly string[]}>;
 type Row = Readonly<Record<string, unknown> & {id: string}>;
-type PageMetadata = Readonly<{rowCount: number; nextAfter: string | null}>;
 
 export const HUBSPOT_PROPERTIES_READ_OPERATION = 'hubspot:properties:read';
 export const HUBSPOT_OBJECT_LIST_OPERATION = 'hubspot:objects:list';
@@ -39,7 +39,7 @@ const positive = (value: number) => Number.isSafeInteger(value) && value > 0 && 
 const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
 const exports = ['hubspotRecheckAccountIdentityJson', 'hubspotProjectProperties',
   'hubspotRecheckPropertyCatalog', 'hubspotPropertyCatalogObjectType',
-  'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageMetadataJson'] as const;
+  'hubspotProjectObjectPage', 'hubspotObjectPageRowsWire', 'hubspotObjectPageProgress'] as const;
 const limitFields = ['maxResponseBytes', 'maxNodes', 'maxDepth', 'maxProperties',
   'maxNameUnits', 'maxPages', 'maxRows', 'maxRequests', 'perPage', 'maxColumns',
   'maxCursorUnits', 'maxValueNodes', 'maxValueTextBytes', 'maxRowsWireBytes',
@@ -165,8 +165,9 @@ export async function readHubSpotObjects({moon, originalPortalId, originalCatalo
         originalCatalog, selected, bound.maxResponseBytes, bound.maxNodes,
         bound.maxDepth, pageRows,
         bound.maxColumns, bound.maxCursorUnits, bound.maxValueNodes, bound.maxValueTextBytes));
-      const metadata = JSON.parse(provider.hubspotObjectPageMetadataJson(page)) as PageMetadata;
-      if (rowCount + metadata.rowCount > bound.maxRows) fail('HubSpotReadRowLimit');
+      const progress = provider.hubspotObjectPageProgress(page);
+      const count = runtimeField(progress, 0) as number, nextAfter = runtimeField(progress, 1) as string;
+      if (rowCount + count > bound.maxRows) fail('HubSpotReadRowLimit');
       const rows = JSON.parse(checked(provider.hubspotObjectPageRowsWire(page,
         bound.maxRowsWireBytes, bound.maxRowsWireNodes, bound.maxRowsWireDepth)) as string) as readonly Row[];
       for (const row of rows) {
@@ -175,8 +176,8 @@ export async function readHubSpotObjects({moon, originalPortalId, originalCatalo
       }
       await context.callbacks.consumePage(rows, Object.freeze({charge}));
       await verify(HUBSPOT_OBJECT_LIST_OPERATION);
-      pages++; rowCount += metadata.rowCount;
-      after = metadata.nextAfter ?? undefined;
+      pages++; rowCount += count;
+      after = nextAfter === '' ? undefined : nextAfter;
       if (after !== undefined) {
         if (cursors.has(after)) fail('HubSpotReadCursorCycle');
         cursors.add(after);

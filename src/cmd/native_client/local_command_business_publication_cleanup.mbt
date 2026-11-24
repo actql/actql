@@ -59,6 +59,11 @@ fn LocalCommandBusinessOriginal::close_publication_children(
   }
   // Only managed aliases retire here. Their actual Store/DB, Compute and
   // domain acknowledgements follow separately in the existing parent order.
+  if self.model_run is Some(_) &&
+    self.values_work is Some(work) &&
+    !work.retire_model_publication() {
+    return Err(CommandBusinessPublication)
+  }
   self.publication_pending = None
   self._retained_publication_service = None
   self.publication_publisher = None

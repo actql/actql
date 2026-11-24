@@ -1,7 +1,7 @@
 // Static planning reuses the installed preparation and compiler owners. This
 // service has no request journal, Source acquisition or execution dependency.
 import {validWirePlanViewShape, validWireEffectfulStaticPlanViewShape,
-  validWireStaticExplanationViewShape,
+  validWireStaticExplanationViewShape, validStaticExplanationBinding,
   withinResultDescriptionLimits, resultDescriptionLimits} from '../../packages/client-wire/index.mjs';
 import type {WirePlanView, WireEffectfulStaticPlanView, WireStaticExplanationView} from '../../packages/client-wire/interactive-control.generated.js';
 
@@ -89,23 +89,6 @@ function assertSynchronousStaticCurrent(assertCurrent: StaticCurrent) {
   }
 }
 
-// The structural facets use the same already-issued Plan and Map. This is a
-// consistency check of the typed compiler projection, never a permission.
-function originalStaticExplanation({plan, facts, context}:
-  WireStaticExplanationView & Readonly<{plan: WireEffectfulStaticPlanView}>) {
-  const view = plan.computation.plan_view;
-  const binding = context.binding;
-  return facts.program_definition_cid === plan.program_definition_cid &&
-    binding.program_definition_cid === plan.program_definition_cid &&
-    facts.parameter_values_cid === plan.parameter_values_cid &&
-    binding.parameter_values_cid === plan.parameter_values_cid &&
-    binding.check_environment_cid === plan.check_environment_cid &&
-    facts.compiled_plan_cid === view.compiled_plan_cid &&
-    binding.compiled_plan_cid === view.compiled_plan_cid &&
-    facts.logical_map_cid === view.logical_map.self_cid &&
-    binding.logical_map_cid === view.logical_map.self_cid;
-}
-
 // A private Host continuation for the structural projection. Its original
 // preparation owner backs decoding, the combined response and consumption,
 // retains that reservation until this visitor finishes, and supplies a
@@ -190,8 +173,7 @@ export function installClientStaticEffectExplanation<Request extends StaticPlanR
         throw staticExplanationFailure('StaticExplanationEncodingRejected');
       }
       if (!withinResultDescriptionLimits(view, limits)) throw staticExplanationFailure('StaticExplanationReadLimit');
-      if (view.plan?.version !== 'actql-effectful-static-plan-view/0.1' ||
-          !validWireStaticExplanationViewShape(view) || !originalStaticExplanation(view as WireStaticExplanationView & {plan: WireEffectfulStaticPlanView})) {
+      if (!validWireStaticExplanationViewShape(view) || !validStaticExplanationBinding(view)) {
         throw staticExplanationFailure('StaticExplanationEncodingRejected');
       }
       await requireConnection();

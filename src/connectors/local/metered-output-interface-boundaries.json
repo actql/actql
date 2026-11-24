@@ -1070,15 +1070,19 @@
     {
       "module": "src/connectors/local/materializing_transport.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "35506c2b58f82c4a4633d1dd0f49e1b846caeade2c598568b76a624e7f3a74ac",
+      "sha256": "ccce6513f474033eb2149812161c4ca73995cbec4768b29053fe75a9466e6a27",
       "role": "connector-semantics",
       "owner": "Existing Local materializing transport and same-task reservation; quantities do not grant read, write or cleanup authority",
       "referenceQualification": "Original constructor, monotonic same-task funding and focused resource/caller evidence; no physical or normal-package acceptance claim",
       "exports": [],
       "operations": [
         {
+          "name": "local_import_next_copy_extent",
+          "declaration": "local_import_next_copy_extent ( limits : LocalImportLimits , rows : Int64 , nodes : Int64 , text : Int64 , wire_bytes : Int64 , pending_value_nodes ? : Int64 ?"
+        },
+        {
           "name": "local_import_next_retention_extent",
-          "declaration": "local_import_next_retention_extent ( limits : LocalImportLimits , rows : Int64 , nodes : Int64 , text : Int64 , wire_bytes : Int64 , ) - > ( Int64 , Int64 , Int64 , Int64 ) ?"
+          "declaration": "local_import_next_retention_extent ( limits : LocalImportLimits , rows : Int64 , nodes : Int64 , text : Int64 , wire_bytes : Int64 , pending_value_nodes ? : Int64 ?"
         },
         {
           "name": "local_import_start_retention_capacity",
@@ -1097,6 +1101,7 @@
         {
           "operations": [
             "<module>",
+            "local_import_next_copy_extent",
             "local_import_next_retention_extent",
             "local_import_start_retention_capacity",
             "local_materializing_export_start_capacity",
@@ -1122,6 +1127,10 @@
               {
                 "path": "src/connectors/local/materializing_transport.mbt",
                 "anchor": "pub fn local_import_next_retention_extent("
+              },
+              {
+                "path": "src/connectors/local/materializing_transport.mbt",
+                "anchor": "pub fn local_import_next_copy_extent("
               },
               {
                 "path": "src/connectors/local/materializing_transport.mbt",

@@ -618,7 +618,17 @@ pub fn close_run(nonce : Int64, handle : Int) -> Int {
     .any(observation => {
       observation.unpublished_state is Some(state) && state.run == handle
     }) ||
-    value.native_sources.values().any(source => source.run == handle) {
+    value.native_sources.values().any(source => source.run == handle) ||
+    value.commit_exports
+    .values()
+    .any(child => {
+      child.sdk_run_state_update_capacity is Some(_) &&
+      (match child.projection {
+        Some(SDKRunState(_, run)) | Some(SDKMeasuredRunState(_, run, _, _)) =>
+          run == handle
+        _ => false
+      })
+    }) {
     return -9
   }
   let disposed = dispose_sdk_run_row_original(value, record)

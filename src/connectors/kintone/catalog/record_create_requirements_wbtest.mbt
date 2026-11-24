@@ -37,6 +37,9 @@ test "generated and positively copied fields are not required caller inputs" {
     ),
   )
   assert_eq(record_create_required_fields(catalog, 16, 100).unwrap(), ["lookup"])
+  assert_eq(record_create_copied_target_bound(catalog, 16, 100), 1)
+  assert_eq(record_create_copied_target_bound(catalog, 16, 1), 0)
+  assert_eq(record_create_copied_target_bound(catalog, 4, 100), 0)
 }
 
 ///|

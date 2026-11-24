@@ -12,7 +12,9 @@ from unittest.mock import patch
 from actql_sdk._local_core import LocalCoreError, _Output
 from actql_sdk._local_files import LocalFileError
 from actql_sdk._local_reader_facts import OriginalReaderFacts
-from actql_sdk._local_storage import ByteFence, CapacityReservation, LocalByteStore, StoredBytes
+from actql_sdk._local_storage import (
+    ByteFence, CapacityReservation, LocalByteStore, LocalStorageCommitUnknown, StoredBytes,
+)
 import test_local_commit_store_caller as core_fixture
 import test_local_file_reader as file_fixture
 
@@ -295,6 +297,8 @@ class ReaderFactsTests(unittest.TestCase):
                     self.assertTrue(facts.close())
 
     def test_actual_commit_ack_loss_keeps_original_input_and_observes_without_reprojection(self):
+        lost_ack = OSError('Original physical COMMIT ACK lost')
+
         class LostAck(sqlite3.Connection):
             armed = False
             commits = 0
@@ -303,7 +307,7 @@ class ReaderFactsTests(unittest.TestCase):
                 if sql == 'COMMIT' and self.armed:
                     self.commits += 1
                     self.armed = False
-                    raise OSError('Original physical COMMIT ACK lost')
+                    raise lost_ack
                 return result
         physical = sqlite3.connect
         with self.file() as (_, root, _, final), TemporaryDirectory() as directory, patch(
@@ -313,11 +317,17 @@ class ReaderFactsTests(unittest.TestCase):
             with self.store(Path(directory) / 'core.sqlite') as store:
                 original = self.original(store)
                 facts.validate()
+                first = facts.pending_input
+                self.assertIsNotNone(first)
                 store._connection.armed = True
-                with facts.serialized(), self.assertRaisesRegex(OSError, 'ACK lost'):
+                with facts.serialized(), self.assertRaises(LocalStorageCommitUnknown) as failed:
                     store.compare_exchange_projected_attached(1, lambda i, consume: projection.project_contract(i, consume),
                                                               original, before_commit=lambda: facts.before_commit(publisher))
-                first = facts.pending_input
+                self.assertIs(failed.exception.__cause__, lost_ack)
+                self.assertIs(failed.exception.cleanup_store, store)
+                self.assertFalse(failed.exception.commit_confirmed)
+                self.assertIsNone(failed.exception.cleanup_error)
+                self.assertIs(facts.pending_input, first)
                 before = len(calls)
                 self.assertEqual(store.read('namespace:20:publication_contract:sha256:' + 'a' * 64),
                                  StoredBytes(0, b'{"e\xcc\x81/~\xf0\x9f\x98\x80":null,"n":1}\r\n'))

@@ -34,11 +34,18 @@ export const keyedScanConstructionInventory = Object.freeze([
   entry('client_keyed_native_sources', 'build_client_keyed_native_whole_source_evidence'),
 ].map(Object.freeze));
 const serialDependencyFunding = new Set([
-  'reserve_keyed_dependency_serial_controls', 'grow_keyed_dependency_body',
+  'begin_keyed_dependency_serial_cursor', 'grow_keyed_dependency_body',
 ]);
 const serialDependencyModule = directory + 'client_keyed_dependency_serial_cursor.mbt';
 const measuredDependencyRange = 'ReturnedKeyedDependencyRange';
-const measuredDependencyInput = 'measured_bodies';
+const serialPrivateTypes = new Set([
+  'KeyedDependencySerialCursor', 'KeyedDependencySerialCompletion', 'KeyedDependencyWitnessChunk',
+]);
+const serialConstructorFields = new Map([
+  ['extent_workspace_depth', 'begin_keyed_dependency_serial_cursor'],
+  ['serial_range', 'KeyedDependencySerialCursor::seal'],
+  ['serial_witness', 'begin_keyed_dependency_serial_cursor'],
+]);
 const serialDependencyConsumers = new Set([
   `${directory}client_keyed_declared_file_journal.mbt:prepare_declared_file_lookup_dependencies`,
   `${directory}client_effect_generic_keyed_dependency.mbt:prepare_client_effect_keyed_generic_dependencies`,
@@ -53,7 +60,7 @@ const beginFinish = new Set(['grow_keyed_lookup_protocol_metadata', 'finish_keye
 const privateTypes = new Set(['KeyedProtocolConstruction', 'KeyedProtocolBuilt', 'KeyedProtocolDependencies', 'SettledKeyedProtocolMetadata', 'KeyedBodyConstruction']);
 const rawResource = new Set(['grow_execution_reservation_capacity', 'reduce_execution_reservation_capacity',
   'reduce_execution_reservation']);
-const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|reserve_keyed_dependency_serial_controls|grow_keyed_dependency_body|ReturnedKeyedDependencyRange|measured_bodies|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
+const interpolationOperations = /\b(?:grow_keyed_lookup_protocol_metadata|finish_keyed_lookup_protocol_metadata|keyed_lookup_body_grow|keyed_protocol_built|grow_keyed_body_construction|with_keyed_body_construction|begin_keyed_dependency_serial_cursor|grow_keyed_dependency_body|ReturnedKeyedDependencyRange|KeyedDependencySerialCursor|KeyedDependencySerialCompletion|KeyedDependencyWitnessChunk|scan_keyed_lookup_identity_bodies|scan_client_keyed_native_left_identity|scan_client_keyed_native_page|scan_client_keyed_native_whole_source|grow_execution_reservation_capacity|reduce_execution_reservation_capacity|reduce_execution_reservation|retained_bytes|execution_bytes)\b/u;
 const lowOwners = new Set([
   entry('client_keyed_lookup_body', 'keyed_lookup_body_grow'),
   entry('client_keyed_lookup_identity', 'grow_keyed_lookup_protocol_metadata'),
@@ -68,8 +75,9 @@ const lowOwners = new Set([
 // retained at an independently owned predecessor/physical lifetime. The four
 // finished scan portions now use their separate original managed construction.
 const bodyGrowthOwners = new Map([
-  [...entry('client_keyed_dependency_serial_cursor', 'reserve_keyed_dependency_serial_controls'), 'temporary serial cursor and funding closures'],
+  [...entry('client_keyed_dependency_serial_cursor', 'begin_keyed_dependency_serial_cursor'), 'temporary serial cursor and funding closures'],
   [...entry('client_keyed_dependency_serial_cursor', 'grow_keyed_dependency_body'), 'same-lookup body and cursor allowance'],
+  [...entry('client_keyed_dependency_serial_cursor', 'KeyedDependencySerialCursor::fund_keyed_dependency_witness'), 'prepaid original reference chunks'],
   [...entry('client_keyed_protocol_construction', 'with_keyed_body_construction'), 'original scan first-entry backing'],
   [...entry('client_keyed_protocol_construction', 'grow_keyed_body_construction'), 'latched original scan grow port'],
   [...entry('client_keyed_lookup_identity', 'finish_keyed_lookup_protocol_metadata'), 'pre-admitted extent walk'],
@@ -195,13 +203,44 @@ export function resourceLifecycleProblems(sources, {
         const declaration = module === serialDependencyModule && fn === undefined && prior === '{' &&
           list[i - 2]?.value === 'KeyedDependencyMeasuredBodies' && list[i - 3]?.value === 'enum';
         const issuer = module === serialDependencyModule && fn?.name === 'KeyedDependencySerialCursor::record_body';
+        const sealPattern = module === serialDependencyModule && fn?.name === 'KeyedDependencySerialCursor::seal' &&
+          list[i - 2]?.value === 'Some' && prior === '(' && list[i + 2]?.value === 'bodies' &&
+          list[i + 3]?.value === '=';
         const settlementPattern = module === directory + 'client_keyed_lookup_identity.mbt' &&
           fn?.name === 'finish_keyed_lookup_protocol_metadata' && ['let', 'is'].includes(prior);
-        if (!declaration && !issuer && !settlementPattern) issue('unclassified-measured-dependency-range', i);
+        if (!declaration && !issuer && !sealPattern && !settlementPattern) issue('unclassified-measured-dependency-range', i);
       }
-      if (token.value === measuredDependencyInput &&
-          !(module === common && fn?.name === 'keyed_protocol_built' || serialDependencyConsumers.has(id) && inScope(i))) {
-        issue('unclassified-measured-dependency-input', i);
+      if (token.value === 'Measured' && list[i + 1]?.value === '(' &&
+          !(module === common && fn === undefined ||
+            module === serialDependencyModule && fn?.name === 'KeyedDependencySerialCursor::seal' ||
+            module === directory + 'client_keyed_lookup_identity.mbt' &&
+              fn?.name === 'finish_keyed_lookup_protocol_metadata')) {
+        issue('private-serial-dependency-forgery', i);
+      }
+      if (serialPrivateTypes.has(token.value)) {
+        const offsets = list.slice(i + 1, i + 4).map(item => item.value);
+        const literal = offsets[0] === '{' || offsets[0] === '::' && offsets[1] === '{' ||
+          offsets[0] === ':' && offsets[1] === ':' && offsets[2] === '{';
+        const issuer = token.value === 'KeyedDependencySerialCursor' ? 'begin_keyed_dependency_serial_cursor' :
+          token.value === 'KeyedDependencySerialCompletion' ? 'KeyedDependencySerialCursor::seal' :
+            'KeyedDependencySerialCursor::remember_original';
+        const serialBody = module === serialDependencyModule;
+        const declaration = serialBody && fn === undefined && list[i - 1]?.value === 'struct';
+        const sharedType = module === common && token.value === 'KeyedDependencySerialCompletion' &&
+          list[i - 2]?.value === 'Measured' && list[i - 1]?.value === '(';
+        const consumerType = serialDependencyConsumers.has(id) && inScope(i) &&
+          token.value === 'KeyedDependencySerialCursor' && list[i - 1]?.value === ':';
+        if (!declaration && (literal ? (!serialBody || fn?.name !== issuer) : !(serialBody || sharedType || consumerType))) {
+          issue('private-serial-dependency-forgery', i);
+        }
+      }
+      if (serialConstructorFields.has(token.value) && ['{', ','].includes(list[i - 1]?.value) &&
+          [':', ',', '}'].includes(list[i + 1]?.value)) {
+        const issuer = serialConstructorFields.get(token.value);
+        const sealWitness = token.value === 'serial_witness' && fn?.name === 'KeyedDependencySerialCursor::seal';
+        if (module !== serialDependencyModule || (fn?.name !== issuer && !sealWitness)) {
+          issue('private-serial-dependency-forgery', i);
+        }
       }
       if (scanBuilders.has(token.value) && !inScope(i)) issue('unsettled-scan-builder', i);
       if (rawResource.has(token.value) && (keyedOwner || fn === undefined) && !lowOwners.has(id)) issue('unclassified-reservation-mutation', i);
@@ -214,7 +253,13 @@ export function resourceLifecycleProblems(sources, {
           module === directory + 'client_keyed_lookup_identity.mbt' && beginFinish.has(fn?.name);
         const dependencyField = module === common && token.value === 'KeyedProtocolDependencies' &&
           list[i - 2]?.value === 'dependencies' && list[i - 1]?.value === ':';
-        if (!declaration && !dependencyField && !owner && !inScope(i)) issue('private-construction-forgery', i);
+        const measuredSeal = module === serialDependencyModule && fn?.name === 'KeyedDependencySerialCursor::seal' &&
+          token.value === 'KeyedProtocolDependencies';
+        const serialPhase = module === serialDependencyModule && token.value === 'KeyedProtocolConstruction' &&
+          (fn === undefined || fn?.name === 'begin_keyed_dependency_serial_cursor');
+        if (!declaration && !dependencyField && !owner && !measuredSeal && !serialPhase && !inScope(i)) {
+          issue('private-construction-forgery', i);
+        }
       }
       if (['retained_bytes', 'execution_bytes'].includes(token.value) && list[i - 1]?.value === '.') {
         const next = list[i + 1]?.value, following = list[i + 2]?.value;

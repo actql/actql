@@ -353,6 +353,124 @@ fn advance_completed_export_row_frame(
 }
 
 ///|
+// This runs at BeginPayload after the measuring cursor has returned. Keep
+// both original writers in the peak. A drain may retain the byte builder,
+// so include the earlier buffer bound beside the next row's writer frames.
+// Source, order and reference backing belong to the export's constructor.
+fn completed_export_row_writer_capacity(
+  stream : CompletedOutputExport,
+  bytes : Int,
+) -> ExecutionCapacity? {
+  // The grow port reports total pending bytes, including an opening
+  // delimiter already in the sink. The writer inventory includes the
+  // current buffer itself; supply only the next row's increment here.
+  let pending = @encode.observed_writer_usage(stream.writer).0 -
+    stream.drained_bytes
+  guard pending >= 0 && bytes >= pending else { return None }
+  let fragment = bytes - pending
+  // The original per-column maxima already include every measured row.
+  // Their sum bounds earlier single-row buffers without revisiting values.
+  // Allow one leading array delimiter and the same key/row framing used by
+  // the measurement. The builder never receives more than its batch limit.
+  let max_buffer = stream.max_batch_bytes.to_int64()
+  let mut earlier = 4L
+  for index, field in stream.order.columns {
+    earlier += stream.column_max_value_bytes[index].to_int64() +
+      4L +
+      6L * field.0.length().to_int64()
+    if earlier >= max_buffer {
+      break
+    }
+  }
+  let buffered_peak = Int64::min(earlier, max_buffer).to_int()
+  // Each emitted JSON node needs at least one payload byte. The payload
+  // writer admits the entire row before the logical writer visits it.
+  let nodes = Int::min(fragment, stream.measurement_max_nodes)
+  let depth = Int::min(nodes, stream.measurement_max_depth)
+  guard @encode.buffered_hash_writer_next_construction_inventory(
+      stream.writer,
+      fragment,
+      buffered_peak,
+      nodes,
+      depth,
+    )
+    is Some(payload) else {
+    return None
+  }
+  let logical : @encode.HashWriterConstructionInventory = match
+    stream.logical_writer {
+    None =>
+      {
+        record_headers: 0L,
+        reference_slots: 0L,
+        scalar_words: 0L,
+        owned_utf16_units: 0L,
+        owned_wire_bytes: 0L,
+      }
+    Some(writer) => {
+      guard @encode.hash_writer_next_construction_inventory(
+          writer, nodes, depth,
+        )
+        is Some(inventory) else {
+        return None
+      }
+      inventory
+    }
+  }
+  preparation_representation_cost({
+    record_headers: payload.record_headers + logical.record_headers,
+    reference_slots: payload.reference_slots + logical.reference_slots,
+    scalar_words: payload.scalar_words + logical.scalar_words,
+    owned_utf16_units: payload.owned_utf16_units + logical.owned_utf16_units,
+    owned_wire_bytes: payload.owned_wire_bytes + logical.owned_wire_bytes,
+  }).bind(bytes => execution_capacity(0L, bytes))
+}
+
+///|
+// The original numerical slot limit bounds the row cursor before it starts.
+// A cell measurement can own one auxiliary writer and one typed wire cursor
+// while both export writers remain open. JsonData contributes at most one
+// unordered key per open level; other runtime and canonical objects use the
+// ordered writer. Values and physical Reference backing are borrowed.
+fn completed_export_row_traversal_capacity(
+  stream : CompletedOutputExport,
+  slots : Int,
+) -> ExecutionCapacity? {
+  let count = slots.to_int64()
+  let depth = stream.measurement_max_depth
+  guard @admitted.wire_emit_workspace_construction_inventory(slots)
+    is Some(wire) &&
+    @encode.hash_writer_live_key_inventory(depth, depth) is Some(measure) &&
+    @shape.collection_construction_extent({
+      // Row and Workspace, measurement and wire wrappers, and one bounded
+      // frame vector plus its transition carriers.
+      records: 10L + count,
+      record_references: 18L + 2L * count,
+      record_words: 21L + 3L * count,
+      reference_arrays: 1L,
+      reference_items: count,
+      scalar_arrays: 0L,
+      scalar_items: 0L,
+      maps: 0L,
+      map_entries: 0L,
+    })
+    is Some(frames) else {
+    return None
+  }
+  preparation_representation_cost({
+    record_headers: frames.record_headers +
+    wire.record_headers +
+    measure.record_headers,
+    reference_slots: frames.reference_slots +
+    wire.reference_slots +
+    measure.reference_slots,
+    scalar_words: frames.scalar_words + wire.scalar_words + measure.scalar_words,
+    owned_utf16_units: wire.owned_utf16_units + measure.owned_utf16_units,
+    owned_wire_bytes: measure.owned_wire_bytes,
+  }).bind(bytes => execution_capacity(0L, bytes))
+}
+
+///|
 // The SAME row measurement already retained every cell's wire maximum. Only
 // the physical payload writer needs draining; the logical hash stays continuous.
 // Typed Text/key/reference cursors use their existing closed transition bound.
@@ -393,6 +511,25 @@ pub fn advance_completed_output_export(
   max_workspace_slots : Int,
   batch? : Bool = false,
   before_batch_growth? : ((Int) -> Result[Bool, CompletedExportIssue])? = None,
+) -> Result[CompletedOutputExportAdvance, CompletedExportIssue] {
+  advance_completed_output_export_with_row_start(
+    stream,
+    quantum,
+    max_workspace_slots,
+    batch,
+    before_batch_growth,
+    None,
+  )
+}
+
+///|
+fn advance_completed_output_export_with_row_start(
+  stream : CompletedOutputExport,
+  quantum : Int,
+  max_workspace_slots : Int,
+  batch : Bool,
+  before_batch_growth : ((Int) -> Result[Bool, CompletedExportIssue])?,
+  before_row_start : (() -> Result[Bool, CompletedExportIssue])?,
 ) -> Result[CompletedOutputExportAdvance, CompletedExportIssue] {
   if stream.reading {
     return Err(Closed)
@@ -436,6 +573,21 @@ pub fn advance_completed_output_export(
         }
         if stream.source is None {
           return Err(Closed)
+        }
+        if before_row_start is Some(reserve) {
+          let funded = match reserve() {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          if stream.source is None ||
+            !completed_output_available(source) ||
+            stream.source.map(original => physical_equal(original, source)) !=
+            Some(true) {
+            return Err(Unavailable)
+          }
+          if !funded {
+            return Err(Admission(CaptureLimit))
+          }
         }
         let workspace = row_workspace(max_workspace_slots)
         if !reserve_slots(workspace, 1) {

@@ -84,6 +84,7 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
     ],
     NativeClientJournalOperationAccess,
   ) -> Result[T, NativeLocalAdoptionIssue],
+  installation_written? : Ref[Bool]? = None,
 ) -> Result[T, NativeLocalAdoptionIssue] {
   if self.closing || self.read_operation_issue is Some(_) {
     return Err(
@@ -115,14 +116,20 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
       if table is Some("client_submission_epoch") {
         host.epoch.invalidate_custody()
       }
-      if table is None ||
-        table
+      let installation = table
         is Some(
-          "client_local_adoption"
-          | "client_local_settings"
+          "client_local_settings"
           | "client_local_installation_originals"
           | "client_local_installation_custody"
-        ) {
+        )
+      if installation && installation_written is Some(written) {
+        // The explicit installer owns one closed transaction. It authenticates
+        // any other installed roles under the same admitted Account and source
+        // files before the commit. Retire this observation before it returns.
+        written.val = true
+      } else if installation ||
+        table is None ||
+        table is Some("client_local_adoption") {
         self.read_facts_valid = false
         self.clear_read_operation_facts()
         host.journal.admitted_adoption = None
@@ -132,6 +139,7 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
         host.journal.invalidate_operation_submission()
       }
       if table is None ||
+        table == Some(effect_ledger_entry_table) ||
         table
         is Some(
           "client_runs"
@@ -171,7 +179,14 @@ fn[T] NativeLocalJournalCapture::with_current_adoption_material_in_original_read
       operation(host, material, queries.operation_access())
     }
   }
-  if queries.failure is Some(_) || self.read_operation_issue is Some(_) {
+  let retire_installation_snapshot = installation_written is Some(written) &&
+    written.val
+  if retire_installation_snapshot {
+    host.journal.admitted_adoption = None
+  }
+  if retire_installation_snapshot ||
+    queries.failure is Some(_) ||
+    self.read_operation_issue is Some(_) {
     self.read_facts_valid = false
     self.clear_read_operation_facts()
   }

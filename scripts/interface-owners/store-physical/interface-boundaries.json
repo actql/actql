@@ -5,11 +5,12 @@
     "path": "i6-f-store-uncovered-projection.json",
     "sha256": "4f02763736fb74e739d4ffab6951c46514f92aaacde1daa93c3ae4eb3d1ca3f7"
   },
+  "verificationQualification": "Existing actual test entry references only. F prior actual SQLite/Store/INFER source-qualified receipts remain independent; this index does not claim the listed tests all ran at a6cab. Core typed row/data invariants remain with their existing authority and C/E acceptance. No Native/service/Provider/public-product operation executed in this metadata pass.",
   "declarations": [
     {
       "module": "adapters/local-node/carrier-snapshot.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1f257671cf1764b57c2b73f69bf11b6f2b6926203f7ecb0ea5c3bbdf38d9ed24",
+      "sha256": "0471204d6462cfef44e1efcce798ad297fc50bfe4b33412972f67b7d068a584d",
       "exports": [
         "prepareLocalCarrierSnapshot",
         "prepareLocalRelationSnapshot"
@@ -255,7 +256,7 @@
     {
       "module": "adapters/local-node/managed-output-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9280a6e0712edbe611eccf83c0c9a22f1a729c4d0d4938b0d7dc2db92ff2d92f",
+      "sha256": "b61a31e7860e31f700876cbbd076add838ff55817d32256035b4bca3aa007555",
       "exports": [
         "closeCompletedLocalManagedOutput",
         "closeCompletedLocalManagedOutputAsync",
@@ -608,7 +609,7 @@
     {
       "module": "adapters/local-node/retained-input.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b872d6a2b4c95d5b3d398a7e69bf29c8be29933c2e1f7a3e3298639aea61c7f2",
+      "sha256": "a6b6145b9f25c7d77236c9b69af99bccfaa60b50dc639dccf795dbb9e0a6710e",
       "exports": [
         "readLocalRetainedInput"
       ],
@@ -743,7 +744,7 @@
     {
       "module": "adapters/local-node/retained-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "49b0dbc209ae64374a828afdee678b254a7a0a9100f7b7364bcea92cf1280818",
+      "sha256": "98992587deaabee56c65a3a2ab0239289dc49aebfdc1479ebbea1247d96a5ab4",
       "exports": [
         "installLocalRetainedStore",
         "installLocalSnapshotStore",
@@ -932,7 +933,7 @@
     {
       "module": "adapters/store-local/delegated-file.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "338f1774f20e649d3f3ed3884712ad99b9c8d6327d0b49275d5f86e403478bd0",
+      "sha256": "64955b362aeea3f0267b8ee8427ea47f74f8b7c9873af76a149e20dd9de44d4d",
       "exports": [
         "openDelegatedFile"
       ],
@@ -1084,7 +1085,7 @@
     {
       "module": "adapters/store-local/delegated-reader.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c1b98e438623e3dfcbb8af5cef13da980924ed16f21ebfc39d774eb63556608d",
+      "sha256": "3b8fc8755c26aa8dbfc437a5bde662b38b473bb8e12acc98024ebf6a93075c7c",
       "exports": [
         "consumeDelegatedFile"
       ],
@@ -1190,7 +1191,7 @@
     {
       "module": "adapters/store-local/direct-file.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "34a58acd78846e847857f52a8337ff114d23a2d241b8f8161abca7ba2515946b",
+      "sha256": "e49da684afbe7f4e79dace2602f5cdf54cc88880500a7dee0c5b8274161f0005",
       "exports": [
         "withVerifiedDelegatedFile"
       ],
@@ -1301,7 +1302,7 @@
     {
       "module": "adapters/store-local/files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b1d8142e90886ed8a6168daa944a53b10f2e040b7d44d5ad5d1859302b014efd",
+      "sha256": "5f99fd89598a3dbf127334a93bd51a52b5dfcc215667ec3fd5259c4c700da76d",
       "exports": [
         "RetainedFileError",
         "createLocalRetainedStore",
@@ -1683,7 +1684,7 @@
     {
       "module": "adapters/store-local/import.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b972246a69acef8f8bf2e7b4c8e47187a5cfa4956104a14f5fa26366c56fb6de",
+      "sha256": "f733946c2d040db709dde10217010900f229c94cadf6bff04c0cc97944544fcc",
       "exports": [
         "importRetainedRows"
       ],
@@ -1822,7 +1823,7 @@
     {
       "module": "adapters/store-local/managed-manifest.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "56f441031be706832762ed99b391265abf5a9d481b73d4f6435ee8ce39562d17",
+      "sha256": "71bf302926f5c56e09ead17b5e05824be778b2db064fc8b9693e222b5fff7dc0",
       "exports": [
         "admittedPhysicalManifestSnapshot",
         "consumePhysicalManifestFiles",
@@ -2009,7 +2010,7 @@
     {
       "module": "adapters/store-local/managed-memory-representations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "89b8483ce8077c1d30df205f54c3d424bbad6d75c313a42d01259c59a4d89c80",
+      "sha256": "0653daa47ec6a1fec4b2ac642ef2437f83c7b3e5e1ab076093f5630d68963cc6",
       "exports": [
         "installManagedRepresentation",
         "managedInputCodecContractCid",
@@ -2608,7 +2609,7 @@
     {
       "module": "adapters/store-local/managed-physical-representation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f6136b19952f65548231760d0fba17b1b9391a9d82d62a2d56ea9f432329975f",
+      "sha256": "544d6bb53795774d800af6ed675313b9d021ac4802fe21f0d80f4c47cdfb8099",
       "exports": [
         "managedPhysicalRepresentation"
       ],
@@ -2741,7 +2742,7 @@
     {
       "module": "adapters/store-local/managed-representations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cb686c1459d40e261337599df0486e8662f963a98f50b14a512d0236a19a0d44",
+      "sha256": "19af685536b59f74e741a171ebff510f4899b12d97b49eddb5b65b52512cb21c",
       "exports": [
         "managedInputCodecContractCid",
         "managedInputPhysicalManifestCid",
@@ -3059,7 +3060,7 @@
     {
       "module": "adapters/store-local/metadata-deletion-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "28c883de2be06cd829cba2ca65d1c16429f3e5071bedcd4aa100884146d6691f",
+      "sha256": "f17ecbac26aebd72ed37243fffd6835d5e948c0cd3eb325c3f68eec53404d852",
       "exports": [
         "createMetadataDeletionOwner"
       ],
@@ -3219,7 +3220,7 @@
     {
       "module": "adapters/store-local/moonbit-row-frames.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55fb2ee019efe324a216ab230f68d07cc48729f13f5ea20d1794bfa612092375",
+      "sha256": "ba38ed851b2f7add984a0e9e6d9a0964b01373935d4b53748bd5979025082668",
       "exports": [
         "createMoonBitRetainedRowFrames"
       ],
@@ -3371,7 +3372,7 @@
     {
       "module": "adapters/store-local/object-writer-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "95221ab37fb4db20cfbc2906ef42d2a5c5d5b51da5f547f8b1b6e3e4a3daaf8d",
+      "sha256": "2721e106c3ef8d2b0337cc788315c9d7d0f092084db50ae23e7c0600c6a313ae",
       "exports": [
         "createObjectWriterOwner"
       ],
@@ -3700,7 +3701,7 @@
     {
       "module": "adapters/store-local/process-binding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "42dd1ceea81ee47ae419e653dd7d0156b1ec9512e3877864624be9129477a02d",
+      "sha256": "debc392438541f3f2fe8f940e81f0ef977a602da22b9e9afb46d8bd16d1e8825",
       "exports": [
         "bindProcessStore",
         "processStoreContext"
@@ -3810,7 +3811,7 @@
     {
       "module": "adapters/store-local/process-client.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "83ea12c54209630d4f41602dade52032124550ecbc31900796b0ac9a28e9ad74",
+      "sha256": "86a4b6bbff69537b89790b31862f0d3ce5a7807631f5f137eda024a7b1120b8d",
       "exports": [
         "createProcessStoreLease",
         "processRetainedBodyIdentity"
@@ -4061,7 +4062,7 @@
     {
       "module": "adapters/store-local/publication-commit-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c9cdba89f7b99dd85900405862e4af27ae2af61670a09fa09be92d2a4b4d8b4f",
+      "sha256": "eb4113227c5403a04b334fafa0eb441eb8a750f48a86caa7f74b94a83079a525",
       "exports": [
         "createPublicationCommitOwner"
       ],
@@ -5378,6 +5379,7 @@
       ],
       "imports": [
         "../host-common/sqlite-transaction.mjs",
+        "./delivery-attempt-schema.mjs",
         "node:fs/promises",
         "node:sqlite"
       ],
@@ -6320,7 +6322,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7cffa3745a81a890a25a4015177b792efc22dab634d84ab1ff998c7fbdff445e",
+      "sha256": "4a36be87bac751dd6cec29e4f70d1d0542a8bd372afc2e4743dbbd4238a45bdb",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -10052,27 +10054,45 @@
       "imports": [
         "../host-common/managed-failure.mjs",
         "./delivery-attempt-index.mjs",
+        "./delivery-attempt-store.mjs",
+        "./delivery-record-store.mjs",
+        "./manifest-read-grant-store.mjs",
         "./native-metadata-mutation-owner.mjs",
-        "./object-writer-owner.mjs",
         "./physical-holding-record-reader.mjs",
         "./physical-holding-record-writer.mjs",
-        "./physical-retirement-owner.mjs",
         "./prepared-custody-queue.mjs",
         "./prepared-holder-owner.mjs",
+        "./prepared-object-ownership.mjs",
+        "./prepared-publication-schema-owner.mjs",
         "./prepared-publication-store-ownership.mjs",
-        "./publication-commit-owner.mjs",
+        "./publication-contract-store.mjs",
         "./publication-custody-records.mjs",
+        "./publication-evidence-inspection.mjs",
+        "./publication-index-commit.mjs",
+        "./publication-index-reader.mjs",
+        "./publication-index-startup.mjs",
         "./publication-metadata-deletion-markers.mjs",
         "./publication-metadata-inventory.mjs",
         "./publication-object-consumer.mjs",
         "./publication-object-verifier.mjs",
+        "./publication-object-writes.mjs",
+        "./publication-physical-accounting.mjs",
+        "./publication-progress.mjs",
+        "./publication-reference-owner.mjs",
+        "./publication-result-metadata.mjs",
+        "./publication-result-reader.mjs",
+        "./publication-semantic-reader.mjs",
+        "./publication-semantic-writes.mjs",
         "./publication-store-bootstrap.mjs",
         "./publication-store-format.mjs",
         "./publication-store-inputs.mjs",
+        "./publication-store-interface.mjs",
         "./publication-store-io.mjs",
         "./publication-store-ownership.mjs",
         "./publication-store-private-evidence.mjs",
+        "./publication-trusted-clock.mjs",
         "./result-deletion-owner.mjs",
+        "./run-metadata-inventory.mjs",
         "node:buffer",
         "node:crypto",
         "node:fs",
@@ -19591,7 +19611,7 @@
     {
       "module": "adapters/store-local/publication-store-private-evidence.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d59422fa99a564b816b1e6e7d392d7494ddba5d2621358755a8c710064c5dd6f",
+      "sha256": "18e33506f7665ece37381db426fb0216df2d938dbf9b9ea5c5c459f464fa29cf",
       "exports": [
         "createPrivatePublicationEvidence",
         "encodePrivateEvidenceEnvelope",
@@ -19737,6 +19757,16 @@
           "async": true
         },
         {
+          "name": "createPrivatePublicationEvidence/readModelRawResponseDescriptor/readModelRawResponseDescriptor",
+          "parameters": [
+            "semanticCid",
+            "holdingCid",
+            "consume",
+            "beforeRead"
+          ],
+          "async": false
+        },
+        {
           "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence",
           "parameters": [
             "name",
@@ -19748,39 +19778,39 @@
           "async": true
         },
         {
-          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
+          "name": "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
+          "parameters": [
+            "chunk"
+          ],
+          "async": false
+        },
+        {
+          "name": "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm",
           "parameters": [
             "binding"
           ],
           "async": false
         },
         {
-          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
+          "name": "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
           "parameters": [],
           "async": false
         },
         {
-          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
+          "name": "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
           "parameters": [],
           "async": true
         },
         {
-          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
+          "name": "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence",
           "parameters": [
             "original"
           ],
           "async": false
         },
         {
-          "name": "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
+          "name": "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/releaseBytes/releaseBytes",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
-          "parameters": [
-            "chunk"
-          ],
           "async": false
         },
         {
@@ -19905,6 +19935,33 @@
         {
           "operations": [
             "<module>",
+            "createPrivatePublicationEvidence",
+            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
+            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence#2",
+            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
+            "createPrivatePublicationEvidence/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
+            "createPrivatePublicationEvidence/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
+            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
+            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
+            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
+            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
+            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation",
+            "createPrivatePublicationEvidence/prepareLookupRawEvidence/prepareLookupRawEvidence",
+            "createPrivatePublicationEvidence/prepareModelRawEvidence/prepareModelRawEvidence",
+            "createPrivatePublicationEvidence/preparePrivateEvidence/preparePrivateEvidence",
+            "createPrivatePublicationEvidence/privateEvidenceKey/privateEvidenceKey",
+            "createPrivatePublicationEvidence/readLookupRawEvidence/readLookupRawEvidence",
+            "createPrivatePublicationEvidence/readModelRawEvidence/readModelRawEvidence",
+            "createPrivatePublicationEvidence/readModelRawResponseDescriptor/readModelRawResponseDescriptor",
+            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence",
+            "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
+            "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm",
+            "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
+            "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
+            "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence",
+            "createPrivatePublicationEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence/releaseBytes/releaseBytes",
             "encodePrivateEvidenceEnvelope",
             "encodePrivateEvidenceEnvelope/envelopeBytes/envelopeBytes",
             "privateEvidenceWireLimitForObject",
@@ -19923,33 +19980,7 @@
             "retainPrivateWriterCleanup/release/release",
             "retainPrivateWriterCleanup/release/release/release",
             "retainPrivateWriterCleanup/release/release/release#2",
-            "retainPrivateWriterCleanup/release/release/release#3",
-            "createPrivatePublicationEvidence",
-            "createPrivatePublicationEvidence/privateEvidenceKey/privateEvidenceKey",
-            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence",
-            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
-            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
-            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
-            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
-            "createPrivatePublicationEvidence/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
-            "createPrivatePublicationEvidence/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
-            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
-            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence",
-            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence#2",
-            "createPrivatePublicationEvidence/confirmLookupRawEvidence/confirmLookupRawEvidence/operation/operation",
-            "createPrivatePublicationEvidence/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals",
-            "createPrivatePublicationEvidence/confirmModelRawCaptureOriginals/confirmModelRawCaptureOriginals/expected/expected",
-            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
-            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence/confirmModelRawEvidence",
-            "createPrivatePublicationEvidence/confirmModelRawEvidence/confirmModelRawEvidence/operation/operation",
-            "createPrivatePublicationEvidence/prepareLookupRawEvidence/prepareLookupRawEvidence",
-            "createPrivatePublicationEvidence/prepareModelRawEvidence/prepareModelRawEvidence",
-            "createPrivatePublicationEvidence/preparePrivateEvidence/preparePrivateEvidence",
-            "createPrivatePublicationEvidence/readLookupRawEvidence/readLookupRawEvidence",
-            "createPrivatePublicationEvidence/readModelRawEvidence/readModelRawEvidence",
-            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
-            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence/confirmPrivateEvidence",
-            "createPrivatePublicationEvidence/confirmPrivateEvidence/confirmPrivateEvidence/operation/operation"
+            "retainPrivateWriterCleanup/release/release/release#3"
           ],
           "exports": [
             "encodePrivateEvidenceEnvelope",
@@ -19973,6 +20004,10 @@
               {
                 "path": "adapters/store-local/publication-store-private-evidence.mts",
                 "anchor": "export function createPrivatePublicationEvidence("
+              },
+              {
+                "path": "adapters/store-local/publication-store-private-evidence.mts",
+                "anchor": "readScopedPrivateEvidence('model_raw_descriptor', semanticCid, holdingCid,"
               }
             ],
             "identity": [
@@ -20673,7 +20708,7 @@
     {
       "module": "adapters/store-local/representations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "01ae066d9a4954ce50cee77ef4d482a8b3c223bccedea7a06c6a4a2627e594d5",
+      "sha256": "1595b31da4dff9f3702e17b27895d06955bfd59792b43ce0c12633a6171e5437",
       "exports": [
         "consumeRetainedInput",
         "registerRetainedInput",
@@ -21251,7 +21286,7 @@
     {
       "module": "adapters/store-local/physical-retirement-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1f7c013c3959cfd6a045dd0df761d35e6f685d73a21bbdfcaec72fe800be2aac",
+      "sha256": "0b2eeaa1b8062a6b68e9dbfb35f51df1c312c0387f156e32c5c1ffaa92ceaf71",
       "exports": [
         "createPhysicalRetirementOwner"
       ],
@@ -21700,7 +21735,7 @@
         }
       ],
       "referenceQualification": "Actual source syntax and owner references only; no runtime/platform or whole-distribution acceptance is inferred.",
-      "sha256": "80e43eab276368650aedbb85e339a790a94a44f101c18dfafe304af9c5fb129a",
+      "sha256": "aadc31cb4b2dafdb6de156438f3f187807640478de0c1036e23f18826050b354",
       "imports": [
         "../host-node/host-journal-directory.mjs",
         "../host-node/local-files-native.mjs",
@@ -21709,6 +21744,5 @@
       "compilerFields": [],
       "unresolvedSyntax": []
     }
-  ],
-  "verificationQualification": "Existing actual test entry references only. F prior actual SQLite/Store/INFER source-qualified receipts remain independent; this index does not claim the listed tests all ran at a6cab. Core typed row/data invariants remain with their existing authority and C/E acceptance. No Native/service/Provider/public-product operation executed in this metadata pass."
+  ]
 }

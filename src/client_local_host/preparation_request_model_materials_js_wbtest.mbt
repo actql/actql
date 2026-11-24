@@ -4,6 +4,7 @@
 fn request_effect_model_material_fixture(
   current? : () -> Bool = () => true,
   plural? : Bool = false,
+  parameter? : String? = None,
 ) -> (
   ClientRequestPreparation[Array[Int]],
   Array[Int],
@@ -11,7 +12,43 @@ fn request_effect_model_material_fixture(
     @publication_host.PreparedClientEffectComputation,
   ],
 ) raise {
-  let (environment, text) = effect_model_plan_source(plural~)
+  let (environment, original) = effect_model_plan_source(plural~)
+  let (text, supplied) = match parameter {
+    None => (original, None)
+    Some(value) => {
+      let parameters = "{\"input_text\":\"" + value + "\"}"
+      let supplied = @decode.admit_raw_json(
+        @json.parse(parameters),
+        {
+          start_byte: 0,
+          end_byte: parameters.length(),
+          start_line: 1,
+          start_column: 1,
+          end_line: 1,
+          end_column: parameters.length() + 1,
+          source_path: "<effect-model-parameters>",
+        },
+        {
+          max_nodes: 10,
+          max_depth: 4,
+          max_string_bytes: 64,
+          max_total_string_bytes: 128,
+        },
+      ).unwrap()
+      (
+        original
+        .replace_all(
+          old="\",\"stages\":",
+          new="\",\"params\":{\"input_text\":{\"type\":\"string\",\"nullable\":false}},\"stages\":",
+        )
+        .replace_all(
+          old="\"input\":{\"text\":{\"field\":\"text\"}}",
+          new="\"input\":{\"text\":{\"$param\":\"input_text\"}}",
+        ),
+        Some(supplied),
+      )
+    }
+  }
   let initial = @resources.add_ledger_limits(
     client_local_preparation_initial_limits(client_local_resource_policy()).unwrap(),
     effect_model_plan_limits,
@@ -19,6 +56,7 @@ fn request_effect_model_material_fixture(
   let (parent, child, _, input) = registration_parent_fixture(
     current~,
     text~,
+    supplied~,
     environment=Some(environment),
     effect_limits=Some(
       @publication_host.client_standard_effect_computation_limits(),

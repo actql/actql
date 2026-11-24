@@ -10,9 +10,70 @@ pub fn record_update_mapping_construction_capacity(
   input_units : Int64,
   limits : @rows.RowDeclarationLimits,
 ) -> @execution.ExecutionCapacity? {
-  if source_count < 1 ||
+  if source_count < 1 {
+    return None
+  }
+  record_mutation_mapping_construction_capacity(
+    original,
+    source_count,
+    input_units,
+    limits,
+    None,
+  )
+}
+
+///|
+/// The key and proposed write sources are already owned by the caller.
+/// input_units counts the resource and source spellings before the key.
+pub fn record_key_upsert_mapping_construction_capacity(
+  original : RecordDeclaration,
+  key : String,
+  source_count : Int,
+  input_units : Int64,
+  limits : @rows.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  if source_count < 1 || key.is_empty() || key.length() > limits.max_bytes {
+    return None
+  }
+  record_mutation_mapping_construction_capacity(
+    original,
+    source_count,
+    input_units,
+    limits,
+    Some(key.length()),
+  )
+}
+
+///|
+/// DELETE selects the same Relation and emits the same identity families
+/// without constructing any writable source entries.
+pub fn record_delete_mapping_construction_capacity(
+  original : RecordDeclaration,
+  input_units : Int64,
+  limits : @rows.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  record_mutation_mapping_construction_capacity(
+    original,
+    0,
+    input_units,
+    limits,
+    None,
+  )
+}
+
+///|
+fn record_mutation_mapping_construction_capacity(
+  original : RecordDeclaration,
+  source_count : Int,
+  input_units : Int64,
+  limits : @rows.RowDeclarationLimits,
+  key_units : Int?,
+) -> @execution.ExecutionCapacity? {
+  let unit_bound = 9223372036854775807L / 64L
+  if source_count < 0 ||
     source_count > limits.max_fields ||
     input_units < 0L ||
+    input_units > unit_bound ||
     limits.max_bytes < 1 ||
     limits.max_nodes < 1 ||
     limits.max_depth < 1 ||
@@ -20,17 +81,22 @@ pub fn record_update_mapping_construction_capacity(
     limits.max_views < 1 {
     return None
   }
-  let mut units = input_units
+  // The required names in a successful Mapping must also be source targets.
+  // Reserve a further copy of those spellings plus the keyed relation fields.
+  let mut units = match key_units {
+    Some(key) => 2L * input_units + key.to_int64() + 64L
+    None => input_units
+  }
   for
     wires in [original.declaration.view_bodies, original.declaration.contracts] {
     for wire in wires {
-      if units > 9223372036854775807L / 64L - wire.length().to_int64() {
+      if units > unit_bound - wire.length().to_int64() {
         return None
       }
       units += wire.length().to_int64()
     }
   }
-  if units > 9223372036854775807L / 64L {
+  if units > unit_bound {
     return None
   }
   // UTF8 costs at most3 bytes per UTF16 unit. Original schema text plus
@@ -58,14 +124,45 @@ pub fn record_update_mapping_construction_capacity(
     return None
   }
   let fields = Int::min(limits.max_fields, count + 1).to_int64()
+  let extra_key_refs = if key_units is Some(_) { 1L } else { 0L }
   // Original native Mapping/self, RowMapping, retained name vectors and
   // decoded name backing. The original Catalog/declaration remain borrowed.
   let retained : @execution.PreparationRepresentationUnits = {
     record_headers: 24L + 4L * fields,
-    reference_slots: 48L + 12L * fields,
+    reference_slots: 48L + 12L * fields + extra_key_refs,
     scalar_words: 16L + 4L * fields,
     owned_utf16_units: 2L * bytes.to_int64() + 4L * input_units + 512L,
     owned_wire_bytes: 0L,
+  }
+  let selection_workspace = match key_units {
+    None => stage
+    Some(_) => {
+      let required = Int::min(count, limits.max_fields).to_int64()
+      let source = source_count.to_int64()
+      let copied = @catalog.record_create_copied_target_bound(
+        original.catalog,
+        limits.max_fields,
+        limits.max_nodes,
+      ).to_int64()
+      guard @shape.collection_construction_extent({
+          // Key/field contract admission, copied-target Map with its growth,
+          // required field scan, filtering and the sorted required prefix.
+          // These arrays borrow field codes from the original Form.
+          records: 24L + 8L * required + 4L * source,
+          record_references: 36L + 12L * required + 6L * source,
+          record_words: 24L + 6L * required + 4L * source,
+          reference_arrays: 6L + source,
+          reference_items: 8L + 4L * required + 2L * source,
+          scalar_arrays: 0L,
+          scalar_items: 0L,
+          maps: 1L,
+          map_entries: copied,
+        })
+        is Some(work) else {
+        return None
+      }
+      record_read_collection_units(work)
+    }
   }
   guard record_read_decoded_construction(bytes, nodes, limits.max_depth, false)
     is Some(schema_json) &&
@@ -86,15 +183,12 @@ pub fn record_update_mapping_construction_capacity(
     is Some(envelopes) else {
     return None
   }
-  // Two actual complete checked reads: original Relation selection and the
-  // final Mapping target-field extraction. The latter is bounded by the same
-  // complete inventory, including its conservative canonical/schema controls.
-  // It does not parse the original metadata six more times. Schema JSON parse,
-  // schema/request/resource/schema-identity/seal/final writers and hash outputs
-  // are independent overlapping families below, not six Mapping admissions.
+  // UPDATE also extracts fields from its completed Mapping. UPSERT retains
+  // the selected sources directly and uses the Form selection workspace.
+  // The separate schema, identity and Mapping writers share the checked input.
   guard @execution.compose_preparation_representation([
       stage,
-      stage,
+      selection_workspace,
       schema_json,
       writer,
       writer,
@@ -135,16 +229,43 @@ pub fn record_update_installation_construction_capacity(
   text_units : Int,
   retained_text_units : Int,
 ) -> @execution.ExecutionCapacity? {
+  record_mutation_installation_construction_capacity(
+    fields, text_units, retained_text_units, false,
+  )
+}
+
+///|
+pub fn record_key_upsert_installation_construction_capacity(
+  fields : Int,
+  text_units : Int,
+  retained_text_units : Int,
+) -> @execution.ExecutionCapacity? {
+  record_mutation_installation_construction_capacity(
+    fields, text_units, retained_text_units, true,
+  )
+}
+
+///|
+fn record_mutation_installation_construction_capacity(
+  fields : Int,
+  text_units : Int,
+  retained_text_units : Int,
+  keyed : Bool,
+) -> @execution.ExecutionCapacity? {
   if fields < 1 || text_units < 1 || retained_text_units < 0 {
     return None
   }
   let f = fields.to_int64()
+  let extra = if keyed { 1L } else { 0L }
+  let slots = if keyed { 2L + 13L + 11L } else { 5L + 12L + 13L }
   guard @shape.collection_construction_extent({
-      records: 2L * 192L + 96L,
-      record_references: 14L * 192L + 768L + 8L * f,
-      record_words: 256L + 8L * f,
-      reference_arrays: 64L,
-      reference_items: 1024L + 5L + 12L + 13L + 8L * f,
+      // The keyed adapter captures additional lookup, branch and saved
+      // codec method closures, and keeps its two write slots distinct.
+      records: 2L * 192L + 96L + 24L * extra,
+      record_references: 14L * 192L + 768L + 8L * f + 96L * extra,
+      record_words: 256L + 8L * f + 16L * extra,
+      reference_arrays: 64L + 8L * extra,
+      reference_items: 1024L + slots + 8L * f + 32L * extra,
       scalar_arrays: 16L,
       scalar_items: 512L,
       maps: 8L,

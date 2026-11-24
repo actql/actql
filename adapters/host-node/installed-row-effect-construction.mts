@@ -189,6 +189,10 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
     const suppliedRecipes = captureManagedPlanRecipes(managedPlanRecipes, owned as DefinitionDriver,
       localContractLimits.maxNodes, declaredUpdate);
     if (suppliedRecipe !== undefined && suppliedRecipes !== undefined) reject('InvalidInstalledEffectPlanRecipe');
+    if (selectInstalledEffectCredentialOperation(suppliedRecipe, 'write', 'absent') !== undefined &&
+        (declaredUpdate || (owned as DefinitionDriver).kinds.length !== 1 || (owned as DefinitionDriver).kinds[0] !== 'upsert')) {
+      reject('InvalidInstalledEffectPlanRecipe');
+    }
     const automaticUpdate = declaredUpdate && suppliedRecipe === undefined && suppliedRecipes === undefined;
     if (automaticUpdate && (providerMoon === undefined || owned.describe !== undefined ||
         owned.finalizeRequest !== undefined || managedPlanConstruction !== undefined)) {
@@ -205,7 +209,7 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
     if (managedTargetPlanRecipes !== undefined && (standard !== undefined || !Array.isArray(commands) || commands.length !== 0 ||
         suppliedRecipe !== undefined || suppliedRecipes !== undefined || planDefinition !== undefined ||
         managedPlanConstruction !== undefined || managedTargetPlanOriginals.get(managedTargetPlanRecipes) !== mappings ||
-        (owned as LegacyDriver).kinds.length !== 1 || (owned as LegacyDriver).kinds[0] !== 'update' ||
+        (owned as DefinitionDriver).kinds.length === 0 || !(owned as DefinitionDriver).kinds.every(kind => kind === 'update' || kind === 'delete') ||
         owned.check !== undefined || owned.confirmResponse !== undefined)) reject('InvalidInstalledEffectPlanRecipe');
     if (managedPlanConstruction !== undefined && (standard !== undefined || suppliedRecipe !== undefined || suppliedRecipes !== undefined)) {
       reject('InvalidInstalledEffectDriverConstruction');
@@ -251,7 +255,7 @@ export function createInstalledRowEffectConstruction<Adapter extends {close(): u
     if (managedTargetPlanRecipes !== undefined) for (const mapping of installed) {
       const operation = managedTargetPlanRecipes.byMapping[mapping.mappingCid]?.writeOperation;
       if (operation === undefined ||
-          !mapping.rules.some(rule => rule.effect_kind === 'update' && rule.permissions?.includes(operation))) {
+          !mapping.rules.some(rule => (owned as DefinitionDriver).kinds.some(kind => kind === rule.effect_kind) && rule.permissions?.includes(operation))) {
         reject('InvalidInstalledEffectPlanRecipe');
       }
     }

@@ -84,7 +84,8 @@ priv struct LocalNativeMockEffectProposals {
   mut _retained_combined_source_unit : @run_host.ClientEffectCombinedSourceUnit?
   mut _retained_local_manifest : @run_host.ClientEffectLocalManifest?
   mut _retained_direct_source_manifest : @run_host.ClientEffectLocalManifest?
-  _retained_lookup_dependencies : Array[
+  mut measured_model_capture : Bool
+  mut _retained_lookup_dependencies : Array[
     @publication.CapturedEffectDependencyBody,
   ]
   mut _retained_direct_evidence : Array[@run_host.ClientEffectAcquiredEvidence]
@@ -104,7 +105,6 @@ priv struct LocalNativeMockEffectProposalMember {
   mut stream : @execution.CompletedOutputExport?
   mut receipt : @execution.CompletedRelationExportReceipt?
   mut snapshot : @execution.CompletedRelationSnapshotPreparation?
-  mut _retained_snapshot_wire : String?
   mut _retained_dependency : @run_host.ClientEffectDependencyCapture?
   mut _retained_definition : @run_host.ClientEffectLocalResultDefinition?
   mut _retained_artifact : @run_host.ClientEffectLocalResultArtifact?
@@ -130,6 +130,7 @@ fn native_mock_effect_proposals(
     _retained_combined_source_unit: None,
     _retained_local_manifest: None,
     _retained_direct_source_manifest: None,
+    measured_model_capture: false,
     _retained_lookup_dependencies: [],
     _retained_direct_evidence: [],
     source_imports: [],
@@ -152,12 +153,39 @@ fn native_mock_effect_proposal_member(
     stream: None,
     receipt: None,
     snapshot: None,
-    _retained_snapshot_wire: None,
     _retained_dependency: None,
     _retained_definition: None,
     _retained_artifact: None,
     rows: [],
   }
+}
+
+///|
+// Only the single-member, field-only Model path meters all of its proposal
+// rows and returns its own export and Manifest under the original capture.
+fn LocalNativeMockEffectProposals::uses_measured_model_proposal(
+  self : Self,
+) -> Bool {
+  guard self.measured_model_capture &&
+    @strategy.captured_effect_inputs_count(self.inputs) == 1 &&
+    self.members.get(0) is Some(entry) &&
+    @strategy.captured_effect_proposal_plan_field_only_count(entry.plan)
+    is Some(_) else {
+    return false
+  }
+  // Extra Unit Results with no checked row count still use the fixed export
+  // workspace. Keep the old allowance when any local result needs that route.
+  for index in 0..<@strategy.captured_effect_local_result_count(self.inputs) {
+    guard @strategy.captured_effect_local_result_at(self.inputs, index)
+      is Some(result) &&
+      @strategy.captured_any_result_borrow_row_count(
+        @strategy.captured_effect_local_result_borrow(result),
+      )
+      is Some(_) else {
+      return false
+    }
+  }
+  true
 }
 
 ///|
@@ -223,8 +251,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Capture(issue))
       .native_effect_proposal(self.original)
-    // Closed initial Host frame: this record's borrowed references and its
-    // six empty Array headers stay inside the existing fixed4096 call frame.
+    // The initial Host frame holds this record's borrowed references, its
+    // measured-capture flag and six empty Arrays within the fixed4096 call frame.
     // Import bodies/producer exports begin only after the first capture borrow.
     let held = native_mock_effect_proposals(inputs, bridge_limits)
     state.proposals = Some(held)
@@ -246,6 +274,11 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
         .native_effect_proposal(self.original)
+      let staged_rows = if entry == 0 {
+        @strategy.captured_effect_proposal_plan_staged_rows(plan)
+      } else {
+        None
+      }
       let current = native_mock_effect_proposal_member(plan)
       held.members.push(current)
       // Retain the original member capture before its fallible semantic
@@ -283,6 +316,8 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           recipe: state._retained_import_recipes[0],
           retained: 0L,
           workspace: 0L,
+          source_snapshot: None,
+          source_copy: None,
         })
       }
       if entry == 0 && state.lookup is Some(lookup) {
@@ -343,16 +378,71 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           .native_effect_proposal(self.original),
         )
         self.prepare_mock_effect_source_imports(state, held)
-        let acquired = business.model_work[0]
+        let construction = held.construction.unwrap()
+        let measured = staged_rows is Some(_) && held.imports is Some(_)
+        held.measured_model_capture = measured
+        if measured {
+          construction
+          .yield_source_import_workspace()
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
+          .native_effect_proposal(self.original)
+        } else if held.imports is Some(_) {
+          if !construction.finish(
+              self.original,
+              state._retained_import_recipes[1],
+            ) {
+            stop("LocalOriginalEffectProposalsUnavailable")
+          }
+        }
+        let acquired = {
+          let mut inventory_workspace = 0L
+          let before_inventory = if measured {
+            Some(source_slots => {
+              let frame = @local_values.installed_effect_imported_model_evidence_frame_capacity(
+                source_slots, 1024, 20,
+              )
+              if construction.prepare_body(self.original, frame) {
+                let capacity = frame.unwrap()
+                inventory_workspace = @execution.execution_capacity_execution_bytes(
+                    capacity,
+                  ) -
+                  @execution.execution_capacity_retained_bytes(capacity)
+                true
+              } else {
+                false
+              }
+            })
+          } else {
+            None
+          }
+          let before_body = if measured {
+            let cid = @publication.publication_contract_identity(
+              state.first.definition,
+            )
+            Some((kind, geometry) => {
+              construction.prepare_body(
+                self.original,
+                @local_values.installed_effect_imported_model_evidence_body_capacity(
+                  kind, geometry, cid, inventory_workspace,
+                ),
+              )
+            })
+          } else {
+            None
+          }
+          business.model_work[0]
           .local_effect_model_acquired_evidence(
             retention,
             16384,
             1024,
             20,
             imports=held.imports,
+            before_inventory~,
+            before_body~,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Source(issue))
           .native_effect_proposal(self.original)
+        }
         // Keep the actual returned originals before any later export/target
         // constructor. All members reuse this one semantic Invocation.
         held.acquired = Some(acquired)
@@ -362,6 +452,17 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         held._retained_direct_evidence = @run_host.client_effect_model_acquired_direct_sources(
           acquired,
         )
+
+        // This proposal path has its own export, row, dependency and Manifest
+        // quotes below. Keep the measured Model originals on this operation;
+        // its Preview and recovery envelope is used when Preview begins.
+        if measured && !held.uses_measured_model_proposal() {
+          let capture = state._retained_import_recipes[1].copy()
+          capture[1] = @execution.execution_capacity(0L, 0L).unwrap()
+          if !construction.finish(self.original, capture) {
+            stop("LocalOriginalEffectProposalsUnavailable")
+          }
+        }
 
         if state.lookup is Some(lookup) {
           guard self.original.project is Some(project) &&
@@ -392,6 +493,69 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           guard physical_source is Some(_) else {
             stop("LocalOriginalModelKeyedPlanUnavailable")
           }
+          let mut table_workspace = 0L
+          let before_tables = if measured {
+            Some((entries, keys, wires) => {
+              let tables = native_mock_effect_lookup_table_workspace(
+                entries, keys, wires,
+              )
+              let quote = tables.bind(bytes => {
+                @execution.execution_capacity(0L, bytes)
+              })
+              // Only the first table callback enters after the entire Model
+              // census has returned. Keep its adopted bodies and reuse its
+              // absolute execution reservation for the lookup's live data.
+              let funded = construction.prepare_body(
+                self.original,
+                quote,
+                previous_workspace_returned=table_workspace == 0L,
+              )
+              if !funded {
+                return false
+              }
+              table_workspace = tables.unwrap()
+              true
+            })
+          } else {
+            None
+          }
+          let prepare = fn(capacity : @execution.ExecutionCapacity?) {
+            let quote = capacity.bind(value => {
+              @execution.execution_capacity(0L, table_workspace).bind(tables => {
+                @execution.add_execution_capacity(value, tables)
+              })
+            })
+            construction.prepare_body(self.original, quote)
+          }
+          let before_body = if measured {
+            Some((bytes, nodes, depth) => {
+              prepare(
+                native_mock_effect_canonical_body_capacity(bytes, nodes, depth),
+              )
+            })
+          } else {
+            None
+          }
+          let before_emit = if measured {
+            Some((bytes, nodes, depth, digest) => {
+              prepare(
+                native_mock_effect_lookup_emit_workspace(
+                  bytes, nodes, depth, digest,
+                ),
+              )
+            })
+          } else {
+            None
+          }
+          let before_measure = if measured {
+            Some((live_keys, depth) => {
+              prepare(
+                native_mock_effect_lookup_measure_workspace(live_keys, depth),
+              )
+            })
+          } else {
+            None
+          }
           let dependencies = @run_host.client_keyed_lookup_native_dependency_bodies(
               lookup,
               retention,
@@ -404,13 +568,22 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
               wire.max_nodes,
               wire.max_depth,
               physical_source~,
+              before_body~,
+              before_emit~,
+              before_tables~,
+              before_measure~,
             )
             .map_err(issue => {
               LocalNativeMockEffectProposalIssue::Dependency(issue)
             })
             .native_effect_proposal(self.original)
-          for dependency in dependencies {
-            held._retained_lookup_dependencies.push(dependency)
+          held._retained_lookup_dependencies = dependencies
+          if measured &&
+            !construction.retain_lookup_dependency_array(
+              self.original,
+              dependencies.capacity(),
+            ) {
+            stop("LocalOriginalEffectProposalsUnavailable")
           }
         }
       }
@@ -442,6 +615,25 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           stop("LocalOriginalEffectResultUnavailable")
         },
       )
+      let measure_proposal_rows = staged_rows is Some(_) &&
+        held.imports is Some(_)
+      let before_metadata = if measure_proposal_rows {
+        let construction = held.construction.unwrap()
+        guard construction.prepare_proposal_export(
+            self.original,
+            @strategy.captured_effect_local_result_borrow(result),
+            limits,
+            staged_rows.unwrap(),
+          )
+          is Some(schema_workspace) else {
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        Some(
+          construction.export_metadata_funding(self.original, schema_workspace),
+        )
+      } else {
+        None
+      }
       let exported = if !@strategy.captured_any_result_borrow_requires_managed_export(
           @strategy.captured_effect_local_result_borrow(result),
         ) {
@@ -460,7 +652,9 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         exported,
       )
       while !@execution.advance_completed_result_relation_export(
-              preparation, 31,
+              preparation,
+              31,
+              before_metadata~,
             )
             .map_err(issue => {
               LocalNativeMockEffectProposalIssue::Completed(issue)
@@ -474,18 +668,98 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
         .native_effect_proposal(self.original)
       current.stream = Some(stream)
-      while @execution.next_completed_output_export_canonical_row(
-              stream,
-              wire.max_nodes,
-              wire.max_depth,
-              limits.output_work,
-            )
-            .map_err(issue => {
-              LocalNativeMockEffectProposalIssue::Completed(issue)
-            })
-            .native_effect_proposal(self.original)
-            is Some((row_index, _, row)) {
-        let proposal = @strategy.project_captured_effect_proposal_row(
+      let construction = if entry == 0 && held.imports is Some(_) {
+        held.construction
+      } else {
+        None
+      }
+      let projection_workspace = if measure_proposal_rows {
+        @strategy.captured_effect_proposal_plan_field_only_count(plan)
+        .bind(fields => {
+          @local_values.installed_effect_capture_field_projection_workspace(
+            fields,
+            wire.max_depth,
+          )
+        })
+        .map(@execution.execution_capacity_execution_bytes)
+      } else {
+        None
+      }
+      // Unknown projectors still need the original fixed scratch alongside
+      // the observed export. Field-only projections reserve at their actual
+      // entry, after the decoder returns its row and before the first pair.
+      let fixed_workspace = if measure_proposal_rows &&
+        projection_workspace is None {
+        let fixed = state._retained_import_recipes[1][0]
+        @execution.execution_capacity_execution_bytes(fixed) -
+        @execution.execution_capacity_retained_bytes(fixed)
+      } else {
+        0L
+      }
+      let metadata_workspace = if before_metadata is Some(_) {
+        native_mock_effect_open_export_metadata(
+          self.original,
+          preparation,
+          stream,
+        )
+      } else {
+        0L
+      }
+      let export_funding = construction.map(original => {
+        original.export_row_funding(fixed_workspace + metadata_workspace, issue => {
+          self.original.retain_primary(CommandBusinessEffectProposals(issue))
+        })
+      })
+      let before_emit = if measure_proposal_rows {
+        export_funding.map(funding => funding.0)
+      } else {
+        None
+      }
+      let before_decode = export_funding.map(funding => funding.1)
+      let before_encode = construction.map(construction => {
+        let (_, _, row_decode_workspace) = export_funding.unwrap()
+        fn(bytes, nodes, depth, prior_text_units) {
+          // The exported bytes and decoded row are still held here. Keep
+          // their conservative decoder envelope beside the next writer and
+          // the changes String when constructing the selector.
+          construction.prepare_body(
+            self.original,
+            native_mock_effect_proposal_write_workspace(
+              row_decode_workspace.val,
+              projection_workspace.unwrap_or(0L),
+              bytes,
+              nodes,
+              depth,
+              prior_text_units,
+            ),
+          )
+        }
+      })
+      // The row and its encoded batch are local to this synchronous return.
+      // Only the selector/changes pair crosses into the growing member array.
+      let next_proposal = fn() raise ClientStop {
+        guard @execution.next_completed_output_export_canonical_row(
+            stream,
+            wire.max_nodes,
+            wire.max_depth,
+            limits.output_work,
+            before_decode~,
+            before_emit~,
+            before_measure=before_emit,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+          is Some((row_index, _, row)) else {
+          return None
+        }
+        if projection_workspace is Some(workspace) {
+          construction
+          .unwrap()
+          .reserve_proposal_projection(export_funding.unwrap().2.val, workspace)
+          .native_effect_proposal(self.original)
+        }
+        Some(
+          @strategy.project_captured_effect_proposal_row(
             plan,
             row,
             row_index,
@@ -494,19 +768,69 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
             wire.max_bytes,
             wire.max_nodes,
             wire.max_depth,
+            before_encode~,
           )
           .map_err(issue => LocalNativeMockEffectProposalIssue::Proposal(issue))
-          .native_effect_proposal(self.original)
-        current.rows.push(proposal)
+          .native_effect_proposal(self.original),
+        )
       }
-      let (receipt, _) = @execution.finish_completed_relation_export(stream)
+      while next_proposal() is Some(proposal) {
+        if measure_proposal_rows {
+          construction
+          .unwrap()
+          .append_proposal_row(current.rows, proposal)
+          .native_effect_proposal(self.original)
+        } else {
+          current.rows.push(proposal)
+        }
+      }
+      let (receipt, _) = @execution.finish_completed_relation_export(
+          stream,
+          before_finish=before_emit,
+        )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
         .native_effect_proposal(self.original)
       current.receipt = Some(receipt)
+      if before_metadata is Some(_) {
+        construction
+        .unwrap()
+        .retain_export_metadata(self.original, preparation, receipt)
+      }
       if !@strategy.captured_effect_local_result_export_matches_receipt(
           inputs, exported, receipt,
         ) {
         stop("LocalOriginalEffectResultUnavailable")
+      }
+      if measure_proposal_rows {
+        // Validate the captured pin before measuring. The issuer below
+        // rechecks it after the original Ledger growth can observe current.
+        if !@strategy.captured_effect_inputs_match_computation(
+            inputs,
+            @run_host.prepared_client_effect_computation_graph(
+              state._retained_prepared,
+            ),
+          ) {
+          self.original.retain_primary(
+            CommandBusinessEffectProposals(Definition(ForeignCapturedInput)),
+          )
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        guard @strategy.captured_effect_input_at(inputs, entry) is Some(input) else {
+          self.original.retain_primary(
+            CommandBusinessEffectProposals(Definition(MissingCapturedInput)),
+          )
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        construction
+        .unwrap()
+        .fund_result_definition(
+          self.original,
+          state._retained_prepared,
+          @strategy.captured_effect_input_stage(input),
+          @execution.managed_result_occurrence_name(
+            @strategy.captured_effect_input_occurrence(input),
+          ),
+        )
       }
       let definition = @run_host.issue_captured_client_effect_local_result_definition(
           state._retained_prepared,
@@ -519,6 +843,15 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         .map_err(issue => LocalNativeMockEffectProposalIssue::Definition(issue))
         .native_effect_proposal(self.original)
       current._retained_definition = Some(definition)
+      let funding = if measure_proposal_rows {
+        Some(
+          construction
+          .unwrap()
+          .model_result_artifact_funding(self.original, definition),
+        )
+      } else {
+        None
+      }
       let artifact = business.model_work[0]
         .local_effect_model_artifact(
           held.materials.unwrap(),
@@ -530,41 +863,63 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           16384,
           1024,
           20,
+          funding~,
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Artifact(issue))
         .native_effect_proposal(self.original)
       current._retained_artifact = Some(artifact)
-      // Preserve the SAME finished export/receipt. This first durable row
-      // snapshot neither re-exports a Result nor reruns its identity scan.
-      let snapshot = @execution.start_completed_relation_export_snapshot(
-          stream,
-          receipt,
-          wire.max_bytes,
-          wire.max_nodes,
-          wire.max_depth,
-          limits.output_workspace,
-        )
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      current.snapshot = Some(snapshot)
-      while !snapshot
-            .advance(256)
-            .map_err(issue => {
-              LocalNativeMockEffectProposalIssue::Completed(issue)
-            })
-            .native_effect_proposal(self.original).0 {
-        ()
+      // The returned row text is live through Relation admission only.
+      // Preview borrows its admitted canonical rows, not a second text/tree.
+      let snapshot_owner = held.construction.unwrap()
+      if measure_proposal_rows {
+        let (bytes, nodes, _, depth) = @execution.completed_relation_export_snapshot_extent(
+            stream, receipt,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        if snapshot_owner.source_snapshot is Some(_) ||
+          snapshot_owner.source_copy is Some(_) {
+          self.original.retain_primary(
+            CommandBusinessEffectProposals(Managed(InsufficientCapacity)),
+          )
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
+        snapshot_owner.source_snapshot = Some(0L)
+        if !snapshot_owner.prepare_snapshot(
+            self.original,
+            Int::max(1, bytes),
+            Int::max(1, nodes),
+            Int::max(1, depth),
+          ) {
+          stop("LocalOriginalEffectProposalsUnavailable")
+        }
       }
-      let (rows_wire, _) = snapshot
-        .finish()
-        .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
-        .native_effect_proposal(self.original)
-      // Only the returned immutable wire survives this synchronous writer.
-      // Drop the closed writer/workspace before yielding capture scratch.
-      snapshot.cancel()
-      current.snapshot = None
-      current._retained_snapshot_wire = Some(rows_wire)
-      current._retained_dependency = Some(
+      let dependency = {
+        let snapshot = @execution.start_completed_relation_export_snapshot(
+            stream,
+            receipt,
+            wire.max_bytes,
+            wire.max_nodes,
+            wire.max_depth,
+            limits.output_workspace,
+          )
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        current.snapshot = Some(snapshot)
+        while !snapshot
+              .advance(256)
+              .map_err(issue => {
+                LocalNativeMockEffectProposalIssue::Completed(issue)
+              })
+              .native_effect_proposal(self.original).0 {
+          ()
+        }
+        let (rows_wire, _) = snapshot
+          .finish()
+          .map_err(issue => LocalNativeMockEffectProposalIssue::Completed(issue))
+          .native_effect_proposal(self.original)
+        snapshot.cancel()
+        current.snapshot = None
         @run_host.admit_client_effect_dependency_capture(
           held.materials.unwrap(),
           inputs,
@@ -577,14 +932,18 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
           wire.max_nodes,
           wire.max_depth,
           before_body=Some((bytes, nodes, depth) => {
-            held.construction
-            .unwrap()
-            .prepare_canonical(self.original, bytes, nodes, depth)
+            snapshot_owner.prepare_canonical(self.original, bytes, nodes, depth)
           }),
         )
         .map_err(issue => LocalNativeMockEffectProposalIssue::Dependency(issue))
-        .native_effect_proposal(self.original),
-      )
+        .native_effect_proposal(self.original)
+      }
+      current._retained_dependency = Some(dependency)
+      if measure_proposal_rows {
+        // The bare text and its writer are no longer borrowed. On failure
+        // the original command retains the temporary extent until cleanup.
+        snapshot_owner.source_snapshot = None
+      }
       @strategy.finish_captured_effect_proposal_plan(
         plan,
         current.rows.length(),
@@ -594,7 +953,59 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
     }
     // The owner requires every declared Result and Effect-consumed Table of
     // the Unit. A consumed subset must not be presented as a whole Manifest.
-    self.prepare_mock_effect_unit_results(state, held, max_capture_bytes)
+    self.prepare_mock_effect_unit_results(
+      state,
+      held,
+      max_capture_bytes,
+      measure_results=held.measured_model_capture,
+    )
+    let manifest_funding = if held.measured_model_capture {
+      let construction = held.construction.unwrap()
+      // The caller's temporary collection coexists with the original
+      // issuer's private copy. Reserve it before collecting the borrows.
+      let items = held.members.length().to_int64() +
+        held.unit_results.length().to_int64()
+      let view = @execution.preparation_array_representation(1L, items, true)
+        .bind(@execution.preparation_representation_cost)
+        .bind(bytes => @execution.execution_capacity(0L, bytes))
+      if !construction.prepare_body(self.original, view) {
+        stop("LocalOriginalEffectProposalsUnavailable")
+      }
+      let mut workspace = 0L
+      let fund_inventory = fn(results, headers, artifacts) {
+        let capacity = native_mock_effect_manifest_inventory(
+          results,
+          headers,
+          artifacts,
+          wire.max_nodes,
+          wire.max_depth,
+        ).bind(inventory => {
+          @execution.add_execution_capacity(view.unwrap(), inventory)
+        })
+        if !construction.prepare_body(self.original, capacity) {
+          return false
+        }
+        let capacity = capacity.unwrap()
+        workspace = @execution.execution_capacity_execution_bytes(capacity) -
+          @execution.execution_capacity_retained_bytes(capacity)
+        true
+      }
+      let invocation = held.invocation.unwrap()
+      let fund_wire = fn(shape) {
+        construction.prepare_body(
+          self.original,
+          @local_values.installed_effect_imported_model_evidence_body_capacity(
+            "local_manifest",
+            shape,
+            @run_host.client_effect_local_invocation_cid(invocation),
+            workspace,
+          ),
+        )
+      }
+      Some((fund_inventory, fund_wire))
+    } else {
+      None
+    }
     let artifacts = held.members.map(entry => entry._retained_artifact.unwrap())
     for result in held.unit_results {
       artifacts.push(result.artifact.unwrap())
@@ -607,6 +1018,7 @@ fn LocalCommandBusinessPreparation::prepare_mock_effect_proposals(
         max_capture_bytes,
         wire.max_nodes,
         wire.max_depth,
+        funding=manifest_funding,
       )
       .map_err(issue => LocalNativeMockEffectProposalIssue::Manifest(issue))
       .native_effect_proposal(self.original),
@@ -628,9 +1040,16 @@ fn LocalCommandBusinessPreparation::yield_mock_effect_proposal_workspace(
       held.construction is Some(construction) else {
       stop("LocalOriginalEffectProposalsUnavailable")
     }
-    @local_values.yield_installed_effect_operation_construction_workspace(
-      construction.operation,
-    )
+    let yielded = if held.imports is Some(_) {
+      // The imported Model path has independently selected the warm recipe
+      // used by Preview. Its prior proposal scratch has no remaining alias.
+      construction.yield_returned_workspace()
+    } else {
+      @local_values.yield_installed_effect_operation_construction_workspace(
+        construction.operation,
+      )
+    }
+    yielded
     .map_err(issue => LocalNativeMockEffectProposalIssue::Managed(issue))
     .native_effect_proposal(self.original)
   })
@@ -657,7 +1076,6 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   for entry in self.members {
     entry._retained_artifact = None
     entry._retained_dependency = None
-    entry._retained_snapshot_wire = None
   }
   for result in self.unit_results {
     result.close()
@@ -713,4 +1131,36 @@ fn LocalNativeMockEffectProposals::close(self : Self) -> Bool {
   }
   self.construction = None
   @strategy.release_captured_effect_inputs(self.inputs)
+}
+
+///|
+// Add the observed output writer to the still-live row/projection workspace.
+// prior_text_units is the length of the co-held returned changes wire.
+fn native_mock_effect_proposal_write_workspace(
+  row_decode_workspace : Int64,
+  projection_workspace : Int64,
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  prior_text_units : Int,
+) -> @execution.ExecutionCapacity? {
+  guard @encode.text_writer_construction_inventory(bytes, nodes, depth)
+    is Some(writer) else {
+    return None
+  }
+  @execution.preparation_representation_cost({
+    record_headers: writer.record_headers + 3L,
+    reference_slots: writer.reference_slots + 2L,
+    scalar_words: writer.scalar_words + 6L,
+    owned_utf16_units: writer.owned_utf16_units + prior_text_units.to_int64(),
+    owned_wire_bytes: 0L,
+  })
+  .bind(workspace => {
+    @execution.checked_preparation_add_product(
+      row_decode_workspace, projection_workspace, 1L,
+    ).bind(coheld => {
+      @execution.checked_preparation_add_product(coheld, workspace, 1L)
+    })
+  })
+  .bind(workspace => @execution.execution_capacity(0L, workspace))
 }

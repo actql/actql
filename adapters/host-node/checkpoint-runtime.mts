@@ -4,6 +4,7 @@
 // The compiler output is selected only when a caller opens the runtime.
 export type CheckpointRuntime = Readonly<{
   resumeRevalidationFailedCode(): string;
+  approvalVerificationInput(approvalEvidenceWire: string): string;
   waitingExitState(
     runId: string,
     updatedAt: string,
@@ -118,6 +119,7 @@ export type CheckpointRuntime = Readonly<{
     outcomeWire: string,
     captureWire: string,
     observationWire: string | undefined,
+    rawWire: string | undefined,
   ): string;
   modelImmediateCallAttemptAdmit(
     requestWire: string,

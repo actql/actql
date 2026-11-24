@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import './embedded-local-lifecycle.test.mjs';
 import './embedded-local-close-public.test.mjs';
+import './installed-host-fenced-close.test.mjs';
 import test from 'node:test';
 import fsPromises, {mkdir, mkdtemp, open, readFile, rm} from 'node:fs/promises';
 import {syncBuiltinESMExports} from 'node:module';
@@ -221,6 +222,41 @@ test('request journal fences admission but retries a failed physical close',
     journal.close();
     assert.equal(fault.calls(), 2); fault.assertClosed();
   });
+
+test('Checkpoint installation refuses non-string reviewer identities before key import', async () => {
+  const {installRemoteCheckpoints} = await import('./client-checkpoints.mjs');
+  const publicKey = generateKeyPairSync('ed25519').publicKey.export({type: 'spki', format: 'pem'});
+  let coercions = 0;
+  const coercible = {[Symbol.toPrimitive]() { coercions++; return 'reviewer'; }};
+  for (const [field, value] of [
+    ['keyId', 17], ['reviewerId', 17], ['keyId', coercible], ['reviewerId', coercible],
+  ]) {
+    let keyReads = 0;
+    const reviewer = {keyId: 'reviewer-key', reviewerId: 'reviewer', principalId: 'principal',
+      [field]: value, get publicKey() { keyReads++; return publicKey; }};
+    await assert.rejects(installRemoteCheckpoints({authorization: {reviewers: [reviewer]}}),
+      {code: 'InvalidCheckpointReviewers'});
+    assert.equal(keyReads, 0);
+  }
+  assert.equal(coercions, 0);
+});
+
+test('Checkpoint installation captures each valid reviewer identity once', async () => {
+  const {installRemoteCheckpoints} = await import('./client-checkpoints.mjs');
+  const publicKey = generateKeyPairSync('ed25519').publicKey.export({type: 'spki', format: 'pem'});
+  const reads = {keyId: 0, reviewerId: 0, principalId: 0};
+  const reviewer = {
+    get keyId() { reads.keyId++; return 'reviewer-key'; },
+    get reviewerId() { reads.reviewerId++; return 'reviewer'; },
+    get principalId() { reads.principalId++; return 'principal'; },
+    publicKey,
+  };
+  // This separate guard follows valid reviewer admission and runs before any
+  // runtime, Journal or provider work.
+  await assert.rejects(installRemoteCheckpoints({authorization: {reviewers: [reviewer]}}),
+    {code: 'InvalidRemoteHostKey'});
+  assert.deepEqual(reads, {keyId: 1, reviewerId: 1, principalId: 1});
+});
 
 test('Checkpoint installation retains its journal before returning an owner',
   async t => {

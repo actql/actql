@@ -5,7 +5,10 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
-from actql_sdk._local_storage import ByteFence, ByteWrite, LocalByteStore, LocalStorageError, StoredBytes
+from actql_sdk._local_storage import (
+    ByteFence, ByteWrite, LocalByteStore, LocalStorageError, StoredBytes,
+    LocalStorageCommitUnknown,
+)
 
 
 class LocalStorageNamespaceTests(unittest.TestCase):
@@ -75,8 +78,10 @@ class LocalStorageNamespaceTests(unittest.TestCase):
                     key = store.namespaced_key('publication_payload_allocation', 'original')
                     write = ByteWrite(key, None, b'original-intent')
                     store._connection.lose = True
-                    with self.assertRaisesRegex(OSError, 'acknowledgement lost'):
+                    with self.assertRaises(LocalStorageCommitUnknown) as caught:
                         store.compare_exchange(write.key, write.expected_generation, write.payload)
+                    self.assertIs(caught.exception.cleanup_store, store)
+                    self.assertRegex(str(caught.exception.__cause__), 'acknowledgement lost')
                     self.assertEqual(store._connection.writes, 1)
                     self.assertEqual(store.read_exchange(write), StoredBytes(0, b'original-intent'))
                     self.assertEqual(store.read_exchange(write), StoredBytes(0, b'original-intent'))

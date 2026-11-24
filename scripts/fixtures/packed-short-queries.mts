@@ -16,6 +16,7 @@ import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {assertObservedTransition, shortQueryAuthorization as authorization, observedRevision,
   observeSettledResult, publishedFacts} from './run-revision-assertions.mjs';
 import {closeFixtureClient, withFixtureClientCleanup} from './client-cleanup.mjs';
+import {checkOrderedInlineStringAgg} from './packed-ordered-inline-string-agg.mjs';
 
 type QueryObservation = ReturnType<typeof authorization>;
 type SqlCheckOptions = CheckScopeOptions & Pick<CheckTextOptions, 'parameterDeclarations' | 'signal'>;
@@ -28,6 +29,8 @@ await withFixtureClientCleanup(defaults, async () => {
   assert.equal(defaults.info.stateDir, resolve('.actql'));
   assert.deepEqual(await defaults.sql('SELECT 0 AS id').all(), [{id: 0}]);
 });
+
+await checkOrderedInlineStringAgg(resolve('ordered-inline-string-agg-state'));
 
 async function checkRunnable(db: Client, counter: QueryObservation, label: string) {
   const before = counter.count();

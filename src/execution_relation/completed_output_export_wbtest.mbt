@@ -406,25 +406,110 @@ test "checked Result rows reach a bounded canonical consumer in export order" {
     64,
   ).unwrap()
   let chunks = StringBuilder()
+  let quoted : Array[(Int, Int, Int)] = []
+  let emissions : Array[(Int, Int64)] = []
+  let phases : Array[String] = []
+  let second_empty_buffer_quote = Ref(0L)
+  let fenced = Ref(true)
+  let fund_emit = fn(capacity) {
+    fenced.val = fenced.val &&
+      next_completed_output_export(stream) is Err(Closed) &&
+      finish_completed_relation_export(stream) is Err(Closed)
+    fenced.val = fenced.val && execution_capacity_retained_bytes(capacity) == 0L
+    phases.push("emit")
+    if stream.row == 1 {
+      // Cell "é" costs four UTF-8 bytes. The measured upper bound adds
+      // the row frame (3) and one one-character key (4 + 6): 17 bytes.
+      // The previous emoji row needed 20 including the leading delimiter.
+      let bounds = row_wire_limits()
+      let nodes = Int::min(17, bounds.max_nodes)
+      let depth = Int::min(nodes, bounds.max_depth)
+      let payload = @encode.buffered_hash_writer_next_construction_inventory(
+        stream.writer,
+        17,
+        0,
+        nodes,
+        depth,
+      ).unwrap()
+      let logical = @encode.hash_writer_next_construction_inventory(
+        stream.logical_writer.unwrap(),
+        nodes,
+        depth,
+      ).unwrap()
+      second_empty_buffer_quote.val = preparation_representation_cost({
+        record_headers: payload.record_headers + logical.record_headers,
+        reference_slots: payload.reference_slots + logical.reference_slots,
+        scalar_words: payload.scalar_words + logical.scalar_words,
+        owned_utf16_units: payload.owned_utf16_units + logical.owned_utf16_units,
+        owned_wire_bytes: payload.owned_wire_bytes + logical.owned_wire_bytes,
+      }).unwrap()
+    }
+    emissions.push(
+      (
+        @encode.observed_writer_usage(stream.writer).0,
+        execution_capacity_execution_bytes(capacity),
+      ),
+    )
+    true
+  }
+  let reserve = fn(bytes, nodes, depth) {
+    // Neither the next row nor its finished receipt can escape while
+    // the original caller is admitting this row.
+    fenced.val = fenced.val &&
+      next_completed_output_export(stream) is Err(Closed) &&
+      finish_completed_relation_export(stream) is Err(Closed)
+    phases.push("decode")
+    quoted.push((bytes, nodes, depth))
+    true
+  }
   assert_true(
     next_completed_output_export_canonical_row(stream, 0, 2, 8)
     is Err(CanonicalRow),
   )
-  let first = next_completed_output_export_canonical_row(stream, 4, 2, 8)
+  let first = next_completed_output_export_canonical_row(
+      stream,
+      4,
+      2,
+      8,
+      before_decode=Some(reserve),
+      before_emit=Some(fund_emit),
+    )
     .unwrap()
     .unwrap()
   assert_eq(first.0, 0)
   assert_eq(@identity.stringify_value(first.2, 64, 4, 2), "{\"s\":\"😀\"}")
   chunks.write_string(first.1)
-  let second = next_completed_output_export_canonical_row(stream, 4, 2, 8)
+  let second = next_completed_output_export_canonical_row(
+      stream,
+      4,
+      2,
+      8,
+      before_decode=Some(reserve),
+      before_emit=Some(fund_emit),
+    )
     .unwrap()
     .unwrap()
   assert_eq(second.0, 1)
   assert_eq(@identity.stringify_value(second.2, 64, 4, 2), "{\"s\":\"é\"}")
   chunks.write_string(second.1)
   assert_true(
-    next_completed_output_export_canonical_row(stream, 4, 2, 8) is Ok(None),
+    next_completed_output_export_canonical_row(
+      stream,
+      4,
+      2,
+      8,
+      before_decode=Some(reserve),
+      before_emit=Some(fund_emit),
+    )
+    is Ok(None),
   )
+  assert_eq(quoted, [(13, 2, 1), (11, 2, 1)])
+  assert_eq(phases, ["emit", "decode", "emit", "decode"])
+  assert_eq(emissions.map(sample => sample.0), [1, 13])
+  assert_true(emissions[0].1 > emissions[1].1 && emissions[1].1 > 0L)
+  // Three additional UTF-16 units in each of the three co-held buffer views.
+  assert_eq(emissions[1].1 - second_empty_buffer_quote.val, 18L)
+  assert_true(fenced.val)
   let (receipt, tail) = finish_completed_relation_export(stream).unwrap()
   chunks.write_string(tail)
   assert_eq(chunks.to_string(), "[{\"s\":\"😀\"},{\"s\":\"é\"}]")
@@ -450,6 +535,77 @@ test "checked Result rows reach a bounded canonical consumer in export order" {
     is Err(CanonicalRow),
   )
   assert_true(next_completed_output_export(limited) is Err(Closed))
+  for revoke in [false, true] {
+    let refused = prepare_completed_result_relation_export(
+      source,
+      occurrence,
+      result_view_limits(),
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+      publication_schema_limits(),
+      64,
+    ).unwrap()
+    let result = next_completed_output_export_canonical_row(
+      refused,
+      4,
+      2,
+      8,
+      before_decode=Some(fn(bytes, _, _) {
+        if revoke {
+          cancel_completed_output_export(refused)
+        }
+        bytes <= (if revoke { 13 } else { 12 })
+      }),
+    )
+    if revoke {
+      assert_true(result is Err(Unavailable))
+    } else {
+      assert_true(result is Err(Admission(CaptureLimit)))
+    }
+    assert_true(next_completed_output_export(refused) is Err(Closed))
+  }
+  for revoke in [false, true] {
+    let refused = prepare_completed_result_relation_export(
+      source,
+      occurrence,
+      result_view_limits(),
+      2,
+      stream_value_limits(),
+      row_wire_limits(),
+      { ..row_wire_limits(), max_bytes: 1000, max_nodes: 100, max_depth: 20, },
+      publication_schema_limits(),
+      64,
+    ).unwrap()
+    let reached = Ref(false)
+    let result = next_completed_output_export_canonical_row(
+      refused,
+      4,
+      2,
+      8,
+      before_decode=Some(fn(_, _, _) {
+        reached.val = true
+        true
+      }),
+      before_emit=Some(fn(capacity) {
+        if revoke {
+          cancel_completed_output_export(refused)
+        }
+        execution_capacity_execution_bytes(capacity) <=
+        (if revoke { emissions[0].1 } else { emissions[0].1 - 1L })
+      }),
+    )
+    if revoke {
+      assert_true(result is Err(Unavailable))
+    } else {
+      assert_true(result is Err(Admission(CaptureLimit)))
+    }
+    assert_false(reached.val)
+    assert_eq(@encode.observed_writer_usage(refused.writer).0, 1)
+    assert_true(next_completed_output_export(refused) is Err(Closed))
+  }
+  assert_true(completed_output_available(source))
 }
 
 ///|

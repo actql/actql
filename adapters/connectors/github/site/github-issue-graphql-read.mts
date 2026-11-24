@@ -44,7 +44,8 @@ type ReadFamily = 'Issue' | 'PullRequest';
 type PageOperation = 'Begin' | 'NextRequestJson' | 'Accept' | 'FinishJson' | 'Close';
 type CommentOperation = 'Begin' | 'NextRequestJson' | 'Accept' | 'PageJson' | 'Close';
 type Runtime = Readonly<Record<`github${ReadFamily}PageRead${PageOperation}` |
-  `githubIssueCommentsRead${CommentOperation}` | 'githubIssuesRequestJson' | 'githubPullRequestsRequestJson', Method> &
+  `githubIssueCommentsRead${CommentOperation}` | 'githubIssuesRequestJson' | 'githubPullRequestsRequestJson' |
+  'githubGraphqlOuterCursorHistory' | 'githubRecordGraphqlOuterCursor', Method> &
   Record<'githubGraphqlReadIssueJson' | 'githubRequestHeadersJson' | 'githubResponseHeadersJson' |
     'githubRateLimitBasisJson' | 'githubClassifyFailureJson', Method<string>>>;
 type ReadOptions = Readonly<{
@@ -55,7 +56,8 @@ type ReadOptions = Readonly<{
   consumeObservation?(charge: unknown): unknown;
   consumePage?(rows: readonly Row[], page: number, ticket: Readonly<{charge: unknown}>): unknown;
 }>;
-type Operations = Readonly<Record<'request' | 'begin' | 'next' | 'accept' | 'finish' | 'close', Method>>;
+type Operations = Readonly<Record<'request' | 'begin' | 'next' | 'accept' | 'finish' | 'close', Method> &
+  Partial<Record<'cursorHistory' | 'recordCursor', Method>>>;
 type ResponseEntry = {response: Response; body: string; facts?: Facts};
 type Prefix = Pick<ReadOptions, 'repository' | 'limits' | 'chargePage' | 'consumeObservation' | 'consumePage'> & {
   responses: ResponseEntry[]; pages: unknown[]; credential: Credential; operations: Operations; moon: Runtime;
@@ -146,6 +148,10 @@ async function readGitHubRowsByNode({moon, repository,
     accept: moon[comments ? 'githubIssueCommentsReadAccept' : `github${family as ReadFamily}PageReadAccept` as const],
     finish: moon[comments ? 'githubIssueCommentsReadPageJson' : `github${family as ReadFamily}PageReadFinishJson` as const],
     close: moon[comments ? 'githubIssueCommentsReadClose' : `github${family as ReadFamily}PageReadClose` as const],
+    ...(comments ? {} : {
+      cursorHistory: moon.githubGraphqlOuterCursorHistory,
+      recordCursor: moon.githubRecordGraphqlOuterCursor,
+    }),
   });
   if (!moon || Object.values(operations).some(value => typeof value !== 'function') ||
       typeof moon.githubGraphqlReadIssueJson !== 'function' ||
@@ -232,7 +238,6 @@ async function readGitHubRowsByNode({moon, repository,
   const responseHeaders = JSON.parse(invoke(moon.githubResponseHeadersJson,[]));
   const accepted: Page[] = [];
   const rows: Row[] = [];
-  const cursors = new Set<string>();
   let after: string | undefined;
   let page = 1;
   let pending = true;
@@ -314,6 +319,7 @@ async function readGitHubRowsByNode({moon, repository,
     return {response, charge};
   };
   try {
+    const cursorHistory = comments ? undefined : invoke(operations.cursorHistory!, []);
     if (comments) {
       const original = decoded(invoke(operations.begin,[repository.nodeId,
         repository.databaseId, repository.nameWithOwner, owned.maxBytes,
@@ -434,12 +440,9 @@ async function readGitHubRowsByNode({moon, repository,
         pending = false;
         break;
       }
-      // A cursor seen before (including the one just sent) never advances the
-      // read: the provider would return a page already accepted.
-      if (current.endCursor === after || cursors.has(current.endCursor)) {
+      if (!invoke(operations.recordCursor!, [cursorHistory, current.endCursor])) {
         stopped('GitHubCursorCycle');
       }
-      cursors.add(current.endCursor);
       after = current.endCursor;
       page += 1;
       // An accepted page with no remaining quota is kept; the read stops

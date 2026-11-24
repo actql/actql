@@ -20,6 +20,15 @@ const original = (): CalendarFixture => ({selection: {...calendarSourceSelection
   tableBytes: Buffer.from(calendarSourceArtifact.slice(0, -1)),
   limits: {...calendarSourceArtifactLimits}, maxSelectionWork: 10000});
 
+const calendarCapacity = Object.freeze({});
+const calendarQuote = {
+  clientProgramInstalledCalendarArtifactConstructionCapacity: () => calendarCapacity,
+};
+function constructCalendar<Result>(capacity: () => unknown, project: () => Result): Result {
+  assert.strictEqual(capacity(), calendarCapacity);
+  return project();
+}
+
 test('omitted Calendar installation retains the original environment without enabling a profile', () => {
   const environment = Object.freeze({original: true});
   assert.equal(snapshotInstalledCalendar(undefined), undefined);
@@ -44,13 +53,13 @@ test('Calendar installation snapshots exact original bytes metadata and finite l
   assert(Object.isFrozen(selected.limits));
   const originalEnvironment = {}, admittedEnvironment = {};
   let calls = 0;
-  const moon: Admission = {clientProgramCheckEnvironmentWithCalendarArtifact(...args) {
+  const moon: Admission = {...calendarQuote, clientProgramCheckEnvironmentWithCalendarArtifact(...args) {
     calls += 1; assert.equal(args[0], originalEnvironment);
     assert.deepEqual(Buffer.from(args[1]), bytes);
     assert.deepEqual(args.slice(2), [1000, 100, 8, 1, 0, 10000]);
     return admittedEnvironment;
   }};
-  assert.equal(admitInstalledCalendar(moon, originalEnvironment, selected), admittedEnvironment);
+  assert.equal(admitInstalledCalendar(moon, originalEnvironment, selected, constructCalendar, 12), admittedEnvironment);
   assert.equal(calls, 1);
 });
 
@@ -70,14 +79,48 @@ test('Calendar snapshot rejects incomplete extra and nonfinite installation shap
 test('Calendar semantic refusal remains owned by the original artifact admission API', () => {
   const selected = snapshotInstalledCalendar(original()), environment = {};
   let calls = 0;
-  assert.throws(() => admitInstalledCalendar({clientProgramCheckEnvironmentWithCalendarArtifact(value) {
+  assert.throws(() => admitInstalledCalendar({...calendarQuote, clientProgramCheckEnvironmentWithCalendarArtifact(value) {
     calls += 1; assert.equal(value, environment); return undefined;
-  }}, environment, selected), {name: 'TypeError', message: 'InvalidInstalledCalendar'});
+  }}, environment, selected, constructCalendar, 12), {name: 'TypeError', message: 'InvalidInstalledCalendar'});
   assert.equal(calls, 1);
-  assert.throws(() => admitInstalledCalendar({}, environment, selected),
+  assert.throws(() => admitInstalledCalendar({}, environment, selected, constructCalendar, 12),
     {name: 'TypeError', message: 'InvalidInstalledCalendar'});
-  assert.throws(() => admitInstalledCalendar({}, environment, {...selected}),
+  assert.throws(() => admitInstalledCalendar({}, environment, {...selected}, constructCalendar, 12),
     {name: 'TypeError', message: 'InvalidInstalledCalendar'});
+});
+
+test('Calendar admission reserves the exact artifact before returning the selected checker', () => {
+  const input = original(), selected = snapshotInstalledCalendar(input);
+  const environment = Object.freeze({}), admitted = Object.freeze({});
+  const quote = Object.freeze({});
+  const trace: string[] = [];
+  const moon: Admission = {
+    clientProgramInstalledCalendarArtifactConstructionCapacity(...bounds) {
+      assert.deepEqual(bounds, [input.tableBytes.length, 100, 8, 1, 0, 12]);
+      trace.push('quote');
+      return quote;
+    },
+    clientProgramCheckEnvironmentWithCalendarArtifact(before, bytes) {
+      assert.strictEqual(before, environment);
+      assert.deepEqual(Buffer.from(bytes), input.tableBytes);
+      trace.push('admit');
+      return admitted;
+    },
+  };
+  assert.throws(() => Reflect.apply(admitInstalledCalendar, undefined, [moon, environment, selected]),
+    {name: 'TypeError', message: 'InvalidInstalledCalendar'});
+  assert.deepEqual(trace, []);
+  const failure = new Error('insufficient capacity');
+  assert.throws(() => admitInstalledCalendar(moon, environment, selected, capacity => {
+    assert.strictEqual(capacity(), quote);
+    throw failure;
+  }, 12), error => error === failure);
+  assert.deepEqual(trace, ['quote']);
+  assert.strictEqual(admitInstalledCalendar(moon, environment, selected, (capacity, project) => {
+    assert.strictEqual(capacity(), quote);
+    return project();
+  }, 12), admitted);
+  assert.deepEqual(trace, ['quote', 'quote', 'admit']);
 });
 
 test('Calendar installation identity binds actual bytes and budgets without claiming semantic validity', () => {
@@ -144,11 +187,11 @@ test('Calendar bytes use their actual finite extent without invoking custom iter
   const selected = snapshotInstalledCalendar(value);
   value.tableBytes.fill(0);
   let calls = 0;
-  admitInstalledCalendar({clientProgramCheckEnvironmentWithCalendarArtifact(environment, bytes) {
+  admitInstalledCalendar({...calendarQuote, clientProgramCheckEnvironmentWithCalendarArtifact(environment, bytes) {
     calls++;
     assert.deepEqual(Buffer.from(bytes), expected);
     return environment;
-  }}, {}, selected);
+  }}, {}, selected, constructCalendar, 12);
   assert.equal(calls, 1);
   assert.equal(iterations, 0);
   assert.equal(lengthReads, 0);

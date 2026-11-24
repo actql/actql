@@ -623,7 +623,7 @@ fn run_original_source_completion(
       )
     }
     let transport = lookup.native_transport.unwrap()
-    let (bytes, nodes, _) = @publication.publication_contract_wire_usage(
+    let (bytes, nodes, depth) = @publication.publication_contract_wire_usage(
       transport,
     ).unwrap()
     // Independent tree counting checks the original encoder receipt. The
@@ -646,7 +646,11 @@ fn run_original_source_completion(
         .length()
     }
     assert_true(exact_references > 0)
-    let quotes : Array[(Int, Int)] = []
+    let quotes : Array[(Int, Int, Int)] = []
+    let emissions : Array[(Int, Int)] = []
+    let tables : Array[(Int, Int64, Int64)] = []
+    let measurements : Array[(Int, Int)] = []
+    let measurements_before_table = Ref(0)
     let collected = client_keyed_lookup_native_dependency_bodies(
       lookup,
       retention,
@@ -659,17 +663,140 @@ fn run_original_source_completion(
       100000,
       100,
       physical_source=lookup.native_sources.unwrap().physical_source,
-      before_body=Some((b, n, _) => {
-        quotes.push((b, n))
+      before_body=Some((b, n, d) => {
+        quotes.push((b, n, d))
+        true
+      }),
+      before_emit=Some((b, n, _, _) => {
+        emissions.push((b, n))
+        true
+      }),
+      before_tables=Some((entries, key_units, wire_units) => {
+        tables.push((entries, key_units, wire_units))
+        true
+      }),
+      before_measure=Some((keys, depth) => {
+        if tables.length() <= 1 {
+          measurements_before_table.val += 1
+        }
+        measurements.push((keys, depth))
         true
       }),
     ).unwrap()
-    assert_true(quotes.contains((bytes, nodes)))
+    assert_true(!emissions.is_empty())
+    assert_eq(measurements_before_table.val, 0)
+    assert_true(measurements.contains((7, 1)))
+    assert_true(measurements.contains((5, 2)))
+    assert_true(measurements.contains((6, 1)))
+    assert_true(measurements.all(quote => quote.0 <= 7))
+    assert_true(quotes.contains((bytes, nodes, depth)))
     assert_eq(
       collected.map(@publication.captured_effect_dependency_body_cid),
       bodies.map(@publication.captured_effect_dependency_body_cid),
     )
+    assert_eq(
+      collected.map(@publication.captured_effect_dependency_body_json),
+      bodies.map(@publication.captured_effect_dependency_body_json),
+    )
+    assert_eq(tables[0], (0, 0L, 0L))
+    let mut key_units = 0L
+    for index, body in collected {
+      key_units += @publication.captured_effect_dependency_body_kind(body)
+        .length()
+        .to_int64() +
+        @publication.captured_effect_dependency_body_cid(body)
+        .length()
+        .to_int64() +
+        1L
+      assert_true(
+        tables.any(quote => quote.0 == index + 1 && quote.1 == key_units),
+      )
+    }
     let before_refusal = @resources.ledger_usage(ledger)
+    let growth_refusals = Ref(0)
+    assert_true(
+      client_keyed_lookup_native_dependency_bodies(
+        lookup,
+        retention,
+        {
+          max_entries: 4096,
+          max_total_bytes: 16777216,
+          max_references: exact_references,
+          max_depth: 100,
+        },
+        100000,
+        100,
+        physical_source=lookup.native_sources.unwrap().physical_source,
+        before_tables=Some((entries, _, _) => {
+          if entries == 0 {
+            return true
+          }
+          growth_refusals.val += 1
+          false
+        }),
+      )
+      is Err(ConstructionRefused),
+    )
+    assert_eq(growth_refusals.val, 1)
+    let measurement_refusals = Ref(0)
+    let emission_after_refusal = Ref(false)
+    assert_true(
+      client_keyed_lookup_native_dependency_bodies(
+        lookup,
+        retention,
+        {
+          max_entries: 4096,
+          max_total_bytes: 16777216,
+          max_references: exact_references,
+          max_depth: 100,
+        },
+        100000,
+        100,
+        physical_source=lookup.native_sources.unwrap().physical_source,
+        before_tables=Some((_, _, _) => true),
+        before_measure=Some((_, _) => {
+          measurement_refusals.val += 1
+          false
+        }),
+        before_emit=Some((_, _, _, _) => {
+          emission_after_refusal.val = true
+          true
+        }),
+      )
+      is Err(ConstructionRefused),
+    )
+    assert_eq(measurement_refusals.val, 1)
+    assert_false(emission_after_refusal.val)
+    let attempted_emissions = Ref(0)
+    let late_admissions = Ref(0)
+    assert_true(
+      client_keyed_lookup_native_dependency_bodies(
+        lookup,
+        retention,
+        {
+          max_entries: 4096,
+          max_total_bytes: 16777216,
+          max_references: exact_references,
+          max_depth: 100,
+        },
+        100000,
+        100,
+        physical_source=lookup.native_sources.unwrap().physical_source,
+        before_body=Some((_, _, _) => {
+          if attempted_emissions.val > 0 {
+            late_admissions.val += 1
+          }
+          true
+        }),
+        before_emit=Some((_, _, _, _) => {
+          attempted_emissions.val += 1
+          false
+        }),
+      )
+      is Err(ConstructionRefused),
+    )
+    assert_eq(attempted_emissions.val, 1)
+    assert_eq(late_admissions.val, 0)
     assert_true(
       client_keyed_lookup_native_dependency_bodies(
         lookup,

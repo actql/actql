@@ -1100,6 +1100,10 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 22.22.0
+      - name: Install verification tooling without runtime preparation
+        run: |
+          npm ci --ignore-scripts
+          npm run build:typescript
       - name: Download original Node operation reports
         if: always()
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0

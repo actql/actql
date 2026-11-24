@@ -93,6 +93,8 @@ pub fn admit_model_source_observation(RunEvidenceValue, RunEvidenceValue, String
 
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
 
+pub fn admit_prepared_effect_preview_dispatch(PreparedEffectPreviewDispatch) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
+
 pub fn admit_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
 
 pub fn admit_publication_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
@@ -119,13 +121,19 @@ pub fn admit_source_effect_dependency_body(String, String, Int, Int, Int) -> Res
 
 pub fn advance_content_bytes(ContentByteEncoder, Int) -> ContentBytePoll
 
+pub fn append_unique_result_retention_evidence(Array[PublicationContract], PublicationContract) -> Bool
+
 pub fn author_effect_preview_semantic_wire(String, String, String, Int, Int, Int) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
+
+pub fn authored_effect_preview_identity(AuthoredEffectPreview) -> EffectPreviewIdentity
 
 pub fn begin_result_access_progress() -> ResultAccessProgress
 
 pub fn begin_result_delivery(ResultDeliverySerializer) -> Result[String, DeliverySerializationIssue]
 
 pub fn begin_result_material_holds(String, String) -> Result[ResultMaterialHolds, ResultMaterialHoldIssue]
+
+pub fn bind_aligned_prepared_effect_dependency_sources(PreparedCapturedEffectDependencyInventory, Array[CapturedLocalEffectSourceEvidence], Int, Int, Int) -> Result[PreparedCapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
 
 pub fn bind_content_byte_input(ContentByteEncoder, Int, () -> Bool) -> Result[Unit, ContentSerializationIssue]
 
@@ -199,6 +207,8 @@ pub fn captured_content_reference_wire(CapturedContentReference) -> String
 
 pub fn captured_effect_context_dependency_roots_match(@canonical_json.CanonicalValue, CapturedEffectDependencyInventory, Int, Int, Int) -> Bool
 
+pub fn captured_effect_dependency_body_bytes(CapturedEffectDependencyBody) -> Int
+
 pub fn captured_effect_dependency_body_cid(CapturedEffectDependencyBody) -> String
 
 pub fn captured_effect_dependency_body_field_count(CapturedEffectDependencyBody) -> Int?
@@ -224,6 +234,8 @@ pub fn captured_effect_dependency_inventory_count(CapturedEffectDependencyInvent
 pub fn captured_effect_dependency_inventory_json(CapturedEffectDependencyInventory) -> String
 
 pub fn captured_effect_dependency_inventory_matches_roots(CapturedEffectDependencyInventory, Array[CapturedEffectDependencyBody], work? : ((Int) -> Bool)?) -> Bool
+
+pub fn captured_effect_dependency_relation_rows(CapturedEffectDependencyBody, String, Int, Int, Int) -> @canonical_json.FrozenArray[@canonical_json.CanonicalValue]?
 
 pub fn captured_effect_dependency_sources_match(Array[CapturedLocalEffectSourceEvidence], CapturedEffectDependencyInventory, Int, Int, Int) -> Bool
 
@@ -332,6 +344,8 @@ pub fn checked_publication_inventory_task(CheckedPublicationInventory, Int) -> R
 pub fn cold_static_plan_validation_construction(String, Bool, Int, Int64, Int, Int, Int) -> StaticPlanValidationConstruction?
 
 pub fn complete_effect_preview_dispatch_keys(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[String, EffectPreviewIdentityIssue]
+
+pub fn complete_effect_preview_dispatch_keys_with_identity(String, Array[Array[String]], String, String, Int, Int, Int) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
 
 pub fn computation_evidence_check_fixture_phase(ComputationEvidenceCheck) -> String
 
@@ -501,6 +515,8 @@ pub fn effect_preview_row_states_not_applicable(EffectPreviewIdentity, Int, Int)
 
 pub fn effect_preview_run_identity(EffectPreviewIdentity) -> String
 
+pub fn effect_preview_semantic_authoring_construction_inventory(Int, Int, Int, Int, Int, Int) -> EffectPreviewIdentityConstructionInventory?
+
 pub fn effect_preview_semantic_identity(EffectPreviewIdentity) -> String
 
 pub fn effect_review_original_construction_inventory(EffectPreviewIdentity, String, Int, Int, Int, Int, Int, Int) -> (EffectPreviewIdentityConstructionInventory, EffectPreviewIdentityConstructionInventory)?
@@ -511,6 +527,8 @@ pub fn effect_review_projection_construction_inventory(String, Int, Int, Int, In
 
 pub fn effect_row_outcome_receipt_dispatch_identity(PublicationContract) -> String?
 
+pub fn effect_row_outcome_receipt_member_identity(PublicationContract) -> String?
+
 pub fn effect_row_outcome_receipt_row_identity(PublicationContract) -> String?
 
 pub fn effect_row_outcome_receipt_terminal_state(PublicationContract) -> String?
@@ -520,6 +538,8 @@ pub fn effect_set_apply_receipt_all_unattempted(EffectSetApplyReceiptEvidence) -
 pub fn effect_set_apply_receipt_check_limits(EffectSetApplyReceiptEvidence, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
 
 pub fn effect_set_apply_receipt_disposition(EffectSetApplyReceiptEvidence) -> Int
+
+pub fn effect_set_apply_receipt_matches_members(EffectSetApplyReceiptEvidence, EffectPreviewIdentity, Array[PublicationContract]) -> Bool
 
 pub fn effect_set_apply_receipt_run_status(EffectSetApplyReceiptEvidence) -> String
 
@@ -637,7 +657,7 @@ pub fn issue_durable_result_binding_from_snapshot(CapturedResultSnapshot, Public
 
 pub fn issue_effect_free_captured_run(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> Result[PublicationContract, CapturedRunIssuanceIssue]
 
-pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int, content_generations? : Array[BoundContentGeneration]) -> Result[PublicationContract, RunReceiptIssuanceIssue]
+pub fn issue_effect_free_run_receipt(RunPublicationAdmission, PublicationContract, PublicationContract, RunEvidenceValue, Array[PublicationContract], Array[PublicationContract], PublicationContract, RunEvidenceValue, Array[String], Array[String], Array[RunEvidenceValue], Array[RunEvidenceValue], Array[String], Int, Int, Int, content_generations? : Array[BoundContentGeneration], funding? : ((Int64) -> Bool, (Int, Int, Int) -> Bool)?) -> Result[PublicationContract, RunReceiptIssuanceIssue]
 
 pub fn issue_effect_free_unpublished_run_state_wire(String, String, Array[String], Bool, Bool, Int, Int, Int, cancelled_before_start? : Bool, observed_terminal_outcome? : RunOutcomeStatus?, execution_unknown? : Bool) -> Result[String, RunStateIssue]
 
@@ -671,7 +691,7 @@ pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract,
 
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
-pub fn issue_local_sdk_result_read_selection(String, String) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
+pub fn issue_local_sdk_result_read_selection(String, String, scope? : LocalSDKResultReadScope) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
 
 pub fn issue_lookup_request_key_set(String, String, Array[(String, @value_contract.Contract)], Array[Array[@value_admission.CheckedValue]], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
@@ -701,7 +721,7 @@ pub fn issue_publication_request(PublicationContract, Array[PublicationContract]
 
 pub fn issue_result_delivery_receipt(PublicationContract, PublicationContract, PublicationContract, PublicationContract, Int, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
-pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int) -> Result[PublicationContract, ResultManifestIssuanceIssue]
+pub fn issue_result_manifest(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Int, Int, Int, funding? : ((Int) -> Bool, (Int, Int, Int) -> Bool)?) -> Result[PublicationContract, ResultManifestIssuanceIssue]
 
 pub fn issue_result_occurrence_evidence(PublicationContract, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
@@ -729,11 +749,15 @@ pub fn local_model_observation_matches_input(CapturedEffectDependencyBody, Strin
 
 pub fn local_result_metadata_construction_geometry(String, String, String, String, String, Array[String], String, String, String, String, String, Int, Int, Int, Int) -> Result[Array[@encode_core.EncodingConstructionGeometry], ResultEvidenceIssuanceIssue]
 
+pub fn local_sdk_result_read_selection_accepts_name(LocalSDKResultReadSelection, String) -> Bool
+
 pub fn local_sdk_result_read_selection_cid(LocalSDKResultReadSelection) -> String
 
 pub fn local_sdk_result_read_selection_data_policy_cid(LocalSDKResultReadSelection) -> String
 
-pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -> (String, String, String, String, String, Int, Int)
+pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -> (String, String, String, String?, String, Int, Int)
+
+pub fn local_sdk_result_read_selection_uses_installed_result_authority(LocalSDKResultReadSelection) -> Bool
 
 pub fn local_sdk_result_read_selection_wire(LocalSDKResultReadSelection) -> String
 
@@ -801,11 +825,15 @@ pub fn model_original_resource_origin_field(ModelOriginalResourceDocument, Strin
 
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?
 
+pub fn model_provider_binding_configuration_cids(RunEvidenceValue) -> (String, String, String)?
+
 pub fn model_raw_capture_policy_originals(BoundModelRawCapturePolicy) -> Array[CapturedEffectDependencyBody]
 
 pub fn model_raw_capture_policy_value(BoundModelRawCapturePolicy) -> RunEvidenceValue
 
 pub fn model_raw_response_matches_selection(BoundModelRawResponse, BoundModelRawCapturePolicy, BoundModelInvocationScope) -> Bool
+
+pub fn model_raw_response_matches_store(BoundModelRawResponse, String) -> Bool
 
 pub fn model_raw_response_profile_cid(BoundModelRawResponse) -> String
 
@@ -851,9 +879,11 @@ pub fn parse_effect_preview_shape(String, Int, Int, Int) -> Result[@canonical_js
 
 pub fn parse_interactive_run_control_shape(String, String, Int, Int, Int) -> Result[@canonical_json.CanonicalValue, PublicationContractIssue]
 
+pub fn prepare_authored_effect_preview(String, String, String, Int, Int, Int) -> Result[AuthoredEffectPreview, EffectPreviewIdentityIssue]
+
 pub fn prepare_captured_content_reference(GeneratedContentBinding, String, String, Int, @value_admission.ReferenceLimits) -> Result[CapturedContentReference, GeneratedContentReferenceIssue]
 
-pub fn prepare_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, Int, (Int) -> Bool) -> Result[PreparedCapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
+pub fn prepare_captured_effect_dependency_inventory(Array[CapturedEffectDependencyBody], Array[CapturedEffectDependencyBody], Int, Int, (Int) -> Bool, bounded_limits? : CapturedEffectDependencyLimits?) -> Result[PreparedCapturedEffectDependencyInventory, CapturedEffectDependencyIssue]
 
 pub fn prepare_checked_publication_inventory(String, Array[String], Array[Int]) -> Result[CheckedPublicationInventory, PublicationInventoryIssue]
 
@@ -883,6 +913,8 @@ pub fn prepare_effect_local_operation(EffectPreviewIdentity, Int, Int, String, S
 
 pub fn prepare_effect_local_operation_receipt(EffectLocalOperation, EffectLocalOperationResult, String, Int, Int, Int) -> Result[EffectLocalOperationReceipt, EffectRowOutcomeIssue]
 
+pub fn prepare_effect_preview_dispatch_completion(AuthoredEffectPreview, Array[Array[String]]) -> Result[PreparedEffectPreviewDispatch, EffectPreviewIdentityIssue]
+
 pub fn prepare_existing_delivery_attempt(PublicationContract?) -> ExistingDeliveryAttemptAction
 
 pub fn prepare_generated_content_reference(ContentByteEncoder, GeneratedContentBinding, @value_admission.ReferenceLimits) -> Result[GeneratedContentReference, GeneratedContentReferenceIssue]
@@ -899,7 +931,7 @@ pub fn prepare_original_effect_free_chain_validation(PublicationContract, Public
 
 pub fn prepare_original_effect_free_commit_validation(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, retained? : CapturedRunIssuancePreparation?) -> PublicationValidationPlan?
 
-pub fn prepare_original_effectful_capture_plan(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[String], Array[String], CapturedEffectDependencyInventory, @encode_core.EncodingConstructionGeometry, Array[BoundContentGeneration], Int, Int, Int, (Int) -> Bool) -> CapturedRunConstructionPlan?
+pub fn prepare_original_effectful_capture_plan(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, Array[CapturedResultSnapshot], Array[CapturedEffectSourceArtifact], Array[CapturedLocalEffectSourceEvidence], Array[PendingSourceStateAdvance], RunEvidenceValue, Array[RunEvidenceValue], EffectPreviewIdentity, Array[String], Array[String], CapturedEffectDependencyInventory, @encode_core.EncodingConstructionGeometry, Array[BoundContentGeneration], Int, Int, Int, (Int) -> Bool, original_limits? : (Int, Int, Int, Int)?) -> CapturedRunConstructionPlan?
 
 pub fn prepare_publication_attempt_step(PublicationContract?, Bool, Bool) -> PublicationAttemptRuntimeAction
 
@@ -951,6 +983,8 @@ pub fn prepared_captured_effect_run_schemas(PreparedCapturedEffectRun) -> Array[
 
 pub fn prepared_captured_effect_run_sources(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, PublicationContract, PublicationContract, PreparedCapturedEffectRun, EffectPreviewIdentity, Array[Int], Array[PublicationContract], String, Int, Int, Int) -> Result[Array[CapturedEffectSourceArtifact], RunEvidenceChainIssue]
 
+pub fn prepared_effect_preview_dispatch_usage(PreparedEffectPreviewDispatch) -> (Int, Int, Int)
+
 pub fn project_committed_result_read(PublicationContract, PublicationContract, String, Array[PublicationContract]) -> Result[CommittedResultRead, DeliveryIssuanceIssue]
 
 pub fn project_current_interactive_run_view(PublicationContract, RunEvidenceValue, RunEvidenceValue, String, String, String, Int, Int, Int, static_plan_installed? : Bool) -> Result[String, RunControlReadIssue]
@@ -968,6 +1002,10 @@ pub fn project_public_index_read(PublicationContract) -> Result[PublicIndexRead,
 pub fn project_publication_request_context(PublicationContract) -> Result[PublicationRequestContext, PublicationPublisherIssue]
 
 pub fn project_publication_snapshot(PublicationContract?, PublicationIndexObservation) -> Result[PublicationSnapshot, PublicationSnapshotIssue]
+
+pub fn protocol_wire_validation_construction_extent(Int64) -> @decode_shape.CollectionConstructionExtent?
+
+pub fn public_index_committed_at(PublicationContract) -> String?
 
 pub fn public_index_entry_construction_geometry(PublicationContract, PublicationContract, PublicationContract, PublicationContract, PublicationContract, Array[PublicationContract], PublicationContract, PublicationContract, String, Int, Int, Int) -> Result[@encode_core.EncodingConstructionGeometry, PublicationCommitIssuanceIssue]
 
@@ -1022,6 +1060,8 @@ pub fn publication_preflight_valid(RunPublicationAdmission, PublicationContract,
 pub fn publication_prepared_release_action_code(PublicationPreparedReleaseAction) -> Int
 
 pub fn publication_record_allows_commit(PublicationContract) -> Bool
+
+pub fn publication_request_requested_at(PublicationContract) -> String?
 
 pub fn publication_setup_action_code(PublicationSetupAction) -> Int
 
@@ -1235,6 +1275,8 @@ pub fn seal_run_evidence_value(String, String, Int, Int, Int) -> Result[RunEvide
 
 pub fn source_effect_catalog_dependencies(RunEvidenceValue) -> Result[Array[(String, String)], CapturedEffectDependencyIssue]
 
+pub fn source_free_model_invocation_matches(RunEvidenceValue, RunEvidenceValue, PublicationContract, Array[String], String) -> Bool
+
 pub fn source_unit_metadata_construction_geometry(Array[RunEvidenceValue], Array[RunEvidenceValue], Array[Int], PublicationContract, Int, Int, Int, include_union? : Bool) -> Result[Array[(String, @encode_core.EncodingConstructionGeometry)], AcquisitionRelationIssue]
 
 pub fn start_captured_result_snapshot(PublicationContract, PublicationContract, String, Array[String], Int, Int, Int, Int) -> Result[CapturedResultSnapshotPreparation, CapturedRunIssuanceIssue]
@@ -1327,6 +1369,8 @@ pub fn validate_run_publication_chain(PublicationContract, PublicationContract, 
 
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
 
+pub fn verify_model_attempt_reported_raw(BoundModelAttemptEvidence, BoundModelInvocationScope, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]
+
 pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapture]) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn verify_model_slot_attachment_admission(RunEvidenceValue, RunEvidenceValue, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]
@@ -1351,6 +1395,8 @@ pub(all) enum AcquisitionRelationIssue {
   Encoding
   Contract(PublicationContractIssue)
 } derive(Eq, @debug.Debug)
+
+type AuthoredEffectPreview
 
 type BoundContentGeneration
 
@@ -1729,6 +1775,7 @@ pub(all) enum EffectApplyReceiptBindingIssue {
 type EffectCaptureHoldingBinding
 
 pub struct EffectFileOperation {
+  deleting : Bool
   effect_preview_cid : String
   member_preview_cid : String
   row_preview_cid : String
@@ -2034,6 +2081,11 @@ pub(all) enum LocalSDKReadSelectionIssue {
   Encoding
 } derive(Eq, @debug.Debug)
 
+pub(all) enum LocalSDKResultReadScope {
+  RequestedOriginal
+  WorkerAnswer
+} derive(Eq, @debug.Debug)
+
 type LocalSDKResultReadSelection derive(Eq, @debug.Debug)
 
 pub struct ModelCaptureBundleRead {
@@ -2128,6 +2180,8 @@ type PendingSourceStateAdvance
 type PreparedCapturedEffectDependencyInventory
 
 type PreparedCapturedEffectRun
+
+type PreparedEffectPreviewDispatch
 
 pub(all) struct PublicIndexRead {
   namespace_id : String

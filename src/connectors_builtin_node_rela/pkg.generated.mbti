@@ -1081,6 +1081,8 @@ pub fn client_program_infer_run_materials_graphs(@run_publication_host.ClientTas
 
 pub fn client_program_infer_run_materials_prepared(@run_publication_host.ClientTaskRunMaterials) -> @run_publication_host.PreparedClientProgram
 
+pub fn client_program_installed_calendar_artifact_construction_capacity(Int, Int, Int, Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_installed_chat_configuration_matches(@run_publication.RunEvidenceValue, String, String, String, String, String) -> Bool
 
 pub fn client_program_installed_duckdb_capture_capacity(@actql/actql/connectors/duckdb/host.CaptureConfiguration) -> @client_local_host.ClientInstalledCaptureCapacity?
@@ -1427,13 +1429,21 @@ pub fn client_program_kintone_delete_body(@actql/actql/connectors/kintone/catalo
 
 pub fn client_program_kintone_delete_count(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> Int
 
+pub fn client_program_kintone_delete_form_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeleteMapping, Int, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_delete_mapping_body(@actql/actql/connectors/kintone/host.RecordDeleteMapping) -> String
+
+pub fn client_program_kintone_delete_mapping_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeclaration, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_delete_mapping_matches_declaration(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Bool
 
 pub fn client_program_kintone_delete_mapping_matches_request(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.RecordDeleteRequest) -> Bool
 
+pub fn client_program_kintone_delete_mapping_recheck_form(@actql/actql/connectors/kintone/host.RecordDeleteMapping, Bytes, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> Result[Unit, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
 pub fn client_program_kintone_delete_observation_body(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Int, Int, Int) -> Result[String, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_observed_outcome(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.RecordDeleteRequest, @actql/actql/connectors/kintone/host.RecordDeletePreview, Int, Bytes, @run_publication.EffectPreviewIdentity, Int, Int, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeletePreviewOutcome, @actql/actql/connectors/kintone/host.RecordDeleteOutcomeIssue]
 
 pub fn client_program_kintone_delete_preview_before(@actql/actql/connectors/kintone/host.RecordDeletePreview) -> String
 
@@ -1461,7 +1471,17 @@ pub fn client_program_kintone_delete_request(Array[@actql/actql/connectors/kinto
 
 pub fn client_program_kintone_delete_response(@actql/actql/connectors/kintone/catalog.RecordDeleteRequest, Int, Bytes, Int, Int, Int) -> Result[@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
 
+pub fn client_program_kintone_delete_response_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeleteMapping, Int, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_delete_response_request(@actql/actql/connectors/kintone/catalog.RecordDeleteAcknowledgement) -> @actql/actql/connectors/kintone/catalog.RecordDeleteRequest
+
+pub fn client_program_kintone_delete_target_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeleteMapping, Int, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_delete_target_read_body(@actql/actql/connectors/kintone/host.RecordDeleteMapping, String, Int, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[String, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_delete_target_read_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeleteMapping, Int, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_finalize_key_upsert_request(@actql/actql/connectors/kintone/host.RecordKeyUpsertProposal, @actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/host.RecordKeyUpsertExecutionIssue]
 
 pub fn client_program_kintone_finalize_update_request(@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordUpdateRequest, @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
 
@@ -1470,6 +1490,8 @@ pub fn client_program_kintone_form_limits(Int, Int, Int, Int, Int) -> @actql/act
 pub fn client_program_kintone_form_request_body(@actql/actql/connectors/kintone/host.PreparedRecordRead, Int) -> Result[String, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_key_upsert_before(@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/host.RecordReadIssue]
+
+pub fn client_program_kintone_key_upsert_before_construction_capacity(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, Int, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_key_upsert_before_identity(@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore) -> String
 
@@ -1485,6 +1507,18 @@ pub fn client_program_kintone_key_upsert_before_wire(@actql/actql/connectors/kin
 
 pub fn client_program_kintone_key_upsert_create_request(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest) -> @actql/actql/connectors/kintone/catalog.RecordCreateRequest?
 
+pub fn client_program_kintone_key_upsert_execution_matches(@actql/actql/connectors/kintone/host.RecordKeyUpsertProposal, @actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest) -> Bool
+
+pub fn client_program_kintone_key_upsert_finalization_construction_capacity(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_key_upsert_form_construction_capacity(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, Int, @actql/actql/connectors/kintone/catalog.FormFieldLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_key_upsert_installation_construction_capacity(Int, Int, Int) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_key_upsert_mapping_construction_capacity(@actql/actql/connectors/kintone/host.RecordDeclaration, String, Int, Int64, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_key_upsert_mapping_material(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, @actql/actql/connectors/kintone/host.RecordDeclaration) -> Result[(String, String, String, String, String, String), @client_row_source_host.RowMappingIssue]
+
 pub fn client_program_kintone_key_upsert_observed_request(@actql/actql/connectors/kintone/host.RecordDeclaration, @actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/catalog.RecordWriteValues, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertIssue]
 
 pub fn client_program_kintone_key_upsert_outcome(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertEffectOutcome, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
@@ -1495,9 +1529,25 @@ pub fn client_program_kintone_key_upsert_outcome_uses_request(@actql/actql/conne
 
 pub fn client_program_kintone_key_upsert_outcome_wire(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertEffectOutcome) -> String
 
+pub fn client_program_kintone_key_upsert_physical_request(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest) -> Result[(String, String), @actql/actql/connectors/kintone/host.RecordKeyUpsertExecutionIssue]
+
+pub fn client_program_kintone_key_upsert_proposal_before(@actql/actql/connectors/kintone/host.RecordKeyUpsertProposal, @actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/host.RecordKeyUpsertExecutionIssue]
+
+pub fn client_program_kintone_key_upsert_proposal_construction_capacity(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits, @actql/actql/connectors/kintone/catalog.RecordLookupLimits) -> @execution_relation.ExecutionCapacity?
+
+pub fn client_program_kintone_key_upsert_proposal_lookup(@actql/actql/connectors/kintone/host.RecordKeyUpsertProposal) -> @actql/actql/connectors/kintone/catalog.RecordLookupRequest
+
+pub fn client_program_kintone_key_upsert_proposal_value_wire(@actql/actql/connectors/kintone/host.RecordKeyUpsertProposal) -> String
+
+pub fn client_program_kintone_key_upsert_recipe_capacities(Array[@execution_relation.ExecutionCapacity], Array[Int], @execution_relation.ExecutionCapacity?, Array[Int], Int64, Int, Int, Int) -> Result[Array[@execution_relation.ExecutionCapacity], @client_local_host.ClientInstalledManagedRunIssue]
+
+pub fn client_program_kintone_key_upsert_recovery_construction_capacity(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, Int, Int, @actql/actql/connectors/kintone/catalog.RecordLookupLimits, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_kintone_key_upsert_request(@actql/actql/connectors/kintone/catalog.RecordLookupObservation, @actql/actql/connectors/kintone/catalog.RecordWriteValues, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertIssue]
 
 pub fn client_program_kintone_key_upsert_response(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest, Int, Bytes, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordKeyUpsertAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordMutationIssue]
+
+pub fn client_program_kintone_key_upsert_response_construction_capacity(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, Int, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_kintone_key_upsert_response_uses_request(@actql/actql/connectors/kintone/catalog.RecordKeyUpsertAcknowledgement, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest) -> Bool
 
@@ -1565,6 +1615,12 @@ pub fn client_program_kintone_prepare_delete_mapping(@actql/actql/connectors/kin
 
 pub fn client_program_kintone_prepare_delete_preview(@actql/actql/connectors/kintone/host.RecordDeleteMapping, @actql/actql/connectors/kintone/catalog.OriginalRecordTarget, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordDeletePreview, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
+pub fn client_program_kintone_prepare_delete_target_read(@actql/actql/connectors/kintone/host.RecordDeleteMapping, String, Bytes, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[(@actql/actql/connectors/kintone/host.RecordDeletePreview, @actql/actql/connectors/kintone/catalog.RecordDeleteRequest), @actql/actql/connectors/kintone/host.RecordDeleteTargetReadIssue]
+
+pub fn client_program_kintone_prepare_key_upsert_mapping(@actql/actql/connectors/kintone/host.RecordDeclaration, String, String, Array[@client_row_source_host.RowMappingSource], @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, @client_row_source_host.RowMappingIssue]
+
+pub fn client_program_kintone_prepare_key_upsert_proposal(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, String, Bytes, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordLookupLimits) -> Result[@actql/actql/connectors/kintone/host.RecordKeyUpsertProposal, @actql/actql/connectors/kintone/host.RecordKeyUpsertExecutionIssue]
+
 pub fn client_program_kintone_prepare_read(@actql/actql/connectors/kintone/host.RecordDeclaration, @query_planning.QueryRequirement, String, String) -> Result[@actql/actql/connectors/kintone/host.PreparedRecordRead, @actql/actql/connectors/kintone/host.RecordReadIssue]
 
 pub fn client_program_kintone_prepare_update_mapping(@actql/actql/connectors/kintone/host.RecordDeclaration, String, Array[@client_row_source_host.RowMappingSource], String, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/kintone/host.RecordUpdateMapping, @client_row_source_host.RowMappingIssue]
@@ -1592,6 +1648,8 @@ pub fn client_program_kintone_recheck_read_form(@actql/actql/connectors/kintone/
 pub fn client_program_kintone_record_declaration(@actql/actql/connectors/kintone/host.RecordDeclaration) -> @client_row_source_host.RowDeclaration
 
 pub fn client_program_kintone_restore_create_execution_proposal(@actql/actql/connectors/kintone/host.RecordCreateMapping, Bytes, String, Int, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[@actql/actql/connectors/kintone/catalog.RecordCreateRequest, @actql/actql/connectors/kintone/host.RecordCreateExecutionIssue]
+
+pub fn client_program_kintone_restore_key_upsert_execution(@actql/actql/connectors/kintone/host.RecordKeyUpsertMapping, String, Bytes, Bytes, String, String, Int, @actql/actql/connectors/kintone/catalog.RecordLookupLimits, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[(@actql/actql/connectors/kintone/host.RecordKeyUpsertProposal, @actql/actql/connectors/kintone/host.RecordKeyUpsertBefore, @actql/actql/connectors/kintone/catalog.RecordKeyUpsertRequest), @actql/actql/connectors/kintone/host.RecordKeyUpsertExecutionIssue]
 
 pub fn client_program_kintone_restore_update_execution(@actql/actql/connectors/kintone/host.RecordUpdateMapping, String, Bytes, Bytes, String, Int, @actql/actql/connectors/kintone/catalog.RecordPageLimits, @actql/actql/connectors/kintone/catalog.RecordValueLimits, @actql/actql/connectors/kintone/catalog.RecordWriteLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits, @actql/actql/connectors/kintone/catalog.RecordMutationLimits) -> Result[(@actql/actql/connectors/kintone/host.RecordUpdateProposal, @actql/actql/connectors/kintone/host.RecordUpdatePreview, @actql/actql/connectors/kintone/catalog.RecordUpdateRequest), @actql/actql/connectors/kintone/host.RecordUpdateExecutionIssue]
 
@@ -2239,6 +2297,8 @@ pub fn client_program_relation_document_usage(@client_row_source_host.RelationDo
 
 pub fn client_program_relation_observe_target(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowDeclaration, String) -> Result[@client_row_source_host.RelationTargetRow, @client_row_source_host.RowSourceIssue]
 
+pub fn client_program_relation_prepare_target_delete(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
+
 pub fn client_program_relation_prepare_target_update(@client_row_source_host.RelationTargetDocument, @client_row_source_host.RelationTargetRow, String, String, Int) -> Result[Bytes, @client_row_source_host.RowSourceIssue]
 
 pub fn client_program_relation_project_target_document(@client_row_source_host.RelationDocument, @client_row_source_host.RowDeclaration, String, Array[String], Array[String], String, Array[String]) -> Result[@client_row_source_host.RelationTargetDocument, @client_row_source_host.RowSourceIssue]
@@ -2517,6 +2577,8 @@ pub fn client_program_row_source_prepare_acquisition_with_contracts(@client_row_
 
 pub fn client_program_row_source_prepare_cursor_progress(Int, Int, Int, Int) -> Result[@client_row_source_host.RowSourceCursorProgress, @client_row_source_host.RowSourceCursorIssue]
 
+pub fn client_program_row_source_prepare_delete_mapping(@client_row_source_host.RowDeclaration, String, String) -> String
+
 pub fn client_program_row_source_prepare_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
 
 pub fn client_program_row_source_prepare_update_mapping(@client_row_source_host.RowDeclaration, String, String, String) -> String
@@ -2633,13 +2695,11 @@ pub fn client_program_semantics_json(@run_publication_host.PreparedClientProgram
 
 pub fn client_program_snowflake_accept_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementResponse, Bytes) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
+pub fn client_program_snowflake_adopt_managed_read(@description.TableDescription, @client_row_source_host.RowRunResponseBorrow, @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits, Int) -> Result[@actql/actql/connectors/snowflake/read.Read, @actql/actql/connectors/snowflake/read.ReadIssue]
+
+pub fn client_program_snowflake_adopt_managed_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest, Int, @client_row_source_host.RowPageCharge) -> Result[@actql/actql/connectors/snowflake/read.StatementResponse, @actql/actql/connectors/snowflake/read.StatementIssue]
+
 pub fn client_program_snowflake_attempt_request(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
-
-pub fn client_program_snowflake_bind_read_transport(@actql/actql/connectors/snowflake/read.Read, () -> Bool) -> Result[Unit, @actql/actql/connectors/snowflake/read.ReadIssue]
-
-pub fn client_program_snowflake_borrow_read(@actql/actql/connectors/snowflake/read.PreparedRead, @client_row_source_host.RowRun, @actql/actql/connectors/snowflake/catalog.ResponseLimits, Int) -> Result[@actql/actql/connectors/snowflake/read.Read, @actql/actql/connectors/snowflake/read.ReadIssue]
-
-pub fn client_program_snowflake_charge_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest, Int, Bytes) -> Result[@actql/actql/connectors/snowflake/read.StatementResponse, @actql/actql/connectors/snowflake/read.StatementIssue]
 
 pub fn client_program_snowflake_declaration_limits(Int, Int, Int, Int, Int) -> @client_row_source_host.RowDeclarationLimits
 
@@ -2649,15 +2709,11 @@ pub fn client_program_snowflake_description_limits(Int, Int, Int, Int, Int) -> @
 
 pub fn client_program_snowflake_generate_read_declaration(@description.TableDescription, String, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @actql/actql/connectors/snowflake/read.ReadIssue]
 
-pub fn client_program_snowflake_interrupt_read(@actql/actql/connectors/snowflake/read.Read) -> Unit
+pub fn client_program_snowflake_managed_read_capacity(Array[Int], Int, Int, @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits, Int, Int) -> @execution_relation.ExecutionCapacity?
 
 pub fn client_program_snowflake_next_request(@actql/actql/connectors/snowflake/read.StatementRead) -> Result[@actql/actql/connectors/snowflake/read.StatementRequest?, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_prepare_read(@description.TableDescription, @client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> Result[@actql/actql/connectors/snowflake/read.PreparedRead, @actql/actql/connectors/snowflake/read.ReadIssue]
-
 pub fn client_program_snowflake_prepare_statement(@actql/actql/connectors/snowflake/read.Read, String, String, String, Int, Int, Int) -> Result[@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementIssue]
-
-pub fn client_program_snowflake_read_acquisition(@actql/actql/connectors/snowflake/read.PreparedRead) -> @client_row_source_host.RowAcquisition
 
 pub fn client_program_snowflake_read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @actql/actql/connectors/snowflake/catalog.ResponseLimits, @description.DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?
 
@@ -2667,15 +2723,11 @@ pub fn client_program_snowflake_record_decoder_refusal(@actql/actql/connectors/s
 
 pub fn client_program_snowflake_record_response_loss(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
 
-pub fn client_program_snowflake_reject_response(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementResponse) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
-
 pub fn client_program_snowflake_request_material(@actql/actql/connectors/snowflake/read.StatementRequest) -> (String, String, String?, Int)
 
 pub fn client_program_snowflake_response_limits(Int, Int, Int, Int, Int, Int, Int, Int, Int64) -> @actql/actql/connectors/snowflake/catalog.ResponseLimits
 
-pub fn client_program_snowflake_response_unknown(@actql/actql/connectors/snowflake/read.StatementRead, @actql/actql/connectors/snowflake/read.StatementRequest) -> Result[Unit, @actql/actql/connectors/snowflake/read.StatementIssue]
-
-pub fn client_program_snowflake_retire_read_borrow(@actql/actql/connectors/snowflake/read.Read) -> Result[Unit, @actql/actql/connectors/snowflake/read.ReadIssue]
+pub fn client_program_snowflake_retire_managed_read(@actql/actql/connectors/snowflake/read.Read) -> Bool
 
 pub fn client_program_snowflake_statement_complete(@actql/actql/connectors/snowflake/read.StatementRead) -> Bool
 

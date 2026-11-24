@@ -6982,6 +6982,14 @@ independent; these projections do not grant Resource capacity or compile a body.
 
 ### Original normalization on the same Request
 
+An installed Host either retains the submitted intent on its funded Request or
+continues the intent already held there. Both enter the same checker on that
+Request. Common reads the canonical envelope within the reserved input extent,
+selects the existing Program or Source checker, and returns that check's limits.
+The Host retains its result convention, value-policy suppliers and the decision
+to enter compilation. A typed check or input refusal stays with the same
+Request for cleanup.
+
 The original Source resolver's `SoleView` selection is a real completion. Its
 same `ResolvedInput`, declaration stage/input name, selected view and complete
 requirements remain with this inventory and Prepared owner. A Source entry uses

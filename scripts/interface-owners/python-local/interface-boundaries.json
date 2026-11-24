@@ -65,7 +65,7 @@
     },
     {
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
-      "sha256": "ba80654605785a6c8dd58297392e6e8341e90a66e08cdcfdc38d22ffe9194b22",
+      "sha256": "7f6d447400b871a1a058a39a9b12d4b8e57d421fe938ac7dd0d603bc41bdb2b6",
       "generator": {
         "path": "scripts/generate-local-wasm-abi.py",
         "anchor": "def render("
@@ -885,7 +885,7 @@
     {
       "module": "packages/native-cli/lib/local-runtime.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3362f64680d2f4f923c9ec534195824305af5bcd51168eb5f09dd9d2ced73f33",
+      "sha256": "60629559a28b10118b054f2e5e703935b5d72c99dd1739848112505831e5af4b",
       "exports": [
         "LOCAL_RUNTIME_MAX_BYTES",
         "admitInstalledLocalRuntime",
@@ -893,6 +893,9 @@
         "admitLocalRuntimePlatform",
         "installedLocalRuntimeEnvironment",
         "localRuntimeHash",
+        "nativeModelHttpLibraryName",
+        "nativeRemoteHttpLibraryName",
+        "nativeRemoteHttpSystemDependency",
         "readLocalRuntimeMember",
         "validateLocalRuntimeManifest"
       ],
@@ -960,6 +963,28 @@
           "name": "localRuntimeHash/localRuntimeHash",
           "parameters": [
             "bytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeModelHttpLibraryName",
+          "parameters": [
+            "platform"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeRemoteHttpLibraryName",
+          "parameters": [
+            "platform"
+          ],
+          "async": false
+        },
+        {
+          "name": "nativeRemoteHttpSystemDependency",
+          "parameters": [
+            "platform",
+            "name"
           ],
           "async": false
         },
@@ -2437,10 +2462,16 @@
             "validateLocalRuntimeManifest",
             "validateLocalRuntimeManifest/licenses/licenses",
             "validateLocalRuntimeManifest/validateLocalRuntimeManifest",
-            "validateLocalRuntimeManifest/validateLocalRuntimeManifest/validateLocalRuntimeManifest"
+            "validateLocalRuntimeManifest/validateLocalRuntimeManifest/validateLocalRuntimeManifest",
+            "nativeRemoteHttpLibraryName",
+            "nativeRemoteHttpSystemDependency",
+            "nativeModelHttpLibraryName"
           ],
           "exports": [
-            "validateLocalRuntimeManifest"
+            "validateLocalRuntimeManifest",
+            "nativeRemoteHttpLibraryName",
+            "nativeRemoteHttpSystemDependency",
+            "nativeModelHttpLibraryName"
           ],
           "attributes": {
             "responsibility": [
@@ -4361,6 +4392,13 @@
         },
         {
           "async": false,
+          "name": "OriginalCommitProjection/_storage_extent",
+          "parameters": [
+            "raw"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalCommitProjection/authorize_commit",
           "parameters": [
             "self",
@@ -4584,7 +4622,7 @@
           ]
         }
       ],
-      "sha256": "aff0960395de58c0f7add0a442ea7fa1d08a31866869f13943d6da91cec714d5",
+      "sha256": "974dfc49e7f9db32c9e274d6c57a45dd8557d837f0080962198c72b5b9e0500d",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -4632,7 +4670,8 @@
             "OriginalCommitProjection/serialized",
             "OriginalCommitProjection/storage_count",
             "OriginalCommitProjection/validate_payload_binding",
-            "OriginalCommitProjection/validate_reader_facts"
+            "OriginalCommitProjection/validate_reader_facts",
+            "OriginalCommitProjection/_storage_extent"
           ],
           "exports": [
             "OriginalCommitProjection"
@@ -5518,6 +5557,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/_journal_saved_census_read",
+          "parameters": [
+            "self",
+            "ticket"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/_journal_schema",
           "parameters": [
             "self",
@@ -5682,6 +5729,18 @@
             "caller",
             "nonce",
             "ordinal"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_prepare_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "original_run",
+            "source",
+            "current_configuration",
+            "operation"
           ]
         },
         {
@@ -5915,6 +5974,19 @@
             "value",
             "operation",
             "*arguments"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/_try_saved_reader_facts",
+          "parameters": [
+            "self",
+            "original",
+            "record",
+            "observation",
+            "configuration",
+            "result",
+            "binding"
           ]
         },
         {
@@ -6523,6 +6595,16 @@
         },
         {
           "async": false,
+          "name": "LocalCore/emit_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "original",
+            "current_configuration"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/feed_result_export",
           "parameters": [
             "self",
@@ -6627,6 +6709,17 @@
             "self",
             "value",
             "reader"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalCore/measure_publication_sdk_run_state",
+          "parameters": [
+            "self",
+            "value",
+            "original_run",
+            "source",
+            "current_configuration"
           ]
         },
         {
@@ -7915,6 +8008,14 @@
         },
         {
           "async": false,
+          "name": "LocalCore/retire_saved_result_transport",
+          "parameters": [
+            "self",
+            "value"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalCore/retire_submission_append_output",
           "parameters": [
             "self",
@@ -8315,7 +8416,7 @@
           ]
         }
       ],
-      "sha256": "0d731e931a5d7486b67fab60062fe01a863c5465671a6f29b4da797e89c0babf",
+      "sha256": "2ae59ac517744fe8bc11ff893bdbd710333be5f22902758692dbf1721c45f5c1",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -14235,7 +14336,10 @@
             "LocalCore/_publication_sdk_run_state_step",
             "LocalCore/confirm_publication_sdk_run_state",
             "LocalCore/produce_publication_sdk_run_state",
-            "LocalCore/validate_publication_sdk_run_state"
+            "LocalCore/validate_publication_sdk_run_state",
+            "LocalCore/_prepare_publication_sdk_run_state",
+            "LocalCore/emit_publication_sdk_run_state",
+            "LocalCore/measure_publication_sdk_run_state"
           ],
           "exports": [],
           "attributes": {
@@ -14408,8 +14512,10 @@
             "LocalCore/reserve_saved_payload_record",
             "LocalCore/reserve_saved_result_export",
             "LocalCore/validate_saved_payload_binding",
+            "LocalCore/_try_saved_reader_facts",
             "LocalCore/validate_submission_lookup",
-            "LocalCore/advance_and_read_saved_result"
+            "LocalCore/advance_and_read_saved_result",
+            "LocalCore/retire_saved_result_transport"
           ],
           "exports": [],
           "attributes": {
@@ -14940,7 +15046,8 @@
         },
         {
           "operations": [
-            "LocalCore/_journal_current_operation"
+            "LocalCore/_journal_current_operation",
+            "LocalCore/_journal_saved_census_read"
           ],
           "exports": [],
           "attributes": {
@@ -15032,6 +15139,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Original observation data within one Host operation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Each selected incremental Saved read export begins with a complete census."
               }
             ],
             "verification": [
@@ -15042,6 +15153,26 @@
               {
                 "path": "src/client_host_wasm/host_current_operation_wbtest.mbt",
                 "anchor": "test \"original operation observation reuses only admitted data and still checks current and Account\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_stays_inside_the_original_closed_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
               }
             ]
           }
@@ -28411,7 +28542,8 @@
           "async": false,
           "name": "OriginalHostBinding/_new_invocation_observation",
           "parameters": [
-            "self"
+            "self",
+            "export_name"
           ]
         },
         {
@@ -28600,6 +28732,20 @@
         },
         {
           "async": false,
+          "name": "_InvocationObservation/supports_saved_census_read",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_InvocationObservation/terminal_read_baseline",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "_OriginalPublisherPort",
           "parameters": []
         },
@@ -28683,7 +28829,7 @@
           ]
         }
       ],
-      "sha256": "2095b6786a098d00ecdae94cd6e9b6dcdbbb6bdbc8e25d5339f66db8190c67d1",
+      "sha256": "5726cf8d5ec5a74f114a9a4fe3c23dc0e9e61d4344af3f299cbe4e74e9165562",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -28854,7 +29000,9 @@
             "_OriginalPublisherPort/_require_original",
             "_OriginalPublisherPort/_require_reservation",
             "_OriginalPublisherPort/authorize",
-            "_OriginalPublisherPort/current"
+            "_OriginalPublisherPort/current",
+            "_InvocationObservation/supports_saved_census_read",
+            "_InvocationObservation/terminal_read_baseline"
           ],
           "exports": [
             "OriginalHostBinding"
@@ -29112,6 +29260,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Closed original reconciliation preparation"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Each selected incremental Saved read export begins with a complete census."
               }
             ],
             "verification": [
@@ -29198,6 +29350,74 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
                 "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_stays_inside_the_original_closed_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_routing_census_proof_requires_the_original_closed_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_proof_closes_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_row_consumer_cannot_write_during_its_proposal("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_precommit_proves_only_its_fresh_same_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_precommit_refuses_same_size_mutation_and_rolls_back("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_restarts_after_each_physical_cas("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_refuses_cas_from_its_effect("
               }
             ]
           }
@@ -52901,6 +53121,14 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_close_sdk_run_state_outputs",
+          "parameters": [
+            "self",
+            "held"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_commit_original_run_rows",
           "parameters": [
             "self",
@@ -53563,6 +53791,13 @@
           "async": false
         },
         {
+          "name": "InstalledLocalHost/_project_original_sdk_run_state/prepare_and_emit",
+          "parameters": [
+            "_"
+          ],
+          "async": false
+        },
+        {
           "name": "InstalledLocalHost/_raise_original_wait_failure",
           "parameters": [
             "self",
@@ -54046,7 +54281,7 @@
           "async": false
         }
       ],
-      "sha256": "57caa6bc9b6424f86bd010e84a61a3197972469dc98e74100c2673a34819b721",
+      "sha256": "dc277048f86859c66e1ae3faf5bda14b8f6244f656bd4f1a7a6d4a46bb981c3f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -55594,7 +55829,9 @@
             "InstalledLocalHost/_project_original_sdk_run_state/inspect",
             "InstalledLocalHost/_project_original_sdk_run_state/inspect/validate",
             "_RunStateCustody",
-            "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume"
+            "InstalledLocalHost/_project_original_sdk_run_state/confirm_and_consume",
+            "InstalledLocalHost/_close_sdk_run_state_outputs",
+            "InstalledLocalHost/_project_original_sdk_run_state/prepare_and_emit"
           ],
           "exports": [],
           "attributes": {
@@ -60318,26 +60555,6 @@
         },
         {
           "async": false,
-          "name": "OriginalSDKDeliveryStore/read_original_chunk",
-          "parameters": [
-            "self",
-            "request",
-            "chunk",
-            "clock",
-            "output",
-            "eof"
-          ]
-        },
-        {
-          "async": false,
-          "name": "OriginalSDKDeliveryStore/read_original_chunk/read",
-          "parameters": [
-            "first",
-            "configuration"
-          ]
-        },
-        {
-          "async": false,
           "name": "OriginalSDKDeliveryStore/selected_original_payload",
           "parameters": [
             "self",
@@ -60389,7 +60606,7 @@
           ]
         }
       ],
-      "sha256": "8e0cde69340b5acd69de4403f328c46b7d418dab3a8789adfb7b962397651efe",
+      "sha256": "911fa75414d2fd5888f3716e908ce26f8baf2bb184c88f99640c9ce55988d835",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -60430,8 +60647,6 @@
             "OriginalSDKDeliveryStore/produce_original_chunk/produce",
             "OriginalSDKDeliveryStore/produce_original_receipt",
             "OriginalSDKDeliveryStore/produce_original_receipt/produce",
-            "OriginalSDKDeliveryStore/read_original_chunk",
-            "OriginalSDKDeliveryStore/read_original_chunk/read",
             "OriginalSDKDeliveryStore/selected_original_payload",
             "OriginalSDKDeliveryStore/_selected_original_payload"
           ],
@@ -60561,6 +60776,26 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_sdk_delivery_storage.py",
                 "anchor": "class OriginalSDKDeliveryStore:"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_proof_closes_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_public_saved_material_compatibility.py",
+                "anchor": "def test_bound_saved_precommit_reobserves_file_and_still_runs_full_final_validation("
               }
             ]
           }
@@ -61441,7 +61676,7 @@
           ]
         }
       ],
-      "sha256": "6179d179c8fd5cbdc6c3e076e610ae3bedbe4f29b19eec14a9dd6187ed082d7c",
+      "sha256": "36dad7ebfea7177148f040806299032547760443366a3fcbfe488370cd3a2558",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62101,7 +62336,7 @@
           ]
         }
       ],
-      "sha256": "01579866f79df5d0ee4882feaebfaa4de700f8f19e744d2de5945ea1099c8d88",
+      "sha256": "f3fd96f8b773ca0e9b0dd6ac0cee53dd9d216cebb8c8baa65b3c6363d92962ce",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62731,7 +62966,7 @@
           ]
         }
       ],
-      "sha256": "5175d0bc2f201181a697caaa37bc299b4c623bf901a9b2e54bb76f92e1b5e3b9",
+      "sha256": "74e2f328959934c44b7178d38c4ed22fb7ba28c6a3694637da27c14e7486433b",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -62960,6 +63195,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "#### Synchronous cleanup and other-thread quanta"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "When Saved payload preparation or chunk production traps, the response can"
               }
             ],
             "failure": [
@@ -63050,6 +63289,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_cleanup_frame_excludes_other_thread_original_quantum_until_same_scope_returns("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_trapped_saved_input_retires_original_before_returning_payload_loans("
               }
             ]
           }
@@ -64672,6 +64915,7 @@
         "LocalStorageCommitUnknown",
         "LocalStorageError",
         "LocalStorageInitializationError",
+        "LocalStorageWriteCleanupPending",
         "OriginalStoreReconciliation",
         "Path",
         "RLock",
@@ -64779,6 +65023,16 @@
         },
         {
           "async": false,
+          "name": "LocalByteStore/_classify_failed_write",
+          "parameters": [
+            "self",
+            "failure",
+            "commit_attempted",
+            "commit_confirmed"
+          ]
+        },
+        {
+          "async": false,
           "name": "LocalByteStore/_close_descriptor",
           "parameters": [
             "self"
@@ -64795,6 +65049,13 @@
             "fences",
             "current",
             "inspect"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_configure_durability",
+          "parameters": [
+            "self"
           ]
         },
         {
@@ -64839,7 +65100,9 @@
             "successors",
             "_readonly",
             "_prewrite",
-            "_reconciliation"
+            "_reconciliation",
+            "_projected_prewrite",
+            "_terminal_read_baseline"
           ]
         },
         {
@@ -64886,7 +65149,8 @@
           "name": "LocalByteStore/_inspect_namespace_locked/check_invocation_snapshot",
           "parameters": [
             "span",
-            "snapshot"
+            "snapshot",
+            "baseline"
           ]
         },
         {
@@ -64894,6 +65158,13 @@
           "name": "LocalByteStore/_inspect_namespace_locked/check_unchanged",
           "parameters": [
             "view"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_inspect_namespace_locked/closed_baseline",
+          "parameters": [
+            "span"
           ]
         },
         {
@@ -65094,8 +65365,15 @@
             "reuse_identical",
             "fences",
             "inspect",
-            "current"
+            "current",
+            "_sdk_delivery_prewrite",
+            "_sdk_terminal_precommit"
           ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_projected_attached/capture_terminal_baseline",
+          "parameters": []
         },
         {
           "async": false,
@@ -65114,6 +65392,13 @@
           "name": "LocalByteStore/_projected_attached/consume_ordinal/consume",
           "parameters": [
             "write"
+          ]
+        },
+        {
+          "async": false,
+          "name": "LocalByteStore/_projected_attached/terminal_read_baseline",
+          "parameters": [
+            "export_name"
           ]
         },
         {
@@ -65305,7 +65590,9 @@
             "fences",
             "inspect",
             "current",
-            "before_commit"
+            "before_commit",
+            "_sdk_delivery_prewrite",
+            "_sdk_terminal_precommit"
           ]
         },
         {
@@ -65558,7 +65845,8 @@
             "fences",
             "inspect",
             "current",
-            "before_commit"
+            "before_commit",
+            "_sdk_delivery_prewrite"
           ]
         },
         {
@@ -65571,7 +65859,10 @@
           "name": "LocalStorageCommitUnknown/__init__",
           "parameters": [
             "self",
-            "cleanup_store"
+            "cleanup_store",
+            "commit_confirmed",
+            "cleanup_error",
+            "_cleanup_phase"
           ]
         },
         {
@@ -65594,6 +65885,21 @@
         },
         {
           "async": false,
+          "name": "LocalStorageWriteCleanupPending",
+          "parameters": []
+        },
+        {
+          "async": false,
+          "name": "LocalStorageWriteCleanupPending/__init__",
+          "parameters": [
+            "self",
+            "cleanup_store",
+            "cleanup_error",
+            "_cleanup_phase"
+          ]
+        },
+        {
+          "async": false,
           "name": "StoredBytes",
           "parameters": []
         },
@@ -65604,11 +65910,11 @@
         },
         {
           "async": false,
-          "name": "_ProjectedWriteConflict",
+          "name": "_PhysicalWriteConflict",
           "parameters": []
         }
       ],
-      "sha256": "54adc0b3273193071d7b40fd835bbc310266e714cef151319a4191e671121a16",
+      "sha256": "cb3aa7b2b9384dab3f722ed326f7e90531a54cb2553190ff0d34e88f916ef68f",
       "role": "physical-io",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -66157,8 +66463,10 @@
             "LocalByteStore/_capacity_amount",
             "LocalByteStore/_capacity_name",
             "LocalByteStore/_capacity_usage_locked",
+            "LocalByteStore/_classify_failed_write",
             "LocalByteStore/_close_descriptor",
             "LocalByteStore/_compare_exchange_many",
+            "LocalByteStore/_configure_durability",
             "LocalByteStore/_exchange_write_keys",
             "LocalByteStore/_fenced_current",
             "LocalByteStore/_fences_match_locked",
@@ -66171,6 +66479,7 @@
             "LocalByteStore/_inspect_namespace_locked/check_inventory/inventory_fence",
             "LocalByteStore/_inspect_namespace_locked/check_invocation_snapshot",
             "LocalByteStore/_inspect_namespace_locked/check_unchanged",
+            "LocalByteStore/_inspect_namespace_locked/closed_baseline",
             "LocalByteStore/_inspect_namespace_locked/current_snapshot",
             "LocalByteStore/_inspect_namespace_locked/fence",
             "LocalByteStore/_inspect_namespace_locked/invocation_candidate",
@@ -66194,6 +66503,8 @@
             "LocalByteStore/_originals_match_locked",
             "LocalByteStore/_prepare_physical_path",
             "LocalByteStore/_projected_attached",
+            "LocalByteStore/_projected_attached/terminal_read_baseline",
+            "LocalByteStore/_projected_attached/capture_terminal_baseline",
             "LocalByteStore/_projected_attached/consume_all",
             "LocalByteStore/_projected_attached/consume_ordinal",
             "LocalByteStore/_projected_attached/consume_ordinal/consume",
@@ -66694,6 +67005,10 @@
                 "anchor": "class ReadOnlySpanTests("
               },
               {
+                "path": "packages/python-sdk/tests/test_local_storage_readonly_span.py",
+                "anchor": "def test_restoring_schema_cookie_cannot_hide_ddl_from_unchanged_reader("
+              },
+              {
                 "path": "packages/python-sdk/tests/test_local_closed_invocation.py",
                 "anchor": "def test_repeated_current_imports_keep_calls_but_group_graph_walks_per_invocation("
               },
@@ -66728,6 +67043,54 @@
               {
                 "path": "packages/python-sdk/tests/test_local_closed_reconciliation_prepare.py",
                 "anchor": "class ClosedReconciliationPrepareTests(unittest.TestCase):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_proof_closes_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_first_delivery_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_proposal_closes_proof_before_writing("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_proposal_cannot_write_during_original_wasm_callback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_evidence_row_consumer_cannot_write_during_its_proposal("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_precommit_proves_only_its_fresh_same_reader("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_precommit_refuses_same_size_mutation_and_rolls_back("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_restarts_after_each_physical_cas("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_reader_pair_refuses_cas_from_its_effect("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_owned_store.py",
+                "anchor": "def test_durable_profile_precedes_owned_schema_and_is_verified_on_reopen("
               }
             ]
           }
@@ -66735,10 +67098,13 @@
         {
           "operations": [
             "LocalStorageCommitUnknown",
-            "LocalStorageCommitUnknown/__init__"
+            "LocalStorageCommitUnknown/__init__",
+            "LocalStorageWriteCleanupPending",
+            "LocalStorageWriteCleanupPending/__init__"
           ],
           "exports": [
-            "LocalStorageCommitUnknown"
+            "LocalStorageCommitUnknown",
+            "LocalStorageWriteCleanupPending"
           ],
           "attributes": {
             "responsibility": [
@@ -66749,6 +67115,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "inputsOutputs": [
@@ -66759,6 +67129,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Physical persistence"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "identity": [
@@ -66773,6 +67147,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Handles are never serialized Client references"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "ownership": [
@@ -66787,6 +67165,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "Failed stop or cleanup retains the same"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "synchronization": [
@@ -66797,6 +67179,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalStorageCommitUnknown(LocalStorageError):"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "failure": [
@@ -66811,6 +67197,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Interrupted physical bridge calls"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "cancellation": [
@@ -66821,6 +67211,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalStorageCommitUnknown(LocalStorageError):"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "resources": [
@@ -66835,6 +67229,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "## Transfer custody"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "extension": [
@@ -66845,6 +67243,10 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalStorageCommitUnknown(LocalStorageError):"
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ],
             "verification": [
@@ -66863,6 +67265,18 @@
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
                 "anchor": "class LocalStorageCommitUnknown(LocalStorageError):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_fenced.py",
+                "anchor": "def test_failed_commit_preserves_primary_when_rollback_or_state_read_fails("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_storage_fenced.py",
+                "anchor": "def test_precommit_failure_with_lost_rollback_reply_fences_even_after_stop("
+              },
+              {
+                "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
+                "anchor": "class LocalStorageWriteCleanupPending(LocalStorageError):"
               }
             ]
           }
@@ -67464,14 +67878,14 @@
         },
         {
           "operations": [
-            "_ProjectedWriteConflict"
+            "_PhysicalWriteConflict"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67481,7 +67895,7 @@
             "inputsOutputs": [
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67495,7 +67909,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67509,7 +67923,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67523,7 +67937,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               }
             ],
             "failure": [
@@ -67533,7 +67947,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67547,7 +67961,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               }
             ],
             "resources": [
@@ -67557,7 +67971,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               },
               {
                 "path": "docs/design/python-local-abi.md",
@@ -67571,7 +67985,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               }
             ],
             "verification": [
@@ -67589,7 +68003,7 @@
               },
               {
                 "path": "packages/python-sdk/src/actql_sdk/_local_storage.py",
-                "anchor": "class _ProjectedWriteConflict(Exception):"
+                "anchor": "class _PhysicalWriteConflict(Exception):"
               }
             ]
           }
@@ -69514,7 +69928,7 @@
       "module": "packages/python-sdk/src/actql_sdk/_local_wasm_abi.py",
       "responsibilityFacet": "primary",
       "operations": [],
-      "sha256": "ba80654605785a6c8dd58297392e6e8341e90a66e08cdcfdc38d22ffe9194b22",
+      "sha256": "7f6d447400b871a1a058a39a9b12d4b8e57d421fe938ac7dd0d603bc41bdb2b6",
       "role": "generated-binding",
       "owner": "D / existing Local Core facade, original Root/Reader/Journal/custody and Native installation Owners",
       "contracts": [
@@ -78655,6 +79069,13 @@
         },
         {
           "async": false,
+          "name": "OriginalSavedResultRead/_begin_terminal_cleanup",
+          "parameters": [
+            "self"
+          ]
+        },
+        {
+          "async": false,
           "name": "OriginalSavedResultRead/_current",
           "parameters": [
             "self",
@@ -78822,7 +79243,7 @@
           ]
         }
       ],
-      "sha256": "6bd630156e0262b6c4ce44f32c025408834faa0c0447cc3d33faba7c04d0fe64",
+      "sha256": "58f27d714d9237c3aa137394985e50bd44f77de04169c3669ace4cc297b61584",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing Python Local Host, Core read, File and Store Owners",
@@ -78852,7 +79273,8 @@
             "OriginalSavedResultRead/_prepare_payload/take_capacity",
             "OriginalSavedResultRead/_prepare_payload/take_row",
             "OriginalSavedResultRead/_prepare_turn",
-            "OriginalSavedResultRead/prepare_incremental"
+            "OriginalSavedResultRead/prepare_incremental",
+            "OriginalSavedResultRead/_begin_terminal_cleanup"
           ],
           "exports": [
             "ByteFence",
@@ -78953,6 +79375,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "The private saved-Result acquisition returns its already bounded and checked"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "When Saved payload preparation or chunk production traps, the response can"
               }
             ],
             "failure": [
@@ -79059,6 +79485,10 @@
               {
                 "path": "packages/python-sdk/tests/test_local_saved_read_ports.py",
                 "anchor": "def test_incremental_saved_hash_yields_after_one_real_chunk_and_rechecks_row(self):"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_sdk_response.py",
+                "anchor": "def test_trapped_saved_input_retires_original_before_returning_payload_loans("
               }
             ]
           }
@@ -80422,7 +80852,7 @@
     },
     {
       "module": "src/client_host_wasm/saved_result_read.mbt",
-      "sha256": "36ea6c5afafadd779f28fe674915962c6ae370f95143543cc271fc18b10d530f",
+      "sha256": "9a8bf8d39165c99b90d49a81320eb72a8e19cc60a4e80c36f01759b8206a36bc",
       "exports": [],
       "operations": [
         {
@@ -80455,11 +80885,15 @@
         },
         {
           "name": "rebind_saved_result_originals",
-          "declaration": "rebind_saved_result_originals ( retained : StoredSavedResultRead , schema : Int , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , ) - > Result [ Unit , Int ]"
+          "declaration": "rebind_saved_result_originals ( retained : StoredSavedResultRead , schema : Int , scan : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , read : ( String , String ) - > Result [ @ host . ClientJournalPhysicalRow ? , Int ] , census_ticket ? : Int"
         },
         {
           "name": "reobserve_saved_result_read",
           "declaration": "reobserve_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , retained : StoredSavedResultRead , incremental ? : Bool"
+        },
+        {
+          "name": "retire_saved_result_transport",
+          "declaration": "retire_saved_result_transport ( value : Instance , handle : Int , record : StoredSubmissionProjection , ) - > Int"
         },
         {
           "name": "saved_result_read_current",
@@ -80471,7 +80905,7 @@
         },
         {
           "name": "validate_saved_result_read",
-          "declaration": "validate_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , ) - > Result [ Unit , Int ]"
+          "declaration": "validate_saved_result_read ( value : Instance , record : StoredSubmissionProjection , configuration : StoredRunConfiguration , same_reader_census ? : Bool"
         }
       ],
       "role": "physical-io",
@@ -80492,7 +80926,8 @@
             "produce_incremental_saved_result",
             "reobserve_saved_result_read",
             "supply_saved_result_read",
-            "rebind_saved_result_originals"
+            "rebind_saved_result_originals",
+            "retire_saved_result_transport"
           ],
           "exports": [],
           "attributes": {
@@ -80584,6 +81019,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Saved Run observations and Result reads"
+              },
+              {
+                "path": "docs/design/python-local-abi.md",
+                "anchor": "Each selected incremental Saved read export begins with a complete census."
               }
             ],
             "verification": [
@@ -80602,6 +81041,30 @@
               {
                 "path": "src/client_host_wasm/submission_targeted_lookup_wbtest.mbt",
                 "anchor": "test \"saved continuation refuses a changed supported schema with identical originals\""
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_stays_inside_the_original_closed_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_census_proof_cannot_hide_a_same_size_mutation("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_chunk_census_proof_expires_at_effect_and_refuses_receipt_export("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_terminal_census_proof_stays_in_the_committed_readback("
+              },
+              {
+                "path": "packages/python-sdk/tests/test_local_closed_wasm_sql.py",
+                "anchor": "def test_saved_codec_census_proof_expires_at_reader_stop("
+              },
+              {
+                "path": "src/client_host_wasm/cancellation_saved_inventory_wbtest.mbt",
+                "anchor": "test \"Saved input reuses checked fence rows only within the same proven reader\""
               }
             ]
           }
@@ -80610,9 +81073,13 @@
     },
     {
       "module": "src/client_host_wasm/preparation.mbt",
-      "sha256": "7275ee4ce2974bfbbba5b587c682715830bce442f886a8f96ff383f4cbed6e9c",
+      "sha256": "61b7402075e5a489913f1b9df97d4563ea0d2fbc4a8fff04ba0569b437ae1fab",
       "exports": [],
       "operations": [
+        {
+          "name": "admit_python_local_source_free_environment",
+          "declaration": "admit_python_local_source_free_environment ( body : String , cid : String , ) - > @ checked . CheckEnvironment ?"
+        },
         {
           "name": "bind_restored_preparation",
           "declaration": "bind_restored_preparation ( nonce : Int64 , handle : Int , restoration_handle : Int , ) - > Int"
@@ -80706,7 +81173,8 @@
             "prepared_results",
             "prepared_tasks",
             "reserve_preparation",
-            "stored_preparation_input"
+            "stored_preparation_input",
+            "admit_python_local_source_free_environment"
           ],
           "exports": [],
           "attributes": {
@@ -80852,6 +81320,10 @@
               {
                 "path": "docs/design/python-local-abi.md",
                 "anchor": "### Platform VM capacity and input-pool binding"
+              },
+              {
+                "path": "src/client_host_wasm/client_check_wbtest.mbt",
+                "anchor": "test \"Python Local Check admits the pinned numeric profile for PIVOT SUM and COUNT\""
               }
             ]
           }
@@ -82045,7 +82517,7 @@
     },
     {
       "module": "src/cmd/native_client/local_adoption.mbt",
-      "sha256": "0d73078b315ac7dfd21475f7b07728f575eb0fa4593d1d75063d4808419ac81a",
+      "sha256": "cb2992b055ad8b95a64b0d06f1cca40a3a8ca22b99aae849f1b2b45304f73082",
       "exports": [],
       "operations": [
         {
@@ -82075,6 +82547,10 @@
         {
           "name": "local_journal_migration_issue",
           "declaration": "local_journal_migration_issue ( issue : @ local_host . NativeClientRunJournalIssue , ) - > String"
+        },
+        {
+          "name": "local_model_http_installation_settings",
+          "declaration": "local_model_http_installation_settings ( cursor : @ decode . Cursor , installation_files : Array [ String ] , ) - > LocalModelHttpInstallationSettings raise ClientStop"
         },
         {
           "name": "local_original_run_reference",
@@ -82120,7 +82596,8 @@
             "local_submission_lookup",
             "local_submission_lookup_reply",
             "local_submission_lookup_selected",
-            "local_host_journal_record_limit"
+            "local_host_journal_record_limit",
+            "local_model_http_installation_settings"
           ],
           "exports": [],
           "attributes": {
@@ -82388,7 +82865,7 @@
     },
     {
       "module": "src/cmd/native_client/local_start.mbt",
-      "sha256": "7e13c5a807b84f6b20d1965b4a66eec75446a5de04c8b2533e01889fbe2d6e02",
+      "sha256": "1a2c006c93f11152971bd87f781ebe7ee754c76fc36f6b7b1e061e1a923767fb",
       "exports": [],
       "operations": [
         {
@@ -86638,7 +87115,7 @@
           ]
         }
       ],
-      "sha256": "c012fdb5810604d67ded60beaf7440c1716a40a03adc82ba87884c29ed3fbfc3",
+      "sha256": "97b9b8b1dac269702e35e50b160d82e20ddeb0a3a2e7141ead72c5a85d3d1e91",
       "contracts": [
         {
           "operations": [
@@ -86806,7 +87283,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_check.mbt",
-      "sha256": "1c8eb7ea663597ed03b0e775ff6f849068decffc02be483eb4395266331f0b5a",
+      "sha256": "5ac76edf94e8889e4096bb90da000d5214992b0e04d4e375a4d88655ef796678",
       "exports": [],
       "operations": [
         {
@@ -87100,7 +87577,7 @@
     },
     {
       "module": "src/cmd/native_client/local_command_preparation.mbt",
-      "sha256": "7758aac50d1cf30b86504bf0acf40c23e329aad54851ffd92813b34c1099d4fb",
+      "sha256": "3dfa1ba6f2470fe05e8ee6afd6c699c99a71c8f39daa08fa3515f4d90c09adfe",
       "exports": [],
       "operations": [
         {
@@ -87157,7 +87634,7 @@
         },
         {
           "name": "LocalCommandPreparationOriginal::prepare_adoption",
-          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , ) - > Result [ @ local_host . NativeLocalAdoptionSession , LocalCommandPreparationIssue , ]"
+          "declaration": "LocalCommandPreparationOriginal : : prepare_adoption ( self : LocalCommandPreparationOriginal , input : @ local_host . NativeLocalExistingAdoptionInput , initialize : Bool , model_configuration ? : @ local_host . NativeLocalModelConfigurationSelection ?"
         },
         {
           "name": "LocalCommandPreparationOriginal::read_command",
@@ -87365,7 +87842,7 @@
     },
     {
       "module": "src/cmd/native_client/local_host_settings_preparation.mbt",
-      "sha256": "2e5e691394b8fda52f93c901799cc3fad80a997f6108d821645ea3a47f9f8327",
+      "sha256": "e23acc41294861ce9210af2398024d575e18baeb62107037477fa78ff01d62c5",
       "exports": [],
       "operations": [
         {
@@ -89941,7 +90418,7 @@
           }
         }
       ],
-      "sha256": "90da607a5b7342e62b9d92f3c6db96a9a87356379fb35fdb17bb16a225d4ded7",
+      "sha256": "74720506d098afa37293bdfba917c8754b10217f373352d5d118be4dab948334",
       "exports": [],
       "operations": [
         {
@@ -91643,7 +92120,8 @@
             "cancellation_journal_text",
             "client_cancellation_journal_index",
             "client_cancellation_journal_row_body",
-            "decode_client_cancellation_journal_row"
+            "decode_client_cancellation_journal_row",
+            "encode_client_cancellation_journal_row"
           ],
           "exports": [],
           "attributes": {
@@ -91741,17 +92219,21 @@
               {
                 "path": "src/run_publication_host/client_cancellation_journal_operation_wbtest.mbt",
                 "anchor": "test \"shared cancellation append preserves original Run and exact independent three rows\""
+              },
+              {
+                "path": "src/run_publication_host/client_cancellation_journal_wbtest.mbt",
+                "anchor": "test \"shared cancellation codec refuses a false intent CID and noncanonical original bytes\""
               }
             ]
           }
         }
       ],
-      "sha256": "0afcb3ac2bc09143373c883f3aed87317c50cd8f28ca5d4a4d45e83df58bb723",
+      "sha256": "abf1b47a74026e8d1f28ac98b1cec5fb670882c7b4ba30735b43cd082d05730a",
       "exports": [],
       "operations": [
         {
           "name": "cancellation_journal_cursor",
-          "declaration": "cancellation_journal_cursor ( wire : String ) - > @ decode . Cursor ?"
+          "declaration": "cancellation_journal_cursor ( body : Bytes ) - > @ decode . Cursor ?"
         },
         {
           "name": "cancellation_journal_text",
@@ -91768,6 +92250,10 @@
         {
           "name": "decode_client_cancellation_journal_row",
           "declaration": "decode_client_cancellation_journal_row ( row : ClientJournalPhysicalRow , ) - > Result [ ClientCancellationJournalEncoding , ClientJournalDecodingIssue ]"
+        },
+        {
+          "name": "encode_client_cancellation_journal_row",
+          "declaration": "encode_client_cancellation_journal_row ( value : ClientCancellationJournalEncoding , intent_cid : String , ) - > Bytes ?"
         }
       ]
     },

@@ -58,6 +58,19 @@ export function readReportedUsage(body: unknown) {
   return {inputTokens: tokenCount(reported.prompt_tokens), outputTokens: tokenCount(reported.completion_tokens)};
 }
 
+export function readReportedResponse(body: unknown) {
+  if (body === null || typeof body !== 'object') return undefined;
+  const reported = body as {
+    choices?: {message?: {refusal?: unknown}; finish_reason?: unknown}[];
+    model?: unknown; id?: unknown; system_fingerprint?: unknown;
+  };
+  const choice = Array.isArray(reported.choices) && reported.choices.length === 1 ? reported.choices[0] : undefined;
+  const refusal = choice?.message?.refusal;
+  return {model: reported.model, requestId: reported.id, finishReason: choice?.finish_reason,
+    metadataName: 'system_fingerprint', metadataValue: reported.system_fingerprint,
+    outcome: typeof refusal === 'string' && refusal.length > 0 ? 'refusal' : undefined};
+}
+
 // Private verified builder, never a caller's preconstructed model instance.
 // The Host obtains current secrets through its existing authorized mechanism;
 // do not accept endpoint or credentials from a Program or public Run value.

@@ -17,4 +17,3 @@ export function modelRegistrationProjectFiles() {
   assert.equal(Object.keys(registry.tasks).length, modelRegistryCount);
   return Object.freeze(files);
 }
-

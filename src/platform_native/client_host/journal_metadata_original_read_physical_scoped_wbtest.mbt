@@ -192,6 +192,7 @@ fn journal_metadata_original_row(ordinal : Int) -> (String, Bytes) {
     observation_original: None,
     revision: 0L,
     checkpoint: None,
+    checkpoint_companion: false,
   }
   (@host.client_request_scope_cid(request), run_record_body(record).unwrap())
 }
@@ -387,6 +388,347 @@ test "Initial signing Journal routing fits the exact same real Read retained bou
 ///|
 test "Initial signing Journal routing one short refuses before retained controls change" {
   effect_route_original_read_quote_case(true, signing=true)
+}
+
+///|
+fn native_model_http_configuration_original_read_refusal(
+  one_short : Bool,
+) -> Unit raise {
+  let name = if one_short {
+    "model-http-config-one-short"
+  } else {
+    "model-http-config-foreign"
+  }
+  let setting = name + ".json"
+  let provider = name + ".provider.json"
+  let selected_credential = name + ".bearer"
+  let revision = name + ".revision.json"
+  let contract = name + ".contract.json"
+  let response = name + ".response.json"
+  let profile_cid = "sha256:" + "0".repeat(64)
+  let revision_body = b"{\"revision\":1}"
+  let contract_body = b"{\"contract\":1}"
+  let revision_cid = "sha256:" + @sha.hex(revision_body)
+  let contract_cid = "sha256:" + @sha.hex(contract_body)
+  let body = if one_short {
+    b"["
+  } else {
+    @utf8.encode(
+      "{\"version\":\"actql-config/0.1\",\"native\":{\"preparation_credential\":{\"credential_file\":\"" +
+      selected_credential +
+      "\",\"provider_file\":\"" +
+      provider +
+      "\"}}}",
+    )
+  }
+  let provider_body = @utf8.encode(
+    "{\"adapter_kind\":\"portable-http\",\"api_mode\":\"chat-completions\",\"configuration_contract_cid\":\"" +
+    contract_cid +
+    "\",\"credential_ref\":\"file:some-other.bearer\",\"endpoint\":\"https://models.example/v1/chat/completions\",\"installation_revision_cid\":\"" +
+    revision_cid +
+    "\",\"model_id\":\"deployed-model\",\"provider_id\":\"model-test\",\"response_profile_cid\":\"" +
+    profile_cid +
+    "\",\"selector\":\"authored-alias\"}",
+  )
+  let root = @filesystem.open_private_root(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
+  ).unwrap()
+  let files = [setting, provider, revision, contract, response]
+  for i, contents in [body, provider_body, revision_body, contract_body, b"{}"] {
+    let writer = root
+      .create_writer(name + ".stage-" + i.to_string(), 1024L)
+      .unwrap()
+    writer.append(contents).unwrap()
+    writer.seal(files[i]).unwrap() |> ignore
+  }
+  root.close().unwrap()
+  let host = policy_host_fixture(name, files~)
+  let crypto = host.epoch.crypto
+  let fixture = journal_metadata_original_read_fixture()
+  // Initial bootstrap and Read consumer each retain 65536 on this ledger.
+  // The setting retains three headers, two references and at most the input
+  // length in UTF16 units for its two selected names.
+  let cost = @execution.preparation_representation_cost({
+    record_headers: 3L,
+    reference_slots: 2L,
+    scalar_words: 0L,
+    owned_utf16_units: Int::min(256, body.length()).to_int64(),
+    owned_wire_bytes: 0L,
+  }).unwrap()
+  let prefix = if one_short { 4194304L - 2L * 65536L - cost + 1L } else { 0L }
+  let capture = prepare_native_local_journal_capture_with_original_resources(
+    host.session,
+    fixture.host,
+    fixture.pair,
+    fixture.read,
+    crypto,
+    100.0,
+    8,
+    8388608L,
+    metadata_retained=prefix,
+  )
+  capture.opening = JournalAcquired(host)
+  capture.read_callback_active = true
+  capture.read_facts_valid = true
+  capture.read_material = Some(host.adopted_current_material().unwrap())
+  let original = capture.original_resources.unwrap()
+  let limits : @environment.Limits = {
+    max_bytes: 8192,
+    max_nodes: 128,
+    max_depth: 8,
+    max_members: 16,
+  }
+  if !one_short {
+    assert_true(
+      @model.read_portable_model_http_chat_file_route(
+        provider_body, "model-test", revision_cid, contract_cid, profile_cid, "some-other.bearer",
+        limits,
+      )
+      is Some(_),
+    )
+  }
+  let refused = original
+    .stage(@arena.HostRead, fn() {
+      if one_short {
+        fixture.host
+        .prepare_domain_original_read_construction(
+          fixture.read,
+          prefix,
+          prefix,
+          16L,
+        )
+        .map_err(issue => OriginalResources(@arena.Read(issue)))
+        .unwrap()
+      }
+      let result = capture.read_model_http_configuration_in_original_read(
+        {
+          setting,
+          installation_revision: revision,
+          configuration_contract: contract,
+          response_profile: response,
+        },
+        "model-test",
+        profile_cid,
+        {
+          bodies: limits,
+          contracts: { max_nodes: 8, max_depth: 4, max_text_bytes: 128, },
+          max_work: 65536,
+        },
+      )
+      // Parsing this admitted malformed file would refuse its shape. The
+      // earlier actual Ledger refusal leaves the previous retained prefix.
+      Ok(
+        if one_short {
+          result is Err(Original(OriginalResources(_)))
+        } else {
+          // A later parser refusal with the same public issue would already
+          // have retained the Provider wire and defaults construction.
+          result is Err(Original(CustodyLost)) &&
+          original.metadata_retained == cost
+        },
+      )
+    })
+    .unwrap()
+  assert_true(refused)
+  if one_short {
+    assert_eq(original.metadata_retained, prefix)
+  }
+  assert_true(
+    host.database.scan_after("client_local_installation_originals", "")
+    is Err(@sqlite.NotFound),
+  )
+  capture.opening = JournalNotAttempted
+  capture.read_material = None
+  host.close().unwrap()
+  crypto.close_checked().unwrap()
+  account_original_read_close_fixture(fixture)
+}
+
+///|
+test "Native Model configuration refuses the original Read one short before parsing its setting" {
+  native_model_http_configuration_original_read_refusal(true)
+}
+
+///|
+test "Native Model configuration refuses a foreign credential in the adopted original Read" {
+  native_model_http_configuration_original_read_refusal(false)
+}
+
+///|
+test "Native Model credential adoption and lookup use the original scoped SQLite and Read phases" {
+  let name = "model-http-scoped-installation"
+  let (installed, file, provider, selection) = local_installation_fixture(name)
+  let config_files = installed.session.settings.files.map(selected => {
+    selected.name
+  })
+  let input = {
+    ..adoption_capture_test_input(name),
+    configuration_files: config_files,
+  }
+  installed.close().unwrap()
+  let crypto = installed.epoch.crypto
+  let fixture = journal_metadata_original_read_fixture()
+  let adoption = fixture.original
+    .stage(@arena.HostRead, fn() {
+      let original = match
+        prepare_native_local_existing_adoption_capture_in_current_read_context(
+          input, crypto, 256,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      match
+        original
+        .open(
+          construction=Some(value => {
+            fixture.original.prepare_account_construction(value)
+          }),
+        )
+        .issue() {
+        None => Ok(original)
+        Some(AdoptionOriginal(issue)) => Err(issue)
+        Some(_) => Err(CustodyLost)
+      }
+    })
+    .unwrap()
+  let capture = adoption
+    .capture_journal_with_original_resources(
+      fixture.host,
+      fixture.pair,
+      fixture.read,
+      100.0,
+      8,
+      8388608L,
+      metadata_retained=fixture.original.metadata_retained,
+    )
+    .unwrap()
+  let adopted = native_scoped_model_credential(
+    capture,
+    file.name,
+    provider.name,
+    selection,
+    adopt=true,
+  )
+  let restored = native_scoped_model_credential(
+    capture,
+    file.name,
+    provider.name,
+    selection,
+    adopt=false,
+  )
+  assert_eq(restored, adopted)
+  assert_true(adoption.close().issue() is None)
+  assert_true(capture.descriptor_cleanup_acknowledged())
+  assert_true(crypto.close_checked() is Ok(_))
+  account_original_read_close_fixture(fixture)
+}
+
+///|
+fn native_scoped_model_credential(
+  capture : NativeLocalJournalCapture,
+  setting : String,
+  provider : String,
+  selection : NativeLocalPreparationInstallationSelection,
+  adopt~ : Bool,
+) -> Bytes raise {
+  let stage = Ref("open scoped journal")
+  let written = Ref(false)
+  let original = capture.original_resources.unwrap()
+  let foreign = local_runtime_empty(None)
+  foreign.ready = true
+  let without_model = local_runtime_empty(
+    Some((original.host, original.read)),
+    original_resources=Some(original.pair),
+  )
+  without_model.ready = true
+  let result = capture.with_original_read(host => {
+    // A live Read alone cannot load from another Runtime or substitute a
+    // system library for an unselected optional member.
+    stage.val = "refuse the foreign Runtime and the unselected Model HTTP library"
+    guard capture.require_model_http_runtime_in_original_read(foreign)
+      is Err(ForeignOriginal) &&
+      capture.require_model_http_runtime_in_original_read(without_model)
+      is Err(Library(Unavailable)) &&
+      foreign.model_http_load is None &&
+      without_model.model_http_load is None else {
+      return Err(NativeLocalAdoptionIssue::CustodyLost)
+    }
+    stage.val = "observe current adoption"
+    capture.with_current_adoption_material_in_original_read(
+      (current, _, operations) => {
+        stage.val = "select adopted files"
+        guard physical_equal(host, current) &&
+          current.session.settings.files
+          .iter()
+          .find_first(value => value.name == setting)
+          is Some(adopted_setting) &&
+          current.session.settings.files
+          .iter()
+          .find_first(value => value.name == provider)
+          is Some(adopted_provider) else {
+          return Err(CustodyLost)
+        }
+        stage.val = "confirm direct SQL refusal"
+        guard current.database.read(
+            "client_local_installation_originals", setting,
+          )
+          is Err(_) else {
+          return Err(CustodyLost)
+        }
+        stage.val = "verify original custody before lookup"
+        let expected = if adopt { b"0" } else { b"1" }
+        guard (operations.reads.read)(
+            "client_local_installation_custody", "issued",
+          )
+          is Ok(witness) &&
+          witness.body == expected &&
+          witness.revision == (if adopt { 0L } else { 1L }) else {
+          return Err(CustodyLost)
+        }
+        stage.val = "enter scoped installation transaction"
+        current.journal
+        .transaction_with_reads(
+          () => {
+            stage.val = "adopt or restore original credential"
+            current.installation_original_locked(
+              adopted_setting,
+              adopted_provider,
+              selection,
+              adopt,
+              () => {
+                capture.check_original_read_lifetime().map_err(_ => CustodyLost)
+              },
+              capture=Some(capture),
+              operations=Some(operations),
+            )
+          },
+          reads=Some(operations.reads),
+        )
+        .map_err(issue => NativeLocalAdoptionIssue::Journal(issue))
+        .bind(projected => {
+          stage.val = "export original projection"
+          projected.export_original().map_err(issue => Filesystem(issue))
+        })
+      },
+      installation_written=if adopt { Some(written) } else { None },
+    )
+  })
+  assert_eq(written.val, adopt)
+  match result {
+    Ok(Ok(value)) => value
+    Ok(Err(Journal(CustodyLost))) => fail(stage.val + " refused custody")
+    Ok(Err(Journal(Physical(_)))) => fail(stage.val + " refused SQLite")
+    Ok(Err(Journal(TransactionUnknown))) =>
+      fail(stage.val + " lost transaction certainty")
+    Ok(Err(Filesystem(_))) => fail(stage.val + " refused filesystem")
+    Ok(Err(_)) => fail(stage.val + " refused observation")
+    Err(Physical(_) | DatabasePending(_, Physical(_))) =>
+      fail(stage.val + " refused original SQLite")
+    Err(Filesystem(_) | DatabasePending(_, Filesystem(_))) =>
+      fail(stage.val + " refused original filesystem")
+    Err(OriginalResources(_)) => fail(stage.val + " refused original resources")
+    Err(_) => fail(stage.val + " refused original Read")
+  }
 }
 
 ///|

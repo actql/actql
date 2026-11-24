@@ -28,6 +28,7 @@ pub fn client_run_journal_row_body(
   record : ClientRunJournalEncoding,
   local_run_policy_originals? : String? = None,
   run_observation_originals? : String? = None,
+  checkpoint_companion? : Bool = false,
   before_construction? : ((Int, Int, Int) -> Result[
     Unit,
     ClientJournalEncodingIssue,
@@ -43,6 +44,7 @@ pub fn client_run_journal_row_body(
     @publication.publication_contract_json(record.definition),
     local_run_policy_originals~,
     run_observation_originals~,
+    checkpoint_companion~,
     before_construction~,
   )
 }
@@ -57,11 +59,15 @@ fn client_run_journal_row_body_from_wires(
   local_run_policy_originals? : String? = None,
   run_observation_originals? : String? = None,
   comparison_bytes? : Int? = None,
+  checkpoint_companion? : Bool = false,
   before_construction? : ((Int, Int, Int) -> Result[
     Unit,
     ClientJournalEncodingIssue,
   ])? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
+  if checkpoint_companion && record.checkpoint is None {
+    return Err(Encoding)
+  }
   if local_run_policy_originals is Some(wire) &&
     @scalar.admit_utf8_length(wire, 8192) is Err(_) {
     return Err(CapacityExceeded)
@@ -71,9 +77,15 @@ fn client_run_journal_row_body_from_wires(
   }
   // Derive constructor geometry from immutable originals; this is not a new
   // allowance. Only the observation field may exceed the legacy row profile.
-  let fixed = "{\"cancellation_requested\":false,\"checkpoint\":null,\"dispatch_reserved\":false,\"effect_material_originals\":\"\",\"local_run_policy_originals\":\"\",\"physical_start_claimed\":false,\"publication_binding\":null,\"publication_policy_originals\":\"\",\"request\":\"\",\"run_definition\":\"\",\"run_observation_originals\":\"\",\"task_materials_cid\":\"\",\"version\":\"actql-native-client-run-row/0.1\"}"
+  let version = if checkpoint_companion {
+    "actql-native-client-run-row-with-effect-ledger/0.1"
+  } else {
+    "actql-native-client-run-row/0.1"
+  }
+  let fixed = "{\"cancellation_requested\":false,\"checkpoint\":null,\"dispatch_reserved\":false,\"effect_material_originals\":\"\",\"local_run_policy_originals\":\"\",\"physical_start_claimed\":false,\"publication_binding\":null,\"publication_policy_originals\":\"\",\"request\":\"\",\"run_definition\":\"\",\"run_observation_originals\":\"\",\"task_materials_cid\":\"\",\"version\":\"\"}"
     .length()
-    .to_int64()
+    .to_int64() +
+    version.length().to_int64()
   let other_units = request.length().to_int64() +
     definition.length().to_int64() +
     record.checkpoint.map(value => value.length().to_int64()).unwrap_or(0L) +
@@ -209,7 +221,7 @@ fn client_run_journal_row_body_from_wires(
       @encode.string_value(writer, cid)
     }
     @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-native-client-run-row/0.1")
+    @encode.string_value(writer, version)
     @encode.end_object(writer)
     let (emitted, _, _) = @encode.writer_progress(writer)
     // The observed route enlarges only the private observation field, never

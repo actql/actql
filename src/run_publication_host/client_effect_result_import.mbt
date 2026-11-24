@@ -198,6 +198,23 @@ pub fn client_effect_result_import_observation_json(
 }
 
 ///|
+/// The original observation and capture records persist with the final CID
+/// and wire. The capture only borrows its checked interface, inputs and
+/// producer. The issuer's hash/text writers have already returned.
+pub fn client_effect_result_import_observation_retained_capacity(
+  value : ClientEffectResultImportObservation,
+) -> @execution.ExecutionCapacity? {
+  @execution.preparation_representation_cost({
+    record_headers: 4L,
+    reference_slots: 10L,
+    scalar_words: 1L,
+    owned_utf16_units: value.cid.length().to_int64() +
+    value.wire.length().to_int64(),
+    owned_wire_bytes: 0L,
+  }).bind(retained => @execution.execution_capacity(retained, retained))
+}
+
+///|
 /// Imported-input Units need every checked input observation, including
 /// inputs not referenced by the final Result. This entry does not admit
 /// additional external acquisition contracts or caller-provided CID lists.

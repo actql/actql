@@ -638,7 +638,7 @@ async function openOriginalLocalPublicationStore(
       confirmPhysicalRemovals,
     });
 
-  const {privateEvidenceKey, readPrivateEvidence,
+  const {privateEvidenceKey, readPrivateEvidence, readModelRawResponseDescriptor,
     preparePrivateEvidence, prepareModelRawEvidence, prepareLookupRawEvidence,
     readModelRawEvidence, confirmModelRawEvidence, readLookupRawEvidence, confirmLookupRawEvidence,
     confirmModelRawCaptureOriginals, confirmPrivateEvidence} =
@@ -784,6 +784,7 @@ async function openOriginalLocalPublicationStore(
     readClockObservation: trustedClock.readClockObservation,
     readSemanticBytes,
     readPrivateEvidence,
+    readModelRawResponseDescriptor,
     consumeObject,
     withCommittedResult,
     withCommittedResultRows,

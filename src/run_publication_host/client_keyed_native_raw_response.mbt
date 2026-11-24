@@ -67,34 +67,37 @@ pub fn prepare_client_keyed_native_raw_response(
     owned_utf16_units: 71L,
     owned_wire_bytes: 0L,
   }).unwrap()
-  // The declared-file supplier already has the exact closed binding and
-  // retention wires. Fund their bounded escaping plus this raw descriptor,
-  // rather than treating the accepted wire ceiling as allocated backing.
-  // Native keeps its original codec and reservation policy unchanged.
+  // Both suppliers borrow the exact binding and retention strings. Their
+  // bounded UTF-8 conversion and escaping, the variable descriptor strings,
+  // and the fixed field names, identities and scalar spellings fund the
+  // three simultaneous wire representations on this original lookup.
+  let units = binding_wire.length().to_int64() +
+    @publication.publication_contract_json(retention).length().to_int64() +
+    content_cid.length().to_int64() +
+    captured_at.length().to_int64() +
+    activation.issuer_id.length().to_int64() +
+    component.original.response_data_policy_cid.length().to_int64()
+  guard @execution.checked_preparation_add_product(4096L, units, 6L)
+    is Some(bound) else {
+    return Err(Assembly("capacity_overflow"))
+  }
+  let quote_bytes = Int64::min(bound, limits.max_bytes.to_int64()).to_int()
+  // An explicit Native codec ceiling still governs which wire is accepted.
+  // The reservation prices the construction inputs, independently of it.
   let codec_bytes = if @publication.read_profile_uses_installed_rows(
       component.original.profile,
     ) {
-    let units = binding_wire.length().to_int64() +
-      @publication.publication_contract_json(retention).length().to_int64() +
-      content_cid.length().to_int64() +
-      captured_at.length().to_int64() +
-      activation.issuer_id.length().to_int64() +
-      component.original.response_data_policy_cid.length().to_int64()
-    guard @execution.checked_preparation_add_product(4096L, units, 6L)
-      is Some(bound) else {
-      return Err(Assembly("capacity_overflow"))
-    }
-    Int64::min(bound, limits.max_bytes.to_int64()).to_int()
+    quote_bytes
   } else {
     limits.max_bytes
   }
   let constructed = with_keyed_protocol_construction(
     state,
-    Int::max(codec_bytes, 2048),
+    Int::max(quote_bytes, 2048),
     2L,
     limits.max_nodes,
     limits.max_depth,
-    fn() {
+    fn(_) {
       match keyed_lookup_observation(request, now_ms) {
         Err(issue) => return Err(issue)
         Ok(_) => ()
@@ -112,6 +115,11 @@ pub fn prepare_client_keyed_native_raw_response(
         history._retained_activation is Some(same_activation) &&
         physical_equal(same_activation, activation) else {
         return Err(Assembly("retired_native_raw_response"))
+      }
+      // UTF-8 output has at least as many bytes as the input has UTF-16
+      // units. Refuse an already oversized binding before making its buffer.
+      if binding_wire.length() > limits.max_bytes {
+        return Err(Assembly("native_raw_storage_binding"))
       }
       let binding = match
         @publication.parse_content_reference_binding(binding_wire, limits) {
