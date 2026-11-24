@@ -3264,3 +3264,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/client-checkpoints.d.mts
 /adapters/host-node/ordinary-source-reader.mjs
 /adapters/host-node/ordinary-source-reader.d.mts
+/adapters/host-node/ordinary-source-producer-custody.mjs
+/adapters/host-node/ordinary-source-producer-custody.d.mts

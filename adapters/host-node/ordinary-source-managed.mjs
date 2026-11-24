@@ -9,6 +9,7 @@ import {checkedRequestProgramPreparation, checkedRequestSnapshotPreparation,
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {runtimeIsError, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {createOrdinarySourceReaders} from './ordinary-source-reader.mjs';
+import {createOrdinarySourceProducerCustody} from './ordinary-source-producer-custody.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
@@ -76,95 +77,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   const retiredRuns = new WeakMap();
   const retireInitialPreparation = prepared => callbacks.retireInitialPreparation(originals, prepared);
   const borrowSourceInitialization = callbacks.borrowSourceInitializationMaterial;
-  function captureSourceMaterialMethod(record, name) {
-    const field = Object.getOwnPropertyDescriptor(record.view, name);
-    if (!field || !Object.hasOwn(field, 'value') || typeof field.value !== 'function') {
-      fail('InstalledSourceInitializationMethodUnavailable');
-    }
-    return field.value;
-  }
-  function joinSourceMaterialComputation(record, value) {
-    // Unexpected async protocol results remain in this SAME producer inventory.
-    // Their settlement permits another original return, never acknowledges it.
-    record.computation = value;
-    const native = types.isPromise(value), then = native ? undefined : value?.then;
-    if (!native && typeof then !== 'function') return;
-    record.pending = true;
-    const settled = () => {record.pending = false;record.computation = undefined;};
-    const rejected = cause => {record.failure ??= cause;settled();};
-    if (native) {
-      Reflect.apply(Promise.prototype.then,value,[settled,rejected]);
-      void value.then;
-    } else {
-      const pending = new Promise((resolve,reject) => Reflect.apply(then,value,[resolve,reject]));
-      void pending.then(settled,rejected);
-    }
-  }
-  function retainSourceInitializationMaterial(producer) {
-    if (closing || closed || producer.finished || receipts.get(producer.receipt) !== producer ||
-        producer.sourceInitialization !== undefined) fail('ForeignInstalledSourceProducer');
-    if (borrowSourceInitialization === undefined) return undefined;
-    try {
-      if (typeof borrowSourceInitialization !== 'function') fail('InstalledSourceInitializationUnavailable');
-      const view = Reflect.apply(borrowSourceInitialization,callbacks,[originals]);
-      if (view === undefined) return undefined; // This original Host has no Source material.
-      const record = {view, environment:undefined, release:undefined, originalEnvironment:undefined,
-        computation:undefined, pending:false, failure:undefined};
-      producer.sourceInitialization = record; // Retain before any fallible observation.
-      record.release = captureSourceMaterialMethod(record,'release');
-      record.environment = captureSourceMaterialMethod(record,'environment');
-      const environment = Reflect.apply(record.environment,record.view,[]);
-      if (types.isPromise(environment) || typeof environment?.then === 'function') {
-        joinSourceMaterialComputation(record,environment);
-        fail('InstalledSourceInitializationNotSynchronous');
-      }
-      if (environment === undefined) fail('InstalledSourceInitializationUnavailable');
-      if (closing || closed || producer.finished || receipts.get(producer.receipt) !== producer) {
-        fail('ForeignInstalledSourceProducer');
-      }
-      record.originalEnvironment = environment;
-      return environment;
-    } catch (cause) {
-      // The SDK may never receive its receipt. Existing close still owns this
-      // same unreturned producer and its original Source material borrow.
-      producer.finished = true;
-      throw cause;
-    }
-  }
-  function returnSourceInitializationMaterial(producer) {
-    const record = producer.sourceInitialization;
-    if (record === undefined) return true;
-    if (record.pending) return false;
-    record.release ??= captureSourceMaterialMethod(record,'release');
-    const returned = Reflect.apply(record.release,record.view,[]);
-    // Both Bool values acknowledge this borrow's return. False only says the
-    // parent itself is still live; neither value is a Source/Run/physical ACK.
-    if (typeof returned !== 'boolean') {
-      joinSourceMaterialComputation(record,returned);
-      fail('InstalledSourceInitializationNotSynchronous');
-    }
-    record.view = record.release = record.environment = record.originalEnvironment = record.computation = undefined;
-    producer.sourceInitialization = undefined;
-    return true;
-  }
-  const releaseFinishedProducer = producer => {
-    if (producer.finished && producer.liveRuns === 0) {
-      // Retain a failed return even after its last original Run left liveRuns.
-      producers.add(producer);
-      if (producer.preparation !== undefined || !returnSourceInitializationMaterial(producer)) return false;
-      producer.request = undefined;
-      producer.snapshotPublication = undefined;
-      producers.delete(producer);
-      return true;
-    }
-    return false;
-  };
-  const producerForRequest = request => {
-    const producer = requestProducers.get(request)?.deref();
-    return !closing && !closed && producer !== undefined && producers.has(producer) &&
-      receipts.get(producer.receipt) === producer && producer.request === request &&
-      !producer.finished ? producer : undefined;
-  };
+  const {retainSourceInitializationMaterial, releaseFinishedProducer, producerForRequest} =
+    createOrdinarySourceProducerCustody({originals, callbacks, borrowSourceInitialization,
+      receipts, producers, requestProducers, fail,
+      get closing() { return closing; }, get closed() { return closed; }});
   const current = () => {
     if (closing || closed) fail('SourceManagedPreparationUnavailable');
     callbacks.validator(originals);

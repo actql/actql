@@ -119816,7 +119816,9 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
             "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
             "fail/fail",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation"
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#2",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#3"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -120513,11 +120515,7 @@
           }
         },
         {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/pending/pending",
-            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/rejected/rejected",
-            "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -125161,27 +125159,17 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/pending/pending",
-          "parameters": [
-            "resolve",
-            "reject"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/rejected/rejected",
-          "parameters": [
-            "cause"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/joinSourceMaterialComputation/settled/settled",
+          "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation",
           "parameters": [],
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation",
+          "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#3",
           "parameters": [],
           "async": false
         },
@@ -126546,6 +126534,7 @@
         "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
+        "./ordinary-source-producer-custody.mjs",
         "./ordinary-source-reader.mjs",
         "./source-alias-construction.mjs",
         "@actql/client-wire",
@@ -126553,7 +126542,155 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "0535357a28c75bc2224ec887151f48ed4afc9e225542df1abcd3e9b7fc1754eb"
+      "sha256": "f7fc01c0d17c5fbb13f2b1963b417f2ed6a4444692da193428a084987db48b36"
+    },
+    {
+      "module": "adapters/host-node/ordinary-source-producer-custody.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "1357360d812b0344dec2d525270eb55d4e9b86a7acfe7b3e68222a60a74c4a7c",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
+      "exports": [
+        "createOrdinarySourceProducerCustody"
+      ],
+      "operations": [
+        {
+          "name": "createOrdinarySourceProducerCustody",
+          "parameters": [
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceProducerCustody/joinSourceMaterialComputation/pending/pending",
+          "parameters": [
+            "resolve",
+            "reject"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceProducerCustody/joinSourceMaterialComputation/rejected/rejected",
+          "parameters": [
+            "cause"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceProducerCustody/joinSourceMaterialComputation/settled/settled",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceProducerCustody/producerForRequest/producerForRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceProducerCustody/releaseFinishedProducer/releaseFinishedProducer",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceProducerCustody/retainSourceInitializationMaterial",
+          "parameters": [
+            "producer"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createOrdinarySourceProducerCustody",
+            "createOrdinarySourceProducerCustody/joinSourceMaterialComputation/pending/pending",
+            "createOrdinarySourceProducerCustody/joinSourceMaterialComputation/rejected/rejected",
+            "createOrdinarySourceProducerCustody/joinSourceMaterialComputation/settled/settled",
+            "createOrdinarySourceProducerCustody/producerForRequest/producerForRequest",
+            "createOrdinarySourceProducerCustody/releaseFinishedProducer/releaseFinishedProducer",
+            "createOrdinarySourceProducerCustody/retainSourceInitializationMaterial"
+          ],
+          "exports": [
+            "createOrdinarySourceProducerCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-producer-custody.mts",
+                "anchor": "export function createOrdinarySourceProducerCustody<Producer extends SourceProducerCustody>"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-producer-custody.mts",
+                "anchor": "export type SourceProducerCustody = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-producer-custody.mts",
+                "anchor": "receipts.get(producer.receipt) === producer && producer.request === request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "createOrdinarySourceProducerCustody({originals, callbacks, borrowSourceInitialization,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-producer-custody.mts",
+                "anchor": "record.pending = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-producer-custody.mts",
+                "anchor": "fail('InstalledSourceInitializationNotSynchronous');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-producer-custody.mts",
+                "anchor": "if (record.pending) return false;"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-producer-custody.mts",
+                "anchor": "producer.snapshotPublication = undefined;"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-producer-custody.mts",
+                "anchor": "const producer = requestProducers.get(request)?.deref();"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "producer Request lookup stays linear for N and twice N without scanning other live originals"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "failed original Source initialization cannot leave a Request lookup or bypass the existing current refusal"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/ordinary-source-reader.mjs",
