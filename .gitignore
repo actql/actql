@@ -1877,6 +1877,10 @@ target/
 /adapters/host-node/remote-bundle-retention-client.d.mts
 /adapters/host-node/remote-site-client.mjs
 /adapters/host-node/remote-site-client.d.mts
+/adapters/host-node/managed-strategy-worker.mjs
+/adapters/host-node/managed-strategy-worker.d.mts
+/adapters/connectors/duckdb/node/examples/managed-worker.mjs
+/adapters/connectors/duckdb/node/examples/managed-worker.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
 /adapters/host-node/result-transformation-control.test.mjs

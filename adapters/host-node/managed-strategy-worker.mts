@@ -5,13 +5,37 @@ import {runCapturedStrategy} from './entry.mjs';
 import {serveManagedExecution} from './worker-channel.mjs';
 import {encodeProcessLimits, emptyProcessUsage} from './process-accounting.mjs';
 
-export function serveManagedStrategy(prepare, frames) {
+import type {FrameLimits, ProcessFrameValue} from './process-frames.mjs';
+import type {decodeProcessLimits, decodeProcessUsage} from './process-accounting.mjs';
+
+type StrategyExecution = Awaited<ReturnType<typeof runCapturedStrategy>>;
+type ExecutionContext = Parameters<Parameters<typeof serveManagedExecution>[0]>[2];
+type OpenedStrategy = Readonly<{
+  setup: Parameters<typeof runCapturedStrategy>[0];
+  configurations: Parameters<typeof runCapturedStrategy>[1];
+  observer?: Parameters<typeof runCapturedStrategy>[3];
+  close: () => unknown;
+  describe: (execution: StrategyExecution) => unknown;
+}>;
+export type ManagedStrategyPlan = Readonly<{
+  resourceLimits?: ReturnType<typeof decodeProcessLimits>;
+  usage?: () => ReturnType<typeof decodeProcessUsage>;
+  taskIdentities?: () => unknown;
+  open: (signal: AbortSignal, context: ExecutionContext) => OpenedStrategy | PromiseLike<OpenedStrategy>;
+}>;
+type StrategyPreparation<Input> =
+  (input: Input, signal: AbortSignal, context: ExecutionContext) => ManagedStrategyPlan | PromiseLike<ManagedStrategyPlan>;
+type CleanupHandle = Readonly<{status: () => {pending: unknown}; retry: () => unknown}>;
+
+export function serveManagedStrategy<Input extends ProcessFrameValue | undefined>(
+    prepare: StrategyPreparation<Input>, frames: FrameLimits) {
   if (typeof prepare !== 'function') throw new TypeError('Missing installed application');
-  let phase = 'empty', prepared, opened, execution, closeStarted = false;
-  let accounting;
-  const recovery = new Set(), unknown = new Set();
-  const remember = (error, owner) => {
-    const handle = error?.cleanupHandle;
+  let phase = 'empty', prepared: Pick<ManagedStrategyPlan, 'open'> | undefined,
+    opened: OpenedStrategy | undefined, execution: StrategyExecution | undefined, closeStarted = false;
+  let accounting: ManagedStrategyPlan['usage'];
+  const recovery = new Set<CleanupHandle>(), unknown = new Set<unknown>();
+  const remember = (error: unknown, owner: unknown) => {
+    const handle = (error as {cleanupHandle?: CleanupHandle} | null | undefined)?.cleanupHandle;
     if (handle && typeof handle.status === 'function' && typeof handle.retry === 'function') recovery.add(handle);
     else unknown.add(owner);
   };
@@ -54,7 +78,7 @@ export function serveManagedStrategy(prepare, frames) {
     if (request.command === 'prepare' && phase === 'empty' &&
         Object.keys(request).sort().join(',') === 'command,input') {
       phase = 'preparing';
-      const plan = await prepare(request.input, signal, context);
+      const plan = await prepare(request.input as Input, signal, context);
       signal.throwIfAborted();
       if (!plan || typeof plan.open !== 'function') throw Error('InvalidStrategyPreparation');
       if (context.resourceLimits) {
@@ -76,7 +100,7 @@ export function serveManagedStrategy(prepare, frames) {
     if (request.command === 'execute' && phase === 'prepared') {
       phase = 'running'; // No failure path restores dispatch permission.
       try {
-        opened = await prepared.open(signal, context);
+        opened = await prepared!.open(signal, context);
         signal.throwIfAborted();
         if (!opened || typeof opened.close !== 'function' || typeof opened.describe !== 'function') {
           throw Error('InvalidStrategyApplication');

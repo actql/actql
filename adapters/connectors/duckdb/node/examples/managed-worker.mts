@@ -3,14 +3,34 @@
 // it is not a separate fixture evaluator or an execution-proof constructor.
 import {serveManagedStrategy} from '../../../../host-node/managed-strategy-worker.mjs';
 import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
+// @ts-expect-error The installed example preparation is still authored as JavaScript.
 import {prepareExampleText} from './physical-strategy.mjs';
 import {bindProcessStore} from '../../../../store-local/process-binding.mjs';
 import {installProcessCompletionObserver} from '../../../../host-node/process-completion-observer.mjs';
 import {installCompletionObserver, completionObserver} from '../../../../host-common/completion-observer.mjs';
 
+import type {ManagedStrategyPlan} from '../../../../host-node/managed-strategy-worker.mjs';
+import type {taskStartObserver} from '../../../../host-common/completion-observer.mjs';
+import type {ProcessFrameValue} from '../../../../host-node/process-frames.mjs';
+
+type ExampleInput = Extract<ProcessFrameValue, Record<string, ProcessFrameValue>> & {
+  dataProfile?: {columns?: number};
+};
+type OpenedStrategy = Awaited<ReturnType<ManagedStrategyPlan['open']>>;
+type ExampleOpened = Omit<OpenedStrategy, 'describe'> & {
+  describe: (execution: Parameters<OpenedStrategy['describe']>[0]) => Readonly<Record<string, unknown>>;
+};
+type ExamplePlan = Omit<ManagedStrategyPlan, 'open' | 'taskIdentities' | 'usage'> & {
+  usage: NonNullable<ManagedStrategyPlan['usage']>;
+  taskIdentities: () => unknown;
+  completionTask: Parameters<typeof installProcessCompletionObserver>[2];
+  open: (signal: AbortSignal, binding: ReturnType<typeof bindProcessStore> | undefined) =>
+    ExampleOpened | PromiseLike<ExampleOpened>;
+};
+
 enableNodeCompileCache();
 
-serveManagedStrategy(async (input, _signal, context) => {
+serveManagedStrategy(async (input: ExampleInput, _signal, context) => {
   if (!context.resourceLimits) throw new Error('ManagedApplicationRequiresResourceDelegation');
   if (input.controlStore !== undefined && typeof input.controlStore !== 'boolean') throw new Error('InvalidControlStore');
   if (input.observePlanner !== undefined && typeof input.observePlanner !== 'boolean') throw new Error('InvalidPlannerObservation');
@@ -19,20 +39,20 @@ serveManagedStrategy(async (input, _signal, context) => {
   if (controlStore && (!input.retainedOutput || input.localImportWorkMilliseconds === undefined)) {
     throw new Error('ControlStoreRequiresRetainedOutputAndLocalImportPolicy');
   }
-  const plan = await prepareExampleText(input, context.resourceLimits);
+  const plan = await prepareExampleText(input, context.resourceLimits) as ExamplePlan;
   return {resourceLimits: plan.resourceLimits, usage: plan.usage,
     taskIdentities: () => JSON.parse(JSON.stringify(plan.taskIdentities())), async open(signal, context) {
     const binding = controlStore ? bindProcessStore(context) : undefined;
     const completion = binding ? await installProcessCompletionObserver(binding,
       {maxCompletions: 4, maxInputs: 2, maxColumns: input.dataProfile?.columns ?? 10}, plan.completionTask) : undefined;
-    const plannerObservations = [];
+    const plannerObservations: unknown[] = [];
     // Quantities/explanations only: do not retain output or task handles in
     // benchmark diagnostics. Existing completion custody still owns handoff.
-    const observer = completion && input.observePlanner === true ? installCompletionObserver(async value => {
+    const observer = completion && input.observePlanner === true ? installCompletionObserver(async (value: Parameters<NonNullable<ReturnType<typeof completionObserver>>>[0]) => {
       await completionObserver(completion)?.(value);
       plannerObservations.push({boundary: 'after-task', task: value.task,
         elapsedMilliseconds: performance.now(), usage: plan.usage()});
-    }, value => {
+    }, (value: Parameters<NonNullable<ReturnType<typeof taskStartObserver>>>[0]) => {
       plannerObservations.push({boundary: 'before-task',
         elapsedMilliseconds: performance.now(), ...value,
         driverUsage: value.usage, usage: plan.usage()});
@@ -40,7 +60,8 @@ serveManagedStrategy(async (input, _signal, context) => {
     let opened;
     try { opened = await plan.open(signal, binding); }
     catch (error) {
-      if (error instanceof Error && !error.code) error.code = `ManagedExampleOpen:${error.name}`;
+      if (error instanceof Error && !(error as NodeJS.ErrnoException).code)
+        (error as NodeJS.ErrnoException).code = `ManagedExampleOpen:${error.name}`;
       throw error;
     }
     return {...opened, observer, describe: execution => JSON.parse(JSON.stringify(
