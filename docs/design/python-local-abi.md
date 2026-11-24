@@ -4046,12 +4046,12 @@ its original child-first acknowledgment path. A live or reentrant invocation
 cannot enter this cleanup path, and normal work never resumes from it.
 
 The sealed Reader-facts path runs the original payload binding first, then the
-physical snapshot validator. The original ABI signatures and standalone
-validations are unchanged. A closed standard Wasmtime reader can select a
-compatible private mode of `validate_payload_binding`. It first uses the exact
-zero-handle query with Result set to the minimum signed 32-bit value. The guest
-answers 1 for support. The original validation returns -2 for this query before
-reading any Store row. Only that query can select the standalone fallback.
+physical snapshot validator. An eligible closed standard Wasmtime reader uses
+the private paired mode of `validate_payload_binding` in the matching installed
+guest. It first uses the exact zero-handle query with Result set to the minimum
+signed 32-bit value. The guest must return 1. A refusal or unrecognized response
+stops the operation with the original capability code. Readers ineligible for
+the paired mode still use the standalone binding and snapshot validators.
 
 In this mode Result selects the two original 0–7 coordinates as
 `-1073741824 - (8 * result + binding)`. The last argument is the same sealed

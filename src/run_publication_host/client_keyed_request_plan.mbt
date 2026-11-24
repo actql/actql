@@ -406,7 +406,7 @@ pub fn prepare_client_keyed_native_batch_plan(
     keys.length().to_int64(),
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       // This measured nested walk visits actual key/occurrence controls, not
       // provider Values or a policy quota. Spend work before constructing output.
       let work = keys.length().to_int64() * requests.length().to_int64()

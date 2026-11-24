@@ -120,6 +120,7 @@ priv struct BoundedUnnestState {
   mut output_recheck : @admitted.RecheckCursor?
   mut output_charge : BoundedOutputRowCharge?
   mut emitted : Int
+  mut reclamation_steps : Int64
   max_rows : Int
 }
 
@@ -184,7 +185,13 @@ fn cleanup_bounded_unnest_state(state : BoundedUnnestState) -> Bool {
     state.output_charge = None
   }
   if state.output is Some(output) {
-    if !reclaim_bounded_admitted_output(output, state.accepted.val) {
+    let (released, removed) = reclaim_bounded_admitted_output_counted(
+      output,
+      state.accepted.val,
+    )
+    // Each private row or cell reference is removed at most once.
+    state.reclamation_steps += removed.to_int64()
+    if !released {
       return false
     }
     state.output = None
@@ -694,6 +701,7 @@ fn start_bounded_unnest_input(
     output_recheck: None,
     output_charge: None,
     emitted: 0,
+    reclamation_steps: 0L,
     max_rows,
   }
   let (session, token) = @bounded.start(
@@ -797,6 +805,26 @@ pub fn advance_bounded_unnest(
 /// Observe outstanding custody independently from cleanup's change result.
 pub fn bounded_unnest_cleanup_pending(value : BoundedUnnestExecution) -> Bool {
   @bounded.cleanup_pending(value.session)
+}
+
+///|
+/// Observe removals from the stopped kernel's original unpublished buffer.
+/// A live or borrowed output supplies no local continuation.
+pub fn bounded_unnest_cleanup_continuation(
+  value : BoundedUnnestExecution,
+) -> Int64 {
+  if !@bounded.session_stopped(value.session) ||
+    value.accepted.val ||
+    !@bounded.cleanup_pending(value.session) {
+    return -1L
+  }
+  guard value.state.output is Some(output) &&
+    !output.buffer.open &&
+    output.buffer.reclaiming &&
+    !output.buffer.reading else {
+    return -1L
+  }
+  value.state.reclamation_steps
 }
 
 ///|

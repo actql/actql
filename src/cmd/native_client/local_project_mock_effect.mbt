@@ -13,10 +13,11 @@ priv struct LocalProjectMockEffectModelInput {
 // The metadata Read retains the selected original execution contract. The
 // SAME Request funds and retains every measured Graph before the first Task
 // compiler consumes it. No Model call, resource grant or new input is issued.
-fn[I] LocalProjectMockDeclarations::prepare_effect_models(
+fn[I] LocalProjectMockDeclarations::prepare_request_models(
   self : Self,
   parent : @local_values.ClientRequestPreparation[I],
   input : I,
+  kind~ : @local_values.ClientRequestComputationKind,
   occurrences : Array[@run_host.ClientInferOccurrence],
   environment : @checked.CheckEnvironment,
   contracts : @local_values.ClientInstalledSequenceContracts,
@@ -60,8 +61,15 @@ fn[I] LocalProjectMockDeclarations::prepare_effect_models(
     let provider = self
       .model_provider(execution)
       .unwrap_or_else(() => stop("LocalOriginalModelUnavailable"))
-    let keyed_native_profile = match
-      @run_host.client_infer_occurrence_keyed_source_identity(occurrence) {
+    // Native file acquisition is an Effect-only graph input. A checked Pure
+    // program uses the existing composed Model graph and its structural
+    // policy. Both constructors still require the exact Request/occurrence.
+    let keyed_source = if kind == @local_values.Effect {
+      @run_host.client_infer_occurrence_keyed_source_identity(occurrence)
+    } else {
+      None
+    }
+    let keyed_native_profile = match keyed_source {
       None => None
       Some((source_ref, view_cid)) => {
         guard self.file_sources is Some(files) else {

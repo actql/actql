@@ -1,4 +1,5 @@
 export * from './interactive-control.generated.js';
+import type {WireStaticExplanationView} from './interactive-control.generated.js';
 import type {ClientHostOperation, WireAdmissionShape, WireCancellationShape,
   WireOperationAttemptRefShape, WireCancellationAttemptShape,
   WireCancellationRefShape, WireCancellationLookupShape,
@@ -17,6 +18,7 @@ import type {WireOwnerRefShape, WireOwnerCursorShape, WireOwnerObservationsShape
 export type {ClientHostOperation} from './client-host.generated.js';
 export {checkOutcomeProtocol, runStateProtocol} from './client-host.generated.js';
 
+export declare function validStaticExplanationBinding(view: WireStaticExplanationView): boolean;
 export declare const clientHostOperations: readonly ClientHostOperation[];
 /** Explicit submit refusal contracts, not generic public error codes. */
 export declare function isClientSubmitRejection(code: unknown): boolean;

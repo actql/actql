@@ -116,7 +116,7 @@ fn prepare_native_keyed_lookup_completion(
     4L * order.length().to_int64() + 4L,
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       let result = match
         build_native_keyed_lookup_completion(
           lookup, original, component, request, left, identity, batch, started_at,

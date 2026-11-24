@@ -35,6 +35,9 @@ const location = {oneOf: [
 export const checkReasonSchema = checkReasonSchemaFromCatalog(readCheckReasonCatalog(), parameterContractSchemaCid);
 export const checkReasonSchemaCid = machineCid(checkReasonSchema);
 
+const requirementCodes = ['parameter_value_required', 'parameter_consumer_condition',
+  'host_capacity_policy_required', 'numeric_reduction_profile_required', 'calendar_profile_required'];
+
 function report(verdicts, reasonSchema = checkReasonSchema) {
   const empty = {type: 'array', items: {}, maxItems: 0};
   const emptyCoverage = {properties: {limits: empty, unresolved: empty}};
@@ -101,9 +104,9 @@ function report(verdicts, reasonSchema = checkReasonSchema) {
         },
       },
       reasons: {type: 'array', maxItems: 1024, items: {...reasonSchema,
-        allOf: [...reasonSchema.allOf, {not: {properties: {code: {enum: ['parameter_value_required', 'parameter_consumer_condition', 'host_capacity_policy_required', 'numeric_reduction_profile_required']}}}}]}},
+        allOf: [...reasonSchema.allOf, {not: {properties: {code: {enum: requirementCodes}}}}]}},
       requirements: {type: 'array', maxItems: 1024, items: {...reasonSchema,
-        properties: {...reasonSchema.properties, code: {enum: ['parameter_value_required', 'parameter_consumer_condition', 'host_capacity_policy_required', 'numeric_reduction_profile_required']}},
+        properties: {...reasonSchema.properties, code: {enum: requirementCodes}},
         required: ['code', 'facts']}},
       scope: {type: 'object', additionalProperties: false,
         required: ['kind'], properties: {kind: {enum: ['template_only', 'bound_input']}}},

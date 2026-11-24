@@ -96,6 +96,118 @@ fn installed_source_response_preserving_workspace(
 }
 
 ///|
+/// The selected Calendar artifact shares the final Environment's Source
+/// owner. The original Bytes are already held. The returned checker keeps
+/// its new profile, table and selection while borrowing the prior checker.
+pub fn installed_calendar_artifact_construction_capacity(
+  bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_zones : Int,
+  max_transitions : Int,
+  policy_fields : Int,
+) -> @execution.ExecutionCapacity? {
+  guard bytes >= 0 &&
+    max_nodes >= 0 &&
+    max_depth >= 0 &&
+    max_zones >= 0 &&
+    max_transitions >= 0 &&
+    policy_fields >= 0 else {
+    return None
+  }
+  // Each parsed node and each object key consumes original input bytes.
+  let nodes = Int::min(bytes, max_nodes)
+  let depth = Int::min(max_depth, nodes)
+  let zones = Int::min(max_zones, nodes).to_int64()
+  let transitions = Int::min(max_transitions, nodes).to_int64()
+  let n = nodes.to_int64()
+  guard installed_source_response_workspace(bytes, nodes, depth) is Some(parser) &&
+    @encode.hash_writer_construction_inventory(nodes, depth) is Some(hash) &&
+    @decode.closed_object_field_construction_extent(
+      Some(nodes),
+      6,
+      depth.to_int64(),
+    )
+    is Some(object) &&
+    @decode.closed_object_field_construction_extent(
+      Some(Int::max(4, policy_fields)),
+      4,
+      2L,
+    )
+    is Some(selection) &&
+    @shape.map_retained_extent(1L, 8L + 4L * zones, zones) is Some(map) &&
+    @shape.map_construction_extent(1L, zones) is Some(growth) &&
+    @execution.preparation_array_representation(zones, transitions, false)
+    is Some(tables) &&
+    @execution.preparation_array_representation(
+      zones + 3L,
+      transitions + 3L * n,
+      true,
+    )
+    is Some(staging) &&
+    @canonical.nfc_lf_retained_output_units(bytes.to_int64()) is Some(text) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained: {
+      // Table and Transition bodies, names, the CID and Profile, Selection,
+      // decoded selection Cursor, new CheckEnvironment and their carriers.
+      record_headers: map.record_headers +
+      tables.record_headers +
+      12L +
+      2L * zones +
+      transitions,
+      reference_slots: map.reference_slots +
+      tables.reference_slots +
+      20L +
+      zones,
+      scalar_words: map.scalar_words +
+      tables.scalar_words +
+      16L +
+      3L * zones +
+      2L * transitions,
+      owned_utf16_units: 71L + text,
+      owned_wire_bytes: 0L,
+    },
+    workspace: {
+      // Parsing precedes the table fold and canonical hash. Keep the parser
+      // peak here with the live decoder views and their original Map growth.
+      // The hashing sink also bounds the preceding input SHA.
+      record_headers: parser.record_headers +
+      hash.record_headers +
+      4L * object.record_headers +
+      2L * selection.record_headers +
+      growth.record_headers +
+      staging.record_headers +
+      16L +
+      3L * n,
+      reference_slots: parser.reference_slots +
+      hash.reference_slots +
+      4L * object.reference_slots +
+      2L * selection.reference_slots +
+      growth.reference_slots +
+      staging.reference_slots +
+      18L +
+      3L * n,
+      scalar_words: parser.scalar_words +
+      hash.scalar_words +
+      4L * object.scalar_words +
+      2L * selection.scalar_words +
+      growth.scalar_words +
+      staging.scalar_words +
+      20L +
+      3L * n,
+      owned_utf16_units: parser.owned_utf16_units + hash.owned_utf16_units + 64L,
+      owned_wire_bytes: hash.owned_wire_bytes,
+    },
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}
+
+///|
 pub fn installed_json_source_reader_capacity(
   limits : Array[Int],
   columns : Int,

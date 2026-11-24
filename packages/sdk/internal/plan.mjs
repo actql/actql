@@ -3,21 +3,8 @@ import {contentCid} from '../checkpoints.mjs';
 import {captureResponse, freezeInput} from './data.mjs';
 import {fail} from './errors.mjs';
 import {snapshotClientRequest, validClientBody, validWireEffectfulStaticPlanViewShape,
-  validWirePlanViewShape, validWireStaticExplanationViewShape,
+  validWirePlanViewShape, validWireStaticExplanationViewShape, validStaticExplanationBinding,
   withinResultDescriptionLimits} from '@actql/client-wire';
-
-function matchesStaticExplanation(view, component, effectful) {
-  const {facts, context: {binding}, plan} = view;
-  const map = component.logical_map;
-  return facts.program_definition_cid === map.program_definition_cid &&
-    binding.program_definition_cid === map.program_definition_cid &&
-    facts.compiled_plan_cid === component.compiled_plan_cid &&
-    binding.compiled_plan_cid === component.compiled_plan_cid &&
-    facts.logical_map_cid === map.self_cid && binding.logical_map_cid === map.self_cid &&
-    facts.parameter_values_cid === binding.parameter_values_cid &&
-    (!effectful || facts.parameter_values_cid === plan.parameter_values_cid &&
-      binding.check_environment_cid === plan.check_environment_cid);
-}
 
 export function createPlan(connection, exchange, responseValue, withStaticPreparation, sourcePreparation) {
   const selected = {wire: connection};
@@ -65,7 +52,7 @@ export function createPlan(connection, exchange, responseValue, withStaticPrepar
       if (map.compiled_plan_cid !== component.compiled_plan_cid ||
           effectful && map.program_definition_cid !== plan.program_definition_cid ||
           await contentCid(preimage) !== observed) fail('InvalidClientHostPlanView');
-      if (staticRead && !matchesStaticExplanation(view, component, effectful)) {
+      if (staticRead && !validStaticExplanationBinding(view)) {
         fail('InvalidClientHostStaticExplanationView');
       }
       return freezeInput(view);

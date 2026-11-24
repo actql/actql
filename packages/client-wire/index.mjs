@@ -580,6 +580,24 @@ export function validClientBody(operation, body) {
   return true;
 }
 
+// The caller admits the closed static response before checking its original bindings.
+export function validStaticExplanationBinding(view) {
+  const {facts, context: {binding}, plan} = view;
+  const effectful = plan.version === 'actql-effectful-static-plan-view/0.1';
+  const component = effectful ? plan.computation.plan_view : plan;
+  const map = component.logical_map;
+  return map.compiled_plan_cid === component.compiled_plan_cid &&
+    facts.program_definition_cid === map.program_definition_cid &&
+    binding.program_definition_cid === map.program_definition_cid &&
+    facts.compiled_plan_cid === component.compiled_plan_cid &&
+    binding.compiled_plan_cid === component.compiled_plan_cid &&
+    facts.logical_map_cid === map.self_cid && binding.logical_map_cid === map.self_cid &&
+    facts.parameter_values_cid === binding.parameter_values_cid &&
+    (!effectful || map.program_definition_cid === plan.program_definition_cid &&
+      facts.parameter_values_cid === plan.parameter_values_cid &&
+      binding.check_environment_cid === plan.check_environment_cid);
+}
+
 // Structural Host replies bind connection and request identity without
 // deciding Run admission, authorization, retry or state transitions.
 export const validClientProfile = (value, selected) => validProfileContract(value, selected) &&

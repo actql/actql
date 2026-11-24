@@ -326,6 +326,16 @@ pub fn issue_public_index_entry(
 }
 
 ///|
+/// The original commit timestamp is part of the admitted index identity.
+pub fn public_index_committed_at(index : PublicationContract) -> String? {
+  if index.name == "public_index_entry" {
+    contract_string(index, "committed_at")
+  } else {
+    None
+  }
+}
+
+///|
 /// A later publication attempt may observe the same committed content even
 /// though its attempt and commit time differ. Outcome, captured computation,
 /// and physical Result bindings must remain exact; a changed chain cannot be
