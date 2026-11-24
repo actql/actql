@@ -3314,3 +3314,11 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/native-preparation-lanes.test.d.mts
 /scripts/prepare-native-runtime-bundle-fixture.mjs
 /scripts/prepare-native-runtime-bundle-fixture.d.mts
+/scripts/native-http-compiler-scope.mjs
+/scripts/native-http-compiler-scope.d.mts
+/scripts/native-http-lifetime-fixture.mjs
+/scripts/native-http-lifetime-fixture.d.mts
+/scripts/native-http-library-lifetime.test.mjs
+/scripts/native-http-library-lifetime.test.d.mts
+/scripts/native-http-response-bound.test.mjs
+/scripts/native-http-response-bound.test.d.mts

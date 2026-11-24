@@ -4,7 +4,7 @@ import {mkdirSync} from 'node:fs';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-export function nativeHttpLifetimeFixture(namespace) {
+export function nativeHttpLifetimeFixture(namespace: string) {
   const root=fileURLToPath(new URL('../',import.meta.url));
   const directory=join(namespace,'http-lifetime');
   mkdirSync(directory,{mode:0o700});

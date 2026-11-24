@@ -12,7 +12,7 @@ test('actual HTTP loader separates absent TLS from unknown or advertised TLS deb
   assert(process.env.MOON_HOME, 'The pinned MoonBit runtime is required');
   const scratch = mkdtempSync(join(realpathSync(tmpdir()), 'actql-http-lifetime-'));
   const executable = join(scratch, 'diagnostic');
-  function compile(args) {
+  function compile(args: readonly string[]) {
     const result = spawnSync('cc', ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror', ...args],
       {cwd: root, encoding: 'utf8', timeout: 30_000});
     assert.equal(result.status, 0, `${result.error ?? ''}\n${result.stdout}\n${result.stderr}`);
@@ -30,7 +30,7 @@ test('actual HTTP loader separates absent TLS from unknown or advertised TLS deb
     ['unknown', ['-DACTQL_HTTP_UNKNOWN_VERSION_INFO'], ['unknown-pending']],
     ['missing-info', ['-DACTQL_HTTP_OMIT_VERSION_INFO'], ['unknown-pending']],
     ['failed-load', ['-DACTQL_HTTP_OMIT_PERFORM'], ['foreign-failed-finalizer', 'concurrent-failed-load']],
-  ]) {
+  ] as const) {
     const module = join(scratch, `${variant}.${process.platform === 'darwin' ? 'dylib' : 'so'}`);
     compile([...(process.platform === 'darwin' ? ['-dynamiclib'] : ['-shared', '-fPIC']),
       ...definitions, join(root, 'scripts/fixtures/native-http-lifetime-library.c'), '-o', module]);

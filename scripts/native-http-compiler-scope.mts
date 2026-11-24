@@ -8,9 +8,9 @@ import {copyNativePreparationTools} from './native-preparation-lanes.mjs';
 // Hosted Darwin keeps the complete C/release Source profile in Core and the
 // platform-sensitive default Native packages here. Linux owns the complete
 // default Native Source profile. The downstream gate requires both owners.
-export function nativeHttpSourceCoverage(focus, {
+export function nativeHttpSourceCoverage(focus: string | undefined, {
   platform = process.platform, owner = process.env.ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER,
-} = {}) {
+}: {platform?: string; owner?: string} = {}) {
   if (owner === undefined) return {includeSource: true, effectTargets: {reads: 3, writes: 1}};
   assert.equal(owner, 'linux-http+darwin-core-source', 'Unknown complete Source coverage owner');
   assert.equal(platform, 'darwin', 'Only the Darwin package phase redistributes Source coverage');
@@ -18,10 +18,11 @@ export function nativeHttpSourceCoverage(focus, {
   return {includeSource: false, effectTargets: {reads: 0, writes: 0}};
 }
 
-export function prepareNativeHttpCompilerScope(repository, root, {
+export function prepareNativeHttpCompilerScope(repository: string, root: string, {
   env = process.env, platform = process.platform, arch = process.arch,
   copyTools = copyNativePreparationTools,
-} = {}) {
+}: {env?: NodeJS.ProcessEnv; platform?: string; arch?: string;
+  copyTools?: (original: string, destination: string, marker: string) => unknown} = {}) {
   assert.equal(platform, 'darwin', 'The split HTTP consumer belongs to the existing Darwin job');
   assert.equal(arch, 'arm64');
   assert(env.MOON_HOME && env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION &&
