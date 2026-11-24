@@ -4,9 +4,11 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import type {SourcefreeReleaseReceipt, SourcefreeTransportReport}
+  from '../../scripts/fixtures/release-sourcefree-report.mjs';
 import {selectReleaseTemporalJoinQueryCases} from '../../scripts/release-temporal-join-query-cases.mjs';
 
-export function auditTemporalJoinTransport(report) {
+export function auditTemporalJoinTransport(report: SourcefreeTransportReport) {
   const {successes, refusals} = selectReleaseTemporalJoinQueryCases();
   assert.ok(['local', 'https'].includes(report.mode));
   assert.equal(report.suite, 'temporal-join'); assert.equal(report.complete, true);
@@ -31,7 +33,7 @@ export function auditTemporalJoinTransport(report) {
     rows += actual.observedResults[resultName].rows.length;
     assert.equal(actual.beforeSubmit.acceptedRuns, index);
     assert.equal(actual.beforeRead.acceptedRuns, index + 1);
-    for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions']) {
+    for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions'] as const) {
       assert.equal(actual.beforeSubmit[key], 0); assert.equal(actual.beforeRead[key], 0);
     }
     assert.deepEqual(actual.afterReplay, actual.beforeRead);
@@ -56,7 +58,7 @@ export function auditTemporalJoinTransport(report) {
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const [receiptPath, ...extra] = process.argv.slice(2);
   assert.equal(extra.length, 0); assert.ok(receiptPath);
-  const receipt = JSON.parse(await readFile(receiptPath, 'utf8'));
+  const receipt = JSON.parse(await readFile(receiptPath, 'utf8')) as SourcefreeReleaseReceipt;
   assert.equal(receipt.suite, 'temporal-join'); assert.equal(receipt.complete, true);
   assert.deepEqual(receipt.transports.map(item => item.mode), ['local', 'https']);
   assert.equal(receipt.artifacts.length, 4);

@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import type {SourcefreeReleaseReceipt, SourcefreeTransportReport}
+  from '../../scripts/fixtures/release-sourcefree-report.mjs';
 import {selectReleaseCalendarQueryCases} from '../../scripts/release-calendar-query-cases.mjs';
-export function auditCalendarTransport(report) {
+export function auditCalendarTransport(report: SourcefreeTransportReport) {
   const {successes,refusals}=selectReleaseCalendarQueryCases();
   assert(['local','https'].includes(report.mode));assert.equal(report.suite,'calendar');
   assert.equal(report.complete,true);assert.equal(report.actualNormal,6);assert.equal(report.actualRefusal,3);
@@ -26,7 +28,7 @@ export function auditCalendarTransport(report) {
     assert(actual.ref&&Object.keys(actual.ref).length);assert(actual.submissionRef&&Object.keys(actual.submissionRef).length);
     assert.deepEqual(actual.observedResults,successes[index].results);
     assert.equal(actual.beforeSubmit.acceptedRuns,index);assert.equal(actual.beforeRead.acceptedRuns,index+1);
-    for(const key of ['sourceIo','sourceReads','sourceReadSessions']) {
+    for(const key of ['sourceIo','sourceReads','sourceReadSessions'] as const) {
       assert.equal(actual.beforeSubmit[key],0);assert.equal(actual.beforeRead[key],0);
     }
     assert.deepEqual(actual.afterReplay,actual.beforeRead);
@@ -47,7 +49,7 @@ export function auditCalendarTransport(report) {
     freshProcessReread:6,complete:true};
 }
 if(process.argv[1]!==undefined&&resolve(process.argv[1])===fileURLToPath(import.meta.url)) {
-  const receipt=JSON.parse(await readFile(process.argv[2],'utf8'));
+  const receipt=JSON.parse(await readFile(process.argv[2],'utf8')) as SourcefreeReleaseReceipt;
   assert.equal(receipt.suite,'calendar');assert.equal(receipt.complete,true);
   assert.deepEqual(receipt.transports.map(v=>v.mode),['local','https']);assert.equal(receipt.artifacts.length,4);
   assert.equal(receipt.records.length,6);for(const r of receipt.records){assert.equal(r.code,0);assert.equal(r.signal,null);}
