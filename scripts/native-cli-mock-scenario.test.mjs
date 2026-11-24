@@ -880,7 +880,6 @@ test('Native mock command capture preserves complete diagnostics on an owned reg
   const payload = join(root, 'original.txt'), stderrPath = join(root, 'command.stderr');
   await writeFile(payload, original);
   const source = `import assert from 'node:assert/strict';
-import {parse} from 'acorn';
     import {fstatSync,readFileSync,writeSync} from 'node:fs';
     assert(fstatSync(2).isFile());
     const reply=await fetch(process.argv[2]);
