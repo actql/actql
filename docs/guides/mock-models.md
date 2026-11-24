@@ -42,6 +42,12 @@ not the spelling of the key. The catalog describes:
   UPDATE. The other selected fields retain the default NULL rejection, and
   fields outside the UPDATE remain unchanged. These Mapping declarations do
   not grant current authorization or approval.
+  In the Node Local Host and the Native Source-only Mock path,
+  `operation: "delete"` selects a DELETE Mapping for that resource. Omit all
+  three field lists on a DELETE. Keep the exact
+  primary identity, read and write permissions, required approval and aliases.
+  The Preview seals the original row and version before any write. Apply
+  removes that row only if the original version still matches under the file lock.
 - `file_bindings`: explicit logical listing/content resources, physical data
   resource and identity/name/version/media-type/UTF-8 field roles.
 
@@ -55,8 +61,8 @@ are rejected. Compound keys are not implemented by this fixture codec.
 
 Catalog objects are closed and bounded. Unknown declaration/binding fields,
 missing or foreign resources and ambiguous writable targets fail before fixture
-I/O. The current installed Effect composition supports one writable target;
-multiple aliases for that same target do not create additional targets.
+I/O. Writable targets in one file must select disjoint collections. Multiple
+aliases for the same declaration refer to one target.
 
 ## Physical file records and logical Content
 

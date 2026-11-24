@@ -58,19 +58,40 @@ Program syntax rather than Result row encoding.
 
 ## Starting a project
 
-Embedded Local state has one active Host owner. Independent CLI processes must
-not open the same project's state concurrently. An ownership refusal is not a
-reason to delete the lock, retry adoption or create a replacement Run. Let the
-current owner finish and close before another Embedded Local command uses that
-state. If a submission response was uncertain, retain its original reference
-for lookup instead of submitting it again.
+Embedded Local state has one active Host owner. A second Embedded Local command
+that tries to open the same project's state concurrently receives an ownership
+refusal. Let the current owner finish and close before opening that state from
+another Embedded Local command. Keep the lock and any original Run references
+for recovery.
 
-Remote connection options address an explicitly running authenticated Host;
-they do not start a daemon or make Embedded Local multi-process. The selected
-[single-Host design](design/shared-cli-host.md) keeps exclusive storage ownership
-while allowing clients to share Runs and Saved results. Its complete installed
-parallel CLI, client/owner exit and recovery acceptance is tracked in
-[#3611](https://github.com/actql/actql/issues/3611).
+### Share one authenticated Remote Host
+
+An operator explicitly starts one public Host with an authenticated HTTPS
+listener. The Host alone opens the project's storage. Independent CLI
+processes connect over Remote transport to submit queries and read shared
+Saved results. Follow the [shared Host setup](design/shared-cli-host.md#existing-execution-and-transport-owners).
+
+For this route, use a package cohort with a verified `remote-http` member. Pass
+that installed library's absolute path as `--http-library` with the endpoint,
+connection, token and mTLS options on each command. See the
+[Remote transport options](../src/cmd/native_client/README.md).
+
+1. Before sending input, use `new-submission --request-id <nonce>` and save
+   the returned candidate Submission reference. Save an invocation attempt ID
+   for the command as well.
+2. Submit with Remote `start` or `aql`, `--request-name <name>`,
+   `--submission-ref-file <file>`, `--operation-attempt-id <id>` and the
+   program's input format. Save the response. On `observed`, retain
+   `outcome.submissionRef`, which is the Host's original and may have an
+   earlier epoch. A ready outcome also carries the Run reference for later
+   reads. A name already bound to different input returns `conflict`.
+3. If the response is lost, use `lookup-submission --submission-ref-file <file>`
+   with the saved original when you have it. Otherwise, look up the candidate.
+   A candidate for an already-bound name can remain `unresolvable` if you
+   never received the original. Keep the reference and attempt for recovery,
+   and use lookup without resending the submission.
+
+### Initialize a Local project
 
 ```text
 actql init [--template churn-risk-mock] [<directory>]
@@ -304,6 +325,12 @@ same Run without redoing finished work; `--wait` follows it. Rejecting ends
 the Run as `cancelled` with nothing sent (or `needs_reconciliation` if an
 earlier write's outcome is still unknown).
 
+For Native Local File Effects, repeating `approve` on the same Checkpoint
+can continue its recorded approval if the original intent still awaits its
+first claim. The Host checks the saved signed decision, current authority and
+dispatch custody before claiming it. A previously claimed intent or uncertain
+write requires the existing reconciliation path.
+
 **`cancel`** asks the Run to stop. It becomes `cancelled` once stopping is
 confirmed and no outcome is unknown; writes already applied stay applied.
 
@@ -312,6 +339,12 @@ with the external system, through the Connector and contract recorded in the
 Run — there is no flag to point it at another connection. It never resends
 the write. If the outcome is still unknown, the Run stays in
 `needs_reconciliation` and the attempt is recorded.
+
+For Native Local File Effects, `reconcile --ref-file <path>` settles the
+original Run when its committed publication and saved File responses can be
+confirmed. The existing saved approval and current Run authority must still
+match. Reconciliation leaves unresolved evidence in custody and never repeats
+the File write. `status` and `result` remain read-only.
 
 **`result`** reads a named Result of a finished Run — to stdout with
 `--format`, or to files with `--output` / `--deliver`. `--receipt` saves a
@@ -322,6 +355,14 @@ partial failure still uses an array with zero or one object. Each destination
 has its own outcome and receipt. Exporting the array does not certify aggregate
 success or roll back files, and retrying receipt export must not resend output.
 `run --receipt` remains a Run receipt.
+
+Fresh Native Local projects use the requested Result from that Run's committed
+manifest. The selected principal, connection, Data Policy, retention, delivery
+permission, and read limits still apply. An explicitly adopted `result_names`
+list limits selection to those names. Requested-original selections carry
+an explicit authority marker. Opening a selection without that marker
+refuses it without rewriting the retained configuration.
+
 Native Local file delivery creates each destination exclusively. Repeating the
 same Run, Result, format and destination inspects the existing attempt first:
 a completed output must still match its original file identity and bytes;

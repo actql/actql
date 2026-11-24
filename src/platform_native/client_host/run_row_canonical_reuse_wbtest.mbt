@@ -20,6 +20,7 @@ test "Native Run admission consumes the canonical Common row without rebuilding 
     observation_original: None,
     revision: 0L,
     checkpoint: None,
+    checkpoint_companion: false,
   }
   // The one explicit write below encodes once. Reads retain that complete
   // Common canonical comparison; they add zero Native outer encodings.

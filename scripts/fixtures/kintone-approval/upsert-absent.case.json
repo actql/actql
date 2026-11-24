@@ -1,0 +1,34 @@
+{
+  "name": "kintone-keyed-upsert-absent",
+  "effect": {
+    "documentPath": "upsert.aql",
+    "format": "aql",
+    "resultName": "upserts",
+    "parameterDeclarations": {"customer_key": {"type": "string"}, "next_name": {"type": "string"}},
+    "parameters": {"customer_key": "new-customer", "next_name": "Created by approved UPSERT"},
+    "expectedRows": [{"customer_key": "new-customer", "next_name": "Created by approved UPSERT"}]
+  },
+  "read": {
+    "documentPath": "read-key.aql",
+    "format": "aql",
+    "resultName": "main",
+    "parameterDeclarations": {"customer_key": {"type": "string"}},
+    "parameters": {"customer_key": "new-customer"},
+    "beforeRows": [],
+    "afterRows": [{"id": "9007199254740993", "customer_key": "new-customer", "Subject": "Created by approved UPSERT"}]
+  },
+  "review": {
+    "kind": "upsert",
+    "target": "connector://kintone/inquiries",
+    "identity": "new-customer",
+    "before": null,
+    "changes": {"Subject": "Created by approved UPSERT"}
+  },
+  "fixture": {
+    "seed": {"recordId": "9007199254740993", "controlId": "9007199254740994", "previousName": null, "controlName": "Untouched control", "key": "new-customer"},
+    "expected": {
+      "before": {"target": null, "control": {"id": "9007199254740994", "name": "Untouched control"}},
+      "after": {"target": {"id": "9007199254740993", "name": "Created by approved UPSERT"}, "control": {"id": "9007199254740994", "name": "Untouched control"}}
+    }
+  }
+}

@@ -210,9 +210,10 @@ export function captureInstalledEffectPlanRecipe(recipe: unknown, maxOperations:
         fail('InvalidInstalledEffectPlanRecipe');
       }
       const named = slot !== undefined;
-      if (named && (!describe && !target || !text(slot) || !slot.isWellFormed() ||
+      const writeBranch = phase === 'write' && (slot === 'absent' || slot === 'present');
+      if (named && (!describe && !target && !writeBranch || !text(slot) || !slot.isWellFormed() ||
           /[\u0000-\u001f\u007f]/u.test(slot)) ||
-          resource !== undefined && (!named || !text(resource) || !resource.isWellFormed() ||
+          resource !== undefined && (writeBranch || !named || !text(resource) || !resource.isWellFormed() ||
             /[\u0000-\u001f\u007f]/u.test(resource))) fail('InvalidInstalledEffectPlanRecipe');
       const row = ['capture-check', 'apply-check', 'resume-check', 'write-check', 'write', 'apply-confirm', 'resume-confirm',
         'capture-target', 'apply-target', 'resume-target'].includes(phase);
@@ -242,6 +243,14 @@ export function captureInstalledEffectPlanRecipe(recipe: unknown, maxOperations:
         ...(discardResponseProjection === undefined ? {} : {discardResponseProjection})});
     }));
     if (!phases.has('write')) fail('InvalidInstalledEffectPlanRecipe');
+    if (phases.get('write') === 'named') {
+      const absent = credentialOperations.find(entry => entry.phase === 'write' && entry.slot === 'absent');
+      const present = credentialOperations.find(entry => entry.phase === 'write' && entry.slot === 'present');
+      if (absent === undefined || present === undefined ||
+          rowOperations[absent.operationIndex].operation === rowOperations[present.operationIndex].operation) {
+        fail('InvalidInstalledEffectPlanRecipe');
+      }
+    }
   }
   let physicalWrite: PhysicalWrite | undefined;
   if (fields.physicalWrite !== undefined) {
@@ -290,6 +299,21 @@ export function captureInstalledEffectPlanRecipe(recipe: unknown, maxOperations:
 export function selectInstalledEffectCredentialOperation(recipe: InstalledEffectPlanRecipe | undefined, phase: string,
   slot?: string): CredentialOperation | undefined {
   return recipe?.credentialOperations?.find(entry => entry.phase === phase && entry.slot === slot);
+}
+
+type WriteBranchPreview = Readonly<{before?: Readonly<{state: string}>; target_guard?: Readonly<{state: string}>}>;
+
+// The caller supplies the already admitted original Preview row.
+export function selectInstalledEffectWriteBranch(recipe: InstalledEffectPlanRecipe | undefined, kind: string,
+  previewRow: WriteBranchPreview | undefined): CredentialOperation | undefined {
+  if (selectInstalledEffectCredentialOperation(recipe, 'write', 'absent') === undefined) return undefined;
+  const presence = previewRow?.before?.state;
+  const guard = previewRow?.target_guard?.state;
+  if (kind !== 'upsert' || (presence === 'absent' ? guard !== 'not_applicable'
+      : presence !== 'present' || guard !== 'version')) fail('InvalidInstalledEffectWriteBranch');
+  const selected = selectInstalledEffectCredentialOperation(recipe, 'write', presence);
+  if (selected === undefined) fail('InvalidInstalledEffectWriteBranch');
+  return selected;
 }
 
 // A composed generic owner keeps its original codec and full control quote.

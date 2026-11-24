@@ -9435,6 +9435,20 @@ pub fn client_program_row_source_prepare_update_mapping(
 }
 
 ///|
+#export_name("clientProgramRowSourcePrepareDeleteMapping")
+pub fn client_program_row_source_prepare_delete_mapping(
+  declaration : @client_row_source_host.RowDeclaration,
+  writes_json : String,
+  resource : String,
+) -> String {
+  client_row_mapping_result_json(
+    @client_row_source_host.prepare_row_delete_mapping_from_writes(
+      declaration, writes_json, resource,
+    ),
+  )
+}
+
+///|
 fn client_row_source_prepare_mapping(
   declaration : @client_row_source_host.RowDeclaration,
   writes_json : String,
@@ -9484,6 +9498,16 @@ fn client_row_source_prepare_mapping(
       declaration, writes_json, resource, sources,
     )
   }
+  client_row_mapping_result_json(prepared)
+}
+
+///|
+fn client_row_mapping_result_json(
+  prepared : Result[
+    @client_row_source_host.RowMapping,
+    @client_row_source_host.RowMappingIssue,
+  ],
+) -> String {
   match prepared {
     Ok(mapping) =>
       (
@@ -9505,7 +9529,7 @@ fn client_row_source_prepare_mapping(
         InvalidNullBehavior(_) => "InvalidNullBehavior"
         OutputLimit => "OutputLimit"
       }
-      refused(name)
+      ({ "issue": name.to_json() } : Json).stringify()
     }
   }
 }

@@ -128,3 +128,49 @@ returns, two still-live snapshots include exact canonical Host/Credential root
 directories and all descendants. The observer does not acknowledge physical
 cleanup. The setup closes its real installed Source bootstrap before the
 public phases; Saved-first recovery must make no provider request or UPDATE.
+
+## Reproduce the owned TLS conditional DELETE case
+
+Use the same bounded command and normal installation with these explicit fixture
+inputs. `delete.case.json` binds its own Program, target, before image, expected
+absent state and independent control. The HTTPS fixture checks the exact string
+ID and revision in the conditional DELETE and only applies one mutation.
+
+```sh
+export ACTQL_RECORD_APPROVAL_HTTP_CASE="$PWD/scripts/fixtures/kintone-approval/delete.case.json"
+export ACTQL_RECORD_APPROVAL_RESULT_NAMES='["main","deleted"]'
+```
+
+The default case verifies approval, absence and typed Result, then reads the
+original Saved Result from a fresh process before status. Add `--reject` after
+`--kintone-approval` to verify that the signed rejection leaves both records
+unchanged. For the separate applied-write reply-loss run, use approval and set
+`ACTQL_RECORD_APPROVAL_REPLY_LOSS_EXPECTATION` to
+`{"approveStatus":"needs_reconciliation","lookupStatus":"needs_reconciliation"}`.
+Every run uses fresh fixture and Host roots. In the loss case the provider
+applies the original DELETE once, drops its reply and sees no new write on the
+same-Run lookup.
+
+## Reproduce the owned TLS keyed UPSERT cases
+
+Use the same bounded packed runner and `--kintone-approval`. Select one
+authored case per invocation, with fresh fixture, Host and process roots.
+
+```sh
+export ACTQL_RECORD_APPROVAL_RESULT_NAMES='["main","upserts"]'
+export ACTQL_RECORD_APPROVAL_HTTP_CASE="$PWD/scripts/fixtures/kintone-approval/upsert-present.case.json"
+```
+
+The present case verifies the original key lookup, signed approval and one
+Update Records request with the exact string record ID and revision. To verify
+Create Records with the submitted key, select `upsert-absent.case.json` instead.
+Both cases read the target independently before and after, check the unchanged
+control record, and read the original Saved Result in a fresh process with
+zero additional provider requests. Add `--reject` to exercise the signed
+rejection and unchanged provider state. For an applied write with a lost
+response, set the same reply-loss expectation as for conditional DELETE. The
+read-only recovery then observes the same original Run in
+`needs_reconciliation` with zero additional writes.
+
+These cases use a controlled TLS provider. Live operations use the
+corresponding real App permissions and explicit sandbox authorization.

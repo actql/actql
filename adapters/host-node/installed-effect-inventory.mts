@@ -78,7 +78,7 @@ type CleanupFailure = Readonly<{
 const fail: (code: string) => never = code => { throw Object.assign(new TypeError(code), {code}); };
 const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 const cid = (value: unknown) => /^sha256:[0-9a-f]{64}$/u.test((value ?? '') as string);
-const kinds = new Set<unknown>(['create', 'update', 'upsert', 'store']);
+const kinds = new Set<unknown>(['create', 'update', 'upsert', 'delete', 'store']);
 const selectorKeys = new Set(['kind', 'target', 'mappingRef', 'mappingCid', 'effectId', 'capabilityCid']);
 const commandSelectorKeys = new Set(['kind', 'target', 'commandRef', 'commandCid', 'effectId']);
 

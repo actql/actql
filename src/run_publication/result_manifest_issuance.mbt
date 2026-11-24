@@ -89,13 +89,23 @@ pub fn issue_result_manifest(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  funding? : ((Int) -> Bool, (Int, Int, Int) -> Bool)? = None,
 ) -> Result[PublicationContract, ResultManifestIssuanceIssue] {
   if run_definition.name != "run_definition" ||
     invocation.name != "run_invocation" {
     return Err(ManifestIssuanceWrongContract)
   }
-  if definitions.length() != artifacts.length() {
+  let count = definitions.length()
+  if count != artifacts.length() {
     return Err(ManifestIssuanceInventoryMismatch)
+  }
+  if funding is Some((before_inventory, _)) {
+    if !before_inventory(count) {
+      return Err(ManifestIssuanceEncoding)
+    }
+    if definitions.length() != count || artifacts.length() != count {
+      return Err(ManifestIssuanceInventoryMismatch)
+    }
   }
   let entries : Array[ResultManifestEntry] = []
   let names : Map[String, Unit] = Map([])
@@ -138,11 +148,17 @@ pub fn issue_result_manifest(
   ) catch {
     _ => return Err(ManifestIssuanceEncoding)
   }
-  let (_, nodes, _) = @encode.finish_measurement_usage(writer) catch {
+  let (bytes, nodes, depth) = @encode.finish_measurement_usage(writer) catch {
     _ => return Err(ManifestIssuanceEncoding)
   }
   if nodes > max_nodes - 1 {
     return Err(ManifestIssuanceContract(InvalidWire))
+  }
+  // The same measuring writer has returned before the first text, grammar,
+  // or sealed contract constructor runs. The paired inputs remain live.
+  if funding is Some((_, before_material)) &&
+    !before_material(bytes, nodes, depth) {
+    return Err(ManifestIssuanceEncoding)
   }
   // Only the bounded root/key skeleton needs admission. Replace its existing
   // null members with the same private immutable Artifact trees afterward.

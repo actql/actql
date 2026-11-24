@@ -1,6 +1,109 @@
 // Thin same-runtime projection. This neither issues authority nor settles a claim.
 
 ///|
+#export_name("clientProgramKintoneDeleteMappingConstructionCapacity")
+pub fn client_program_kintone_delete_mapping_construction_capacity(
+  original : @kintone_host.RecordDeclaration,
+  input_units : Int64,
+  limits : @client_row_source_host.RowDeclarationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_mapping_construction_capacity(
+    original, input_units, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteTargetReadConstructionCapacity")
+pub fn client_program_kintone_delete_target_read_construction_capacity(
+  mapping : @kintone_host.RecordDeleteMapping,
+  max_fields : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_target_read_construction_capacity(
+    mapping, max_fields, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteFormConstructionCapacity")
+pub fn client_program_kintone_delete_form_construction_capacity(
+  mapping : @kintone_host.RecordDeleteMapping,
+  body_bytes : Int,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_form_construction_capacity(
+    mapping, body_bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteTargetConstructionCapacity")
+pub fn client_program_kintone_delete_target_construction_capacity(
+  mapping : @kintone_host.RecordDeleteMapping,
+  body_bytes : Int,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_target_construction_capacity(
+    mapping, body_bytes, pages, values, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteResponseConstructionCapacity")
+pub fn client_program_kintone_delete_response_construction_capacity(
+  mapping : @kintone_host.RecordDeleteMapping,
+  body_bytes : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> @execution.ExecutionCapacity? {
+  @kintone_host.record_delete_response_construction_capacity(
+    mapping, body_bytes, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteMappingRecheckForm")
+pub fn client_program_kintone_delete_mapping_recheck_form(
+  mapping : @kintone_host.RecordDeleteMapping,
+  bytes : Bytes,
+  limits : @kintone_catalog.FormFieldLimits,
+) -> Result[Unit, @kintone_catalog.RecordMutationIssue] {
+  @kintone_host.record_delete_mapping_recheck_form(mapping, bytes, limits)
+}
+
+///|
+#export_name("clientProgramKintoneDeleteTargetReadBody")
+pub fn client_program_kintone_delete_target_read_body(
+  mapping : @kintone_host.RecordDeleteMapping,
+  identity : String,
+  max_fields : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[String, @kintone_catalog.RecordMutationIssue] {
+  @kintone_host.record_delete_target_read_body(
+    mapping, identity, max_fields, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintonePrepareDeleteTargetRead")
+pub fn client_program_kintone_prepare_delete_target_read(
+  mapping : @kintone_host.RecordDeleteMapping,
+  identity : String,
+  bytes : Bytes,
+  pages : @kintone_catalog.RecordPageLimits,
+  values : @kintone_catalog.RecordValueLimits,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  (@kintone_host.RecordDeletePreview, @kintone_catalog.RecordDeleteRequest),
+  @kintone_host.RecordDeleteTargetReadIssue,
+] {
+  @kintone_host.prepare_record_delete_target_read(
+    mapping, identity, bytes, pages, values, limits,
+  )
+}
+
+///|
 #export_name("clientProgramKintoneDeletePreviewOutcome")
 pub fn client_program_kintone_delete_preview_outcome(
   mapping : @kintone_host.RecordDeleteMapping,
@@ -17,6 +120,27 @@ pub fn client_program_kintone_delete_preview_outcome(
 ] {
   @kintone_host.project_record_delete_preview_outcome(
     mapping, request, response, preview, member_index, row_index, values, limits,
+  )
+}
+
+///|
+#export_name("clientProgramKintoneDeleteObservedOutcome")
+pub fn client_program_kintone_delete_observed_outcome(
+  mapping : @kintone_host.RecordDeleteMapping,
+  request : @kintone_catalog.RecordDeleteRequest,
+  before : @kintone_host.RecordDeletePreview,
+  status : Int,
+  bytes : Bytes,
+  preview : @publication.EffectPreviewIdentity,
+  member_index : Int,
+  row_index : Int,
+  limits : @kintone_catalog.RecordMutationLimits,
+) -> Result[
+  @kintone_host.RecordDeletePreviewOutcome,
+  @kintone_host.RecordDeleteOutcomeIssue,
+] {
+  @kintone_host.project_record_delete_observed_outcome(
+    mapping, request, before, status, bytes, preview, member_index, row_index, limits,
   )
 }
 

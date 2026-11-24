@@ -352,9 +352,10 @@ fn native_mock_readme_static_explain(
   let occurrences = @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap()
   assert_eq(occurrences.length(), 1)
   let models = original
-    .prepare_effect_models(
+    .prepare_request_models(
       facility.parent,
       facility.input,
+      kind=@local_values.Effect,
       occurrences,
       environment,
       contracts,
@@ -527,9 +528,10 @@ fn native_mock_readme_request_payload(
             ).unwrap()
             try {
               let models = match
-                original.prepare_effect_models(
+                original.prepare_request_models(
                   facility.parent,
                   facility.input,
+                  kind=@local_values.Effect,
                   @run_host.prepared_client_effect_infer_occurrences(prepared).unwrap(),
                   environment,
                   contracts,
@@ -1220,20 +1222,21 @@ test "Native README first compiler retains the same prepared Model provider prof
 
 ///|
 test "Native Model selection backs all three simultaneous original vectors" {
-  // Bounds (20H/32R/78W), Work including its publication snapshot
-  // (12H/55R/19W, including lookup-entry and retained review controls), and its four-reference
-  // selection holder are per occurrence. The first occurrence also retains
-  // the compiled view (4H/12R/3W) and THREE growing vectors: selected Models,
-  // compiler Graph arguments, and business.model_work. Two occurrences give
-  // six vector elements; the shared Array convention gives 9H/57R/6W.
+  // Bounds (20H/32R/78W), Work (13H/57R/20W), and the four-reference
+  // selection holder are per occurrence. Work includes the Provider arm, the
+  // publication_inputs reference, and the Entry refusal word. The first
+  // occurrence also retains the compiled view (4H/12R/3W) and three growing
+  // vectors: selected Models, compiler Graph arguments, and business.model_work.
+  // Two occurrences give six vector elements, or 9H/57R/6W under the shared
+  // Array convention.
   let later = native_mock_effect_model_selection_storage(0)
-  assert_eq(later.record_headers, 33L)
-  assert_eq(later.reference_slots, 91L)
-  assert_eq(later.scalar_words, 97L)
+  assert_eq(later.record_headers, 34L)
+  assert_eq(later.reference_slots, 93L)
+  assert_eq(later.scalar_words, 98L)
   let first = native_mock_effect_model_selection_storage(2)
-  assert_eq(first.record_headers, 46L)
-  assert_eq(first.reference_slots, 160L)
-  assert_eq(first.scalar_words, 106L)
+  assert_eq(first.record_headers, 47L)
+  assert_eq(first.reference_slots, 162L)
+  assert_eq(first.scalar_words, 107L)
   assert_eq(first.owned_utf16_units, 0L)
   assert_eq(first.owned_wire_bytes, 0L)
 }
@@ -1386,6 +1389,16 @@ fn native_mock_readme_effect_recipe(
   // Raw response Bytes remain two simultaneous full original buffers.
   assert_true(control_r >= 2L * codec.response_bytes.to_int64())
   assert_true(control_e >= control_r)
+  let target_controls = native_mock_effect_target_control_capacity(
+    quantities[4],
+  ).unwrap()
+  // Only the target's input reference persists for each row on this
+  // control. One row can still use the entire old construction envelope.
+  assert_eq(@execution.execution_capacity_retained_bytes(target_controls), 8L)
+  assert_eq(
+    @execution.execution_capacity_execution_bytes(target_controls),
+    control_e + 8L,
+  )
   if @env.get_env_var("ACTQL_TEST_NATIVE_IMPORT_QUOTE") == Some("1") {
     let (imports, maximum) = native_mock_effect_import_construction(
       prepared, wire,
@@ -2135,10 +2148,20 @@ test "Native issue3609 projection keeps its SAME prepared body and finite Work g
 
 ///|
 test "Native shared-file Effect joins and binds both original Source observations without a Model" {
-  let project = native_project_mock_model_fixture(
-    "shared-file-empty-models",
-    operation="run",
-  )
+  native_shared_file_effect_observes_and_previews(false)
+}
+
+///|
+fn native_shared_file_effect_observes_and_previews(
+  deleting : Bool,
+) -> Unit raise {
+  let fixture = if deleting {
+    "shared-file-mixed-delete-update"
+  } else {
+    "shared-file-empty-models"
+  }
+  let selectors = if deleting { ["a1", "c1"] } else { ["a1", "c1", "a2"] }
+  let project = native_project_mock_model_fixture(fixture, operation="run")
   defer project.retire()
   project.prepare_source_declarations().unwrap()
   // The component projects the authored writes using fixed installation
@@ -2217,7 +2240,7 @@ test "Native shared-file Effect joins and binds both original Source observation
   let (_, members, _) = @local_values.prepared_installed_effect_managed_shape(
     plan,
   )
-  assert_eq(members, 3)
+  assert_eq(members, selectors.length())
   for index, name in ["Account", "Contact"] {
     let (_, original_source, _) = @local_values.prepared_installed_effect_managed_whole_source(
       plan, index,
@@ -2250,7 +2273,8 @@ test "Native shared-file Effect joins and binds both original Source observation
     original.request,
   ).native_file_route_value("adopt same Model-free Plan")
   state.source_started_at = Some("2026-10-10T00:00:01.000Z")
-  for index, rows in [3, 2] {
+  let source_rows = if deleting { [2, 2] } else { [3, 2] }
+  for index, rows in source_rows {
     let capture = state
       .prepare_mock_effect_source_capture(
         run,
@@ -2344,8 +2368,10 @@ test "Native shared-file Effect joins and binds both original Source observation
     "contact_before": "C-old",
     "account_next": "A-new",
     "contact_next": "C-new",
-    "second_account_id": "a2",
-    "second_account_next": "A2-new",
+  }
+  if !deleting && expected_row is Object(fields) {
+    fields["second_account_id"] = Json::string("a2")
+    fields["second_account_next"] = Json::string("A2-new")
   }
   assert_eq(@json.parse(rows[0]), expected_row)
   {
@@ -2383,7 +2409,7 @@ test "Native shared-file Effect joins and binds both original Source observation
         )
     }
     let proposals = state.proposals.unwrap()
-    assert_eq(proposals.members.length(), 3)
+    assert_eq(proposals.members.length(), selectors.length())
     assert_eq(proposals.unit_results.length(), 1)
     let unit = proposals.unit_results[0]
     let artifact = unit.artifact.unwrap()
@@ -2404,7 +2430,7 @@ test "Native shared-file Effect joins and binds both original Source observation
     )
     let snapshot = @json.parse(unit._retained_wire.unwrap())
     assert_eq(snapshot, Json::array([expected_row]))
-    for index, selector in ["a1", "c1", "a2"] {
+    for index, selector in selectors {
       let proposal = proposals.members[index]
       assert_true(
         physical_equal(proposal._retained_artifact.unwrap(), artifact),
@@ -2417,16 +2443,17 @@ test "Native shared-file Effect joins and binds both original Source observation
       )
       assert_eq(proposal.rows.length(), 1)
       assert_eq(@json.parse(proposal.rows[0].0), Json::string(selector))
-      assert_eq(
-        @json.parse(proposal.rows[0].1),
-        (
-          {
-            "state": "present",
-            "value": {
-              "value": Json::string(["A-new", "C-new", "A2-new"][index]),
-            },
-          } : Json),
-      )
+      let expected_changes : Json = if deleting && index == 0 {
+        { "state": "not_applicable" }
+      } else {
+        {
+          "state": "present",
+          "value": {
+            "value": Json::string(["A-new", "C-new", "A2-new"][index]),
+          },
+        }
+      }
+      assert_eq(@json.parse(proposal.rows[0].1), expected_changes)
     }
     assert_true(
       @run_host.client_effect_local_manifest_matches(
@@ -2442,7 +2469,9 @@ test "Native shared-file Effect joins and binds both original Source observation
       "yield proposal workspace before original target reads",
     )
     let root = @env.get_env_var("ACTQL_TEST_NATIVE_PROJECT_CONFIGURATION_ROOT").unwrap() +
-      "/shared-file-empty-models/mock"
+      "/" +
+      fixture +
+      "/mock"
     let read_file = fn() raise {
       @files.read_bounded_text_file(
         root,
@@ -2507,8 +2536,23 @@ test "Native shared-file Effect joins and binds both original Source observation
     }
     assert_false(in_request)
     facility.arena.enter_domain_retained_execution(facility.physical).unwrap()
-    assert_eq(selected_reads, ["Account", "Contact", "Account"])
-    assert_eq(state.targets.length(), 3)
+    assert_eq(
+      selected_reads,
+      if deleting {
+        ["Account", "Contact"]
+      } else {
+        ["Account", "Contact", "Account"]
+      },
+    )
+    assert_eq(state.targets.length(), selectors.length())
+    if deleting {
+      let (wire, _) = state.targets[0]._retained_request.unwrap()
+      guard @json.parse(wire) is Object(request) else {
+        fail("expected original DELETE request")
+      }
+      assert_eq(request.length(), 5)
+      assert_true(request.get("value") is None)
+    }
     assert_eq(read_file(), before)
     let same_sources = state.direct_sources.unwrap()
     let (observation, invocation, _) = proposals.publication_context.unwrap()
@@ -2538,23 +2582,63 @@ test "Native shared-file Effect joins and binds both original Source observation
     let preview = state.preview.unwrap()
     assert_true(physical_equal(preview._retained_observation, observation))
     assert_true(physical_equal(preview._retained_invocation, invocation))
-    assert_eq(preview.proofs.length(), 3)
+    assert_eq(preview.proofs.length(), selectors.length())
+    let identity = @strategy.captured_effect_preview_ledger_identity(
+      preview.inputs,
+    )
+    let limits = @run_host.client_standard_effect_computation_limits().effects
+    let stage = @strategy.captured_effect_input_stage(
+      @strategy.captured_effect_input_at(proposals.inputs, 0).unwrap(),
+    )
+    let bind_original = authoring_cid => {
+      @run_host.bind_admitted_captured_client_effect_preview(
+        proposals.materials.unwrap(),
+        state.effect_capture.unwrap(),
+        proposals.inputs,
+        invocation,
+        stage,
+        identity,
+        authoring_cid,
+        preview._retained_identities,
+        limits.max_work,
+        {
+          max_work: limits.max_work,
+          max_fields: 100,
+          max_bytes: file_limits.page.max_bytes,
+          max_nodes: limits.max_admission_nodes,
+          max_depth: limits.max_admission_depth,
+        },
+      )
+    }
+    let authoring_cid = @publication.run_evidence_value_identity(
+      preview._retained_authoring,
+    )
+    assert_true(
+      bind_original(authoring_cid + "x") is Err(Identity(ForeignPreview)),
+    )
+    let rebound = bind_original(authoring_cid).native_file_route_value(
+      "bind the admitted original Preview",
+    )
+    assert_true(
+      physical_equal(
+        @strategy.captured_effect_preview_ledger_identity(rebound),
+        identity,
+      ),
+    )
     guard @json.parse(preview._retained_wire) is Object(fields) &&
       fields.get("model_derived") == Some(Json::boolean(false)) &&
       fields.get("effects") is Some(Array(effects)) else {
       fail("expected original model-free Effect Preview")
     }
-    assert_eq(effects.length(), 3)
-    for index, selector in ["a1", "c1", "a2"] {
+    assert_eq(effects.length(), selectors.length())
+    for index, selector in selectors {
       guard effects[index] is Object(effect_body) &&
         effect_body.get("executed") == Some(Json::boolean(false)) &&
         effect_body.get("changes") is Some(Array(changes)) &&
         changes.length() == 1 &&
         changes[0] is Object(change) &&
         change.get("before") is Some(Object(old)) &&
-        old.get("value") is Some(Object(old_row)) &&
-        change.get("after") is Some(Object(new)) &&
-        new.get("value") is Some(Object(new_row)) else {
+        old.get("value") is Some(Object(old_row)) else {
         fail("expected a before/after pair from the original target")
       }
       assert_eq(change.get("target_row_identity"), Some(Json::string(selector)))
@@ -2563,10 +2647,24 @@ test "Native shared-file Effect joins and binds both original Source observation
         old_row.get("value"),
         Some(Json::string(["A-old", "C-old", "A2-old"][index])),
       )
-      assert_eq(
-        new_row.get("value"),
-        Some(Json::string(["A-new", "C-new", "A2-new"][index])),
-      )
+      if deleting && index == 0 {
+        assert_eq(effect_body.get("effect_kind"), Some(Json::string("delete")))
+        assert_eq(change.get("after"), Some(({ "state": "absent" } : Json)))
+        assert_eq(
+          change.get("intended_changes"),
+          Some(({ "state": "not_applicable" } : Json)),
+        )
+      } else {
+        assert_eq(effect_body.get("effect_kind"), Some(Json::string("update")))
+        guard change.get("after") is Some(Object(new)) &&
+          new.get("value") is Some(Object(new_row)) else {
+          fail("expected original UPDATE after image")
+        }
+        assert_eq(
+          new_row.get("value"),
+          Some(Json::string(["A-new", "C-new", "A2-new"][index])),
+        )
+      }
     }
     state.prepare_direct_mock_effect_dependencies(
       run,
@@ -2610,7 +2708,7 @@ test "Native shared-file Effect joins and binds both original Source observation
         file_limits.page.max_depth,
       ),
     )
-    assert_eq(preview._retained_local_sources.length(), 3)
+    assert_eq(preview._retained_local_sources.length(), selectors.length())
     let publication_limits = @local_values.installed_effect_managed_publication_limits(
       run,
       prepared,
@@ -3288,4 +3386,9 @@ test "Native Source-only mapped UPDATE retains its parameterized Query capture a
   if outcome is Err(issue) {
     fail("Native nullable UPDATE proposal: " + issue)
   }
+}
+
+///|
+test "Native shared-file DELETE and UPDATE Preview own their original guarded targets" {
+  native_shared_file_effect_observes_and_previews(true)
 }

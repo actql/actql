@@ -41,4 +41,3 @@ export function requireNativeLocalHeader(bytes: Uint8Array, sqlite: HeaderReceip
   assert.deepEqual(sqlite.stage?.outputs?.['sqlite3.h'], selected, 'Staged SQLite header receipt mismatch');
   return selected;
 }
-

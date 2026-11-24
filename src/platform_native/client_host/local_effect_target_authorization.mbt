@@ -74,6 +74,7 @@ pub fn NativeLocalEffectResumeOriginal::authorize_saved_file_effect_in_original_
 ) -> Result[Unit, NativeLocalInitialHostAttestationIssue] {
   guard self.prepared &&
     !self.retired &&
+    !self.settlement_only &&
     self.action is Some(Claimed(claim)) &&
     physical_equal(claim.journal, self.host.journal) &&
     claim.request == self.request &&
@@ -145,7 +146,10 @@ pub fn NativeLocalEffectResumeOriginal::authorize_saved_file_effect_in_original_
     )
     is Ok(descriptor) &&
     descriptor.0 == member_index &&
-    descriptor.2 == "update" &&
+    descriptor.2 ==
+    (if mapping.write_fields.is_empty() { "delete" } else { "update" }) &&
+    @publication.effect_preview_member_kind(preview, member_index) ==
+    Some(descriptor.2) &&
     descriptor.3 ==
     "connector://" + declaration.connector_id + "/" + mapping.resource &&
     descriptor.4 == mapping.mapping_ref &&

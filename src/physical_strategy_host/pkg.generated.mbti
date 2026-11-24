@@ -277,6 +277,10 @@ pub fn captured_effect_preview_subject_cid(CapturedEffectPreviewInputs) -> Strin
 
 pub fn captured_effect_preview_table_input_at(CapturedEffectPreviewInputs, Int) -> CapturedEffectTableInput?
 
+pub fn captured_effect_proposal_plan_field_only_count(CapturedEffectProposalPlan) -> Int?
+
+pub fn captured_effect_proposal_plan_staged_rows(CapturedEffectProposalPlan) -> Int?
+
 pub fn captured_effect_published_store_binding(CapturedEffectInputs, Int, Int) -> Result[@check_environment.StoreCommandBinding?, CapturedEffectProposalIssue]
 
 pub fn captured_effect_result_import_consumer(CapturedEffectResultImport) -> Int
@@ -813,7 +817,7 @@ pub fn prepare_task_offer(CapturedDAG, Int, @connector_sdk.CapabilityRegistratio
 
 pub fn project_captured_effect_checked_proposal_row(CapturedEffectProposalPlan, CapturedEffectLocalResultExport, @execution_relation.CompletedOutputExportOriginalRow, Int, Int, @value_admission.Limits) -> Result[CapturedEffectCheckedProposalRow, CapturedEffectCheckedProposalIssue]
 
-pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int) -> Result[(String, String), CapturedEffectProposalIssue]
+pub fn project_captured_effect_proposal_row(CapturedEffectProposalPlan, @canonical_json.CanonicalValue, Int, Int, Int, Int, Int, Int, before_encode? : ((Int, Int, Int, Int) -> Bool)?) -> Result[(String, String), CapturedEffectProposalIssue]
 
 pub fn rank_operational_candidates(PolicyCandidateSet, OperationalEstimateSidecar, Int, String, Int64, quantity? : String) -> Result[EmpiricalRanking, SearchIssue]
 
@@ -995,7 +999,7 @@ pub fn start_captured_effect_local_result_export(CapturedEffectInputs, Int, @exe
 
 pub fn start_captured_effect_local_unit_result_export(CapturedEffectLocalUnitInputs, Int, @execution_relation.CompletedResultViewLimits, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int) -> Result[CapturedEffectLocalResultExport, CapturedEffectLocalResultExportIssue]
 
-pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue]) -> Result[(T, TaskExecution), RunIssue]
+pub fn[I, T] start_captured_managed_execution(CapturedDAG, Int, @connector_sdk.PreparedManagedExecution[I, T, RunIssue], transfer_limit? : Int64) -> Result[(T, TaskExecution), RunIssue]
 
 pub fn[T] start_captured_materializing_execution(CapturedDAG, Int, @connector_sdk.PreparedExecution[T, RunIssue], resident? : ResidentExecution) -> Result[(T, TaskExecution), RunIssue]
 

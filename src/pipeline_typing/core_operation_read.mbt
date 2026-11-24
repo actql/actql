@@ -1130,7 +1130,7 @@ fn check_pipeline_core_step(
         } else {
           [
             "start", "hops", "direction", "edge_types", "min_hops", "max_hops", "emit",
-            "max_output_rows", "path_mode", "edge_where", "node_where",
+            "max_output_rows", "path_mode", "edge_where", "node_where", "endpoint_properties",
           ]
         },
       ) {

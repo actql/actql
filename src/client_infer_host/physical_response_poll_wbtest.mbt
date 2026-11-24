@@ -94,6 +94,12 @@ fn async_response_fixture(
   ),
   now? : Ref[String] = Ref("2026-10-02T00:00:00.000Z"),
   observe_call? : (@model.ModelPhysicalCall) -> Unit = _ => (),
+  observe_entry? : (@model.ModelCallEntry, @model.ModelRequest) -> Unit = (_, _) => {
+    ()
+  },
+  egress? : Ref[@publication_host.ClientInferEgressObservation?] = Ref(
+    Some(egress_fixture_observation()),
+  ),
   observe_response? : (() -> @model.ModelPhysicalCallPoll)? = None,
   observe_response_call? : ((Int, @model.ModelPhysicalCall) -> @model.ModelPhysicalCallPoll)? = None,
   prepare_original? : ((Execution) -> Unit)? = None,
@@ -110,7 +116,6 @@ fn async_response_fixture(
     (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
   ) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue],
 ) -> (Execution, Int64) raise {
-  let egress = Ref(Some(egress_fixture_observation()))
   let holder : Ref[@model.ModelPreparedCallSet?] = Ref(None)
   let (active, prepared, admission, work) = entry_gate_fixture(
     calls,
@@ -158,6 +163,7 @@ fn async_response_fixture(
               owned.val = call
               if call is Some(original) {
                 calls.val += 1
+                observe_entry(entry, request)
                 observe_call(original)
               }
               call

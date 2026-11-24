@@ -15,7 +15,10 @@ type CalendarAdmission<Environment, Admitted> = {
   clientProgramCheckEnvironmentWithCalendarArtifact?(environment: Environment, bytes: Uint8Array,
     maxBytes: number, maxNodes: number, maxDepth: number, maxZones: number,
     maxTransitions: number, maxSelectionWork: number): Admitted | undefined;
+  clientProgramInstalledCalendarArtifactConstructionCapacity?(byteLength: number, maxNodes: number,
+    maxDepth: number, maxZones: number, maxTransitions: number, policyFields: number): unknown;
 };
+type ConstructCalendar<Admitted> = (capacity: () => unknown, project: () => Admitted) => Admitted;
 
 const originals = new WeakMap<InstalledCalendar, Uint8Array>();
 const invalid: () => never = () => { throw new TypeError('InvalidInstalledCalendar'); };
@@ -90,17 +93,27 @@ export function installedCalendarSelection(selected: InstalledCalendar | undefin
   return installedCalendarIdentity(selected)?.selection;
 }
 
+export function admitInstalledCalendar<Environment>(
+  moon: CalendarAdmission<Environment, Environment>, environment: Environment, selected: undefined): Environment;
 export function admitInstalledCalendar<Environment, Admitted = Environment>(
-  moon: CalendarAdmission<Environment, Admitted>, environment: Environment, selected: InstalledCalendar | undefined) {
+  moon: CalendarAdmission<Environment, Admitted>, environment: Environment, selected: InstalledCalendar | undefined,
+  construct: ConstructCalendar<Admitted>, policyFields: number): Environment | Admitted;
+export function admitInstalledCalendar<Environment, Admitted = Environment>(
+  moon: CalendarAdmission<Environment, Admitted>, environment: Environment, selected: InstalledCalendar | undefined,
+  construct?: ConstructCalendar<Admitted>, policyFields?: number) {
   if (selected === undefined) return environment;
+  if (typeof construct !== 'function') invalid();
   const bytes = originals.get(selected);
-  if (bytes === undefined || typeof moon?.clientProgramCheckEnvironmentWithCalendarArtifact !== 'function') {
-    throw new TypeError('InvalidInstalledCalendar');
-  }
+  if (bytes === undefined || typeof moon?.clientProgramCheckEnvironmentWithCalendarArtifact !== 'function') invalid();
   const limits = selected.limits;
-  const admitted = moon.clientProgramCheckEnvironmentWithCalendarArtifact(environment,
-    bytes, limits.max_bytes, limits.max_nodes, limits.max_depth,
-    limits.max_zones, limits.max_transitions, selected.maxSelectionWork);
-  if (admitted === undefined) throw new TypeError('InvalidInstalledCalendar');
-  return admitted;
+  const admit = () => {
+    const admitted = moon.clientProgramCheckEnvironmentWithCalendarArtifact!(environment,
+      bytes, limits.max_bytes, limits.max_nodes, limits.max_depth,
+      limits.max_zones, limits.max_transitions, selected.maxSelectionWork);
+    if (admitted === undefined) invalid();
+    return admitted;
+  };
+  if (typeof moon.clientProgramInstalledCalendarArtifactConstructionCapacity !== 'function') invalid();
+  return construct(() => moon.clientProgramInstalledCalendarArtifactConstructionCapacity!(
+    bytes.byteLength, limits.max_nodes, limits.max_depth, limits.max_zones, limits.max_transitions, policyFields!), admit);
 }

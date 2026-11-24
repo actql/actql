@@ -151,6 +151,40 @@ pub fn github_issue_page_json(
 }
 
 ///|
+fn issue_list_locator_json(locator : @catalog.NextPage) -> Json {
+  let query : Array[Json] = locator.query.map(pair => {
+    [pair.0.to_json(), pair.1.to_json()]
+  })
+  {
+    "path": locator.path.to_json(),
+    "query": Json::array(query),
+    "page": locator.page.to_json(),
+  }
+}
+
+///|
+#export_name("githubIssueListStartJson")
+pub fn github_issue_list_start_json(
+  owner : String,
+  repository : String,
+  page_size : Int,
+) -> String {
+  let value : Json = match
+    @catalog.issue_list_start(owner, repository, page_size) {
+    Ok(locator) => { "first": issue_list_locator_json(locator) }
+    Err(InvalidRepository) => { "refused": "InvalidRepository".to_json() }
+    Err(InvalidPageSize) => { "refused": "InvalidPageSize".to_json() }
+  }
+  value.stringify()
+}
+
+///|
+#export_name("githubIssueListFilterAllowed")
+pub fn github_issue_list_filter_allowed(name : String) -> Bool {
+  @catalog.issue_list_filter_allowed(name)
+}
+
+///|
 /// The next page from an observed `Link` value (`has_link` false when the
 /// response carried none): `{"next": null}`, `{"next": {...}}` or
 /// `{"refused": "..."}`.
@@ -167,18 +201,7 @@ pub fn github_next_page_json(
   let json : Json = match
     @catalog.next_page(observed, origin, path, page, max_locator_units) {
     Ok(None) => { "next": Json::null() }
-    Ok(Some(next)) => {
-      let query : Array[Json] = next.query.map(pair => {
-        [pair.0.to_json(), pair.1.to_json()]
-      })
-      {
-        "next": {
-          "path": next.path.to_json(),
-          "query": Json::array(query),
-          "page": next.page.to_json(),
-        },
-      }
-    }
+    Ok(Some(next)) => { "next": issue_list_locator_json(next) }
     Err(issue) => {
       let name = match issue {
         MalformedLink => "MalformedLink"
@@ -337,6 +360,21 @@ pub fn github_repository_access_valid(owner : String, name : String) -> Bool {
 #export_name("githubRepositoryRequest")
 pub fn github_repository_request(owner : String, name : String) -> String {
   @catalog.repository_request(owner, name)
+}
+
+///|
+#export_name("githubGraphqlOuterCursorHistory")
+pub fn github_graphql_outer_cursor_history() -> @catalog.GraphqlOuterCursorHistory {
+  @catalog.prepare_graphql_outer_cursor_history()
+}
+
+///|
+#export_name("githubRecordGraphqlOuterCursor")
+pub fn github_record_graphql_outer_cursor(
+  history : @catalog.GraphqlOuterCursorHistory,
+  cursor : String,
+) -> Bool {
+  @catalog.record_graphql_outer_cursor(history, cursor)
 }
 
 ///|

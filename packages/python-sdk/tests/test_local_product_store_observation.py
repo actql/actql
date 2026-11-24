@@ -49,7 +49,7 @@ class ProductStoreObservationTests(unittest.TestCase):
                 calls.append((family, name, args))
                 if name == 'result_count': return 1
                 if name == 'count': return 8
-                if name == 'reserve':
+                if name in ('reserve', 'reserve_bounded'):
                     handle = 100 + args[1]
                     outputs[handle] = (args[1], b'')
                     return handle
@@ -66,8 +66,9 @@ class ProductStoreObservationTests(unittest.TestCase):
                         return faults['produce_observed_index']
                     if not stored or faults.get('finish_observation', 4) != 4:
                         return -32
-                    outputs[args[0]] = (outputs[args[0]][0],
-                        INDEX_CID if args[2] == 3 else STORED_INDEX)
+                    wire = (INDEX_CID + b':' + str(len(STORED_INDEX)).encode('ascii')
+                            if args[2] == 4 else STORED_INDEX)
+                    outputs[args[0]] = (outputs[args[0]][0], wire)
                     return 0
                 if name == 'length': return len(outputs[args[0]][1])
                 if name == 'close': return core._cleanup(outputs.pop(args[0])[0])

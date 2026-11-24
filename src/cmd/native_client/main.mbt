@@ -489,7 +489,9 @@ fn valid_submission_ref(value : Json) -> Bool {
 ///|
 fn valid_original_submission_reply(
   value : Json,
-  request_wire : Bytes,
+  expected : Json,
+  intent_cid : Json?,
+  unresolved_history : Json?,
   selected : Json,
   lookup : Bool,
 ) -> Bool {
@@ -500,22 +502,18 @@ fn valid_original_submission_reply(
   } else if !wire_submission_outcome_shape(value) {
     return false
   }
-  let text = @utf8.decode(request_wire) catch { _ => return false }
-  let request = @json.parse(text) catch { _ => return false }
-  guard request is Object(request_fields) &&
-    value is Object(fields) &&
-    request_fields.get("submissionRef") is Some(expected) &&
+  guard value is Object(fields) &&
     valid_submission_ref(expected) &&
     fields.get("submissionRef") == Some(expected) else {
     return false
   }
-  if !lookup && fields.get("intentCid") != request_fields.get("intentCid") {
+  if !lookup && fields.get("intentCid") != intent_cid {
     return false
   }
   let history = fields.get("unresolvedHistory")
   // A submit reply cannot introduce an acknowledgement the caller never sent.
   // Readonly lookup may return the original saved link, bound to this epoch.
-  if !lookup && history != request_fields.get("unresolvedHistory") {
+  if !lookup && history != unresolved_history {
     return false
   }
   if history is Some(value) {
@@ -568,15 +566,21 @@ fn valid_submission_reply(
   selected : Json,
   lookup : Bool,
 ) -> Bool {
-  if lookup {
-    return valid_original_submission_reply(value, request_wire, selected, true)
-  }
-  guard wire_submission_attempt_shape(value) && value is Object(fields) else {
-    return false
-  }
   let text = @utf8.decode(request_wire) catch { _ => return false }
   let request = @json.parse(text) catch { _ => return false }
   guard request is Object(request_fields) &&
+    request_fields.get("submissionRef") is Some(expected) else {
+    return false
+  }
+  let intent_cid = request_fields.get("intentCid")
+  let unresolved_history = request_fields.get("unresolvedHistory")
+  if lookup {
+    return valid_original_submission_reply(
+      value, expected, intent_cid, unresolved_history, selected, true,
+    )
+  }
+  guard wire_submission_attempt_shape(value) &&
+    value is Object(fields) &&
     fields.get("attemptRef") == request_fields.get("attemptRef") &&
     fields.get("attemptRef") is Some(Object(attempt)) &&
     json_text(attempt, "operation") == Some("submit") else {
@@ -584,15 +588,78 @@ fn valid_submission_reply(
   }
   if fields.get("outcome") is Some(original) {
     return valid_original_submission_reply(
-      original, request_wire, selected, false,
+      original, expected, intent_cid, unresolved_history, selected, false,
     )
   }
   if json_text(fields, "kind") == Some("refused") &&
     json_text(fields, "reason") == Some("authorization") {
     return true
   }
-  fields.get("submissionRef") == request_fields.get("submissionRef") &&
-  fields.get("intentCid") == request_fields.get("intentCid")
+  fields.get("submissionRef") == Some(expected) &&
+  fields.get("intentCid") == intent_cid
+}
+
+///|
+fn valid_native_submission_name(name : String) -> Bool {
+  guard wire_submission_name_shape(Json::string(name)) &&
+    @utf8.encode(name).length() <= 256 else {
+    return false
+  }
+  guard @canonical_value.normalize_nfc_lf(name) is Ok(normalized) &&
+    normalized == name else {
+    return false
+  }
+  for character in name.iter() {
+    let unit = character.to_int()
+    if unit >= 128 && unit <= 159 {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn valid_named_submission_reply(
+  value : Json,
+  request_wire : Bytes,
+  selected : Json,
+) -> Bool {
+  let text = @utf8.decode(request_wire) catch { _ => return false }
+  let request = @json.parse(text) catch { _ => return false }
+  guard wire_named_submission_attempt_shape(value) &&
+    wire_connection_shape(selected) &&
+    request is Object(request_fields) &&
+    json_text(request_fields, "requestName") is Some(name) &&
+    valid_native_submission_name(name) &&
+    request_fields.get("submissionRef") is Some(candidate) &&
+    valid_submission_ref(candidate) &&
+    candidate is Object(candidate_ref) &&
+    candidate_ref.get("epoch") is Some(Object(candidate_epoch)) &&
+    value is Object(fields) &&
+    fields.get("requestName") == request_fields.get("requestName") &&
+    fields.get("intentCid") == request_fields.get("intentCid") &&
+    fields.get("attemptRef") == request_fields.get("attemptRef") else {
+    return false
+  }
+  if json_text(fields, "kind") != Some("observed") {
+    return true
+  }
+  guard fields.get("outcome") is Some(outcome) &&
+    outcome is Object(observation) &&
+    observation.get("submissionRef") is Some(original) &&
+    original is Object(reference) &&
+    reference.get("epoch") is Some(Object(epoch)) &&
+    epoch.get("authorityScopeCid") == candidate_epoch.get("authorityScopeCid") else {
+    return false
+  }
+  valid_original_submission_reply(
+    outcome,
+    original,
+    request_fields.get("intentCid"),
+    None,
+    selected,
+    json_text(observation, "kind") == Some("unresolvable"),
+  )
 }
 
 ///|
@@ -788,6 +855,12 @@ fn request_body(
       fields["intentCid"] = Json::string(
         @run_host.client_submitted_intent_cid(admitted),
       )
+      if optional(child, "request-name") is Some(name) {
+        if !valid_native_submission_name(name) {
+          stop("InvalidSubmissionName")
+        }
+        fields["requestName"] = Json::string(name)
+      }
     }
   }
   let writer = @encode.writer(maximum, 8192, 32) catch {
@@ -994,7 +1067,7 @@ fn command() -> @argparse.Command {
         flags=[
           @argparse.FlagArg(
             "explanation-json",
-            about="Read the structural Explanation for a Local Effect Program as JSON",
+            about="Read the structural Explanation for a Local Program as JSON",
           ),
           @argparse.FlagArg(
             "verbose",
@@ -1015,7 +1088,7 @@ fn command() -> @argparse.Command {
         options=[
           @argparse.OptionArg(
             "explanation-language",
-            about="Read the structural Explanation for a Local Effect Program in en or ja",
+            about="Read the structural Explanation for a Local Program in en or ja",
           ),
           @argparse.OptionArg("program-file", about="Path to a Program file", conflicts_with=[
             "program", "run",
@@ -1204,6 +1277,11 @@ fn command() -> @argparse.Command {
             about="Write Result rows to a new file instead of stdout",
           ),
           @argparse.OptionArg(
+            "request-name",
+            about="Submit under an original scoped Remote request name",
+            requires=["submission-ref-file", "operation-attempt-id"],
+          ),
+          @argparse.OptionArg(
             "request-id",
             about="Request ID used to identify a submission",
           ),
@@ -1300,6 +1378,11 @@ fn command() -> @argparse.Command {
           @argparse.OptionArg(
             "parameters-file",
             about="JSON file of parameter values (alias: --params)",
+          ),
+          @argparse.OptionArg(
+            "request-name",
+            about="Submit under an original scoped Remote request name",
+            requires=["submission-ref-file", "operation-attempt-id"],
           ),
           @argparse.OptionArg(
             "request-id",
@@ -1785,51 +1868,41 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   let connect_body = request_body(
     "connect", child, root, connection, request_max,
   )
-  let library = match @http.load_library(required(matches, "http-library")) {
-    Ok(value) => value
-    Err(_) => stop("native HTTPS library unavailable")
+  let transport = begin_remote_http_transport(matches, response_max)
+  let named = optional(child, "request-name") is Some(_)
+  let route = match operation {
+    "aql" | "start" =>
+      if named {
+        "submit-named-intent"
+      } else {
+        "submit-intent"
+      }
+    _ => operation
   }
-  let client = match
-    library.create_client(
-      required(matches, "ca"),
-      required(matches, "cert"),
-      required(matches, "key"),
-      response_max.to_int64(),
-      5000,
-      30000,
-    ) {
-    Ok(value) => value
-    Err(_) => stop("native HTTPS client unavailable")
-  }
-  let route = if operation == "aql" || operation == "start" {
-    "submit-intent"
-  } else {
-    operation
-  }
+  let submitting = route == "submit-intent" || named
   let headers : Array[@http.NativeHttpHeader] = [
     { name: "authorization", value: "Bearer " + token, },
     { name: "content-type", value: "application/json", },
   ]
-  let negotiation = client.request(
-    @http.Post,
+  let negotiation = transport.post(
     endpoint + "actql/client/0.1/connect",
     headers,
     connect_body,
   )
   let confirmed = match negotiation {
-    Ok(value) if value.status >= 200 && value.status < 300 => {
+    Some(value) if value.status >= 200 && value.status < 300 => {
       let text = @utf8.decode(value.body) catch {
         _ => stop("invalid Client Host profile")
       }
       ignore(confirmed_profile(text, connection))
       if operation == "connect" {
-        ignore(client.close())
+        transport.finish_compatibility()
         return text
       }
       text
     }
-    Ok(value) => stop("ClientHostHTTP" + value.status.to_string())
-    Err(_) => stop("ClientTransportUnknown")
+    Some(value) => stop("ClientHostHTTP" + value.status.to_string())
+    None => stop("ClientTransportUnknown")
   }
   if operation == "new-submission" {
     let profile = @json.parse(confirmed) catch {
@@ -1848,30 +1921,29 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     if !valid_submission_ref(reference) {
       stop("InvalidSubmissionRef")
     }
-    ignore(client.close())
+    transport.finish_compatibility()
     return encode_request_json(reference, response_max)
   }
-  let response = client.request(
-    @http.Post,
+  let response = transport.post(
     endpoint + "actql/client/0.1/" + route,
     headers,
     body,
   )
-  ignore(client.close())
+  transport.finish_compatibility()
   let result = match response {
-    Ok(value) => value
-    Err(_) if route == "submit-intent" =>
+    Some(value) => value
+    None if submitting =>
       stop(
         "SubmissionUnknown submission-ref-file=" +
         required(child, "submission-ref-file"),
       )
-    Err(_) if route == "read" =>
+    None if route == "read" =>
       stop("ResultReadUnknown attempt-id=" + required(child, "attempt-id"))
-    Err(_) if route == "cancel" => stop(cancellation_unknown(body))
-    Err(_) => stop("ClientTransportUnknown")
+    None if route == "cancel" => stop(cancellation_unknown(body))
+    None => stop("ClientTransportUnknown")
   }
   if result.status < 200 || result.status >= 300 {
-    if route == "submit-intent" {
+    if submitting {
       stop(
         "SubmissionUnknown submission-ref-file=" +
         required(child, "submission-ref-file"),
@@ -1887,7 +1959,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   let text = @utf8.decode(result.body) catch {
     _ =>
-      if route == "submit-intent" {
+      if submitting {
         stop(
           "SubmissionUnknown submission-ref-file=" +
           required(child, "submission-ref-file"),
@@ -1900,34 +1972,28 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         stop("invalid UTF-8 Host response")
       }
   }
-  if route == "submit-intent" || route == "lookup-submission" {
+  if submitting || route == "lookup-submission" {
+    let invalid = (if submitting {
+        "SubmissionUnknown"
+      } else {
+        "InvalidHostSubmissionLookup"
+      }) +
+      " submission-ref-file=" +
+      required(child, "submission-ref-file")
     if @source.parse_json_bytes_preserving(result.body, {
         max_input_bytes: response_max,
         max_nodes: 8192,
         max_depth: 32,
       })
       is Err(_) {
-      stop(
-        (if route == "submit-intent" {
-          "SubmissionUnknown"
-        } else {
-          "InvalidHostSubmissionLookup"
-        }) +
-        " submission-ref-file=" +
-        required(child, "submission-ref-file"),
-      )
+      stop(invalid)
     }
-    let outcome = @json.parse(text) catch {
-      _ =>
-        stop(
-          (if route == "submit-intent" {
-            "SubmissionUnknown"
-          } else {
-            "InvalidHostSubmissionLookup"
-          }) +
-          " submission-ref-file=" +
-          required(child, "submission-ref-file"),
-        )
+    let outcome = @json.parse(text) catch { _ => stop(invalid) }
+    if named {
+      if !valid_named_submission_reply(outcome, body, connection) {
+        stop(invalid)
+      }
+      return text
     }
     if !valid_submission_reply(
         outcome,
@@ -1935,15 +2001,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
         connection,
         route == "lookup-submission",
       ) {
-      stop(
-        (if route == "submit-intent" {
-          "SubmissionUnknown"
-        } else {
-          "InvalidHostSubmissionLookup"
-        }) +
-        " submission-ref-file=" +
-        required(child, "submission-ref-file"),
-      )
+      stop(invalid)
     }
     if route == "submit-intent" && outcome is Object(attempt) {
       guard attempt.get("outcome") is Some(Object(fields)) else {
@@ -2059,6 +2117,14 @@ fn execute_and_write_native_reply(
   }
   // The same carrier is registered before the first project/runtime/Store IO.
   // Help/version and parse errors have already terminated without acquisition.
+  if matches.subcommand is Some((_, child)) &&
+    optional(child, "request-name") is Some(_) &&
+    (
+      required(matches, "mode") != "remote" ||
+      local_project_default_local_candidate(matches)
+    ) {
+    stop("NamedSubmissionRequiresRemoteHost")
+  }
   prepare_native_command_invocation(matches)
   let selected = execute_native_project_selection(matches)
   let value = match selected {
@@ -2076,6 +2142,12 @@ fn execute_and_write_native_reply(
     return
   }
   if command_preparation_invocation.val is Some(original) {
+    if original.remote_http is Some(_) {
+      // Remote response parsing uses only detached DATA. Main publishes
+      // it only after the original HTTP child and Read close.
+      pending_reply.val = Some(value)
+      return
+    }
     // Static metadata is copied only after leaving its original Read. Keep the
     // same physical carrier and all aliases until main confirms every cleanup;
     // a partial close must never publish an adoption/check success beforehand.
@@ -2170,6 +2242,10 @@ fn main {
   if local_finish_result_receipt() is Err(_) {
     fail_cleanup_command("ResultReceiptCleanupPending")
   }
+  let pending_jsonl = command_preparation_invocation.val
+    .bind(original => original.remote_http)
+    .map(remote => remote.raw_reply)
+    .unwrap_or(false)
   let command_cleanup = local_finish_command_preparation()
   let command_closed = command_cleanup is Ok(_)
   let crypto_closed = if command_closed {
@@ -2207,7 +2283,7 @@ fn main {
     exit_failure_ffi()
   }
   if pending_reply.val is Some(body) {
-    let bytes = @utf8.encode(body + "\n")
+    let bytes = @utf8.encode(if pending_jsonl { body } else { body + "\n" })
     if !write_stdout_ffi(bytes, bytes.length()) {
       fail_command("stdout write failed")
     }

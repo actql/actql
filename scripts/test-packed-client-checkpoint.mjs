@@ -184,6 +184,7 @@ await writeFile(join(root, 'host.key'), pem(host.privateKey), {mode: 0o600});
 // configuration; nothing defaults to allow. The event log records protected
 // dispatches and Host decision calls for the assertions.
 await writeFile(join(root, 'remote-host.mjs'), `
+import assert from 'node:assert/strict';
 import {appendFileSync, existsSync, readFileSync, writeFileSync} from
   'node:fs';
 import {createServer} from 'node:https';
@@ -296,6 +297,20 @@ if (process.env.HISTORICAL_REQUESTS !== undefined) {
       throw new Error('Synthetic originals must precede every Run and submission intent');
     }
   }
+}
+if (process.env.CHECK_REVIEWER_REGISTRATION === '1') {
+  const [reviewer] = installation.authorization.reviewers;
+  await assert.rejects(async () => {
+    const unexpected = await openInstalledRemoteHttpHost({...installation,
+      directory: process.env.STATE + '.invalid-reviewer',
+      authorization: {...installation.authorization, reviewers: [{...reviewer, keyId: 17}]}});
+    await unexpected.close();
+  }, error => {
+    assert.equal((error.primaryFailure ?? error).code, 'InvalidCheckpointReviewers');
+    assert.notEqual(error.cleanupPending, true);
+    return true;
+  });
+  console.log('Reviewer registration refusal confirmed');
 }
 const host = await openInstalledRemoteHttpHost(installation);
 const server = createServer({key: readFileSync('remote.key'),
@@ -808,8 +823,10 @@ const pastDeadline = [];
 // 1 and 9. allow runs with no Checkpoint and no Host policy call; deny and a
 // missing configuration make no protected call.
 if (!recoveryOnly) {
-  await withHost('allow', {OUTCOME: 'allow', DECIDE: 'permit'}, started =>
-    client(started, 'allowed', ['allow-a']));
+  await withHost('allow', {OUTCOME: 'allow', DECIDE: 'permit', CHECK_REVIEWER_REGISTRATION: '1'}, started => {
+    assert.match(started.output(), /Reviewer registration refusal confirmed/u);
+    client(started, 'allowed', ['allow-a']);
+  });
   assert.deepEqual(await counts('allow'), ran());
   await withHost('epoch-replay', {OUTCOME: 'allow'}, started =>
     client(started, 'replayed', ['epoch-replay']));

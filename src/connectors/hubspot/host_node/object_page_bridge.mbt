@@ -125,16 +125,10 @@ pub fn hubspot_object_page_rows_wire(
 }
 
 ///|
-#export_name("hubspotObjectPageMetadataJson")
-pub fn hubspot_object_page_metadata_json(page : @catalog.ObjectPage) -> String {
-  (
-    {
-      "objectType": page.object_type.to_json(),
-      "responseSha256": page.response_sha256.to_json(),
-      "rowCount": @catalog.object_page_row_count(page).to_json(),
-      "nextAfter": match page.next_after {
-        Some(value) => value.to_json()
-        None => Json::null()
-      },
-    } : Json).stringify()
+#export_name("hubspotObjectPageProgress")
+pub fn hubspot_object_page_progress(
+  page : @catalog.ObjectPage,
+) -> (Int, String) {
+  // The page codec rejects empty cursors. Only an exhausted page projects "".
+  (@catalog.object_page_row_count(page), page.next_after.unwrap_or(""))
 }

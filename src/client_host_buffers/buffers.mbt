@@ -30,7 +30,7 @@ pub struct BufferSlot {
   serial : Int
   mut allocation : @resources.SharedAllocation?
   mut copy_capacity : @resources.SharedCapacity?
-  accounted_bytes : Int64
+  mut accounted_bytes : Int64
   mut published : Bool
   wire_length : Int
   cleanup : () -> Bool

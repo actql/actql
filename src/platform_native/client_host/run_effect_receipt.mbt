@@ -256,6 +256,10 @@ fn NativeClientRunJournal::record_effect_row_receipt_with_operations(
         Ok(value) => value
         Err(issue) => return Err(Physical(issue))
       }
+      let before = match self.read_run_before_save(record, reads) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
       match
         insert_client_journal_value(
           self.database,
@@ -284,7 +288,7 @@ fn NativeClientRunJournal::record_effect_row_receipt_with_operations(
         Ok(_) => ()
         Err(issue) => return Err(Physical(issue))
       }
-      match self.save_with_operations(next, operations~) {
+      match self.save_observed_run(next, before, operations) {
         Ok(_) => Ok((receipt, terminal))
         Err(issue) => Err(issue)
       }

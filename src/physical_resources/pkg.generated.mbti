@@ -222,7 +222,7 @@ pub fn[P, E] complete_node_managed_run_operation_construction(NodeManagedRunAdmi
 
 pub fn[I, P] complete_preparation_capacity(PreparationCapacity[I, P], I, P, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
-pub fn[P, E] complete_prepared_run_operation_construction(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Unit, NodeManagedRunOperationIssue[E]]
+pub fn[P, E] complete_prepared_run_operation_construction(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking) -> Result[Int64, NodeManagedRunOperationIssue[E]]
 
 pub fn[P, E] complete_prepared_run_operation_construction_output(PreparedRunAdmission[P], P, Ledger, () -> Result[Unit, E], NodeManagedRunOperationBacking, Int64) -> Result[Unit, NodeManagedRunOperationIssue[E]]
 
@@ -522,6 +522,8 @@ pub fn[P, C, R] read_backed_original_child_window_bytes(BackedExecutionLiveProje
 
 pub fn[I, P] reconcile_current_working_preparation_phase(PreparationCapacity[I, P], I, Int64, Int64) -> Result[Unit, PreparationCapacityIssue]
 
+pub fn reconcile_idle_shared_capacity_after_cleanup(SharedCapacity, Int64, Int64) -> Result[Unit, LedgerIssue]
+
 pub fn[P] reconcile_preparation_publication_execution(PreparationBodyBorrow[P], P, Int64) -> Result[Unit, PreparationCapacityIssue]
 
 pub fn reconcile_unborrowed_shared_allocation_after_cleanup(SharedCapacity, SharedAllocation, Int64, Int64) -> Result[Unit, LedgerIssue]
@@ -551,6 +553,8 @@ pub fn remaining_preparation_phase_work_continuation64(PreparationPhaseWorkConti
 pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], LedgerUsage) -> Result[Unit, BackedExecutionIssue]
 
 pub fn[P, C, R] report_backed_execution_live_child(BackedExecutionLiveProjection[P, C, R], R, LedgerUsage) -> Result[Unit, BackedExecutionIssue]
+
+pub fn[I] report_backed_initialization_cleanup_usage(BackedInitializationAdmission[I]) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> Result[Unit, LedgerIssue]
 
@@ -659,6 +663,8 @@ pub fn[P, C] settle_backed_execution_after_owner_ack(BackedExecutionRegion[P, C]
 pub fn settle_capacity(Ledger, CapacityReservation) -> Result[Unit, LedgerIssue]
 
 pub fn settle_completed_output_reservation(Ledger, Reservation, Holding?, Int64, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn settle_entered_transfer(Ledger, Reservation, Int64, Int64?) -> Result[Bool, LedgerIssue]
 
 pub fn settle_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage?) -> Result[Unit, LedgerIssue]
 

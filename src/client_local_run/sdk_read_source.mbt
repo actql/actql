@@ -26,13 +26,20 @@ priv enum LocalSDKReadOrigin {
 /// separately retains and checks its actual adoption/Store/physical frame.
 struct LocalSDKReadSource {
   origin : LocalSDKReadOrigin
+  installed_original_result : Bool
 }
 
 ///|
 fn live_sdk_read_source(
   preflight : LocalPublicationPreflight,
+  selection~ : @publication.LocalSDKResultReadSelection,
 ) -> LocalSDKReadSource {
-  { origin: Live(preflight), }
+  {
+    origin: Live(preflight),
+    installed_original_result: @publication.local_sdk_result_read_selection_uses_installed_result_authority(
+      selection,
+    ),
+  }
 }
 
 ///|
@@ -50,6 +57,7 @@ pub fn prepare_local_saved_sdk_read_source(
   adoption_cid : String,
   owner : @publication.PublicationCommitPreparation,
   view : @publication.PublicationCommitReadView,
+  selection~ : @publication.LocalSDKResultReadSelection,
 ) -> Result[LocalSDKReadSource, LocalSDKReadOriginalsIssue] {
   guard @host.client_saved_submission_run_row(snapshot) is Some(row) &&
     @host.decode_client_run_journal_row_with_observation_originals(row.body)
@@ -92,12 +100,16 @@ pub fn prepare_local_saved_sdk_read_source(
     @host.client_request_authority_scope_cid(run.request) {
     return Err(InvalidOriginal)
   }
-  let (adoption, _) = match
+  let (adoption, original_read) = match
     @host.client_local_run_policy_original_read_dependencies(finite) {
     Ok(value) => value
     Err(_) => return Err(InvalidOriginal)
   }
   if adoption != adoption_cid {
+    return Err(InvalidOriginal)
+  }
+  if @publication.local_sdk_result_read_selection_cid(selection) !=
+    original_read {
     return Err(InvalidOriginal)
   }
   let policy = match
@@ -125,6 +137,9 @@ pub fn prepare_local_saved_sdk_read_source(
       view,
       index_cid: @publication.publication_contract_identity(index),
     }),
+    installed_original_result: @publication.local_sdk_result_read_selection_uses_installed_result_authority(
+      selection,
+    ),
   }
   let manifest = match owner.view_contract(view, 2) {
     Ok(value) => value
@@ -279,11 +294,14 @@ fn LocalSDKReadSource::validate_current(
   self : LocalSDKReadSource,
   account : @authorization.AdmittedAccountConfiguration,
   result_name : String,
-) -> Result[Unit, LocalSDKReadOriginalsIssue] {
+) -> Result[String, LocalSDKReadOriginalsIssue] {
   match self.origin {
     Live(preflight) =>
-      validate_local_preflight_result_read_current(
-        preflight, account, result_name,
+      local_preflight_result_read_resource(
+        preflight,
+        account,
+        result_name,
+        self.installed_original_result,
       ).map_err(issue => Preflight(issue))
     Saved(saved) => {
       match self.validate_run_current(account) {
@@ -301,11 +319,14 @@ fn LocalSDKReadSource::validate_current(
         resource: "result/" + result_name,
         operation: "read",
       }
-      if @authorization.evaluate_account(account, tuple)
-        is @authorization.Allow(_) {
-        Ok(())
-      } else {
-        Err(Preflight(AuthorizationMismatch))
+      match
+        @authorization.local_result_read_authority_resource(
+          account,
+          tuple,
+          self.installed_original_result,
+        ) {
+        Some(resource) => Ok(resource)
+        None => Err(Preflight(AuthorizationMismatch))
       }
     }
   }
@@ -332,8 +353,9 @@ fn LocalSDKReadSource::validate_finite_original(
 /// Reuse the original checked live entry. This projection grants no authority.
 pub fn local_sdk_read_source(
   preflight : LocalPublicationPreflight,
+  selection~ : @publication.LocalSDKResultReadSelection,
 ) -> LocalSDKReadSource {
-  live_sdk_read_source(preflight)
+  live_sdk_read_source(preflight, selection~)
 }
 
 ///|
@@ -344,5 +366,5 @@ pub fn validate_local_sdk_read_source_current(
   account : @authorization.AdmittedAccountConfiguration,
   result_name : String,
 ) -> Result[Unit, LocalSDKReadOriginalsIssue] {
-  source.validate_current(account, result_name)
+  source.validate_current(account, result_name).map(_ => ())
 }

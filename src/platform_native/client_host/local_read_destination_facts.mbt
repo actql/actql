@@ -21,7 +21,8 @@ fn NativeLocalReadPolicyBinding::prepare_destination_facts(
     material_generation_cid: "",
     observed_at,
   }
-  match self.require_request_selection(original, facts) {
+  match
+    self.require_request_selection(original, facts.request, facts.observed_at) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -54,22 +55,41 @@ fn NativeLocalReadPolicyBinding::prepare_destination_facts(
     material_generation_cid: resolved.read.material_generation_cid,
   }
   guard self.capture is Some(capture) else { return Err(MaterialUnavailable) }
-  let policy = match
-    capture.resolve_result_policy_original_in_original_read(
-      self.principal,
-      self.connection,
-      original,
-      store,
-      facts,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Adoption(issue))
+  let policy = if self.account_purpose is InstalledOriginalResultRead(_, _) {
+    // Resolve authorization, Store and Policy first. The sink constructor
+    // below will retain its receiver, which delivery must check separately.
+    match
+      self.resolve_policy_from_snapshot(
+        capture,
+        original,
+        store,
+        facts,
+        committed_result=Some(resolved),
+        before_receiver=true,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
+    }
+  } else {
+    let body = match
+      capture.resolve_result_policy_original_in_original_read(
+        self.principal,
+        self.connection,
+        original,
+        store,
+        facts,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Adoption(issue))
+    }
+    match self.retain_result_policy_original(original, facts, body) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    body
   }
-  match self.retain_result_policy_original(original, facts, policy) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
-  }
-  match self.require_request_selection(original, facts) {
+  match
+    self.require_request_selection(original, facts.request, facts.observed_at) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }

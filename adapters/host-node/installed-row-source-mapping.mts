@@ -2,9 +2,12 @@ export type RowSourceMappingMethod = (
   declaration: unknown, writesJson: string, resource: string, sourcesJson: string,
 ) => string;
 
+export type RowSourceDeleteMappingMethod = (declaration: unknown, writesJson: string, resource: string) => string;
+
 export type RowSourceMappingRuntime = Readonly<{
   clientProgramRowSourcePrepareMapping?: RowSourceMappingMethod;
   clientProgramRowSourcePrepareUpdateMapping?: RowSourceMappingMethod;
+  clientProgramRowSourcePrepareDeleteMapping?: RowSourceDeleteMappingMethod;
 }>;
 
 type MappingReply = Readonly<{issue: string}> | Readonly<{
@@ -27,14 +30,17 @@ export {fail as rejectInstalledRowSource};
 // field of the Effect's source result: [{target, field, null_behavior}].
 export function rowSourceMapping(moon: RowSourceMappingRuntime, declaration: unknown,
   writesJson: string, resource: string, sources: readonly unknown[],
-  operation: 'create' | 'update' = 'create', sourcesJson?: string) {
-  if (operation !== 'create' && operation !== 'update') fail('InvalidInstalledEffectMappings');
+  operation: 'create' | 'update' | 'delete' = 'create', sourcesJson?: string) {
+  if (operation !== 'create' && operation !== 'update' && operation !== 'delete') fail('InvalidInstalledEffectMappings');
   const prepare = operation === 'update' ? moon.clientProgramRowSourcePrepareUpdateMapping
+    : operation === 'delete' ? moon.clientProgramRowSourcePrepareDeleteMapping
     : moon.clientProgramRowSourcePrepareMapping;
   if (typeof prepare !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
-  const sourceWire = sourcesJson === undefined ? JSON.stringify(sources) : sourcesJson;
-  const prepared: MappingReply = JSON.parse(Reflect.apply(prepare, moon,
-    [declaration, writesJson, resource, sourceWire]));
+  if (operation === 'delete' && (!Array.isArray(sources) || sources.length !== 0)) fail('InvalidInstalledEffectMappings');
+  const prepared: MappingReply = JSON.parse(operation === 'delete'
+    ? Reflect.apply(prepare, moon, [declaration, writesJson, resource])
+    : Reflect.apply(prepare, moon, [declaration, writesJson, resource,
+      sourcesJson === undefined ? JSON.stringify(sources) : sourcesJson]));
   if (prepared.issue !== undefined) fail(`RowSourceMapping${prepared.issue}`);
   return Object.freeze({mappingRef: prepared.mapping_ref,
     mappingCid: prepared.mapping_cid, body: prepared.body,

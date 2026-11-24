@@ -6,11 +6,27 @@
     "sha256": "2cb84537d4ec8744a9a7d057a8202bef4d0bc45fb7f5b57770aa85d56a43f852",
     "modules": 122
   },
+  "generated": [],
+  "unassigned": [],
+  "notEstablished": [
+    "Fresh execution of referenced tests",
+    "Whole-Host/resource lifetime proof",
+    "Normal numerical profile",
+    "Public Model/Provider acceptance",
+    "Whole-distribution or installed-cohort completion"
+  ],
+  "counts": {
+    "modules": 194,
+    "operations": 5539,
+    "exports": 1202,
+    "explicitContractGroups": 550
+  },
+  "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership.",
   "declarations": [
     {
       "module": "adapters/host-common/acquisition-outcome.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "96c9265d3ea813002f7179b42a4a5fd95c7572203e49299dc1934f49be587179",
+      "sha256": "1127d7e6411f3b08be7c398597f32a847fa73fb7a66c74c0ee76dcb3c7deefbe",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -381,7 +397,7 @@
     {
       "module": "adapters/host-common/authorization-gate.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dcb432c7c76a773e97d6fd9e41cd7c2e9664a00e987767c20be52e25be2a3157",
+      "sha256": "2b5449522ed6912150ae89207a99a6991266e1b6bc542d5e6a2ea8417fa57495",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -1404,7 +1420,7 @@
     {
       "module": "adapters/host-common/checkpoint-approval.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a63bc8c864424b94da713d47c92a51ca385b0852c22e65cd529dfd7992bf0432",
+      "sha256": "2375f779b105ab503dfc8d8ffa0ffa9238b8ec36852ce6000ecf507f82986241",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -3602,7 +3618,7 @@
     {
       "module": "adapters/host-common/completion-observer.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1a31e9b7d4758fb6e314710bd4a556fa326d8f287d0a2563e26ef6287e3efd3a",
+      "sha256": "2b9a7ce30757865fd9ae4c31031084593cc82b3837f3e2ae72b6acc6c1825d68",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
       "exports": [
@@ -4554,7 +4570,7 @@
     {
       "module": "adapters/host-common/effect-receipt-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ec65974a3488fb0503b84be23682c1903be8fc824426e1bded13083be492c6a4",
+      "sha256": "311f83faf0eb4575a354319649c06bb9e808e42a56d6c8a2ca4a855d264d8795",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -4892,7 +4908,7 @@
     {
       "module": "adapters/host-common/execution-sites.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "08d3256d7dcc6428b2c4ba2e2169385b82891e4cd33e513391148ea5c11fa147",
+      "sha256": "0abf8b7cff9a6a95b9d8a3c36f3e2f3ed8bdc2c4bbca59c3d71580a711a3f52b",
       "role": "physical-io",
       "owner": "Existing execution_site/Coordinator/Transfer Owners and installed placement adapter",
       "exports": [
@@ -5932,7 +5948,7 @@
     {
       "module": "adapters/host-common/http-exchange.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ed87a5341bfd81d029006d57453ff1a75e9da3acbca17814cba67b88c19ff65b",
+      "sha256": "0f37334e3e48f96a1d7976269cb76998a0233f7de4d579ad8e7bde9140100463",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -6856,7 +6872,7 @@
     {
       "module": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b04a3b71427b5dbf3cba7f3e8e0ef603fb91b7390e1d8c9ad913025d3e131dd0",
+      "sha256": "dd524ccd2ec062b859827f66c1f263c33d1d68ecaf9382d7b0365925f248e0c0",
       "role": "common-semantics",
       "owner": "Existing bounded Checkpoint codec and installed Effect continuation Owners",
       "exports": [
@@ -7024,7 +7040,7 @@
     {
       "module": "adapters/host-common/installed-connector-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a87802ef77e91633163ff419fea21def0aaa862a1a73289320c2f8aa3ff0805b",
+      "sha256": "45688899cf308d14b789fe2ecd5af15bd850dfb5358475e2faa2df32c6b1c173",
       "role": "physical-io",
       "owner": "Existing Connector HTTP request projection and credential transport boundary",
       "exports": [
@@ -7585,7 +7601,7 @@
     {
       "module": "adapters/host-common/managed-failure.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c8f46eebd8aad540b383264ea6c26900f856859a2da93c505347c44d05a1125e",
+      "sha256": "28e3ab9b2613d738dff973656a5872b7a71f4c04a0285bb7819d3bfa9663dced",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -8272,7 +8288,7 @@
     {
       "module": "adapters/host-common/managed-site-transfer.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "57bb900a88cdf6cc0cb805c3d5b0166f37a19bff852a1c52e9ee187d9e7a02b0",
+      "sha256": "f0aa9a02289bdf53a53999c507258eef65f4b7327af5db7488b126b576d7d756",
       "role": "physical-io",
       "owner": "Existing execution_site/Coordinator/Transfer Owners and installed placement adapter",
       "exports": [
@@ -8833,7 +8849,7 @@
     {
       "module": "adapters/host-common/private-publication-holding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ade994faaabca439fe903e74f9cb54b522ca694de32272c5147304312d215736",
+      "sha256": "c55a28d563b1473cd2257771592231e23b005be13a7745daa0aea5ef8686531c",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -10849,7 +10865,7 @@
     {
       "module": "adapters/host-common/result-output-limits.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8dfe9bc2c730c8415956bfff72a1f28d38cbde29c56aa12842d8dd023780b925",
+      "sha256": "fc741595172ba84b7e1b35b452f4f5552f30f8da2a26ef73401d8f611985479c",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -11186,7 +11202,7 @@
     {
       "module": "adapters/host-common/run-publication-preflight.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5f2873d277ba0a1b18401dda2f328fb85067c7ff7f4bbcb391ddd67b91d03b6d",
+      "sha256": "5a0936c4bb3789746263da898656db76d776897a2417d79aad90d4593374ddd3",
       "role": "physical-io",
       "owner": "Existing Run Publication/Artifact Owners and physical Store sequencing",
       "exports": [
@@ -12863,7 +12879,7 @@
     {
       "module": "adapters/host-common/run-state-access.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "571b67320f62701973533dcb3341eaab6eed2594820d2e8cd03f7010badef282",
+      "sha256": "66621fe4df17fb62df4561281af923871638a24f462becbf9e738d1751bbb904",
       "role": "physical-io",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -13590,7 +13606,7 @@
     {
       "module": "adapters/host-common/run-state-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3c5c8589d30df908ab180eb9280b33f31b15fce3c7f50ada218c5a401cbbf60e",
+      "sha256": "60728c0ff2c15dc86e1e60c80aa97a6236c492de130c56a1eb816b4340ecab19",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
       "exports": [
@@ -14496,7 +14512,7 @@
     {
       "module": "adapters/host-common/sqlite-format-inspection.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e5cd35e5ed21ff7ee102fcc13edda23feb99157fdb174734b5f880b4f8dc4aff",
+      "sha256": "72d5854bc276e748e11a9db32da40ff0a11f1ea49ea3c04d42644f925a455514",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -15150,7 +15166,7 @@
     {
       "module": "adapters/host-common/sqlite-schema-resource-bounds.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "07ce41bbbf4a1ad28e85995e976359193294ffe865bea32df3a385670428d3db",
+      "sha256": "5ac6c3b37c277db855cca725c3da583ae3b0e1fda6da1defb137d343abc12a21",
       "exports": [
         "inspectBoundedSqliteSchema",
         "snapshotSqliteSchemaReadLimits",
@@ -16932,7 +16948,7 @@
     {
       "module": "adapters/host-node/authorization.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9d4d1229c340445bb704bf9141fdead3b97fbe209d8501d1394a128d138f16f6",
+      "sha256": "319bd6ad06f3dc58ec2a08321708aebcd4eba8df94be167865c47130e3faae8a",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -17249,17 +17265,16 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../host-common/authorization-gate.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/bounded-continuation-directory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3b6c82f54c6e9010924fa38ea620bed2ba768358659023cc0622bb213409e3bc",
+      "sha256": "078d2576fc01c12d24b82c5bbd195cd7e82b9aff31577c3b06cdf700ac14736c",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -18366,7 +18381,7 @@
     {
       "module": "adapters/host-node/client-authentication-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ce63abc6db567cea4ae6a922b537b8e39e6dfddd39fdf2a31a4ea0278935fcdd",
+      "sha256": "74293fc7f3755f33ff1e661fefda71a0ee44cba887a246084b2667ee7fc5c992",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
       "exports": [
@@ -19408,7 +19423,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fa6e689dc9574ff6f1bf3a9b9c7041295c73459b2bc37176eff1683ba5ef1183",
+      "sha256": "c7748e5a4dd67c780efd208ad5552f6004a3e134e2f51e3e28386bce136e7e9d",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -20113,8 +20128,9 @@
             "installRemoteCheckpoints/answerers/answerers",
             "installRemoteCheckpoints/authorities/authorities",
             "installRemoteCheckpoints/binding/binding",
-            "installRemoteCheckpoints/binding/binding#2",
             "installRemoteCheckpoints/binding/binding/binding",
+            "installRemoteCheckpoints/binding/binding#2",
+            "installRemoteCheckpoints/captureInventory",
             "installRemoteCheckpoints/decideRead/answering/answering",
             "installRemoteCheckpoints/drain",
             "installRemoteCheckpoints/effectTargetAuthorities/effectTargetAuthorities",
@@ -20182,6 +20198,8 @@
             "installRemoteCheckpoints/installRemoteCheckpoints#6",
             "installRemoteCheckpoints/installRemoteCheckpoints#7",
             "installRemoteCheckpoints/installRemoteCheckpoints#8",
+            "installRemoteCheckpoints/installRemoteCheckpoints#9",
+            "installRemoteCheckpoints/modelCustody/modelCustody",
             "installRemoteCheckpoints/resumeGate/init:describe/init:describe",
             "installRemoteCheckpoints/resumeOne/cancelRequested/cancelRequested",
             "installRemoteCheckpoints/resumeOne/outcome/init:beforePhysicalStart/init:beforePhysicalStart",
@@ -20195,10 +20213,7 @@
             "installRemoteCheckpoints/stop",
             "installRemoteCheckpoints/sweep",
             "installRemoteCheckpoints/sweep/sweep",
-            "installRemoteCheckpoints/sweep/sweep/sweep",
-            "installRemoteCheckpoints/modelCustody/modelCustody",
-            "installRemoteCheckpoints/captureInventory",
-            "installRemoteCheckpoints/installRemoteCheckpoints#9"
+            "installRemoteCheckpoints/sweep/sweep/sweep"
           ],
           "exports": [
             "installRemoteCheckpoints"
@@ -22267,7 +22282,7 @@
     {
       "module": "adapters/host-node/client-checkpoint-admission-inputs.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4d57622066c4c5d42d254240d619dcf12485e51e6118b1002d26a7d9c28f4ed4",
+      "sha256": "da0284ccf45a29246011f41ba5ac0b720b93fd16ddd50956679c016bab78c91b",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -22284,8 +22299,7 @@
         "occurrenceKey",
         "pluralCapture",
         "principals",
-        "trustedReviewers",
-        "without"
+        "trustedReviewers"
       ],
       "operations": [
         {
@@ -22404,21 +22418,6 @@
             "reviewers"
           ],
           "async": false
-        },
-        {
-          "name": "without/without",
-          "parameters": [
-            "value",
-            "keys"
-          ],
-          "async": false
-        },
-        {
-          "name": "without/without/without",
-          "parameters": [
-            "key"
-          ],
-          "async": false
         }
       ],
       "contracts": [
@@ -22440,9 +22439,7 @@
             "pluralCapture/pluralCapture",
             "principals",
             "principals/principals",
-            "trustedReviewers",
-            "without/without",
-            "without/without/without"
+            "trustedReviewers"
           ],
           "exports": [
             "IDENTIFIER",
@@ -22458,8 +22455,7 @@
             "occurrenceKey",
             "pluralCapture",
             "principals",
-            "trustedReviewers",
-            "without"
+            "trustedReviewers"
           ],
           "attributes": {
             "responsibility": [
@@ -26242,7 +26238,7 @@
     {
       "module": "adapters/host-node/client-interactive-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fe52c478095d1cb5d6a29e59923ddc9378eb1ab4445d6f756bc9fa0537dfa659",
+      "sha256": "fba7c7c431743927823fa3540d7dbf8be9546f39193cc8cc2fed9c4945219442",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -26646,9 +26642,9 @@
             "assertSynchronousStaticCurrent/assertSynchronousStaticCurrent",
             "installClientStaticEffectExplanation",
             "installClientStaticEffectExplanation/readStaticEffectExplanation",
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/requireCurrentEgress/requireCurrentEgress/requireCurrentEgress",
             "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal",
-            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal/visitOriginal",
-            "installClientStaticEffectExplanation/readStaticEffectExplanation/requireCurrentEgress/requireCurrentEgress/requireCurrentEgress"
+            "installClientStaticEffectExplanation/readStaticEffectExplanation/result/visitOriginal/visitOriginal"
           ],
           "exports": [
             "installClientStaticEffectExplanation"
@@ -26668,8 +26664,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-interactive-plan.mts",
-                "anchor": "function originalStaticExplanation({plan, facts, context}:"
+                "path": "packages/client-wire/index.mts",
+                "anchor": "export function validStaticExplanationBinding(view: Public.WireStaticExplanationView): boolean {"
               }
             ],
             "ownership": [
@@ -26755,7 +26751,7 @@
     {
       "module": "adapters/host-node/client-observation-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e7d1dcb07e22c081866ccc1f3b11236c18f7701319ea99b03d8a1eba9d8f3173",
+      "sha256": "2e5b9f4ad084552a62fe9103b867c892e7e826c513814a6fd4d34a8c01f7c8c0",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
       "exports": [
@@ -27126,7 +27122,7 @@
     {
       "module": "adapters/host-node/client-owner-cursor.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3a019c57b01e6f3c3c5a38b9908fa0dbe0413699c08a2bd3ac5dfe87c451375d",
+      "sha256": "efb8b172b1ad48cc90f7c81e98b082e028cb6ac961a085ace1b21453476ede80",
       "role": "observation-presentation",
       "owner": "Existing Run/Effect observation Owners and optional Host disclosure adapter",
       "exports": [
@@ -27931,7 +27927,7 @@
     {
       "module": "adapters/host-node/client-program-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "88c7667a2a8441ae822dd02f9de73e8815e76c870217a716e040636d555ea236",
+      "sha256": "0dc6196f1472e239ae1f1d5c79853e440c01e9bc66403a58e13db10bf37ec331",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -32932,7 +32928,7 @@
     {
       "module": "adapters/host-node/client-request-journal-submission-originals.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a205f6a49dd0ddcbaf58a89a519c2d25ca186a634b4d9b05e4bc58a29afd5250",
+      "sha256": "4e01719e3caeeeff40291d6b016cc32f92f55b33308e06140f4ad37e1cd3882a",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -33552,7 +33548,7 @@
     {
       "module": "adapters/host-node/client-request-journal-attempts.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c471d089db79f5f92745bf159a3dad14a469b3d97cdc3e1d439d264e7b023155",
+      "sha256": "a65fb9e9a73ee6703514c854c1c8c213a1778bbba76c4f53f84f42b5473d70ef",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -40991,7 +40987,7 @@
     {
       "module": "adapters/host-node/client-request-journal-sql.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "15a5ec44c809755e882e2a77abec88ad1aa940e9ac802565eb08c0599fa57d62",
+      "sha256": "666a272ea0fdc830c09de93422939b2074611932d31ffd9805409fd4b6be6f15",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -41760,7 +41756,7 @@
     {
       "module": "adapters/host-node/client-request-lookup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "81d95866006d76c1af5f6fc396d76414a00702217c52ae8e2378c799cad178dd",
+      "sha256": "3b0e0758593318d1616228007ab3d26f87824889ab7622f057fc63e18b893f83",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -42087,7 +42083,7 @@
     {
       "module": "adapters/host-node/client-run-attach.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4a3c4a6411e04cb1d0390563c7f01427fd17f9bdaf433d10f8af3cdf1a23cd3d",
+      "sha256": "b57554dcad2920e84a4058edc428d7361acd93bf909a2124174829ae4446251e",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -42416,7 +42412,7 @@
     {
       "module": "adapters/host-node/client-run-inspect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "feddf78eb63b5954ebc681969b6993b08a30305c99b34412a35fcbf40fc82a3e",
+      "sha256": "84c9f08816c2338115fa289a93165a2fe9f4fab71831c06e58007fba30d51fef",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -42760,7 +42756,7 @@
     {
       "module": "adapters/host-node/client-run-plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a9ff072a89afa3d05be985df56e5e75bcb41857fe93d8ea69e9fa19f325126db",
+      "sha256": "812fb6012907bd728694e500f951696a4734d04519f9ec82335d129c0cdd21f1",
       "role": "observation-presentation",
       "owner": "Existing authorized Owner-local Run/static Plan projections",
       "exports": [
@@ -43087,7 +43083,7 @@
     {
       "module": "adapters/host-node/client-run-start.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5641b62e95dfd15bc2a146923b1db14e0d5af2857f6f8aa41bbbe72774f396f1",
+      "sha256": "9d59bd0907959e02e72609b39bb7b1c92df168a8db94723708449bd85e8edcf9",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -43415,7 +43411,7 @@
     },
     {
       "module": "adapters/host-node/client-source-operation.mjs",
-      "sha256": "4592d8a0d86bd47c91e750f611e7676dede25dbd1bd0555cbf00c7cffef66562",
+      "sha256": "a43eecb9342afc255ab33553c1f94afb17af46a029125af45c80a2586a0050fb",
       "exports": [
         "bindClientSourceOperation",
         "bindClientSourceOperationRowRun",
@@ -45440,7 +45436,7 @@
     {
       "module": "adapters/host-node/compile-cache.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "de3781366c3e623aa54f08b89791a932cbc2ea46b1eb26b96d55ac35cb92703f",
+      "sha256": "7acecdd745fc1617e7093b5e1e7f9c152612493c5c16b64ed050aeb553c2b3fe",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -45755,7 +45751,7 @@
     {
       "module": "adapters/host-node/duckdb-physical-target.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7f741e431bc2738671bcfc7e383f09f9969c46432f2c770758bb56492b8602ce",
+      "sha256": "348515ca7f9311f87483a1aa5c2334a5c658759d4bfee11598fc2619523afcfe",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -47552,15 +47548,15 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-core.mjs",
+        "../host-common/runtime-result.mjs",
         "./effect-ledger-evidence.mjs",
-        "./effect-ledger-implementation-bounds.mjs",
         "./effect-ledger-frames.mjs",
+        "./effect-ledger-implementation-bounds.mjs",
         "./sqlite-effect-ledger.mjs",
         "node:fs",
-        "node:util",
-        "../host-common/compiler-binding.generated.mjs",
-        "../host-common/runtime-result.mjs"
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -47713,7 +47709,7 @@
     {
       "module": "adapters/host-node/effect-physical-dispatch.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dc430d42300d3e8bec1ac66c66e05f00dd381cf2305e175070a35d2a4d17e000",
+      "sha256": "a0de6b63791b846cb260433b4c311eb57c9055a8acdecf90eea53bcba0acb83f",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -50334,12 +50330,13 @@
     {
       "module": "adapters/host-node/embedded-local-lifecycle.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bc6c29af530bc92a02d2c81bec857eb7a3b28df78f0a67751fabe336b898756e",
+      "sha256": "32469268d07fe3a4880da2755c5a3cabd4c4434566c12bdfe7f65e0a366bd969",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
         "bindManagedComputeRunObservation",
         "createEmbeddedHostRegistry",
+        "installedEffectSettlements",
         "installedHostShutdown",
         "managedComputeUsageReader",
         "managedPreparationRetirementContinuation"
@@ -50718,6 +50715,57 @@
           "async": false
         },
         {
+          "name": "installedEffectSettlements",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:drain/init:drain",
+          "parameters": [
+            "resumes",
+            "retirements"
+          ],
+          "async": true
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start",
+          "parameters": [
+            "accepted",
+            "effectRun",
+            "settle",
+            "diagnostic"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start/settlement/settlement",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/init:start/init:start/settlement/settlement#2",
+          "parameters": [
+            "error"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/retain/retain",
+          "parameters": [
+            "settlement"
+          ],
+          "async": false
+        },
+        {
+          "name": "installedEffectSettlements/retain/retain/retire/retire",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "installedHostShutdown",
           "parameters": [
             "host"
@@ -50938,6 +50986,13 @@
             "createEmbeddedHostRegistry/init:connect/init:connect/retainSourceProducer/retainSourceProducer/pending/pending",
             "createEmbeddedHostRegistry/init:connect/init:connect/seal",
             "createEmbeddedHostRegistry/init:connect/init:connect/status/status",
+            "installedEffectSettlements",
+            "installedEffectSettlements/init:drain/init:drain",
+            "installedEffectSettlements/init:start/init:start",
+            "installedEffectSettlements/init:start/init:start/settlement/settlement",
+            "installedEffectSettlements/init:start/init:start/settlement/settlement#2",
+            "installedEffectSettlements/retain/retain",
+            "installedEffectSettlements/retain/retain/retire/retire",
             "installedHostShutdown",
             "installedHostShutdown/shutdown/shutdown",
             "installedHostShutdown/shutdown/shutdown#10",
@@ -50958,6 +51013,7 @@
           ],
           "exports": [
             "createEmbeddedHostRegistry",
+            "installedEffectSettlements",
             "installedHostShutdown"
           ],
           "attributes": {
@@ -51379,6 +51435,14 @@
               {
                 "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "}, clientOptions, host, releaseUnadopted, initialControl);"
+              },
+              {
+                "path": "adapters/host-node/embedded-local-operation-observation.test.mjs",
+                "anchor": "initial Effect observation retains settlement after early acceptance"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "test('Host first close joins the original pre-dispatch Effect resume Store reader'"
               }
             ]
           }
@@ -51504,9 +51568,9 @@
             "createEmbeddedHostRegistry/init:hostJournalPreparation/init:hostJournalPreparation",
             "createEmbeddedHostRegistry/init:mockPreparation/init:mockPreparation",
             "createEmbeddedHostRegistry/init:registerPreparation/init:registerPreparation",
+            "createEmbeddedHostRegistry/init:retainedMockPreparation/init:retainedMockPreparation",
             "createEmbeddedHostRegistry/init:retainHostJournalPreparation/init:retainHostJournalPreparation",
             "createEmbeddedHostRegistry/init:retainMockPreparation/init:retainMockPreparation",
-            "createEmbeddedHostRegistry/init:retainedMockPreparation/init:retainedMockPreparation",
             "createEmbeddedHostRegistry/init:retirePreparation/init:retirePreparation",
             "createEmbeddedHostRegistry/originalSourceRequest"
           ],
@@ -52270,16 +52334,16 @@
         },
         {
           "operations": [
-            "managedPreparationRetirementContinuation",
-            "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation",
             "bindManagedComputeRunObservation",
             "managedComputeUsageReader",
-            "managedComputeUsageReader/managedComputeUsageReader"
+            "managedComputeUsageReader/managedComputeUsageReader",
+            "managedPreparationRetirementContinuation",
+            "managedPreparationRetirementContinuation/managedPreparationRetirementContinuation"
           ],
           "exports": [
-            "managedPreparationRetirementContinuation",
             "bindManagedComputeRunObservation",
-            "managedComputeUsageReader"
+            "managedComputeUsageReader",
+            "managedPreparationRetirementContinuation"
           ],
           "attributes": {
             "responsibility": [
@@ -52359,7 +52423,7 @@
         "../../packages/sdk/internal/private-source-preparation.mjs",
         "../host-common/ledger-contract.generated.mjs",
         "../host-common/runtime-result.mjs",
-        "./installed-host-cleanup.mts"
+        "./installed-host-cleanup.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -53010,6 +53074,7 @@
       ],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../connectors-builtin/strategy.generated.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/completion-observer.mjs",
@@ -53025,9 +53090,7 @@
         "./managed-identity-policy.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/generated-content-holding.mjs",
@@ -54055,7 +54118,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-directory.mjs",
-      "sha256": "e20c5da6a6d88364fbe46b2531acfb2d6dba80dfe281965a29f06bd5c5ad48f3",
+      "sha256": "7894d3dd209f4ef6073fa52943ea4465b235d135395bb81e7a8df50137c968cf",
       "exports": [
         "assertHostJournalDirectoryInspector",
         "createHostJournalDirectoryInspector",
@@ -55182,7 +55245,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-schema-support.cjs",
-      "sha256": "a1ee0fb1f276e494aeab09c96f5e773e35ba43fed1eddda25746fa95ec3f7927",
+      "sha256": "d07ba8b162fb2ed727b62e777ba711b781d29467e9c1bc8db95e9cb0fed54944",
       "exports": [
         "commonjs:sql"
       ],
@@ -55371,7 +55434,7 @@
     },
     {
       "module": "adapters/host-node/host-journal-service-recipe.cjs",
-      "sha256": "7c2cd39f8bb5f1e8fe7a3217c29b72f251907ba5c867346d7b997faf41d419b3",
+      "sha256": "8ffa38d6670f2f906e952421fa5fe328dfd51bd09292b29232122df7fd183ba6",
       "exports": [
         "commonjs:declareHostJournalServiceRecipe"
       ],
@@ -65154,7 +65217,7 @@
     {
       "module": "adapters/host-node/installation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2acc7e8f6cde8f71210b4f7fb6268ec5085199ab6dc40dad511db6170794edbd",
+      "sha256": "ba4c1635e2be8c18194c87f842a7d994a39a254a5ed8a2ecb74bf06b4fdbf8c5",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -65508,7 +65571,7 @@
     {
       "module": "adapters/host-node/installed-calendar.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "59d8b1d5fc1ae0b2fb725c4f1335dc43a2e52ca83d7e99d48039feef6320c71f",
+      "sha256": "8e113d3a1fdeda3a74d590c1a36f5bb40d533cdbc11e660eb6099a5fe593e25d",
       "role": "physical-io",
       "owner": "Existing MoonBit calendar profile Owner and trusted semantic-artifact selection",
       "exports": [
@@ -65524,8 +65587,20 @@
           "parameters": [
             "moon",
             "environment",
-            "selected"
+            "selected",
+            "construct",
+            "policyFields"
           ],
+          "async": false
+        },
+        {
+          "name": "admitInstalledCalendar/admit/admit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "admitInstalledCalendar/admitInstalledCalendar",
+          "parameters": [],
           "async": false
         },
         {
@@ -65589,6 +65664,8 @@
         {
           "operations": [
             "admitInstalledCalendar",
+            "admitInstalledCalendar/admit/admit",
+            "admitInstalledCalendar/admitInstalledCalendar",
             "installedCalendarIdentity",
             "installedCalendarIdentityCid",
             "installedCalendarSelection",
@@ -65740,6 +65817,10 @@
               {
                 "path": "src/calendar_profile/pkg.generated.mbti",
                 "anchor": "pub fn admit(Bytes, String, String, Limits) -> Result[Profile, Issue]"
+              },
+              {
+                "path": "adapters/host-node/installed-calendar.test.mts",
+                "anchor": "test('Calendar admission reserves the exact artifact before returning the selected checker', () => {"
               }
             ]
           }
@@ -65900,7 +65981,7 @@
     {
       "module": "adapters/host-node/installed-check-environment.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c1f98799b6266f938ea14131e188906a35c18ca35196410745642cff3b3339e4",
+      "sha256": "b0f0c099abad8f2931bb208c02bfc988986f350c943e655c08446b62bc55aaf0",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -66586,7 +66667,7 @@
     {
       "module": "adapters/host-node/installed-connector-implementation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "19ed1d6ecc47c2e24705030342ec3a852a1cb7118f7a4ea0e466df44839bd004",
+      "sha256": "2e0de08cbce609fd135ea2a8bfda130c61900d0df8095a68eae2e9e0706d1adc",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -66954,7 +67035,7 @@
     {
       "module": "adapters/host-node/installed-connectors.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f1b9987a7223556790dbd583e49a88221354293f65d418cd9319eaac78726f86",
+      "sha256": "5f666966453c4aca4d7516a182f75aa2ecf85c60d500f13070649915c8eaf3e1",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -71531,7 +71612,7 @@
     {
       "module": "adapters/host-node/installed-duckdb-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8b9c8993c1db8ab675cb42cba74c3528b2223ab9885c9b3d6d07f7d5a3728a0c",
+      "sha256": "d256edbb2fba05aa751af35b2b85f64becee7a1a014a94257ff339a1089c8dde",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -72612,7 +72693,7 @@
     {
       "module": "adapters/host-node/installed-effect-inventory.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7f6d733e0b5e1db720ab1333118859a443f34cde911abd449856bee42d0ac1f6",
+      "sha256": "afe047b1dc61d2c267c9785122bdd4304ef9434d2b5aec19bb7a7a5f993c3c04",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -73535,7 +73616,7 @@
         "./installed-check-environment.mjs",
         "./installed-effect-limits.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mts",
+        "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-account-config.mjs",
@@ -74840,6 +74921,7 @@
         "../host-common/completed-run-publication.mjs",
         "../host-common/effect-preparation-result.mjs",
         "../host-common/installed-checkpoint-codec-limits.mjs",
+        "../host-common/managed-failure.mjs",
         "../host-common/observation.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
@@ -75598,10 +75680,19 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../../_build/js/release/build/connectors/calendar/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/gcs/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/github/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/gmail/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/hubspot/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/notion/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/salesforce/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/sheets/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/slack/host_node/host_node.js",
         "../connectors-builtin/installations.generated.mjs",
         "./installed-connectors.mjs",
         "./installed-effect-inventory.mjs",
-        "./installed-host-cleanup.mts",
+        "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-row-effect.mjs",
         "./local-account-config.mjs",
@@ -75610,14 +75701,12 @@
         "node:path"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/installed-host-cleanup.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e03d1aeed7818d2af1008cac5de3e90c4bb33795ba925718dcf37eaea7c0acbb",
+      "sha256": "503fd2c59f90ead5018ed454c27cc6de4d0982fa7da66cf7241b057f24885876",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -77345,7 +77434,7 @@
     {
       "module": "adapters/host-node/installed-host-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "72c1b4b613899aaa0cbff064fb4af73e7287900eb58f68516933268d6b384d3a",
+      "sha256": "9932b85b84751b2e0320c3b4834b6f48a353b7bc737b57bde37b54659b6ca1bd",
       "role": "physical-io",
       "owner": "Existing installed Host lifecycle/Connector registration Owners; no caller-selected runtime",
       "exports": [
@@ -80082,6 +80171,7 @@
         "../host-common/runtime-result.mjs",
         "../host-node/installed-project-configuration.mjs",
         "../host-node/source-profile-json.mjs",
+        "./declared-file-installation.mjs",
         "node:fs/promises",
         "node:path"
       ],
@@ -81248,7 +81338,7 @@
         "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/infer-operation.mjs",
         "../host-node/installed-funded-environment.mjs",
-        "../host-node/installed-host-cleanup.mts",
+        "../host-node/installed-host-cleanup.mjs",
         "../host-node/installed-project-configuration.mjs",
         "../host-node/installed-project-connections.mjs",
         "../host-node/local-account-config.mjs",
@@ -82715,7 +82805,7 @@
     },
     {
       "module": "adapters/host-node/installed-project-model-tasks.mjs",
-      "sha256": "6015dc8e7d84a9e819f033febbe69de765cf2f5f6e0e510599b9785db0c7d3e6",
+      "sha256": "4eb39ac1eea8dc09da72be9770b72738ed4ffdcc8cd08c283839a8a0bee35bf9",
       "exports": [
         "loadInstalledProjectModelTasks",
         "prepareInstalledProjectModelTasks"
@@ -82940,11 +83030,14 @@
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
+        "./installed-host-services.mjs",
         "./installed-model.mjs",
         "./installed-project-configuration.mjs",
+        "./installed-source-construction-geometry.mjs",
         "./source-profile-json.mjs",
         "node:fs/promises",
-        "node:path"
+        "node:path",
+        "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -84176,7 +84269,7 @@
     {
       "module": "adapters/host-node/installed-row-listing.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e30f1790202cc129a67ca74f1ad3eea29e8bacfce6739ffcdbc03e128e9eda68",
+      "sha256": "5d5663e06867dff15e83ee1bd7e0fd8ed80e74d5f747338510a38353aff05801",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -84521,7 +84614,7 @@
     {
       "module": "adapters/host-node/installed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "aab9d3afa3fbfe099aa92df90d7f4e4dd56fd71d26ea5894b4921fc5d77bf4f7",
+      "sha256": "12b326bb12dfac2c33d2959ff6ebfb302b0ddd1f425ce4d10b77c0c88f4066d1",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -85381,13 +85474,21 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
+        "../../_build/js/release/build/connectors/calendar/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/gcs/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/github/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/gmail/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/hubspot/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/notion/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/salesforce/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/sheets/host_node/host_node.js",
+        "../../_build/js/release/build/connectors/slack/host_node/host_node.js",
         "../connectors-builtin/installations.generated.mjs",
         "./duckdb-physical-target.mjs",
         "./installed-connectors.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-funded-environment.mjs",
         "./installed-host-cleanup.mjs",
-        "./installed-host-cleanup.mts",
         "./installed-host-services.mjs",
         "./installed-source-inventory.mjs",
         "./installed-source-publication.mjs",
@@ -86105,7 +86206,7 @@
     {
       "module": "adapters/host-node/installed-table-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "16072eac01d2dbb86d62a59d89ba31edc104ae34c9ff129e332b16baf68a8bff",
+      "sha256": "1207b44de8c954204c85904a8d7d47fe2083f62b1f666fe57834e4602cbc36ab",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -87021,7 +87122,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d5e346b2fe207263118e3056b78c54bcf33639d83270b3a0e13677c2cde1e937",
+      "sha256": "59a739d23b5283ac3f8abee0f558134f6050b9b2c36b9f2e742b6b63c44a79f0",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [
@@ -89253,7 +89354,7 @@
     {
       "module": "adapters/host-node/local-values-capacity.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f971c1e7304927fdcf5964d9028c4f2546629cdc330d3b3e23941152fe10993f",
+      "sha256": "659a0851129f5f7f37f44cddad54d85a5624549420818ccdd9c753fef44248e7",
       "role": "physical-io",
       "owner": "Existing static checker/Frontend/compiled preparation Owners; no Run permission",
       "exports": [
@@ -89930,7 +90031,7 @@
     {
       "module": "adapters/host-node/managed-identity-policy.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c672d59c90a569e5b9aa8cbf4f0104557d74faf661c7ee0328472862423e9137",
+      "sha256": "836c2d816aac80f3116cf493bffca23aff83756c67948b6a5504cb140fdc4a8b",
       "role": "physical-io",
       "owner": "Existing physical_host/physical_strategy execution and cleanup Owners",
       "exports": [
@@ -92528,7 +92629,7 @@
     },
     {
       "module": "adapters/host-node/node-host-journal-installation.mjs",
-      "sha256": "f85989c00a0b788452f462f53978fab48df7cc715dbefc1370461a736726484b",
+      "sha256": "6f1cc1d2531279582b3a4e09585d1edb87faf00d481f7c5b4b66e74c004107ed",
       "exports": [
         "prepareHostJournalInstallation"
       ],
@@ -97087,7 +97188,7 @@
     {
       "module": "adapters/host-node/ordinary-source-binding.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ddd1d8e0b658182ed4b41c0afa565099aaa077cedaf402cf458cf8fc320e5a06",
+      "sha256": "7b860d2c44b8b5d0e3c7329fde18f198de3a201fe86c3e306efa8168e86befe9",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -97500,7 +97601,7 @@
     {
       "module": "adapters/host-node/process-accounting.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a0008296dc4637400f698ea48282b82b01353656c3170a94cef9d4f055258adb",
+      "sha256": "02cb83bda09a8003a517d952cf83670c6e0bc67a884728429043ff10ed927f66",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -97917,7 +98018,7 @@
     {
       "module": "adapters/host-node/process-channel.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1d266d814af9292275d29f6d649e07459e703514ed0cf2909b99ddcbc67d40a4",
+      "sha256": "e232191152e2ca350c501c2450886de97917607d07855a72ff46043859ec7d1f",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -98711,7 +98812,7 @@
     {
       "module": "adapters/host-node/process-frames.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "330f96765e8bb20b162f2bfe0004f3893716fac86342aada305cddbdac1b13c4",
+      "sha256": "c8d06b94f99a5612b6cb23616929adfcd10b77d8da07246d76e31c2311d4bd65",
       "role": "physical-io",
       "owner": "Existing Physical Resource/ExecutionDelegation Owner and managed child transport",
       "exports": [
@@ -101874,7 +101975,7 @@
     {
       "module": "adapters/host-node/source-profile-json.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d8841433cb763b5a2996ccf853cc88f7e83f0ed2728ee55b23c05bc60896154c",
+      "sha256": "6eb0d2ce5a5dfcaf67022d3386c6bf6264eb700ff502a5ca9c258bdab0fa9c05",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -103449,7 +103550,7 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9a2e74b1435114e7caaff25ab94186221ccc1fc1120ab1ec0aa449c07921370a",
+      "sha256": "9488f9564d46f8c58e7088609f666a2d399ac4e6e7cad162d7b77560f585cda3",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -104071,13 +104172,18 @@
         },
         {
           "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#5",
           "parameters": [
             "input"
           ],
           "async": false
         },
         {
-          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#5",
+          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#6",
           "parameters": [
             "reference",
             "runDefinitionCid"
@@ -104225,7 +104331,8 @@
             "openSqliteCheckpointJournal/resolutionCall/call/call",
             "openSqliteCheckpointJournal/transaction/init:run/init:run",
             "openSqliteCheckpointJournal/transaction/init:run/init:run/init:run",
-            "openSqliteCheckpointJournal/transaction/transaction"
+            "openSqliteCheckpointJournal/transaction/transaction",
+            "openSqliteCheckpointJournal/openSqliteCheckpointJournal#6"
           ],
           "exports": [
             "openSqliteCheckpointJournal"
@@ -105109,11 +105216,11 @@
           }
         }
       ],
-      "imports": [],
+      "imports": [
+        "../../_build/js/release/build/checkpoint_runtime_node/checkpoint_runtime_node.js"
+      ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/sqlite-effect-ledger-reads.mjs",
@@ -119791,8 +119898,18 @@
         {
           "operations": [
             "assertOrdinarySourcePreparationCurrent",
+            "fail/fail",
             "pending/pending",
             "prepareOrdinaryManagedInstallation/current/current",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#2",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#3",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#4",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#5",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#6",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#7",
+            "prepareOrdinaryManagedInstallation/producerFor/producerFor",
+            "prepareOrdinaryManagedInstallation/reportCapacityRefusal/reportCapacityRefusal",
             "prepareOrdinaryManagedInstallation/status/status",
             "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
             "prepareOrdinaryManagedInstallation/view/init:close/init:close",
@@ -119808,19 +119925,9 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#5",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:prepareRead#6",
             "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
-            "prepareOrdinarySourceManagedInstallation",
             "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
             "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
-            "fail/fail",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#2",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#3",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#4",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#5",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#6",
-            "prepareOrdinaryManagedInstallation/producerFor/producerFor",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#7",
-            "prepareOrdinaryManagedInstallation/reportCapacityRefusal/reportCapacityRefusal"
+            "prepareOrdinarySourceManagedInstallation"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -120167,9 +120274,9 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/currentSource/currentSource/currentSource",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource",
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource/init:prepareSource",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource#3",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:prepareSource/init:prepareSource/init:prepareSource/init:prepareSource",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:setupUsageIsolated/init:setupUsageIsolated",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/hostFields/init:sourceLedger/init:sourceLedger",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
@@ -120908,9 +121015,9 @@
             "prepareOrdinaryManagedInstallation/view/init:adoptPreparation/init:adoptPreparation/init:adoptPreparation",
             "prepareOrdinaryManagedInstallation/view/init:borrowPreparation/init:borrowPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/wire/wire",
             "prepareOrdinaryManagedInstallation/view/init:retireSeveredPreparation/init:retireSeveredPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/wire/wire"
+            "prepareOrdinaryManagedInstallation/view/init:severPreparation/init:severPreparation"
           ],
           "exports": [],
           "attributes": {
@@ -121569,13 +121676,15 @@
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptCapturePreparation/init:adoptCapturePreparation/init:adoptCapturePreparation",
+            "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal",
+            "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal/init:captureModelOriginal",
             "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates",
             "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
+            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
             "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
             "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#3",
-            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
-            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates#2",
-            "prepareOrdinaryManagedInstallation/view/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates/init:modelSourceCoordinates",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan",
@@ -121585,9 +121694,7 @@
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#2",
-            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#3",
-            "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal",
-            "prepareOrdinaryManagedInstallation/view/init:captureModelOriginal/init:captureModelOriginal/init:captureModelOriginal"
+            "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#3"
           ],
           "exports": [],
           "attributes": {
@@ -122576,13 +122683,13 @@
             "prepareOrdinaryManagedInstallation/view/init:adoptContentPreparation/init:adoptContentPreparation/init:adoptContentPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#2",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#3",
             "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation#4",
-            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation/init:adoptModelPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/plannedQuantities/plannedQuantities",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation",
-            "prepareOrdinaryManagedInstallation/view/init:adoptModelPreparation/init:adoptModelPreparation/plannedQuantities/plannedQuantities"
+            "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation/init:prepareModelCompilation"
           ],
           "exports": [],
           "attributes": {
@@ -123869,8 +123976,8 @@
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
-            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
+            "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/methods/methods",
             "prepareOrdinaryManagedInstallation/view/init:prepareRead/init:prepareRead/init:retainChild/init:retainChild",
             "prepareOrdinaryProjectSourceManagedInstallation"
@@ -124645,11 +124752,11 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/view/init:originalExplanationPreparation/init:originalExplanationPreparation",
             "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
             "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
             "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected",
-            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected/selected"
+            "prepareOrdinaryManagedInstallation/view/init:captureEffectRunExplanation/init:captureEffectRunExplanation/selected/selected/selected",
+            "prepareOrdinaryManagedInstallation/view/init:originalExplanationPreparation/init:originalExplanationPreparation"
           ],
           "exports": [],
           "attributes": {
@@ -126307,7 +126414,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "58ff132f2e015f233f5fe94f72f5241a9ed4c7bf8a7bee8102d34903568d3f4d"
+      "sha256": "d5c13be3634ae0ab693ddd1198c55ea649f3b9c90fcabf23ed4082be1b94a690"
     },
     {
       "module": "adapters/host-node/ordinary-source-model-materials.mjs",
@@ -129234,7 +129341,7 @@
     {
       "module": "adapters/local-node/installed-mock-row-effect.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1416cde72aed2b8af47849aba23032a9039dad770490fc4e6c10c62455c07284",
+      "sha256": "c67016aa9dcc6b35866dda279e4c7fadb90231f4e8ebb5a305a7646abf14ff89",
       "exports": [
         "createMockFileRowCodec",
         "installPreparedProjectMockEffects",
@@ -129268,8 +129375,9 @@
           "async": false
         },
         {
-          "name": "createMockFileRowCodec/init:update/init:update",
+          "name": "createMockFileRowCodec/init:replace/init:replace",
           "parameters": [
+            "operation",
             "bytes",
             "target",
             "record",
@@ -129613,6 +129721,7 @@
         {
           "name": "mockRowEffectDriver/driver/init:recoveryEntry/init:recoveryEntry",
           "parameters": [
+            "member",
             "entries"
           ],
           "async": false
@@ -129767,6 +129876,13 @@
           "async": false
         },
         {
+          "name": "mockRowEffectDriver/supportedKinds/supportedKinds",
+          "parameters": [
+            "target"
+          ],
+          "async": false
+        },
+        {
           "name": "mockRowEffectDriver/targetForRecord/target/target",
           "parameters": [
             "value"
@@ -129814,7 +129930,7 @@
         "../host-node/declared-project-catalog-construction.mjs",
         "../host-node/installed-effect-inventory.mjs",
         "../host-node/installed-effect-plan.mjs",
-        "../host-node/installed-host-cleanup.mts",
+        "../host-node/installed-host-cleanup.mjs",
         "../host-node/installed-row-effect.mjs",
         "../host-node/mock-file-target.mjs",
         "node:crypto"
@@ -129828,6 +129944,10 @@
         {
           "operations": [
             "cid/cid",
+            "createMockFileRowCodec",
+            "createMockFileRowCodec/admit/admit",
+            "createMockFileRowCodec/init:replace/init:replace",
+            "createMockFileRowCodec/observe/observe",
             "installPreparedProjectMockEffects",
             "installPreparedProjectMockEffects/call/call",
             "installPreparedProjectMockEffects/current",
@@ -129836,12 +129956,18 @@
             "installPreparedProjectMockEffects/resourceMethods/resourceMethods",
             "installPreparedProjectMockEffects/resources/resources",
             "installPreparedProjectMockEffects/resources/resources/resources",
+            "mockFileEffectPlanRecipe",
             "mockFileEffectPlanRecipe/projections/projections",
+            "mockFileRowFootprint",
+            "mockFileRowFootprint/mockFileRowFootprint",
+            "mockFileRowFootprint/mockFileRowFootprint#2",
             "mockRowEffectDriver/consume",
             "mockRowEffectDriver/describe",
             "mockRowEffectDriver/describe/describe",
             "mockRowEffectDriver/driver/driver",
             "mockRowEffectDriver/driver/driver#2",
+            "mockRowEffectDriver/driver/init:footprint/init:footprint",
+            "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild",
             "mockRowEffectDriver/driver/init:observeTargets/init:observeTargets/constructChild/constructChild/child/child",
@@ -129873,32 +129999,23 @@
             "mockRowEffectDriver/resourceObservation/init:statusFor/init:statusFor",
             "mockRowEffectDriver/site/site",
             "mockRowEffectDriver/site/site#2",
+            "mockRowEffectDriver/supportedKinds/supportedKinds",
             "observeInstalledMockEffectResources",
             "synchronous/synchronous/synchronous",
-            "wire/wire",
-            "createMockFileRowCodec",
-            "createMockFileRowCodec/admit/admit",
-            "createMockFileRowCodec/init:update/init:update",
-            "createMockFileRowCodec/observe/observe",
-            "mockFileEffectPlanRecipe",
-            "mockFileRowFootprint",
-            "mockFileRowFootprint/mockFileRowFootprint",
-            "mockFileRowFootprint/mockFileRowFootprint#2",
-            "mockRowEffectDriver/driver/init:footprint/init:footprint",
-            "mockRowEffectDriver/driver/init:footprint/init:footprint/selectors/selectors"
+            "wire/wire"
           ],
           "exports": [
-            "installPreparedProjectMockEffects",
-            "observeInstalledMockEffectResources",
             "createMockFileRowCodec",
+            "installPreparedProjectMockEffects",
             "mockFileEffectPlanRecipe",
-            "mockFileRowFootprint"
+            "mockFileRowFootprint",
+            "observeInstalledMockEffectResources"
           ],
           "attributes": {
             "responsibility": [
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mts",
-                "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
+                "anchor": "// The explicit Project Mock's real file writes, through the existing Row"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -130061,6 +130178,14 @@
               {
                 "path": "adapters/host-node/mock-file-effect-plan.test.mts",
                 "anchor": "test('actual target output wire stays bound to its same closed immutable observation'"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "Mock actual codec deletes an original row through the locked file owner"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }
@@ -130074,7 +130199,7 @@
             "responsibility": [
               {
                 "path": "adapters/local-node/installed-mock-row-effect.mts",
-                "anchor": "// The explicit Project Mock's real file UPDATE, through the existing Row"
+                "anchor": "// The explicit Project Mock's real file writes, through the existing Row"
               },
               {
                 "path": "adapters/local-node/declared-project-runtime.md",
@@ -130730,7 +130855,7 @@
     },
     {
       "module": "adapters/host-node/client-run-state.mjs",
-      "sha256": "7cd8dec354f48e08d845a1e0101d534b6491e205013f9fbf9e662db94a59e6fc",
+      "sha256": "03977ab31b246907f6e19690d2e6b6f55f6748b4118848c6c2a8645638e055e4",
       "exports": [
         "installNodeClientRunStateObservation",
         "observeClientRunState"
@@ -131804,7 +131929,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": ".clientLocalPreparationResourceLimits(moon!.clientLocalResourcePolicyOriginal() as Parameters<typeof localResourceLookupExecutionPolicy>[1])"
+                "anchor": "const planning = ((moon! as Parameters<typeof localResourceLookupExecutionPolicy>[0])"
               }
             ],
             "extension": [
@@ -131902,6 +132027,7 @@
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/runtime-result.mjs",
         "../store-local/publication-store.mjs",
+        "./account-construction.mjs",
         "./host-root-format.mjs",
         "./local-account-config.mjs",
         "./source-profile-json.mjs",
@@ -133488,7 +133614,7 @@
     },
     {
       "module": "adapters/host-node/local-preparation-custody.mjs",
-      "sha256": "e5be89835acb0a499e003d71cd8854f0770176923658ee4c0751097e8e170efd",
+      "sha256": "3b6ed3a592e38fa51cef1fcacfde9689945aa0abac4137e11f284980a1c05f72",
       "exports": [
         "createLocalPreparationCustody"
       ],
@@ -133755,7 +133881,7 @@
     },
     {
       "module": "adapters/host-node/local-preparation-registry.mjs",
-      "sha256": "dd01e84914d723574f13d03af9fc5c03eedd997fa68b0a667b0e3146f11620e6",
+      "sha256": "95f66829803b5feb4d47a923e9272380d247376170fd7a965be1e4db0a94896f",
       "exports": [
         "installLocalPreparationRegistry"
       ],
@@ -133862,7 +133988,7 @@
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
-        "./local-preparation-custody.mts"
+        "./local-preparation-custody.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -134180,7 +134306,7 @@
     {
       "module": "adapters/host-common/publication-capacity.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9574ed5b83dba729d50f85695f4d785e44c11c8c81bb6af9a7650aae9c6139f5",
+      "sha256": "2bde1f7e64e31e0dbf57fc81f601212895f04abdd6f6de66d1a7171965ea2046",
       "role": "physical-io",
       "owner": "Existing Common publication preflight and installed Store capacity owner",
       "exports": [
@@ -134367,7 +134493,7 @@
     {
       "module": "adapters/store-local/prepared-custody-queue.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "facae5b870e7c7cc1e0a3df323b5dbf48beeca5cb441ccf41665f48bf8ae4c87",
+      "sha256": "95146871ed69e83a34bb4d5b21d568818daf4c13f7159e388184ae81a4f9768e",
       "role": "physical-io",
       "owner": "Existing installed Store prepared-custody transition owner",
       "exports": [
@@ -134550,7 +134676,7 @@
     {
       "module": "adapters/store-local/prepared-holder-owner.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "739f77e3a8e18b3f1287a85f338313fccd05f923564100486b87c82fbf6a1467",
+      "sha256": "0300884e398b3f8cb14a43eb1b2153af53d42aad6c7261bc5a9b1e169aac9077",
       "role": "physical-io",
       "owner": "Existing installed Store original prepared-holder and transfer owner",
       "exports": [
@@ -134789,7 +134915,7 @@
     {
       "module": "adapters/host-node/installed-managed-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "550d87661bf4283122cd3b26f8f5db627b0893d9250bb4126f43bfaaac07ca09",
+      "sha256": "d74860bfa5e5b1f614a077b03840c0066ab009817f4a8112d11ffe870183224c",
       "role": "physical-io",
       "owner": "Existing Host Source/Compute Run and installed Source acquisition Owners",
       "exports": [
@@ -135673,7 +135799,7 @@
     {
       "module": "adapters/host-common/source-response-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4260f59aead0c482102cb498ec0ddda9398ba281c6b09b6dae2103066922526c",
+      "sha256": "6a88d08f9ca7de1e0cc231cae02ec03a88b4afb16e95ea20d942e4b0a8e6496f",
       "role": "physical-io",
       "owner": "Existing installed Source response custody and provider sequence Owners",
       "exports": [
@@ -135949,7 +136075,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "251c25be8918fa8d7bddac7bb3ffcc9d6fc17ab74f7aba33952eacbd7de54d4b",
+      "sha256": "fb3abed8f11714191250006b4db396a54186bc3d0beaeb9892976adde2b00166",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -135999,6 +136125,11 @@
           "async": false
         },
         {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe",
           "parameters": [],
           "async": false
@@ -136042,6 +136173,18 @@
           "parameters": [
             "initialAuthorization"
           ],
+          "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse",
+          "parameters": [
+            "accept"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse/init:consumeChargedResponse",
+          "parameters": [],
           "async": true
         },
         {
@@ -136238,16 +136381,17 @@
           "operations": [
             "<module>",
             "createInstalledCredentialSourceReader",
+            "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/check/check",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/closeTransport",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:read/init:read",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:requestStop/init:requestStop",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:retry/init:retry",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/responseCustody/init:retain/init:retain",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/verify/verify",
-            "createInstalledCredentialSourceReader/init:retire/init:retire",
-            "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader"
+            "createInstalledCredentialSourceReader/init:retire/init:retire"
           ],
           "exports": [
             "createInstalledCredentialSourceReader",
@@ -136599,12 +136743,16 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/preparation/init:retire/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse/init:consumeChargedResponse",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeObservation/init:consumeObservation",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeObservation/init:consumeObservation/init:consumeObservation",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePage/init:consumePage",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePage/init:consumePage/init:consumePage",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePageWire/init:consumePageWire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumePageWire/init:consumePageWire/init:consumePageWire",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues/init:consumeValues",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:project/init:project",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:readChild/init:readChild/init:readChild",
@@ -136618,9 +136766,7 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/receiveSourceResponse/custody/init:retain/init:retain",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/sync/pending/pending",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/sync/settled/settled",
-            "createInstalledCredentialSourceReader/init:retire/init:retire/init:retire",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues/init:consumeValues"
+            "createInstalledCredentialSourceReader/init:retire/init:retire/init:retire"
           ],
           "exports": [],
           "attributes": {
@@ -138289,7 +138435,7 @@
     },
     {
       "module": "adapters/host-node/installed-host-services.mjs",
-      "sha256": "059757a2bcb879b03d600d72e2ba306d6c5cee434db86cf09b704585ea874cd2",
+      "sha256": "6e452020a844763e6f720b0acc80d28bb7ec8276026d22d8429656dc58739a62",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -138662,7 +138808,7 @@
         "./installed-credential-source-reader.mjs",
         "./installed-duckdb-source.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mts",
+        "./installed-host-cleanup.mjs",
         "./installed-row-effect.mjs",
         "./installed-row-source.mjs",
         "./installed-source-context-construction.mjs",
@@ -139691,7 +139837,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-context-construction.mjs",
-      "sha256": "f77879d04e4919cd035a40e1d4f58c600f6979e667495ac92a83db3101822bc1",
+      "sha256": "368b5aa7617bb9df3bc756b55a7aa020b6d5f98af096b4a36b6bc7edc6ae893a",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -140000,13 +140146,6 @@
           "async": false
         },
         {
-          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
-          "parameters": [
-            "write"
-          ],
-          "async": false
-        },
-        {
           "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
           "parameters": [],
           "async": false
@@ -140019,7 +140158,24 @@
           "async": false
         },
         {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#2",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project#2",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping#2",
           "parameters": [],
           "async": false
         },
@@ -140872,13 +141028,15 @@
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareNativeInput/init:prepareNativeInput/init:prepareNativeInput",
             "createInstalledSourceContextFactory/createInstalledSourceContext/retainNativeInput/retainNativeInput",
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/environment/environment#2",
-            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/init:prepareMappings",
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping",
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/init:capacity/init:capacity",
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/sourceWire/sourceWire",
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/validate/validate",
             "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project",
-            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime"
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project#2",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/init:project/init:project/runtime/runtime#2",
+            "createInstalledSourceContextFactory/createInstalledSourceContext/context/init:prepareMappings/init:prepareMappings/mapping/mapping#2"
           ],
           "exports": [],
           "attributes": {
@@ -140944,6 +141102,10 @@
               {
                 "path": "adapters/connectors/hubspot/test/hubspot-mapping-parent.fixture.mjs",
                 "anchor": "test('HubSpot real initial parent funds Native Mapping"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }
@@ -142324,7 +142486,7 @@
     {
       "module": "adapters/host-common/file-media-type.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "f327006bff5db2d311b534343776f8a8dcbe92399636bb738861365b94cb0ed3",
+      "sha256": "94781afe7cb0951e6b0147fe684c3715a483d7e4e2b085f9bc1b226cc8dcd01d",
       "role": "common-semantics",
       "owner": "Shared extension-derived default for validated file paths; actual Local listing and Content consumers, reported/configured values remain separate originals",
       "exports": [
@@ -142494,7 +142656,7 @@
     {
       "module": "adapters/host-node/installed-rest-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0f3e9ec6cec22551723ddc5fb2c6b9a36a008b4076db26f50d7f3d284127ee0b",
+      "sha256": "559b28e7201f611b995e73a88d88e0c1395c4e8fdf99ee71492b3d32782bffb0",
       "role": "physical-io",
       "owner": "Existing installed Host Source initialization, Credential Site, managed Reader and RowRun Owners; facade retains only its selected original author declaration/service composition.",
       "exports": [
@@ -142789,7 +142951,7 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/runtime-result.mjs",
         "./installed-credential-source-reader.mjs",
-        "./installed-host-cleanup.mts",
+        "./installed-host-cleanup.mjs",
         "./installed-host-services.mjs",
         "./installed-row-source.mjs",
         "./rest-read-original.mjs",
@@ -143280,7 +143442,7 @@
     {
       "module": "adapters/host-node/rest-source-metadata.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7a1615375b50019e675d1b8baf1016cb09e4841a3aa3ebe253fd5037403453cd",
+      "sha256": "4ab6d63d1bd8ce6459cded55b968c5a7a865b994decaf02702671f369b2b0a38",
       "role": "public-wire-codec",
       "owner": "Existing installed Source profile/identity and Host configuration-reader Owners; metadata supplies closed DATA and original-string identity, not a declaration issuer or physical reader.",
       "exports": [
@@ -143740,7 +143902,7 @@
     {
       "module": "adapters/host-node/rest-source-page.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4d51b361561c267e4b5a321c8d4c8326ed6b0bb31bc41bcba02d75437db80bdb",
+      "sha256": "d74adebd9b7367eef810c7870693be709c0d4ebdd1087cfa6a012237fbfa47d3",
       "role": "connector-semantics",
       "owner": "Existing Common JSON/row projection and pagination DATA with Host ManagedReader owners; REST adapter forwards original pages/progress and authored request/pure transform without an independent cursor engine",
       "exports": [
@@ -145989,7 +146151,7 @@
     },
     {
       "module": "adapters/host-node/installed-source-construction-geometry.mjs",
-      "sha256": "b86e3caf58226a7ffff976ee1e9bf8c1782e83a3b680615fc43a731eacf2349c",
+      "sha256": "da1fd403062d08e8f80ea4f7be20fcb9516f58a3eac785782ee0c59d70b17a05",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Host constructor input geometry; quantities confer no admission or lifecycle authority",
@@ -146160,7 +146322,7 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "d7a59309895332cd94499e0470ce6ab79bcd496a9bed88719d05bb949a88bf6a",
+      "sha256": "27f418edfdb73fdaaf1cca163065d9454a86d2be450c9572d76dd6f502c2e893",
       "exports": [
         "admitInstalledSourceFinalEnvironment",
         "assertInstalledEnvironmentPublicationOriginal",
@@ -146339,19 +146501,28 @@
             "wire",
             "textTime",
             "calendar",
+            "calendarArtifact",
             "numericProfileCid",
             "graphLawCid"
           ],
           "async": false
         },
         {
-          "name": "readInstalledHostEnvironment/admitted/admitted",
+          "name": "readInstalledHostEnvironment/base/base",
           "parameters": [],
           "async": false
         },
         {
-          "name": "readInstalledHostEnvironment/admitted/admitted#2",
+          "name": "readInstalledHostEnvironment/base/base#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/construct/construct",
+          "parameters": [
+            "capacity",
+            "project"
+          ],
           "async": false
         },
         {
@@ -146403,6 +146574,7 @@
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
+        "./installed-calendar.mjs",
         "./installed-check-environment-construction.mjs",
         "./installed-check-environment.mjs",
         "./installed-host-services.mjs",
@@ -146425,11 +146597,13 @@
             "bindInstalledEnvironmentConstruction/bindInstalledEnvironmentConstruction",
             "composeEnvironment/admit/admit/admit",
             "composeEnvironment/admit/admit/admit#2",
+            "composeEnvironment/admit/admit/admit#3",
+            "composeEnvironment/admit/admit/admit#4",
             "composeEnvironment/admit/admit/raw/raw",
             "composeEnvironment/admit/admit/raw/raw#2",
             "composeEnvironment/composed/composed",
-            "composeEnvironment/composed/composed#2",
             "composeEnvironment/composed/composed/composed",
+            "composeEnvironment/composed/composed#2",
             "composeEnvironment/input/input/compared/compared",
             "composeEnvironment/input/input/compared/compared#2",
             "composeEnvironment/input/input/parsed/parsed",
@@ -146440,18 +146614,16 @@
             "composeInstalledInventoryEnvironment",
             "composeInstalledSourceEnvironment",
             "readInstalledSourceEnvironment",
-            "releaseRetiredInstalledEnvironmentComposition",
-            "composeEnvironment/admit/admit/admit#3",
-            "composeEnvironment/admit/admit/admit#4"
+            "releaseRetiredInstalledEnvironmentComposition"
           ],
           "exports": [
+            "admitInstalledSourceFinalEnvironment",
+            "assertInstalledEnvironmentPublicationOriginal",
             "bindInstalledEnvironmentConstruction",
             "composeInstalledInventoryEnvironment",
             "composeInstalledSourceEnvironment",
-            "releaseRetiredInstalledEnvironmentComposition",
-            "assertInstalledEnvironmentPublicationOriginal",
             "readInstalledSourceEnvironment",
-            "admitInstalledSourceFinalEnvironment"
+            "releaseRetiredInstalledEnvironmentComposition"
           ],
           "attributes": {
             "responsibility": [
@@ -146535,8 +146707,9 @@
         {
           "operations": [
             "readInstalledHostEnvironment",
-            "readInstalledHostEnvironment/admitted/admitted",
-            "readInstalledHostEnvironment/admitted/admitted#2",
+            "readInstalledHostEnvironment/base/base",
+            "readInstalledHostEnvironment/base/base#2",
+            "readInstalledHostEnvironment/construct/construct",
             "readInstalledHostEnvironment/parsed/parsed",
             "readInstalledHostEnvironment/parsed/parsed#2",
             "readInstalledHostEnvironment/raw/raw",
@@ -146626,7 +146799,7 @@
     },
     {
       "module": "adapters/host-node/installed-check-environment-construction.mjs",
-      "sha256": "908997e46602db419eb05ee7e370fb32c8febcf24809316ee1e3b67890c97266",
+      "sha256": "63f28374fefc4e74253aa5f9e45926b56b9922ea2dd6c8954ceb6427cca350b5",
       "exports": [
         "installedCanonicalTextConstructionShape",
         "installedCheckpointBindingCanonicalConstructionGeometry",
@@ -146815,7 +146988,7 @@
     },
     {
       "module": "adapters/host-node/source-alias-construction.mjs",
-      "sha256": "0380637ed04ce42772bc545e88f12761754cac8f7637cec63dafe239506b281b",
+      "sha256": "894b22f93a0c69f036a3b1de66fdfe6c1008d89f63aa76c0cf2421ce50163665",
       "exports": [
         "captureSourceAliasConstruction",
         "sourceAliasBorrowedGeometry",
@@ -147063,7 +147236,7 @@
     },
     {
       "module": "adapters/host-node/source-alias-request.mjs",
-      "sha256": "1e8abdeb9d49367ca999dcdb48e6aa12a3631682da552c25136f538b25a0c99d",
+      "sha256": "14d6a104d3bfe15043fd4d7a7f96f54fce827ddff9fdd1c46db41b2578291110",
       "exports": [
         "aliasRequestGeometry",
         "snapshotAliasRequest",
@@ -147188,7 +147361,7 @@
     },
     {
       "module": "adapters/host-node/installed-authored-command.mjs",
-      "sha256": "483693fe87f0c03979ff877866bbed50d2a2e9c05aef994bf7795bda95556dbf",
+      "sha256": "ff0561d65a75d721eb4fbfec93369e4cf35a31d8a8a10f08352afd62f93e9190",
       "exports": [
         "authoredCommandProjection"
       ],
@@ -148481,7 +148654,7 @@
     },
     {
       "module": "adapters/host-node/account-construction.mjs",
-      "sha256": "c98434d6574db1fe4d4abdf12b0248aac2f931ca0fec69692c9eae9cf181ca27",
+      "sha256": "025ab7d65ea3f6f6aeea36f9b03e2b617ac988a7527a6777af942beb42976108",
       "exports": [
         "createAccountConstruction",
         "isAccountConstruction",
@@ -148919,7 +149092,7 @@
     },
     {
       "module": "adapters/host-common/installed-effect-dependency-original.mjs",
-      "sha256": "926578e08818c802a45253142ead4b7d1566a2b72174fb5ffd551cf54dcbdb01",
+      "sha256": "78383b6e3c4188710c2db57c76f85b381c56643da17bff0139affc2bf1182f04",
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing installed Effect Run/control private DATA association only; actual Core numeric owners retain funding/current authority and acquired-effect-computation retains physical output pins",
@@ -149753,7 +149926,7 @@
     },
     {
       "module": "adapters/host-node/rest-source-request.mjs",
-      "sha256": "e81b624d3a40e7db8c5d670df0a670129f7c3fead59cc06e5b7caa0811c407bf",
+      "sha256": "c6c6c3f0ec27f20f9b3a7acc95c2dec0727054404067d56432efc503153249aa",
       "exports": [
         "captureRestSourceRead",
         "restSourcePageRequest",
@@ -149947,7 +150120,7 @@
     },
     {
       "module": "adapters/host-node/installed-finite-page-source.mjs",
-      "sha256": "116fe1d549c679a722b889b1a1c91eb795fcd3ceab9e3c4dad5cca09d9e74560",
+      "sha256": "ade2ac9e399e72e030841633b9f69e153210e05903a9036082f36f0a85248e2a",
       "exports": [
         "installFinitePageSource"
       ],
@@ -149967,7 +150140,7 @@
         }
       ],
       "imports": [
-        "./installed-host-cleanup.mts"
+        "./installed-host-cleanup.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
@@ -150297,7 +150470,7 @@
           }
         }
       ],
-      "sha256": "338ef4fcf11872ba6d3df865c45e872e37fe998f06756d0ef8431e322c22fd2d",
+      "sha256": "f126b06cebc273fc3ffc008442092bef0a91aefea6f96729a0045f3c05910802",
       "imports": [
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/http-exchange.mjs",
@@ -150307,21 +150480,5 @@
       "compilerFields": [],
       "unresolvedSyntax": []
     }
-  ],
-  "generated": [],
-  "unassigned": [],
-  "notEstablished": [
-    "Fresh execution of referenced tests",
-    "Whole-Host/resource lifetime proof",
-    "Normal numerical profile",
-    "Public Model/Provider acceptance",
-    "Whole-distribution or installed-cohort completion"
-  ],
-  "counts": {
-    "modules": 194,
-    "operations": 5532,
-    "exports": 1201,
-    "explicitContractGroups": 550
-  },
-  "scope": "The original supplied modules and explicitly added Project Task/profile installation modules are source/reference facets, not a reassignment of Coordinator/Transfer, process, Connector, Credential, Store or semantic implementation ownership."
+  ]
 }

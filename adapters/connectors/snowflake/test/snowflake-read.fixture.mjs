@@ -16,7 +16,10 @@ import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source
 import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {openSqliteCredentialJournal} from '../../../site-node/sqlite-credential-journal.mjs';
 import {signRemoteCredentialGrant} from '../../../site-node/remote-credential-signature.mjs';
-import {readSnowflakeSqlApi, SNOWFLAKE_SQL_READ_OPERATION} from '../site/snowflake-sql-read.mjs';
+import {createInstalledCredentialSourceReader} from '../../../host-node/installed-credential-source-reader.mjs';
+import {callHttpsCredentialResource, openHttpsCredentialBinding,
+  closeHttpsCredentialBinding} from '../../../site-node/https-credential-resource.mjs';
+import {prepareSnowflakeManagedRead, SNOWFLAKE_SQL_READ_OPERATION} from '../site/snowflake-sql-read.mjs';
 
 const repo = new URL('../../../../', import.meta.url).pathname;
 const read = name => readFile(join(repo, name), 'utf8');
@@ -64,9 +67,8 @@ async function originalRowOwner(descriptionBody) {
   const contracts = checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
   const requirement = checked(moon.clientProgramPrepareLocalQueryRequirement(
     program, 0, 0, contracts, values, fragment, ordered));
-  const prepared = checked(moon.clientProgramSnowflakePrepareRead(description,
-    declaration, requirement, query, evidence, descriptionLimits, declarationLimits));
-  const acquisition = moon.clientProgramSnowflakeReadAcquisition(prepared);
+  const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
+    declaration, requirement, query, evidence));
   // Explicit test units, not normal product prices. This is the same ledger
   // and original run consumed by the physical driver, never a second root.
   const ledger = checked(moon.clientProgramAcquisitionLedger(1, 1, 8192n,
@@ -75,8 +77,8 @@ async function originalRowOwner(descriptionBody) {
   const run = checked(moon.clientProgramRowSourceStartAccounted(acquisition,
     requestId, () => true, ledger, 8192n, 4096n));
   checked(moon.clientProgramRowSourceBegin(run, 4096, 2, 2, undefined));
-  return {prepared, acquisition, run, ledger, requestId, requirement,
-    originals: {description, declaration, declared, environment, program,
+  return {acquisition, run, ledger, requestId, requirement,
+    originals: {description, declaration, declared, environment, program, responseLimits,
       descriptionLimits, declarationLimits, registry: contracts, values, fragment, ordered},
     usage: () => moon.clientProgramMultiCapturedLedgerUsage(ledger),
     assertNoCapture: () => assert.throws(() => checked(moon.clientProgramRowSourceCapture(run)),
@@ -192,10 +194,64 @@ export async function snowflakeFixture(t, {accountOutcome = 'allow',
     await state.resolve?.();
     return state.secret;
   };
-  const options = {moon, prepared: row.prepared, rowRun: frame, limits: readLimits,
-    warehouse: 'ANALYTICS', role: 'READER', authenticationType: 'OAUTH',
+  const options = {moon, limits: readLimits,
     authorizationFor: async sequence => ({grant, scope, useId: `statement-${sequence}`}),
     credential: {control, journal, resolveSecret, ca}, verifyRead};
+  const originalAuthorization = Object.freeze({grant, scope});
+  async function read(overrides) {
+    const selected = {...options, ...overrides};
+    const originalSite = Object.freeze({site: Object.freeze({}),
+      referenceCurrent: () => true,
+      authorizationPurpose: () => ({kind: 'read'}),
+      bindRunAcquisition(_authorization, current) {
+        const binding = openHttpsCredentialBinding({...selected.credential, scope,
+          maxSecretBytes: selected.limits.maxSecretBytes});
+        return Object.freeze({credential: Object.freeze({...selected.credential, binding,
+          currentBeforeSend: current.observeCurrent}),
+          close: () => closeHttpsCredentialBinding(binding)});
+      },
+      readChildCredential: acquisition => acquisition.credential,
+      callResource: selected.callResource ?? callHttpsCredentialResource});
+    const {description, descriptionLimits, responseLimits} = row.originals;
+    const factory = createInstalledCredentialSourceReader({capacity: Object.freeze({}),
+      originalSite, assertCurrent() {}, maxResponses: selected.limits.maxRequests,
+      maxRequestBytes: selected.limits.maxRequestBytes, maxResponseBytes: selected.limits.maxBytes,
+      prepareReadSequence(input) {
+        return prepareSnowflakeManagedRead({moon: selected.moon, description, descriptionLimits,
+          input, limits: selected.limits, responseBound: responseLimits, warehouse: 'ANALYTICS',
+          role: 'READER', authenticationType: 'OAUTH'});
+      }});
+    const borrow = checked(moon.clientProgramRowSourceBorrowResponses(row.run, row.acquisition));
+    let reader;
+    checked(moon.clientProgramRowSourceBindResponseCleanup(borrow, () => {
+      if (reader === undefined) return false;
+      reader.requestStop();
+      return reader.observe().cleanupConfirmed;
+    }));
+    reader = factory.prepare(Object.freeze({resource: 'usage_30d',
+      columns: moon.clientProgramRowSourceColumns(row.acquisition), preparedRead: frame.requestId,
+      ...(selected.signal === undefined ? {} : {signal: selected.signal}),
+      originalAuthorization, verifyRead: selected.verifyRead,
+      authorizationFor: selected.authorizationFor,
+      async authorizeReadChild(_operation, index) {
+        const authorization = await selected.authorizationFor(index);
+        return {originalAuthorization, authorization};
+      },
+      consumePage() {throw new Error('Expected original charged response');},
+      consumeObservation: charge => checked(moon.clientProgramRowSourceConsumeObservationCharge(row.run, charge)),
+      chargePage: bytes => checked(moon.clientProgramRowSourceChargePage(row.run, bytes)),
+    }), undefined, undefined, borrow);
+    let failed = false, primary;
+    try {return await reader.read();}
+    catch (cause) {failed = true; primary = cause; throw cause;}
+    finally {
+      try {reader.requestStop();}
+      catch (cleanupFailure) {
+        if (!failed) throw cleanupFailure;
+        Object.defineProperty(primary, 'cleanupFailure', {value: cleanupFailure});
+      }
+    }
+  }
   return {root, moon, state, row, frame, scope, grant, control, journal, options,
-    writeAccount, read: overrides => readSnowflakeSqlApi({...options, ...overrides})};
+    writeAccount, read};
 }

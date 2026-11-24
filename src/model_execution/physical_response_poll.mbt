@@ -58,6 +58,13 @@ pub(all) enum ModelPhysicalCallPoll {
   PhysicalIoPending(ModelPhysicalCall, ModelPhysicalCallPoll)
   PhysicalIoQuiescent(ModelPhysicalCall, ModelPhysicalCallPoll)
   PhysicalSavedStructuredResponse(ModelPhysicalSavedStructuredResponse)
+  // Only the selected measured port can project this before terminal adoption.
+  PhysicalMeasuredHttp(
+    ModelSavedRawReceipt,
+    Int64,
+    Int64,
+    ModelPhysicalCallPoll
+  )
 }
 
 ///|
@@ -121,7 +128,11 @@ pub fn model_physical_call(
     state.attempts.get(entry.slot) is Some(trace) &&
     physical_equal(trace, entry.trace) &&
     state.physical_plans.get(entry.slot) is Some(plan) &&
-    plan.invocation is (Asynchronous(_) | AsynchronousSavedStructured(_, _, _)) &&
+    plan.invocation
+    is (Asynchronous(_)
+    | AsynchronousHttpChat(_, _)
+    | AsynchronousMeasuredHttpChat(_, _)
+    | AsynchronousSavedStructured(_, _, _)) &&
     state.reservations.get(entry.slot) is Some(reservation) &&
     @resources.reservation_open(reservation) else {
     return None
@@ -193,7 +204,10 @@ fn poll_model_physical_call(
         state.physical_plans.get(entry.slot) is Some(plan) &&
         physical_equal(plan, binding.plan) &&
         plan.invocation
-        is (Asynchronous(_) | AsynchronousSavedStructured(_, _, _)) &&
+        is (Asynchronous(_)
+        | AsynchronousHttpChat(_, _)
+        | AsynchronousMeasuredHttpChat(_, _)
+        | AsynchronousSavedStructured(_, _, _)) &&
         state.reservations.get(entry.slot) is Some(reservation) &&
         physical_equal(reservation, binding.reservation) &&
         @resources.reservation_open(reservation) &&
@@ -224,9 +238,19 @@ fn poll_model_physical_call(
   }
   // Once admitted, the original response/Unknown is immutable. Subsequent
   // polls only progress that same call's I/O observation, never another answer.
-  match inner {
-    PhysicalPending => ()
-    _ => if call.terminal is None { call.terminal = Some(inner) }
+  if call.terminal is None {
+    match inner {
+      PhysicalPending => ()
+      PhysicalMeasuredHttp(receipt, uploaded, downloaded, result) =>
+        match
+          settle_model_http_observation(
+            call, receipt, uploaded, downloaded, result,
+          ) {
+          Ok(settled) => call.terminal = Some(settled)
+          Err(issue) => return Err(issue)
+        }
+      _ => call.terminal = Some(inner)
+    }
   }
   if call.terminal is Some(_) &&
     (!call.io_tracking || call.io_observation is Some(_)) {
@@ -238,6 +262,70 @@ fn poll_model_physical_call(
       None => Some(inner)
     },
   )
+}
+
+///|
+fn settle_model_http_observation(
+  call : ModelPhysicalCall,
+  receipt : ModelSavedRawReceipt,
+  uploaded : Int64,
+  downloaded : Int64,
+  result : ModelPhysicalCallPoll,
+) -> Result[ModelPhysicalCallPoll, ModelExecutionIssue] {
+  let raw = receipt.original
+  let (status, eof, _) = @publication.model_raw_response_transport_facts(
+    raw.response,
+  )
+  let matching_outcome = match result {
+    PhysicalChatResponse(response) =>
+      physical_equal(response.saved_raw, receipt)
+    PhysicalRejected(ProviderError, _) => status >= 300
+    PhysicalRejected(SchemaInvalid, _) => status < 300
+    _ => false
+  }
+  // A foreign view cannot publish its answer or redeem the entered ceiling.
+  guard call.original_binding is Some(binding) &&
+    call.io_observation is Some(observed) &&
+    physical_equal(observed, binding) &&
+    binding.plan.invocation is AsynchronousMeasuredHttpChat(request, _) &&
+    physical_equal(raw.call, call) &&
+    call.raw_capture is Some(original) &&
+    physical_equal(original, raw) &&
+    raw.saved is Some(saved) &&
+    physical_equal(saved, receipt) &&
+    model_raw_capture_call_owned(call) &&
+    matching_outcome else {
+    return Ok(PhysicalUnknown({ input_tokens: None, output_tokens: None, }))
+  }
+  let state = binding.entry.prepared.owner.state
+  let request_bytes = request.body.length().to_int64()
+  let (_, _, _, _, raw_bytes) = @publication.model_raw_response_store_binding(
+    raw.response,
+  )
+  if eof &&
+    status >= 200 &&
+    status <= 599 &&
+    uploaded >= 0L &&
+    uploaded <= request_bytes &&
+    request_bytes <= state.limits.max_request_bytes &&
+    (status >= 300 || uploaded == request_bytes) &&
+    downloaded >= 0L &&
+    downloaded == raw_bytes.to_int64() &&
+    downloaded <= state.limits.max_response_bytes {
+    match
+      @resources.settle_entered_transfer(
+        state.ledger,
+        binding.reservation,
+        state.limits.max_request_bytes + state.limits.max_response_bytes,
+        Some(uploaded + downloaded),
+      ) {
+      Err(issue) => return Err(Ledger(issue))
+      Ok(_) => ()
+    }
+  }
+  // An incomplete byte measurement does not change the confirmed Raw
+  // outcome. Its original ceiling stays in custody until retirement.
+  Ok(result)
 }
 
 ///|
@@ -300,6 +388,12 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     call.entry = None
     call.terminal = None
     call.decoded_response = None
+    if call.raw_capture is Some(raw) {
+      // The receipt keeps its original Raw. Drop only Raw's cached reverse
+      // edge, after physical and holding retirement, so its current callbacks
+      // do not retain the Native Work and Store after the last consumer.
+      raw.saved = None
+    }
     call.raw_capture = None
     call.io_observation = None
     call.original_binding = None
@@ -374,12 +468,8 @@ fn observe_original_model_physical_usage(
         return Err(RequestIdentity)
       }
       {
-        input_tokens: response.result
-        .to_option()
-        .bind(encoded => encoded.observation.input_tokens),
-        output_tokens: response.result
-        .to_option()
-        .bind(encoded => encoded.observation.output_tokens),
+        input_tokens: response.observation.bind(value => value.input_tokens),
+        output_tokens: response.observation.bind(value => value.output_tokens),
       }
     }
     PhysicalRejected(_, usage) | PhysicalUnknown(usage) => usage
@@ -387,6 +477,7 @@ fn observe_original_model_physical_usage(
     | PhysicalChatResponse(_)
     | PhysicalNativeResponse(_)
     | PhysicalIoPending(_, _)
+    | PhysicalMeasuredHttp(_, _, _, _)
     | PhysicalIoQuiescent(_, _) => return Ok(())
   }
   if !valid_model_optional_tokens(usage.input_tokens) ||
@@ -436,8 +527,10 @@ fn advance_model_physical_response(
     Ok(_) => ()
   }
   match observed {
-    PhysicalPending | PhysicalIoPending(_, _) | PhysicalIoQuiescent(_, _) =>
-      @bounded.Failed(RequestIdentity, 1, 1)
+    PhysicalPending
+    | PhysicalIoPending(_, _)
+    | PhysicalIoQuiescent(_, _)
+    | PhysicalMeasuredHttp(_, _, _, _) => @bounded.Failed(RequestIdentity, 1, 1)
     PhysicalUnknown(_) => {
       state.progress.observing_response = false
       adopt_model_outcome(state, UnresolvedUnknown)

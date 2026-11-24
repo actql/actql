@@ -33,7 +33,7 @@ type InitializationHoldings = {
   observation?: CloseOwner; ownerViews?: CloseOwner; initialControl?: InitialControl;
   publicationOwnership?: CloseOwner;
 };
-type CheckpointCloseResult = {pendingRetention?: readonly unknown[]; pendingAuthorization?: boolean};
+type CheckpointCloseResult = {pendingRetention?: readonly unknown[]; pendingAuthorization?: boolean; checkpointReconciliationDeferred?: boolean};
 type ShutdownHoldings = {
   stop: Action; drain: Action; retire: Action; checkpoint: Action<CheckpointCloseResult | undefined>;
   journal: Action; source: Action; effect: Action; store: Action; diagnostic?: Action;
@@ -42,7 +42,8 @@ type ShutdownHoldings = {
 };
 type ShutdownResult = Readonly<{
   storeCleanupPending: boolean;
-  pendingRetention: readonly unknown[];
+  pendingRetention?: readonly unknown[];
+  checkpointReconciliationDeferred?: boolean;
   authorizationCleanupPending: boolean;
 }>;
 type CredentialSite = {close: SynchronousAction; cleanupPending: () => boolean};
@@ -457,7 +458,9 @@ export function createInstalledHostShutdown({stop, drain, retire, checkpoint,
       }
     }
     return Object.freeze({storeCleanupPending,
-      pendingRetention: checkpointResult?.pendingRetention ?? [],
+      ...(checkpointResult?.checkpointReconciliationDeferred === true
+        ? {checkpointReconciliationDeferred: true}
+        : {pendingRetention: checkpointResult?.pendingRetention ?? []}),
       authorizationCleanupPending:
         checkpointResult?.pendingAuthorization ?? false});
   }

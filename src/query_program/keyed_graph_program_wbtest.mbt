@@ -171,3 +171,32 @@ test "keyed source refuses internal Graph star and unadapted identity binding" {
     is Err({ issue: @query.Syntax("Graph LABELS annotation is retired"), .. }),
   )
 }
+
+///|
+test "keyed one-hop MATCH resolves both original endpoint properties" {
+  let prefix =
+    #|WITH nodes AS (SELECT 1 AS node_key, 7 AS p UNION ALL SELECT 2, 8),
+    #|  edges AS (SELECT 1 AS edge_key, 1 AS from_key, 2 AS to_key),
+    #|  g AS (GRAPH (NODE TABLES (nodes AS N KEY (node_key) LABEL Person PROPERTIES (p))
+    #|    EDGE TABLES (edges AS E KEY (edge_key)
+    #|      SOURCE KEY (from_key) REFERENCES N DESTINATION KEY (to_key) REFERENCES N
+    #|      LABEL Knows NO PROPERTIES)))
+    #|FROM GRAPH g |>
+  let pattern = " MATCH WALK (a:Person)-[:Knows]->(b:Person) |> SELECT "
+  let result = keyed_script(prefix + pattern + "a.p AS source, b.p AS reached")
+  assert_true(result is Ok(_))
+  assert_true(keyed_script(prefix + pattern + "foreign.p") is Err(_))
+  assert_true(keyed_script(prefix + pattern + "aql_keyed_start_p") is Err(_))
+  assert_true(keyed_script(prefix + pattern + "a.missing") is Err(_))
+  assert_true(keyed_script(prefix + pattern + "p") is Err(_))
+  assert_true(
+    keyed_script(prefix + " MATCH WALK (a:Person) |> SELECT a.p AS p") is Ok(_),
+  )
+  assert_true(
+    keyed_script(
+      prefix +
+      " MATCH x = ACYCLIC (:Person)-[:Knows]->(:Person) |> SELECT PATH_LENGTH(x) AS depth",
+    )
+    is Ok(_),
+  )
+}

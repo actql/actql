@@ -16,12 +16,26 @@ test "Native saved file request measures the same original canonical subtrees be
     data_keys=true,
   )
   let measure = @encode.measuring_writer(4096, 64, 8)
-  emit_native_local_effect_update_request(
-    measure, "binding", "mapping", target, value, before, "version",
+  emit_native_local_effect_file_request(
+    measure,
+    "binding",
+    "mapping",
+    target,
+    Some(value),
+    before,
+    "version",
   )
   let (bytes, nodes, depth) = @encode.finish_measurement_usage(measure)
-  let wire = native_local_effect_update_request_wire(
-    "binding", "mapping", target, value, before, "version", 4096, 64, 8,
+  let wire = native_local_effect_file_request_wire(
+    "binding",
+    "mapping",
+    target,
+    Some(value),
+    before,
+    "version",
+    4096,
+    64,
+    8,
   ).unwrap()
   assert_eq(
     wire, "{\"before\":{\"Name\":\"日😀\",\"id\":\"e\u0301\"},\"binding\":\"binding\",\"mapping\":\"mapping\",\"target\":\"row\",\"value\":{\"NextStep\":\"a\\n\\\"\\\\b\",\"metadata\":[1,2]},\"version\":\"version\"}",
@@ -31,14 +45,54 @@ test "Native saved file request measures the same original canonical subtrees be
   assert_eq(depth, 3)
   assert_true(bytes < 4096)
   assert_true(
-    native_local_effect_update_request_wire(
+    native_local_effect_file_request_wire(
       "binding",
       "mapping",
       target,
-      value,
+      Some(value),
       before,
       "version",
       bytes - 1,
+      64,
+      8,
+    )
+    is Err(_),
+  )
+  let removal = native_local_effect_file_request_wire(
+    "binding",
+    "mapping",
+    target,
+    None,
+    before,
+    "version",
+    4096,
+    64,
+    8,
+  ).unwrap()
+  let expected =
+    #|{"before":{"Name":"日😀","id":"é"},"binding":"binding","mapping":"mapping","target":"row","version":"version"}
+  assert_eq(removal, expected)
+  let measuring_removal = @encode.measuring_writer(4096, 64, 8)
+  emit_native_local_effect_file_request(
+    measuring_removal,
+    "binding",
+    "mapping",
+    target,
+    None,
+    before,
+    "version",
+  )
+  let (delete_bytes, _, _) = @encode.finish_measurement_usage(measuring_removal)
+  assert_eq(delete_bytes, @utf8.encode(expected).length())
+  assert_true(
+    native_local_effect_file_request_wire(
+      "binding",
+      "mapping",
+      target,
+      None,
+      before,
+      "version",
+      delete_bytes - 1,
       64,
       8,
     )

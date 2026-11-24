@@ -1096,8 +1096,32 @@ test('Client lanes cover local acceptance without positional command snapshots',
   const approvalSteps = jobs['client-packed'].steps.filter(step =>
     step.run?.startsWith('node scripts/test-packed-hubspot-source.mjs --ci '));
   assert(approvalSteps.length > 0, 'Connector acquisition acceptance must be scheduled');
+  const originalKintone = approvalSteps.find(step => step.name === 'Test packed kintone record approval and original Saved');
+  assert(originalKintone, 'The original update uses the ordinary installed runner');
+  const authoredSelections = new Map([
+    ['packed-kintone-delete', {file: 'delete', kind: 'delete', absent: false}],
+    ['packed-kintone-upsert-present', {file: 'upsert-present', kind: 'upsert', absent: false}],
+    ['packed-kintone-upsert-absent', {file: 'upsert-absent', kind: 'upsert', absent: true}],
+  ]);
+  for (const id of authoredSelections.keys()) {
+    assert.equal(approvalSteps.filter(step => step.id === id).length, 1, id);
+  }
   for (const step of approvalSteps) {
-    assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1'});
+    const selection = authoredSelections.get(step.id);
+    let authoredEnvironment;
+    if (selection !== undefined) {
+      const path = `scripts/fixtures/kintone-approval/${selection.file}.case.json`;
+      const fixture = JSON.parse(readFileSync(join(root, path), 'utf8'));
+      assert.equal(step.run, originalKintone.run);
+      assert.equal(fixture.review.kind, selection.kind);
+      assert.equal(fixture.fixture.expected.before.target === null, selection.absent);
+      assert.equal(fixture.fixture.expected.after.target === null, selection.kind === 'delete');
+      authoredEnvironment = {
+        ACTQL_RECORD_APPROVAL_HTTP_CASE: '${{ github.workspace }}/' + path,
+        ACTQL_RECORD_APPROVAL_RESULT_NAMES: JSON.stringify([fixture.read.resultName, fixture.effect.resultName]),
+      };
+    }
+    assert.deepEqual(step.env, {ACTQL_TEST_PRESERVE_SCRATCH: '1', ...authoredEnvironment});
     assert.equal(step.if, "${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}");
     assert.equal(step['continue-on-error'], undefined);
   }
@@ -1160,7 +1184,7 @@ test('packed Native Graph compiler setup retains exact cc and ar selection', () 
   assert.equal(query['continue-on-error'], undefined);
   assert.equal(query.env.ACTQL_TEST_NATIVE_QUERY_COMPILER, 'clang-19');
   assert.equal(query.env.ACTQL_TEST_QUERY_TIMEOUT_MS, '1800000');
-  assert(setup.run.startsWith('bash scripts/ci-install-linux-clang.sh\n'));
+  assert(setup.run.startsWith('bash scripts/ci-install-linux-clang.sh --packed-query-native\n'));
   const directory = mkdtempSync(join(tmpdir(), 'actql-packed-compiler-control-'));
   try {
     const cc = join(directory, 'selected-clang-19');

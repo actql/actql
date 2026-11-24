@@ -145,9 +145,10 @@ type SelectedPrivatePublicationHolding = SelectedPhysicalHoldingRecord & Readonl
   objects: readonly Readonly<{cid: string; byte_count: number}>[];
 }>;
 type ConsumeEvidence<Value> = (plaintext: Buffer, read: PrivateEvidenceRead) => Value;
-type BeforeEvidenceRead = ((bytes: number) => undefined) & Readonly<{
+type ScopedBeforeEvidenceRead = ((bytes: number) => void) & Readonly<{
   reserveEnvelope?: (wire: string) => undefined;
 }>;
+type BeforeEvidenceRead = ScopedBeforeEvidenceRead & ((bytes: number) => undefined);
 type ReadPrivateEvidence = {
   (name: string, semanticCid: string, holdingCid: string): Promise<Buffer>;
   <Value>(name: string, semanticCid: string, holdingCid: string,
@@ -361,12 +362,9 @@ export function createPrivatePublicationEvidence(
       key.fill(0);
     }
   };
-  const readPrivateEvidence = async <Value,>(name: string, semanticCid: string, holdingCid: string,
-    consume?: ConsumeEvidence<Value>, beforeRead?: BeforeEvidenceRead) => {
-    if (consume === undefined) {
-      if (beforeRead !== undefined) fail('InvalidPublicationPrivateEvidence');
-      return readPrivateEvidenceObject(name, semanticCid, holdingCid);
-    }
+  const readScopedPrivateEvidence = async <Value,>(name: string, semanticCid: string, holdingCid: string,
+    consume: ConsumeEvidence<Value>, beforeRead: ScopedBeforeEvidenceRead | undefined, objectCount: number,
+    maxEnvelopeBytes?: number) => {
     active();
     if (typeof consume !== 'function') fail('InvalidPublicationPrivateEvidence');
     cidHex(holdingCid);
@@ -407,11 +405,13 @@ export function createPrivatePublicationEvidence(
         return operation;
       }});
     try {
-      plaintext = await readPrivateEvidenceObject(name, semanticCid, holdingCid, 0, 1,
+      plaintext = await readPrivateEvidenceObject(name, semanticCid, holdingCid, 0, objectCount,
         undefined, original => {
           record = original;
+          const size = original.objects[0].byte_count;
+          if (maxEnvelopeBytes !== undefined && size > maxEnvelopeBytes) fail('PublicationObjectLimit');
           if (beforeRead !== undefined) {
-            if (typeof beforeRead !== 'function' || beforeRead(original.objects[0].byte_count) !== undefined) {
+            if (typeof beforeRead !== 'function' || beforeRead(size) !== undefined) {
               fail('InvalidPublicationPrivateEvidence');
             }
           }
@@ -427,6 +427,21 @@ export function createPrivatePublicationEvidence(
       release();
     }
   };
+
+  const readPrivateEvidence = async <Value,>(name: string, semanticCid: string, holdingCid: string,
+    consume?: ConsumeEvidence<Value>, beforeRead?: BeforeEvidenceRead) => {
+    if (consume === undefined) {
+      if (beforeRead !== undefined) fail('InvalidPublicationPrivateEvidence');
+      return readPrivateEvidenceObject(name, semanticCid, holdingCid);
+    }
+    return readScopedPrivateEvidence(name, semanticCid, holdingCid, consume, beforeRead, 1);
+  };
+  // Common caps the plaintext descriptor at 8192 bytes, which fits inside
+  // the 12288-byte encrypted envelope of this same two-object Raw holding.
+  const readModelRawResponseDescriptor = <Value,>(semanticCid: string, holdingCid: string,
+    consume: ConsumeEvidence<Value>, beforeRead?: ScopedBeforeEvidenceRead) =>
+    readScopedPrivateEvidence('model_raw_descriptor', semanticCid, holdingCid,
+      consume, beforeRead, 2, 12288);
 
   const preparePrivateEvidenceInput = async (name: string, input: string | Uint8Array,
     semanticCid: string, isWire: boolean) => {
@@ -709,7 +724,7 @@ export function createPrivatePublicationEvidence(
   };
 
   return {privateEvidenceKey,
-    readPrivateEvidence: readPrivateEvidence as ReadPrivateEvidence,
+    readPrivateEvidence: readPrivateEvidence as ReadPrivateEvidence, readModelRawResponseDescriptor,
     preparePrivateEvidence, prepareModelRawEvidence, prepareLookupRawEvidence,
     readModelRawEvidence, confirmModelRawEvidence, readLookupRawEvidence, confirmLookupRawEvidence,
     confirmModelRawCaptureOriginals, confirmPrivateEvidence};

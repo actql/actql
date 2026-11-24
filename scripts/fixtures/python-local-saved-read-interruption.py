@@ -2,7 +2,7 @@
 
 The caller supplies a new fixture's successful warm reference and its current
 normal wheel installation. This is not a pristine default-fuel success case:
-the test wraps two private call ports solely to reduce remaining fuel to zero
+the test wraps the Saved call and its operation-current port to reduce remaining fuel to zero
 inside the actual saved-binding validation's original current callback. It
 does not replace the Core, module, physical current result, or cleanup callback.
 The same instance must retain its physical duties and close explicitly.
@@ -11,23 +11,27 @@ from pathlib import Path
 from importlib import metadata
 import json
 import os
+from runpy import run_path
 import sys
 import time
 import traceback
 
 
-def error_chain(error):
-    result, seen = [], set()
-    while error is not None and id(error) not in seen and len(result) < 24:
+def causes(error):
+    seen = set()
+    while error is not None and id(error) not in seen and len(seen) < 24:
         seen.add(id(error))
-        result.append({
-            'type': type(error).__name__, 'module': type(error).__module__,
-            'code': getattr(error, 'code', None), 'message': str(error),
-            'frames': [{'file': frame.filename, 'line': frame.lineno, 'name': frame.name}
-                       for frame in traceback.extract_tb(error.__traceback__)],
-        })
+        yield error
         error = getattr(error, 'original_error', None) or error.__cause__ or error.__context__
-    return result
+
+
+def error_chain(error):
+    return [{
+        'type': type(cause).__name__, 'module': type(cause).__module__,
+        'code': getattr(cause, 'code', None), 'message': str(cause),
+        'frames': [{'file': frame.filename, 'line': frame.lineno, 'name': frame.name}
+                   for frame in traceback.extract_tb(cause.__traceback__)],
+    } for cause in causes(error)]
 
 
 def main():
@@ -58,12 +62,19 @@ def main():
         print(json.dumps({'stage': row}), flush=True)
 
     import actql
-    from actql_sdk._local_core import LocalCore
+    from actql_sdk._local_core import LocalCore, _Output
+    from actql_sdk._local_distribution import installed_local_components
+    from wasmtime import Trap
+    fuel_trap_code = run_path(str(Path(__file__).with_name('ci-python-installed-fuel.py')))['fuel_trap_code']
     if not Path(actql.__file__).is_relative_to(Path(sys.prefix)):
         raise ValueError('Installed public facade required; no source overlay')
+    installed = installed_local_components()
+    if installed.source_sha != source:
+        raise ValueError('Foreign installed Saved interruption source')
+    report.update(module=installed.module_sha256, image=installed.image_sha256)
     report['versions'] = {name: metadata.version(name)
                           for name in ('actql', 'actql-sdk', 'actql-local-runtime', 'wasmtime')}
-    call, current = LocalCore._call, LocalCore._journal_current
+    call, current_operation = LocalCore._call, LocalCore._journal_current_operation
     selected, entered, held = [False], [False], []
 
     def observed_call(self, family, name, *arguments):
@@ -75,13 +86,20 @@ def main():
                 'closing': self._closing,
             })
         if (selected[0] and family == 'publication_commit_export'
-                and name == 'validate_payload_binding'):
+                and name == 'validate_payload_binding' and len(arguments) == 5
+                and arguments[0] > 0 and arguments[1] > 0):
+            # The preceding zero-loan capability query never enters this
+            # selection. The input must be the live original Saved parent.
             selected[0] = False
             if entered[0] or held:
                 raise AssertionError('The same selected invocation must not repeat')
-            held.append((self, self._store))
-            if not self._ordinary_host or self._host_fuel_phase != 'operation':
+            source, = [loan for loan in self._loans.values() if type(loan) is _Output
+                       and loan.handle == arguments[0] and loan.family == 'submission_lookup']
+            self._owned_output(source, 'submission_lookup')
+            scope = self._host_operation_scope
+            if not self._ordinary_host or self._host_fuel_phase != 'operation' or scope is None:
                 raise AssertionError('Original normal outer operation required')
+            held.append((self, self._store, scope, self._host_operation_id))
             entered[0] = True
             try:
                 return call(self, family, name, *arguments)
@@ -89,23 +107,30 @@ def main():
                 entered[0] = False
         return call(self, family, name, *arguments)
 
-    def observed_current(self, ticket):
-        result = current(self, ticket)
-        if entered[0] and result == 0 and not report['injections']:
-            if not held or self is not held[0][0] or self._store is not held[0][1]:
-                raise AssertionError('Foreign Core or replacement Store')
-            if not self._invoking or self._host_fuel_phase != 'operation':
-                raise AssertionError('Original saved binding is not in flight')
-            before = self._store.get_fuel()
-            if before <= 0:
-                raise AssertionError('Counter must reduce an available original budget')
-            self._store.set_fuel(0)
-            report['injections'].append({'before': before, 'after': self._store.get_fuel(),
-                                         'actualCurrentResult': result, 'ticket': ticket})
+    def observed_current_operation(self, ticket):
+        result = current_operation(self, ticket)
+        if not entered[0] or ticket <= 0 or report['injections']:
+            return result
+        original, store, scope, operation = held[0]
+        if operation <= 0 or result != operation:
+            return result
+        if self is not original or self._store is not store:
+            raise AssertionError('Foreign Core or replacement Store')
+        if (not self._invoking or self._host_fuel_phase != 'operation'
+                or self._host_operation_scope is not scope or self._host_operation_id != operation):
+            raise AssertionError('Original saved binding is not in flight in the same operation')
+        before = store.get_fuel()
+        if before <= 0:
+            raise AssertionError('Counter must reduce an available original budget')
+        store.set_fuel(0)
+        report['injections'].append({'before': before, 'after': store.get_fuel(),
+                                     'actualCurrentResult': result, 'ticket': ticket,
+                                     'operation': operation})
         return result
 
     client, close_attempted = None, False
-    LocalCore._call, LocalCore._journal_current = observed_call, observed_current
+    LocalCore._call = observed_call
+    LocalCore._journal_current_operation = observed_current_operation
     try:
         event('public reopen original fresh installation')
         client = actql.open(state_dir=state)
@@ -119,14 +144,13 @@ def main():
             execution.result(original['resultName']).all()
         except BaseException as error:
             report['expectedOperationFailure'] = error_chain(error)
+            trap, = [cause for cause in causes(error) if type(cause) is Trap]
+            report['originalTrapCode'] = fuel_trap_code(trap)
         else:
             raise AssertionError('Selected interruption did not fail the operation')
         if len(held) != 1 or len(report['injections']) != 1:
             raise AssertionError('The exact selected original was not interrupted once')
-        if not any('all fuel consumed by WebAssembly' in e['message']
-                   for e in report['expectedOperationFailure']):
-            raise AssertionError('Expected actual Wasm instruction exhaustion')
-        core, store = held[0]
+        core, store, _, _ = held[0]
         if not core._closing or core._invoking or core._store is not store or store.get_fuel() != 0:
             raise AssertionError('Interrupted original did not remain fenced and quiescent')
         try:
@@ -135,10 +159,6 @@ def main():
         except RuntimeError as refusal:
             report['normalEntryRefusal'] = str(refusal)
         event('original interrupted physical custody retained before explicit cleanup')
-        print('E_SAVED_INTERRUPTED:' + json.dumps({'pid': os.getpid(), 'stateDir': str(state)}),
-              file=sys.stderr, flush=True)
-        # Permit the independent observer to inspect the live original FDs.
-        time.sleep(2)
         event('explicit public close of same interrupted original')
         close_attempted = True
         client.close()
@@ -148,11 +168,8 @@ def main():
                 or entry['invoking'] or entry['phase'] != 'cleanup' or not entry['closing']
                 for entry in report['cleanupEntrances']):
             raise AssertionError('Missing same-original cleanup entrance after unwind')
-        print('E_SAVED_CLOSED:' + json.dumps({'pid': os.getpid(), 'stateDir': str(state),
-                                           'phase': 'interrupted'}), file=sys.stderr, flush=True)
-        time.sleep(2)
         event('same original explicit cleanup completed')
-        report.update(passed=True, cases=1)
+        report.update(passed=True, cases=1, normalFenced=True, sameStore=True, firstClose=True)
     except BaseException as error:
         report['failure'] = error_chain(error)
     finally:
@@ -162,7 +179,8 @@ def main():
                 client.close()
             except BaseException as error:
                 report['cleanupFailure'] = error_chain(error)
-        LocalCore._call, LocalCore._journal_current = call, current
+        LocalCore._call = call
+        LocalCore._journal_current_operation = current_operation
         (directory / 'fresh-interruption-result.json').write_text(json.dumps(report, indent=2) + '\n')
         print(json.dumps(report), flush=True)
     return 0 if report['passed'] else 1

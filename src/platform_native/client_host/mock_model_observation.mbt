@@ -63,6 +63,80 @@ pub fn NativeClientMockModelWork::prepare_observation(
 }
 
 ///|
+/// Form one publication issuer on the first completed configured Work. The
+/// original Request has already funded the temporary vector of executions.
+pub fn NativeClientMockModelWork::prepare_source_free_model_observation(
+  self : Self,
+  works : Array[NativeClientMockModelWork],
+  plans : Array[@host.ClientInferPlanGraph],
+) -> Result[Unit, NativeClientMockModelIssue] {
+  guard !self.advancing &&
+    self.publication_capacity is None &&
+    self.observation is None &&
+    works.get(0) is Some(first) &&
+    physical_equal(first, self) &&
+    plans.length() == works.length() &&
+    self.active is Some(active) else {
+    return Err(ForeignOriginal)
+  }
+  let owners = Array(capacity=works.length())
+  for index, work in works {
+    guard !work.closing &&
+      !work.closed &&
+      !work.advancing &&
+      work.settlement is None &&
+      work.active is Some(original) &&
+      work.provider_role is PortableHttp(_) &&
+      physical_equal(work.capture, self.capture) &&
+      physical_equal(work.request, self.request) &&
+      physical_equal(work.compiled, self.compiled) &&
+      physical_equal(work.definition, self.definition) &&
+      physical_equal(work.graph, plans[index]) &&
+      work.publication_capacity is None &&
+      work.observation is None else {
+      return Err(ForeignOriginal)
+    }
+    owners.push(original)
+  }
+  guard @infer.original_source_free_model_observation_requirements(
+      owners, plans,
+    )
+    is Some((limits, bytes)) &&
+    @execution.execution_capacity(bytes, bytes) is Some(issuer) &&
+    @execution.add_execution_capacity(
+      self._retained_observation_capacity,
+      issuer,
+    )
+    is Some(payload) else {
+    return Err(Encoding)
+  }
+  self.advancing = true
+  defer {
+    self.advancing = false
+  }
+  let capacity = match
+    @infer.reserve_original_infer_publication_capacity(
+      active,
+      @execution.execution_capacity_retained_bytes(payload),
+      @execution.execution_capacity_execution_bytes(payload),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Model(issue))
+  }
+  // Keep the same reservation attached if the constructor refuses afterward.
+  self.publication_capacity = Some(capacity)
+  self.publication_retained = @model.original_model_publication_retained_bytes(
+    capacity,
+  )
+  self.publication_execution = @model.original_model_publication_execution_bytes(
+    capacity,
+  )
+  @infer.start_complete_original_observation_issuance(owners, capacity, limits)
+  .map_err(issue => NativeClientMockModelIssue::Model(issue))
+  .map(issued => self.observation = Some(issued))
+}
+
+///|
 /// Advance only the original flat evidence issuer, never the Model/provider.
 pub fn NativeClientMockModelWork::advance_observation(
   self : Self,
@@ -169,6 +243,7 @@ fn NativeClientMockModelWork::close_observation(
   // projection's export/uses before the complete issuer and its same-parent
   // reservation. Cancellation is not Model/Store/physical cleanup evidence.
   self.local_observation = None
+  self.publication_inputs = None
   if self.local_scan is Some(scan) {
     @execution.cancel_completed_relation_identity_scan(scan) |> ignore
     self.local_scan = None
@@ -539,6 +614,8 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
   max_nodes : Int,
   max_depth : Int,
   imports? : @host.ClientEffectImportedEvidence? = None,
+  before_inventory? : ((Int64) -> Bool)? = None,
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[
   @host.ClientEffectModelAcquiredEvidence,
   @host.ClientEffectAcquiredEvidenceIssue,
@@ -553,6 +630,33 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
   defer {
     self.advancing = false
   }
+  if before_inventory is Some(fund) {
+    guard observation.held.owner.call_scope is Some(scope) &&
+      fund(
+        scope.named_sources.length().to_int64() +
+        scope.sources.length().to_int64() +
+        scope.result_inputs.length().to_int64() +
+        (if scope.source is Some(_) { 1L } else { 0L }),
+      ) &&
+      !self.closing &&
+      !self.closed &&
+      self.local_observation is Some(current) &&
+      physical_equal(current, observation) else {
+      return Err(Invocation(Encoding))
+    }
+  }
+  let funded = match before_body {
+    None => None
+    Some(fund) =>
+      Some((kind, geometry) => {
+        fund(kind, geometry) &&
+        !self.closing &&
+        !self.closed &&
+        self.local_observation
+        .map(current => physical_equal(current, observation))
+        .unwrap_or(false)
+      })
+  }
   let result = @infer.issue_original_local_model_acquired_evidence(
     observation,
     retention,
@@ -560,6 +664,7 @@ pub fn NativeClientMockModelWork::local_effect_model_acquired_evidence(
     max_nodes,
     max_depth,
     imports~,
+    before_body=funded,
   )
   if self.closing ||
     self.closed ||
@@ -583,6 +688,7 @@ pub fn NativeClientMockModelWork::local_effect_model_artifact(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  funding? : @host.ClientEffectModelArtifactFunding? = None,
 ) -> Result[
   @host.ClientEffectLocalResultArtifact,
   @host.ClientEffectLocalResultArtifactIssue,
@@ -597,9 +703,32 @@ pub fn NativeClientMockModelWork::local_effect_model_artifact(
   defer {
     self.advancing = false
   }
+  let funding : @host.ClientEffectModelArtifactFunding? = funding.map(fund => {
+    let current = () => {
+      !self.closing &&
+      !self.closed &&
+      self.local_observation.map(actual => physical_equal(actual, observation)) ==
+      Some(true)
+    }
+    {
+      reserve_measurement: count => {
+        (fund.reserve_measurement)(count) && current()
+      },
+      reserve_bodies: bodies => (fund.reserve_bodies)(bodies) && current(),
+    }
+  })
   let result = @infer.issue_original_local_model_effect_artifact(
-    observation, materials, inputs, exported, acquired, definition, receipt, max_bytes,
-    max_nodes, max_depth,
+    observation,
+    materials,
+    inputs,
+    exported,
+    acquired,
+    definition,
+    receipt,
+    max_bytes,
+    max_nodes,
+    max_depth,
+    funding~,
   )
   if self.closing ||
     self.closed ||

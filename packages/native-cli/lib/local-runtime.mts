@@ -26,6 +26,31 @@ const systems: Record<string, ReadonlySet<string>> = {
   'darwin-arm64': new Set(['/usr/lib/libSystem.B.dylib', '/usr/lib/libz.1.dylib']),
   'linux-x64-gnu': new Set(['libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0', 'librt.so.1', 'ld-linux-x86-64.so.2']),
 };
+// The two private HTTP images admit only exact OS dependencies.
+const httpSystems: Record<string, ReadonlySet<string>> = {
+  'darwin-arm64': new Set([
+    ...systems['darwin-arm64'],
+    '/System/Library/Frameworks/LDAP.framework/Versions/A/LDAP',
+    '/System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation',
+    '/System/Library/Frameworks/CoreServices.framework/Versions/A/CoreServices',
+    '/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration',
+  ]),
+  'linux-x64-gnu': new Set([...systems['linux-x64-gnu'], 'libz.so.1', 'libgcc_s.so.1']),
+};
+export function nativeRemoteHttpLibraryName(platform: string) {
+  assert(httpSystems[platform]);
+  return platform === 'darwin-arm64' ? 'libcurl.4.dylib' : 'libcurl.so.4';
+}
+
+export function nativeRemoteHttpSystemDependency(platform: string, name: string) {
+  return httpSystems[platform]?.has(name) === true;
+}
+
+export function nativeModelHttpLibraryName(platform: string) {
+  assert(httpSystems[platform]);
+  return platform === 'darwin-arm64' ? 'libcurl-model.4.dylib' : 'libcurl-model.so.4';
+}
+
 export const localRuntimeHash = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 const exact = (value: unknown, keys: readonly string[]) => {
   assert(value && typeof value === 'object' && !Array.isArray(value));
@@ -70,6 +95,8 @@ export function validateLocalRuntimeManifest(value: LocalManifest, {sourceSha, p
   assert(Array.isArray(value.assets) && value.assets.length >= 5 && value.assets.length <= 8);
   assert(Array.isArray(value.licenses) && value.licenses.length >= 1 && value.licenses.length <= 8);
   const paths = new Set(), libraryNames = new Set(), libraryRoles = new Set(), assetRoles = new Set();
+  const remotePath = `lib/${nativeRemoteHttpLibraryName(platform)}`;
+  const modelPath = `lib/${nativeModelHttpLibraryName(platform)}`;
   let bytes = 0;
   const member = (item: Member, prefix: string, maxBytes: number) => {
     assert(filename(item.path.slice(prefix.length)) && item.path.startsWith(prefix));
@@ -88,7 +115,15 @@ export function validateLocalRuntimeManifest(value: LocalManifest, {sourceSha, p
     exact(item.abi, [minimum]);
     assert.equal(typeof item.abi[minimum], 'string');
     assert.match(item.abi[minimum], /^\d+\.\d+(?:\.\d+)?$/u);
-    assert(['sqlite', 'crypto', 'dependency'].includes(item.role));
+    assert(['sqlite', 'crypto', 'dependency', 'remote-http', 'model-http'].includes(item.role));
+    if (item.role === 'remote-http') {
+      assert.equal(item.path, remotePath);
+    } else if (item.role === 'model-http') {
+      assert.equal(item.path, modelPath);
+    } else {
+      assert(item.path !== remotePath && item.path !== modelPath, 'HTTP member requires its original role');
+      libraryNames.add(item.path.slice(4));
+    }
     if (item.role !== 'dependency') {
       assert(!libraryRoles.has(item.role)); libraryRoles.add(item.role);
     }
@@ -96,13 +131,16 @@ export function validateLocalRuntimeManifest(value: LocalManifest, {sourceSha, p
     assert(licenses.has(item.license));
     assert(Array.isArray(item.dependencies) && item.dependencies.length <= 8);
     assert.equal(new Set(item.dependencies).size, item.dependencies.length);
-    libraryNames.add(item.path.slice(4));
   }
   assert(libraryRoles.has('sqlite') && libraryRoles.has('crypto'));
   for (const item of value.libraries) for (const dependency of item.dependencies) {
     // Only explicit bundled names or the selected platform's finite OS ABI.
     // Homebrew paths, search directories and an ambient loader fallback fail.
-    assert(libraryNames.has(dependency) || systems[platform].has(dependency));
+    if (item.role === 'remote-http' || item.role === 'model-http') {
+      assert(nativeRemoteHttpSystemDependency(platform, dependency));
+    } else {
+      assert(libraryNames.has(dependency) || systems[platform].has(dependency));
+    }
   }
   for (const item of value.assets) {
     exact(item, ['role', 'path', 'bytes', 'sha256']);

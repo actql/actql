@@ -917,6 +917,47 @@ test "Native Mock Mapping carries only an explicit nullable write field" {
       is Err(InvalidSpecification),
     )
   }
+  ignore(write.remove("update_fields"))
+  ignore(write.remove("write_null_fields"))
+  write["operation"] = Json::string("update")
+  let explicit = local_project_mock_write_declarations(
+      Json::object(entry),
+      declaration,
+    ).unwrap()[0]
+  assert_eq(explicit.mapping.body, legacy.body)
+
+  write["operation"] = Json::string("delete")
+  write["permission"] = Json::string("salesforce:record:delete")
+  assert_true(
+    local_project_mock_write_declarations(Json::object(entry), declaration)
+    is Err(InvalidSpecification),
+  )
+  ignore(write.remove("writable_fields"))
+  let removal = local_project_mock_write_declarations(
+      Json::object(entry),
+      declaration,
+    ).unwrap()[0]
+  assert_true(removal.writable_fields.is_empty())
+  assert_true(removal.mapping.write_fields.is_empty())
+  assert_true(removal.mapping.mapping_cid != legacy.mapping_cid)
+  assert_true(
+    removal.mapping.body.contains(
+      "\"permission_rules\":[{\"effect_kind\":\"delete\",\"permissions\":[\"salesforce:record:delete\"],\"selector_class\":\"id\",\"write_fields\":[]}]",
+    ),
+  )
+  for forbidden in ["writable_fields", "write_null_fields", "update_fields"] {
+    write[forbidden] = Json::array([])
+    assert_true(
+      local_project_mock_write_declarations(Json::object(entry), declaration)
+      is Err(InvalidSpecification),
+    )
+    ignore(write.remove(forbidden))
+  }
+  write["operation"] = Json::string("create")
+  assert_true(
+    local_project_mock_write_declarations(Json::object(entry), declaration)
+    is Err(InvalidSpecification),
+  )
 }
 
 ///|

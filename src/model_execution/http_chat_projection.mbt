@@ -23,27 +23,43 @@ pub fn project_http_chat_request(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let mut projected = None
-  while projected is None {
+  while true {
     match advance_openai_chat_projection(cursor) {
-      Ok(value) => projected = value
-      Err(issue) => return Err(issue)
+      Ok(Some(_)) => return finish_openai_chat_http_projection(cursor, model_id)
+      Ok(None) => ()
+      Err(issue) => {
+        retire_openai_chat_projection(cursor)
+        return Err(issue)
+      }
     }
+  } nobreak {
+    Err(Limit)
   }
-  let used = openai_chat_projection_work(cursor)
-  retire_openai_chat_projection(cursor)
-  let value = projected.unwrap()
+}
+
+///|
+fn finish_openai_chat_http_projection(
+  cursor : OpenAIChatProjection,
+  model_id : String,
+) -> Result[(String, String, String, String, String), OpenAIChatProjectionIssue] {
+  guard cursor.phase is Ready(value) &&
+    cursor.request is Some(request) &&
+    !model_id.is_empty() else {
+    retire_openai_chat_projection(cursor)
+    return Err(ForeignRequest)
+  }
+  defer retire_openai_chat_projection(cursor)
   match
     emit_chat_request_profile(
       InitialHttp,
       request,
       value,
       model_id,
-      max_bytes,
-      max_nodes,
-      max_depth,
-      max_frames,
-      max_work - used,
+      cursor.max_bytes,
+      cursor.max_nodes,
+      cursor.max_depth,
+      cursor.max_frames,
+      cursor.max_work - cursor.work,
     ) {
     Ok(wire) => Ok((wire, value.3, value.4, value.5, value.6))
     Err(issue) => Err(issue)

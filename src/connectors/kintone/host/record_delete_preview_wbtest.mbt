@@ -34,6 +34,179 @@ fn delete_preview_mapping(
 }
 
 ///|
+test "kintone DELETE target read binds the original Mapping and exact API ID" {
+  let mapping = delete_preview_mapping(delete_mapping_form())
+  let identity = "9007199254740993"
+  let wire =
+    #|{"app":"12","fields":["$id","$revision","Subject"],"query":"$id in (9007199254740993) order by $id asc limit 1"}
+  let limits = {
+    ..delete_preview_limits(),
+    max_identity_bytes: identity.length(),
+    max_output_bytes: wire.length(),
+  }
+  assert_eq(
+    record_delete_target_read_body(mapping, identity, 8, limits),
+    Ok(wire),
+  )
+  assert_eq(
+    record_delete_target_read_body(mapping, identity, 8, {
+      ..limits,
+      max_identity_bytes: identity.length() - 1,
+    }),
+    Err(BudgetExceeded),
+  )
+  assert_eq(
+    record_delete_target_read_body(mapping, identity, 8, {
+      ..limits,
+      max_output_bytes: wire.length() - 1,
+    }),
+    Err(BudgetExceeded),
+  )
+  assert_eq(
+    record_delete_target_read_body(mapping, "7) or $id in (8", 8, limits),
+    Err(InvalidRequest),
+  )
+  let copy = { ..mapping, self: Some(mapping), }
+  assert_eq(
+    record_delete_target_read_body(copy, identity, 8, limits),
+    Err(ForeignCatalog),
+  )
+}
+
+///|
+test "kintone observed DELETE target binds Preview DATA and the exact revision request" {
+  let mapping = delete_preview_mapping(delete_mapping_form())
+  let identity = "9007199254740993"
+  let read = @utf8.encode(delete_original_record_page_wire())
+  let pages = delete_record_page_limits()
+  let values = delete_preview_values()
+  let limits = delete_preview_limits()
+  let (preview, request) = prepare_record_delete_target_read(
+    mapping, identity, read, pages, values, limits,
+  ).unwrap()
+  let target = @catalog.record_delete_request_targets(request)[0]
+  assert_true(record_delete_preview_matches(preview, mapping, target))
+  assert_true(record_delete_mapping_matches_request(mapping, request))
+  assert_eq(
+    record_delete_preview_before_wire(preview),
+    "{\"$id\":\"9007199254740993\",\"Subject\":\"original\"}",
+  )
+  assert_eq(
+    @catalog.record_delete_request_body(request),
+    "{\"app\":\"12\",\"ids\":[\"9007199254740993\"],\"revisions\":[\"9007199254740994\"]}",
+  )
+  assert_true(
+    prepare_record_delete_target_read(
+      mapping, "9007199254740994", read, pages, values, limits,
+    )
+    is Err(TargetMismatch),
+  )
+  let absent = @utf8.encode("{\"records\":[],\"totalCount\":null}")
+  assert_true(
+    prepare_record_delete_target_read(
+      mapping, identity, absent, pages, values, limits,
+    )
+    is Err(TargetMismatch),
+  )
+}
+
+///|
+test "kintone DELETE construction charges the original target once and keeps form scratch temporary" {
+  let mapping = delete_preview_mapping(delete_mapping_form())
+  let identity = "9007199254740993"
+  let body = @utf8.encode(delete_original_record_page_wire())
+  let pages = delete_record_page_limits()
+  let values = delete_preview_values()
+  let limits = {
+    ..delete_preview_limits(),
+    max_records: 1,
+    max_identity_bytes: 34,
+  }
+  let form = delete_form_fixture()
+  let form_limits = delete_form_limits()
+  let form_capacity = record_delete_form_construction_capacity(
+    mapping,
+    form.length(),
+    form_limits,
+  ).unwrap()
+  assert_eq(@execution.execution_capacity_retained_bytes(form_capacity), 0L)
+  assert_true(@execution.execution_capacity_execution_bytes(form_capacity) > 0L)
+  assert_true(
+    record_delete_mapping_recheck_form(mapping, form, form_limits) is Ok(_),
+  )
+  let read_capacity = record_delete_target_read_construction_capacity(
+    mapping, 1, limits,
+  ).unwrap()
+  let read = record_delete_target_read_body(mapping, identity, 1, limits).unwrap()
+  assert_true(
+    @execution.execution_capacity_retained_bytes(read_capacity) >=
+    read.length().to_int64() * 2L,
+  )
+  let target_capacity = record_delete_target_construction_capacity(
+    mapping,
+    body.length(),
+    { ..pages, max_rows: 1, },
+    values,
+    limits,
+  ).unwrap()
+  let baseline = update_construction_capacity(
+    record_target_before_construction_inventory(
+      mapping.original,
+      mapping.before_fields,
+      body.length(),
+      { ..pages, max_rows: 1, },
+      values,
+      limits,
+    ).unwrap(),
+  ).unwrap()
+  let (_, request) = prepare_record_delete_target_read(
+    mapping,
+    identity,
+    body,
+    { ..pages, max_rows: 1, },
+    values,
+    limits,
+  ).unwrap()
+  let added_retention = @execution.execution_capacity_retained_bytes(
+      target_capacity,
+    ) -
+    @execution.execution_capacity_retained_bytes(baseline)
+  let added_execution = @execution.execution_capacity_execution_bytes(
+      target_capacity,
+    ) -
+    @execution.execution_capacity_execution_bytes(baseline)
+  // The exact 34 digits fill the quoted App/ID/revision bound. Only the
+  // additional request carrier and complete wire increase shared retention.
+  assert_eq(
+    added_retention,
+    368L + @catalog.record_delete_request_body(request).length().to_int64() * 2L,
+  )
+  assert_true(added_execution > added_retention)
+  assert_true(
+    record_delete_target_construction_capacity(
+      mapping,
+      body.length(),
+      pages,
+      values,
+      limits,
+    )
+    is None,
+  )
+  assert_true(
+    record_delete_form_construction_capacity(
+      mapping,
+      form_limits.max_bytes + 1,
+      form_limits,
+    )
+    is None,
+  )
+  let copied = { ..mapping, self: Some(mapping), }
+  assert_true(
+    record_delete_target_read_construction_capacity(copied, 1, limits) is None,
+  )
+}
+
+///|
 test "kintone before projection retains the exact original API ID and revision guard" {
   let catalog = delete_mapping_form()
   let mapping = delete_preview_mapping(catalog)

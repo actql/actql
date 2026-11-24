@@ -5,6 +5,7 @@
     "path": "i6-f-provider-observation-uncovered-projection.json",
     "sha256": "5fed5046797e480bc0fa8ab66de01e78eeffe3e5fae0b9bc5277f61077ae47e4"
   },
+  "actualRuntimeQualification": "Earlier F Credential147, Provider759 and durablea15 receipts remain source-specific. This additional metadata pass runs no OTel/Provider/Native product or public acceptance tests.",
   "declarations": [
     {
       "module": "adapters/site-node/remote-credential-signature.mjs",
@@ -1174,7 +1175,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4f05887943eeba1ef079ace2d221d23ddacb1e38ca7307fe9675afcb976a1e78",
+      "sha256": "0f8cda10a7d04393cb4935de747dcf2dbe0daa7233a358d5a4e0dee6a87641f1",
       "exports": [
         "fixedInferResponseLimits",
         "readBoundedInferResponse"
@@ -1936,12 +1937,13 @@
     {
       "module": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "45337aa3733a95dbea1e2250d2863f16cb97b7af6e385edeac826e77f7378570",
+      "sha256": "d4c755b0612e347e4a936a2d306e804ab3dfb3467c4d70434826b82869b48035",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
         "optionNamespace",
         "optionSchema",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -1954,6 +1956,13 @@
             "modelId",
             "fetch",
             "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -1982,6 +1991,7 @@
           "operations": [
             "<module>",
             "createLanguageModel",
+            "readReportedResponse",
             "readReportedUsage",
             "verifyRequest"
           ],
@@ -1990,6 +2000,7 @@
             "credentialBinding",
             "optionNamespace",
             "optionSchema",
+            "readReportedResponse",
             "readReportedUsage",
             "sdkProvider",
             "verifyRequest"
@@ -2097,17 +2108,20 @@
       "imports": [
         "@ai-sdk/anthropic",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "950bf1eda729fdc2fe01ad3899fde961cd0940e4a0e355464fc11213bd1c56a2",
+      "sha256": "a02dd6ec4ab046d289c3a272b7781e82d8eba883579feec0eefa8bbb118e314f",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
         "optionNamespace",
         "optionSchema",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -2120,6 +2134,13 @@
             "modelId",
             "fetch",
             "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -2148,6 +2169,7 @@
           "operations": [
             "<module>",
             "createLanguageModel",
+            "readReportedResponse",
             "readReportedUsage",
             "verifyRequest"
           ],
@@ -2156,6 +2178,7 @@
             "credentialBinding",
             "optionNamespace",
             "optionSchema",
+            "readReportedResponse",
             "readReportedUsage",
             "sdkProvider",
             "verifyRequest"
@@ -2263,12 +2286,14 @@
       "imports": [
         "@ai-sdk/google",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4b29a79b288c33e90c59ab126097ff1091f3fc28305d944ac9fb78d9c0ff4972",
+      "sha256": "eeb0eb69050d9d1bf7d9d98f8c02f5faa6c00b677d05ca2bdfb5e1ee777dc413",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
@@ -2276,6 +2301,7 @@
         "optionNamespace",
         "optionSchema",
         "prepareOpenAIChatRequest",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -2324,6 +2350,13 @@
           "async": false
         },
         {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "readReportedUsage",
           "parameters": [
             "body"
@@ -2351,6 +2384,7 @@
             "prepareOpenAIChatRequest",
             "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
             "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
+            "readReportedResponse",
             "readReportedUsage",
             "verifyRequest"
           ],
@@ -2361,6 +2395,7 @@
             "optionNamespace",
             "optionSchema",
             "prepareOpenAIChatRequest",
+            "readReportedResponse",
             "readReportedUsage",
             "sdkProvider",
             "verifyRequest"
@@ -2471,7 +2506,9 @@
         "@ai-sdk/openai",
         "@ai-sdk/provider-utils",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
@@ -3375,7 +3412,7 @@
     {
       "module": "packages/provider-http/_internal/bounded-response.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4f05887943eeba1ef079ace2d221d23ddacb1e38ca7307fe9675afcb976a1e78",
+      "sha256": "0f8cda10a7d04393cb4935de747dcf2dbe0daa7233a358d5a4e0dee6a87641f1",
       "exports": [
         "fixedInferResponseLimits",
         "readBoundedInferResponse"
@@ -3775,7 +3812,7 @@
     {
       "module": "packages/provider-http/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4a7fb63ba81cb229821c3380e4c72fb8615e69f207e9d13c5a26cc50798024c5",
+      "sha256": "2aa708876a7ec9371d3e499bba25889fda40f60b92653c0b7934758239f4e8f3",
       "exports": [
         "createInstalledHttpChatRegistration"
       ],
@@ -4277,6 +4314,5 @@
       "compilerFields": [],
       "unresolvedSyntax": []
     }
-  ],
-  "actualRuntimeQualification": "Earlier F Credential147, Provider759 and durablea15 receipts remain source-specific. This additional metadata pass runs no OTel/Provider/Native product or public acceptance tests."
+  ]
 }

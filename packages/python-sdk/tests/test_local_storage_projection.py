@@ -15,6 +15,7 @@ import weakref
 from actql_sdk._local_storage import (
     ByteFence, ByteWrite, CapacityReservation, LocalByteStore,
     LocalStorageError, StoredBytes,
+    LocalStorageCommitUnknown, LocalStorageWriteCleanupPending,
 )
 
 
@@ -323,9 +324,11 @@ class ProjectedAttachmentTests(unittest.TestCase):
                     consume(self.write(i))
 
                 store._connection.armed = True
-                with self.assertRaisesRegex(OSError, 'ACK lost'):
+                with self.assertRaises(LocalStorageCommitUnknown) as caught:
                     store.compare_exchange_projected_attached(3, project, originals,
                                                               before_commit=lambda: None)
+                self.assertIs(caught.exception.cleanup_store, store)
+                self.assertRegex(str(caught.exception.__cause__), 'ACK lost')
                 self.assertEqual(calls, [0, 1, 2])
                 expected = tuple(self.write(i) for i in range(3))
                 self.assertEqual(store.read_exchange_many_attached(expected, originals),
@@ -333,7 +336,7 @@ class ProjectedAttachmentTests(unittest.TestCase):
                 self.assertEqual(store._connection.commits, 1)
                 self.unchanged(store, originals)
 
-    def test_rollback_failure_keeps_same_store_pending_until_explicit_cleanup(self):
+    def test_rollback_failure_keeps_same_store_pending_until_close(self):
         class FailedRollback(sqlite3.Connection):
             armed = False
 
@@ -345,14 +348,18 @@ class ProjectedAttachmentTests(unittest.TestCase):
         physical = sqlite3.connect
         with TemporaryDirectory() as directory, patch('actql_sdk._local_storage.sqlite3.connect',
                 side_effect=lambda *a, **k: physical(*a, **(k | {'factory': FailedRollback}))):
-            with self.store(Path(directory) / 'core.sqlite') as store:
+            path = Path(directory) / 'core.sqlite'
+            with self.store(path) as store:
                 originals = self.originals(store)
                 handle = store._connection
                 handle.armed = True
-                with self.assertRaisesRegex(OSError, 'rollback pending'):
+                with self.assertRaises(LocalStorageWriteCleanupPending) as caught:
                     store.compare_exchange_projected_attached(
                         3, lambda i, consume: consume(self.write(i)), originals,
                         before_commit=lambda: False)
+                self.assertIs(caught.exception.cleanup_store, store)
+                self.assertIsInstance(caught.exception.__cause__, ValueError)
+                self.assertRegex(str(caught.exception.cleanup_error), 'rollback pending')
                 self.assertIs(store._connection, handle)
                 self.assertTrue(handle.in_transaction)
                 self.assertFalse(store._closed)
@@ -361,8 +368,12 @@ class ProjectedAttachmentTests(unittest.TestCase):
                 handle.armed = False
                 handle.execute('ROLLBACK')
                 self.assertIs(store._connection, handle)
-                self.absent(store)
-                self.unchanged(store, originals)
+                self.assertFalse(handle.in_transaction)
+                with self.assertRaisesRegex(LocalStorageError, 'cleanup is pending'):
+                    store.read('index')
+            with self.store(path) as reopened:
+                self.absent(reopened)
+                self.unchanged(reopened, originals)
 
     def test_complete_projection_survives_separate_process_without_reexecution(self):
         with TemporaryDirectory() as directory:

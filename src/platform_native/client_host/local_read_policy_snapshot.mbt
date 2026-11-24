@@ -65,7 +65,8 @@ fn NativeLocalReadPolicyBinding::file_from_snapshot(
 fn NativeLocalReadPolicyBinding::require_request_in_snapshot(
   self : NativeLocalReadPolicyBinding,
   original : @host.ClientRequestIdentity,
-  facts : @result_access.NativeResultReadFacts,
+  request : @result_access.NativeResultAccessRequest,
+  observed_at : String,
   material : @host.ClientLocalAdoptedHostMaterial[
     @sqlite.Database,
     NativeLocalAdoptionIssue,
@@ -76,7 +77,7 @@ fn NativeLocalReadPolicyBinding::require_request_in_snapshot(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match self.require_request_constraints(original, facts) {
+  match self.require_request_constraints(original, request, observed_at) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -87,14 +88,40 @@ fn NativeLocalReadPolicyBinding::require_request_in_snapshot(
           self.host.database,
           self.principal,
           self.connection,
-          ReadResultPolicy(facts.request.result_name),
+          ReadResultPolicy(request.result_name),
         ) {
         Ok(())
       } else {
         Err(Journal(AuthorizationDenied))
       }
     Some(capture) => {
-      for resource in ["run", "result/" + facts.request.result_name] {
+      if self.account_purpose is InstalledOriginalResultRead(_, _) {
+        let run_tuple : @authorization.AccessTuple = {
+          principal: self.principal,
+          connection: self.connection,
+          resource: "run",
+          operation: "read",
+        }
+        match capture.operation_account(self.host, material, run_tuple) {
+          Ok(@authorization.Allow(_)) => ()
+          Ok(_) => return Err(Journal(AuthorizationDenied))
+          Err(issue) => return Err(Adoption(issue))
+        }
+        let named = { ..run_tuple, resource: "result/" + request.result_name, }
+        return match
+          @host.client_local_adopted_result_read_resource(
+            material,
+            self.host.database,
+            named,
+            true,
+          ) {
+          Ok(Some(resource)) if resource ==
+            @authorization.local_original_result_read_resource => Ok(())
+          Ok(_) => Err(Journal(AuthorizationDenied))
+          Err(issue) => Err(Adoption(local_current_material_issue(issue)))
+        }
+      }
+      for resource in ["run", "result/" + request.result_name] {
         match
           capture.operation_account(self.host, material, {
             principal: self.principal,
@@ -172,10 +199,18 @@ fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
   store : @publication_store.Store,
   facts : @result_access.NativeResultReadFacts,
   committed_result? : @publication_store.NativeCommittedResult? = None,
+  before_receiver? : Bool = false,
 ) -> Result[
   @publication.CapturedEffectDependencyBody,
   NativeLocalReadBindingIssue,
 ] {
+  if before_receiver &&
+    (
+      !(self.account_purpose is InstalledOriginalResultRead(_, _)) ||
+      committed_result is None
+    ) {
+    return Err(SelectionMismatch)
+  }
   read_binding_with_material_in_original_read(capture, (
     host,
     material,
@@ -186,14 +221,17 @@ fn NativeLocalReadPolicyBinding::resolve_policy_from_snapshot(
     }
     let record = match
       read_binding_in_journal_snapshot(host.journal, operations.reads, () => {
-        match self.require_receiver(facts) {
-          Ok(_) => ()
-          Err(issue) => return Err(issue)
+        if !before_receiver {
+          match self.require_receiver(facts) {
+            Ok(_) => ()
+            Err(issue) => return Err(issue)
+          }
         }
         match
           self.require_request_in_snapshot(
             original,
-            facts,
+            facts.request,
+            facts.observed_at,
             material,
             operations.reads,
           ) {

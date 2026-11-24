@@ -114,21 +114,26 @@ pub fn read_start_failure_cleanup(failure : ReadStartFailure) -> Read? {
 ///|
 priv enum ReadCustody {
   Original((@rows.RowAttempt) -> Bool)
-  InstalledBorrow(@rows.RowRunResponseBorrow)
+  ManagedBorrow(@rows.RowRunResponseBorrow)
+}
+
+///|
+priv enum ReadSelection {
+  QuerySelection(@rows.RowAcquisition)
+  InputSelection(@rows.RowInputAcquisition)
 }
 
 ///|
 /// Provider page progress only. Run, transfer, capture and cleanup responsibility
 /// remain in the original Common RowRun; no parallel Ledger is constructed.
 pub struct Read {
-  priv prepared : PreparedRead
+  priv selection : ReadSelection
+  priv projection : @description.ReadProjection
   priv run : @rows.RowRun
   priv limits : @response.ResponseLimits
   priv max_contract_pairs : Int
   priv custody : ReadCustody
   priv mut transport_confirmed : Bool
-  priv mut transport_bound : Bool
-  priv mut retire_transport : (() -> Bool)?
   priv mut original : @response.ResultSet?
   priv mut pages : Int
   priv mut rows : Int64
@@ -185,14 +190,13 @@ pub fn start_accounted_read(
     Err(issue) => return Err({ issue: Host(issue), cleanup: None, })
   }
   let read = {
-    prepared,
+    selection: QuerySelection(prepared.acquisition),
+    projection: prepared.projection,
     run,
     limits,
     max_contract_pairs,
     custody: Original(verify_transport),
     transport_confirmed: false,
-    transport_bound: false,
-    retire_transport: None,
     original: None,
     pages: 0,
     rows: 0L,
@@ -223,37 +227,44 @@ fn read_available(read : Read) -> Bool {
   }
   match read.custody {
     Original(_) => true
-    InstalledBorrow(borrow) =>
-      read.transport_bound &&
-      @rows.check_row_run_response_borrow_current(borrow) is Ok(_)
+    ManagedBorrow(borrow) => @rows.row_run_response_selection(borrow) is Ok(_)
   }
 }
 
 ///|
-/// Borrow exactly the Host's already-begun accounted run. The Host remains the
-/// sole finish/capture/close owner; this port reserves and begins nothing.
-pub fn borrow_accounted_read(
-  prepared : PreparedRead,
-  run : @rows.RowRun,
+/// Adopt the selection on the funded Host reader's already bound borrow.
+pub fn adopt_managed_read(
+  description : @description.TableDescription,
+  borrow : @rows.RowRunResponseBorrow,
   limits : @response.ResponseLimits,
+  projection_limits : @description.DescriptionLimits,
   max_contract_pairs : Int,
 ) -> Result[Read, ReadIssue] {
   if !valid_read_limits(limits, max_contract_pairs) {
     return Err(InvalidLimits)
   }
-  let borrow = match @rows.borrow_row_run_responses(run, prepared.acquisition) {
+  guard @rows.row_run_response_original(borrow) is Ok((run, selection)) else {
+    return Err(BorrowedRun)
+  }
+  let (selection, fields) = match selection {
+    @rows.QueryResponse(original) =>
+      (QuerySelection(original), @rows.row_acquisition_columns(original))
+    @rows.InputResponse(original) =>
+      (InputSelection(original), @rows.row_input_acquisition_columns(original))
+  }
+  let projection = match
+    @description.prepare_read_projection(description, fields, projection_limits) {
     Ok(value) => value
-    Err(issue) => return Err(Host(issue))
+    Err(issue) => return Err(Description(issue))
   }
   Ok({
-    prepared,
+    selection,
+    projection,
     run,
     limits,
     max_contract_pairs,
-    custody: InstalledBorrow(borrow),
+    custody: ManagedBorrow(borrow),
     transport_confirmed: false,
-    transport_bound: false,
-    retire_transport: None,
     original: None,
     pages: 0,
     rows: 0L,
@@ -265,62 +276,23 @@ pub fn borrow_accounted_read(
 }
 
 ///|
-/// The existing physical transport Owner supplies this exact reader's stop
-/// observation. It is not Source/publish authority, completion or a caller
-/// cancellation acknowledgement. Unknown leaves this same root funded.
-pub fn bind_borrowed_read_transport(
-  read : Read,
-  observe_stop : () -> Bool,
-) -> Result[Unit, ReadIssue] {
-  guard !read.closed &&
-    !read.interrupted &&
-    !read.transport_bound &&
-    read.custody is InstalledBorrow(borrow) else {
-    return Err(BorrowedRun)
-  }
-  let cleanup = fn() {
-    if !read.transport_confirmed {
-      if !observe_stop() {
-        return false
-      }
-      read.transport_confirmed = true
-    }
-    read.original = None
-    read.closed = true
-    read.retire_transport = None
-    true
-  }
-  match @rows.bind_row_run_response_borrow_cleanup(borrow, cleanup) {
-    Ok(_) => {
-      read.transport_bound = true
-      read.retire_transport = Some(cleanup)
-      Ok(())
-    }
-    Err(issue) => Err(Host(issue))
-  }
+/// Drop provider state after the shared reader has joined its work and
+/// closed the credential binding. The Host still owns the response borrow.
+pub fn retire_managed_read(read : Read) -> Bool {
+  guard read.custody is ManagedBorrow(_) else { return false }
+  read.original = None
+  read.closed = true
+  true
 }
 
 ///|
-/// Retire only this provider alias after its same physical scope stops. The
-/// Common root remains with the original Host until that owner closes it.
-pub fn retire_borrowed_read(read : Read) -> Result[Unit, ReadIssue] {
-  guard read.custody is InstalledBorrow(_) else { return Err(BorrowedRun) }
-  if read.closed {
-    return Ok(())
+fn read_column_contract(read : Read, index : Int) -> @contract.Contract? {
+  match read.selection {
+    QuerySelection(original) =>
+      @rows.row_acquisition_column_contract(original, index)
+    InputSelection(original) =>
+      @rows.row_input_acquisition_column_contract(original, index)
   }
-  if read.transport_bound {
-    guard read.retire_transport is Some(cleanup) else {
-      return Err(TransportUnsettled)
-    }
-    if !cleanup() {
-      return Err(TransportUnsettled)
-    }
-  } else {
-    // No statement candidate/admission is available before transport binding.
-    read.closed = true
-    read.original = None
-  }
-  Ok(())
 }
 
 ///|
@@ -378,11 +350,9 @@ fn accept_charged_first_result(
   if read.original is Some(_) {
     return fail_read(read, WrongPartition)
   }
-  let acquisition = read.prepared.acquisition
   let contracts = []
-  for index, name in @rows.row_acquisition_columns(acquisition) {
-    guard @rows.row_acquisition_column_contract(acquisition, index)
-      is Some(contract) else {
+  for index, name in @description.read_projection_fields(read.projection) {
+    guard read_column_contract(read, index) is Some(contract) else {
       return fail_read(read, ForeignDeclaration)
     }
     contracts.push((name, contract))
@@ -407,7 +377,7 @@ fn accept_charged_first_result(
     @rows.accept_charged_row_run_values(
       read.run,
       charge,
-      @description.read_projection_fields(read.prepared.projection),
+      @description.read_projection_fields(read.projection),
       first_values(result),
     ) {
     Ok(value) => value
@@ -477,7 +447,7 @@ fn accept_charged_result_partition(
     @rows.accept_charged_row_run_values(
       read.run,
       charge,
-      @description.read_projection_fields(read.prepared.projection),
+      @description.read_projection_fields(read.projection),
       values,
     ) {
     Ok(value) => value
@@ -492,7 +462,7 @@ fn accept_charged_result_partition(
 /// Finishing page admission only enters Common's AwaitingCleanup state. It is
 /// neither a transport-stop ACK nor a captured Source or durable publication.
 pub fn finish_result_read(read : Read) -> Result[Unit, ReadIssue] {
-  if read.custody is InstalledBorrow(_) {
+  if !(read.custody is Original(_)) {
     return Err(BorrowedRun)
   }
   if !read_available(read) || read.finished {
@@ -571,7 +541,7 @@ pub fn advance_result_capture_cleanup(
   read : Read,
   quantum : Int,
 ) -> Result[Bool, ReadIssue] {
-  if read.custody is InstalledBorrow(_) {
+  if !(read.custody is Original(_)) {
     return Err(BorrowedRun)
   }
   @rows.advance_row_capture_cleanup(read.run, quantum).map_err(issue => {
@@ -583,7 +553,7 @@ pub fn advance_result_capture_cleanup(
 /// Begin only the existing checked acquisition prefix after page completion.
 /// The original Common RowRun retains its child, evidence and cleanup duties.
 pub fn begin_result_capture(read : Read) -> Result[Unit, ReadIssue] {
-  if read.custody is InstalledBorrow(_) {
+  if !(read.custody is Original(_)) {
     return Err(BorrowedRun)
   }
   if !read_available(read) || !read.finished {
@@ -599,7 +569,7 @@ pub fn advance_result_capture(
   read : Read,
   quantum : Int,
 ) -> Result[(Bool, Int64), ReadIssue] {
-  if read.custody is InstalledBorrow(_) {
+  if !(read.custody is Original(_)) {
     return Err(BorrowedRun)
   }
   if !read_available(read) || !read.finished {
@@ -614,7 +584,7 @@ pub fn advance_result_capture(
 pub fn capture_result_read(
   read : Read,
 ) -> Result[@rows.RowSourceCapture, ReadIssue] {
-  if read.custody is InstalledBorrow(_) {
+  if !(read.custody is Original(_)) {
     return Err(BorrowedRun)
   }
   if !read_available(read) || !read.finished {

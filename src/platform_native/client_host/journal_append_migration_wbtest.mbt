@@ -52,6 +52,7 @@ fn journal_append_legacy_fixture(
     observation_original: None,
     revision: 0L,
     checkpoint: None,
+    checkpoint_companion: false,
   }
   let run_body = run_record_body(record).unwrap()
   let intent_body = submitted_intent_body(

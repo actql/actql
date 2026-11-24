@@ -4,7 +4,7 @@
     {
       "module": "adapters/connectors/duckdb/node/acquisition-planning.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "63081d6004172da73f54bf0bde7c185f772cae7611795f427574cb03101b11c9",
+      "sha256": "058659b024ccab2bdaac5fa995e890baa962b4b444b200329e9148c16a0bd991",
       "role": "connector-semantics",
       "owner": "DuckDB installation estimates; connector_sdk selects owned acquisition candidates, not this diagnostic",
       "exports": [
@@ -216,7 +216,7 @@
     {
       "module": "adapters/connectors/duckdb/node/bounded-vector.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7459b6ad213f33c2fb69da509b54b193b0d34ce87990d97b43cc2ea5713ab963",
+      "sha256": "aceed883edccabfae61538dda7199cabf76046cbc4d56a7fd6389b46a248b118",
       "role": "physical-io",
       "owner": "Pinned Neo variable-width predecode boundary; no logical value admission",
       "exports": [
@@ -316,7 +316,7 @@
     {
       "module": "adapters/connectors/duckdb/node/broad-acquisition.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "eb3f52807f12e16e5419cd3f99fee85d982114a7c5fbce6976a889f9fad067c2",
+      "sha256": "03c7f30b2aa5c6a048ed792804fabaecc212e8e9efaabceb24ee793437d5d81a",
       "role": "physical-io",
       "owner": "Broad scan sequencing; DuckDB BroadReceiving owns schema/value/retention admission",
       "exports": [
@@ -445,7 +445,7 @@
     {
       "module": "adapters/connectors/duckdb/node/broad-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17cd4f0104f0dce005b83a77770c96de3046bcb8a6b94ce8fd0f48b3a613c5ec",
+      "sha256": "66a7dcf0ff4e28312b4de1c42fa176ae5482b4c69c0407b522084317bb69ab9d",
       "role": "physical-io",
       "owner": "Trusted broad-query factory; original MoonBit attempt and settled read-view remain the issuer",
       "exports": [
@@ -550,7 +550,7 @@
     {
       "module": "adapters/connectors/duckdb/node/configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "9c7004bfb1ead434be106b5af3b1e1f279b4968383b38a47f172d63a82af4e6c",
+      "sha256": "25052626542e8c4d3250e6c9790a0cd5d2403df243d77e3e2628906334cebf37",
       "role": "connector-semantics",
       "owner": "Pure DuckDB transport and strategy configuration, not source or runtime authority",
       "exports": [
@@ -681,7 +681,7 @@
     {
       "module": "adapters/connectors/duckdb/node/failure-envelope.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "38035ee9623ecf733da0f8c00b359877d544003e2c2cd06c20a825c2dcc39a33",
+      "sha256": "b959555a7fa9b206fea7a59406cdd60be388fff618f038435b3fca77706ad78f",
       "role": "observation-presentation",
       "owner": "Host-owned failure and cleanup facet projection; original cause and same cleanup handle are retained",
       "exports": [
@@ -782,7 +782,7 @@
     {
       "module": "adapters/connectors/duckdb/node/fixed-compute.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ffe9fccf138616ff8926ad5d4d8d5cb2fdcba930a9fd8fc4afa3af7f20e147b2",
+      "sha256": "292acb96dd699fac5f396e23f1683e2b952c47c66ef17c9b6f1a7e71d185cfe2",
       "role": "physical-io",
       "owner": "Fresh/resident fixed-input transport; MoonBit FixedCompute and common completion retain semantic authority",
       "exports": [
@@ -999,7 +999,7 @@
     {
       "module": "adapters/connectors/duckdb/node/import-batch.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "780e7a42ab670966258900d5bfa71487b273572ada6a0ef3e70df6311667664b",
+      "sha256": "a210e7736a6487ca601d6e84f125c8c64d0b2379a1183565838e9ed6f59f90cc",
       "role": "physical-io",
       "owner": "Bounded parameter batching beneath the original FixedCompute port",
       "exports": [
@@ -1126,7 +1126,7 @@
     {
       "module": "adapters/connectors/duckdb/node/managed-column-codec.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "73dfe06cbe43b32b1589be5f08824779593eff8d08f773342d4264f11df41183",
+      "sha256": "d268c496dc7d8cddad6dc8a062f288a07763d11c72af0a827276e8933b0cf7e5",
       "role": "physical-io",
       "owner": "Managed DOUBLE/VARCHAR frame conversion under the original Store borrow, not logical content identity",
       "exports": [
@@ -1338,7 +1338,7 @@
     {
       "module": "adapters/connectors/duckdb/node/managed-failure.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1e550c8bd1e69f1b3880a4ed25c25cd8c83292941a1a4f01fe60e750c54dcba4",
+      "sha256": "d8e9ee43b39c041abcb97f40413dc1f515f44cb1b7e4e425a23b645e8af8517b",
       "role": "physical-io",
       "owner": "Node resource observations and cleanup actions selected by the portable DuckDB failure progression",
       "exports": [
@@ -1465,7 +1465,7 @@
     {
       "module": "adapters/connectors/duckdb/node/managed-parquet-codec.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bfe49856534506ef8b369484a5d0db35d1fb9da678ef5ea148dd375f7dfe321d",
+      "sha256": "f8547bf350d3767309a7ea008e5b81b0204871ce90f486e1d3f7bbfa46f8961d",
       "role": "physical-io",
       "owner": "Static exact Parquet representation identifier, not an execution or content issuer",
       "exports": [
@@ -1539,7 +1539,7 @@
     {
       "module": "adapters/connectors/duckdb/node/managed-strategy-compute.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5183001f9950e221fc70fc96aabb1b990de7dcedd8d3285e41b1c4612e332017",
+      "sha256": "d5deaf633682534ca4e1ec156a46025ed086e1987bceca96ebf3314e8bc72bcf",
       "role": "physical-io",
       "owner": "Installed managed-column/Parquet realization; portable setup, capacity and completion stay owned by DuckDB/Common",
       "exports": [
@@ -1901,7 +1901,7 @@
     {
       "module": "adapters/connectors/duckdb/node/native-acquisition.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "72eeb9661c41a686db294ff80e5dc7ee000e929c176f7c636a1e8a93d54c7f02",
+      "sha256": "9292df87f97a46eee3e10cf5b60786c0dd0aed732cdfb411b31959f8914adec1",
       "role": "physical-io",
       "owner": "Two-receipt sequencing; DuckDB NativeReceiving owns validation before native filtering",
       "exports": [
@@ -2030,7 +2030,7 @@
     {
       "module": "adapters/connectors/duckdb/node/native-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6da20e068979799990224c2efd21c5eb986854d091ae8b619bd4b2ea4ff4699d",
+      "sha256": "60b597916f73ca1b1d55aac16d3ff98c41cbd7a55dfc3ae5181dd2c7ca27faf5",
       "role": "physical-io",
       "owner": "Trusted native-query factory; original MoonBit attempt and settled read-view remain the issuer",
       "exports": [
@@ -2222,7 +2222,7 @@
     {
       "module": "adapters/connectors/duckdb/node/physical-appender.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "b90f66307c5e9bc8629413d46db9f28ef3d3c345a4e858f97836baf72121b3b0",
+      "sha256": "e83c20463354e40ea2fbfffc02ccb2c9f47a2842ecba658aea7b5af1e2fad31b",
       "role": "physical-io",
       "owner": "Neo row/column appender conversion and poisoned partial-write lifetime",
       "exports": [
@@ -2383,7 +2383,7 @@
     {
       "module": "adapters/connectors/duckdb/node/physical-capacity.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "06f1c603cd3f8b2484bb441af2c67944296f66a0859a8ffbe883107d396aed3e",
+      "sha256": "998d52ed317bc5aa35134a970963aedb284f0f40b33218ce5e45129b39f483f8",
       "role": "connector-semantics",
       "owner": "Selected Host physical capacity estimate, not RSS measurement or a reservation grant",
       "exports": [
@@ -2489,7 +2489,7 @@
     {
       "module": "adapters/connectors/duckdb/node/physical-values.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "86d82c448e7ea817eb497ce0620139273c901c21dfd46f0e20a242052340f3dc",
+      "sha256": "8e2cded1805b48fb24d991e14b1e978bae1d20dd0259039493ca806de2fffe76",
       "role": "physical-io",
       "owner": "Private Neo scalar/type transport; MoonBit retains ActQL value admission",
       "exports": [
@@ -2622,7 +2622,7 @@
     {
       "module": "adapters/connectors/duckdb/node/retained-configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "fc9bb8d5aef15651cd42ffc839229241a11ffb5a42aaf6a8ec08c2bb1d6cfe8d",
+      "sha256": "13adbb52e8c9502e825f25f64e7df8c34a454d97055e6e9d07024142da4d080f",
       "role": "connector-semantics",
       "owner": "Retained operator configuration plus exact installed process-Store binding, not a caller Store factory",
       "exports": [
@@ -2748,7 +2748,7 @@
     {
       "module": "adapters/connectors/duckdb/node/session.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "694f448e3419d55c1708dea3e8be5279da9434aac2570f9fdbc483f5765b3fb5",
+      "sha256": "fa35abbffd3823b9ce9661e705f6d57c05ac91ea1357b961f2060988131a1c83",
       "role": "physical-io",
       "owner": "Opaque read-only file grants and Neo native session/transaction/statement/cleanup custody",
       "exports": [
@@ -3292,7 +3292,7 @@
     {
       "module": "adapters/connectors/duckdb/node/settled-query.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "0651c7358982ff750fc330247829701e60562a907c6bdc1afe44926ced2e2086",
+      "sha256": "84b9c0e38b5d84fe4d800ad75eaf1a73fb94f6b32fb8c1385996ff311bcaf391",
       "role": "physical-io",
       "owner": "Exact settled transport-to-MoonBit issuer relationship with original unknown cleanup custody",
       "exports": [
@@ -3434,7 +3434,7 @@
     {
       "module": "adapters/connectors/duckdb/node/source-acquisition.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "62d5606e2839fd60c10ee0c711fe9f2044f268ab319ef925a5a81653cbefffea",
+      "sha256": "a58dc10e434358a2a3fc47bae52e7cdb85e89d9bd48cf32973c9b418de9b9815",
       "role": "physical-io",
       "owner": "One-shot physical Source receipt provenance and original stopped/unknown cleanup, not capture admission",
       "exports": [
@@ -3626,7 +3626,7 @@
     {
       "module": "adapters/connectors/duckdb/node/transport-bounds.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4441ab8061e196191c2b7b3cf728d3b1aae805a35f592f26e2fb05e02d506f62",
+      "sha256": "6966981f59cdcbda4c2fd2fa3476fa98bb5a093dd6fa04f9c5711b6283fa334a",
       "role": "physical-io",
       "owner": "Static pinned Neo vector layout and bounded-mode selection, not logical limits or authority",
       "exports": [
@@ -5576,7 +5576,7 @@
       ],
       "imports": [
         "../../../host-node/installed-effect-plan.mjs",
-        "../../../host-node/installed-host-cleanup.mts",
+        "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-effect.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
@@ -5999,7 +5999,7 @@
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-credential-source-reader.mjs",
-        "../../../host-node/installed-host-cleanup.mts",
+        "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",
@@ -6614,7 +6614,7 @@
     {
       "module": "adapters/connectors/github/site/github-issue-graphql-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2c6c495395e29b40a4b6159cfa5ec1b47127f4409f22dbe8ac72441a1361f72b",
+      "sha256": "36cc557f78f68500f6be3cf26101331765a18c1ebcbf3b209dbc303ec5da0cee",
       "role": "physical-io",
       "owner": "Stable-node GraphQL Issue pagination; provider MoonBit fixes query, variables, projection and refusal",
       "exports": [
@@ -6821,6 +6821,10 @@
               {
                 "path": "docs/design/github-issue-observations.md",
                 "anchor": "## Installed native Source Reader"
+              },
+              {
+                "path": "src/connectors/github/catalog/graphql_cursor.mbt",
+                "anchor": "pub fn record_graphql_outer_cursor("
               }
             ],
             "inputsOutputs": [
@@ -6988,23 +6992,14 @@
     {
       "module": "adapters/connectors/github/site/github-issue-read.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8f54c765212ce2f8b978c7947e28ccba2d00e6f86ffdc9392dadac980aef4088",
+      "sha256": "bb9d2753fdc4ba893066b2154930b5ba9136f875f5e920a2bd7f25bf1f1ed957",
       "role": "physical-io",
-      "owner": "REST Issue pagination and scoped exchange; provider MoonBit owns projection, Link and failure classification",
+      "owner": "REST Issue scoped exchange; provider MoonBit owns the first locator, filter names, projection, Link and failure classification",
       "exports": [
         "GITHUB_ISSUE_LIST_OPERATION",
-        "githubIssueListPath",
         "readGitHubIssues"
       ],
       "operations": [
-        {
-          "name": "githubIssueListPath",
-          "parameters": [
-            "owner",
-            "repo"
-          ],
-          "async": false
-        },
         {
           "name": "pairs/pairs/pairs",
           "parameters": [
@@ -7056,7 +7051,6 @@
         {
           "operations": [
             "<module>",
-            "githubIssueListPath",
             "pairs/pairs/pairs",
             "pairs/pairs/pairs#2",
             "readGitHubIssues",
@@ -7065,7 +7059,6 @@
           ],
           "exports": [
             "GITHUB_ISSUE_LIST_OPERATION",
-            "githubIssueListPath",
             "readGitHubIssues"
           ],
           "attributes": {
@@ -7083,8 +7076,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/github/site/github-issue-read.mts",
-                "anchor": "githubIssueListPath"
+                "path": "src/connectors/github/catalog/issue_list_request.mbt",
+                "anchor": "pub fn issue_list_start("
               }
             ],
             "ownership": [
@@ -7136,7 +7129,7 @@
     {
       "module": "adapters/connectors/local/host/installed-local-table.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1ac3d390f659b33f5444107ede0a4276edcd489eb240280b996980279444722f",
+      "sha256": "3c50cb8e74def6817a75916cb2a3b28ac3ba8c78b6a7a047e350617c4899003a",
       "role": "connector-semantics",
       "owner": "Local Table Source/Effect installation through generic Host; no separate Table scheduler or approval owner",
       "exports": [
@@ -9418,7 +9411,7 @@
         "../../../host-common/checkpoint-approval.mjs",
         "../../../host-common/owned-invocation-context.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-host-cleanup.mts",
+        "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/local-account-config.mjs",
         "../../../host-node/source-profile-json.mjs",

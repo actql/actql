@@ -5,6 +5,7 @@ import {mkdtemp, mkdir, readFile, writeFile, copyFile, rm} from 'node:fs/promise
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {preparePackageRelease, verifyPackageRelease, releasePackageMetadata} from './package-release.mjs';
+import {originalNodeInputs} from './fixtures/shared-host-source-acceptance.mjs';
 
 type Cohort = Parameters<typeof releasePackageMetadata>[2];
 
@@ -67,6 +68,13 @@ test('normal six-package prepack supplies an independently verified exact four-p
   assert.deepEqual(await readFile(join(explorerDirectory, 'release.json')), originalManifest);
   assert.deepEqual(await verifyPackageRelease(explorerDirectory), explorer);
   assert.deepEqual(await verifyPackageRelease(clientDirectory), client);
+  assert.deepEqual(await originalNodeInputs(source, scratch, clientDirectory), {
+    manifestPath: join(clientDirectory, 'release.json'),
+    packages: client.packages,
+    nodeTarballs: client.packages.map(pkg => join(clientDirectory, pkg.file)),
+  });
+  await assert.rejects(originalNodeInputs('f'.repeat(40), scratch, clientDirectory),
+    /requires the matching Node release/u);
   for (const name of four.packages) {
     const original = explorer.packages.find(value => value.name === '@actql/' + name);
     const shared = client.packages.find(value => value.name === original!.name);

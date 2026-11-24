@@ -386,16 +386,36 @@ pub fn client_program_kintone_update_recipe_capacities(
   Array[@execution.ExecutionCapacity],
   @client_local_host.ClientInstalledManagedRunIssue,
 ] {
+  kintone_guarded_recipe_capacities(
+    original, output_limits, cold_original, limits, metadata_units, response_read_quantum,
+    control_wire_bytes, host_input_bytes, 3, false,
+  )
+}
+
+///|
+fn kintone_guarded_recipe_capacities(
+  original : Array[@execution.ExecutionCapacity],
+  output_limits : Array[Int],
+  cold_original : @execution.ExecutionCapacity?,
+  limits : Array[Int],
+  metadata_units : Int64,
+  response_read_quantum : Int,
+  control_wire_bytes : Int,
+  host_input_bytes : Int,
+  metadata_occurrences : Int,
+  cold_includes_request : Bool,
+) -> Result[
+  Array[@execution.ExecutionCapacity],
+  @client_local_host.ClientInstalledManagedRunIssue,
+] {
   guard original.length() == 4 &&
     output_limits.length() == 9 &&
     limits.length() == 18 &&
     cold_original is Some(finalization) else {
     return Err(Unsupported)
   }
-  // Cold kintone restoration really re-admits its saved original target and
-  // rebuilds the final native request. Core separately includes the original
-  // proposal constructor. Keep extra returned material per row and only the
-  // sequential constructor workspace on the SAME member capture.
+  // Retain each restored row and reuse the sequential constructor workspace.
+  // The keyed constructor already accounts for the proposal it reconstructs.
   let zero = @execution.execution_capacity(0L, 0L).unwrap()
   let retained = if host_input_bytes == 0 {
     0L
@@ -466,10 +486,11 @@ pub fn client_program_kintone_update_recipe_capacities(
     response_read_quantum~,
     metadata_on_child=true,
     target_on_child=true,
-    // Three phases, each with one describe Form plus before/target/after.
-    // The Plan keeps all thirteen distinct original physical slots.
-    metadata_occurrences=3,
+    // All three phases retain their own before/target/after slots. UPDATE
+    // also describes the Form independently of its target reads.
+    metadata_occurrences~,
     target_occurrences=9,
+    cold_includes_request~,
     defer_ledger_codec=control_wire_bytes > 0,
     control_wire_bytes=if control_wire_bytes == 0 {
       None

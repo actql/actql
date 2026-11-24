@@ -17,6 +17,21 @@ const args = ['--source', sourceSha, '--package-version', '0.0.2', '--output', '
   '--openssl-source-archive', '/inputs/openssl.tar.gz'];
 const identity = (text: string) => ({bytes: Buffer.byteLength(text), sha256: createHash('sha256').update(text).digest('hex')});
 
+test('Darwin producer passes a selected Remote HTTP receipt only to the existing recipe command', () => {
+  const remoteHttpPreparation = '/inputs/remote-http/preparation.json';
+  const selection = ['--remote-http-preparation', remoteHttpPreparation];
+  const selected = parseNativeDarwinLocalArguments([...args, ...selection]);
+  assert.equal(selected.remoteHttpPreparation, remoteHttpPreparation);
+  const baseline = planNativeDarwinLocalProduction(options, context);
+  const remote = planNativeDarwinLocalProduction(selected, context);
+  assert.deepEqual(remote.commands.filter(step => step.phase !== 'recipe'),
+    baseline.commands.filter(step => step.phase !== 'recipe'));
+  assert.deepEqual(remote.commands.find(step => step.phase === 'recipe')!.args.slice(-2), selection);
+  for (const invalid of ['relative/preparation.json', '/output/new/preparation.json', options.sqliteArchive]) {
+    assert.throws(() => planNativeDarwinLocalProduction({...selected, remoteHttpPreparation: invalid}, context));
+  }
+});
+
 test('Darwin producer selects existing same-process and source-built owners with an explicit final version', () => {
   const plan = planNativeDarwinLocalProduction(options, context);
   assert.equal(plan.sourceSha, sourceSha); assert.equal(plan.packageVersion, '0.0.2');
@@ -114,4 +129,19 @@ test('the Darwin route refuses a foreign actual host before invoking any origina
   await assert.rejects(produceNativeCliDarwinLocal(options, {sourceRoot: '/source', host: {platform: 'linux', arch: 'x64'},
     execute(...values: unknown[]) {calls.push(values); throw Error('Owner must not be invoked');}}));
   assert.deepEqual(calls, []);
+});
+
+test('Darwin producer passes a selected Model HTTP receipt only to the existing recipe command', () => {
+  const modelHttpPreparation = '/inputs/model-http/preparation.json';
+  const selection = ['--model-http-preparation', modelHttpPreparation];
+  const selected = parseNativeDarwinLocalArguments([...args, ...selection]);
+  assert.equal(selected.modelHttpPreparation, modelHttpPreparation);
+  const baseline = planNativeDarwinLocalProduction(options, context);
+  const model = planNativeDarwinLocalProduction(selected, context);
+  assert.deepEqual(model.commands.filter(step => step.phase !== 'recipe'),
+    baseline.commands.filter(step => step.phase !== 'recipe'));
+  assert.deepEqual(model.commands.find(step => step.phase === 'recipe')!.args.slice(-2), selection);
+  for (const invalid of ['relative/preparation.json', '/output/new/preparation.json', options.sqliteArchive]) {
+    assert.throws(() => planNativeDarwinLocalProduction({...selected, modelHttpPreparation: invalid}, context));
+  }
 });

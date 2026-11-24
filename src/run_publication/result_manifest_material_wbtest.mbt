@@ -172,6 +172,71 @@ test "Manifest material preserves complete wire CID and tighter-bound failures" 
   let original = manifest_material_text_issuer(inputs, 65536, 4096, 32).unwrap()
   assert_eq(inputs.manifest.wire, original.wire)
   assert_eq(inputs.manifest.identity, original.identity)
+  // Apply the original issuer with a refusal at each allocation boundary.
+  // A successful funded call must retain the exact same canonical contract.
+  for refusal in [0, 1, 2] {
+    let calls : Array[Int] = []
+    let mut observed_count = -1
+    let mut measured : (Int, Int, Int)? = None
+    let funded = issue_result_manifest(
+      inputs.run_definition,
+      inputs.invocation,
+      inputs.definitions,
+      inputs.artifacts,
+      65536,
+      4096,
+      32,
+      funding=Some(
+        (
+          count => {
+            observed_count = count
+            calls.push(1)
+            refusal != 1
+          },
+          (bytes, nodes, depth) => {
+            measured = Some((bytes, nodes, depth))
+            calls.push(2)
+            refusal != 2
+          },
+        ),
+      ),
+    )
+    assert_eq(observed_count, inputs.definitions.length())
+    assert_eq(calls, if refusal == 1 { [1] } else { [1, 2] })
+    if refusal == 0 {
+      let contract = funded.unwrap()
+      assert_eq(contract.wire, original.wire)
+      assert_eq(contract.identity, original.identity)
+      let (bytes, nodes, depth) = measured.unwrap()
+      let (sealed_bytes, sealed_nodes, sealed_depth) = contract.wire_usage.unwrap()
+      assert_eq(
+        (sealed_bytes, sealed_nodes, sealed_depth),
+        (bytes + 96, nodes + 1, depth),
+      )
+    } else {
+      assert_true(funded is Err(ManifestIssuanceEncoding))
+    }
+  }
+  let changed = inputs.definitions.copy()
+  let unfunded = issue_result_manifest(
+    inputs.run_definition,
+    inputs.invocation,
+    changed,
+    inputs.artifacts,
+    65536,
+    4096,
+    32,
+    funding=Some(
+      (
+        _ => {
+          changed.clear()
+          true
+        },
+        (_, _, _) => abort("Inventory shape changed during funding"),
+      ),
+    ),
+  )
+  assert_true(unfunded is Err(ManifestIssuanceInventoryMismatch))
   for
     (bytes, nodes, depth) in [
       (0, 4096, 32),

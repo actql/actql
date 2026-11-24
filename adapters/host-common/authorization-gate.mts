@@ -1459,4 +1459,3 @@ export function missingAuthorizationGate(context = {
 }) {
   return createAuthorizationGate({context});
 }
-

@@ -17,8 +17,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   try {
     const args = process.argv.slice(2), options: Partial<LinuxOptions> = {};
     const flags = {'--source': 'sourceSha', '--sqlite-component': 'sqliteDirectory',
-      '--crypto-component': 'cryptoDirectory', '--output': 'outputDirectory'} as const;
-    assert.equal(args.length, 8, 'Required: --source SHA --sqlite-component DIR --crypto-component DIR --output NEW_DIR');
+      '--crypto-component': 'cryptoDirectory', '--output': 'outputDirectory',
+      '--remote-http-preparation': 'remoteHttpPreparation', '--model-http-preparation': 'modelHttpPreparation'} as const;
+    assert([8, 10, 12].includes(args.length),
+      'Required: --source SHA --sqlite-component DIR --crypto-component DIR --output NEW_DIR');
     for (let i = 0; i < args.length; i += 2) {
       const key = flags[args[i] as keyof typeof flags]; assert(key && !options[key] && args[i + 1]); options[key] = args[i + 1];
     }

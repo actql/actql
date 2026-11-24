@@ -15,6 +15,9 @@ test "embedded verified documents retain buffered hash bytes and depth" {
   let (hex, bytes, nodes, depth) = finish_hash_metrics(target)
   assert_eq(hex, @sha256.text_hex("[[\"é😀\"]]").unwrap())
   assert_eq((bytes, nodes, depth), (12, 3, 2))
+  assert_true(target.output is MeasureOutput)
+  assert_eq(target.frames.capacity(), 0)
+  assert_eq(observed_writer_usage(target), (12, 3, 2))
 }
 
 ///|

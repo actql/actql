@@ -64,6 +64,9 @@ fn parameter_diagnostic_category(
 fn classify_diagnostic_cause(
   cause : LocalConstructionFailure,
 ) -> DiagnosticCategory {
+  if calendar_request_inventory(cause) is Some(_) {
+    return MissingInput
+  }
   if diagnostic_pipeline_cause(cause) is Some(issue) {
     return match issue.kind {
       InvalidLimits => InvalidConfiguration
@@ -107,9 +110,8 @@ fn classify_diagnostic_cause(
       | KeyEvidence(Decode(kind)) => decode_diagnostic_category(kind)
       GraphMatch(kind) => graph_match_diagnostic_category(kind)
       // An ownership failure must not blame the author.
-      KeyEvidence(InputContractMismatch)
-      | Vector(RankingInputMismatch)
-      | Calendar(MissingProfile) => UnclassifiedFailure
+      KeyEvidence(InputContractMismatch) | Vector(RankingInputMismatch) =>
+        UnclassifiedFailure
       _ => InvalidInput
     }
   }

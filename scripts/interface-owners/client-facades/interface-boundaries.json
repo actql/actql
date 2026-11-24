@@ -4022,7 +4022,7 @@
     {
       "module": "packages/sdk/check-presentation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "48ece97c4feae34548ca9e8167240602ecc8d8533f9b13d319663e7ddb5777e0",
+      "sha256": "4fb90cb062c12b2c182c57bee69dce9aeec14e61582d55d9f3afa5eaaf344376",
       "exports": [
         "explainCheckOutcome",
         "explainCheckReason",
@@ -4310,7 +4310,7 @@
     {
       "module": "packages/sdk/check-reason-catalog.generated.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "0cd1e07d6e6bc68aa04c43ab024b49263c84f920c7efe4e7da8fe97c9d66963d",
+      "sha256": "76e4548e4ed6445b89ebad7927432e4e4e1bbc16a6b9c2d6281c2ff0b58ee89d",
       "exports": [
         "CheckReasonCatalogEntry",
         "CheckReasonCatalogInfo",
@@ -4505,7 +4505,7 @@
     {
       "module": "packages/sdk/check-reason-catalog.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "72ac67cb15d58e10b6c9cc955de1c3ebc3699da3106464282787369e078fba4b",
+      "sha256": "27758120103c892f00592d3961443563cfa6ad8f58b031d95a6fae8fed3dd5a1",
       "exports": [
         "getCheckReasonCatalogEntry",
         "getCheckReasonCatalogInfo",
@@ -5858,7 +5858,7 @@
     {
       "module": "packages/sdk/index.d.ts",
       "responsibilityFacet": "primary",
-      "sha256": "62a66c8aac972a26bf520541d04e2e80cc3b78a1057469f239d33af4bf878f26",
+      "sha256": "09333800858f933ff2bbdee9411f1bb05c6cf2fe9bb5e58deef1cf4fe9d52e7a",
       "exports": [
         "CancellationExplanation",
         "CancellationLookup",
@@ -7871,7 +7871,7 @@
     {
       "module": "packages/sdk/internal/check-observation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "07df139f762760a343b9dd5bff017b7888defc725cfb6c1a05b0fe4d0da48a99",
+      "sha256": "e72e07b767a6a6d468b92fdc6b59cc4ebfa1634a4c9089ddafdf6a88d755bd7d",
       "exports": [
         "bindCheckObservation",
         "createCheckDocumentSession",
@@ -8597,7 +8597,7 @@
     {
       "module": "packages/sdk/internal/checkpoint-operations.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "210b82767b1ce7e6b8941709107f8df2fd47e2db4683628b16fd350c70306ff4",
+      "sha256": "6f5fdd4352e83fd144d243a0a4bb904dee0018d281e63c21b89505c9aea504a4",
       "exports": [
         "createCheckpointOperations"
       ],
@@ -8686,6 +8686,7 @@
       ],
       "imports": [
         "../checkpoints.mjs",
+        "./checkpoint-answer-construction.generated.mjs",
         "./data.mjs",
         "./errors.mjs",
         "./transport-response.mjs",
@@ -10200,7 +10201,7 @@
     {
       "module": "packages/sdk/internal/plan.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "dba03949624cabafb5816511fd69385bb4573493784b89ef01c1243ab877d7f8",
+      "sha256": "ee4b3451443beaca1e047d7addbaa3224f699174d2dc11b33df253bbda584e82",
       "exports": [
         "createPlan"
       ],
@@ -15616,9 +15617,10 @@
     },
     {
       "module": "packages/sdk/internal/checkpoint-answer-construction.generated.mjs",
-      "sha256": "c4f03a2ec5796405a4762a38bdfdb82c1a5ec5e57d27248ed04b268ba13c97ed",
+      "sha256": "bde1e8cd96db876b7fc26dde1d75d7320c549695c843fb4a8b26555c47c87d8b",
       "exports": [
-        "createCheckpointAnswerCodec"
+        "createCheckpointAnswerCodec",
+        "hasCanonicalReviewContentPadding"
       ],
       "operations": [
         {
@@ -15745,6 +15747,13 @@
         },
         {
           "name": "encodeSignerSignature",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "hasCanonicalReviewContentPadding",
           "parameters": [
             "value"
           ],
@@ -15889,6 +15898,7 @@
             "document/document/document",
             "document/document#2",
             "encodeSignerSignature",
+            "hasCanonicalReviewContentPadding",
             "sameConstant/sameConstant",
             "sameConstant/sameConstant#2",
             "shape/shape",
@@ -15906,7 +15916,8 @@
             "validSignerIds"
           ],
           "exports": [
-            "createCheckpointAnswerCodec"
+            "createCheckpointAnswerCodec",
+            "hasCanonicalReviewContentPadding"
           ],
           "attributes": {
             "responsibility": [
@@ -16023,6 +16034,10 @@
               {
                 "path": "packages/python-sdk/tests/test_effect_review_integrity.py",
                 "anchor": "async def test_common_review_preimages_preserve_root_self_and_unicode_data(self):"
+              },
+              {
+                "path": "packages/sdk/checkpoints.test.mjs",
+                "anchor": "test('review content requires canonical Base64 at the existing byte limit'"
               }
             ]
           }

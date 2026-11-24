@@ -386,7 +386,11 @@ pub fn admit_client_effect_run_materials(
           original
         }
         None =>
-          match checked_client_effect_normalization_inventory(prepared) {
+          match
+            checked_client_effect_normalization_inventory(
+              prepared,
+              allow_file_mutation=true,
+            ) {
             Ok(value) => value
             Err(issue) => return Err(Normalization(issue))
           }

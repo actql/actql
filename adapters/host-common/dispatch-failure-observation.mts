@@ -7,8 +7,15 @@ type OriginalSnapshot = {readonly primaryDiagnostic: Readonly<{
   assessmentCount: number; complete: boolean; truncated: boolean; decision: 'unavailable';
   candidateCount: 'unavailable'; assessments: readonly Readonly<{position: number; rejection: string | null}>[];
 }>};
-const originals = new WeakMap<object, OriginalSnapshot>();
+const originals = new WeakMap<object, OriginalSnapshot | typeof serializationRowLimit>();
 const codePattern = /^[a-z_]+$/u;
+const serializationRowLimit = Object.freeze({primaryDiagnostic: Object.freeze({
+  code: 'MoonBitHostFailure', phase: 'serialization_input', kind: 'row_limit',
+})});
+
+export function rememberOriginalSerializationRowLimit(error: object) {
+  originals.set(error, serializationRowLimit);
+}
 
 export function rememberOriginalDispatchFailure(error: unknown, original: unknown) {
   if (originals.has(error as object)) return;

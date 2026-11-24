@@ -12,6 +12,10 @@ target/
 .toolchains/
 .moon/
 
+# Generated optional SDK adapter.
+/packages/provider-ai-sdk/_internal/mistral-chat.mjs
+/packages/provider-ai-sdk/_internal/mistral-chat.d.mts
+
 # Compiled runtime bundles are generated before tests and npm pack.
 /packages/run-host-core/dist/
 /adapters/workers/finite.mjs
@@ -3482,3 +3486,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /reviews/2026-10-14-time-series-release-matrix/prepared-release-public.d.mts
 /reviews/2026-10-14-window-group-release-matrix/prepared-release-public.mjs
 /reviews/2026-10-14-window-group-release-matrix/prepared-release-public.d.mts
+/adapters/connectors/kintone/host/kintone-delete-request.d.mts
+/adapters/connectors/kintone/host/kintone-delete-request.mjs
+/adapters/connectors/kintone/host/kintone-key-upsert-request.d.mts
+/adapters/connectors/kintone/host/kintone-key-upsert-request.mjs
+/scripts/fixtures/packed-ordered-inline-string-agg.d.mts
+/scripts/fixtures/packed-ordered-inline-string-agg.mjs

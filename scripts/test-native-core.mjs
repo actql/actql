@@ -22,6 +22,7 @@ import {nativeProcessRegionFixture} from './native-process-region-fixture.mjs';
 import {nativeCoreOrdinaryProcessFixture} from './native-core-scoped-fixture.mjs';
 import {nativeHttpLifetimeFixture} from './native-http-lifetime-fixture.mjs';
 import {nativeClientFileFixture} from './native-client-file-fixture.mjs';
+import {runMeasuredNativeTests, selectsNativeStartClaim} from './native-core-measured-tests.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const parent = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT ??
@@ -42,7 +43,8 @@ for (const name of ['standard', 'bundles', 'executor-slot', 'retained-task-file'
 }
 const bundle = nativeCompletedRestorationBundle();
 const args = process.argv.slice(2);
-const full = !['focused', 'reporting'].includes(classifyMoon('test', args).classification);
+const {classification} = classifyMoon('test', args);
+const full = !['focused', 'reporting'].includes(classification);
 // Keep the unscoped classification and its original fixture/backing setup.
 // Only the compiler-owned case inventory below receives this checked closure.
 const platformScope = process.env.ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE;
@@ -157,6 +159,7 @@ const fixtureEnvironment = {
   ...process.env,
   ACTQL_TEST_NATIVE_CORE_PARTITION: undefined,
   ACTQL_TEST_NATIVE_CORE_PLATFORM_SCOPE: undefined,
+  ACTQL_TEST_NATIVE_START_CLAIM_PHASE: undefined,
   ACTQL_TEST_NATIVE_IMPORT_QUOTE: undefined,
   ACTQL_TEST_NATIVE_FILE_RECEIPT_ROOT: undefined,
   ...Object.fromEntries(['APPROVE', 'REJECT', 'CONFLICT'].flatMap(mode =>
@@ -380,6 +383,13 @@ if (full) {
     } else for (const profile of profiles) checkChild(await runScopedProfile(profile));
     scopedScratch.passed();
   }
+} else if (classification === 'focused' &&
+    selectsNativeStartClaim(args) && !args.some(value =>
+      /^(?:--filter|-f|--index|-i|--build-only|--list)(?:=|$)/u.test(value))) {
+  checkChild({status: runMeasuredNativeTests(['--target', 'native', ...args], {
+    cwd: root, env: {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler},
+    timeout: 180_000, evidenceScratch: namespace,
+  })});
 } else {
   checkChild(spawnSync('moon', ['test', '--target', 'native', ...args],
     {cwd: root, stdio: 'inherit', env: {...fixtureEnvironment, ...ordinaryProcess, ...testCompiler}}));

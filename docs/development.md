@@ -1237,7 +1237,11 @@ write permissions, or `pull_request_target` execution are introduced.
 ### Draft preparation and Ready verification
 
 Drafts run preparation (`select-targets`, `preflight`, `lint`, `spec`, and the
-aggregate `check`). An exact registered fixed-request test family adds
+aggregate `check`). Draft `lint` installs the pinned MoonBit toolchain and runs
+its Node-only checks, so a failure there is found before Ready starts the full
+run; checks that need Python, the DuckDB transport or the Explorer build stay
+Ready-only. An exact registered
+fixed-request test family adds
 its focused JS tests. Changes to normal Python packages, producers, acceptance
 fixtures, or their CI/toolchain inputs also run the genuine macOS wheel lane
 automatically, including in Draft. Unrelated Draft changes do not start that
@@ -1253,6 +1257,16 @@ and focused-test selections remain explicit, bounded exceptions. Missing or
 invalid selection, failed or cancelled required jobs, and unexpected skips
 cannot satisfy the final `check`. Inspect the jobs actually executed; a narrow
 PR run does not establish a full integration or release checkpoint.
+
+A Ready PR that changes no Core target input runs JS core only; main
+integration runs every target. The inputs are a short directory policy: `src`,
+`vendor`, `spec`, `portability`, `proofs`, `.github`, and the Python SDK and
+Local Runtime packages. Moon and package manifests, the toolchain pin, native
+sources and binaries, and `scripts/ci-targets.mjs` also keep every target, and
+the existing macOS workload and wheel selectors still decide those jobs.
+Ordinary `scripts/` changes, including fixtures and test drivers, do not keep
+the Wasm and Native Core legs on a PR, so a cross-target regression there can
+first fail on main. The other PR job families are unchanged.
 
 CI passes the complete selection and aggregate job results through quoted JSON
 files in the runner's temporary directory (`CI_PLAN_PATH` and `RESULTS_PATH`).
@@ -1398,8 +1412,11 @@ The original two-part local interface remains supported.
 The migration toward Linux for exhaustive common Native coverage starts with
 eight additional required Linux partitions in the same Core matrix. The pinned
 compiler's complete source, whitebox and blackbox import graph identifies Native
-command/platform packages, explicit C stubs and linker overrides, including all
-their importers. Every remaining compiler-owned common case is assigned once,
+platform owners, including all their importers. A platform owner is a package
+with an explicit C stub, a command/platform package that declares a C
+function itself, or a package with a case that needs a physical fixture. A package that only overrides the linker, or a command/platform
+package that declares no C function, owns no platform code and is classified by
+its imports. Every remaining compiler-owned common case is assigned once,
 keeping whole package drivers and the existing release/strip, strict warnings,
 test-only generated-C optimization and serial test execution. Nested packages
 use original compiler-selected file inputs rather than admitting an unrelated

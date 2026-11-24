@@ -32,6 +32,9 @@ pub fn Journal::ensure_output_report_capacity(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let size = match
     @remote.remote_output_report_custody_preflight_bytes(
       output, payload, transfer,
@@ -58,6 +61,9 @@ pub fn Journal::retain_output_report(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let request = @remote.remote_output_report_custody_dispatch(custody)
   match @remote.prepare_dispatch_acceptance(self.control, request) {
@@ -92,18 +98,12 @@ pub fn Journal::retain_output_report(
     Err(issue) => Err(Physical(issue))
   }
   match result {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
     Ok(_) => ()
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(())
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -122,6 +122,9 @@ pub fn Journal::output_report(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   let custody = match self.report_custody(key) {
     Ok(value) => value
@@ -169,6 +172,9 @@ pub fn Journal::output_report_after(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   match self.database.scan_after("site_output_report", after) {
     Ok(entry) =>
       self
@@ -192,6 +198,9 @@ pub fn Journal::record_output_report_reply(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match self.begin_mutation(true) {
     Ok(_) => ()
@@ -252,18 +261,12 @@ pub fn Journal::record_output_report_reply(
     }
   })()
   match result {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
     Ok(_) => ()
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(())
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -279,6 +282,9 @@ pub fn Journal::retry_output_report(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match self.begin_mutation(true) {
     Ok(_) => ()
@@ -318,18 +324,12 @@ pub fn Journal::retry_output_report(
     Err(issue) => Err(issue)
   }
   match result {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
     Ok(_) => ()
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(())
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }
 
@@ -347,6 +347,9 @@ pub fn Journal::reserved_output(
   }
   if self.retiring {
     return Err(CleanupPending)
+  }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
   }
   match @remote.prepare_dispatch_acceptance(self.control, request) {
     Ok(_) => ()
@@ -397,6 +400,9 @@ pub fn Journal::reserve_output_report(
   if self.retiring {
     return Err(CleanupPending)
   }
+  if self.database.transaction_fenced() {
+    return Err(TransactionFenced)
+  }
   let request = @remote.remote_poll_output_request(output)
   match @remote.prepare_dispatch_acceptance(self.control, request) {
     Ok(_) => ()
@@ -419,10 +425,7 @@ pub fn Journal::reserve_output_report(
       @remote.remote_poll_output_intent(output),
     ) {
     Ok(value) => @utf8.encode(value)
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(Protocol(issue))
-    }
+    Err(issue) => return self.abort_write(Err(Protocol(issue)))
   }
   let result = (fn() {
     match self.database.read("site_output_report_slot", key) {
@@ -454,17 +457,11 @@ pub fn Journal::reserve_output_report(
     .map_err(issue => Physical(issue))
   })()
   match result {
-    Err(issue) => {
-      ignore(self.database.rollback())
-      return Err(issue)
-    }
+    Err(issue) => return self.abort_write(Err(issue))
     Ok(_) => ()
   }
-  match self.database.commit() {
+  match self.database.commit_journal_write() {
     Ok(_) => Ok(())
-    Err(issue) => {
-      ignore(self.database.rollback())
-      Err(Physical(issue))
-    }
+    Err(issue) => Err(TransactionCommit(issue))
   }
 }

@@ -34,6 +34,12 @@ allocations are released. Closing a pool blocks further admission immediately.
 
 ## Public Local Check reporting
 
+The source-free Python Local installation selects the pinned Common numeric
+reduction profile for Check and submitted preparation. Its existing Wasm
+runtime executes the same numeric reductions as the other installed Local
+Hosts. Other profile and Source requirements remain at their original
+admission boundaries.
+
 The ordinary Local transport routes `Client.check` to the existing Common
 authoring checker. It does not infer a public verdict from preparation counts,
 exceptions, a Run admission or physical execution. A Check never reserves a
@@ -113,10 +119,20 @@ the same entered physical journal snapshot. Leaving that snapshot does not make
 its normal current guard usable later; a refused guard retains the same output
 and cleanup duty without exposing the candidate response.
 
-Private scalar ABI 75 adds the SDK observation preparation, prior-row validation
-and saved-row confirmation entrances. Their generated declarations and compiled
-module must agree. The Client wire and journal formats retain their existing 0.1
-contracts, including legacy absent bytes in the generic row encoder.
+The SDK observation has separate preparation, prior-row validation and saved-row
+confirmation entrances. The measured live route prepares one update on its
+original Core holder. The same Root Ledger funds construction and then retains
+the prior and replacement row bytes, state text and original update controls.
+After the snapshot and constructor workspace have returned, the holder reduces
+its reservation to that retained backing. Retaining a row unchanged shares its
+original byte storage. The measured route reserves a separate body output for the
+actual escaped extent and funds writer and decoding workspace independently of
+transfer and physical copies.
+The body stops before its preparation and input. A refused reservation retains
+the same prepared update for cleanup. The validation and confirmation entrances
+continue to inspect that original update. Generated declarations, the exact
+compiled module and the SDK-bound artifact digest identify the private cohort.
+Client wire and journal formats retain their existing 0.1 contracts.
 
 ## Instance-private Wasm facade
 
@@ -311,6 +327,16 @@ Only successful completion of those steps releases the view. A failed step
 keeps the same parent, input custody and cancelled view for explicit cleanup
 retry. No new export, scalar ABI version or Client wire field is introduced by
 this custody connection; it is not a complete material transport or Store ACK.
+
+Private commit-material selector 4 and Result-schema selector 2 project the
+original 71-byte CID, a colon, and the exact decimal UTF-8 byte count of the
+immutable canonical wire. Core checks the original account, view and ordinal
+or completed Result receipt before measuring under the existing one-MiB
+bound. The Host uses these descriptors to reserve each body before Core
+rechecks and produces it. The public-index write reserves the fixed 64-byte
+key and 71-byte CID. Address and body keep separate copy allowances through
+the synchronous Store consumer. These selectors change no export signature,
+Store transaction authority or Client wire.
 
 ## Physical DuckDB boundary
 
@@ -615,15 +641,27 @@ existing symlinks or nonprivate files are refused. This physical adapter require
 POSIX ownership checks and SQLite STRICT-table support. Those requirements do not
 apply to importing or using the Remote Client.
 
-Transactions use SQLite's existing exclusive write serialization and FULL
-synchronization. Competing generations cannot replace one another. A failed
-commit acknowledgement remains an exception; the adapter neither reports success
-nor repeats the write. The Host must read the same original bytes and let Core
-decide the next operation. If both commit and rollback fail, the retained connection cannot return its
-uncommitted bytes or accept another write. Only its pending cleanup may proceed.
-Close releases the connection, preserves persisted records and performs no Run
-cancellation or recovery. Failed close retains its
-exact cleanup handle, including initialization failures.
+The standard-library SQLite Store uses DELETE journal mode and EXTRA
+synchronization, with explicit SQL transaction control. A new owned file verifies
+both settings before the first schema write transaction. Reopen identifies the
+existing format through read-only SQL before applying and verifying the same
+connection profile. These settings request SQLite's rollback-journal directory
+sync at commit. Physical durability depends on the SQLite VFS and storage.
+The selected Native SQLite Store applies its own profile.
+
+Writes still use SQLite's existing exclusive serialization. Competing generations
+cannot replace one another. A failed
+write COMMIT acknowledgement retains the original cause and Store, regardless
+of whether the write uses a current callback. SQL confirmation and later
+current refusal are separate observations. A cleanup failure retains its cause
+and private phase, either transaction-state inspection or rollback. A failed
+inspection does not attempt rollback. Without a confirmed stop, the same
+connection remains fenced from ordinary reads and writes until close.
+An observed inactive connection may be reusable, while continuation of the
+original operation still requires exact readback and the original Core decision.
+Close releases the connection and preserves persisted records. Run cancellation
+and recovery remain with their existing Owners. Failed close retains its exact
+cleanup handle, including initialization failures.
 
 Record count, individual byte length and aggregate payload length have explicit
 physical ceilings. Oversized retained rows are refused before returning their
@@ -2752,19 +2790,31 @@ compiler and scalar physical-port checks.
 ### Explicit SDK first-install selection
 
 Private ABI55 adds `actql_bootstrap_produce_sdk`. Its explicitly selected factory
-retains the seven original bootstrap bodies and adds `run_policy_profile` and
-`sdk_read`. The original producer's seven-field output is unchanged. A loan
+retains the seven bootstrap positions and adds `run_policy_profile` and
+`sdk_read`. The SDK factory issues the fresh Account with the exact Local
+Result-read role. The original producer's seven-field output is unchanged. A loan
 cannot switch producers after invocation; SDK and original transports have
 distinct nominal Python families. Installed component admission requires the
 matching ABI rather than falling back to an older module.
 
 The Common delivery metadata Owner issues the closed
 `actql-local-sdk-result-read-selection/0.1` body and its exact-byte SHA256 CID.
-It selects principal `local-cli`, connection `local`, Result `answer`, purpose
+It selects principal `local-cli`, connection `local`, purpose
 `python-local-read`, sink `sdk-rows`, existing `jsonl` serialization,
 `max_bytes=65536` and `max_uses=1`. It binds the original finite profile and data
 Policy CIDs. Sink selection introduces no new Result format. Metadata admission
 is not Account authorization, a grant, a delivery attempt or durable acceptance.
+
+A fresh SDK selection uses the closed `requested_original_result` mode with
+`authority: "original_result_read"`. The current Account must admit the Run
+read and the installer's exact `result` read tuple. The checked live inventory
+or original Saved commit must contain the requested name. An explicit denial
+or delegation for that name still refuses. Authorization evidence records
+the actual resource and binds the selected name separately. Current Worker
+provisioning issues the same schema with a marked finite selection for
+`answer` and independently requires the exact `result/answer` Account
+tuple. The retired top-level `result_names` body is refused without
+rewriting installed originals.
 
 The SDK factory persists nine source originals, with exactly eight selected
 files excluding Account. Each of the two extra originals is limited to 8192
@@ -3661,6 +3711,27 @@ Journal query retains its schema, mutation, metadata and cumulative query/copy
 fences; Core continues to inspect every requested row, final EOF and Account
 decision. No authorization import or original work/fuel boundary is removed.
 
+Saved payload routing and binding each run a complete cancellation census on
+entry. Within that export, the guest can ask the physical supplier whether the
+same reader still supports reusing that census. An unsupported supplier or an
+effect requires a fresh census; original current, row and binding checks still
+run. Saved routing uses this only for the paired selector.
+
+Saved payload input preparation first validates the retained publication fence
+rows by exact key, revision and body. A later current check within that same
+export can reuse those observations with a positive proof from the original
+unchanged Store reader. Each check still observes the selected Submission and
+Run and checks current authority. An effect or an unavailable proof requires
+fresh fence reads, and a failed proof propagates its physical refusal.
+
+The evidence, first-delivery and terminal Saved proposals can reuse their
+initial census inside the original write-free inspection. The insert-only
+evidence producer can also reuse it while constructing the first projected
+row. The Store refuses a write through a live closed invocation and ends
+eligibility before applying or reusing that row. Precommit and readback keep
+their original validation, with the same reader's copy and query counters in
+force through precommit.
+
 Every Host import passes through one classifier. Only the audited immutable
 input and same-reader Journal transports, plus the exact standard Wasmtime
 Store/Caller/Memory observation, remain inside the closed computation. The exact
@@ -3803,6 +3874,17 @@ remain valid. Kind 13 returns `1` from `submission.produce` while the original
 preparation is pending and `0` only after the result wire has been supplied.
 An unavailable or refused turn never supplies a partial wire. The normal wheel
 cohort binds the Host and module that implement this selector together.
+
+After the installed Host consumes and drops the kind-13 metadata packet, it
+clears the same ticket's original cached bytes under the Core lock before
+using the existing submission transport retirement call on that parent.
+The Core drops the consumed wire and returns its two Wasm transfer bounds and
+two matching physical copy bounds. The remaining physical allowance covers the
+original control holders. This leaves the same projection, input borrow,
+current checks and payload children active. Failure leaves the parent available
+for cleanup only. The slot's physical cleanup callback and final settlement
+still run during its ordinary close. There is no capacity increase or new
+scalar ABI entry.
 
 The same saved projection keeps the original commit owner, view, and captured
 rows. Each continuation opens a fresh current reader, checks the exact selected
@@ -3963,23 +4045,46 @@ their Store workspaces; every Reader, descriptor, input and parent still follows
 its original child-first acknowledgment path. A live or reentrant invocation
 cannot enter this cleanup path, and normal work never resumes from it.
 
-The sealed Reader-facts path composes the two existing public Core validators:
-original payload binding first, then the complete physical snapshot validator.
-It does not implement either rule in Python or require a combined guest export.
-Only success of both calls and the final original physical observation retains
+The sealed Reader-facts path runs the original payload binding first, then the
+physical snapshot validator. An eligible closed standard Wasmtime reader uses
+the private paired mode of `validate_payload_binding` in the matching installed
+guest. It first uses the exact zero-handle query with Result set to the minimum
+signed 32-bit value. The guest must return 1. A refusal or unrecognized response
+stops the operation with the original capability code. Readers ineligible for
+the paired mode still use the standalone binding and snapshot validators.
+
+In this mode Result selects the two original 0–7 coordinates as
+`-1073741824 - (8 * result + binding)`. The last argument is the same sealed
+snapshot input handle. Core performs both validations in their original order,
+and their refusals retain their original roles. After a complete first census,
+the second validation can reuse it only under the existing uninterrupted
+closed-reader proof. All point reads and fences, and the snapshot's original
+physical generation comparison, still run. Older suppliers and an interrupted
+proof use full validation. Nothing from the pair survives the invocation.
+The original terminal Store can supply a fresh observation for the pair
+before and after each of its three staged CAS writes. It ends the
+observation before entering CAS and captures the next one after actual
+write success. In each invocation, binding still performs a complete first
+census and snapshot validation can reuse only that invocation's census.
+
+Only success of both judgments and the final original physical observation retains
 same-owner immutable material. A failed enclosing current/physical observation
 discards that material, retaining only the same cleanup loans. Successful binding
 is recorded only after the whole original Store/current frame returns.
 
-Only the existing bound Saved SDK byte callers consume that successful material.
+Only the existing bound Saved SDK callers consume that successful material.
 Their public Source, Sealed record, selected binding, access and finish-current
 checks remain mandatory, as do fresh descriptor observations and the complete
-public Host current, Journal and transfer paths. Missing, changed, unbound or
-live material takes complete validation; write/CAS/precommit paths keep their
-full checks. This supplies no active custody transport or lifetime optimization,
-capacity, permission, current-row proof or physical acknowledgment. ABI78 and
-its full public Core validators remain unchanged; no private combined-export,
-ABI82 behavior or runtime timing equivalence is implied.
+public Host current, Journal and transfer paths. After staging the original
+terminal CAS, the precommit caller may reobserve that exact sealed physical
+material before entering Core. Core still validates the complete staged
+terminal graph, and the Host still performs both full Reader-fact validators
+after Core returns and before COMMIT. Missing, changed, unbound or live material
+takes complete validation at entry. Failure discards the bound material
+observation and retains the same cleanup loans. This supplies no active custody
+transport or lifetime optimization, capacity, permission, current-row proof
+or physical acknowledgment. The full public ABI78 Core validators remain
+available as independent exports.
 
 ### Accepted preparation failure
 
@@ -4063,12 +4168,58 @@ inventory. No descriptor opens inside this fixed preparation, and neither a
 write nor a read grant is combined with it.
 
 The original frame still performs its complete File/current/Account and fact
-checks around all three Core calls. Failure, changed originals or the final
-physical fence returns no selected fact; the same original input/output loans
+checks. Saved routing uses one call to the existing ordinal export with private
+field 2. Core selects both coordinates together under the original Saved
+reader's before and after checks and returns `8 * result + binding`. Both
+coordinates are within the existing range from 0 through 7. This selector
+requires a matching Host and module. Live routing and callers that select a
+single coordinate still use fields 0 and 1. Failure, changed originals or the
+final physical fence returns no selected fact; the same original input/output loans
 remain available for cleanup. No currentness or Allow result is cached. The
 standalone codec and ordinal methods retain their original independent frames
 for callers that deliberately select them separately. Payload binding and
 physical snapshot validation continue through their two original Core methods.
+
+Each selected incremental Saved read export begins with a complete census.
+This applies to payload codec and input preparation, chunk production and
+the separate readback after terminal commit. Successful codec preparation
+runs a full census again after returning its physical clock borrow via reader
+stop.
+Rechecking an already produced chunk starts its own export and census.
+Saved terminal projection may reuse the first census within its write-free
+proposal invocation. The original Store closes this phase before consuming the
+CAS proposal. The same transaction and reader keep their cumulative copy and
+query budgets, and precommit validation runs its full checks on the staged
+rows. After all three terminal CAS writes succeed, that Store can capture
+a fresh closed observation for the same terminal export before COMMIT.
+Only its own complete census can be reused within that invocation. No
+proposal proof survives the writes. The first complete check, actual
+terminal rows, current fences, and separate committed readback still run.
+An eligible guest can ask the existing current operation import about
+optional unchanged-reader proof
+support using ticket zero, which cannot name a loan. Result 1 opts in. Result 0
+or the original unallocated-ticket refusal leaves full validation active. The
+schema query continues to return physical schema 0 or 1 unchanged, and previous
+guests keep their existing positive-ticket calls.
+
+Only after opt-in does the guest ask for proof with its negated live ticket.
+This query returns 1 for the same unchanged read, 0 after proof becomes
+unavailable, or the original refusal. The fallback applies to unavailable
+proof. The live-ticket query preserves any actual current or storage failure.
+
+Subsequent checks can skip only the census already accepted inside this
+export. Selected physical rows, current, schema, policy, binding, and receipt
+checks still run. The proof expires at any effect import or export return.
+Nothing crosses a SQLite reader, chunk, operation, or await. The optimization
+adds no retained census rows. Existing current and cleanup ownership remain
+with the original invocation.
+
+When Saved payload preparation or chunk production traps, the response can
+still hold an original output and clock borrow. Once the trapped invocation
+is quiescent, the response enters the existing terminal Saved retirement on
+that same parent before closing those children. Retirement permits the
+actual child close and stop calls to run. Their refusal still retains the
+original loans, and the read failure stays primary.
 
 
 ### Original Source carrier during Run restoration

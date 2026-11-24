@@ -1,5 +1,5 @@
 import type {LanguageModelV4CallOptions} from '@ai-sdk/provider';
-import {runtimeField, runtimePair, runtimeTriple} from './compiler-binding.generated.mjs';
+import {runtimeField, runtimePair, runtimeTupleFromFields} from './compiler-binding.generated.mjs';
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
   cancelSdkPreparation, cleanupSdkPreparation, progressSdkOriginalIoCleanup,
@@ -13,6 +13,10 @@ type CheckedOriginal = (value: unknown) => unknown;
 type StartOriginal = (entry: unknown) => unknown;
 type ReadDecoded = (original: unknown, receipt: unknown, bytes: Uint8Array) => unknown;
 type ReportedUsage = (body: unknown) => Readonly<{inputTokens?: bigint; outputTokens?: bigint}> | undefined;
+type ReportedResponse = (body: unknown) => Readonly<{
+  model?: unknown; requestId?: unknown; finishReason?: unknown; outcome?: unknown;
+  metadataName?: unknown; metadataValue?: unknown;
+}> | undefined;
 type ProjectionBounds = Readonly<{maxBytes: number; maxDepth: number; maxFrames: number; maxNodes: number; maxWork: number}>;
 type SdkPreparation = Parameters<typeof prepareRegisteredSdkLanguageModel>[0];
 type SdkOptions = LanguageModelV4CallOptions;
@@ -30,6 +34,7 @@ export type RegisteredSdk = Readonly<{
   createLanguageModel: SdkPreparation['createLanguageModel'];
   verifyRequest(body: string, options: SdkOptions): unknown;
   readReportedUsage?: ReportedUsage;
+  readReportedResponse?: ReportedResponse;
   credential?: Readonly<{transport: Readonly<Record<string, unknown>>; profile: Readonly<{reference: string}>}>;
 }>;
 type StructuredRuntime = ModelRuntime & SdkPreparation['moon'] & Readonly<{
@@ -107,10 +112,12 @@ export function createSdkModelPreflight(options: PhysicalOptions) {
 
 // The admitted selection belongs to the existing installed Provider. The
 // runtime still binds this exact Request, Profile, Call, Store and one send.
-export function createSdkStructuredModelPreflight(options: StructuredInput, admission: unknown, readReportedUsage?: ReportedUsage) {
+export function createSdkStructuredModelPreflight(options: StructuredInput, admission: unknown, readReportedUsage?: ReportedUsage,
+  readReportedResponse?: ReportedResponse) {
   const moon = options?.moon;
   if (admission === undefined ||
       (readReportedUsage !== undefined && typeof readReportedUsage !== 'function') ||
+      (readReportedResponse !== undefined && typeof readReportedResponse !== 'function') ||
       typeof moon?.clientProgramModelStructuredRequestPlan !== 'function' ||
       typeof moon?.clientProgramModelPhysicalSavedStructured !== 'function') {
     throw new TypeError('StructuredSdkPhysicalRuntimeUnavailable');
@@ -119,7 +126,7 @@ export function createSdkStructuredModelPreflight(options: StructuredInput, admi
     profile, installation, start, readDecoded) =>
     (runtime as StructuredRuntime).clientProgramModelStructuredRequestPlan(admission, request, bytes,
       amounts.tokens, amounts.costUnits, amounts.durationMs,
-      profile, installation, start, readDecoded), undefined, 'saved-sdk', readReportedUsage);
+      profile, installation, start, readDecoded), undefined, 'saved-sdk', readReportedUsage, readReportedResponse);
 }
 
 export function originalSdkCallOptions(generation: unknown, prompt: SdkOptions['prompt'], responseFormat: SdkOptions['responseFormat'],
@@ -218,7 +225,7 @@ export function createAdmittedRegisteredSdkPreflight({moon, request, admission,
     },
   };
   return createSdkStructuredModelPreflight({...port, moon, request, checked, notify,
-    preparationProgress}, admission, registeredSdk.readReportedUsage);
+    preparationProgress}, admission, registeredSdk.readReportedUsage, registeredSdk.readReportedResponse);
 }
 
 function generationPlan(moon: ModelRuntime, request: unknown, bytes: bigint, quantities: NonNullable<PhysicalOptions['quantities']>, profile: unknown, installation: unknown, start: StartOriginal) {
@@ -248,7 +255,8 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
   observeAt, cleanupRaw, preparationProgress, rawCaptureBinder, needsCredential = false}: PhysicalOptions,
   preparePlan: PreparePlan | undefined, selectSaved: SelectSaved | undefined,
-  responseMode: 'sdk' | 'raw-only' | 'saved-sdk', readReportedUsage?: ReportedUsage) {
+  responseMode: 'sdk' | 'raw-only' | 'saved-sdk', readReportedUsage?: ReportedUsage,
+  readReportedResponse?: ReportedResponse) {
   const deferredRaw = rawCaptureBinder !== undefined;
   const structured = responseMode === 'saved-sdk';
   if (typeof fetch !== 'function' || needsCredential && !deferredRaw ||
@@ -288,15 +296,22 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
       content: unknown; finishReason?: {unified: unknown}; response?: {body?: unknown};
     };
     const content = decoded.content;
-    // This initial profile permits one complete text/JSON answer. SDK
-    // defaults do not supply provider-reported usage or Raw metadata.
-    if (decoded.finishReason?.unified !== 'stop' ||
-        !Array.isArray(content) || content.length !== 1 ||
-        content[0]?.type !== 'text' || typeof content[0].text !== 'string') {
-      return undefined;
-    }
-    const usage = readReportedUsage?.(decoded.response?.body);
-    return runtimeTriple(content[0].text, usage?.inputTokens, usage?.outputTokens);
+    // Only the same SDK invocation's confirmed Raw supplies observations.
+    // The SDK's normalized usage/model/request defaults are not evidence.
+    const raw = decoded.response?.body;
+    const usage = readReportedUsage?.(raw);
+    const report = readReportedResponse?.(raw);
+    const finish = report?.outcome ?? decoded.finishReason?.unified ?? 'unknown';
+    const text = finish === 'stop' && Array.isArray(content) && content.length === 1 &&
+      content[0]?.type === 'text' && typeof content[0].text === 'string' ? content[0].text : undefined;
+    const reportedText = (value: unknown) => typeof value === 'string' && value.length > 0 && value.length <= 256
+      ? value : undefined;
+    return runtimeTupleFromFields({
+      0: text, 1: finish, 2: usage?.inputTokens, 3: usage?.outputTokens,
+      4: reportedText(report?.model), 5: reportedText(report?.requestId),
+      6: reportedText(report?.finishReason), 7: text !== undefined,
+      8: reportedText(report?.metadataName), 9: reportedText(report?.metadataValue),
+    });
   } : undefined;
   const pollResponse = () => {
     // Only the unused SDK projection is dropped. Saved/raw observations and
@@ -421,6 +436,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     preparePlan = undefined;
     selectSaved = undefined;
     readReportedUsage = undefined;
+    readReportedResponse = undefined;
     retired = true;
     return true;
   };

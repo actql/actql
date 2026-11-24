@@ -21,6 +21,7 @@ fn raw_save_fixture(
   limits? : Limits = standard_limits(),
   structured? : Bool = false,
   foreign_decoder_profile? : Bool = false,
+  measured? : Bool = false,
 ) -> RawSaveFixture raise {
   let calls = Ref(0)
   let current = Ref(
@@ -34,13 +35,21 @@ fn raw_save_fixture(
   let response = Ref(
     @model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
   )
-  let profile = if structured {
+  let configured = structured || measured
+  let profile = if configured {
     structured_raw_fixture_profile()
   } else {
     async_response_profile()
   }
-  let (start_original, capacity, provider_original, structured_plan) = if structured {
-    let fixture = structured_raw_fixture_binding()
+  let (start_original, capacity, provider_original, structured_plan) = if configured {
+    let configuration = if measured {
+      (
+        #|{"adapter_kind":"portable-http","api_mode":"chat-completions","endpoint":"https://fixture.invalid/v1/chat/completions","model_id":"actual-sdk-model","provider_id":"models/fixture","selector":"fixture-risk-model"}
+      )
+    } else {
+      structured_raw_configuration
+    }
+    let fixture = structured_raw_fixture_binding(configuration)
     (
       Some(() => start_structured_raw_fixture(limits)),
       Some(fixture_quantity_capacity(33L, 500L)),
@@ -53,6 +62,8 @@ fn raw_save_fixture(
           profile,
           start,
           foreign_decoder_profile,
+          configuration,
+          measured,
         )
       }),
     )
@@ -70,7 +81,7 @@ fn raw_save_fixture(
     current~,
     now~,
     limits~,
-    slots=if structured { 1 } else { 2 },
+    slots=if configured { 1 } else { 2 },
     start_original~,
     capacity?,
     profile~,
@@ -127,6 +138,113 @@ fn raw_save_fixture_cleanup(value : RawSaveFixture) -> Unit raise {
   assert_true(!cleanup(value.active).unwrap())
   assert_true(cleanup(value.active).unwrap())
   assert_eq(value.calls.val, 1)
+}
+
+///|
+test "measured HTTP authenticates the same complete Raw once and retains unobserved transfer" {
+  let complete_raw = (value : RawSaveFixture, eof : Bool) => {
+    let save = @model.observe_model_raw_capture(
+      value.call,
+      value.registration,
+      "sha256:" + @sha.hex(b"{}"),
+      2,
+      503,
+      eof,
+      value.now.val,
+    ).unwrap()
+    @model.acknowledge_saved_model_raw_capture(save).unwrap()
+  }
+  let foreign = raw_save_fixture(measured=true)
+  let foreign_receipt = complete_raw(foreign, true)
+  for
+    (scenario, eof, upload, download) in [
+      ("complete", true, 1L, 2L),
+      ("absent", true, -1L, -1L),
+      ("partial", false, 1L, 2L),
+      ("size-mismatch", true, 1L, 1L),
+      ("foreign", true, 1L, 2L),
+    ] {
+    let release = Ref(false)
+    let value = raw_save_fixture(release~, measured=true)
+    let original = value.active.model.unwrap()
+    let before = @model.model_execution_resource_usage(original)
+    assert_eq(before.attempts, 1)
+    assert_eq(before.uncertain_transfer_bytes, 0L)
+    assert_true(before.reserved_transfer_bytes > 3L)
+    let receipt = if scenario == "foreign" {
+      foreign_receipt
+    } else {
+      complete_raw(value, eof)
+    }
+    value.response.val = @model.PhysicalIoQuiescent(
+      value.call,
+      @model.PhysicalMeasuredHttp(
+        receipt,
+        upload,
+        download,
+        @model.PhysicalRejected(ProviderError, {
+          input_tokens: None,
+          output_tokens: None,
+        }),
+      ),
+    )
+    value.ready.val = true
+    let poll = fixture_finish(value.active, initial_work=value.work)
+    if scenario == "foreign" {
+      assert_true(poll is Failed(Model(@model.UnknownCalls), ..))
+    } else {
+      guard poll is Settling(0, work~) else {
+        abort("original provider refusal")
+      }
+      // Another observation of the original terminal cannot reconcile twice.
+      assert_true(
+        fixture_finish(value.active, initial_work=work) is Settling(0, ..),
+      )
+      assert_true(
+        @model.acknowledge_model_call_settlement(
+          call_settlement(value.active).unwrap(),
+        ),
+      )
+      assert_true(
+        fixture_finish(value.active, initial_work=work) is AwaitIo(..),
+      )
+    }
+    let pending = @model.model_execution_resource_usage(original)
+    assert_eq(
+      pending.transferred_bytes,
+      if scenario == "complete" {
+        3L
+      } else {
+        0L
+      },
+    )
+    assert_eq(
+      pending.reserved_transfer_bytes,
+      if scenario == "complete" {
+        0L
+      } else {
+        before.reserved_transfer_bytes
+      },
+    )
+    assert_false(cleanup(value.active).unwrap())
+    release.val = true
+    async_io_stop_and_cleanup(value.active)
+    let after = @model.model_execution_resource_usage(original)
+    assert_eq(after.reserved_transfer_bytes, 0L)
+    assert_eq(after.attempts, 1)
+    assert_eq(after.transferred_bytes, pending.transferred_bytes)
+    assert_eq(
+      after.uncertain_transfer_bytes,
+      if scenario == "complete" {
+        0L
+      } else {
+        before.reserved_transfer_bytes
+      },
+    )
+    assert_eq(value.calls.val, 1)
+  }
+  foreign.ready.val = true
+  async_io_stop_and_cleanup(foreign.active)
 }
 
 ///|

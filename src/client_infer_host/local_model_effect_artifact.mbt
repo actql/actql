@@ -10,6 +10,7 @@ pub fn issue_original_local_model_acquired_evidence(
   max_depth : Int,
   imports? : @publication_host.ClientEffectImportedEvidence? = None,
   source_originals? : Array[@publication_host.ClientEffectAcquiredEvidence] = [],
+  before_body? : ((String, @encode.EncodingConstructionGeometry) -> Bool)? = None,
 ) -> Result[
   @publication_host.ClientEffectModelAcquiredEvidence,
   @publication_host.ClientEffectAcquiredEvidenceIssue,
@@ -17,6 +18,16 @@ pub fn issue_original_local_model_acquired_evidence(
   guard original_local_model_observation_current(value.held, value.issued) &&
     value.held.owner.call_scope is Some(scope) else {
     return Err(Invocation(ForeignCapturedInput))
+  }
+  // A funding callback may reenter retirement. Check the same observation
+  // before its measured body is constructed, including in the saved route.
+  let funded = match before_body {
+    None => None
+    Some(fund) =>
+      Some((kind, geometry) => {
+        fund(kind, geometry) &&
+        original_local_model_observation_current(value.held, value.issued)
+      })
   }
   let result = match
     (
@@ -36,6 +47,7 @@ pub fn issue_original_local_model_acquired_evidence(
         max_depth,
         original,
         source_originals,
+        before_body=funded,
       )
     (None, Some(sources), _) =>
       @publication_host.issue_single_model_client_effect_acquired_evidence(
@@ -48,6 +60,7 @@ pub fn issue_original_local_model_acquired_evidence(
         max_nodes,
         max_depth,
         imports~,
+        before_body=funded,
       )
     _ => Err(Invocation(ForeignCapturedInput))
   }
@@ -72,6 +85,7 @@ pub fn issue_original_local_model_effect_artifact(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  funding? : @publication_host.ClientEffectModelArtifactFunding? = None,
 ) -> Result[
   @publication_host.ClientEffectLocalResultArtifact,
   @publication_host.ClientEffectLocalResultArtifactIssue,
@@ -95,6 +109,7 @@ pub fn issue_original_local_model_effect_artifact(
     max_bytes,
     max_nodes,
     max_depth,
+    funding~,
   )
 }
 
@@ -119,6 +134,7 @@ pub fn issue_original_local_model_effect_artifact_with_context(
   max_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  funding? : @publication_host.ClientEffectModelArtifactFunding? = None,
 ) -> Result[
   @publication_host.ClientEffectLocalResultArtifact,
   @publication_host.ClientEffectLocalResultArtifactIssue,
@@ -139,6 +155,17 @@ pub fn issue_original_local_model_effect_artifact_with_context(
     physical_equal(invocation, original_invocation) else {
     return Err(ForeignOwner)
   }
+  let funding : @publication_host.ClientEffectModelArtifactFunding? = funding.map(fund => {
+      reserve_measurement: count => {
+        (fund.reserve_measurement)(count) &&
+        original_local_model_observation_current(value.held, value.issued)
+      },
+      reserve_bodies: bodies => {
+        (fund.reserve_bodies)(bodies) &&
+        original_local_model_observation_current(value.held, value.issued)
+      },
+    },
+  )
   let result = @publication_host.issue_model_client_effect_local_result_artifact(
     owner,
     inputs,
@@ -154,6 +181,7 @@ pub fn issue_original_local_model_effect_artifact_with_context(
     max_bytes,
     max_nodes,
     max_depth,
+    funding~,
   )
   if !original_local_model_observation_current(value.held, value.issued) {
     return Err(ForeignOwner)
@@ -201,8 +229,17 @@ pub fn issue_preconsumer_original_model_acquired_evidence(
     (held.owner.saved_call_scope, held.owner.composed_sources, imports) {
     (Some(saved), None, Some(original)) =>
       @publication_host.issue_restored_model_client_effect_imported_evidence(
-        compiled, scope, saved, body, retention, max_bytes, max_nodes, max_depth,
-        original, source_originals,
+        compiled,
+        scope,
+        saved,
+        body,
+        retention,
+        max_bytes,
+        max_nodes,
+        max_depth,
+        original,
+        source_originals,
+        before_body~,
       )
     (None, Some(sources), _) =>
       @publication_host.issue_single_model_client_effect_acquired_evidence(

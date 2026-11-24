@@ -16,7 +16,7 @@ import {contentCid} from '../checkpoints.mjs';
 import {captureResponse, freezeInput} from './data.mjs';
 import {fail} from './errors.mjs';
 import {snapshotClientRequest, validClientBody, validWireEffectfulStaticPlanViewShape,
-  validWirePlanViewShape, validWireStaticExplanationViewShape,
+  validWirePlanViewShape, validWireStaticExplanationViewShape, validStaticExplanationBinding,
   withinResultDescriptionLimits} from '@actql/client-wire';
 
 type StaticOperation = 'plan' | 'static-explanation';
@@ -24,19 +24,6 @@ type StaticInput = Parameters<Client['plan']>[0];
 type StaticOptions = Parameters<Client['plan']>[1];
 type StaticView<Operation extends StaticOperation> = Operation extends 'plan'
   ? Awaited<ReturnType<Client['plan']>> : WireStaticExplanationView;
-
-function matchesStaticExplanation(view: WireStaticExplanationView, component: WirePlanView, effectful: boolean) {
-  const {facts, context: {binding}, plan} = view;
-  const map = component.logical_map;
-  return facts.program_definition_cid === map.program_definition_cid &&
-    binding.program_definition_cid === map.program_definition_cid &&
-    facts.compiled_plan_cid === component.compiled_plan_cid &&
-    binding.compiled_plan_cid === component.compiled_plan_cid &&
-    facts.logical_map_cid === map.self_cid && binding.logical_map_cid === map.self_cid &&
-    facts.parameter_values_cid === binding.parameter_values_cid &&
-    (!effectful || facts.parameter_values_cid === (plan as WireEffectfulStaticPlanView).parameter_values_cid &&
-      binding.check_environment_cid === (plan as WireEffectfulStaticPlanView).check_environment_cid);
-}
 
 export function createPlan(connection: WireConnection,
   exchange: (operation: StaticOperation, body: Record<string, unknown>, signal?: AbortSignal,
@@ -93,7 +80,7 @@ export function createPlan(connection: WireConnection,
       if (map.compiled_plan_cid !== component.compiled_plan_cid ||
           effectful && map.program_definition_cid !== plan.program_definition_cid ||
           await contentCid(preimage) !== observed) fail('InvalidClientHostPlanView');
-      if (staticRead && !matchesStaticExplanation(view as WireStaticExplanationView, component, effectful)) {
+      if (staticRead && !validStaticExplanationBinding(view as WireStaticExplanationView)) {
         fail('InvalidClientHostStaticExplanationView');
       }
       return freezeInput(view) as StaticView<Operation>;

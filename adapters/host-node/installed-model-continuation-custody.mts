@@ -58,7 +58,7 @@ type CheckpointInstallation = Readonly<{
 type Control = Pick<ReturnType<typeof runtimeCore>['publicationControl'],
   'admit' | 'admitRunEvidence' | 'modelScopedPrivateHoldingCid'>;
 type Store = Pick<Awaited<ReturnType<typeof openLocalPublicationStore>>,
-  'inspectPhysicalHolding' | 'readPrivateEvidence' | 'confirmPrivateEvidence'>;
+  'inspectPhysicalHolding' | 'readPrivateEvidence' | 'confirmPrivateEvidence' | 'readModelRawResponseDescriptor'>;
 type Runtime = Readonly<{
   strategyRunEvidenceAdmit(name: string, wire: string, maxBytes: number, maxNodes: number, maxDepth: number): unknown;
   clientProgramVerifyInferAttachmentAdmission(capture: unknown, authority: unknown, attachment: unknown): unknown;
@@ -232,9 +232,27 @@ export function createInstalledModelContinuationCustody<Installation extends Che
       const document = JSON.parse(bodies.model_capture_bundle);
       if (document.captures.length !== (outcome === 'ok' ? 1 : 0)) fail('ModelSettlementResponseMismatch');
       const observationWire = outcome === 'ok' ? canonicalJson(document.captures[0].evidence) : undefined;
-      const facts = parseCore<SavedCallFacts>(runtime.modelSavedCallAdmit(canonicalJson(originals), entry.ordinal,
-        attemptWire, authorityWire, bodies.model_attempt_accounting!,
-        bodies.model_attempt_outcome!, bodies.model_slot_capture, observationWire));
+      const admitSaved = (rawWire: string | undefined) => parseCore<SavedCallFacts>(runtime.modelSavedCallAdmit(
+        canonicalJson(originals), entry.ordinal, attemptWire, authorityWire, bodies.model_attempt_accounting!,
+        bodies.model_attempt_outcome!, bodies.model_slot_capture!, observationWire, rawWire));
+      const savedOutcome = JSON.parse(bodies.model_attempt_outcome!) as {
+        reported_response?: {raw_response_artifact_cid: string};
+      };
+      let facts: SavedCallFacts;
+      if (savedOutcome.reported_response !== undefined) {
+        const semanticCid = savedOutcome.reported_response?.raw_response_artifact_cid;
+        const holdingCid = control.modelScopedPrivateHoldingCid(definition, storeAuthorityCid, entry,
+          'model_raw_response', 'entered');
+        facts = await store.readModelRawResponseDescriptor(semanticCid, holdingCid,
+          async (_bytes, raw) => {
+            const wire = raw.releaseBytes();
+            const admitted = admitSaved(wire);
+            await raw.confirm({name: 'model_raw_descriptor', semanticCid, holdingCid, wire});
+            return admitted;
+          }, beforeRead);
+      } else {
+        facts = admitSaved(undefined);
+      }
       if (facts.attemptCid !== entry.attemptCid || facts.slotCid !== entry.slotCid ||
           facts.captureCid !== evidence.model_slot_capture!.cid) fail('ModelSettlementProofMismatch');
       const record = Object.freeze({bodies, evidence, state: facts.state});

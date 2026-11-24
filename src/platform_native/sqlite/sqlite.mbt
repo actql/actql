@@ -72,6 +72,147 @@ pub(all) enum NativeSqliteTransactionState {
 } derive(Eq)
 
 ///|
+/// Fixed physical operations on the original connection. The owning Journal
+/// still decides durability, connection reuse, and whether it may continue.
+pub(all) enum NativeSqliteTransactionStep {
+  BeginDeferred
+  BeginImmediate
+  Commit
+  Rollback
+} derive(Eq)
+
+///|
+pub(all) struct NativeSqliteResultCode {
+  primary : Int
+  extended : Int
+} derive(Eq)
+
+///|
+/// The response to this physical step, before subsequent routing. A lost
+/// reply supplies no SQLite code or proof of the durable outcome.
+pub(all) enum NativeSqliteTransactionReply {
+  SqlNotIssued
+  SqlRejected(NativeSqliteResultCode)
+  SqlReplyLost
+  SqlConfirmed
+} derive(Eq)
+
+///|
+/// The reported issue can be a routing failure even when SQLite confirmed
+/// the operation. Cleanup reports its own result without replacing this one.
+pub struct NativeSqliteTransactionFailure {
+  step : NativeSqliteTransactionStep
+  reply : NativeSqliteTransactionReply
+  issue : NativeSqliteIssue
+}
+
+///|
+/// The physical stop attempt belongs to the same transaction and connection.
+/// A missing rollback means no rollback statement was issued.
+pub struct NativeSqliteTransactionStopFailure {
+  rollback : Result[Unit, NativeSqliteTransactionFailure]?
+  state : Result[NativeSqliteTransactionState, NativeSqliteIssue]
+}
+
+///|
+/// The selected write's durable outcome. Independent of its physical cleanup
+/// and whether a caller is allowed to continue or redispatch.
+pub(all) enum NativeSqliteCommitOutcome {
+  CommitConfirmed
+  CommitNotApplied
+  CommitUnknown
+} derive(Eq)
+
+///|
+pub struct NativeSqliteJournalCommitFailure {
+  primary : NativeSqliteTransactionFailure
+  outcome : NativeSqliteCommitOutcome
+  cleanup_failure : NativeSqliteTransactionStopFailure?
+}
+
+///|
+fn NativeSqliteIssue::routing_failed(self : NativeSqliteIssue) -> Bool {
+  match self {
+    OperationRoutingBefore(_) | OperationRoutingAfter(_, _) => true
+    _ => false
+  }
+}
+
+///|
+/// Start one journal write. A failed BEGIN cannot authorize rolling back a
+/// transaction the caller did not acquire, even on a shared Database.
+pub fn Database::begin_journal_write(
+  self : Database,
+) -> Result[Unit, NativeSqliteTransactionFailure] {
+  match self.transaction_step(BeginImmediate) {
+    Ok(_) => Ok(())
+    Err(failure) => {
+      if failure.reply is SqlConfirmed ||
+        failure.issue.routing_failed() ||
+        !(self.transaction_state() is Ok(NoActiveSqliteTransaction)) {
+        self.fence_transactions()
+      }
+      Err(failure)
+    }
+  }
+}
+
+///|
+/// Stop the caller's original write after a body or COMMIT refusal. Preserve
+/// the first refused stop observation and fence before returning it.
+pub fn Database::rollback_journal_write(
+  self : Database,
+) -> Result[Unit, NativeSqliteTransactionStopFailure] {
+  let initial = self.transaction_state()
+  let rollback = match initial {
+    Ok(ActiveSqliteTransaction) => Some(self.transaction_step(Rollback))
+    _ => None
+  }
+  let state = match rollback {
+    Some(_) => self.transaction_state()
+    None => initial
+  }
+  match (rollback, state) {
+    (None | Some(Ok(_)), Ok(NoActiveSqliteTransaction)) => Ok(())
+    _ => {
+      self.fence_transactions()
+      Err({ rollback, state, })
+    }
+  }
+}
+
+///|
+/// Commit once. A lost reply always requires owner reconciliation. A confirmed
+/// SQL success with a failed route still preserves its physical outcome.
+pub fn Database::commit_journal_write(
+  self : Database,
+) -> Result[Unit, NativeSqliteJournalCommitFailure] {
+  guard self.transaction_step(Commit) is Err(primary) else { return Ok(()) }
+  if primary.reply is SqlConfirmed {
+    self.fence_transactions()
+    return Err({ primary, outcome: CommitConfirmed, cleanup_failure: None, })
+  }
+  let cleanup_failure = match self.rollback_journal_write() {
+    Ok(_) => None
+    Err(failure) => Some(failure)
+  }
+  let definitely_not_applied = match primary.reply {
+    SqlNotIssued => true
+    SqlRejected(code) => code.primary == 5 || code.primary == 6
+    _ => false
+  }
+  let outcome = if definitely_not_applied && cleanup_failure is None {
+    CommitNotApplied
+  } else {
+    CommitUnknown
+  }
+  if outcome == CommitUnknown || primary.issue.routing_failed() {
+    self.fence_transactions()
+  }
+  Err({ primary, outcome, cleanup_failure, })
+}
+
+///|
 /// The original failed open and its existing physical Database owner. This
 /// opaque carrier cannot reopen a database, issue a request or settle capacity.
 struct NativeSqliteOpenFailure {

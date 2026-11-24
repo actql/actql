@@ -358,7 +358,7 @@
     {
       "module": "src/client_row_source_host/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "78bcbb52cfebe2ad08ac312150ef9096ba30905a5bdd812bb9f5968e5899598b",
+      "sha256": "122902a7991f8fd3c929740a94ac599a3e55729e6b168406b55bdf6c55f9eed8",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
       "exports": [
@@ -383,6 +383,7 @@
         "pub fn advance_row_run_keyed_page(RowRun, Int) -> Result[RowKeyedPagePoll, RowHostIssue]",
         "pub fn advance_row_run_listing_page(RowRun, Int, Int64) -> Result[RowListingPagePoll, RowHostIssue]",
         "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]",
+        "pub fn advance_row_source_cursor_progress_from_provider_page(RowSourceCursorProgress, Int, Int, Int, String?) -> Result[Bool, RowSourceCursorIssue]",
         "pub fn begin_charged_row_run_keyed_page(RowRun, RowPageCharge, Bytes) -> Result[Unit, RowHostIssue]",
         "pub fn begin_charged_row_run_listing_page(RowRun, RowPageCharge, Bytes, Int64) -> Result[Unit, RowHostIssue]",
         "pub fn begin_declared_keyed_row_read(@lowering_relation.BoundPrepared, @sourceview_resolution.KeyedSourceFacts, @sourceview_resolution.KeyedRowRequest, String, RowDeclaredView, RowPageLimits, Int, @execution_relation.ValueLimits, @sourceview_resolution.RequestLimits, reference_issuer? : @value_admission.ReferenceIssuer?) -> Result[RowSourceRead, RowSourceIssue]",
@@ -478,9 +479,11 @@
         "pub fn prepare_mock_churn_risk_target_update(MockTargetDocument, MockTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPageLimits) -> Result[RelationDocumentPreparedContract, RowMappingIssue]",
         "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
         "pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]",
         "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]",
+        "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]",
         "pub fn prepare_row_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
         "pub fn prepare_row_source(@query_planning.QueryRequirement, RowDeclaration) -> Result[RowSourcePreparation, RowSourceIssue]",
@@ -588,6 +591,8 @@
         "pub fn row_run_attempt(RowRun) -> RowAttempt",
         "pub fn row_run_listing_complete(RowRun) -> Bool",
         "pub fn row_run_normal_available(RowRun) -> Bool",
+        "pub fn row_run_response_charge_current(RowRunResponseBorrow, RowPageCharge) -> Bool",
+        "pub fn row_run_response_original(RowRunResponseBorrow) -> Result[(RowRun, RowResponseSelection), RowHostIssue]",
         "pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]",
         "pub fn row_source_columns(RowSourcePreparation) -> Array[String]",
         "pub fn row_source_cursor_has_next(RowSourceCursorProgress) -> Bool",
@@ -722,6 +727,10 @@
         {
           "name": "advance_row_source_cursor_progress",
           "declaration": "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]"
+        },
+        {
+          "name": "advance_row_source_cursor_progress_from_provider_page",
+          "declaration": "pub fn advance_row_source_cursor_progress_from_provider_page(RowSourceCursorProgress, Int, Int, Int, String?) -> Result[Bool, RowSourceCursorIssue]"
         },
         {
           "name": "begin_charged_row_run_keyed_page",
@@ -1104,6 +1113,10 @@
           "declaration": "pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
         },
         {
+          "name": "prepare_relation_target_delete",
+          "declaration": "pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]"
+        },
+        {
           "name": "prepare_relation_target_update",
           "declaration": "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]"
         },
@@ -1114,6 +1127,10 @@
         {
           "name": "prepare_row_delete_mapping",
           "declaration": "pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]"
+        },
+        {
+          "name": "prepare_row_delete_mapping_from_writes",
+          "declaration": "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]"
         },
         {
           "name": "prepare_row_input_acquisition",
@@ -1542,6 +1559,14 @@
         {
           "name": "row_run_normal_available",
           "declaration": "pub fn row_run_normal_available(RowRun) -> Bool"
+        },
+        {
+          "name": "row_run_response_charge_current",
+          "declaration": "pub fn row_run_response_charge_current(RowRunResponseBorrow, RowPageCharge) -> Bool"
+        },
+        {
+          "name": "row_run_response_original",
+          "declaration": "pub fn row_run_response_original(RowRunResponseBorrow) -> Result[(RowRun, RowResponseSelection), RowHostIssue]"
         },
         {
           "name": "row_run_response_selection",
@@ -3739,11 +3764,15 @@
         },
         {
           "operations": [
-            "row_run_response_selection"
+            "row_run_response_selection",
+            "row_run_response_charge_current",
+            "row_run_response_original"
           ],
           "exports": [
             "pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]",
-            "pub enum RowResponseSelection {"
+            "pub enum RowResponseSelection {",
+            "pub fn row_run_response_charge_current(RowRunResponseBorrow, RowPageCharge) -> Bool",
+            "pub fn row_run_response_original(RowRunResponseBorrow) -> Result[(RowRun, RowResponseSelection), RowHostIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -3814,6 +3843,7 @@
             "admit_relation_document",
             "admit_relation_target_document",
             "observe_relation_target",
+            "prepare_relation_target_delete",
             "prepare_relation_target_update",
             "project_relation_target_document",
             "relation_document_usage",
@@ -3829,6 +3859,7 @@
             "pub fn admit_relation_document(Bytes, RowPageLimits, Int) -> Result[RelationDocument, RowSourceIssue]",
             "pub fn admit_relation_target_document(RowDeclaration, String, Array[String], Array[String]?, String, Array[String], Bytes, RowPageLimits, Int) -> Result[RelationTargetDocument, RowSourceIssue]",
             "pub fn observe_relation_target(RelationTargetDocument, RowDeclaration, String) -> Result[RelationTargetRow, RowSourceIssue]",
+            "pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]",
             "pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]",
             "pub fn project_relation_target_document(RelationDocument, RowDeclaration, String, Array[String], Array[String]?, String, Array[String], prepared_contract? : RelationDocumentPreparedContract?) -> Result[RelationTargetDocument, RowSourceIssue]",
             "pub fn relation_document_usage(RelationDocument) -> RelationDocumentUsage?",
@@ -3901,16 +3932,22 @@
               {
                 "path": "src/client_row_source_host/relation-document-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "src/client_row_source_host/relation_document_target_wbtest.mbt",
+                "anchor": "relation target deletion preserves rows whitespace and another collection"
               }
             ]
           }
         },
         {
           "operations": [
-            "prepare_row_update_mapping"
+            "prepare_row_update_mapping",
+            "prepare_row_delete_mapping_from_writes"
           ],
           "exports": [
-            "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]"
+            "pub fn prepare_row_update_mapping(RowDeclaration, String, String, Array[RowMappingSource]) -> Result[RowMapping, RowMappingIssue]",
+            "pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]"
           ],
           "attributes": {
             "responsibility": [
@@ -3971,6 +4008,10 @@
               {
                 "path": "src/client_row_source_host/relation-update-mapping-interface.md",
                 "anchor": "- Verification:"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
               }
             ]
           }
@@ -5404,6 +5445,7 @@
           "operations": [
             "admit_row_source_get_read",
             "advance_row_source_cursor_progress",
+            "advance_row_source_cursor_progress_from_provider_page",
             "bind_installed_row_read_profile",
             "complete_row_run_response_construction_capacity",
             "installed_row_read_profile_construction_inventory",
@@ -5429,6 +5471,7 @@
           "exports": [
             "pub fn admit_row_source_get_read(Bytes, String?, RowSourceGetReadLimits) -> Result[RowSourceGetRead, RowSourceGetReadIssue]",
             "pub fn advance_row_source_cursor_progress(RowSourceCursorProgress, Int, Int, RowSourceProjectedJsonPage, RowSourceProjectedJsonPage) -> Result[Bool, RowSourceCursorIssue]",
+            "pub fn advance_row_source_cursor_progress_from_provider_page(RowSourceCursorProgress, Int, Int, Int, String?) -> Result[Bool, RowSourceCursorIssue]",
             "pub fn bind_installed_row_read_profile(RowDeclaration, String) -> Result[RowDeclaration, RowMappingIssue]",
             "pub fn complete_row_run_response_construction_capacity(RowRunResponseBorrow, @execution_relation.ExecutionCapacity) -> Result[Unit, RowHostIssue]",
             "pub fn installed_row_read_profile_construction_inventory(RowDeclaration) -> @execution_relation.PreparationRepresentationUnits?",
@@ -5566,6 +5609,10 @@
               {
                 "path": "scripts/notion-user-list-read-wire.mts",
                 "anchor": "generateNotionUserListReadWire"
+              },
+              {
+                "path": "src/client_row_source_host/json_page_cursor_wbtest.mbt",
+                "anchor": "provider page facts join the original finite cursor progress"
               }
             ]
           }
@@ -5801,7 +5848,7 @@
       "responsibilityFacet": "primary",
       "role": "common-semantics",
       "owner": "Existing Common original checked row acquisition, capture and physical resource lifetime Owner",
-      "sha256": "50d1c007d6f6ef308f3d5d3da3defe8de55231d547c7bad2918d0a44ee28713d",
+      "sha256": "ba2003c33829c2bedab5e589d261eeb0b9c7bfdb2d248255e23200a4ff13859f",
       "exports": [],
       "operations": [
         {
@@ -5855,6 +5902,14 @@
         {
           "name": "row_response_workspace_capture_current",
           "declaration": "row_response_workspace_capture_current ( value : RowRunResponseBorrow ) - > Bool"
+        },
+        {
+          "name": "row_run_response_charge_current",
+          "declaration": "row_run_response_charge_current ( borrow : RowRunResponseBorrow , charge : RowPageCharge , ) - > Bool"
+        },
+        {
+          "name": "row_run_response_original",
+          "declaration": "row_run_response_original ( borrow : RowRunResponseBorrow , ) - > Result [ ( RowRun , RowResponseSelection ) , RowHostIssue ]"
         },
         {
           "name": "row_run_response_selection",
@@ -6087,7 +6142,9 @@
         },
         {
           "operations": [
-            "row_run_response_selection"
+            "row_run_response_selection",
+            "row_run_response_charge_current",
+            "row_run_response_original"
           ],
           "exports": [],
           "attributes": {

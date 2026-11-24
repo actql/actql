@@ -9,6 +9,7 @@ import {isAbsolute, join, resolve, delimiter} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {checkoutState} from './packed-client-packages.mjs';
 import {platformKey} from '../packages/native-cli/bin/actql.mjs';
+import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
 import {prepareNativeLocalRuntime} from './native-cli-local-runtime.mjs';
 import {assertScalarPairEvidenceFresh} from './native-local-scalar-pair-evidence.mjs';
 import {assertNativeLocalFreshRuntimeRecipe} from './native-cli-default-assets.mjs';
@@ -203,8 +204,21 @@ export async function buildNativeCliArtifact(destination: string, {verbose = fal
     assert.deepEqual(text, await readFile(join(process.env.MOON_HOME, 'lib/core', coreFile)), 'Distribution notices must match the compiler Core');
     notices[filename] = hash(text);
   }
+  const abi = inspectNativeAbi(binary, platform);
+  const remoteHttp = localMetadata && admitInstalledLocalRuntime({
+    root: destination, expected: {sourceSha: source.revision, platform, localRuntimeSha256: localMetadata.sha256},
+    metadata: localMetadata,
+  }).libraries.find(member => member.role === 'remote-http');
   let httpRuntime;
-  if (platform === 'linux-x64-gnu') {
+  if (remoteHttp) {
+    abi.httpLibrary = remoteHttp.path;
+    abi.httpLibraryBundled = true;
+    delete abi.httpLibraryRequirements;
+    httpRuntime = {library: remoteHttp.path, provider: 'verified-package-member',
+      sha256: remoteHttp.sha256, bytes: remoteHttp.bytes, dependencies: remoteHttp.dependencies, abi: remoteHttp.abi,
+      preparationSource: localRuntime!.remoteHttpPreparation!.source,
+      preparationSha256: localRuntime!.remoteHttpPreparation!.sha256};
+  } else if (platform === 'linux-x64-gnu') {
     const library = run('ldconfig', ['-p']).split('\n').find(line => /libcurl\.so\.4 .*x86-64.*=> /u.test(line))?.split('=> ')[1]?.trim();
     assert(library, 'No x64 libcurl.so.4 runtime available for the declared distribution');
     const dependencies = run('ldd', [library]); assert(!dependencies.includes('not found'), 'Unresolved libcurl dependency');
@@ -227,7 +241,7 @@ export async function buildNativeCliArtifact(destination: string, {verbose = fal
     platform, binarySha256: hash(bytes), binaryBytes: bytes.length,
     generatedCSha256, toolchainPinSha256: hash(await readFile(join(repository, 'toolchain.json'))), notices,
     toolchain: {moon, moonc, node: process.version, cc: run('cc', ['--version']).split('\n')[0]},
-    abi: inspectNativeAbi(binary, platform), testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null, httpRuntime},
+    abi, testedHost: {platform: process.platform, arch: process.arch, glibc: glibc ?? null, httpRuntime},
     generation: [buildCommand, ...selectedBuildArgs], ...(localMetadata ? {localRuntime: localMetadata} : {}),
     ...(selectedVersion === undefined ? {} : {packageVersion: selectedVersion, packageVersionObservation: versionObservation})};
   await writeFile(join(destination, 'artifact.json'), `${JSON.stringify(record, null, 2)}\n`, {flag: 'wx'});

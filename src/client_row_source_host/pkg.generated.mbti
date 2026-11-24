@@ -259,11 +259,15 @@ pub fn prepare_relation_document_contract(RowDeclaration, String, String, RowPag
 
 pub fn prepare_relation_row_write_mapping(RowDeclaration, String, String, RowRelationWriteSpec, Array[RowMappingSource], RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
 
+pub fn prepare_relation_target_delete(RelationTargetDocument, RelationTargetRow, String, Int) -> Result[Bytes, RowSourceIssue]
+
 pub fn prepare_relation_target_update(RelationTargetDocument, RelationTargetRow, String, String, Int) -> Result[Bytes, RowSourceIssue]
 
 pub fn prepare_row_acquisition(RowDeclaration, @query_planning.QueryRequirement, String, String, listing_policy? : @capacity_policy.Policy?) -> Result[RowAcquisition, RowHostIssue]
 
 pub fn prepare_row_delete_mapping(RowDeclaration, String, String, String, String, RowDeclarationLimits) -> Result[RowMapping, RowMappingIssue]
+
+pub fn prepare_row_delete_mapping_from_writes(RowDeclaration, String, String) -> Result[RowMapping, RowMappingIssue]
 
 pub fn prepare_row_input_acquisition(@sourceview_resolution.SourceAcquisition, @pipeline_check_context.ProgramSourceIdentity, @lowering_relation.PreparedSequence, @execution_relation.RegisteredRelationContracts, RowDeclaration, RowInputLimits, listing_policy? : @capacity_policy.Policy?) -> Result[RowInputAcquisition, RowHostIssue]
 
@@ -478,6 +482,10 @@ pub fn row_run_attempt(RowRun) -> RowAttempt
 pub fn row_run_listing_complete(RowRun) -> Bool
 
 pub fn row_run_normal_available(RowRun) -> Bool
+
+pub fn row_run_response_charge_current(RowRunResponseBorrow, RowPageCharge) -> Bool
+
+pub fn row_run_response_original(RowRunResponseBorrow) -> Result[(RowRun, RowResponseSelection), RowHostIssue]
 
 pub fn row_run_response_selection(RowRunResponseBorrow) -> Result[RowResponseSelection, RowHostIssue]
 
@@ -811,6 +819,7 @@ pub(all) struct RowRelationViewSpec {
 pub(all) enum RowRelationWriteKind {
   RelationCreate
   RelationUpdate
+  RelationKeyUpsert(native_identity~ : String, update_permission~ : String)
 } derive(Eq, @debug.Debug)
 
 pub(all) struct RowRelationWriteSpec {

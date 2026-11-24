@@ -65,9 +65,9 @@ Record Effects write records of an app by key:
 
 - **insert** — `EFFECT INSERT kintone.inquiries (subject, body, assignee) VALUES (…)`.
 - **update** — ``EFFECT UPDATE kintone.inquiries ID `$id` SET (category = …)``.
-- **upsert** — `EFFECT UPSERT kintone.customers ID customer_code SET (…)`,
-  keyed by a field the app prohibits duplicates on; kintone's update-by-key
-  API applies it.
+- **upsert** — `EFFECT UPSERT kintone.customers ID customer_code SET (…)`.
+  A complete lookup by the unique Text field selects Create Records for an
+  absent key or a revision-guarded Update Records for a present key.
 - **delete** — ``EFFECT DELETE kintone.inquiries ID `$id` ``.
 
 The key named by `ID` must identify exactly one record. `$id` always does; a
@@ -85,6 +85,28 @@ the applicable record and field rights. Its Mapping has one exact permission
 rule for that operation and write-field set. Observing a present or absent record
 does not narrow those requirements. Lookup read permission, currentness, approval
 and the selected conditional write remain separate obligations.
+
+For the standard installed kintone Effect profile, select the app resource,
+the unique writable `SINGLE_LINE_TEXT` field code and the exact writable field
+set in the profile's single `writes` entry:
+
+```json
+{
+  "resource": "inquiries",
+  "kind": "upsert",
+  "key": "CustomerKey",
+  "fields": ["Subject"]
+}
+```
+
+Use the original declared source profile for the same app and Form. For this
+entry, the Program selects the record with `ID customer_key` and writes
+`SET (Subject = next_name)`. If approval is granted, the Host rechecks the
+original key and target state before sending its selected request. A changed
+target refuses the approved write. A lost response stays in
+`needs_reconciliation` for lookup of the same Run. The installed Host can
+recover the original Prepared request and Saved results using their original
+identities.
 
 Content:
 

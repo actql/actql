@@ -160,7 +160,7 @@ pub fn local_sdk_read_evidence_packet(LocalSDKReadOriginals) -> Result[(String, 
 
 pub fn local_sdk_read_original(LocalSDKReadOriginals, Int) -> Result[(String, String), LocalSDKReadOriginalsIssue]
 
-pub fn local_sdk_read_source(LocalPublicationPreflight) -> LocalSDKReadSource
+pub fn local_sdk_read_source(LocalPublicationPreflight, selection~ : @run_publication.LocalSDKResultReadSelection) -> LocalSDKReadSource
 
 pub fn local_sdk_read_source_run_identity(LocalSDKReadSource) -> (@run_publication_host.ClientRequestIdentity, @run_publication.PublicationContract)
 
@@ -200,7 +200,7 @@ pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequest
 
 pub fn[Store, E] prepare_local_saved_run_publication_binding(LocalRunPlan, @run_publication_host.ClientSavedSubmissionSnapshot, @run_publication_host.ClientLocalAdoptedHostMaterial[Store, E], Store, String, String, UInt64, UInt64, @run_publication_host.ClientJournalPhysicalRow, @run_publication_host.ClientJournalPhysicalRow) -> Result[LocalRunPublicationBindingPlan[Store, E], LocalRunPublicationBindingIssue[E]]
 
-pub fn prepare_local_saved_sdk_read_source(@run_publication_host.ClientSavedSubmissionSnapshot, @run_publication_host.ClientLocalRunPolicyOriginal, (String, String), @execution_authorization.AdmittedAccountConfiguration, String, String, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView) -> Result[LocalSDKReadSource, LocalSDKReadOriginalsIssue]
+pub fn prepare_local_saved_sdk_read_source(@run_publication_host.ClientSavedSubmissionSnapshot, @run_publication_host.ClientLocalRunPolicyOriginal, (String, String), @execution_authorization.AdmittedAccountConfiguration, String, String, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, selection~ : @run_publication.LocalSDKResultReadSelection) -> Result[LocalSDKReadSource, LocalSDKReadOriginalsIssue]
 
 pub fn[E] prepare_local_sdk_payload_encoding_for_source(LocalSDKReadSource, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, LocalSDKReadDeliveryPreparation, String, String, String, String, Int, Int, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKPayloadEncoding, LocalSDKPayloadPreparationIssue[E]]
 
@@ -260,7 +260,7 @@ pub fn reuse_local_preflight_result_publication(LocalPublicationPreflight, Int, 
 
 pub fn reuse_local_result_publication(LocalResultPublication, LocalComputeHost, LocalRunInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalResultPublication, LocalResultPublicationIssue]
 
-pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
+pub fn start_local_compute_task(LocalComputeHost, LocalComputeStart, Array[@execution_relation.ManagedCompletedOutput[Int]], @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String, canonical_managed_rows? : Bool) -> Result[@driver.LocalManagedDispatchOperations[Int]?, LocalComputeIssue]
 
 pub fn start_local_native_source(LocalNativeSourceConfiguration, LocalRunPhysicalStart, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, String, (@acquisition.DuckDBNativeAttempt) -> Bool) -> Result[@host.NativeHostRun, LocalNativeSourceIssue]
 

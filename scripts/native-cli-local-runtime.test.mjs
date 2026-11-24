@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeLocalRuntime, inspectLocalLibrary} from './native-cli-local-runtime.mjs';
 import {admitNativeArtifact} from './native-cli-release.mjs';
+import {admitInstalledNativeRemoteHttp} from './release-native-install.mjs';
 import {admitInstalledLocalRuntime, admitLocalRuntimePlatform, validateLocalRuntimeManifest, installedLocalRuntimeEnvironment, LOCAL_RUNTIME_MAX_BYTES} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -103,6 +104,57 @@ test('Native Query runtime retains both original members and refuses partial or 
 test('Linux x64 shared-library headers use the same explicit closure and source binding', async t => {
   const f = await fixture(t, 'linux-x64-gnu');
   assert.deepEqual(admitInstalledLocalRuntime({root: f.output, metadata: f.metadata, expected: f.expected}), f.manifest);
+});
+
+test('Remote HTTP members cannot share dynamic dependencies with ordinary runtime members', async t => {
+  for (const [selectedPlatform, name, system] of [
+    ['darwin-arm64', 'libcurl.4.dylib',
+      '/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration'],
+    ['linux-x64-gnu', 'libcurl.so.4', 'libz.so.1'],
+  ]) {
+    const f = await fixture(t, selectedPlatform);
+    const remote = {...f.manifest.libraries[0], role: 'remote-http', path: `lib/${name}`,
+      dependencies: [system]};
+    const manifest = {...f.manifest, libraries: [...f.manifest.libraries, remote]};
+    assert.equal(validateLocalRuntimeManifest(manifest, f.expected), manifest);
+    for (const changed of [
+      {...remote, path: 'lib/foreign.so'},
+      {...remote, dependencies: [manifest.libraries[1].path.slice(4)]},
+      {...remote, dependencies: ['libcares.so.2']},
+    ]) {
+      assert.throws(() => validateLocalRuntimeManifest(
+        {...manifest, libraries: [...f.manifest.libraries, changed]}, f.expected));
+    }
+    const sqlite = {...f.manifest.libraries[0], dependencies: [name]};
+    assert.throws(() => validateLocalRuntimeManifest(
+      {...manifest, libraries: [sqlite, f.manifest.libraries[1], remote]}, f.expected));
+
+    const library = {...f.options.libraries[0], name, role: 'remote-http'};
+    await assert.rejects(prepareNativeLocalRuntime(f.output,
+      {...f.options, libraries: [...f.options.libraries, library]}, inspectFixture),
+    /requires its original file-backed preparation receipt/u);
+  }
+});
+
+test('Selected installed Remote HTTP requires its exact member before returning any path', async t => {
+  const f = await fixture(t);
+  const artifact = {platform, localRuntime: f.metadata};
+  assert.throws(() => admitInstalledNativeRemoteHttp(f.output, f.expected, artifact),
+    /requires the verified HTTP member/u);
+  const contents = await readFile(join(f.output, f.manifest.libraries[0].path));
+  const member = {...f.manifest.libraries[0], path: 'lib/libcurl.4.dylib', role: 'remote-http'};
+  const path = join(f.output, member.path);
+  const wire = Buffer.from(JSON.stringify({...f.manifest, libraries: [...f.manifest.libraries, member]}));
+  const metadata = {...f.metadata, bytes: wire.length, sha256: hash(wire)};
+  const expected = {...f.expected, localRuntimeSha256: metadata.sha256};
+  await writeFile(path, contents);
+  await writeFile(join(f.output, metadata.path), wire);
+  assert.deepEqual(admitInstalledNativeRemoteHttp(f.output, expected, {...artifact, localRuntime: metadata}),
+    {member, libraryPath: path});
+  contents[32] ^= 1;
+  await writeFile(path, contents);
+  assert.throws(() => admitInstalledNativeRemoteHttp(f.output, expected, {...artifact, localRuntime: metadata}),
+    error => error.exitCode === 65);
 });
 
 test('foreign source platform or manifest digest is refused without dependency discovery', async t => {
@@ -346,4 +398,84 @@ test('Native launch metadata retains exact manifest integrity and root identity 
   const saved = join(f.root, 'manifest'); await writeFile(saved, bytes);
   await rm(path); await symlink(saved, path);
   assert.throws(() => installedLocalRuntimeEnvironment(options), e => e.exitCode === 65);
+});
+
+test('Model HTTP members cannot share dynamic dependencies with ordinary runtime members', async t => {
+  for (const [selectedPlatform, name, system] of [
+    ['darwin-arm64', 'libcurl-model.4.dylib',
+      '/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration'],
+    ['linux-x64-gnu', 'libcurl-model.so.4', 'libz.so.1'],
+  ]) {
+    const f = await fixture(t, selectedPlatform);
+    const model = {...f.manifest.libraries[0], role: 'model-http', path: `lib/${name}`,
+      dependencies: [system]};
+    const manifest = {...f.manifest, libraries: [...f.manifest.libraries, model]};
+    assert.equal(validateLocalRuntimeManifest(manifest, f.expected), manifest);
+    for (const changed of [
+      {...model, path: 'lib/foreign.so'},
+      {...model, dependencies: [manifest.libraries[1].path.slice(4)]},
+      {...model, dependencies: ['libcares.so.2']},
+    ]) {
+      assert.throws(() => validateLocalRuntimeManifest(
+        {...manifest, libraries: [...f.manifest.libraries, changed]}, f.expected));
+    }
+    const sqlite = {...f.manifest.libraries[0], dependencies: [name]};
+    assert.throws(() => validateLocalRuntimeManifest(
+      {...manifest, libraries: [sqlite, f.manifest.libraries[1], model]}, f.expected));
+
+    const library = {...f.options.libraries[0], name, role: 'model-http'};
+    await assert.rejects(prepareNativeLocalRuntime(f.output,
+      {...f.options, libraries: [...f.options.libraries, library]}, inspectFixture),
+    /requires its original file-backed preparation receipt/u);
+  }
+});
+
+test('one runtime can admit distinct synchronous Remote and async Model HTTP members', async t => {
+  for (const [platform, remotePath, modelPath, system] of [
+    ['darwin-arm64', 'lib/libcurl.4.dylib', 'lib/libcurl-model.4.dylib', '/usr/lib/libSystem.B.dylib'],
+    ['linux-x64-gnu', 'lib/libcurl.so.4', 'lib/libcurl-model.so.4', 'libc.so.6'],
+  ]) {
+    const f = await fixture(t, platform);
+    const [sqlite, crypto] = f.manifest.libraries;
+    const remote = {...sqlite, role: 'remote-http', path: remotePath, dependencies: [system]};
+    const model = {...sqlite, role: 'model-http', path: modelPath, dependencies: [system]};
+    const withBoth = libraries => ({...f.manifest, libraries});
+    const joint = withBoth([sqlite, crypto, remote, model]);
+    assert.equal(validateLocalRuntimeManifest(joint, f.expected), joint);
+    assert.throws(() => validateLocalRuntimeManifest(withBoth([
+      sqlite, crypto, {...remote, path: modelPath}, {...model, path: remotePath},
+    ]), f.expected));
+    for (const member of [remote, model]) {
+      assert.throws(() => validateLocalRuntimeManifest(withBoth([
+        sqlite, crypto, {...member, role: 'dependency'},
+      ]), f.expected), /HTTP member requires its original role/u);
+    }
+    assert.throws(() => validateLocalRuntimeManifest(withBoth([
+      {...sqlite, dependencies: [modelPath.slice(4)]}, crypto, remote, model,
+    ]), f.expected));
+    assert.throws(() => validateLocalRuntimeManifest(withBoth([
+      sqlite, crypto, remote, {...model, dependencies: [remotePath.slice(4)]},
+    ]), f.expected));
+  }
+});
+
+test('physical loader metadata must match the selected HTTP role', () => {
+  const cases = [
+    ['darwin-arm64', 'remote-http', '@rpath/libcurl.4.dylib', '@rpath/libcurl-model.4.dylib'],
+    ['darwin-arm64', 'model-http', '@rpath/libcurl-model.4.dylib', '@rpath/libcurl.4.dylib'],
+    ['linux-x64-gnu', 'remote-http', 'libcurl.so.4', 'libcurl-model.so.4'],
+    ['linux-x64-gnu', 'model-http', 'libcurl-model.so.4', 'libcurl.so.4'],
+  ];
+  for (const [platform, role, expected, foreign] of cases) {
+    const observe = identity => (tool, args) => {
+      if (tool === 'otool') return inspectFixture(tool, args).replaceAll('/fixture/original-id.dylib', identity);
+      const wire = inspectFixture(tool, args);
+      return args[0] === '-d' ? `${wire} (SONAME) Library soname: [${identity}]\n` : wire;
+    };
+    const allowed = platform === 'darwin-arm64' ? '/usr/lib/libSystem.B.dylib' : 'libc.so.6';
+    assert.deepEqual(inspectLocalLibrary('fixture', platform, new Set(), observe(expected), role).dependencies,
+      [allowed]);
+    assert.throws(() => inspectLocalLibrary('fixture', platform, new Set(), observe(foreign), role),
+      /HTTP (?:install identity|SONAME) differs/u);
+  }
 });

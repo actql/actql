@@ -127,6 +127,8 @@ pub fn checked_local_catalog_selection_remaining(CheckedLocalCatalogSelection) -
 
 pub fn checked_local_dependency_bodies(CheckedProgram, Int, Int, Int, Int, Int) -> Result[Array[(String, CheckedLocalDependencyBody)], LocalDependencyBodyIssue]
 
+pub fn checked_local_dependency_bodies_with_wire_usage(CheckedProgram, Int, Int, Int, Int, Int) -> Result[Array[(String, CheckedLocalDependencyBody, Int, Int, Int)], LocalDependencyBodyIssue]
+
 pub fn checked_local_dependency_body(CheckedProgram, Int, LocalDependencyBodyKind, Int, Int, Int) -> Result[CheckedLocalDependencyBody, LocalDependencyBodyIssue]
 
 pub fn checked_local_dependency_body_cid(CheckedLocalDependencyBody) -> String
@@ -199,6 +201,8 @@ pub fn diagnostic_alternative_at(CheckDiagnostic, Int) -> (@stage_syntax.Format,
 
 pub fn diagnostic_alternative_count(CheckDiagnostic) -> Int
 
+pub fn diagnostic_calendar_requirement(CheckDiagnostic) -> InputRequestKind?
+
 pub fn diagnostic_category(CheckDiagnostic) -> DiagnosticCategory
 
 pub fn diagnostic_cause(CheckDiagnostic) -> LocalConstructionFailure
@@ -240,6 +244,8 @@ pub fn effect_computation_headers(EffectComputationCandidate) -> @stage_syntax.E
 pub fn effect_computation_stage_results(EffectComputationCandidate) -> @stage_results.Checked
 
 pub fn effect_computation_supplied(EffectComputationCandidate) -> @decode_core.Cursor?
+
+pub fn effect_program_common_file_mutation_normalization_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonFileMutationNormalizationInventory, CompletionFreeInventoryIssue]
 
 pub fn effect_program_common_update_completion_free_inventory(EffectProgramStaticCandidate) -> Result[LocalCommonUpdateCompletionFreeInventory, CompletionFreeInventoryIssue]
 
@@ -422,6 +428,10 @@ pub fn keyed_input_proof_execution(KeyedInputProof) -> SourceExecution
 pub fn keyed_input_proof_source(KeyedInputProof) -> UnitOperationSource
 
 pub fn keyed_input_runtime_admission(KeyedInputProof) -> KeyedExecution?
+
+pub fn local_common_file_mutation_normalization_computation(LocalCommonFileMutationNormalizationInventory) -> LocalCommonNormalizationInventory
+
+pub fn local_common_file_mutation_normalization_inventory_matches(LocalCommonFileMutationNormalizationInventory, EffectProgramStaticCandidate) -> Bool
 
 pub fn local_common_normalization_entry_at(LocalCommonNormalizationInventory, Int) -> (String, String, String, String)?
 
@@ -1509,6 +1519,8 @@ pub struct KeyedExecution {
 }
 
 type KeyedInputProof
+
+type LocalCommonFileMutationNormalizationInventory
 
 type LocalCommonNormalizationInventory
 

@@ -9,7 +9,7 @@ import {sourceEnvironmentConstructionGeometry, sourceDeclarationRetainedGeometry
   from './installed-source-construction-geometry.mjs';
 import type {composeInstalledSourceEnvironment as composeEnvironment} from './installed-funded-environment.mjs';
 import type {createInstalledSourceMaterialAccounting} from './installed-source-material-accounting.mjs';
-import type {RowSourceMappingMethod, rowSourceMapping} from './installed-row-source-mapping.mjs';
+import type {RowSourceDeleteMappingMethod, RowSourceMappingMethod, rowSourceMapping} from './installed-row-source-mapping.mjs';
 import type {rowSourceCheckEnvironment} from './installed-row-source-environment.mjs';
 
 type Accounting = ReturnType<typeof createInstalledSourceMaterialAccounting>;
@@ -33,6 +33,7 @@ type Original = Parameters<Accounting['sourceMaterial']>[0] &
   Readonly<{moon: EnvironmentArgs[0] & Parameters<typeof composeEnvironment>[1]; declarationJson: CoreMethod;
     restoreDeclaration?: unknown; restoreAuthoredDeclaration?: unknown;
     prepareMapping?: RowSourceMappingMethod; prepareUpdateMapping?: RowSourceMappingMethod;
+    prepareDeleteMapping?: RowSourceDeleteMappingMethod;
     prepareUpdateMappingCapacity?: CoreMethod;
     current(): void}>;
 type Prepared = Readonly<{
@@ -850,7 +851,7 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
             !Object.isFrozen(writes) || writes.length === 0) fail('InvalidInstalledEffectMappings');
         // Inspect only checked immutable own String DATA before the current/
         // resize boundary. Do not stringify proportional input before backing.
-        let units = 0n;
+        let units = 0n, guarded = true, hasDelete = false;
         const field = (value: unknown, name: string): unknown => {
           if (!value || typeof value !== 'object' || nodeTypes.isProxy(value) || !Object.isFrozen(value)) {
             fail('InvalidInstalledEffectMappings');
@@ -865,10 +866,13 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
               !Object.isFrozen(sources)) fail('InvalidInstalledEffectMappings');
           const operationField = Object.getOwnPropertyDescriptor(write as object, 'operation');
           const operation = operationField === undefined ? 'create' : field(write, 'operation');
-          if (operation !== 'create' && operation !== 'update' ||
-              operation === 'update' && typeof original.prepareUpdateMapping !== 'function') {
+          if (operation !== 'create' && operation !== 'update' && operation !== 'delete' ||
+              operation === 'update' && typeof original.prepareUpdateMapping !== 'function' ||
+              operation === 'delete' && (sources.length !== 0 || typeof original.prepareDeleteMapping !== 'function')) {
             fail('InvalidInstalledEffectMappings');
           }
+          guarded &&= operation !== 'create';
+          hasDelete ||= operation === 'delete';
           units += BigInt(resource.length + operation.length);
           for (let j = 0; j < sources.length; j++) {
             const source = field(sources, String(j));
@@ -879,7 +883,8 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
             }
           }
         }
-        if (writes.every(write => write.operation === 'update')) {
+        if (!guarded && hasDelete) fail('InvalidInstalledEffectMappings');
+        if (guarded) {
           const capacity = original.prepareUpdateMappingCapacity;
           if (typeof capacity !== 'function') fail('InstalledSourceInitializationRuntimeUnavailable');
           scope.mappingsAttempted = true;
@@ -896,6 +901,23 @@ export function createInstalledSourceContextFactory({fail: reject, sourceContext
           const mappings: (MappingCarrier & MappingOutput)[] = [];
           material.inputs.push(mappings);material.nodes += containerNodes;
           for (const write of writes) {
+            if (write.operation === 'delete') {
+              // The guarded construction quantity prices the same original
+              // declaration and closed writes. DELETE has no source fields.
+              const mapping = prepareSourceNativeInput(original, material, Object.freeze({
+                capacity: () => checked(Reflect.apply(capacity, original.moon,
+                  [originalPrepared.declaration, writesJson, write.resource, '[]'])),
+                project() {
+                  const runtime = Object.freeze({clientProgramRowSourcePrepareDeleteMapping: (...args: Parameters<RowSourceDeleteMappingMethod>) =>
+                    Reflect.apply(original.prepareDeleteMapping!, original.moon, args)});
+                  return Object.freeze({resource: write.resource,
+                    ...rowSourceMapping(runtime, originalPrepared.declaration, writesJson, write.resource,
+                      write.sources, 'delete')});
+                },
+              }), inputProjections, validate, retainNativeInput) as MappingCarrier & MappingOutput;
+              mappings.push(mapping);
+              continue;
+            }
             const geometry = installedEnvironmentDataWriterConstructionGeometry(write.sources);
             const sourceWire = prepareSourceNativeInput(original, material, Object.freeze({
               capacity() {

@@ -80,14 +80,13 @@ pub fn NativeLocalSavedEffectApprovalOriginal::ordered_row_original(
 }
 
 ///|
-/// The existing Mock UPDATE request's canonical six-field preimage. Warm and
-/// saved callers share this writer; values are already admitted DATA, not IO
-/// permissions. Its caller backs the writer and returned String before entry.
-pub fn native_local_effect_update_request_wire(
+/// The canonical file request has a value for UPDATE and omits it for DELETE.
+/// Warm and saved callers share the writer and back it before entry.
+pub fn native_local_effect_file_request_wire(
   binding : String,
   mapping : String,
   target : @canonical.CanonicalValue,
-  value : @canonical.CanonicalValue,
+  value : @canonical.CanonicalValue?,
   before : @canonical.CanonicalValue,
   version : String,
   max_bytes : Int,
@@ -96,7 +95,7 @@ pub fn native_local_effect_update_request_wire(
 ) -> Result[String, Unit] {
   try {
     let writer = @encode.writer(max_bytes, max_nodes, max_depth)
-    emit_native_local_effect_update_request(
+    emit_native_local_effect_file_request(
       writer, binding, mapping, target, value, before, version,
     )
     Ok(@encode.finish(writer))
@@ -108,12 +107,12 @@ pub fn native_local_effect_update_request_wire(
 ///|
 // One protocol body for measurement and emission. Original canonical subtrees
 // remain borrowed; measuring cannot issue a request, CID, grant or text body.
-fn emit_native_local_effect_update_request(
+fn emit_native_local_effect_file_request(
   writer : @encode.Writer,
   binding : String,
   mapping : String,
   target : @canonical.CanonicalValue,
-  value : @canonical.CanonicalValue,
+  value : @canonical.CanonicalValue?,
   before : @canonical.CanonicalValue,
   version : String,
 ) -> Unit raise @encode.EncodeFailure {
@@ -126,8 +125,10 @@ fn emit_native_local_effect_update_request(
   @encode.string_value(writer, mapping)
   @encode.key(writer, "target")
   @canonical.emit_value(target, writer)
-  @encode.key(writer, "value")
-  @canonical.emit_value(value, writer)
+  if value is Some(fields) {
+    @encode.key(writer, "value")
+    @canonical.emit_value(fields, writer)
+  }
   @encode.key(writer, "version")
   @encode.string_value(writer, version)
   @encode.end_object(writer)
@@ -422,13 +423,12 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     )
     is Some(@publication.Mapping(_, original_mapping)) &&
     original_mapping == mapping &&
+    @publication.effect_preview_member_kind(original.preview, member_index)
+    is Some(kind) &&
     original.ordered_row_original(member_index, row_ordinal) is Some(row) &&
     @canonical.object_field(row, "target_row_identity") is Some(target) &&
     target is @canonical.String(identity) &&
     @canonical.object_field(row, "intended_changes") is Some(intended) &&
-    @canonical.object_field(intended, "state")
-    is Some(@canonical.String("present")) &&
-    @canonical.object_field(intended, "value") is Some(changes) &&
     @canonical.object_field(row, "before") is Some(before) &&
     @canonical.object_field(before, "state")
     is Some(@canonical.String("present")) &&
@@ -440,12 +440,35 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     is Some(@canonical.String(version)) else {
     return Err(HostAttestationUnavailable)
   }
+  let original_value = @canonical.object_field(intended, "value")
+  match kind {
+    "update" => {
+      guard @canonical.object_field(intended, "state")
+        is Some(@canonical.String("present")) &&
+        original_value is Some(_) else {
+        return Err(HostAttestationUnavailable)
+      }
+    }
+    "delete" => {
+      guard @canonical.object_field_count(intended) == Some(1) &&
+        @canonical.object_field(intended, "state")
+        is Some(@canonical.String("not_applicable")) &&
+        original_value is None &&
+        @canonical.object_field(row, "after") is Some(after) &&
+        @canonical.object_field_count(after) == Some(1) &&
+        @canonical.object_field(after, "state")
+        is Some(@canonical.String("absent")) else {
+        return Err(HostAttestationUnavailable)
+      }
+    }
+    _ => return Err(HostAttestationUnavailable)
+  }
   let limits = request_limits
   // A request adds three structural scalar fields to the admitted data
   // subtrees. Its existing installed request limit is checked by the writer;
   // no separate subtree admission multiplies the accepted JSON limits.
   // Before learning output size, back only the non-text observation frame.
-  // The outer request has six unordered keys; canonical children use ordered
+  // The outer request has at most six keys; canonical children use ordered
   // keys. Each active canonical container retains one rest cursor and at most
   // one pending key/value cursor, bounded by the admitted traversal depth.
   guard limits.max_depth >= 1 &&
@@ -490,8 +513,8 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
       limits.max_nodes,
       limits.max_depth,
     )
-    emit_native_local_effect_update_request(
-      measure, binding, mapping, target, changes, full_before, version,
+    emit_native_local_effect_file_request(
+      measure, binding, mapping, target, original_value, full_before, version,
     )
     @encode.finish_measurement_usage(measure)
   } catch {
@@ -543,11 +566,11 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     return Err(HostAttestationUnavailable)
   }
   let request = match
-    native_local_effect_update_request_wire(
+    native_local_effect_file_request_wire(
       binding,
       mapping,
       target,
-      changes,
+      original_value,
       full_before,
       version,
       limits.max_wire_bytes,
@@ -557,13 +580,17 @@ pub fn NativeLocalEffectResumeOriginal::prepare_application_file_request_in_orig
     Ok(value) => value
     Err(_) => return Err(HostAttestationUnavailable)
   }
-  let changes_wire = @canonical.stringify_value(
-    changes,
-    limits.max_wire_bytes,
-    limits.max_nodes,
-    limits.max_depth,
-  ) catch {
-    _ => return Err(HostAttestationUnavailable)
+  let changes_wire = match original_value {
+    None => ""
+    Some(changes) =>
+      @canonical.stringify_value(
+        changes,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) catch {
+        _ => return Err(HostAttestationUnavailable)
+      }
   }
   let cid = match @sha.text_hex(request) {
     Ok(value) => "sha256:" + value
@@ -635,6 +662,7 @@ pub fn NativeLocalEffectResumeOriginal::record_file_row_receipt_in_original_read
     Err(issue) => return Err(issue)
   }
   guard !self.retired &&
+    !self.settlement_only &&
     physical_equal(dispatch.journal, self.host.journal) &&
     dispatch.request == self.request &&
     self.record.checkpoint is Some(checkpoint) &&

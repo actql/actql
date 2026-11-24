@@ -100,21 +100,23 @@ class CapacityCurrentTests(unittest.TestCase):
 
     def test_attempted_commit_exception_retains_same_store_and_actual_reservation(self):
         store, _, binding, original = self.fixture()
-        # A proxy preserves the actual SQLite COMMIT and then loses its reply.
-        actual = store._connection
-        class LostReply:
-            @property
-            def in_transaction(self): return actual.in_transaction
-            def execute(self, sql, *args):
-                result = actual.execute(sql, *args)
-                if sql == 'COMMIT': raise OSError('independent capacity COMMIT reply lost')
-                return result
-        with patch.object(store, '_connection', LostReply()):
+        physical = store._physical
+        original_commit = type(physical).commit
+        primary = OSError('independent capacity COMMIT reply lost')
+
+        def lose_reply(database):
+            self.assertIs(database, physical)
+            original_commit(database)
+            raise primary
+
+        with patch.object(type(physical), 'commit', new=lose_reply):
             with self.assertRaises(LocalStorageCommitUnknown) as failure:
                 self.reserve(store, binding, original)
         self.assertIs(failure.exception.cleanup_store, store)
+        self.assertIs(failure.exception.__cause__, primary)
+        self.assertFalse(failure.exception.commit_confirmed)
         self.assertEqual(store.read_capacity('publication_payload', original.key).reserved_bytes, 64)
-        self.assertFalse(actual.in_transaction)
+        self.assertFalse(store._connection.in_transaction)
 
 
 if __name__ == '__main__':

@@ -3,6 +3,7 @@ fn saved_payload_record_context(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
+  same_reader_census? : Bool = false,
 ) -> Result[
   (StoredSubmissionProjection, StoredSavedResultRead, StoredRunConfiguration),
   Int,
@@ -19,7 +20,8 @@ fn saved_payload_record_context(
   if value.closing || value.runtime_closing || record.closing {
     return Err(-5)
   }
-  match validate_saved_result_read(value, parent, current) {
+  match
+    validate_saved_result_read(value, parent, current, same_reader_census~) {
     Err(code) => return Err(code)
     Ok(_) => ()
   }
@@ -34,9 +36,15 @@ fn observe_saved_payload_record(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
+  same_reader_census? : Bool = false,
 ) -> Result[@publication.PublicationContract?, Int] {
   let (_, saved, current) = match
-    saved_payload_record_context(value, record, configuration) {
+    saved_payload_record_context(
+      value,
+      record,
+      configuration,
+      same_reader_census~,
+    ) {
     Ok(value) => value
     Err(code) => return Err(code)
   }
@@ -101,12 +109,18 @@ fn saved_payload_record_current(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
+  same_reader_census? : Bool = false,
 ) -> Bool {
   if record.pending {
     return false
   }
   record.pending = true
-  let result = observe_saved_payload_record(value, record, configuration)
+  let result = observe_saved_payload_record(
+    value,
+    record,
+    configuration,
+    same_reader_census~,
+  )
   record.pending = false
   result is Ok(_) && !record.closing
 }
@@ -240,12 +254,18 @@ fn saved_payload_binding(
   value : Instance,
   record : StoredPayloadRecord,
   configuration : Int,
+  same_reader_census? : Bool = false,
 ) -> Result[@publication.PublicationContract, Int] {
   if !record.confirmed || record.pending || record.closing {
     return Err(-32)
   }
   record.pending = true
-  let result = observe_saved_payload_record(value, record, configuration)
+  let result = observe_saved_payload_record(
+    value,
+    record,
+    configuration,
+    same_reader_census~,
+  )
   record.pending = false
   if record.closing {
     return Err(-5)

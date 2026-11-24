@@ -7,6 +7,7 @@ import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {installedSourceEnvironmentConstructionReader, isInstalledSourceInitializationRetired} from './installed-host-services.mjs';
 import {composeAdmittedCheckEnvironmentOriginals} from './installed-check-environment.mjs';
 import type {PublicationBody} from './installed-check-environment.mjs';
+import {admitInstalledCalendar} from './installed-calendar.mjs';
 import {installedEnvironmentParseConstructionGeometry,
   installedEnvironmentDocumentConstructionStages,
   installedEnvironmentCompositionConstructionGeometry} from './installed-check-environment-construction.mjs';
@@ -30,7 +31,7 @@ type CensusFields = [bytes: number, nodes: number, depth: number, fields: number
   members: number, snapshots: number, catalogs: number, manifestEntries: number];
 type GraphAdmission = (raw: SourceValue, ...profile: [...Flags, numericProfileCid: string, graphLawCid: string]) =>
   SourceValue | undefined;
-type EnvironmentRuntime = Readonly<{
+type EnvironmentRuntime = Parameters<typeof admitInstalledCalendar<SourceValue>>[0] & Readonly<{
   clientProgramInstalledSourceConstructionCapacity(retainedNodes: bigint, retainedText: bigint,
     retainedWire: bigint, workspaceNodes: bigint, workspaceText: bigint, workspaceWire: bigint): unknown;
   clientProgramComposeInstalledSourceConstructionCapacity(controls: unknown, providers: readonly unknown[]): unknown;
@@ -177,7 +178,9 @@ export function readInstalledSourceEnvironment(services: object, moon: Environme
 // Task text). Core performs complete canonical/member validation. Every native
 // constructor below borrows its real original from the same funded parse.
 export function readInstalledHostEnvironment(services: object, moon: EnvironmentRuntime, wire: string,
-  {textTime, calendar, numericProfileCid, graphLawCid}: Profiles & Readonly<{calendar: boolean}>) {
+  {textTime, calendar, calendarArtifact, numericProfileCid, graphLawCid}: Profiles & Readonly<{
+    calendar: boolean; calendarArtifact?: Parameters<typeof admitInstalledCalendar<SourceValue>>[2];
+  }>) {
   const reader = installedSourceEnvironmentConstructionReader(services, moon) as ConfigurationReader;
   const owner = owners.get(services);
   if (owner === undefined || owner.failed || owner.busy || owner.reader !== reader) {
@@ -207,12 +210,14 @@ export function readInstalledHostEnvironment(services: object, moon: Environment
       : moon.clientProgramCheckEnvironmentFromWireConstructionCapacity;
     const admit = populated ? moon.clientProgramCheckEnvironmentModelFromWireWithGraphProfile
       : moon.clientProgramCheckEnvironmentFromWireWithGraphProfile;
-    const admitted = construct(() => Reflect.apply(quote, moon, [raw]), () => {
+    const base = construct(() => Reflect.apply(quote, moon, [raw]), () => {
       const value = Reflect.apply(admit, moon, [raw,
         textTime, true, true, true, true, calendar, false, numericProfileCid, graphLawCid]);
       if (value === undefined) fail('InstalledCheckEnvironmentConflict');
       return value;
     });
+    // Keep the selected checker with the same funded original before publication.
+    const admitted = admitInstalledCalendar(moon, base, calendarArtifact, construct, counts.maxFields);
     // This exact raw original and checker remain retained by the parent. No
     // independently reconstructed DTO becomes a publication matcher here.
     return construct(() => checked(moon.clientProgramInstalledSourceConstructionCapacity(

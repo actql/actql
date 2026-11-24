@@ -70,12 +70,16 @@ on:
         description: Also run the macOS native diagnostic job
         type: boolean
         default: false
+      native_shared_remote_linux:
+        description: Qualify shared Remote CLI clients with the verified Linux x64 HTTPS member
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || 'normal' }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.packed_query_evidence_probe && 'evidence-probe' || inputs.performance_matrix && 'performance' || inputs.native_shared_remote_linux && 'linux-shared-remote' || 'normal' }}
   # Keep the active main integration; GitHub retains only the latest pending run.
   # Branch and performance groups cannot cancel normal main integration.
   cancel-in-progress: ${{ !inputs.performance_matrix && github.ref != 'refs/heads/main' }}
@@ -87,7 +91,7 @@ jobs:
   select-targets:
     permissions:
       contents: read
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     outputs:
@@ -229,6 +233,16 @@ jobs:
           cache: npm
       - run: npm ci
         if: ${{ needs.select-targets.outputs.profile == 'documentation' || startsWith(needs.select-targets.outputs.profile, 'draft') }}
+      # Draft runs the Node-only checks below, so a failure there is found before
+      # Ready starts the full run. Checks that need Python, the DuckDB transport or
+      # the Explorer build stay Ready-only.
+      - name: Install pinned MoonBit for Draft checks
+        if: startsWith(needs.select-targets.outputs.profile, 'draft')
+        run: |
+          node scripts/setup-moonbit.mjs
+          toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
+          echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
+          echo "$toolchain/bin" >> "$GITHUB_PATH"
       - name: Test document validation contracts
         if: needs.select-targets.outputs.profile == 'documentation'
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- scripts/document-validation.test.mjs
@@ -242,19 +256,19 @@ jobs:
         if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/source-read-current-control.test.mjs
       - name: Test read-only worktree inventory fixtures
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/worktree-inventory.test.mjs
       - name: Test nonzero execution guards
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/test-execution.test.mjs scripts/js-compiler-binding-generation.test.mjs
       - name: Test bounded local execution and optional hook adapters
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
       - name: Test environment guards
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/moonbit-environment.test.mjs
       - name: Test native SQLite namespace ownership
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/test-native-core.test.mjs scripts/native-query-coverage.test.mjs scripts/native-resident-phase-watchdog.test.mjs scripts/native-resident-function-diagnostic.test.mjs scripts/observation-ack-loss-proxy.test.mjs
       - name: Test preflight admission and latest-revision guard
         if: needs.select-targets.outputs.profile != 'documentation'
@@ -284,7 +298,7 @@ jobs:
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/local-checks.mjs test node --timeout-seconds 120 --kill-grace-seconds 5 -- packages/explorer/*.test.mjs packages/explorer-ui/*.test.mjs
       - name: Test compiler-owned package selection and non-Moon input boundaries
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/ci-moon-test-plan.test.mjs
       - name: Test ordinary operation performance policy oracles
         if: needs.select-targets.outputs.profile != 'documentation'
@@ -302,10 +316,10 @@ jobs:
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
       - name: Test ordinary artifact reuse and controlled performance gate
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/ordinary-operation-packages.test.mjs scripts/packed-provider-ai-sdk.test.mjs scripts/typescript-packaging.test.mjs scripts/typescript-bootstrap.test.mjs
       - name: Test Client CI partition and aggregate requirements
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/native-cli-linux-local-ci.test.mjs scripts/produce-native-cli-linux-local.test.mjs scripts/native-cli-source-free-install.test.mjs scripts/release-test-registry.test.mjs scripts/native-cli-linux-local-recipe.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs
       - name: Test plain-init Native numeric result and refusal oracles
         if: needs.select-targets.outputs.profile != 'documentation'
@@ -314,7 +328,7 @@ jobs:
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node --test scripts/release-policy.test.mjs scripts/release-version-schema.test.mjs scripts/release-set.test.mjs scripts/release-review.test.mjs scripts/release-promotion-review.test.mjs scripts/release-registry.test.mjs scripts/release-stage.test.mjs scripts/release-native-registry.test.mjs scripts/release-native-publish.test.mjs scripts/release-native-latest.test.mjs scripts/release-public-install.test.mjs scripts/release-python-install.test.mjs scripts/release-python-publish.test.mjs scripts/release-python-cold-verifier.test.mjs scripts/release-native-install.test.mjs scripts/release-lanes.test.mjs scripts/release-fixed-source.test.mjs scripts/native-standalone-release.test.mjs scripts/native-cli-version.test.mjs scripts/installed-interface-correspondence.test.mjs
       - name: Test release candidate assembly and public consumer controls
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/node-directory-native-inputs.test.mjs scripts/produce-native-cli-darwin-local.test.mjs scripts/test-package-release-readme.test.mjs scripts/test-native-cli-public-install.test.mjs scripts/release-candidate-ci.test.mjs scripts/release-project-sequences.test.mjs scripts/release-project-node-action.test.mjs scripts/release-project-sequence-install.test.mjs scripts/native-cli-mock-regressions.test.mjs
       - name: Test cross-host Python release preparation without runtime loading
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
@@ -325,7 +339,7 @@ jobs:
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
         run: node scripts/local-checks.mjs test node -- scripts/checkpoint-answer-construction.test.mjs
       - name: Check the Python source-caller CI selection
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node scripts/local-checks.mjs test node -- scripts/python-client-ci.test.mjs
       - name: Install the pinned Python row-schema dependency
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
@@ -343,13 +357,13 @@ jobs:
         if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/native-preparation-originals.test.mjs scripts/native-runtime-bundle-fixture.test.mjs scripts/native-preparation-lanes.test.mjs scripts/native-preparation-resources.test.mjs scripts/native-remote-runtime-isolation.test.mjs scripts/native-core-linux-common.test.mjs scripts/native-http-phases.test.mjs
       - name: Test CI lane coverage and bounded Native phase measurement
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/ci-balanced-lanes.test.mjs scripts/packed-public-query-parts.test.mjs scripts/ci-session-lanes.test.mjs scripts/ci-native-lanes.test.mjs scripts/ci-native-background-groups.test.mjs scripts/native-core-measured-tests.test.mjs
       - name: Test read-only CI evidence reporting
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/ci-evidence.test.mjs
       - name: Test portable dependency inspection and injected violations
-        if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
+        if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/portable-core.test.mjs
       - name: Test dependency isolation scratch ownership
         if: ${{ needs.select-targets.outputs.profile != 'documentation' && (!startsWith(needs.select-targets.outputs.profile, 'draft')) }}
@@ -2284,7 +2298,7 @@ jobs:
         if: ${{ matrix.group == 'query-native' }}
         timeout-minutes: 5
         run: |
-          bash scripts/ci-install-linux-clang.sh
+          bash scripts/ci-install-linux-clang.sh --packed-query-native
           compiler_bin="$RUNNER_TEMP/packed-query-compiler"
           mkdir -m 700 "$compiler_bin"
           ln -s "$(realpath /usr/bin/clang-19)" "$compiler_bin/cc"
@@ -2342,6 +2356,30 @@ jobs:
         if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
         env:
           ACTQL_TEST_PRESERVE_SCRATCH: '1'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
+      - name: Test packed kintone conditional DELETE and original Saved
+        id: packed-kintone-delete
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+          ACTQL_RECORD_APPROVAL_HTTP_CASE: ${{ github.workspace }}/scripts/fixtures/kintone-approval/delete.case.json
+          ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","deleted"]'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
+      - name: Test packed kintone keyed UPSERT present target and original Saved
+        id: packed-kintone-upsert-present
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+          ACTQL_RECORD_APPROVAL_HTTP_CASE: ${{ github.workspace }}/scripts/fixtures/kintone-approval/upsert-present.case.json
+          ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","upserts"]'
+        run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
+      - name: Test packed kintone keyed UPSERT absent target and original Saved
+        id: packed-kintone-upsert-absent
+        if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
+        env:
+          ACTQL_TEST_PRESERVE_SCRATCH: '1'
+          ACTQL_RECORD_APPROVAL_HTTP_CASE: ${{ github.workspace }}/scripts/fixtures/kintone-approval/upsert-absent.case.json
+          ACTQL_RECORD_APPROVAL_RESULT_NAMES: '["main","upserts"]'
         run: node scripts/test-packed-hubspot-source.mjs --ci --kintone-approval
       - name: Test packed Salesforce mock approval and original Saved
         if: ${{ matrix.group == 'connectors' && !cancelled() && steps.client-inputs.outcome == 'success' }}
@@ -2589,14 +2627,16 @@ jobs:
   # Separate positive Local cohort; the Remote/no-runtime regression is independent.
   native-cli-linux-local:
     needs: [select-targets]
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !cancelled() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe &&
+      ((github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux && needs.select-targets.result == 'skipped') ||
+        (!inputs.native_shared_remote_linux && needs.select-targets.result == 'success' && needs.select-targets.outputs.profile == 'full')) }}
     outputs:
       artifact-id: ${{ steps.local_evidence.outputs.artifact-id }}
       artifact-run-id: ${{ github.run_id }}
       artifact-run-attempt: ${{ github.run_attempt }}
       artifact-source-sha: ${{ github.sha }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: ${{ inputs.native_shared_remote_linux && 90 || 75 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2652,8 +2692,33 @@ jobs:
           for name, original in [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]:
               retain_original(original, inputs / name)
           PY
-      - name: Produce normal selected Linux Local artifact
+      - name: Prepare the verified Local HTTPS member
+        timeout-minutes: 25
+        env:
+          SHARED_REMOTE_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux }}
         run: |
+          test "$(uname -m)" = x86_64
+          sudo apt-get install --yes --no-install-recommends gnupg gpgv
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          selected=(--model-resolver --destination "$output/model-http")
+          if [ "$SHARED_REMOTE_LINUX" = true ]; then
+            selected=(--destination "$output/http")
+          fi
+          python3 scripts/prepare-native-resident-http-component.py \
+            --source "$(git rev-parse HEAD)" --target linux-x64 \
+            --clang "$(realpath /usr/bin/clang-19)" --make "$(realpath /usr/bin/make)" \
+            --perl "$(realpath /usr/bin/perl)" --gpg "$(realpath /usr/bin/gpg)" \
+            --gpgv "$(realpath /usr/bin/gpgv)" \
+            --seconds 1200 --tls-jobs 2 "${selected[@]}"
+      - name: Produce normal selected Linux Local artifact
+        env:
+          SHARED_REMOTE_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux }}
+        run: |
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          http_member=(--model-http-preparation "$output/model-http/preparation.json")
+          if [ "$SHARED_REMOTE_LINUX" = true ]; then
+            http_member=(--remote-http-preparation "$output/http/preparation.json")
+          fi
           node scripts/produce-native-cli-linux-local.mjs \
             --source "$(git rev-parse HEAD)" --package-version 0.0.2 \
             --output "$RUNNER_TEMP/native-cli-linux-local/production" \
@@ -2661,7 +2726,7 @@ jobs:
             --sqlite-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/sqlite.zip" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl-dev.deb" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl3t64.deb" \
-            --component-seconds 300 --compile-seconds 1800
+            --component-seconds 300 --compile-seconds 1800 "${http_member[@]}"
       - name: Require Local payload in the selected npm cohort
         id: local_cohort
         run: |
@@ -2678,6 +2743,13 @@ jobs:
             --source "$(git rev-parse HEAD)" --clang "$(realpath /usr/bin/clang-19)" \
             --crypto-producer "$RUNNER_TEMP/native-cli-linux-local/production/crypto/producer.json" \
             --output "$RUNNER_TEMP/native-cli-linux-local/crypto-allocator" --seconds 150
+      - name: Exercise installed shared Remote clients with the matching ordinary packages
+        if: github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux
+        timeout-minutes: 20
+        run: |
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          node scripts/package-release.mjs prepare "$output/node-release" release/0.0.2/node-cohort.json
+          node scripts/test-native-cli-release-install.mjs "$output/release" "$output/node-release" --verified-remote-http
       - name: Retain exact component and Local artifact receipts
         id: local_evidence
         if: always()
@@ -2694,6 +2766,17 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/release/release.json
             ${{ runner.temp }}/native-cli-linux-local/release/actql-0.0.2.tgz
             ${{ runner.temp }}/native-cli-linux-local/release/actql-cli-linux-x64-gnu-0.0.2.tgz
+            ${{ runner.temp }}/native-cli-linux-local/http/preparation.json
+            ${{ runner.temp }}/native-cli-linux-local/http/component/build.json
+            ${{ runner.temp }}/native-cli-linux-local/http/owned-tls/build.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/preparation.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/component/build.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/owned-tls/build.json
+            ${{ runner.temp }}/native-cli-linux-local/release/install-linux-x64-gnu-*.json
+            ${{ runner.temp }}/native-cli-linux-local/node-release/release.json
+            ${{ runner.temp }}/native-cli-linux-local/node-release/*.tgz
+            ${{ runner.temp }}/native-cli-linux-local/node-release/development/packed-client-packages.json
+            ${{ runner.temp }}/native-cli-linux-local/node-release/development/*.tgz
           if-no-files-found: warn
           retention-days: 14
   # Independent installed and Mock consumers share only the fixed producer artifact.
@@ -3083,7 +3166,7 @@ jobs:
             }
           '
   check:
-    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe }}
+    if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && always() && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && !inputs.native_shared_remote_linux }}
     needs: [select-targets, preflight, lint, core, host, client, native-cli-installed, native-cli-linux-local, native-cli-linux-local-installed, native-cli-linux-local-mock, native, spec, session-evidence, session-controls, pipeline-evidence, pipeline-validation, native-macos, python-wheels,
       native-separated-network, workers, connector-addition, duckdb-node, focused-tests, main-performance, health-quick, client-readme-packed]
     runs-on: ubuntu-24.04

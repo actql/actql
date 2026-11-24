@@ -58,6 +58,69 @@ fn begin_program_publication_invocation(
 }
 
 ///|
+/// Adopt the capture issuer's completed Model pair on the already captured
+/// managed Run. Ordinary Values and captured Source use their own issuers.
+pub fn bind_program_model_publication_invocation(
+  owner : ClientInstalledManagedRun,
+  prepared : @publication_host.PreparedClientProgram,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  captured : @strategy.CapturedDAG,
+  observation : @publication.RunEvidenceValue,
+  invocation : @publication.PublicationContract,
+  inputs : Array[String],
+  policy_cid : String,
+) -> Result[Unit, ClientClosedValuesPreparationIssue] {
+  guard owner.source_free_captured is Some(original) &&
+    physical_equal(original, captured) &&
+    owner.captured_preparation is None &&
+    installed_managed_run_compilation_original(owner, prepared)
+    is Some(@publication_host.Tasks(compilation)) &&
+    @publication_host.client_compiled_run_matches_tasks(
+      compiled, prepared, compilation,
+    ) &&
+    @publication_host.prepared_client_acquisition_count(prepared) == 0 &&
+    compilation.serialization is None &&
+    !compilation.infers.is_empty() &&
+    inputs.length() == compilation.infers.length() &&
+    @publication_host.client_compiled_run_infer_observation_policy(compiled) ==
+    Some(policy_cid) &&
+    @publication.source_free_model_invocation_matches(
+      @publication_host.client_compiled_run_template(compiled),
+      observation,
+      invocation,
+      inputs,
+      policy_cid,
+    ) else {
+    return Err(ForeignOriginal)
+  }
+  match
+    begin_program_publication_invocation(owner, prepared, compiled, definition) {
+    Err(issue) => Err(issue)
+    Ok(_) => {
+      owner.publication_definition = Some(definition)
+      owner.publication_invocation = Some(invocation)
+      Ok(())
+    }
+  }
+}
+
+///|
+/// Retire the same semantic aliases after the Native publication child is
+/// done. The original Model still owns the issuer and its independent cleanup.
+pub fn retire_program_model_publication_invocation(
+  owner : ClientInstalledManagedRun,
+  invocation : @publication.PublicationContract,
+) -> Bool {
+  guard owner.publication_invocation is Some(original) &&
+    physical_equal(original, invocation) else {
+    return false
+  }
+  clear_managed_run_publication(owner)
+  true
+}
+
+///|
 /// Bind the original captured inventory to the same adopted Run exactly once.
 /// Immutable evidence DATA cannot replace the checked capture/Plan lineage.
 pub fn issue_program_captured_publication_invocation(

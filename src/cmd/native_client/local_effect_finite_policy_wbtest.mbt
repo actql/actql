@@ -103,6 +103,7 @@ fn effect_finite_cli_host(
     run_policy_profile_file: Some("profile.json"),
     reviewer_file: None,
     initial_host_signing: None,
+    model_http_installation: None,
   }
   let wire = @utf8.decode(
     originals.iter().find_first(pair => pair.0 == "run.json").unwrap().1,

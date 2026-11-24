@@ -619,14 +619,35 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
   ).unwrap()
   // Independent exports of the SAME original Result need distinct physical
   // custody witnesses, but contribute one canonical named Result entry.
+  let candidates = [first_artifact, second_artifact, other_artifact]
+  let funded_slots = Ref((-1, -1, -1))
+  let funded_wire = Ref(None)
   let aliases = @publication_host.issue_client_effect_local_manifest(
     prepared,
     local_invocation,
-    [first_artifact, second_artifact, other_artifact],
+    candidates,
     65536,
     4096,
     32,
+    funding=Some(
+      (
+        fn(results, headers, artifacts) {
+          funded_slots.val = (results, headers, artifacts)
+          true
+        },
+        fn(geometry) {
+          funded_wire.val = Some(geometry)
+          // Changing the caller's collection cannot replace the exact
+          // witnessed artifacts after their validation during wire funding.
+          candidates.clear()
+          true
+        },
+      ),
+    ),
   ).unwrap()
+  assert_eq(funded_slots.val.0, 2)
+  assert_eq(funded_slots.val.2, 3)
+  assert_true(candidates.is_empty())
   let geometry = @publication_host.client_effect_local_manifest_construction_geometry(
     local_invocation,
     [first_artifact, second_artifact, other_artifact],
@@ -644,10 +665,33 @@ test "shared local Artifact issuer rejects foreign Result export ownership" {
       32,
     ).unwrap(),
   )
+  assert_eq(funded_wire.val, Some(geometry))
   assert_eq(
     geometry.bytes,
     @utf8.encode(@publication_host.client_effect_local_manifest_json(aliases)).length(),
   )
+  for refuse_inventory in [true, false] {
+    let measured = Ref(0)
+    let refused = @publication_host.issue_client_effect_local_manifest(
+      prepared,
+      local_invocation,
+      [first_artifact, second_artifact, other_artifact],
+      65536,
+      4096,
+      32,
+      funding=Some(
+        (
+          fn(_, _, _) { !refuse_inventory },
+          fn(shape) {
+            measured.val = shape.bytes
+            shape.bytes <= geometry.bytes - 1
+          },
+        ),
+      ),
+    )
+    assert_true(refused is Err(@publication_host.Encoding))
+    assert_eq(measured.val, if refuse_inventory { 0 } else { geometry.bytes })
+  }
   assert_eq(
     @publication_host.client_effect_local_manifest_cid(aliases),
     @publication_host.client_effect_local_manifest_cid(canonical),

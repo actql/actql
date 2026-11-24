@@ -184,6 +184,17 @@ test('a missing, repeated or non-advancing cursor stops the read', async t => {
   assert.equal(cycle.code, 'GitHubCursorCycle');
   assert.deepEqual(cycle.acceptedPages.map(entry => entry.rows), [1, 1]);
   assert.equal(issueReads(repeated.fixture).length, 2);
+
+  const cursors = ['é', 'e\u0301', 'é'];
+  let sent = 0;
+  const older = await setup(t, {...world(), answer: () => page(cursors[sent++])()});
+  const consumed = [];
+  const longerCycle = await stopOf(older.read({consumePage: (_, page) => consumed.push(page)}));
+  assert.equal(longerCycle.code, 'GitHubCursorCycle');
+  assert.deepEqual(consumed, [1, 2, 3]);
+  assert.deepEqual(longerCycle.acceptedPages.map(entry => entry.rows), [1, 1, 1]);
+  assert.equal(longerCycle.unfetched.after, 'e\u0301');
+  assert.equal(issueReads(older.fixture).length, 3);
 });
 
 test('page and row ceilings, revocation and a lost reply keep the stop', async t => {

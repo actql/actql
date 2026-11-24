@@ -56,8 +56,6 @@ export function coded(code: string, detail?: unknown) {
     : {cause: detail}), {code});
 }
 export const fail: (code: string, detail?: unknown) => never = (code, detail) => { throw coded(code, detail); };
-export const without = (value: object, ...keys: string[]) => Object.fromEntries(
-  Object.entries(value).filter(([key]) => !keys.includes(key)));
 export const hex = (value: BinaryLike) => createHash('sha256').update(value).digest('hex');
 // Captured caller input is opaque data, not an installation identity.
 export const capturedValueWire = (value: unknown) => canonicalValueJson(value, {dataKeys: true});
@@ -116,18 +114,20 @@ export function trustedReviewers(reviewers: readonly ReviewerInput[] | undefined
   }
   const byKey = new Map<string, TrustedReviewer>();
   for (const reviewer of reviewers) {
-    if (!IDENTIFIER.test(reviewer?.keyId ?? '') ||
-        !IDENTIFIER.test(reviewer?.reviewerId ?? '') ||
-        typeof reviewer.principalId !== 'string' || !reviewer.principalId ||
-        byKey.has(reviewer.keyId)) {
+    const keyId = reviewer?.keyId;
+    if (typeof keyId !== 'string' || !IDENTIFIER.test(keyId)) {
       fail('InvalidCheckpointReviewers');
     }
-    byKey.set(reviewer.keyId, Object.freeze({
-      keyId: reviewer.keyId,
-      reviewerId: reviewer.reviewerId,
-      principalId: reviewer.principalId,
-      publicKey: createPublicKey(reviewer.publicKey),
-    }));
+    const reviewerId = reviewer.reviewerId;
+    if (typeof reviewerId !== 'string' || !IDENTIFIER.test(reviewerId)) {
+      fail('InvalidCheckpointReviewers');
+    }
+    const principalId = reviewer.principalId;
+    if (typeof principalId !== 'string' || !principalId || byKey.has(keyId)) {
+      fail('InvalidCheckpointReviewers');
+    }
+    byKey.set(keyId, Object.freeze({keyId, reviewerId, principalId,
+      publicKey: createPublicKey(reviewer.publicKey)}));
   }
   return byKey;
 }

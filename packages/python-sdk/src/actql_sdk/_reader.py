@@ -4,24 +4,7 @@ import inspect
 import uuid
 from . import _wire as wire
 from ._errors import ClientError
-from ._values import Observation, decode_json, snapshot, thaw, wire_bytes
-
-
-def retained_value_bytes(value):
-    nodes = 0
-    def visit(item):
-        nonlocal nodes
-        nodes += 1
-        if type(item) is list:
-            for child in item:
-                visit(child)
-        elif type(item) is dict:
-            for key, child in item.items():
-                nodes += 1
-                visit(key)
-                visit(child)
-    visit(value)
-    return len(wire_bytes(value)) + nodes * 64
+from ._values import Observation, _decode_result_value, snapshot, thaw
 
 
 def tighter(value, maximum):
@@ -225,10 +208,9 @@ class AsyncReader:
                     del buffer[:boundary + 1]
                     if len(raw) > self._limits['row_wire']:
                         raise ClientError('ResultRowWireLimit')
-                    row = decode_json(raw)
+                    row, retained = _decode_result_value(raw)
                     if type(row) is not dict:
                         raise ClientError('InvalidResultFrame')
-                    retained = retained_value_bytes(row)
                     if retained > self._limits['row_retained']:
                         raise ClientError('ResultRowRetainedLimit')
                     value = row

@@ -1,6 +1,7 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
 import type {ControlWork, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {selectInstalledEffectCredentialOperation} from './installed-effect-recipe.mjs';
 import type {InstalledEffectPlanRecipe} from './installed-effect-recipe.mjs';
 
 type MemberRef = Readonly<{kind: string; resource: string}>;
@@ -29,6 +30,7 @@ type CapabilityControls<Member> = Readonly<{
       idempotencyCode: number, reconciliationCode: number): unknown;
   }>;
   ownerOf(member: Member): CapabilityOwner<Member>;
+  recipeOf(member: Member): InstalledEffectPlanRecipe | undefined;
   cid(value: unknown): string; cidPattern: RegExp;
   CAPABILITY_VERSION: string;
   contractCidOf(member: Member): string;
@@ -68,7 +70,7 @@ type TargetControls<Member> = Readonly<{
 }>;
 
 export function createInstalledRowEffectCapability<Member extends MemberRef>({
-  moon, ownerOf, cid, cidPattern, CAPABILITY_VERSION, contractCidOf, installedEffectWriteOperation, fail,
+  moon, ownerOf, recipeOf, cid, cidPattern, CAPABILITY_VERSION, contractCidOf, installedEffectWriteOperation, fail,
 }: CapabilityControls<Member>) {
   const reject: CapabilityControls<Member>['fail'] = fail;
   // The common sealed capability of an installation whose driver issues
@@ -76,6 +78,9 @@ export function createInstalledRowEffectCapability<Member extends MemberRef>({
   const commonCapability = (member: Member, entries: readonly Entry[]) => {
     const {connectorRegistration, connectorRevision, runtimeBundleCid, bindingCid, connection, owned,
       updateWriteSlot} = ownerOf(member);
+    const recipe = member.kind === 'upsert' ? recipeOf(member) : undefined;
+    const absent = selectInstalledEffectCredentialOperation(recipe, 'write', 'absent');
+    const present = selectInstalledEffectCredentialOperation(recipe, 'write', 'present');
     return Object.freeze({
     identity: cid({
       version: CAPABILITY_VERSION,
@@ -85,7 +90,11 @@ export function createInstalledRowEffectCapability<Member extends MemberRef>({
       connection, resource: member.resource,
       ...(member.kind === 'command'
         ? {command_cid: contractCidOf(member)} : {mapping_cid: contractCidOf(member)}),
-      operation: installedEffectWriteOperation(owned, member, updateWriteSlot),
+      ...(absent === undefined ? {operation: installedEffectWriteOperation(owned, member, updateWriteSlot)}
+        : {operations: {
+          absent: recipe!.rowOperations[absent.operationIndex].operation,
+          present: recipe!.rowOperations[present!.operationIndex].operation,
+        }}),
       route: 'single_serial', idempotency: 'unavailable',
       request_cids: entries.map(entry => owned.capabilityRequestCid === undefined
         ? entry.requestCid : owned.capabilityRequestCid(entry.request))}),

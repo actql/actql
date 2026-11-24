@@ -13,10 +13,7 @@ priv struct KeyedProtocolConstruction {
 priv enum KeyedProtocolDependencies {
   NoDependencies
   Unmeasured(Array[@publication.CapturedEffectDependencyBody])
-  Measured(
-    Array[@publication.CapturedEffectDependencyBody],
-    KeyedDependencyMeasuredBodies
-  )
+  Measured(KeyedDependencySerialCompletion)
 }
 
 ///|
@@ -41,14 +38,8 @@ fn[T] keyed_protocol_built(
   contracts? : Array[@publication.PublicationContract] = [],
   evidence? : Array[@publication.RunEvidenceValue] = [],
   texts? : Array[String] = [],
-  dependency_bodies? : Array[@publication.CapturedEffectDependencyBody]? = None,
-  measured_bodies? : KeyedDependencyMeasuredBodies? = None,
+  dependencies? : KeyedProtocolDependencies = NoDependencies,
 ) -> KeyedProtocolBuilt[T] {
-  let dependencies = match (dependency_bodies, measured_bodies) {
-    (Some(bodies), Some(measured)) => Measured(bodies, measured)
-    (Some(bodies), None) => Unmeasured(bodies)
-    (None, _) => NoDependencies
-  }
   { value, contracts, evidence, texts, dependencies, }
 }
 
@@ -67,7 +58,10 @@ fn[T] with_keyed_protocol_construction(
   slots : Int64,
   max_nodes : Int,
   max_depth : Int,
-  build : () -> Result[KeyedProtocolBuilt[T], ClientKeyedRequestIssue],
+  build : (KeyedProtocolConstruction) -> Result[
+    KeyedProtocolBuilt[T],
+    ClientKeyedRequestIssue,
+  ],
   adopt : (T) -> Result[Unit, ClientKeyedRequestIssue],
   extra_controls? : Int64 = 0L,
   copies? : Int = 1,
@@ -87,7 +81,7 @@ fn[T] with_keyed_protocol_construction(
   defer {
     lookup.growing = false
   }
-  let built = build()
+  let built = build(phase)
   let adopted = match built {
     Err(issue) => Err(issue)
     Ok(built) =>

@@ -62,11 +62,15 @@ test(`ordinary installed ${connector} mock reviews, explicitly approves and read
     kintone: ['inquiries', '$id', 'Subject']}[connector];
   if (authored !== undefined || connector !== 'salesforce' && variant === undefined) {
     const expected = authored?.fixture!.expected ?? recordUpdateFixtureState(selection);
-    const rows = (state: Rows) => [state.target, state.control].map(value => ({[idField]: value.id, [field]: value.name}));
-    assert.deepEqual(expected.after.control, expected.before.control, 'The mock control row remains unchanged');
-    assert.equal(expected.after.target.id, expected.before.target.id);
-    assert.deepEqual(initial[connector][resource].rows, rows(expected.before));
-    changed[connector][resource].rows = rows(expected.after);
+    const before = expected.before, after = expected.after;
+    assert(before.target !== null && after.target !== null,
+      'The installed Mock update fixture requires a target in both snapshots');
+    const rows = (target: Rows['target'], control: Rows['control']) =>
+      [target, control].map(value => ({[idField]: value.id, [field]: value.name}));
+    assert.deepEqual(after.control, before.control, 'The mock control row remains unchanged');
+    assert.equal(after.target.id, before.target.id);
+    assert.deepEqual(initial[connector][resource].rows, rows(before.target, before.control));
+    changed[connector][resource].rows = rows(after.target, after.control);
   } else changed[connector][resource].rows[0][field] = selection.nextName;
   const configuration = join(root, 'configuration.json'), prefix = join(root, 'receipt');
   const casePath = 'case.json';

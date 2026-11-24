@@ -5,10 +5,16 @@
     "file": "f-r1-host-primary-reference-declarations.json",
     "sha256": "710c5d09b89e724e9eb953d73b9a70504df75532c14f2c05b7b56ee0948a4d76"
   },
+  "counts": {
+    "modules": 17,
+    "operations": 1185,
+    "exports": 109,
+    "explicitContractGroups": 106
+  },
   "declarations": [
     {
       "module": "adapters/host-node/acquired-effect-computation.mjs",
-      "sha256": "f471c127ef1d4d800eea94908fbc2a21aeeac1c8aaf27f76792547e674241ef4",
+      "sha256": "c874b2aaec0a77d45a39e810b537fd10649040a235573966a8c023a718360710",
       "exports": [
         "acquiredEffectModelGroup",
         "openAcquiredEffectComputation"
@@ -1191,7 +1197,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-model-group.mjs",
-      "sha256": "1241c1b98cf9a9a869620a189d22c14e2b9da5d601bdeda13504f72df9c59a04",
+      "sha256": "bc20b26cda98d84d5cce8c652975ddfc4de9761f09d44947748e293f8f677dbe",
       "exports": [
         "acquiredEffectModelGroup",
         "selectRestoredKeyedSource"
@@ -2688,7 +2694,7 @@
     },
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
-      "sha256": "283a33719e43444b6374bfd89b2787c64d217e113d14f4204c67b6ba06d155f9",
+      "sha256": "7a2712e307441668877ff18507ab77b065a6c45e536b0cfb183c9e073c8ea0f4",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -4788,7 +4794,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d95863e2caefabd6e92e7693912f03a3e15d3413b907970039e76f8807709239",
+      "sha256": "57a70773a1dc5c78bb7d7dcb259997cbb29b5e360491122c0b8bab90ae9f09e5",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -6458,7 +6464,7 @@
     },
     {
       "module": "adapters/host-node/effect-command-key.mjs",
-      "sha256": "aaab7bedc83c35a58871e4ee94265e0892216308782384553aa8a3b6bbcbbf89",
+      "sha256": "89c3e8ae9a4ee1795f22f75c7065fb39a99e68cdf85a7db22f0161af7f0ffe27",
       "exports": [
         "advanceEffectCommandKey",
         "retireEffectCommandKeyWorkspace"
@@ -7564,7 +7570,7 @@
     },
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
-      "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
+      "sha256": "396dd39c702603f623ddce0843e9a84dee8864f462c9b773474c2af00a137f39",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -9605,17 +9611,17 @@
         {
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareSubmit/prepareSubmit/prepareSubmit",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#6",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/result/result#2",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
+            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
             "openPreparedInstalledHost/preparation/init:restoreManagedModelOriginal/init:restoreManagedModelOriginal",
             "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput",
             "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent#7",
-            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand",
-            "openPreparedInstalledHost/preparation/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand/init:prepareManagedSerializationOutputDemand"
+            "openPreparedInstalledHost/preparation/init:retainModelRecoveryInput/init:retainModelRecoveryInput/pending/pending"
           ],
           "exports": [],
           "attributes": {
@@ -12381,15 +12387,15 @@
         },
         {
           "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
+            "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
             "openPreparedInstalledHost/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
             "openPreparedInstalledHost/preparation/init:effectManagedRun/init:effectManagedRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
-            "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
           ],
           "exports": [],
           "attributes": {
@@ -14235,8 +14241,8 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection/prepareInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent"
           ],
@@ -17727,8 +17733,8 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/outcome/outcome",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#3",
             "openPreparedInstalledHost/preparation/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome"
           ],
           "exports": [],
@@ -17879,10 +17885,10 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/heldSubmission/heldSubmission/heldSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
+            "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending",
-            "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan"
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending"
           ],
           "exports": [],
           "attributes": {
@@ -18177,6 +18183,7 @@
         {
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#7",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor/originalInferRun/originalInferRun",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
             "openInstalledHost/mockEffectResources/init:limits/init:limits",
@@ -18184,6 +18191,7 @@
             "openInstalledHost/openInstalledHost#8",
             "openInstalledHost/openInstalledHost#9",
             "openPreparedInstalledHost/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
+            "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal",
             "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects",
             "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
             "openPreparedInstalledHost/preparation/init:managedModelSourceCoordinates/init:managedModelSourceCoordinates",
@@ -18198,9 +18206,7 @@
             "readHostEffectResultPublicationRunRequirements",
             "readSourceManagedEffectRunRequirements",
             "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned",
-            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2",
-            "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor/originalInferRun/originalInferRun"
+            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2"
           ],
           "exports": [
             "readHostEffectResultPublicationRunRequirements",
@@ -18853,9 +18859,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/settled/settled",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
@@ -20345,6 +20349,9 @@
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/adopted/adopted",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
+            "prepareRequestMockModelPlan/nodePhysicalGroup/nodePhysicalGroup",
+            "prepareRequestMockModelPlan/planArguments/planArguments",
+            "prepareRequestMockModelPlan/planArguments/planArguments#2",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#10",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#11",
@@ -20362,10 +20369,7 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
             "prepareRequestMockModelPlan/whole/whole",
             "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget",
-            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2",
-            "prepareRequestMockModelPlan/nodePhysicalGroup/nodePhysicalGroup",
-            "prepareRequestMockModelPlan/planArguments/planArguments",
-            "prepareRequestMockModelPlan/planArguments/planArguments#2"
+            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2"
           ],
           "exports": [],
           "attributes": {
@@ -20838,8 +20842,8 @@
         {
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
-            "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/original/original"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/original/original",
+            "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -27211,7 +27215,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": ".clientLocalPreparationResourceLimits(moon!.clientLocalResourcePolicyOriginal() as Parameters<typeof localResourceLookupExecutionPolicy>[1])"
+                "anchor": "const planning = ((moon! as Parameters<typeof localResourceLookupExecutionPolicy>[0])"
               }
             ],
             "extension": [
@@ -29117,22 +29121,8 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
-          "parameters": [
-            "error"
-          ],
           "async": false
         },
         {
@@ -31384,6 +31374,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -31435,7 +31426,7 @@
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
-        "./embedded-local-lifecycle.mts",
+        "./embedded-local-lifecycle.mjs",
         "./entry.mjs",
         "./host-result-service-recipe.cjs",
         "./host-root-format.mjs",
@@ -31455,7 +31446,7 @@
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mts",
+        "./installed-host-cleanup.mjs",
         "./installed-host-policy.mjs",
         "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
@@ -31474,7 +31465,7 @@
         "./local-checkpoint-answer.mjs",
         "./local-continuation-evidence.mjs",
         "./local-files-native.mjs",
-        "./local-preparation-registry.mts",
+        "./local-preparation-registry.mjs",
         "./local-result-authorization.mjs",
         "./local-result-read-workspace.mjs",
         "./local-values-plan.mjs",
@@ -31502,15 +31493,13 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
-      "sha256": "61805d7e15ca221366d5f0d323642cb0b7e01d7ca75ddce2b776229857ff8f31"
+      "unresolvedSyntax": [],
+      "sha256": "a4eb685481991b348fa1d6b241f779a21b572da7bb5abf769b588ec94a37df5d"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "primary",
       "contracts": [
         {
@@ -31698,7 +31687,7 @@
     },
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
-      "sha256": "b913c09775d86a4fcd10ad55b7c64206003bd09bcee4671c243d59113c8539c3",
+      "sha256": "8f5add70e05ad3b160c076e5797277a5fbaf6f38686dd85709e82168b598a41e",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -37587,7 +37576,7 @@
     },
     {
       "module": "adapters/host-node/original-query-preparation.mjs",
-      "sha256": "4db9380c7369339c5dd04ffd2775f73dc60333dc915aad04b3e227898a4bb420",
+      "sha256": "c8f49bb3fa7d3a2a9bf0cb47063f94df13febb6ad5bf4854774ac418edaef96d",
       "exports": [
         "prepareOriginalSourceQuery"
       ],
@@ -38145,7 +38134,7 @@
     },
     {
       "module": "adapters/local-node/retained-output.mjs",
-      "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
+      "sha256": "bb3877d834e65a9f1466bfa021b130dacbde775ca41f367f0ae4d0a6c8b878bd",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -38390,7 +38379,7 @@
     },
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
-      "sha256": "05962bafa159d559e9c17b5a0fa2fd7ba55d0d46ccccd64659abff2566400990",
+      "sha256": "fd27b385a119304bfb2c52d7b4e3a3c2314f99882763380aa6bd3d2d540a9e4d",
       "exports": [
         "prepareAcquiredEffectKeyedCapture",
         "prepareAcquiredEffectKeyedPrefix"
@@ -38818,7 +38807,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-configuration.mjs",
-      "sha256": "3cc8d83fcf975e586e8682d7f2ed244eef896552e49b74924fd13282c029d529",
+      "sha256": "95b85917025ec302b0f33703a6c45f688e94aaed849cbdf8240d00b263f5def1",
       "exports": [
         "installConfiguredModelProviders"
       ],
@@ -39672,11 +39661,5 @@
       ],
       "referenceQualification": "Source responsibility and focused component coverage; normal package, public Run and live OpenAI acceptance remain separate"
     }
-  ],
-  "counts": {
-    "modules": 17,
-    "operations": 1187,
-    "exports": 109,
-    "explicitContractGroups": 106
-  }
+  ]
 }

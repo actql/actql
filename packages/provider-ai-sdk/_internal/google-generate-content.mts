@@ -48,3 +48,17 @@ export function readReportedUsage(body: unknown) {
   return {inputTokens: reportedTotal(usage.promptTokenCount, usage.toolUsePromptTokenCount),
     outputTokens: reportedTotal(usage.candidatesTokenCount, usage.thoughtsTokenCount)};
 }
+
+export function readReportedResponse(body: unknown) {
+  if (body === null || typeof body !== 'object') return undefined;
+  const reported = body as {
+    candidates?: {finishReason?: unknown}[]; promptFeedback?: {blockReason?: unknown};
+    modelVersion?: unknown; responseId?: unknown;
+  };
+  const finish = Array.isArray(reported.candidates) && reported.candidates.length === 1
+    ? reported.candidates[0]?.finishReason : undefined;
+  const blocked = reported.promptFeedback?.blockReason;
+  return {model: reported.modelVersion, requestId: reported.responseId, finishReason: finish ?? blocked,
+    outcome: finish === 'SAFETY' || typeof blocked === 'string' && blocked !== 'BLOCK_REASON_UNSPECIFIED'
+      ? 'refusal' : undefined};
+}

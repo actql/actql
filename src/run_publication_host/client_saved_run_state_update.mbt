@@ -9,7 +9,7 @@ pub struct ClientSavedRunStateUpdate {
   prior_body : Bytes
   revision : Int64
   body : Bytes
-  state : ClientRunStateOriginal
+  state_wire : String
 }
 
 ///|
@@ -88,11 +88,17 @@ fn prepare_client_run_state_update_body(
     Err(_) => return Err(ForeignRun)
   }
   let prior = match (prior_key, snapshot.record.run_state_original) {
-    (None, None) if revision == 0L => None
+    (None, None) if revision == 0L => {
+      guard snapshot.state_original is None else {
+        return Err(OriginalUnavailable)
+      }
+      None
+    }
     (Some(key), Some(wire)) => {
-      let state = match restore_client_run_state_original(definition, wire) {
-        Ok(value) => value
-        Err(issue) => return Err(State(issue))
+      // The snapshot reader has already authenticated and restored this exact
+      // state under its checked Definition. Keep that backing through CAS.
+      guard snapshot.state_original is Some(state) && state.wire() == wire else {
+        return Err(OriginalUnavailable)
       }
       let observation = match
         @publication.prepare_run_state_observation(
@@ -146,7 +152,7 @@ fn prepare_client_run_state_update_body(
       prior_body: snapshot.submission.body,
       revision: snapshot.submission.revision,
       body: snapshot.submission.body,
-      state,
+      state_wire: state.state_wire(),
     })
   }
   if snapshot.submission.revision == 9223372036854775807L {
@@ -194,7 +200,7 @@ fn prepare_client_run_state_update_body(
     prior_body: snapshot.submission.body,
     revision: snapshot.submission.revision + 1L,
     body,
-    state,
+    state_wire: state.state_wire(),
   })
 }
 
@@ -210,7 +216,7 @@ pub fn client_saved_run_state_update_row(
 pub fn client_saved_run_state_update_candidate_wire(
   update : ClientSavedRunStateUpdate,
 ) -> String {
-  update.state.state_wire()
+  update.state_wire
 }
 
 ///|
@@ -258,5 +264,5 @@ pub fn confirm_client_saved_run_state_update(
     snapshot.submission.body != update.body {
     return Err(OriginalUnavailable)
   }
-  Ok(update.state.state_wire())
+  Ok(update.state_wire)
 }

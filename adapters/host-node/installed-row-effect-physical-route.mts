@@ -2,6 +2,7 @@ import {invokeDeclaredRowUpdate} from '../host-common/owned-invocation-context.m
 import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
 
 import type {ControlWork, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
+import {selectInstalledEffectWriteBranch} from './installed-effect-recipe.mjs';
 import type {InstalledEffectPlanRecipe} from './installed-effect-recipe.mjs';
 import type {openEffectLedger} from './effect-ledger.mjs';
 import type {EffectDispatchClaim} from './effect-physical-dispatch.mjs';
@@ -17,7 +18,7 @@ type MemberRef = Readonly<{resource: string; memberIndex: number}> & (
   | Readonly<{kind: 'create' | 'update' | 'upsert' | 'delete'; mapping: Readonly<{approval?: string}>}>);
 type Entry = Readonly<{request: unknown; requestCid: string; value?: unknown; target: unknown}>;
 type PreviewRow = Readonly<{
-  row_preview_cid: string; before: Readonly<{state: string}>;
+  row_preview_cid: string; before: Readonly<{state: string}>; target_guard?: Readonly<{state: string}>;
   target_row_identity?: unknown; intended_changes?: Readonly<{value?: unknown}>; after?: Readonly<{value?: unknown}>;
 }>;
 type ObservedPreflight = Readonly<{observedRows: readonly string[]}>;
@@ -79,6 +80,7 @@ type RouteControls<Member extends MemberRef> = Readonly<{
   ownerOf(member: Member): Owner;
   fail(code: string, cause?: unknown): never;
   guarded(kind: Member['kind']): boolean;
+  permissionsOf(member: Member): readonly string[];
   decideTargetRead: ReadAuthorization<Member>;
   resourceFields(member: Member): Readonly<{runOriginal?: object}>;
   readDecision: ReturnType<typeof createInstalledRowEffectReadDecision<Member>>;
@@ -90,7 +92,7 @@ type RouteControls<Member extends MemberRef> = Readonly<{
 export function createInstalledRowEffectPhysicalRoute<Member extends MemberRef>({
   recipeOf, ownerOf, fail, guarded, decideTargetRead, describeMember, resourceFields, checkRows,
   observeRows, admitCapability, routeOf, readDecision, commitDecisions, requireApproval, scopeKey,
-  admitRow, installedEffectWriteOperation, projectOwnedResponse, settle,
+  admitRow, installedEffectWriteOperation, permissionsOf, projectOwnedResponse, settle,
 }: RouteControls<Member>) {
   const reject: RouteControls<Member>['fail'] = fail;
   // Current use and physical dispatch over one set of members. `entries`
@@ -274,13 +276,19 @@ export function createInstalledRowEffectPhysicalRoute<Member extends MemberRef>(
           const managedPlanRecipe = recipeOf(member);
           signal?.throwIfAborted();
           requireApproval(member, commits.get(scopeKey(member)));
-          const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
-            claim, member, entry,
-            previewRow: previewRows![memberIndex][sourceIndex!]});
+          const previewRow = previewRows![memberIndex][sourceIndex!];
+          const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex, claim, member, entry, previewRow});
           await owned.recheckRequests?.({member, entries: [entry],
             current: now[memberIndex], controlConstruction, ...resourceFields(member)});
           assertCurrent?.();
-          const grantFacts = {operation: installedEffectWriteOperation(owned, member, updateWriteSlot) as string,
+          const branch = member.kind === 'upsert'
+            ? selectInstalledEffectWriteBranch(managedPlanRecipe, member.kind, previewRow) : undefined;
+          const operation = branch === undefined ? installedEffectWriteOperation(owned, member, updateWriteSlot) as string
+            : managedPlanRecipe!.rowOperations[branch.operationIndex].operation;
+          if (branch !== undefined && !permissionsOf(member).includes(operation)) {
+            reject('InstalledEffectPhysicalPlanUnavailable');
+          }
+          const grantFacts = {operation,
             decision: commits.get(scopeKey(member)), resource: member.resource,
             runInvocationCid, dispatchRequestCid: dispatches[memberIndex], subjectCid};
           const grantConstructor = managedPlanRecipe?.grantConstruction;
@@ -297,7 +305,7 @@ export function createInstalledRowEffectPhysicalRoute<Member extends MemberRef>(
               if (managedPlanRecipe?.physicalWrite !== undefined) {
                 if (typeof physicalOperations !== 'function') reject('InstalledEffectPhysicalPlanUnavailable');
                 return physicalOperations({member, rowIndex: sourceIndex!, phase: 'write',
-                  operation: installedEffectWriteOperation(owned, member, updateWriteSlot) as string, assertCurrent: assertClaimedCurrent, signal,
+                  operation, assertCurrent: assertClaimedCurrent, signal,
                   invoke: (physicalOperation: unknown) => owned.send({member, request: entry.request, current: now[memberIndex],
                     authorization: {...grant, useId}, credential: site.credential, signal, physicalOperation,
                     ...resourceFields(member)})}) as Awaitable<Physical>;
@@ -305,7 +313,8 @@ export function createInstalledRowEffectPhysicalRoute<Member extends MemberRef>(
               if (managedPlanRecipe?.credentialOperations !== undefined) {
                 if (typeof physicalOperations !== 'function') reject('InstalledEffectPhysicalPlanUnavailable');
                 const send = () => physicalOperations({member, rowIndex: sourceIndex!, phase: 'write',
-                  operation: installedEffectWriteOperation(owned, member, updateWriteSlot) as string, site, originalAuthorization: grant, useId,
+                  operation, site, originalAuthorization: grant, useId,
+                  ...(branch === undefined ? {} : {credentialSlot: branch.slot}),
                   resource: member.resource, purpose: 'effect', runInvocationCid,
                   dispatchRequestCid: dispatches[memberIndex], assertCurrent: assertClaimedCurrent, signal,
                   invoke: ({authorization, credential, callResource}: CredentialInvocation) => {

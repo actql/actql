@@ -141,7 +141,7 @@ test "backed Request failed constructor retains same input capacity and physical
   report_imported_child_ledger(frame).unwrap()
   retire_backed_execution_live_child_after_owner_ack(access, input).unwrap()
   cleanup_backed_preparation_admission(initial).unwrap()
-  assert_true(initial.initial.cleaned)
+  assert_true(initial.initial.cleanup_phase is InputAliasRetired)
   assert_eq(ledger_usage(parent), before)
 }
 
@@ -497,13 +497,14 @@ test "backed prepared operation retains same control and constructor until actua
     3L,
   ).unwrap()
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 4L)
-  complete_prepared_run_operation_construction(
+  let remaining_execution = complete_prepared_run_operation_construction(
     admission,
     body,
     ledger,
     () => (Ok(()) : Result[Unit, Unit]),
     Construction(construction),
   ).unwrap()
+  assert_eq(remaining_execution, 2L)
   // Completion returns only the original scratch, not the retained output.
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 7L)
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 3L)

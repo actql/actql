@@ -123,7 +123,7 @@ pub fn cleanup_observation_issuance(ObservationIssuance) -> Result[Bool, Issue]
 
 pub fn completed(Poll) -> @execution_relation.CompletedOutput?
 
-pub fn composed_local_provider(@run_publication_host.ClientInferOccurrence, Limits, (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, boundary_only? : Bool, input_prefix? : @execution_relation.GeneratedSequence?, host_await_io? : Bool) -> @local.ManagedProvider
+pub fn composed_local_provider(@run_publication_host.ClientInferOccurrence, Limits, (Array[@local.ManagedProviderInput]) -> Result[Execution, Issue], (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, boundary_only? : Bool, input_prefix? : @execution_relation.GeneratedSequence?, host_await_io? : Bool, original_step? : ((Execution) -> Result[Unit, @connector_sdk.FixedComputeIssue], (Execution, Bool) -> Result[Unit, @connector_sdk.FixedComputeIssue])?) -> @local.ManagedProvider
 
 pub fn consume_original_model_resource_invalidation(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> Result[Unit, Issue]
 
@@ -165,13 +165,13 @@ pub fn invocation_evidence(Execution, Int) -> @run_publication.RunEvidenceValue?
 
 pub fn issue_invocation_binding_original_model_observation(InvocationBinding, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> LocalModelObservation?
 
-pub fn issue_original_local_model_acquired_evidence(LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int, imports? : @run_publication_host.ClientEffectImportedEvidence?, source_originals? : Array[@run_publication_host.ClientEffectAcquiredEvidence]) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
+pub fn issue_original_local_model_acquired_evidence(LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int, imports? : @run_publication_host.ClientEffectImportedEvidence?, source_originals? : Array[@run_publication_host.ClientEffectAcquiredEvidence], before_body? : ((String, @encode_core.EncodingConstructionGeometry) -> Bool)?) -> Result[@run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
 pub fn issue_original_local_model_direct_source_evidence(LocalModelObservation, @run_publication.PublicationContract, Int, Int, Int) -> Result[(@run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectAcquiredEvidence]), @run_publication_host.ClientEffectAcquiredEvidenceIssue]
 
-pub fn issue_original_local_model_effect_artifact(LocalModelObservation, @run_publication_host.ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
+pub fn issue_original_local_model_effect_artifact(LocalModelObservation, @run_publication_host.ClientEffectRunMaterials, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int, funding? : @run_publication_host.ClientEffectModelArtifactFunding?) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
-pub fn issue_original_local_model_effect_artifact_with_context(LocalModelObservation, @run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
+pub fn issue_original_local_model_effect_artifact_with_context(LocalModelObservation, @run_publication_host.PreparedClientEffectComputation, @physical_strategy_host.CapturedEffectInputs, @physical_strategy_host.CapturedEffectLocalResultExport, @run_publication_host.ClientEffectModelAcquiredEvidence, @run_publication_host.ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int, funding? : @run_publication_host.ClientEffectModelArtifactFunding?) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, @run_publication_host.ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_original_local_model_effect_invocation(LocalModelObservation, Int, Int, Int) -> @run_publication_host.ClientEffectLocalInvocation?
 
@@ -189,7 +189,7 @@ pub fn issued_slot_capture(Execution, Int) -> Result[@run_publication.RunEvidenc
 
 pub fn keyed_root_capacity(@run_publication_host.ClientInferOccurrence, @execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?, Limits) -> @execution_relation.ExecutionCapacity?
 
-pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, host_await_io? : Bool) -> Result[@local.ManagedProviderExecution, Issue]
+pub fn local_component(Execution, (Issue) -> @connector_sdk.FixedComputeIssue, retain_completed? : (Execution) -> Bool, allow_cleanup? : (Execution) -> Bool, host_await_io? : Bool, original_step? : ((Execution) -> Result[Unit, @connector_sdk.FixedComputeIssue], (Execution, Bool) -> Result[Unit, @connector_sdk.FixedComputeIssue])?) -> Result[@local.ManagedProviderExecution, Issue]
 
 pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 
@@ -238,6 +238,10 @@ pub fn original_model_resource_park_current(Execution, @run_publication_host.Cli
 pub fn original_model_unparked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, Int64, Int64) -> Bool
 
 pub fn original_observation_issuance_metadata_bytes(Execution, ObservationIssuanceLimits) -> Int64?
+
+pub fn original_source_free_model_observation_requirements(Array[Execution], Array[@run_publication_host.ClientInferPlanGraph]) -> (ObservationIssuanceLimits, Int64)?
+
+pub fn original_source_free_model_publication_inputs(ObservationIssuance, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract) -> (Array[String], Array[@run_publication.RunEvidenceValue])?
 
 pub fn output(OutputUse) -> @execution_relation.CompletedOutput?
 

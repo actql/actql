@@ -5,6 +5,7 @@ import asyncio
 from collections.abc import Mapping
 from hashlib import sha256
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -186,13 +187,15 @@ async def prepare_original(state_dir, report_wait_failure=None, *,
     query = "SELECT '" + values[0] + "' AS s"
     async with await AsyncClient.open(state_dir=state_dir) as creator:
         if cancellation_records is not None:
-            # Both history levels have the same number of Runs. The extra
-            # original comes from the public AlreadyTerminal cancellation.
+            # History levels have the same number of Runs. Additional records
+            # come from public AlreadyTerminal cancellations.
+            assert cancellation_records in (0, 1, 10)
             control = await creator.start_source('SELECT 1 AS n', format='sql',
                                                  submission_ref=creator.new_submission())
             state = plain(await control.wait())
             assert state['status'] == 'succeeded'
-            if cancellation_records == 1:
+            cancellations = []
+            for _ in range(cancellation_records):
                 revision = original_terminal_revision(creator)
                 observed = plain(await control.cancel(expected_revision=revision))
                 original = observed['cancellation']
@@ -201,8 +204,8 @@ async def prepare_original(state_dir, report_wait_failure=None, *,
                 assert plain(await control.lookup_cancellation(original['cancelRef'])) == {
                     'kind': 'found', 'cancellation': original}
                 assert plain(await control.status()) == state
-            else:
-                assert cancellation_records == 0
+                assert original['cancelRef'] not in cancellations
+                cancellations.append(original['cancelRef'])
         submission = creator.new_submission()
         execution = await creator.start_source(query, format='sql', submission_ref=submission)
         try:
@@ -218,7 +221,7 @@ async def prepare_original(state_dir, report_wait_failure=None, *,
     return reference, expected, delivered_wire
 
 
-async def exercise(state_dir):
+async def exercise(state_dir, **identity):
     reference, expected, delivered_wire = await prepare_original(state_dir)
     physical_wire = json.dumps(expected, separators=(',', ':')).encode()
     physical_digest = sha256(physical_wire).hexdigest()
@@ -256,16 +259,17 @@ async def exercise(state_dir):
             assert plain(await original.status()) == state
             successful.append({'turns': beats, 'core_turns': core_turns})
         assert len(attempts) == 4
-    print(json.dumps({'core_cancellation': controls['core'], 'hash_cancellation': controls['hash'],
+    print(json.dumps({**identity, 'core_cancellation': controls['core'],
+                      'hash_cancellation': controls['hash'],
                       'successful_reads': successful, 'rows': len(expected), 'bytes': len(delivered_wire),
                       'sha256': delivered_digest, 'physical_bytes': len(physical_wire),
                       'physical_sha256': physical_digest, 'first_close': True}))
 
 
-async def measure_history(destination, levels):
+async def measure_history(destination, levels, *, chunk_counts=(1, 2)):
     destination.mkdir(mode=0o700)
     for cancellation_records in levels:
-        for chunk_count in (1, 2):
+        for chunk_count in chunk_counts:
             # The one-row canonical array has ten framing bytes. A single
             # extra byte changes the physical read from one chunk to two.
             state_dir = destination / f'c{cancellation_records}-k{chunk_count}'
@@ -300,9 +304,68 @@ async def measure_history(destination, levels):
                               'first_close': True}), flush=True)
 
 
+def installed_identity(source):
+    import actql
+    from actql_sdk._local_distribution import installed_local_components
+    if not Path(actql.__file__).is_relative_to(Path(sys.prefix)):
+        raise ValueError('Installed public facade required')
+    original = installed_local_components()
+    if original.source_sha != source:
+        raise ValueError('Foreign installed Saved fixture source')
+    return {'source': original.source_sha, 'module': original.module_sha256,
+            'image': original.image_sha256, 'pid': os.getpid()}
+
+
+async def warm_interruption(directory, identity):
+    state_dir = directory / 'fresh-public-state' / '.actql'
+    state_dir.parent.mkdir()
+    reference, _, _ = await prepare_original(state_dir, value_size=1)
+    with (directory / 'fresh-original-reference.json').open('x') as receipt:
+        json.dump({'stateDir': str(state_dir), 'warmPID': identity['pid'],
+                   'reference': reference, 'resultName': 'answer'}, receipt)
+    print(json.dumps({**identity, 'phase': 'warm', 'first_close': True}))
+
+
+async def recover_interrupted(directory, identity):
+    original = json.loads((directory / 'fresh-original-reference.json').read_text())
+    state_dir = directory / 'fresh-public-state' / '.actql'
+    assert original['stateDir'] == str(state_dir) and original['warmPID'] != identity['pid']
+    assert state_dir.is_dir() and original['resultName'] == 'answer'
+    async with await AsyncClient.open(state_dir=state_dir) as client:
+        run = await client.attach(original['reference'])
+        assert plain(run.ref) == original['reference']
+        assert (await run.status())['status'] == 'succeeded'
+        result = run.result('answer')
+        async with result.rows() as reader:
+            assert [row async for row in reader] == [{'s': 'x'}]
+        receipt = plain(await reader.delivery_attempt())
+        proof = receipt['hostReleaseReceipt']
+        assert receipt['kind'] == 'found' and receipt['record']['state'] == 'succeeded'
+        assert receipt['attempt']['attempt_id'] == reader.attempt_id
+        assert proof['run_definition_cid'] == original['reference']['runDefinitionCid']
+        expected = b'{"s":"x"}\n'
+        assert proof['delivered_byte_count'] == len(expected)
+        assert proof['delivered_sha256'] == sha256(expected).hexdigest()
+    print(json.dumps({**identity, 'phase': 'recover', 'same_saved': True,
+                      'replayed': False, 'first_close': True,
+                      'bytes': len(expected), 'sha256': sha256(expected).hexdigest()}))
+
+
 if __name__ == '__main__':
+    state_dir = Path(sys.argv[1]).resolve()
     if len(sys.argv) == 3 and sys.argv[2] in ('--measure-history', '--measure-nonempty-history'):
         levels = (1,) if sys.argv[2] == '--measure-nonempty-history' else (0, 1)
-        asyncio.run(measure_history(Path(sys.argv[1]), levels))
+        asyncio.run(measure_history(state_dir, levels))
+    elif len(sys.argv) == 4 and sys.argv[2] in (
+            '--installed-continuation', '--warm-interruption', '--recover-interruption'):
+        identity = installed_identity(sys.argv[3])
+        if sys.argv[2] == '--installed-continuation':
+            asyncio.run(exercise(state_dir, **identity))
+        elif sys.argv[2] == '--warm-interruption':
+            asyncio.run(warm_interruption(state_dir, identity))
+        else:
+            asyncio.run(recover_interrupted(state_dir, identity))
+    elif len(sys.argv) == 2:
+        asyncio.run(exercise(state_dir))
     else:
-        asyncio.run(exercise(Path(sys.argv[1])))
+        raise ValueError('Select one Saved fixture mode and its state')

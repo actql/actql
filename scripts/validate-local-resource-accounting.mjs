@@ -51,9 +51,9 @@ export function validateResourceAccounting({
   const outputSource = reclamationSource('src/execution_relation/admitted_output.mbt');
   const countedOutput = /fn reclaim_bounded_admitted_output_counted\([\s\S]*?(?=\n\/\/\/\||$)/u
     .exec(outputSource)?.[0] ?? '';
-  // Cross Join and selected rows count removals for cleanup continuation. The
-  // completion Bool still comes from the same accepted-aware buffer owner;
-  // a positive removal count is not completion or reclamation acknowledgement.
+  // These kernels count removals so cleanup can report progress while the
+  // same accepted-aware buffer owner still determines completion.
+  const countedReclamationKernels = ['cross_join', 'binding_rows', 'unnest'];
   const countedOutputConnected = /if accepted\s*\{\s*return \(true, 0\)\s*\}/u.test(countedOutput) &&
     countedOutput.includes('if !output.buffer.open && output.buffer.deferred_reclamation {') &&
     countedOutput.includes('output.buffer.reclaiming = true') &&
@@ -61,7 +61,7 @@ export function validateResourceAccounting({
   for (const [kernel, provider] of Object.entries(reclamationProviders)) {
     const source = reclamationSource(`src/execution_relation/bounded_${kernel}.mbt`);
     const caller = reclamationSource(`src/${provider}.mbt`);
-    const connected = kernel === 'cross_join' || kernel === 'binding_rows'
+    const connected = countedReclamationKernels.includes(kernel)
       ? countedOutputConnected &&
         /let \(released, removed\) = reclaim_bounded_admitted_output_counted\(\s*output,\s*state\.accepted\.val,?\s*\)/u.test(source) &&
         /if !released\s*\{\s*return false\s*\}\s*state\.output = None/u.test(source)

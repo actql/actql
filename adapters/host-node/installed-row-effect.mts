@@ -450,7 +450,11 @@ function createRowEffectStage(owners: readonly Owner[], environmentWire: string,
   const targetPlanOf = (member: RowMember, owner: TargetOwner) => {
     if ((owner as Owner).managedTargetPlanRecipes === undefined) return undefined;
     const plan = (owner as Owner).managedTargetPlanRecipes!.byMapping[(member as Extract<RowMember, {mapping: object}>).mapping?.mappingCid];
-    if (member.kind !== 'update' || plan === undefined) fail('ForeignInstalledEffectOccurrence');
+    const mapping = (member as Extract<RowMember, {mapping: object}>).mapping;
+    if (plan === undefined || !mapping.rules.some(rule =>
+      rule.effect_kind === member.kind && rule.permissions?.includes(plan.writeOperation))) {
+      fail('ForeignInstalledEffectOccurrence');
+    }
     return plan;
   };
   const recipeOf = (member: RowMember) => {
@@ -497,7 +501,7 @@ function createRowEffectStage(owners: readonly Owner[], environmentWire: string,
   });
 
   const {admitCapability, routeOf} = createInstalledRowEffectCapability<RowMember>({
-    moon, ownerOf, cid, cidPattern, CAPABILITY_VERSION, contractCidOf, installedEffectWriteOperation, fail,
+    moon, ownerOf, recipeOf, cid, cidPattern, CAPABILITY_VERSION, contractCidOf, installedEffectWriteOperation, fail,
   });
   const readDecision = createInstalledRowEffectReadDecision({ownerOf});
   const checkSubject = (runInvocationCid: string, member: RowMember) => cid({
@@ -523,7 +527,7 @@ function createRowEffectStage(owners: readonly Owner[], environmentWire: string,
   const physicalRoute = createInstalledRowEffectPhysicalRoute<RowMember>({
     recipeOf, ownerOf, fail, guarded, decideTargetRead, describeMember, resourceFields, checkRows,
     observeRows, admitCapability, routeOf, readDecision, commitDecisions, requireApproval, scopeKey,
-    admitRow, installedEffectWriteOperation, projectOwnedResponse, settle,
+    admitRow, installedEffectWriteOperation, permissionsOf, projectOwnedResponse, settle,
   }) as ReturnType<typeof createInstalledRowEffectPhysicalRoute<RowMember>> & CaptureControls['physicalRoute'];
 
   const {basePreflight, continuationOf} = createInstalledRowEffectPreviewContext<RowMember, Owner>({

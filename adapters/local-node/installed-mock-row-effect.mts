@@ -1,4 +1,4 @@
-// The explicit Project Mock's real file UPDATE, through the existing Row
+// The explicit Project Mock's real file writes, through the existing Row
 // Effect owner. No live Salesforce request/credential, hidden mirror, automatic
 // approval, replacement Run or permission derived from a profile is supplied.
 import {createHash} from 'node:crypto';
@@ -66,12 +66,13 @@ type CodecArguments = {
   before: [row: unknown];
   version: [row: unknown];
   update: [document: unknown, row: unknown, version: string, valueWire: string, maxWork: number];
+  delete: [document: unknown, row: unknown, version: string, maxWork: number];
   construction: Parameters<RecipeRuntime['clientProgramInstalledSourceConstructionCapacity']>;
 };
 type CodecResults = Record<keyof CodecArguments, unknown> & Readonly<{before: string | undefined; version: string | undefined}>;
 type CodecCall = <Name extends keyof CodecArguments>(name: Name, ...args: CodecArguments[Name]) => CodecResults[Name];
 type Document = Readonly<{selected: unknown}>;
-type RecordData = Readonly<{target: string; version: string; value: unknown; before: Data}>;
+type RecordData = Readonly<{target: string; version: string; value?: unknown; before: Data}>;
 type EffectRecord = RecordData & Readonly<{binding: string; mapping: string}>;
 type AdmissionTarget = Pick<Target, 'physical'> & Readonly<{write: Pick<Write, 'writable_fields'>}>;
 type Charge = Readonly<{chargeBytes(bytes: bigint): unknown}>;
@@ -121,7 +122,7 @@ type SendOptions = CurrentTarget & Readonly<{
 type Observation = Readonly<{useCid: string; statusCode: number; body: Uint8Array}>;
 type RecoveryEntry = Readonly<{memberIndex: number; kind: string; wire: string; observationCid: string}>;
 type RecoveryOptions = Readonly<{
-  durable: unknown; recorded: unknown; body: Readonly<{effects: readonly Readonly<{changes: readonly unknown[]}>[]}>;
+  durable: unknown; recorded: unknown; body: Readonly<{effects: readonly Readonly<{effect_kind?: unknown; resolved_mapping_contract_cid?: unknown; changes: readonly unknown[]}>[]}>;
   memberIndexes?: readonly number[]; runOriginal: RunOriginal;
 }>;
 
@@ -144,6 +145,15 @@ const snapshot = <Value,>(value: Value): Value => {
   return freeze(JSON.parse(wire(value))) as Value;
 };
 const installations = new WeakMap<object, ReturnType<typeof mockRowEffectDriver>['resourceObservation']>();
+const updateKinds = Object.freeze(['update'] as const);
+const deleteKinds = Object.freeze(['delete'] as const);
+const guardedKinds = Object.freeze(['update', 'delete'] as const);
+const updateRequestKeys = Object.freeze(['binding', 'mapping', 'target', 'value', 'version', 'before']);
+const deleteRequestKeys = Object.freeze(['binding', 'mapping', 'target', 'version', 'before']);
+const noFields = Object.freeze([]);
+const operationOf = (target: Pick<Target, 'write'>) => target.write.operation ?? 'update';
+const recoveryKind = (kind: string) => kind === 'delete' ? 'mock-file-row-delete' : 'mock-file-row-update';
+const responseAction = (kind: string) => kind === 'delete' ? 'deleted' : 'updated';
 const targetLimits = Object.freeze({maxFileBytes: 1048576, maxRows: 100,
   maxNodes: 16384, maxDepth: 32, maxWork: 16777216, maxResponseBytes: 65536,
   maxEffects: 16});
@@ -159,6 +169,7 @@ const ports = Object.freeze({
   before: 'clientProgramRelationTargetBefore',
   version: 'clientProgramRelationTargetVersion',
   update: 'clientProgramRelationPrepareTargetUpdate',
+  delete: 'clientProgramRelationPrepareTargetDelete',
   construction: 'clientProgramInstalledSourceConstructionCapacity',
 } as const);
 
@@ -172,7 +183,8 @@ export function createMockFileRowCodec({bundle, original, call}:
       targetLimits.maxNodes, targetLimits.maxDepth, targetLimits.maxRows, targetLimits.maxWork));
     const projections = new Map<Physical, unknown>();
     for (const source of bundle.sources) for (const model of source.physical) {
-      const writable = source === original && model === target.physical ? target.write.writable_fields : model.writableFields;
+      const writable = source === original && model === target.physical
+        ? target.write.writable_fields ?? noFields : model.writableFields;
       projections.set(model, checked(call('project', originalDocument, model.declaration,
         model.resource, model.itemsPath, model.keyPath, model.primaryIdentity, writable)));
     }
@@ -188,16 +200,18 @@ export function createMockFileRowCodec({bundle, original, call}:
     return {row, before, versionCid, beforeWire};
   };
   return Object.freeze({admit, observe,
-    update(bytes: Uint8Array, target: AdmissionTarget, record: RecordData, physicalOperation?: Charge) {
+    replace(operation: string, bytes: Uint8Array, target: AdmissionTarget, record: RecordData, physicalOperation?: Charge) {
+      if (operation !== 'update' && operation !== 'delete') fail('InvalidMockEffectRequest');
       // Re-admit the latest WHOLE document supplied by the SAME locked file
-      // owner, then replace only the original row's admitted Mapping spans.
+      // owner, then replace only the original row's admitted spans.
       physicalOperation?.chargeBytes(BigInt(bytes.length));
       const document = admit(bytes, target), observed = observe(document, record.target);
       if (observed.versionCid !== record.version || wire(observed.before) !== wire(record.before)) {
         fail('MockTargetVersionConflict');
       }
-      const replacement = checked(call('update', document.selected, observed.row,
-        record.version, wire(record.value), targetLimits.maxWork)) as Uint8Array;
+      const replacement = checked(operation === 'delete'
+        ? call('delete', document.selected, observed.row, record.version, targetLimits.maxWork)
+        : call('update', document.selected, observed.row, record.version, wire(record.value), targetLimits.maxWork)) as Uint8Array;
       physicalOperation?.chargeBytes(BigInt(replacement.length));
       return replacement;
     },
@@ -399,7 +413,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   const catalogue = original.catalogue, profile = targets[0].write;
   const changes = (value: unknown, target: Target) => value !== null && typeof value === 'object' && !Array.isArray(value) &&
     Object.keys(value).length > 0 &&
-    Object.keys(value).every(name => (target.write.update_fields ?? target.write.writable_fields).includes(name));
+    Object.keys(value).every(name => (target.write.update_fields ?? target.write.writable_fields)!.includes(name));
   const requests = new WeakMap<object, HeldRequest>(), descriptions = new WeakMap<object, Description>(),
     grants = new WeakMap<object, Grant>();
   const codec = createMockFileRowCodec({bundle, original, call});
@@ -442,7 +456,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
     current();
     if (member === null || typeof member !== 'object') fail('ForeignMockEffectMember');
     const target = targetForResource(member.resource);
-    if (member.kind !== 'update' || member.mapping?.mappingCid !== target.mapping!.mappingCid ||
+    if (member.kind !== operationOf(target) || member.mapping?.mappingCid !== target.mapping!.mappingCid ||
         member.mapping?.mappingRef !== target.mapping!.mappingRef) fail('ForeignMockEffectMember');
     return target;
   }
@@ -534,15 +548,16 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
   function requestFrom(record: EffectRecord, runOriginal: RunOriginal) {
     runCurrent(runOriginal);
     const target = targetForRecord(record), {write: spec, mapping, beforeFields} = target;
-    if (!closed(record, ['binding', 'mapping', 'target', 'value', 'version', 'before']) ||
+    const deleting = operationOf(target) === 'delete';
+    if (!closed(record, deleting ? deleteRequestKeys : updateRequestKeys) ||
         record.binding !== bindingCid || record.mapping !== mapping!.mappingCid ||
         typeof record.target !== 'string' || !record.target.isWellFormed() ||
-        !changes(record.value, target) || !cid(record.version) || !closed(record.before, beforeFields) ||
+        (!deleting && !changes(record.value, target)) || !cid(record.version) || !closed(record.before, beforeFields) ||
         record.before[spec.primary_identity] !== record.target || Buffer.byteLength(wire(record)) > maximum) {
       fail('InvalidMockEffectRequest');
     }
-    const value = snapshot(record.value), before = snapshot(record.before);
-    const original = Object.freeze({...record, value, before});
+    const before = snapshot(record.before);
+    const original = Object.freeze(deleting ? {...record, before} : {...record, value: snapshot(record.value), before});
     // This is the canonical wire already needed for the original request CID.
     // Retain it for SAME-child output geometry instead of serializing again.
     const retainedWire = wire(original);
@@ -563,10 +578,14 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
       async authorize() {use = consume('read', await authorizationForRow(), selected, target);},
       consume(bytes) {
         const document = admit(bytes, target), observed = observe(document, selector);
-        // Validate the Mapping body with Common before sealing the request.
-        checked(call('update', document.selected, observed.row, observed.versionCid, wire(value), work));
+        const deleting = member.kind === 'delete';
+        if (deleting) {
+          if (value !== undefined) fail('InvalidMockEffectRequest');
+        } else {
+          checked(call('update', document.selected, observed.row, observed.versionCid, wire(value), work));
+        }
         const request = requestFrom({binding: bindingCid, mapping: mapping!.mappingCid,
-          target: selector, value, version: observed.versionCid, before: observed.before}, runOriginal);
+          target: selector, ...(deleting ? {} : {value}), version: observed.versionCid, before: observed.before}, runOriginal);
         const original = requests.get(request)!;
         requests.set(request, Object.freeze({...original, observedAt: selected}));
         output = Object.freeze({request, requestCid: original.cid});
@@ -608,8 +627,11 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
         fail('InvalidMockEffectRecovery');
       }
       previous = index;
+      const member = body.effects[index];
+      if (member.effect_kind !== 'update' && member.effect_kind !== 'delete') fail('InvalidMockEffectRecovery');
+      const target = targetForRecord({mapping: member.resolved_mapping_contract_cid});
       const entries = (durable as {connectorRecovery: readonly RecoveryEntry[]}).connectorRecovery.filter(entry => entry.memberIndex === index);
-      if (entries.length !== 1 || entries[0].kind !== 'mock-file-row-update' ||
+      if (operationOf(target) !== member.effect_kind || entries.length !== 1 || entries[0].kind !== recoveryKind(member.effect_kind) ||
           typeof entries[0].wire !== 'string' || Buffer.byteLength(entries[0].wire) > maximum) {
         fail('InvalidMockEffectRecovery');
       }
@@ -620,7 +642,10 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
           data.requests.length !== body.effects[index]?.changes.length) {
         fail('InvalidMockEffectRecovery');
       }
-      const requests = data.requests.map(record => requestFrom(record, runOriginal));
+      const requests = data.requests.map(record => {
+        if (record?.mapping !== target.mapping!.mappingCid) fail('InvalidMockEffectRecovery');
+        return requestFrom(record, runOriginal);
+      });
       // The common owner separately matches every rebuilt CID/target/value to
       // its original sealed Preview and durable row claim; this is DATA only.
       restored.push(requests);
@@ -628,8 +653,11 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
     }
     return {requests: restored, currents};
   };
+  const firstKind = operationOf(targets[0]);
+  const supportedKinds = targets.every(target => operationOf(target) === firstKind)
+    ? firstKind === 'delete' ? deleteKinds : updateKinds : guardedKinds;
   const driver = Object.freeze({
-    kinds: Object.freeze(['update'] as const), targetRead: Object.freeze({operation: profile.observe_permission}),
+    kinds: supportedKinds, targetRead: Object.freeze({operation: profile.observe_permission}),
     writeOperation: (member: Member) => memberCurrent(member).write.permission, describe,
     prepareRequest() {fail('MockOriginalTargetObservationRequired');},
     prepareRequestChild: readChild,
@@ -694,11 +722,11 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
       });
       return mockFileRowFootprint({bindingCid, target, selectors});
     },
-    recoveryEntry({entries}: RequestEntries) {
+    recoveryEntry({member, entries}: RequestEntries & Readonly<{member: Member}>) {
       const data = {binding: bindingCid, requests: entries.map(entry => own(entry.request).record)};
       const body = wire(data);
       if (Buffer.byteLength(body) > maximum) fail('MockEffectRecoveryLimit');
-      return {kind: 'mock-file-row-update' as const, observationCid: hash(data), wire: body};
+      return {kind: recoveryKind(member.kind), observationCid: hash(data), wire: body};
     },
     recoverRequests: recover, recoverMemberRequests: recover,
     async send({member, request, current: selected, authorization: supplied, signal, runOriginal, physicalOperation}: SendOptions) {
@@ -710,7 +738,7 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
         assertCurrent: () => {runCurrent(runOriginal); useCurrent(use);},
         authorize() {use = consume('write', supplied, selected, target);},
         replace(bytes) {
-          return codec.update(bytes, target, record, physicalOperation);
+          return codec.replace(member.kind, bytes, target, record, physicalOperation);
         }});
       try {
         physicalOperation?.retainPhysicalChild(child);
@@ -719,10 +747,11 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
       await retireChild(child, failed, primary);
       current();
       return Object.freeze({observation: Object.freeze({useCid: use!.useCid, statusCode: 200,
-        body: Buffer.from(wire({request_cid: requestCid, target: record.target, action: 'updated'}))})});
+        body: Buffer.from(wire({request_cid: requestCid, target: record.target, action: responseAction(member.kind)}))})});
     },
     project({request, observation}: Readonly<{request: object; observation?: Observation}>) {
       const {record, cid: requestCid} = own(request);
+      const action = responseAction(operationOf(targetForRecord(record)));
       if (!cid(observation?.useCid) || observation.statusCode !== 200 ||
           !(observation.body instanceof Uint8Array) ||
           observation.body.length > targetLimits.maxResponseBytes) {
@@ -732,10 +761,13 @@ function mockRowEffectDriver({bundle, original, targets, bindingCid, principalId
       try {response = JSON.parse(Buffer.from(observation.body).toString('utf8'));}
       catch {return {kind: 'unknown'};}
       if (!closed(response, ['request_cid', 'target', 'action']) ||
-          response.request_cid !== requestCid || response.target !== record.target || response.action !== 'updated') {
+          response.request_cid !== requestCid || response.target !== record.target || response.action !== action) {
         return {kind: 'unknown'};
       }
-      return {kind: 'typed-success-response', outcome: {state: 'applied', action: 'updated', result: {id: record.target}}};
+      // The private physical receipt distinguishes DELETE, while the admitted
+      // applied outcome's optional action describes only create/update.
+      return {kind: 'typed-success-response', outcome: {state: 'applied',
+        ...(action === 'updated' ? {action} : {}), result: {id: record.target}}};
     },
   });
   const site = Object.freeze({issueReadGrant: (options: GrantOptions) => issue('read', options),

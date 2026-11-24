@@ -133,6 +133,48 @@ test "Darwin runtime accepts exact OS zlib and refuses aliases or foreign platfo
 }
 
 ///|
+test "Native Remote HTTP admits only its fixed member and exact OS dependencies" {
+  for
+    (platform, name, system) in [
+      (
+        "darwin-arm64", "libcurl.4.dylib", "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration",
+      ),
+      ("linux-x64-gnu", "libcurl.so.4", "libz.so.1"),
+    ] {
+    let manifest = runtime_test_manifest(platform~)
+    guard manifest is Object(root) &&
+      root.get("libraries") is Some(Array(libraries)) else {
+      fail("missing original runtime fixture libraries")
+    }
+    let remote = runtime_test_library(manifest, 0).copy()
+    remote["role"] = Json::string("remote-http")
+    remote["path"] = Json::string("lib/" + name)
+    remote["dependencies"] = product_texts([system])
+    libraries.push(Json::object(remote))
+    let admitted = runtime_test_admit(manifest, platform~).unwrap()
+    assert_true(
+      client_native_local_runtime_members(admitted).any(item => {
+        item.role == "remote-http" && item.path == "lib/" + name
+      }),
+    )
+    for foreign in ["libcares.so.2", "crypto.bin", "@loader_path/" + name] {
+      remote["dependencies"] = product_texts([foreign])
+      assert_eq(
+        runtime_test_admit(manifest, platform~).map(_ => 1),
+        Err(InvalidClosure),
+      )
+    }
+    remote["dependencies"] = product_texts([system])
+    let sqlite = runtime_test_library(manifest, 0)
+    sqlite["dependencies"] = product_texts([name])
+    assert_eq(
+      runtime_test_admit(manifest, platform~).map(_ => 1),
+      Err(InvalidClosure),
+    )
+  }
+}
+
+///|
 test "Native runtime metadata preserves both finite formal platform closures" {
   for platform in ["darwin-arm64", "linux-x64-gnu"] {
     let value = runtime_test_manifest(platform~)
@@ -443,4 +485,91 @@ test "fresh selected Mock signer retains actual Host configuration and independe
     )
     is None,
   )
+}
+
+///|
+test "Native Model HTTP admits only its fixed member and exact OS dependencies" {
+  for
+    (platform, name, system) in [
+      (
+        "darwin-arm64", "libcurl-model.4.dylib", "/System/Library/Frameworks/SystemConfiguration.framework/Versions/A/SystemConfiguration",
+      ),
+      ("linux-x64-gnu", "libcurl-model.so.4", "libz.so.1"),
+    ] {
+    let manifest = runtime_test_manifest(platform~)
+    guard manifest is Object(root) &&
+      root.get("libraries") is Some(Array(libraries)) else {
+      fail("missing original runtime fixture libraries")
+    }
+    let model = runtime_test_library(manifest, 0).copy()
+    model["role"] = Json::string("model-http")
+    model["path"] = Json::string("lib/" + name)
+    model["dependencies"] = product_texts([system])
+    libraries.push(Json::object(model))
+    let admitted = runtime_test_admit(manifest, platform~).unwrap()
+    assert_true(
+      client_native_local_runtime_members(admitted).any(item => {
+        item.role == "model-http" && item.path == "lib/" + name
+      }),
+    )
+    for foreign in ["libcares.so.2", "crypto.bin", "@loader_path/" + name] {
+      model["dependencies"] = product_texts([foreign])
+      assert_eq(
+        runtime_test_admit(manifest, platform~).map(_ => 1),
+        Err(InvalidClosure),
+      )
+    }
+    model["dependencies"] = product_texts([system])
+    let sqlite = runtime_test_library(manifest, 0)
+    sqlite["dependencies"] = product_texts([name])
+    assert_eq(
+      runtime_test_admit(manifest, platform~).map(_ => 1),
+      Err(InvalidClosure),
+    )
+  }
+}
+
+///|
+test "Native runtime admits both distinct HTTP images and refuses a role swap" {
+  for
+    (platform, remote_name, model_name, system) in [
+      (
+        "darwin-arm64", "lib/libcurl.4.dylib", "lib/libcurl-model.4.dylib", "/usr/lib/libSystem.B.dylib",
+      ),
+      (
+        "linux-x64-gnu", "lib/libcurl.so.4", "lib/libcurl-model.so.4", "libc.so.6",
+      ),
+    ] {
+    let manifest = runtime_test_manifest(platform~)
+    guard manifest is Object(root) &&
+      root.get("libraries") is Some(Array(libraries)) else {
+      fail("missing original runtime fixture libraries")
+    }
+    let remote = runtime_test_library(manifest, 0).copy()
+    remote["role"] = Json::string("remote-http")
+    remote["path"] = Json::string(remote_name)
+    remote["dependencies"] = product_texts([system])
+    libraries.push(Json::object(remote))
+    let model = runtime_test_library(manifest, 0).copy()
+    model["role"] = Json::string("model-http")
+    model["path"] = Json::string(model_name)
+    model["dependencies"] = product_texts([system])
+    libraries.push(Json::object(model))
+    let members = client_native_local_runtime_members(
+      runtime_test_admit(manifest, platform~).unwrap(),
+    )
+    assert_true(
+      members.any(item => item.role == "remote-http" && item.path == remote_name),
+    )
+    assert_true(
+      members.any(item => item.role == "model-http" && item.path == model_name),
+    )
+    remote["path"] = Json::string(model_name)
+    model["path"] = Json::string(remote_name)
+    assert_true(runtime_test_admit(manifest, platform~) is Err(InvalidMember))
+    remote["path"] = Json::string(remote_name)
+    model["path"] = Json::string(model_name)
+    model["role"] = Json::string("dependency")
+    assert_true(runtime_test_admit(manifest, platform~) is Err(InvalidMember))
+  }
 }

@@ -25,10 +25,11 @@ test "packaged selection keeps unsupported Local controls unavailable" {
   for
     command in [
       "adopt", "check", "aql", "run", "read", "lookup-submission", "approve", "reject",
+      "reconcile",
     ] {
     assert_true(local_product_operation(command))
   }
-  for command in ["step", "pause", "reconcile"] {
+  for command in ["step", "pause"] {
     assert_false(local_product_operation(command))
   }
   let parsed = command().parse(argv=["--mode", "local", "adopt"])

@@ -1,9 +1,10 @@
 // Copied into a repository-external installation of only @actql/node.
 import assert from 'node:assert/strict';
+import {isDeepStrictEqual} from 'node:util';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:https';
 import {readFile, writeFile} from 'node:fs/promises';
-import {join} from 'node:path';
+import {isAbsolute, join} from 'node:path';
 import {userInfo} from 'node:os';
 import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
@@ -44,37 +45,61 @@ const authorization = {accountConfiguration: JSON.stringify({
     operation: {any_of: ['read']}, exclusions: []}],
 })};
 let computes = 0;
+const sharedDispatches = [];
+const sharedDispatch = sharedClients ? Promise.withResolvers() : undefined;
+async function beforeDispatch(ref) {
+  computes++;
+  if (sharedDispatch === undefined) return;
+  sharedDispatches.push(ref);
+  assert(sharedDispatches.length <= 2, 'Only the two original submissions may dispatch');
+  if (sharedDispatches.length === 2) sharedDispatch.resolve();
+  // Hold the first claimed Run until the other independent command has also
+  // claimed its original Run. A pair of sequential executions cannot pass.
+  const deadline = setTimeout(() => sharedDispatch.reject(Error('Second original dispatch did not overlap')), 10_000);
+  try {await sharedDispatch.promise;}
+  finally {clearTimeout(deadline);}
+}
 const host = await openInstalledRemoteHttpHost({directory: join(root, sharedNames ? 'host-state-names' : 'host-state'), authorization,
-  beforeDispatch: () => {computes++;}, authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
+  beforeDispatch, authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
 const certificate = await readFile('remote.crt');
-const server = createServer({key: await readFile('remote.key'), cert: certificate,
-  ca: certificate, requestCert: true, rejectUnauthorized: true}, host.handler);
-await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-const endpoint = `https://127.0.0.1:${server.address().port}/`;
-// The Native transport uses mTLS. The independent SDK schema check uses its
-// standard server-authenticated HTTPS transport against the same Host owner.
-let loseNamedReply = false, lostNamedReplies = 0, namedSubmissions = 0;
-const schemaServer = createServer({key: await readFile('remote.key'), cert: certificate}, (request, response) => {
-  if (sharedNames && request.url === '/actql/client/0.1/submit-named-intent') {
+let loseNamedReply = false, lostNamedStatus, lostNamedReplies = 0, namedSubmissions = 0;
+function observeNamedReply(request, response) {
+  if (request.url === '/actql/client/0.1/submit-named-intent') {
     namedSubmissions++;
     if (loseNamedReply) {
       loseNamedReply = false;
       // Drop only this actual Host reply, after its original operation reaches
       // response completion. There is no replacement reply or automatic resend.
-      response.end = () => {lostNamedReplies++; response.destroy(); return response;};
+      response.end = () => {
+        lostNamedStatus = response.statusCode;
+        lostNamedReplies++;
+        response.destroy();
+        return response;
+      };
     }
   }
   host.handler(request, response);
-});
+}
+const server = createServer({key: await readFile('remote.key'), cert: certificate,
+  ca: certificate, requestCert: true, rejectUnauthorized: true}, sharedClients ? observeNamedReply : host.handler);
+await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+const endpoint = `https://127.0.0.1:${server.address().port}/`;
+// The independent SDK client uses its standard server-authenticated HTTPS
+// transport against the same Host owner.
+const schemaServer = createServer({key: await readFile('remote.key'), cert: certificate},
+  sharedNames ? observeNamedReply : host.handler);
 await new Promise(resolve => schemaServer.listen(0, '127.0.0.1', resolve));
 await writeFile('connection.json', JSON.stringify({mode: 'remote', owner: 'remote', durability: 'durable', consentRefs: [], runners: []}));
 await writeFile('token.txt', 'fixture-token\n', {mode: 0o600});
 await writeFile('query.sql', 'SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id');
+const selectedHttpLibrary = process.env.ACTQL_TEST_NATIVE_HTTP_LIBRARY;
+if (selectedHttpLibrary !== undefined) assert(isAbsolute(selectedHttpLibrary), 'Use the admitted installed HTTP member');
+const compatibilityHttpLibrary = process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4';
 const common = ['--endpoint', endpoint, '--connection-root', root, '--connection-file', 'connection.json',
-  '--token-root', root, '--token-file', 'token.txt', '--http-library', process.platform === 'darwin' ? '/usr/lib/libcurl.4.dylib' : 'libcurl.so.4',
+  '--token-root', root, '--token-file', 'token.txt', '--http-library', selectedHttpLibrary ?? compatibilityHttpLibrary,
   '--ca', join(root, 'remote.crt'), '--cert', join(root, 'remote.crt'), '--key', join(root, 'remote.key')];
 let commandWrites = Promise.resolve();
-async function runCaptured(command, argv, args = argv) {
+async function capture(command, argv, args) {
   const startedAt = new Date().toISOString();
   const record = await new Promise((resolve, reject) => {
     const child = spawn(command, argv, {cwd: root, env: childEnvironment, stdio: ['ignore', 'pipe', 'pipe']});
@@ -94,8 +119,14 @@ async function runCaptured(command, argv, args = argv) {
   const complete = JSON.stringify(records, null, 2);
   commandWrites = commandWrites.then(() => writeFile(sharedNames ? 'named-client-commands.json' : sharedSavedRestart ? 'native-restart-commands.json' : 'native-commands.json', complete));
   await commandWrites;
-  assert.equal(record.code, 0, `${args[0]}: ${record.stderr}`); assert.equal(record.signal, null);
-  assert.equal(record.terminationReason, null); return record.stdout;
+  assert.equal(record.signal, null);
+  assert.equal(record.terminationReason, null);
+  return record;
+}
+async function runCaptured(command, argv, args = argv) {
+  const record = await capture(command, argv, args);
+  assert.equal(record.code, 0, `${args[0]}: ${record.stderr}`);
+  return record.stdout;
 }
 function run(...args) {return runCaptured(executable, [...common, ...args], args);}
 // Concurrent actors finish under their original child bounds even when a peer
@@ -109,28 +140,73 @@ async function parallel(commands) {
   if (firstFailure !== undefined) throw firstFailure;
   return results.map(result => result.value);
 }
+const sharedQueries = [
+  {name: 'first', sql: 'SELECT 7 AS id', rows: [{id: 7}]},
+  {name: 'second', sql: 'SELECT 19 AS id UNION ALL SELECT 23 AS id ORDER BY id', rows: [{id: 19}, {id: 23}]},
+];
+
+async function submitSharedNamed({programFile, requestName, submissionFile, requestId, attemptId}, mayLoseReply = false) {
+  const args = ['aql', '--program-file', programFile, '--format', 'sql',
+    '--request-name', requestName, '--submission-ref-file', submissionFile, '--request-id', requestId,
+    '--operation-attempt-id', attemptId];
+  const record = await capture(executable, [...common, ...args], args);
+  if (mayLoseReply && record.code === 1) {
+    assert.equal(record.stdout, '');
+    assert(record.stderr.includes(`SubmissionUnknown submission-ref-file=${submissionFile}`), record.stderr);
+    assert.doesNotMatch(record.stderr, /CleanupPending/u);
+    return {unknownPid: record.pid};
+  }
+  assert.equal(record.code, 0, `${args[0]}: ${record.stderr}`);
+  const answer = JSON.parse(record.stdout);
+  assert.equal(answer.requestName, requestName);
+  assert.deepEqual(answer.attemptRef, {operation: 'submit', attemptId});
+  return {answer};
+}
+
 async function sharedClientCase() {
-  const actors = ['first', 'second'].map(name => ({name,
-    requestId: `native-shared-${name}`, submissionFile: `submission-${name}.json`,
-    refFile: `run-${name}.json`}));
+  const actors = sharedQueries.map(query => ({...query,
+    programFile: `query-${query.name}.sql`, requestId: `native-shared-${query.name}`,
+    requestName: `native-shared-name-${query.name}`, attemptId: `native-shared-submit-${query.name}`,
+    submissionFile: `submission-${query.name}.json`, refFile: `run-${query.name}.json`}));
   await parallel(actors.map(actor => async () => {
     actor.submission = JSON.parse(await run('new-submission', '--request-id', actor.requestId));
     await writeFile(actor.submissionFile, JSON.stringify(actor.submission), {mode: 0o600});
   }));
+  loseNamedReply = true;
   await parallel(actors.map(actor => async () => {
-    actor.admission = JSON.parse(await run('aql', '--program-file', 'query.sql', '--format', 'sql',
-      '--submission-ref-file', actor.submissionFile, '--request-id', actor.requestId,
-      '--operation-attempt-id', `native-shared-submit-${actor.name}`));
+    await writeFile(actor.programFile, actor.sql, {flag: 'wx'});
+    const {answer, unknownPid} = await submitSharedNamed(actor, true);
+    if (answer === undefined) {
+      // This separate child reads the submitted original reference. It sends
+      // no new name, attempt or intent after the uncertain acceptance.
+      actor.unknownPid = unknownPid;
+      actor.outcome = JSON.parse(await run('lookup-submission', '--submission-ref-file', actor.submissionFile));
+    } else {
+      assert.equal(answer.kind, 'observed');
+      actor.outcome = answer.outcome;
+    }
+    assert.equal(actor.outcome.kind, 'ready');
+    assert.deepEqual(actor.outcome.submissionRef, actor.submission);
+    actor.admission = actor.outcome.admission;
     assert(actor.admission.ref);
     // Preserve each actual original reference before its first wait.
     await writeFile(actor.refFile, JSON.stringify(actor.admission.ref), {mode: 0o600});
   }));
+  const lost = actors.filter(actor => actor.unknownPid !== undefined);
+  assert.equal(lost.length, 1);
+  const originalLookup = records.find(({args}) =>
+    args[0] === 'lookup-submission' && args[2] === lost[0].submissionFile);
+  assert(originalLookup?.pid > 0);
+  assert.notEqual(originalLookup.pid, lost[0].unknownPid);
+  assert.equal(lostNamedReplies, 1);
+  assert.equal(lostNamedStatus, 200);
+  assert.equal(namedSubmissions, 2, 'Original lookup must not resend the uncertain submission');
   assert.notDeepEqual(actors[0].admission.ref, actors[1].admission.ref);
   await parallel(actors.map(actor => async () => {
     assert.equal(JSON.parse(await run('wait', '--ref-file', actor.refFile)).status, 'succeeded');
     const rows = (await run('read', '--ref-file', actor.refFile, '--result-name', 'main',
       '--attempt-id', `native-shared-first-read-${actor.name}`)).trimEnd().split('\n').map(JSON.parse);
-    assert.deepEqual(rows, [{id: 1}, {id: 2}]);
+    assert.deepEqual(rows, actor.rows);
   }));
   const detached = await connect({mode: 'remote', endpoint: `https://127.0.0.1:${schemaServer.address().port}/`,
     token: 'fixture-token', durability: 'durable'});
@@ -148,22 +224,78 @@ async function sharedClientCase() {
     assert.equal(lookup.kind, 'ready'); assert.deepEqual(lookup.admission.ref, actor.admission.ref);
     const rows = (await run('read', '--ref-file', actor.refFile, '--result-name', 'main',
       '--attempt-id', `native-shared-saved-read-${actor.name}`)).trimEnd().split('\n').map(JSON.parse);
-    assert.deepEqual(rows, [{id: 1}, {id: 2}]);
+    assert.deepEqual(rows, actor.rows);
   }));
-  assert.equal(computes, 2, 'Saved lookups and client detachment must not issue another Compute');
+  const [original, other] = actors;
+  const proposals = [['duplicate', original.programFile], ['conflict', other.programFile]];
+  const [duplicate, conflict] = await parallel(proposals.map(([kind, programFile]) => async () => {
+    const requestId = `native-shared-${kind}`, submissionFile = `submission-${kind}.json`;
+    const candidate = JSON.parse(await run('new-submission', '--request-id', requestId));
+    assert.notDeepEqual(candidate, original.submission);
+    await writeFile(submissionFile, JSON.stringify(candidate), {mode: 0o600, flag: 'wx'});
+    const {answer} = await submitSharedNamed({programFile, requestId, submissionFile,
+      requestName: original.requestName, attemptId: `native-shared-attempt-${kind}`});
+    return answer;
+  }));
+  assert.equal(duplicate.kind, 'observed');
+  assert.equal(duplicate.intentCid, original.outcome.intentCid);
+  assert.equal(duplicate.outcome.kind, 'ready');
+  assert.deepEqual(duplicate.outcome.submissionRef, original.submission);
+  assert.deepEqual(duplicate.outcome.admission.ref, original.admission.ref);
+  assert.equal(conflict.kind, 'conflict');
+  assert.equal(conflict.reason, 'intent');
+  assert.equal(conflict.intentCid, other.outcome.intentCid);
+  assert.notEqual(conflict.intentCid, original.outcome.intentCid);
+  assert.equal(namedSubmissions, 4);
+
+  const lostAlias = {programFile: original.programFile, requestName: original.requestName,
+    submissionFile: 'submission-lost-alias.json', requestId: 'native-shared-lost-alias',
+    attemptId: 'native-shared-attempt-lost-alias'};
+  const candidate = JSON.parse(await run('new-submission', '--request-id', lostAlias.requestId));
+  assert.notDeepEqual(candidate, original.submission);
+  await writeFile(lostAlias.submissionFile, JSON.stringify(candidate), {mode: 0o600, flag: 'wx'});
+  loseNamedReply = true;
+  const {answer: aliasAnswer, unknownPid: aliasPid} = await submitSharedNamed(lostAlias, true);
+  assert.equal(aliasAnswer, undefined);
+  assert(aliasPid > 0);
+  assert.equal(lostNamedReplies, 2);
+  assert.equal(lostNamedStatus, 200);
+  const unresolvedAlias = JSON.parse(await run('lookup-submission', '--submission-ref-file', lostAlias.submissionFile));
+  assert.deepEqual(unresolvedAlias, {kind: 'unresolvable', submissionRef: candidate,
+    problem: {code: 'submission_history_unresolvable'}});
+  const aliasLookup = records.at(-1);
+  assert(aliasLookup.pid > 0);
+  assert.notEqual(aliasLookup.pid, aliasPid);
+  const retainedOriginal = JSON.parse(await run('lookup-submission', '--submission-ref-file', original.submissionFile));
+  assert.equal(retainedOriginal.kind, 'ready');
+  assert.deepEqual(retainedOriginal.submissionRef, original.submission);
+  assert.equal(retainedOriginal.intentCid, original.outcome.intentCid);
+  assert.deepEqual(retainedOriginal.admission.ref, original.admission.ref);
+  assert.equal(namedSubmissions, 5, 'Lookups must never resend either lost reply');
+  assert.equal(computes, 2, 'Named duplicate, conflict and Saved reads must not dispatch again');
+  assert.equal(sharedDispatches.length, actors.length);
+  for (const actor of actors) {
+    assert(sharedDispatches.some(ref => isDeepStrictEqual(ref, actor.admission.ref)),
+      'The held dispatch must belong to the original Run');
+  }
   await writeFile('native-shared-host-acceptance.json', JSON.stringify({
     version: 'actql-native-shared-host-acceptance/0.1',
-    scope: 'parallel-new-and-saved-client-detach', actors, computes,
-    sdkClientCloseReturned: true, ownerClose: 'not_yet_attempted', operations: records,
-    unexecuted: ['active-cancel-isolation', 'named-conflict', 'client-crash', 'owner-crash-restart'],
+    scope: 'parallel-named-lost-reply-recovery-and-saved-client-detach', ownerPid: process.pid, actors, computes,
+    named: {duplicate, conflict, namedSubmissions, lostNamedReplies, lostNamedStatus,
+      lostAcceptedCandidate: {unknownPid: lost[0].unknownPid, lookupPid: originalLookup.pid},
+      lostAlias: {unknownPid: aliasPid, lookupPid: aliasLookup.pid, unresolvedAlias, retainedOriginal}},
+    sharedDispatches, sdkClientCloseReturned: true, operations: records,
+    unexecuted: ['active-cancel-isolation', 'client-crash', 'owner-restart'],
   }, null, 2));
 }
 // A new explicit owner opens the original successful state only after the
 // first owner has actually exited. No submission or execution is reconstructed.
 async function sharedSavedRestartCase() {
   const original = JSON.parse(await readFile('native-shared-host-acceptance.json', 'utf8'));
-  assert.equal(original.actors.length, 2);
-  for (const actor of original.actors) {
+  assert.equal(original.actors.length, sharedQueries.length);
+  for (const {name, rows: expected} of sharedQueries) {
+    const actor = original.actors.find(actor => actor.name === name);
+    assert(actor);
     const ref = JSON.parse(await readFile(actor.refFile, 'utf8'));
     assert.deepEqual(ref, actor.admission.ref);
     const attached = JSON.parse(await run('attach', '--ref-file', actor.refFile));
@@ -173,14 +305,14 @@ async function sharedSavedRestartCase() {
     assert.equal(JSON.parse(await run('status', '--ref-file', actor.refFile)).status, 'succeeded');
     const rows = (await run('read', '--ref-file', actor.refFile, '--result-name', 'main',
       '--attempt-id', `native-shared-restarted-read-${actor.name}`)).trimEnd().split('\n').map(JSON.parse);
-    assert.deepEqual(rows, [{id: 1}, {id: 2}]);
+    assert.deepEqual(rows, expected);
   }
   assert.equal(computes, 0, 'Owner restart and Saved reads must not dispatch another Compute');
   await writeFile('native-shared-host-restart-acceptance.json', JSON.stringify({
     version: 'actql-native-shared-host-restart-acceptance/0.1',
-    scope: 'explicit-owner-restart-after-graceful-exit', originalActors: original.actors.map(actor => actor.name),
-    computes, operations: records, ownerClose: 'not_yet_attempted',
-    unexecuted: ['owner-crash-recovery', 'active-cancel-isolation', 'named-conflict', 'client-crash'],
+    scope: 'explicit-owner-restart-after-graceful-exit', originalOwnerPid: original.ownerPid,
+    ownerPid: process.pid, originalActors: original.actors.map(actor => actor.name), computes, operations: records,
+    unexecuted: ['owner-crash-recovery', 'active-cancel-isolation', 'client-crash'],
   }, null, 2), {flag: 'wx'});
 }
 async function sharedNamesCase() {
@@ -258,7 +390,7 @@ try {
     console.log('Installed Native shared Host: explicit owner restart and SAME original Saved reads passed');
   } else if (sharedClients) {
     await sharedClientCase();
-    console.log('Installed Native shared Host: parallel NEW, original Saved and detached-client independence passed');
+    console.log('Installed Native shared Host: parallel named queries, conflict, original Saved and detached-client independence passed');
   } else {
     await singleClientCase();
   }

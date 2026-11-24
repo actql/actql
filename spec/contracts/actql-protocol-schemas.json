@@ -17439,7 +17439,7 @@
       }
     }
   },
-  "artifact_registry_cid": "sha256:275dd05d4a3ccae01066d5bc3de4da903bfb17cc2f9d62b7df476d9c65773b65",
+  "artifact_registry_cid": "sha256:f46226b820871189643c611ac9dc69dfb93bda5d7147532f19160677a0dfd674",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:cf421ba9a3d602be0bf53fc646eb822c0fa96151a2c5cf72a2f271cc7c3a6d77",
@@ -17449,7 +17449,7 @@
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:730e1acf19cbeb4c1dd6ef70f5d5f4a7ee3d60e1aeeebb4b8cb981a0c6212b74",
+    "executable_plan": "sha256:29a10374ce6930547316e5e25805cfb42ed887d0aad0ec38ca7d5a68fbfa6f45",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
@@ -17473,7 +17473,7 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:372fba41324d6a759e80b5d85623550d9a127b7ea562c439e0633b29365d7b63",
+    "plan_document": "sha256:1ba24295b62c70a8f7a831a9ace1e8b0d32aca342c34c6158a49774cef96a589",
     "plan_result": "sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b",
     "run_state": "sha256:3fbfc2cc5a79449fd05fce58e0fad25f6eef0ecde8314a222417a2e233db28c2",
     "captured_run": "sha256:aa479d8c10e61bd10667a81df180bdf17a58c474b09ab3fa298fef6b96afe4b5",
@@ -17490,12 +17490,12 @@
     "model_dispatch_authority": "sha256:2ef4cc7eb176d29e8abadf8be9c4741b4253ddfae554667dc51e68fe5c0c0a72",
     "model_call_attempt": "sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741",
     "model_attempt_accounting": "sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f",
-    "model_attempt_outcome": "sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7",
+    "model_attempt_outcome": "sha256:b80820080c15fbdc391376e9fd8a2759de1c9a059cc824ed3b76834796096c9f",
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:cd072f277d0b6f0910e5e4930f5345dc202eda6167cb487a98202725895c26bf",
-    "check_reason": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652",
+    "check_outcome": "sha256:12497b50d1f2a20ef355b6a3a59ae497bd8dd86ebaca33797ed47af4e2f08423",
+    "check_reason": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3",
     "content_generation": "sha256:a8e96d9a2a9d9e721f69b30da117dc0cdeca4c864cb21747b5551a9853fe037c",
@@ -17516,7 +17516,7 @@
     "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a",
     "explanation": "sha256:785c6c2f4ae5ab75803f6316fee6eaf00c4010857020960633c7b40b4fb52d8c",
     "installation_publication_storage_binding": "sha256:99aa1c53014df8cb2bbaeef9768d461d55a7fcf0e765f8cc1d7c0ee496565b0d",
-    "effect_local_operation_receipt": "sha256:a5fd00444b48488f3f82154d04bb4949e0487e1f8d4e9fb970891a89a2956942"
+    "effect_local_operation_receipt": "sha256:285bc022729dbc31c236e58504211da98e85a14d14e3bf88a6953bd4b8840e6d"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -45433,6 +45433,57 @@
                                 "maxProperties": 1
                               }
                             ]
+                          },
+                          "endpoint_properties": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "minProperties": 1,
+                            "properties": {
+                              "start": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "property",
+                                    "as"
+                                  ],
+                                  "properties": {
+                                    "property": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "as": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  }
+                                }
+                              },
+                              "end": {
+                                "type": "array",
+                                "minItems": 1,
+                                "items": {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "property",
+                                    "as"
+                                  ],
+                                  "properties": {
+                                    "property": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    },
+                                    "as": {
+                                      "type": "string",
+                                      "minLength": 1
+                                    }
+                                  }
+                                }
+                              }
+                            }
                           }
                         },
                         "oneOf": [
@@ -45485,6 +45536,29 @@
                               "required": [
                                 "hops"
                               ]
+                            }
+                          }
+                        ],
+                        "anyOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "endpoint_properties"
+                              ]
+                            }
+                          },
+                          {
+                            "required": [
+                              "hops"
+                            ],
+                            "properties": {
+                              "emit": {
+                                "const": "paths"
+                              },
+                              "hops": {
+                                "minItems": 1,
+                                "maxItems": 1
+                              }
                             }
                           }
                         ]
@@ -79187,6 +79261,57 @@
                                     "maxProperties": 1
                                   }
                                 ]
+                              },
+                              "endpoint_properties": {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "minProperties": 1,
+                                "properties": {
+                                  "start": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "property",
+                                        "as"
+                                      ],
+                                      "properties": {
+                                        "property": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "as": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "end": {
+                                    "type": "array",
+                                    "minItems": 1,
+                                    "items": {
+                                      "type": "object",
+                                      "additionalProperties": false,
+                                      "required": [
+                                        "property",
+                                        "as"
+                                      ],
+                                      "properties": {
+                                        "property": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        },
+                                        "as": {
+                                          "type": "string",
+                                          "minLength": 1
+                                        }
+                                      }
+                                    }
+                                  }
+                                }
                               }
                             },
                             "oneOf": [
@@ -79239,6 +79364,29 @@
                                   "required": [
                                     "hops"
                                   ]
+                                }
+                              }
+                            ],
+                            "anyOf": [
+                              {
+                                "not": {
+                                  "required": [
+                                    "endpoint_properties"
+                                  ]
+                                }
+                              },
+                              {
+                                "required": [
+                                  "hops"
+                                ],
+                                "properties": {
+                                  "emit": {
+                                    "const": "paths"
+                                  },
+                                  "hops": {
+                                    "minItems": 1,
+                                    "maxItems": 1
+                                  }
                                 }
                               }
                             ]
@@ -91977,6 +92125,86 @@
         "self_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "reported_response": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "raw_response_artifact_cid",
+            "response_profile_cid",
+            "observed_at"
+          ],
+          "properties": {
+            "raw_response_artifact_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "response_profile_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "observed_at": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "provider_reported_model_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "provider_request_id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "finish_reason": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            },
+            "response_complete": {
+              "type": "boolean"
+            },
+            "provider_metadata": {
+              "type": "object",
+              "minProperties": 1,
+              "maxProperties": 1,
+              "propertyNames": {
+                "minLength": 1
+              },
+              "additionalProperties": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256
+              }
+            }
+          }
+        }
+      },
+      "if": {
+        "type": "object",
+        "required": [
+          "reported_response"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "const": "provider_failure"
+          },
+          "failure": {
+            "enum": [
+              "rate_limit",
+              "timeout",
+              "provider_error",
+              "refusal",
+              "schema_invalid",
+              "safety_rejected",
+              "truncated"
+            ]
+          }
         }
       }
     },
@@ -93457,6 +93685,29 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
                           }
                         ]
                       }
@@ -94562,6 +94813,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -94847,6 +95099,61 @@
                         }
                       },
                       {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue",
+                                "supplier",
+                                "stage"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
                         "not": {
                           "properties": {
                             "code": {
@@ -94854,7 +95161,8 @@
                                 "parameter_value_required",
                                 "parameter_consumer_condition",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "calendar_profile_required"
                               ]
                             }
                           }
@@ -94882,7 +95190,8 @@
                           "parameter_value_required",
                           "parameter_consumer_condition",
                           "host_capacity_policy_required",
-                          "numeric_reduction_profile_required"
+                          "numeric_reduction_profile_required",
+                          "calendar_profile_required"
                         ]
                       },
                       "location": {
@@ -95768,6 +96077,29 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
                           }
                         ]
                       }
@@ -96873,6 +97205,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -97156,6 +97489,61 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue",
+                                "supplier",
+                                "stage"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
                       }
                     ]
                   }
@@ -97189,7 +97577,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -98591,6 +98979,29 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
                           }
                         ]
                       }
@@ -99696,6 +100107,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -99981,6 +100393,61 @@
                         }
                       },
                       {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue",
+                                "supplier",
+                                "stage"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      },
+                      {
                         "not": {
                           "properties": {
                             "code": {
@@ -99988,7 +100455,8 @@
                                 "parameter_value_required",
                                 "parameter_consumer_condition",
                                 "host_capacity_policy_required",
-                                "numeric_reduction_profile_required"
+                                "numeric_reduction_profile_required",
+                                "calendar_profile_required"
                               ]
                             }
                           }
@@ -100016,7 +100484,8 @@
                           "parameter_value_required",
                           "parameter_consumer_condition",
                           "host_capacity_policy_required",
-                          "numeric_reduction_profile_required"
+                          "numeric_reduction_profile_required",
+                          "calendar_profile_required"
                         ]
                       },
                       "location": {
@@ -100902,6 +101371,29 @@
                                 }
                               }
                             ]
+                          },
+                          {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
                           }
                         ]
                       }
@@ -102007,6 +102499,7 @@
                                   "implementation_limit",
                                   "host_capacity_policy_required",
                                   "numeric_reduction_profile_required",
+                                  "calendar_profile_required",
                                   "program_structure_invalid",
                                   "source_selector_unregistered",
                                   "query_alias_absent",
@@ -102290,6 +102783,61 @@
                             }
                           }
                         }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "code": {
+                              "const": "calendar_profile_required"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "facts"
+                          ],
+                          "properties": {
+                            "facts": {
+                              "type": "object",
+                              "additionalProperties": false,
+                              "required": [
+                                "issue",
+                                "supplier",
+                                "stage"
+                              ],
+                              "properties": {
+                                "issue": {
+                                  "enum": [
+                                    "selection_missing",
+                                    "artifact_missing"
+                                  ]
+                                },
+                                "supplier": {
+                                  "const": "checking_context_owner"
+                                },
+                                "stage": {
+                                  "const": "checking"
+                                }
+                              }
+                            }
+                          },
+                          "allOf": [
+                            {
+                              "not": {
+                                "required": [
+                                  "location"
+                                ]
+                              }
+                            },
+                            {
+                              "not": {
+                                "required": [
+                                  "fixes"
+                                ]
+                              }
+                            }
+                          ]
+                        }
                       }
                     ]
                   }
@@ -102341,7 +102889,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -102387,7 +102935,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+              "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -103293,6 +103841,29 @@
                   }
                 }
               ]
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "issue",
+                "supplier",
+                "stage"
+              ],
+              "properties": {
+                "issue": {
+                  "enum": [
+                    "selection_missing",
+                    "artifact_missing"
+                  ]
+                },
+                "supplier": {
+                  "const": "checking_context_owner"
+                },
+                "stage": {
+                  "const": "checking"
+                }
+              }
             }
           ]
         }
@@ -104398,6 +104969,7 @@
                     "implementation_limit",
                     "host_capacity_policy_required",
                     "numeric_reduction_profile_required",
+                    "calendar_profile_required",
                     "program_structure_invalid",
                     "source_selector_unregistered",
                     "query_alias_absent",
@@ -104680,6 +105252,61 @@
                 }
               }
             }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "code": {
+                "const": "calendar_profile_required"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "facts"
+            ],
+            "properties": {
+              "facts": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "issue",
+                  "supplier",
+                  "stage"
+                ],
+                "properties": {
+                  "issue": {
+                    "enum": [
+                      "selection_missing",
+                      "artifact_missing"
+                    ]
+                  },
+                  "supplier": {
+                    "const": "checking_context_owner"
+                  },
+                  "stage": {
+                    "const": "checking"
+                  }
+                }
+              }
+            },
+            "allOf": [
+              {
+                "not": {
+                  "required": [
+                    "location"
+                  ]
+                }
+              },
+              {
+                "not": {
+                  "required": [
+                    "fixes"
+                  ]
+                }
+              }
+            ]
           }
         }
       ]
@@ -110382,7 +111009,10 @@
               "const": "json_file"
             },
             "operation_kind": {
-              "const": "update"
+              "enum": [
+                "update",
+                "delete"
+              ]
             },
             "replacement_status": {
               "const": "acknowledged"

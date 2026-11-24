@@ -23,6 +23,8 @@ fn interrupted_saved_export(
     sdk_payload_record: None,
     sdk_payload_terminal: None,
     sdk_run_state_update: None,
+    sdk_run_state_update_capacity: None,
+    sdk_run_state_transport: None,
   }
 }
 

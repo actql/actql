@@ -124,8 +124,12 @@ export function createInstalledRowEffectPlanCapture({fail, text}: CaptureOptions
       !Object.hasOwn(fields[kind] ?? {}, 'value') || fields[kind].value === undefined)) {
       reject('InvalidInstalledEffectPlanRecipe');
     }
-    return Object.freeze(Object.fromEntries(supportedKinds.map(kind =>
-      [kind, captureInstalledEffectPlanRecipe(fields[kind].value, maxOperations)])));
+    return Object.freeze(Object.fromEntries(supportedKinds.map(kind => {
+      const recipe = captureInstalledEffectPlanRecipe(fields[kind].value, maxOperations);
+      if (kind !== 'upsert' && recipe?.credentialOperations?.some(entry =>
+        entry.phase === 'write' && entry.slot !== undefined)) reject('InvalidInstalledEffectPlanRecipe');
+      return [kind, recipe];
+    })));
   }
 
   // The installer calls this while its original Source constructor still holds

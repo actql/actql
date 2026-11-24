@@ -97,10 +97,14 @@ fn NativeClientRunJournal::retain_observed_run_state(
   observed : NativeLocalObservedRunState,
   authority : NativeLocalPolicyAuthority,
   operations? : NativeClientJournalOperationAccess? = None,
+  settlement? : NativeLocalEffectPublicationSettlement? = None,
 ) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
   let reads = operations.map(value => value.reads)
   self.transaction_with_reads(
     () => {
+      if (observed.effect_outcomes is Some(_)) != (settlement is Some(_)) {
+        return Err(Checkpoint(InvalidMaterial))
+      }
       if !authority.current_for(self, request) ||
         !observed.publisher.current_in_owned_transaction() {
         return Err(AuthorizationDenied)
@@ -138,84 +142,41 @@ fn NativeClientRunJournal::retain_observed_run_state(
       if run.publication_binding != publication.binding {
         return Err(ForeignRun)
       }
-      guard original.run_state_observation is Some((prior_revision, prior_key)) else {
-        // Historical absence is not the original issuance of counter zero.
-        return Err(CustodyLost)
+      if settlement is Some(effect) {
+        if !(effect.current)() {
+          return Err(AuthorizationDenied)
+        }
+        match
+          self.require_current_file_effect_settlement_locked(
+            effect.claim,
+            @env.now().reinterpret_as_int64(),
+            reads~,
+          ) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
+        match self.require_file_effect_completion_locked(run, effect, reads) {
+          Ok(_) => ()
+          Err(issue) => return Err(issue)
+        }
       }
-      let run_id = match @publication.run_definition_run_id(run.definition) {
-        Ok(value) => value
-        Err(_) => return Err(CustodyLost)
-      }
-      let observation = match
-        @publication.prepare_run_state_observation(
+      let saved = match
+        self.retain_run_state_locked(
+          original,
+          run,
           observed.wire(),
-          run_id,
-          prior_revision,
-          65536,
-          8192,
-          64,
-        ) {
-        Ok(value) => value
-        Err(_) => return Err(CustodyLost)
-      }
-      let revision = match
-        observation.next_revision(prior_key, prior_revision) {
-        Ok(value) => value
-        Err(_) => return Err(CustodyLost)
-      }
-      let state_wire = match observation.wire(revision) {
-        Ok(value) => value
-        Err(_) => return Err(CapacityExceeded)
-      }
-      let state = match
-        @host.prepare_client_run_state_original(
-          run.definition,
-          observed.original_manifest(),
-          state_wire,
-        ) {
-        Ok(value) => value
-        Err(_) => return Err(CustodyLost)
-      }
-      let wire = state.wire()
-      let body = match
-        submitted_intent_body(
-          before_construction=submitted_encode_construction(
-            self.database,
-            operations,
-          ),
-          original.reference,
-          original.intent,
-          run_admission=original.run_admission,
-          run_state_original=Some(wire),
-          run_state_observation=Some((revision, Some(observation.key()))),
+          Some(observed.original_manifest()),
+          () => {
+            authority.current_for(self, request) &&
+            observed.publisher.current_in_owned_transaction()
+          },
+          operations~,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
-      if !authority.current_for(self, request) ||
-        !observed.publisher.current_in_owned_transaction() {
-        return Err(AuthorizationDenied)
-      }
-      match original.run_state_original {
-        Some(prior) if prior == wire => ()
-        _ => {
-          self.invalidate_operation_submission()
-          match
-            compare_exchange_client_journal_value(
-              self.database,
-              "client_submitted_intents",
-              reference.request_id,
-              original.revision,
-              body,
-              operations,
-            ) {
-            Ok(_) => ()
-            Err(issue) => return Err(Physical(issue))
-          }
-        }
-      }
-      // A metadata CAS never calls save(run), changes accepted revision, or
-      // creates a second control CAS. Current is checked before commit as well.
+      // Ordinary Saved-state metadata continues to leave the Run alone.
+      // The matched saved File continuation also settles its own claim.
       if !authority.current_for(self, request) ||
         !observed.publisher.current_in_owned_transaction() {
         return Err(AuthorizationDenied)
@@ -230,14 +191,119 @@ fn NativeClientRunJournal::retain_observed_run_state(
       if current_publication.binding != publication.binding {
         return Err(CustodyLost)
       }
-      Ok({
-        original: Some(state),
-        state_wire: state.state_wire(),
-        control_revision: run.revision,
-      })
+      match settlement {
+        None => Ok(saved)
+        Some(effect) =>
+          self
+          .finish_file_effect_resume_locked(
+            run,
+            observed,
+            saved.state_wire,
+            effect,
+            operations,
+          )
+          .map(completed => { ..saved, control_revision: completed.revision, })
+      }
     },
     reads~,
   )
+}
+
+///|
+// Both successful publication and an authenticated unpublished observation
+// replace only the metadata of the same original Submission.
+fn NativeClientRunJournal::retain_run_state_locked(
+  self : NativeClientRunJournal,
+  original : NativeClientSubmittedIntentRecord,
+  run : NativeClientRunRecord,
+  candidate_wire : String,
+  manifest : @publication.PublicationContract?,
+  current : () -> Bool,
+  operations? : NativeClientJournalOperationAccess? = None,
+) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
+  guard self.transaction_active else { return Err(CustodyLost) }
+  guard original.run_state_observation is Some((prior_revision, prior_key)) else {
+    // Historical absence is not the original issuance of counter zero.
+    return Err(CustodyLost)
+  }
+  let run_id = match @publication.run_definition_run_id(run.definition) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let observation = match
+    @publication.prepare_run_state_observation(
+      candidate_wire, run_id, prior_revision, 65536, 8192, 64,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let revision = match observation.next_revision(prior_key, prior_revision) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let state_wire = match observation.wire(revision) {
+    Ok(value) => value
+    Err(_) => return Err(CapacityExceeded)
+  }
+  let prepared = match manifest {
+    Some(original) =>
+      @host.prepare_client_run_state_original(
+        run.definition,
+        original,
+        state_wire,
+      )
+    None =>
+      @host.prepare_client_unpublished_run_state_original(
+        run.definition,
+        state_wire,
+      )
+  }
+  let state = match prepared {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let wire = state.wire()
+  let body = match
+    submitted_intent_body(
+      before_construction=submitted_encode_construction(
+        self.database,
+        operations,
+      ),
+      original.reference,
+      original.intent,
+      run_admission=original.run_admission,
+      run_state_original=Some(wire),
+      run_state_observation=Some((revision, Some(observation.key()))),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if !current() {
+    return Err(AuthorizationDenied)
+  }
+  match original.run_state_original {
+    Some(prior) if prior == wire => ()
+    _ => {
+      self.invalidate_operation_submission()
+      match
+        compare_exchange_client_journal_value(
+          self.database,
+          "client_submitted_intents",
+          original.reference.request_id,
+          original.revision,
+          body,
+          operations,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+    }
+  }
+  Ok({
+    original: Some(state),
+    state_wire: state.state_wire(),
+    control_revision: run.revision,
+  })
 }
 
 ///|
@@ -270,6 +336,7 @@ fn NativeLocalHostConnection::retain_submitted_run_state_with_operations(
   now : Double,
   operations? : NativeClientJournalOperationAccess? = None,
   capture? : NativeLocalJournalCapture? = None,
+  settlement? : NativeLocalEffectPublicationSettlement? = None,
 ) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
   if !physical_equal(observed.host, self) ||
     @host.client_request_identity_relation(observed.request, request) !=
@@ -313,6 +380,7 @@ fn NativeLocalHostConnection::retain_submitted_run_state_with_operations(
     observed,
     authority,
     operations~,
+    settlement~,
   )
 }
 

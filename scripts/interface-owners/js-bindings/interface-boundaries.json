@@ -11,13 +11,432 @@
       "sha256": "7f672073b286f6103e59cea1e170336dadc04546b2dc66b508510566d46ba705"
     }
   ],
+  "generated": [
+    {
+      "module": "adapters/host-common/compiler-binding.generated.mjs",
+      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "generator": {
+        "path": "scripts/generate-js-compiler-bindings.mts",
+        "anchor": "generateCompilerBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "adapters/host-common/publication-action.mjs",
+      "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
+      "generator": {
+        "path": "scripts/generate-js-action-bindings.mts",
+        "anchor": "generateActionBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "adapters/host-common/strategy-actions.mjs",
+      "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
+      "generator": {
+        "path": "scripts/generate-js-action-bindings.mts",
+        "anchor": "generateActionBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "packages/coordinator-core/compiler-binding.generated.mjs",
+      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "generator": {
+        "path": "scripts/generate-js-compiler-bindings.mts",
+        "anchor": "generateCompilerBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "packages/provider-ai-sdk/_internal/compiler-binding.generated.mjs",
+      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "generator": {
+        "path": "scripts/generate-js-compiler-bindings.mts",
+        "anchor": "generateCompilerBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "packages/provider-http/_internal/compiler-binding.generated.mjs",
+      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "generator": {
+        "path": "scripts/generate-js-compiler-bindings.mts",
+        "anchor": "generateCompilerBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "packages/run-host-core/compiler-binding.generated.mjs",
+      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "generator": {
+        "path": "scripts/generate-js-compiler-bindings.mts",
+        "anchor": "generateCompilerBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "packages/run-host-core/publication-action.mjs",
+      "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
+      "generator": {
+        "path": "scripts/generate-js-action-bindings.mts",
+        "anchor": "generateActionBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "packages/transfer-core/compiler-binding.generated.mjs",
+      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "generator": {
+        "path": "scripts/generate-js-compiler-bindings.mts",
+        "anchor": "generateCompilerBindings"
+      },
+      "freshness": {
+        "path": "scripts/check-js-compiler-bindings.mjs",
+        "anchor": "'--check'"
+      }
+    },
+    {
+      "module": "adapters/connectors/notion/host/database-reader.mjs",
+      "sha256": "bebc8f52274be5c43d13ccdbf6690bf2aa9731705e3905c65d57c4177ee67eee",
+      "exports": [
+        "createNotionDatabaseReaderFactory"
+      ],
+      "operations": [
+        {
+          "name": "createNotionDatabaseReaderFactory",
+          "parameters": [
+            "moon",
+            "snapshot",
+            "site",
+            "capacity",
+            "resource",
+            "limits",
+            "maxSecretBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/call/call",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+          "parameters": [
+            "input"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+          "parameters": [
+            "rows",
+            "ticket"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+          "parameters": [
+            "reason"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:retry/init:retry",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+          "parameters": [
+            "name",
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/retireWorkspace/retireWorkspace",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
+          "parameters": [
+            "selected"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+          "parameters": [
+            "operation"
+          ],
+          "async": true
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/provider/provider",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createNotionDatabaseReaderFactory/provider/provider/provider",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "data",
+          "parameters": [
+            "value",
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods",
+          "parameters": [
+            "value",
+            "names"
+          ],
+          "async": false
+        },
+        {
+          "name": "methods/methods",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "text/text",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [
+        "../../../host-common/owned-invocation-context.mjs",
+        "../../../host-common/runtime-result.mjs",
+        "../../../site-node/https-credential-resource.mjs",
+        "../site/data-source-read.mjs",
+        "../site/property-item-read.mjs",
+        "node:util"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "responsibilityFacet": "supplemental",
+      "role": "generated-binding",
+      "owner": "Existing Notion Catalog original schema/pending requests and installed ordinary RowRun/Site Credential caller",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createNotionDatabaseReaderFactory",
+            "createNotionDatabaseReaderFactory/call/call",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
+            "createNotionDatabaseReaderFactory/provider/provider",
+            "createNotionDatabaseReaderFactory/provider/provider/provider",
+            "data",
+            "fail/fail",
+            "methods",
+            "methods/methods",
+            "positive/positive",
+            "text/text",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:retry/init:retry",
+            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/retireWorkspace/retireWorkspace"
+          ],
+          "exports": [
+            "createNotionDatabaseReaderFactory"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The trusted installed database reader factory adapts"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Its inputs are an authenticated installed snapshot"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Snapshot getters retain the same original read-contract pair"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Each prepared reader retains the original RowRun identifiers"
+              },
+              {
+                "path": "adapters/connectors/notion/host/database-reader.mts",
+                "anchor": "const retireWorkspace=()=>{"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Every awaited Account/current check is followed"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Missing capacity, foreign snapshots, wrong operations"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Stop aborts that original child"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "The original phase inventory includes factory"
+              },
+              {
+                "path": "adapters/connectors/notion/host/database-reader.mts",
+                "anchor": "properties.clear();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/notion-database-catalog.md",
+                "anchor": "Extension uses these existing snapshot"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/notion/test/database-row-reader.test.mts",
+                "anchor": "ordinary original database RowRun captures exact typed rows"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "modules": 153,
+    "operations": 4534,
+    "exports": 816,
+    "explicitContractGroups": 1090
+  },
   "declarations": [
     {
       "module": "adapters/connectors/duckdb/node/host.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "286f19bf0945db00216b0da39c9e3b9c184b48fb4751794ae2a8baa36a895703",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "consumeRetainedComputeInput",
         "encodeManagedColumnFrame",
@@ -3821,6 +4240,7 @@
         }
       ],
       "imports": [
+        "../../../../_build/js/release/build/connectors/duckdb/host_node/host_node.js",
         "../../../host-common/compiler-binding.generated.mjs",
         "../../../store-local/files.mjs",
         "../../../store-local/import.mjs",
@@ -3843,9 +4263,7 @@
         "./transport-bounds.mjs"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ]
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/connectors/duckdb/node/native-host-query.mjs",
@@ -5275,9 +5693,9 @@
     {
       "module": "adapters/connectors/duckdb/node/managed-output-finish.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d4de151b675628ba9e21c7d5dec7c9104db72b233ad725fdac1c386a2472dd3c",
+      "sha256": "9491ec6084bae553aa2aa920a45aa301cc6383c90bb3455b3e8b4a5e16c2f89d",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "finishManagedOutputReceipt"
       ],
@@ -5529,9 +5947,9 @@
     {
       "module": "adapters/connectors/duckdb/node/runtime-result.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "243d6e24785503fd307a79711aec9075101956681bff6e9fdc7fa30022449af0",
+      "sha256": "11e537bc3ea42ce2a61246e62269294b4d846b997e4d55fd1016c334a34bdda8",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -5784,7 +6202,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "8bd5d539ff2c3cc505a017bd221a5df7a2495698fd84e9110da1c955ed887cce",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "duckdbStrategyContribution"
       ],
@@ -6656,7 +7074,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "f808e23e2a8b94af610ee6ecae322c50200bffff4f3a259091b3fc0ca522b75d",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_EFFECT_VERSION",
         "SALESFORCE_EFFECT_PUBLICATION_VERSION",
@@ -9256,7 +9674,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d79cc8f4e59cf8c0d0193387f4501c6f67e2ba26bc38aef54fcc67d0d8456483",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "INSTALLED_SALESFORCE_SOURCE_VERSION",
         "checkInstalledSalesforceSourceProfile",
@@ -11202,7 +11620,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "1090dddf8ead9c8d26f32e5490920de65ebfb0e1a320d31a7e05d24cb3df1930",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "salesforceRowEffectSite",
         "salesforceTargetReadOperation",
@@ -12211,7 +12629,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "dd712aa8d70b163e56a2ff03c6b1dcdf7f0b5a8d1c53e35ed1dd306ac163796b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedSalesforceCatalogPreparation"
       ],
@@ -12475,7 +12893,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "1ff51df75bfe59546c3097b316afb562fc9deefc926272f332d4b86e7003476b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareSalesforceSourceReadSequence",
         "readSalesforceManagedQuery",
@@ -14028,9 +14446,9 @@
     {
       "module": "adapters/host-common/compiler-binding.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "sha256": "ebe4798f7a8acf55851d5bd87ef6e1d14c4295b381646d9314af3ed03635e14a",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -19687,12 +20105,13 @@
       ],
       "imports": [
         "./compiler-binding.generated.mjs",
+        "./dispatch-failure-observation.mjs",
         "./result-output-limits.mjs",
         "./runtime-result.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "7bd760959676157ebb70590feaae65911f4be95998239b34c23b6e906589da27"
+      "sha256": "9d34ad0e806a34e1478b9bf64c5312f7abdd329e62d65e6bdeec5beac8a36d80"
     },
     {
       "module": "adapters/host-common/publication-progress-control.mjs",
@@ -21376,7 +21795,7 @@
       "module": "adapters/host-common/runtime-execution-control.mjs",
       "sha256": "03f8126cf5e57960b83a1564707a8641cc9f1d3da4adaab4037c599eb973c786",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "exports": [
         "createRuntimeExecutionControls"
@@ -22480,9 +22899,9 @@
     {
       "module": "adapters/host-common/effect-preparation-result.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "0313a8872505ef8bf159d088d548873ba3a72783d37d88f47a5e538f653f41c5",
+      "sha256": "84e27e964c2e40f03abf8acb330d9dae71320f0226684bc1d384b581d76d570b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedEffectPreparation",
         "isEffectPreparationRefusal",
@@ -22979,7 +23398,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -40521,9 +40940,9 @@
     {
       "module": "adapters/host-common/runtime-result.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d17780e2ca901ff56cc87c907dc588eae3b829913d7c06916c14a4659f7aa1ab",
+      "sha256": "60312ec4a0ebdcf0f32c5767177aa5b111dd2dd2de548f42be1bd717d139f7db",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checked"
       ],
@@ -40775,7 +41194,7 @@
       "responsibilityFacet": "primary",
       "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "strategyAction"
       ],
@@ -41144,7 +41563,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "c874b2aaec0a77d45a39e810b537fd10649040a235573966a8c023a718360710",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectModelGroup",
         "openAcquiredEffectComputation"
@@ -42269,9 +42688,9 @@
     {
       "module": "adapters/host-node/acquired-effect-model-group.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "1241c1b98cf9a9a869620a189d22c14e2b9da5d601bdeda13504f72df9c59a04",
+      "sha256": "bc20b26cda98d84d5cce8c652975ddfc4de9761f09d44947748e293f8f677dbe",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "acquiredEffectModelGroup",
         "selectRestoredKeyedSource"
@@ -42998,7 +43417,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "1f9b06743f259a751ed6ba85fa51b512dc125da1402f35ac13e0bd32b1f1f200",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createAcquiredEffectModelPublication"
       ],
@@ -44230,9 +44649,9 @@
     {
       "module": "adapters/host-node/captured-duckdb-source.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "283a33719e43444b6374bfd89b2787c64d217e113d14f4204c67b6ba06d155f9",
+      "sha256": "7a2712e307441668877ff18507ab77b065a6c45e536b0cfb183c9e073c8ea0f4",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "capturedDuckDBConfiguration",
         "capturedDuckDBNativeConfiguration",
@@ -48152,7 +48571,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "referenceQualification": "Current active-plain syntax and existing owner facet refreshed for typed publication and original cleanup. References are not runtime or full-distribution acceptance; generic ownership migration remains separately pending.",
-      "sha256": "d95863e2caefabd6e92e7693912f03a3e15d3413b907970039e76f8807709239",
+      "sha256": "57a70773a1dc5c78bb7d7dcb259997cbb29b5e360491122c0b8bab90ae9f09e5",
       "rationale": "The cleanup diagnostic is sampled only after the existing full-parent retirement predicate and preparation retirement complete. This changes observation timing, not cleanup acknowledgement, physical stop or reservation release authority."
     },
     {
@@ -48678,7 +49097,7 @@
       "module": "adapters/host-node/client-dispatch-cleanup.mjs",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createClientDispatchCleanup",
         "releaseDispatchPreparationHost",
@@ -50264,7 +50683,7 @@
     },
     {
       "module": "adapters/host-node/client-source-operation.mjs",
-      "sha256": "4592d8a0d86bd47c91e750f611e7676dede25dbd1bd0555cbf00c7cffef66562",
+      "sha256": "a43eecb9342afc255ab33553c1f94afb17af46a029125af45c80a2586a0050fb",
       "exports": [
         "bindClientSourceOperation",
         "bindClientSourceOperationRowRun",
@@ -50411,7 +50830,7 @@
       "compilerFields": [],
       "unresolvedSyntax": [],
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -50585,7 +51004,7 @@
     },
     {
       "module": "adapters/host-node/effect-command-key.mjs",
-      "sha256": "aaab7bedc83c35a58871e4ee94265e0892216308782384553aa8a3b6bbcbbf89",
+      "sha256": "89c3e8ae9a4ee1795f22f75c7065fb39a99e68cdf85a7db22f0161af7f0ffe27",
       "exports": [
         "advanceEffectCommandKey",
         "retireEffectCommandKeyWorkspace"
@@ -50629,7 +51048,7 @@
       "unresolvedSyntax": [],
       "role": "physical-io",
       "responsibilityFacet": "supplemental",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "contracts": [
         {
           "operations": [
@@ -50860,7 +51279,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "3ef369364c43adedd5b307e39fa18c6e694d7f6f53f9f26213f53418ce24b8b5",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "commitPinnedEffectSourceHolding",
         "exportPinnedEffectInput",
@@ -52718,9 +53137,9 @@
     {
       "module": "adapters/host-node/effect-plan-verify.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "7af76add4483436d900afe0e152f802ea4a8ce71496473adbf3517292117340a",
+      "sha256": "396dd39c702603f623ddce0843e9a84dee8864f462c9b773474c2af00a137f39",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "verifyPinnedEffectPlan"
       ],
@@ -53142,7 +53561,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "d6ab213e994676e5251235a1e05d77453db4e75d9d0ee31bd4b808f6fa35526c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "applyCapturedEffectSet",
         "applyRecoveredEffectSet",
@@ -55339,7 +55758,7 @@
       "module": "adapters/host-node/effect-source-dependencies.mjs",
       "sha256": "d84b74efb597228528fb05ff9242a167efef4dc03cb3e3ad0fc62ef09e7a3897",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "exports": [
         "createPinnedEffectSourceDependencies"
@@ -55514,7 +55933,7 @@
       "module": "adapters/host-node/effect-source-holdings.mjs",
       "sha256": "ce318399e47cf82b6c0e2ba846ea1b6d67aa71aaa9cc41c22a7350c0e5787d9f",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "exports": [
         "createPinnedEffectSourceHoldings",
@@ -55877,7 +56296,7 @@
       "module": "adapters/host-node/effect-source-payload.mjs",
       "sha256": "09dd3b133aa28705434f7eb3b2f002a18ae136fe87eb45685619f4fd55dd658f",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "exports": [
         "createPinnedEffectSourcePayloads"
@@ -56178,7 +56597,7 @@
       "module": "adapters/host-node/effect-source-stream.mjs",
       "sha256": "b41e9a8dacfc04be1c78f77f384f6103ce235e077e3cdd2d6ae445fe5767cdb1",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "responsibilityFacet": "supplemental",
       "exports": [
         "exportPinnedEffectInput",
@@ -59000,15 +59419,15 @@
         },
         {
           "operations": [
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
+            "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation",
             "openPreparedInstalledHost/preparation/init:effectManagedPlanRun/init:effectManagedPlanRun/current/current",
             "openPreparedInstalledHost/preparation/init:effectManagedRun/init:effectManagedRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/current/current",
             "openPreparedInstalledHost/preparation/init:prepareManagedEffectPlanRun/init:prepareManagedEffectPlanRun/modelFor/modelFor",
             "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements",
-            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/captureDefinitionExplanation",
-            "openPreparedInstalledHost/preparation/init:captureEffectRunExplanation/init:captureEffectRunExplanation"
+            "readSourceManagedEffectRunRequirements/readSourceManagedEffectRunRequirements#2"
           ],
           "exports": [],
           "attributes": {
@@ -62630,8 +63049,8 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/init:assertUpdateSelectionCurrent/init:assertUpdateSelectionCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/openEffectTargetReads/openEffectTargetReads/assertCurrent/assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection/prepareInferSelection",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/prepareInferSelection/prepareInferSelection/prepareInferSelection#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/recoverEffectCapture/recoverEffectCapture/recoverEffectCapture#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertContinuationCurrent/init:assertContinuationCurrent"
           ],
@@ -66440,8 +66859,8 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService/outcome/outcome",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submissionService/submissionService#3",
             "openPreparedInstalledHost/preparation/init:observeOriginalCheckOutcome/init:observeOriginalCheckOutcome"
           ],
           "exports": [],
@@ -66592,10 +67011,10 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/heldSubmission/heldSubmission/heldSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/resumeHeld#4",
+            "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput",
             "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/init:finish/init:finish",
-            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending",
-            "openPreparedInstalledHost/preparation/init:retainedEffectManagedPlan/init:retainedEffectManagedPlan"
+            "openPreparedInstalledHost/preparation/init:retainEffectRequestInput/init:retainEffectRequestInput/pending/pending"
           ],
           "exports": [],
           "attributes": {
@@ -67698,6 +68117,7 @@
         {
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#7",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor/originalInferRun/originalInferRun",
             "openInstalledHost/mockEffectResources/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/mockEffectResources/init:bindRunOriginal/init:bindRunOriginal",
             "openInstalledHost/mockEffectResources/init:limits/init:limits",
@@ -67705,6 +68125,7 @@
             "openInstalledHost/openInstalledHost#8",
             "openInstalledHost/openInstalledHost#9",
             "openPreparedInstalledHost/preparation/init:admitEffectResultPublicationRun/init:admitEffectResultPublicationRun",
+            "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal",
             "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects",
             "openPreparedInstalledHost/preparation/init:installMockEffects/init:installMockEffects/init:installMockEffects",
             "openPreparedInstalledHost/preparation/init:managedModelSourceCoordinates/init:managedModelSourceCoordinates",
@@ -67719,9 +68140,7 @@
             "readHostEffectResultPublicationRunRequirements",
             "readSourceManagedEffectRunRequirements",
             "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned",
-            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2",
-            "openPreparedInstalledHost/preparation/init:captureManagedModelOriginal/init:captureManagedModelOriginal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/planFor/planFor/originalInferRun/originalInferRun"
+            "readSourceManagedRunRequirementsOwned/readSourceManagedRunRequirementsOwned#2"
           ],
           "exports": [
             "readHostEffectResultPublicationRunRequirements",
@@ -68165,10 +68584,10 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/cancelRequest/cancelRequest",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/captureSubmission/captureSubmission/captureSubmission",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/check/check",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/checkpointOperations#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/checkpointOperations/init:resolve/init:resolve",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun#4",
@@ -68177,12 +68596,7 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/init:validateInstallation/init:validateInstallation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#6",
@@ -68190,6 +68604,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/sourceContinuation/sourceContinuation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation/taskIndices/taskIndices",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#4",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation/executeEffectComputation#5",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/executeEffectComputation#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/nextJournal/nextJournal#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/executeEffectComputation/executeEffectComputation/sourceCheckpoints/sourceCheckpoints",
@@ -68200,11 +68619,11 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:drain/init:drain",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/init:stopModelRuntime/init:stopModelRuntime",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices#5",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/initializePublicationServices/initializePublicationServices",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectAcquisition/inspectAcquisition/inspectAcquisition",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/inspectHeld/inspectHeld",
@@ -68258,9 +68677,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/resumeHeld/resumeHeld/settlement/settlement#4",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight/selected/selected#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/retireEffectCapture/retireEffectCapture/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/retireTerminalEffects/retireTerminalEffects",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runContent/runContent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/runInfer/runInfer",
@@ -68279,23 +68698,21 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/submit/submit/submit#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/settled/settled",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/subscribeWaitWork/subscribeWaitWork/subscribeWaitWork#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight#4",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/flight/reads/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/init:assertCurrent/init:assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight/renewal/renewal",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#2",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/flight/flight#3",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepEffectRuns/sweepEffectRuns/settlement/settlement#3",
@@ -68303,9 +68720,9 @@
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/assertCurrent/assertCurrent",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight",
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#2",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight#3",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/flight/flight/flight",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/renewal/renewal",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/isOriginalTask/isOriginalTask",
             "openInstalledHost/initializePublicationServices/initializePublicationServices/sweepModelRuns/sweepModelRuns/runRestoredModel/runRestoredModel/modelResume/modelResume",
@@ -69574,6 +69991,9 @@
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/adopted/adopted",
             "openPreparedInstalledHost/preparation/init:prepareManagedModelRun/init:prepareManagedModelRun/init:prepareManagedModelRun",
+            "prepareRequestMockModelPlan/nodePhysicalGroup/nodePhysicalGroup",
+            "prepareRequestMockModelPlan/planArguments/planArguments",
+            "prepareRequestMockModelPlan/planArguments/planArguments#2",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#10",
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#11",
@@ -69591,10 +70011,7 @@
             "prepareRequestMockModelPlan/prepareRequestMockModelPlan#9",
             "prepareRequestMockModelPlan/whole/whole",
             "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget",
-            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2",
-            "prepareRequestMockModelPlan/nodePhysicalGroup/nodePhysicalGroup",
-            "prepareRequestMockModelPlan/planArguments/planArguments",
-            "prepareRequestMockModelPlan/planArguments/planArguments#2"
+            "retainRequestModelBoundsAndBudget/retainRequestModelBoundsAndBudget#2"
           ],
           "exports": [],
           "attributes": {
@@ -70067,8 +70484,8 @@
         {
           "operations": [
             "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun",
-            "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/original/original"
+            "openInstalledHost/initializePublicationServices/initializePublicationServices/effectRun/effectRun/original/original",
+            "openPreparedInstalledHost/preparation/init:reserveManagedEffectOriginal/init:reserveManagedEffectOriginal"
           ],
           "exports": [],
           "attributes": {
@@ -72283,7 +72700,7 @@
             "resources": [
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": ".clientLocalPreparationResourceLimits(moon!.clientLocalResourcePolicyOriginal() as Parameters<typeof localResourceLookupExecutionPolicy>[1])"
+                "anchor": "const planning = ((moon! as Parameters<typeof localResourceLookupExecutionPolicy>[0])"
               }
             ],
             "extension": [
@@ -74189,22 +74606,8 @@
           "async": false
         },
         {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement",
-          "parameters": [
-            "error"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#2",
+          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/submitEffect",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/submitEffect/submitEffect/settlement/settlement#3",
-          "parameters": [
-            "error"
-          ],
           "async": false
         },
         {
@@ -76456,6 +76859,7 @@
         }
       ],
       "imports": [
+        "../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js",
         "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../../packages/sdk/internal/private-source-preparation.mjs",
@@ -76507,7 +76911,7 @@
         "./effect-run-recovery.mjs",
         "./effect-target-read-continuation.mjs",
         "./effect-target-read-inventory.mjs",
-        "./embedded-local-lifecycle.mts",
+        "./embedded-local-lifecycle.mjs",
         "./entry.mjs",
         "./host-result-service-recipe.cjs",
         "./host-root-format.mjs",
@@ -76527,7 +76931,7 @@
         "./installed-effect-site.mjs",
         "./installed-effect.mjs",
         "./installed-funded-environment.mjs",
-        "./installed-host-cleanup.mts",
+        "./installed-host-cleanup.mjs",
         "./installed-host-policy.mjs",
         "./installed-host-services.mjs",
         "./installed-infer-run.mjs",
@@ -76546,7 +76950,7 @@
         "./local-checkpoint-answer.mjs",
         "./local-continuation-evidence.mjs",
         "./local-files-native.mjs",
-        "./local-preparation-registry.mts",
+        "./local-preparation-registry.mjs",
         "./local-result-authorization.mjs",
         "./local-result-read-workspace.mjs",
         "./local-values-plan.mjs",
@@ -76574,17 +76978,15 @@
         "node:url"
       ],
       "compilerFields": [],
-      "unresolvedSyntax": [
-        "runtime-dependent module dependency requires original owner/artifact mapping"
-      ],
-      "sha256": "61805d7e15ca221366d5f0d323642cb0b7e01d7ca75ddce2b776229857ff8f31"
+      "unresolvedSyntax": [],
+      "sha256": "a4eb685481991b348fa1d6b241f779a21b572da7bb5abf769b588ec94a37df5d"
     },
     {
       "module": "adapters/host-node/infer-capture-custody.mjs",
       "responsibilityFacet": "supplemental",
       "sha256": "1d60e6a987bb2e7b6ad56bde25720f5942eaa5be0664694952d818eb51191c3a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "openNodeInferCaptureCustody"
       ],
@@ -77285,7 +77687,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "91936575ccaa285725baa14465aac655e054a2ef420377060946d4dedc09e876",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "configureInferEvidence",
         "projectInferEvidence",
@@ -82635,7 +83037,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "23d758ea6e1d31b373c84d8d5c9bf83dac6fa0a8cb3742d163eed8f5f8858e1c",
       "role": "physical-io",
-      "owner": "A \u2014 existing Model raw custody projection",
+      "owner": "A — existing Model raw custody projection",
       "exports": [
         "bindOriginalModelRawTransportPersistence",
         "createModelRawCaptureStorePort",
@@ -83668,7 +84070,7 @@
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
       "role": "physical-io",
-      "owner": "A \u2014 existing Host preparation input boundary",
+      "owner": "A — existing Host preparation input boundary",
       "responsibilityFacet": "supplemental",
       "contracts": [
         {
@@ -83859,7 +84261,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "211b157e6bbcd9e29f830790e51e7b25e68c0db04cd81d0a96d8ed604cba20bd",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runInstalledComposedInfers"
       ],
@@ -85352,7 +85754,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "0a5f35ea0fc36e5eb930ec8dc6db1bc358d28a032bb608206cb2c7a8d3497997",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "sourceFreeModelPreparation",
         "sourceFreeModelsPreparation"
@@ -85635,7 +86037,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "5709b7c3f7da348df5df6d30768ff7283c23950faca7ac2350552876ef3ff418",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeInferRun"
       ],
@@ -86603,9 +87005,9 @@
     {
       "module": "adapters/host-node/installed-keyed-content-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b913c09775d86a4fcd10ad55b7c64206003bd09bcee4671c243d59113c8539c3",
+      "sha256": "8f5add70e05ad3b160c076e5797277a5fbaf6f38686dd85709e82168b598a41e",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installRunKeyedContentCapture"
       ],
@@ -87271,7 +87673,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "6af7ddfe13cf9b69127244af57edb1e0e4ee92a0c8b57b5f0ff59de2c78af47c",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
@@ -88040,9 +88442,9 @@
     {
       "module": "adapters/host-node/installed-model-continuation-custody.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d6aa509947accadf60e7004485309fe995cdd06fe43f70005dac148e74209cea",
+      "sha256": "cd3ec98eeaacd4aa2de7bd5d7e51cf1c7231264af5a5e262a89b6ceb64d3b62b",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledModelContinuationCustody",
         "entryIdentity",
@@ -88158,6 +88560,14 @@
             "role"
           ],
           "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/readSettled/readSettled#4",
+          "parameters": [
+            "_bytes",
+            "raw"
+          ],
+          "async": true
         },
         {
           "name": "createInstalledModelContinuationCustody/retireReceipt",
@@ -89018,7 +89428,8 @@
             "createInstalledModelContinuationCustody/verifier/verifier#6",
             "createInstalledModelContinuationCustody/verifier/verifier#7",
             "createInstalledModelContinuationCustody/verifier/verifier#8",
-            "createInstalledModelContinuationCustody/verifier/verifier#9"
+            "createInstalledModelContinuationCustody/verifier/verifier#9",
+            "createInstalledModelContinuationCustody/readSettled/readSettled#4"
           ],
           "exports": [
             "createInstalledModelContinuationCustody",
@@ -89121,7 +89532,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "b9bdd470d973afe1a518b9596d0c5ee17de663ef750f8281827f087067b130a0",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "MAX_MODEL_INPUT_BYTES",
         "checkCapturedInventory",
@@ -89446,7 +89857,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "a07b4aed12d0b08b95dbb0955e40dab33ea48c4f37cdbbdf5c490ceb0abaddac",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "modelDefaultsCallbacks",
         "modelDefaultsResolver",
@@ -90300,7 +90711,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "87ed1db7fdfa2c6fa72374b329b48cd8f907fe2de7d5b2a9672ec38954b19107",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitInstalledModelProvider",
         "admitInstalledModelProviderBinding",
@@ -91996,10 +92407,10 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-authorization.mjs",
-      "sha256": "d7df8dd7b92f73f2608b9bbea28552d7c2f17937b7edf1b4f949459fb4a9e3fe",
+      "sha256": "de9ec3aa8a1dcdbbbe05acf0e06d8484d1583223ef067827f8ff18aa58b26af7",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectCapability",
         "createInstalledRowEffectReadDecision",
@@ -92011,6 +92422,7 @@
           "parameters": [
             "moon",
             "ownerOf",
+            "recipeOf",
             "cid",
             "cidPattern",
             "CAPABILITY_VERSION",
@@ -92346,7 +92758,8 @@
         }
       ],
       "imports": [
-        "../host-common/runtime-result.mjs"
+        "../host-common/runtime-result.mjs",
+        "./installed-effect-recipe.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -92356,7 +92769,7 @@
       "sha256": "92fe5ceb8979d68ba623658fcb07c49fb789a520bd0ba1cc4694e0f15534f511",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectCaptureEntry"
       ],
@@ -92512,7 +92925,7 @@
       "sha256": "f0eb3125e90328cf34872cb662be10954a933bd9786c178a3fe0c78fefb4eab0",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareInstalledRowEffectCaptureInputs"
       ],
@@ -92776,7 +93189,7 @@
       "sha256": "6ef99379295483d9b6d4ebd98546ea8a12eba72cddcf450969b82179da337ac3",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectCaptureRows"
       ],
@@ -92986,7 +93399,7 @@
       "sha256": "b0c0abd4f15b91b8f4a85bae39b08180c5c43705776a9a19da0203c299cdf5f6",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectCaptureStage"
       ],
@@ -94286,7 +94699,7 @@
       "sha256": "02e26150631144d2b96fa35fc142fc0bf1ed859dea727ccc3e85d41335708e2d",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectCaptureValues"
       ],
@@ -94522,7 +94935,7 @@
       "sha256": "a6fb32b8dcd8a87d4b68094b8f45b44062aaa3b9d619f8cc872aedb7faf26611",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectClaims",
         "createInstalledRowEffectRecoveryEntries"
@@ -94897,7 +95310,7 @@
       "sha256": "4bc2e6108347d52fcdf50dc6eac1ee12c1ad9534a4e58b4e3f2ef8f0d5fe4c79",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "approvalOf",
         "approvedValue",
@@ -95158,10 +95571,10 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-construction.mjs",
-      "sha256": "568fce846298deec781321bbe6d81237f09557b1c749d12facbf37bb2496f6af",
+      "sha256": "5bee9c9f5f4fc8f420144f36859047e1fc02968666d9fe893f02918a1f338cf3",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectConstruction"
       ],
@@ -95229,12 +95642,26 @@
         {
           "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect",
           "parameters": [
-            "rule"
+            "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect/createInstalledRowEffect",
+          "parameters": [
+            "kind"
           ],
           "async": false
         },
         {
           "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#2",
+          "parameters": [
+            "rule"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#3",
           "parameters": [
             "item"
           ],
@@ -95340,7 +95767,9 @@
             "createInstalledRowEffectConstruction/installedRowEffectDescriptors",
             "createInstalledRowEffectConstruction/installedRowEffectDescriptors/installedRowEffectDescriptors",
             "createInstalledRowEffectConstruction/installedRowEffectUnit",
-            "createInstalledRowEffectConstruction/installedRowEffectUnit/units/units"
+            "createInstalledRowEffectConstruction/installedRowEffectUnit/units/units",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect/createInstalledRowEffect",
+            "createInstalledRowEffectConstruction/createInstalledRowEffect/createInstalledRowEffect#3"
           ],
           "exports": [
             "createInstalledRowEffectConstruction"
@@ -95471,7 +95900,7 @@
       "sha256": "2e29fa2153b733e17017dd993d53451b512fa34b8a56eb01a99538071d936941",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectDriverControls"
       ],
@@ -96111,7 +96540,7 @@
       "sha256": "352823bfbe7c1c1660354ca01a58a48137e7a2009ed9aa15d5f8d704e832ac96",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectMembers",
         "createInstalledRowEffectRequests"
@@ -96475,7 +96904,7 @@
       "sha256": "3672eae01386fad5ee285b86742c25bd86680e355ee0a21963264d97c29fbff3",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectOwnerProjection"
       ],
@@ -96811,7 +97240,7 @@
       "sha256": "e4da4173e19690f43f0a398e209f8ab2e9fbe7ab86da1a7722a3687296b63051",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectPhysicalOperation",
         "createInstalledRowEffectReadChild",
@@ -97290,10 +97719,10 @@
     },
     {
       "module": "adapters/host-node/installed-row-effect-physical-route.mjs",
-      "sha256": "2a26ed6f3d391e5e924988d992f9037ccba5d1814525603cbf6b5274f2a2b307",
+      "sha256": "453870cf68c9810258a868822800b383bf86b458d6406486a960cbe0005c4f62",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectPhysicalRoute"
       ],
@@ -97318,6 +97747,7 @@
             "scopeKey",
             "admitRow",
             "installedEffectWriteOperation",
+            "permissionsOf",
             "projectOwnedResponse",
             "settle"
           ],
@@ -97586,7 +98016,8 @@
       ],
       "imports": [
         "../host-common/owned-invocation-context.mjs",
-        "./effect-physical-dispatch.mjs"
+        "./effect-physical-dispatch.mjs",
+        "./installed-effect-recipe.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
@@ -97594,9 +98025,9 @@
     {
       "module": "adapters/host-node/installed-row-effect-plan-capture.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "feaae38084589a6542f439be5b6bd77c6420ed6d6df6e00b5b4c47d16c30d739",
+      "sha256": "c5c4ccfcdf7f05a9a6a6e66f66621866923affa03e1d86121b8219d82084d3ef",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectPlanCapture"
       ],
@@ -97670,6 +98101,13 @@
           "name": "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes",
           "parameters": [
             "kind"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes/captureManagedPlanRecipes",
+          "parameters": [
+            "entry"
           ],
           "async": false
         },
@@ -97820,7 +98258,8 @@
             "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes",
             "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes#2",
             "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes",
-            "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes"
+            "createInstalledRowEffectPlanCapture/prepareInstalledTargetPlanRecipes/prepareInstalledTargetPlanRecipes",
+            "createInstalledRowEffectPlanCapture/captureManagedPlanRecipes/captureManagedPlanRecipes/captureManagedPlanRecipes"
           ],
           "exports": [],
           "attributes": {
@@ -97938,7 +98377,7 @@
       "sha256": "593d22f51a7512295f462cc6ca62745c88ac23dfefce3234d66c44ff5a68b9d6",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectFootprint",
         "createInstalledRowEffectPreview",
@@ -98335,7 +98774,7 @@
       "sha256": "4b7817be9fec976fe5c6de0d2294817ba844bb8a0e7492812674a627c690eef2",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectRecoveredMembers",
         "createInstalledRowEffectRecoveryBacking"
@@ -98665,7 +99104,7 @@
       "sha256": "b84356bfec8218b5250540e6fd3063a67edd0604f145039d5a3d0facd3e57cc6",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectRecovery"
       ],
@@ -99001,7 +99440,7 @@
       "sha256": "21ae2f0dcf1febbeebece8e04ce70ecb2514b50223e1215a8c6e2fedd78a07e6",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "createInstalledRowEffectRunControls",
         "createInstalledRowEffectRunLimits"
@@ -99420,7 +99859,7 @@
       "sha256": "a8ef71436b1e55618084b5866ea203d880fe9636100258ce9637b93be95fe145",
       "responsibilityFacet": "supplemental",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "deriveInstalledRowWrite"
       ],
@@ -100116,9 +100555,9 @@
     {
       "module": "adapters/host-node/installed-row-effect.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "d0f95c2568447a87ef9fb64cc7bdadf9fb3bb98ff30560b11432acd8adb8fc63",
+      "sha256": "41a7903d3fa88f7bf72d500afebcf84ce6d48a5bb4bce4f320ba5303a5fc1a2a",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "collectInstalledRowEffectUpdateObservations",
         "composeInstalledRowEffectOwners",
@@ -100384,6 +100823,13 @@
           "parameters": [
             "member",
             "owner"
+          ],
+          "async": false
+        },
+        {
+          "name": "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf",
+          "parameters": [
+            "rule"
           ],
           "async": false
         },
@@ -101559,7 +102005,8 @@
             "createRowEffectStage/memberDispatch/memberDispatch",
             "createRowEffectStage/openLedger/openLedger",
             "exportLimits/exportLimits",
-            "createRowEffectStage/checkSubject/checkSubject"
+            "createRowEffectStage/checkSubject/checkSubject",
+            "createRowEffectStage/targetPlanOf/targetPlanOf/targetPlanOf"
           ],
           "exports": [
             "createInstalledRowEffect"
@@ -106125,9 +106572,9 @@
     {
       "module": "adapters/host-node/installed-row-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "5f61b3e40445748976fbb347bdd6ba5187f0ca9be3d20584e1901d355dc276cb",
+      "sha256": "881240b536294e001e6a592e9b0d8b18e6cd3f59512f688cf34407b07acd9796",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "startInstalledRowRun"
       ],
@@ -115201,7 +115648,7 @@
       "imports": [],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "83e4f960ae440009944d4d76931942cdd20855cb061d378269e1a794c25808da",
+      "sha256": "553246d28cd65538282f0ca12c2de72864002f846176985e7e8c0ec1512b089f",
       "contracts": [
         {
           "operations": [
@@ -115233,7 +115680,15 @@
             "identity": [
               {
                 "path": "adapters/host-node/installed-row-source-mapping.mts",
-                "anchor": "[declaration, writesJson, resource, sourceWire]"
+                "anchor": "clientProgramRowSourcePrepareDeleteMapping"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "Reflect.apply(prepare, moon, [declaration, writesJson, resource])"
+              },
+              {
+                "path": "adapters/host-node/installed-row-source-mapping.mts",
+                "anchor": "sourcesJson === undefined ? JSON.stringify(sources) : sourcesJson"
               }
             ],
             "ownership": [
@@ -115299,7 +115754,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "910d8e31259c55434161730698e97490ee6572d0e831f3d776c730224477a2e0",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkInstalledTableEffectLimits",
         "createInstalledTableEffect"
@@ -116982,10 +117437,12 @@
         "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
         "../host-common/completed-run-publication.mjs",
+        "../host-common/installed-effect-dependency-original.mjs",
         "../host-common/runtime-core.mjs",
         "../host-common/runtime-result.mjs",
         "./effect-input-export.mjs",
         "./effect-ledger.mjs",
+        "./effect-result-work.mjs",
         "./installed-effect-managed-plan.mjs",
         "./installed-effect-recipe-construction.mjs",
         "./installed-host-services.mjs",
@@ -127533,7 +127990,7 @@
     },
     {
       "module": "adapters/host-node/original-query-preparation.mjs",
-      "sha256": "4db9380c7369339c5dd04ffd2775f73dc60333dc915aad04b3e227898a4bb420",
+      "sha256": "c8f49bb3fa7d3a2a9bf0cb47063f94df13febb6ad5bf4854774ac418edaef96d",
       "exports": [
         "prepareOriginalSourceQuery"
       ],
@@ -127710,7 +128167,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "1c637217fe3e960844352f504def2661dbb3e5bd0ee4d6160ffd4abcdbd516f0",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "authorTableOperationPreview"
       ],
@@ -128459,7 +128916,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "9e1180e46a6e95f654c3d789fe831aaecf96a6649044236b1ce904d4af55e629",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "checkedTableWriteBinding",
         "verifyTableWriteBinding"
@@ -128837,9 +129294,9 @@
     {
       "module": "adapters/local-node/retained-output.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "2696846f037c18d380967acbabd4ca6dd2de29ae0761bbb5587fe2bcef2835ec",
+      "sha256": "bb3877d834e65a9f1466bfa021b130dacbde775ca41f367f0ae4d0a6c8b878bd",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "prepareLocalRetainedOutput"
       ],
@@ -129251,7 +129708,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "2cb7c400d12b916d5e603024708789c6a3062819ca5e59092f568503d11775fb",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "localStrategyContribution"
       ],
@@ -130637,9 +131094,9 @@
     {
       "module": "adapters/reference-compute-node/strategy-bundle.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "752288be142a2ea76466f032875af7b85019d9675dd0a135af109db0fec35f9c",
+      "sha256": "8d5b6d84bb3746448165fb6f2e7120a3776641feb240856085d593f38e3d0f63",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "numericStrategyContribution"
       ],
@@ -132350,9 +132807,9 @@
     {
       "module": "packages/coordinator-core/compiler-binding.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "sha256": "ebe4798f7a8acf55851d5bd87ef6e1d14c4295b381646d9314af3ed03635e14a",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -144794,9 +145251,9 @@
     {
       "module": "packages/provider-ai-sdk/_internal/compiler-binding.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "sha256": "ebe4798f7a8acf55851d5bd87ef6e1d14c4295b381646d9314af3ed03635e14a",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -146641,9 +147098,9 @@
     {
       "module": "packages/provider-http/_internal/compiler-binding.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "sha256": "ebe4798f7a8acf55851d5bd87ef6e1d14c4295b381646d9314af3ed03635e14a",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -148488,9 +148945,9 @@
     {
       "module": "packages/run-host-core/compiler-binding.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "sha256": "ebe4798f7a8acf55851d5bd87ef6e1d14c4295b381646d9314af3ed03635e14a",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -175974,7 +176431,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "5002446121ef2fe0450514e4be9271651398d2c242d64916e85e0999412981e1",
       "role": "observation-presentation",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "admitObservationScope",
         "chargeObservation",
@@ -177209,7 +177666,7 @@
       "responsibilityFacet": "primary",
       "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "publicationAction"
       ],
@@ -177458,9 +177915,9 @@
     {
       "module": "packages/transfer-core/compiler-binding.generated.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
+      "sha256": "ebe4798f7a8acf55851d5bd87ef6e1d14c4295b381646d9314af3ed03635e14a",
       "role": "generated-binding",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "runtimeFailure",
         "runtimeField",
@@ -179307,7 +179764,7 @@
       "responsibilityFacet": "supplemental",
       "sha256": "ba3ac39d933226c2230e0abc1d5d12c09dde8d3097c6d18629defae3e8ee70a6",
       "role": "physical-io",
-      "owner": "A \u2014 existing JS/Core projection boundary",
+      "owner": "A — existing JS/Core projection boundary",
       "exports": [
         "activeAt",
         "admitDurableJson",
@@ -181912,7 +182369,7 @@
     {
       "module": "adapters/host-node/acquired-effect-keyed-prefix.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "05962bafa159d559e9c17b5a0fa2fd7ba55d0d46ccccd64659abff2566400990",
+      "sha256": "fd27b385a119304bfb2c52d7b4e3a3c2314f99882763380aa6bd3d2d540a9e4d",
       "role": "physical-io",
       "owner": "A — existing JS/Core projection boundary",
       "exports": [
@@ -182492,424 +182949,5 @@
       ],
       "referenceQualification": "Source and original bounded component references only; no new grant, normal package, physical cleanup or whole Host acceptance"
     }
-  ],
-  "generated": [
-    {
-      "module": "adapters/host-common/compiler-binding.generated.mjs",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
-      "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mts",
-        "anchor": "generateCompilerBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "adapters/host-common/publication-action.mjs",
-      "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
-      "generator": {
-        "path": "scripts/generate-js-action-bindings.mts",
-        "anchor": "generateActionBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "adapters/host-common/strategy-actions.mjs",
-      "sha256": "2a624b18cfc0db8bd92f030934252579add7011e584021ffcb78328a0f5f9094",
-      "generator": {
-        "path": "scripts/generate-js-action-bindings.mts",
-        "anchor": "generateActionBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "packages/coordinator-core/compiler-binding.generated.mjs",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
-      "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mts",
-        "anchor": "generateCompilerBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "packages/provider-ai-sdk/_internal/compiler-binding.generated.mjs",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
-      "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mts",
-        "anchor": "generateCompilerBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "packages/provider-http/_internal/compiler-binding.generated.mjs",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
-      "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mts",
-        "anchor": "generateCompilerBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "packages/run-host-core/compiler-binding.generated.mjs",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
-      "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mts",
-        "anchor": "generateCompilerBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "packages/run-host-core/publication-action.mjs",
-      "sha256": "eae054ee2738e711f8eea070921f784c3c87c3da438df7009556c3419a25f685",
-      "generator": {
-        "path": "scripts/generate-js-action-bindings.mts",
-        "anchor": "generateActionBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "packages/transfer-core/compiler-binding.generated.mjs",
-      "sha256": "df375ab112f75d83b9763614991f30682d1dae6a645d8f85eb5684237040219e",
-      "generator": {
-        "path": "scripts/generate-js-compiler-bindings.mts",
-        "anchor": "generateCompilerBindings"
-      },
-      "freshness": {
-        "path": "scripts/check-js-compiler-bindings.mjs",
-        "anchor": "'--check'"
-      }
-    },
-    {
-      "module": "adapters/connectors/notion/host/database-reader.mjs",
-      "sha256": "bebc8f52274be5c43d13ccdbf6690bf2aa9731705e3905c65d57c4177ee67eee",
-      "exports": [
-        "createNotionDatabaseReaderFactory"
-      ],
-      "operations": [
-        {
-          "name": "createNotionDatabaseReaderFactory",
-          "parameters": [
-            "moon",
-            "snapshot",
-            "site",
-            "capacity",
-            "resource",
-            "limits",
-            "maxSecretBytes"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/call/call",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
-          "parameters": [
-            "input"
-          ],
-          "async": true
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
-          "parameters": [
-            "body"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
-          "parameters": [
-            "charge"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
-          "parameters": [
-            "rows",
-            "ticket"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
-          "parameters": [
-            "reason"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:retry/init:retry",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
-          "parameters": [
-            "name",
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/retireWorkspace/retireWorkspace",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
-          "parameters": [
-            "selected"
-          ],
-          "async": true
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
-          "parameters": [
-            "operation"
-          ],
-          "async": true
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/provider/provider",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createNotionDatabaseReaderFactory/provider/provider/provider",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "data",
-          "parameters": [
-            "value",
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
-        {
-          "name": "methods",
-          "parameters": [
-            "value",
-            "names"
-          ],
-          "async": false
-        },
-        {
-          "name": "methods/methods",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "text/text",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        }
-      ],
-      "imports": [
-        "../../../host-common/owned-invocation-context.mjs",
-        "../../../host-common/runtime-result.mjs",
-        "../../../site-node/https-credential-resource.mjs",
-        "../site/data-source-read.mjs",
-        "../site/property-item-read.mjs",
-        "node:util"
-      ],
-      "compilerFields": [],
-      "unresolvedSyntax": [],
-      "responsibilityFacet": "supplemental",
-      "role": "generated-binding",
-      "owner": "Existing Notion Catalog original schema/pending requests and installed ordinary RowRun/Site Credential caller",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "createNotionDatabaseReaderFactory",
-            "createNotionDatabaseReaderFactory/call/call",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/authorizationFor/authorizationFor",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/closeTransport/closeTransport",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/coordinates/coordinates",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:observe/init:observe",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#2",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:read/init:read/init:read#3",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:requestStop/init:requestStop",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/invoke/invoke",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/selectedProperty/selectedProperty",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/verify/verify",
-            "createNotionDatabaseReaderFactory/provider/provider",
-            "createNotionDatabaseReaderFactory/provider/provider/provider",
-            "data",
-            "fail/fail",
-            "methods",
-            "methods/methods",
-            "positive/positive",
-            "text/text",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/handle/init:retry/init:retry",
-            "createNotionDatabaseReaderFactory/factory/init:prepare/init:prepare/retireWorkspace/retireWorkspace"
-          ],
-          "exports": [
-            "createNotionDatabaseReaderFactory"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "The trusted installed database reader factory adapts"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Its inputs are an authenticated installed snapshot"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Snapshot getters retain the same original read-contract pair"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Each prepared reader retains the original RowRun identifiers"
-              },
-              {
-                "path": "adapters/connectors/notion/host/database-reader.mts",
-                "anchor": "const retireWorkspace=()=>{"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Every awaited Account/current check is followed"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Missing capacity, foreign snapshots, wrong operations"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Stop aborts that original child"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "The original phase inventory includes factory"
-              },
-              {
-                "path": "adapters/connectors/notion/host/database-reader.mts",
-                "anchor": "properties.clear();"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/notion-database-catalog.md",
-                "anchor": "Extension uses these existing snapshot"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/connectors/notion/test/database-row-reader.test.mts",
-                "anchor": "ordinary original database RowRun captures exact typed rows"
-              }
-            ]
-          }
-        }
-      ]
-    }
-  ],
-  "counts": {
-    "modules": 59,
-    "operations": 4671,
-    "exports": 624,
-    "explicitContractGroups": 916
-  }
+  ]
 }
