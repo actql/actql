@@ -3,7 +3,16 @@
 import assert from 'node:assert/strict';
 import {isAbsolute, join} from 'node:path';
 
-export function externalRestConfiguration(family, {connectorId, profileVersion}) {
+type RestConfigurationFamily = Readonly<{
+  accountConfigurationWire: string;
+  paths: Readonly<{project: string; state: string; credentialJournal: string}>;
+  keys: Readonly<{credentialAuthority: Readonly<{privateKeyPath: string}>}>;
+  resourceHttps: Readonly<{origin: string; caPath: string}>;
+  scenario: Readonly<{id: string}>;
+}>;
+
+export function externalRestConfiguration(family: RestConfigurationFamily,
+  {connectorId, profileVersion}: Readonly<{connectorId: string; profileVersion: string}>) {
   assert(typeof connectorId === 'string' && connectorId.length > 0);
   assert(/^actql-installed-[a-z0-9-]+\/0\.1$/u.test(profileVersion));
   assert(typeof family.accountConfigurationWire === 'string' && family.accountConfigurationWire.length > 0);

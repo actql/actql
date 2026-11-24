@@ -3,35 +3,37 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 
-const original = JSON.parse(readFileSync(new URL('./connector.json', import.meta.url), 'utf8'));
+type RestRequest = Readonly<{method: string; target: string}>;
+
+const original = JSON.parse(readFileSync(new URL('./connector.json', import.meta.url), 'utf8')) as Record<string, unknown>;
 const rows = Object.freeze([
   Object.freeze({id: 'alpha', amount: 7, note: 'e\u0301'}),
   Object.freeze({id: 'beta', amount: 2, note: '東京'}),
   Object.freeze({id: 'gamma', amount: 11, note: ''}),
 ]);
-const reply = (value, statusCode = 200) => ({statusCode, body: JSON.stringify(value)});
+const reply = (value: unknown, statusCode = 200) => ({statusCode, body: JSON.stringify(value)});
 
-export function externalRestDefinition(origin) {
+export function externalRestDefinition(origin: string) {
   const definition = structuredClone(original);
   definition.origin = origin;
   return definition;
 }
 
-export function externalRestProgram(connectorId) {
+export function externalRestProgram(connectorId: string) {
   return {version: 'actql/0.1', id: 'external-rest-read', stages: [{id: 'read',
-    inputs: {customers: {connector: connectorId, resource: 'customers'}},
+    inputs: {customers: {connector: connectorId, resource: 'customers'} as {connector: string; resource: string; view?: string}},
     steps: [{select: ['id', 'amount', 'note'], as: 'selected'}],
     results: {rows: {from: 'selected', fields: ['id', 'amount', 'note']}}}],
     results: {rows: {from: {stage: 'read', result: 'rows'}}}};
 }
 
-export function externalRestProvider({mode = 'paged'} = {}) {
+export function externalRestProvider({mode = 'paged'}: Readonly<{mode?: string}> = {}) {
   if (!['empty', 'one', 'paged', 'provider-error', 'cursor-cycle', 'oversized'].includes(mode)) {
     throw new Error('UnknownExternalRestFixtureMode');
   }
-  const requests = [];
+  const requests: RestRequest[] = [];
   return Object.freeze({
-    handle({method, target}) {
+    handle({method, target}: RestRequest) {
       assert.equal(method, 'GET');
       const url = new URL(target, 'https://fixture.invalid');
       assert.equal(url.pathname, '/v1/customers');
@@ -54,7 +56,7 @@ export function externalRestProvider({mode = 'paged'} = {}) {
           ? [{method: 'GET', target: '/v1/customers?after=page-2'}] : []),
       ]);
     },
-    assertRows(actual) {
+    assertRows(actual: unknown) {
       assert(!['provider-error', 'cursor-cycle', 'oversized'].includes(mode),
         'Refusal/failure fixtures have no success-row oracle');
       assert.deepEqual(actual, mode === 'empty' ? [] : mode === 'one' ? [rows[0]] : rows);
