@@ -82,10 +82,9 @@ fn sdk_state_initial_body(
 fn sdk_state_materials(
   fixture : SDKReadFixture,
 ) -> @publication.ObservedResultReadMaterials {
-  let (_, _, _, name, _, _, _) = @publication.local_sdk_result_read_selection_parameters(
-    fixture.selection,
-  )
-  fixture.owner.observed_result_read_materials(fixture.view, name, 8).unwrap()
+  fixture.owner
+  .observed_result_read_materials(fixture.view, "answer", 8)
+  .unwrap()
 }
 
 ///|

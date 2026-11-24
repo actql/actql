@@ -2790,19 +2790,31 @@ compiler and scalar physical-port checks.
 ### Explicit SDK first-install selection
 
 Private ABI55 adds `actql_bootstrap_produce_sdk`. Its explicitly selected factory
-retains the seven original bootstrap bodies and adds `run_policy_profile` and
-`sdk_read`. The original producer's seven-field output is unchanged. A loan
+retains the seven bootstrap positions and adds `run_policy_profile` and
+`sdk_read`. The SDK factory issues the fresh Account with the exact Local
+Result-read role. The original producer's seven-field output is unchanged. A loan
 cannot switch producers after invocation; SDK and original transports have
 distinct nominal Python families. Installed component admission requires the
 matching ABI rather than falling back to an older module.
 
 The Common delivery metadata Owner issues the closed
 `actql-local-sdk-result-read-selection/0.1` body and its exact-byte SHA256 CID.
-It selects principal `local-cli`, connection `local`, Result `answer`, purpose
+It selects principal `local-cli`, connection `local`, purpose
 `python-local-read`, sink `sdk-rows`, existing `jsonl` serialization,
 `max_bytes=65536` and `max_uses=1`. It binds the original finite profile and data
 Policy CIDs. Sink selection introduces no new Result format. Metadata admission
 is not Account authorization, a grant, a delivery attempt or durable acceptance.
+
+A fresh SDK selection uses the closed `requested_original_result` mode with
+`authority: "original_result_read"`. The current Account must admit the Run
+read and the installer's exact `result` read tuple. The checked live inventory
+or original Saved commit must contain the requested name. An explicit denial
+or delegation for that name still refuses. Authorization evidence records
+the actual resource and binds the selected name separately. Current Worker
+provisioning issues the same schema with a marked finite selection for
+`answer` and independently requires the exact `result/answer` Account
+tuple. The retired top-level `result_names` body is refused without
+rewriting installed originals.
 
 The SDK factory persists nine source originals, with exactly eight selected
 files excluding Account. Each of the two extra originals is limited to 8192

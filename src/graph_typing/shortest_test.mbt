@@ -377,6 +377,7 @@ test "Shortest checker and path schema preserve independently decomposed exact b
       cursor("true"),
       current_scope_graph(),
       schema_exact,
+      [],
     )
     is Ok(_),
   )
@@ -392,6 +393,7 @@ test "Shortest checker and path schema preserve independently decomposed exact b
         cursor("true"),
         current_scope_graph(),
         cap,
+        [],
       )
       is Err(_),
     )

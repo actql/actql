@@ -24,6 +24,52 @@ ci = load('ci_python_wheels', SCRIPTS / 'ci-python-wheels.py')
 audit = load('ci_python_audit', SCRIPTS / 'fixtures/ci-python-installed-audit.py')
 
 
+class InstalledNamedResultTests(unittest.TestCase):
+    def observed(self, phase):
+        return {'mode': 'local', 'version': '0.0.0.dev0', 'phase': phase, 'case': 'named-results',
+                'pid': 41 if phase == 'initial' else 42, 'results': ['before_change', 'after_change'],
+                'submitted': phase == 'initial', 'original_run_reused': phase == 'resume',
+                'first_close': True}
+
+    def test_named_results_use_the_shared_fixture_and_one_original_receipt(self):
+        consumer = Path('/installed/bin/python')
+        env = {'PATH': '/installed/bin'}
+        calls = []
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp)
+            def run(name, args, **options):
+                flags = dict(zip(args[5::2], args[6::2]))
+                calls.append(flags['--phase'])
+                self.assertEqual(args[:3], [consumer, '-I', '-B'])
+                self.assertEqual(args[3:5], [destination / 'ci-python-installed-run.py',
+                                             destination / 'python-product-installed.py'])
+                self.assertEqual((flags['--mode'], flags['--facade'], flags['--case']),
+                                 ('local', 'sync', 'named-results'))
+                self.assertEqual(flags['--named-results-fixture'].read_bytes(),
+                                 (ci.ROOT / 'scripts/fixtures/named-result-publication.json').read_bytes())
+                self.assertEqual(flags['--receipt'], options['cwd'] / 'original.json')
+                self.assertEqual(options['cwd'], destination / 'named-results')
+                self.assertIs(options['env'], env)
+                return json.dumps(self.observed(flags['--phase']))
+            ci.accept_installed_named_results(run, consumer, destination, '0.0.0.dev0', env)
+        self.assertEqual(calls, ['initial', 'resume'])
+
+    def test_named_results_refuse_missing_outcomes_close_failure_or_resubmission(self):
+        for changed in ({'results': ['before_change', 'before_change']},
+                        {'first_close': False}, {'submitted': True},
+                        {'original_run_reused': False}, {'pid': 41}):
+            calls = []
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as tmp:
+                def run(name, args, **options):
+                    phase = args[args.index('--phase') + 1]
+                    calls.append(phase)
+                    report = self.observed(phase)
+                    return json.dumps(report if phase == 'initial' else report | changed)
+                with self.assertRaisesRegex(ValueError, 'original Saved'):
+                    ci.accept_installed_named_results(run, Path('/python'), Path(tmp), '0.0.0.dev0', {})
+            self.assertEqual(calls, ['initial', 'resume'])
+
+
 class InstalledNumericReductionTests(unittest.TestCase):
     def test_same_cohort_numeric_saved_requires_a_distinct_process(self):
         source, module = 'a' * 40, 'b' * 64

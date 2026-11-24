@@ -225,6 +225,63 @@ fn check_keyed_initial_projection_presence(
 }
 
 ///|
+// Discover qualified references before the first SELECT changes the row
+// scope. The original parsed expression inventory and compiler work ceiling
+// bound discovery; unused node variables do not change the traversal body.
+fn keyed_endpoint_demand(
+  query : @query.Query,
+  pattern : @query.GraphPattern,
+  max_work : Int,
+) -> Array[Map[String, Bool]] raise Abort {
+  let demand : Array[Map[String, Bool]] = [Map([]), Map([])]
+  if pattern.nodes.all(node => node.variable is None) {
+    return demand
+  }
+  let mut remaining = max_work
+  for index in 0..<@query.operation_count(query) {
+    let operation = @query.operation_at(query, index).unwrap()
+    let expressions = match operation {
+      Select(projections, _) | Extend(projections) =>
+        positional_projection_expressions(projections)
+      Where(predicate) => [predicate]
+      Order(terms) => terms.map(term => term.expression)
+      _ => []
+    }
+    for expression in expressions {
+      let count = @query.expression_node_count(expression)
+      if count > remaining {
+        raise Abort(
+          Expression({
+            issue: @expression.WorkLimit,
+            origin: @query.expression_origin(
+              expression,
+              @query.expression_root(expression),
+            ),
+          }),
+        )
+      }
+      remaining -= count
+      for node in 0..<count {
+        if @query.expression_node(expression, node).unwrap().kind
+          is Reference(path) &&
+          path.length() >= 2 {
+          for endpoint in 0..<2 {
+            if pattern.nodes[endpoint].variable is Some(variable) &&
+              same_name(path[0], variable) {
+              demand[endpoint][ascii_upper(path[1].value)] = true
+            }
+          }
+        }
+      }
+    }
+    if operation is Select(_, _) {
+      break
+    }
+  }
+  demand
+}
+
+///|
 fn keyed_constraint(
   construction : Construction,
   constraint : @query.GraphConstraint?,
@@ -554,6 +611,7 @@ fn lower_script_keyed_graph_query(
       ("path_mode", construction.text(mode)),
       ("emit", construction.text("paths")),
     ]
+    let mut endpoint_fields : Array[String] = []
     if bounded {
       let edge = pattern.edges[0]
       params.push(("direction", construction.text(edge.direction)))
@@ -587,6 +645,7 @@ fn lower_script_keyed_graph_query(
       for index, edge in pattern.edges {
         let node = pattern.nodes[index + 1]
         let node_fields = keyed_hop_node_fields(graph, edge, node)
+        endpoint_fields = node_fields
         let hop = [("direction", construction.text(edge.direction))]
         if edge.label is Some(label) {
           hop.push(
@@ -625,6 +684,54 @@ fn lower_script_keyed_graph_query(
       }
       params.push(("hops", construction.array(hops)))
     }
+    let visible : Array[String] = []
+    if pattern.edges.length() == 1 && !bounded {
+      let endpoint_properties : Array[(String, @builder.Node)] = []
+      let demand = keyed_endpoint_demand(
+        query,
+        pattern,
+        limits.max_expression_work,
+      )
+      for index, role_fields in [fields, endpoint_fields] {
+        guard pattern.nodes[index].variable is Some(variable) &&
+          !demand[index].is_empty() else {
+          continue
+        }
+        let role_fields = role_fields.filter(field => {
+          demand[index].contains(ascii_upper(field))
+        })
+        if role_fields.is_empty() {
+          continue
+        }
+        let role = if index == 0 { "start" } else { "end" }
+        let prefix = "aql_keyed_" + role + "_"
+        let properties : Array[@builder.Node] = []
+        for field in role_fields {
+          let slot = prefix + field
+          properties.push(
+            construction.object([
+              ("property", construction.text(field)),
+              ("as", construction.text(slot)),
+            ]),
+          )
+          visible.push(slot)
+        }
+        endpoint_properties.push((role, construction.array(properties)))
+        bindings.push({
+          variable,
+          prefix,
+          fields: role_fields,
+          kind: NodeIdentity(role + "_id"),
+          hops: 0,
+          label_field: None,
+        })
+      }
+      if !endpoint_properties.is_empty() {
+        params.push(
+          ("endpoint_properties", construction.object(endpoint_properties)),
+        )
+      }
+    }
     let paths = pipe_physical_name(reserved, "aql_keyed_paths_")
     reserved.push(paths)
     steps.push(
@@ -649,7 +756,7 @@ fn lower_script_keyed_graph_query(
     }
     // Traversal's physical columns are not Graph pattern variables. Closed
     // macros reference them internally; an explicit SELECT creates columns.
-    (paths, [])
+    (paths, visible)
   }
   let selected : Input = {
     relation,

@@ -349,6 +349,14 @@ partial failure still uses an array with zero or one object. Each destination
 has its own outcome and receipt. Exporting the array does not certify aggregate
 success or roll back files, and retrying receipt export must not resend output.
 `run --receipt` remains a Run receipt.
+
+Fresh Native Local projects use the requested Result from that Run's committed
+manifest. The selected principal, connection, Data Policy, retention, delivery
+permission, and read limits still apply. An explicitly adopted `result_names`
+list limits selection to those names. Requested-original selections carry
+an explicit authority marker. Opening a selection without that marker
+refuses it without rewriting the retained configuration.
+
 Native Local file delivery creates each destination exclusively. Repeating the
 same Run, Result, format and destination inspects the existing attempt first:
 a completed output must still match its original file identity and bytes;

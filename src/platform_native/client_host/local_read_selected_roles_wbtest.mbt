@@ -18,17 +18,24 @@ fn selected_read_roles_fixture(
   ]
   let account_name = name + ".account"
   if !existing {
+    let observed_at = "2026-10-12T00:00:00.000Z"
+    let assets = @host.client_local_product_assets()
+    let legacy = @host.client_local_product_common_originals(
+      root, observed_at, assets,
+    ).unwrap()
     let originals = @host.client_local_product_finite_originals(
-      root,
-      "/physical/sqlite.dylib",
-      "/physical/crypto.dylib",
-      "2026-10-12T00:00:00.000Z",
-      @host.client_local_product_assets(),
+      root, "/physical/sqlite.dylib", "/physical/crypto.dylib", observed_at, assets,
     ).unwrap()
     let original = key => {
       originals.iter().find_first(pair => pair.0 == key).unwrap().1
     }
+    // Custom operator roles use their original per-name Account and
+    // explicit finite list, independent of the fresh installer's role.
     let read = @utf8.decode(original("read.json"))
+      .replace(
+        old="\"result_selection\":{\"authority\":\"original_result_read\",\"kind\":\"requested_original_result\"}",
+        new="\"result_names\":[\"answer\"]",
+      )
       .replace_all(old="run.json", new=names[1])
       .replace_all(old="retention.json", new=names[3])
       .replace_all(old="store.json", new=names[4])
@@ -43,7 +50,7 @@ fn selected_read_roles_fixture(
     let parent = @filesystem.open_private_root(root).unwrap()
     for
       (file, body) in [
-        (account_name, original("account.json")),
+        (account_name, legacy.account),
         (names[0], original("profile.json")),
         (names[1], original("run.json")),
         (names[2], original("run.json")),
