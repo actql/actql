@@ -87269,7 +87269,7 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "b87e602f58315a71c21f51ed5733abc1e00fdff7795c73e1b79e7ffab9ff31d1",
+      "sha256": "e1075c352f3e3e03ee2b6a6704f308769d8819bec8bc8913350712cdd11de9c5",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -87287,6 +87287,13 @@
           "name": "checkCapturedInventory/checkCapturedInventory/checkCapturedInventory#2",
           "parameters": [
             "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
           ],
           "async": false
         },
@@ -87336,10 +87343,7 @@
         },
         {
           "name": "installNodeModelContinuation/installNodeModelContinuation",
-          "parameters": [
-            "token",
-            "runDefinitionCid"
-          ],
+          "parameters": [],
           "async": false
         },
         {
@@ -87353,14 +87357,15 @@
         {
           "name": "installNodeModelContinuation/installNodeModelContinuation#3",
           "parameters": [
-            "record"
+            "token",
+            "runDefinitionCid"
           ],
           "async": false
         },
         {
           "name": "installNodeModelContinuation/installNodeModelContinuation#4",
           "parameters": [
-            "runId"
+            "record"
           ],
           "async": false
         },
@@ -87373,6 +87378,13 @@
         },
         {
           "name": "installNodeModelContinuation/installNodeModelContinuation#6",
+          "parameters": [
+            "runId"
+          ],
+          "async": false
+        },
+        {
+          "name": "installNodeModelContinuation/installNodeModelContinuation#7",
           "parameters": [
             "identity"
           ],
@@ -87719,20 +87731,10 @@
           "async": false
         },
         {
-          "name": "installNodeModelContinuation/release",
+          "name": "installNodeModelContinuation/retireReceipt",
           "parameters": [
-            "token"
+            "receiptWire"
           ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/retain/token/token",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/retain/token/token#2",
-          "parameters": [],
           "async": false
         },
         {
@@ -87740,11 +87742,6 @@
           "parameters": [
             "record"
           ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/usage/usage",
-          "parameters": [],
           "async": false
         },
         {
@@ -88079,7 +88076,9 @@
           }
         },
         {
-          "operations": [],
+          "operations": [
+            "fail/fail"
+          ],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -88251,11 +88250,7 @@
             "installNodeModelContinuation/readSettled/readSettled",
             "installNodeModelContinuation/readSettled/readSettled#2",
             "installNodeModelContinuation/readSettled/readSettled#3",
-            "installNodeModelContinuation/release",
-            "installNodeModelContinuation/retain/token/token",
-            "installNodeModelContinuation/retain/token/token#2",
             "installNodeModelContinuation/retireReceipt/absent/absent",
-            "installNodeModelContinuation/usage/usage",
             "installNodeModelContinuation/verifier/init:admitImmediateEntry/init:admitImmediateEntry",
             "installNodeModelContinuation/verifier/verifier",
             "installNodeModelContinuation/verifier/verifier#10",
@@ -88268,7 +88263,9 @@
             "installNodeModelContinuation/verifier/verifier#7",
             "installNodeModelContinuation/verifier/verifier#8",
             "installNodeModelContinuation/verifier/verifier#9",
-            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3"
+            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3",
+            "installNodeModelContinuation/installNodeModelContinuation#7",
+            "installNodeModelContinuation/retireReceipt"
           ],
           "exports": [
             "installNodeModelContinuation"
@@ -89046,6 +89043,7 @@
         "./infer-physical-observation.mjs",
         "./infer-raw-capture.mjs",
         "./infer-raw-selection.mjs",
+        "./installed-model-input-custody.mjs",
         "./installed-model-originals.mjs",
         "./local-account-config.mjs",
         "./sqlite-checkpoint-journal.mjs",

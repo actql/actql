@@ -7,6 +7,7 @@ import {assertAuthorizationAccountCurrent, authorizationDispatchFacts, Execution
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {bytesCid, contentCid} from './local-account-config.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
+import {createInstalledModelInputCustody} from './installed-model-input-custody.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
 import {MAX_MODEL_INPUT_BYTES} from './client-checkpoints.mjs';
@@ -94,9 +95,7 @@ const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_
 export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,
   authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation, inferEvidence}) {
   const runtime = await loadCheckpointRuntime();
-  const custody = new Map();
   const live = new WeakMap();
-  const leases = new WeakMap();
   // Route only the original bare park to its existing installed operation's
   // completed Common comparison. Escaped park refs retain no new callback or
   // Owner graph through this weak membership; the operation keeps its borrow.
@@ -114,74 +113,11 @@ export async function installNodeModelContinuation({moon, control, store, storeA
   const inventories = new Map();
   const diagnostic = diagnosticObserver(observeDiagnostic);
   let checkpointInstallation;
-  let retainedInputs = 0, retainedInputBytes = 0;
-  const usage = () => Object.freeze({retainedInputScopes: custody.size,
-    retainedInputs, retainedInputBytes, retainedInventoryScopes: inventories.size});
-  const changed = () => diagnostic('model_input_custody_changed', usage());
-  function retain(receiptWire, receipt, snapshot, bytes) {
-    immutableInput(receipt);
-    immutableInput(snapshot);
-    let tokens = custody.get(receiptWire);
-    if (tokens === undefined) custody.set(receiptWire, tokens = new Set());
-    const state = {available: true, snapshot};
-    const token = Object.freeze({receipt, get snapshot() { return state.snapshot; },
-      get available() { return state.available; }});
-    leases.set(token, {receiptWire, tokens, state, bytes});
-    tokens.add(token);
-    retainedInputs++;
-    retainedInputBytes += bytes;
-    changed();
-    return token;
-  }
-  function ownedInput(token, runDefinitionCid) {
-    const lease = leases.get(token);
-    if (lease === undefined || !lease.state.available ||
-        lease.tokens.has(token) !== true || token.receipt.runDefinitionCid !== runDefinitionCid) {
-      fail('ModelFixedInputCustodyUnavailable');
-    }
-    return token.snapshot;
-  }
-  // The authenticated receipt covers these exact values. Borrowers may not
-  // replace a captured reference or scope after receipt verification. Walk
-  // the already byte-bounded decoded tree without another serialized copy.
-  function immutableInput(value) {
-    const pending = [value];
-    while (pending.length > 0) {
-      const next = pending.pop();
-      if (next !== null && typeof next === 'object') {
-        for (const child of Object.values(next)) {
-          if (child !== null && typeof child === 'object') pending.push(child);
-        }
-        Object.freeze(next);
-      }
-    }
-    return value;
-  }
-  function release(token) {
-    const lease = leases.get(token);
-    if (lease === undefined) return;
-    lease.state.available = false;
-    // Retire only this lease's decoded input. Escaped borrows and
-    // independently retained consumers keep their own original custody.
-    lease.state.snapshot = undefined;
-    leases.delete(token);
-    lease.tokens.delete(token);
-    if (lease.tokens.size === 0 && custody.get(lease.receiptWire) === lease.tokens) {
-      custody.delete(lease.receiptWire);
-    }
-    retainedInputs--;
-    retainedInputBytes -= lease.bytes;
-    try { retireReceipt(lease.receiptWire); }
-    catch (error) {
-      // A later sweep can retire small journal metadata. It cannot undo the
-      // payload release or replace an earlier execution/admission failure.
-      diagnostic('model_input_retirement_pending', {code: error?.code ?? error?.message});
-    }
-    changed();
-  }
+  const {retain, ownedInput, release, usage, changed, hasRetainedReceipt, firstRetained, leaseReceiptWire} =
+    createInstalledModelInputCustody({inventorySize: () => inventories.size, retireReceipt, diagnostic, fail});
   function retireReceipt(receiptWire) {
     const held = inventories.get(receiptWire);
-    if (held === undefined || custody.has(receiptWire)) return;
+    if (held === undefined || hasRetainedReceipt(receiptWire)) return;
     const journal = checkpoints().journal;
     const state = journal.getRunState(held.receipt.runId);
     const records = journal.discoverModelCallSets({runId: held.receipt.runId, limit: 100});
@@ -209,7 +145,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     return value;
   }
   function admittedInventory(originals, immediate, token) {
-    const retained = token ?? custody.get(originals.fixedInputReceiptWire)?.values().next().value;
+    const retained = token ?? firstRetained(originals.fixedInputReceiptWire);
     const prior = inventories.get(originals.fixedInputReceiptWire);
     if (retained === undefined && prior === undefined || retained?.available === false) {
       fail('ModelFixedInputCustodyUnavailable');
@@ -407,7 +343,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     if (binding === undefined) fail('InstalledModelProviderBindingRequired');
     if (existing !== undefined) {
       token = inputToken;
-      if (leases.get(token)?.receiptWire !== existing.originals.fixedInputReceiptWire ||
+      if (leaseReceiptWire(token) !== existing.originals.fixedInputReceiptWire ||
           !token.available) fail('ModelFixedInputCustodyUnavailable');
       originals = existing.originals;
       scope = control.admitRunEvidence('model_invocation_scope', originals.scopeWire, limits);
