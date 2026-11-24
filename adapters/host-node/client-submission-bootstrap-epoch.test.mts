@@ -2,22 +2,28 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {issueNodeClientSubmissionEpoch,installNodeClientSubmission} from './client-submission.mjs';
 import {submissionEpoch} from '../../packages/sdk/submission-fixture.mjs';
+type EpochOptions = Parameters<typeof issueNodeClientSubmissionEpoch>[0];
+type EpochRequest = Parameters<typeof issueNodeClientSubmissionEpoch>[1];
+type SubmissionOptions = Parameters<typeof installNodeClientSubmission>[0];
+type Service = ReturnType<typeof installNodeClientSubmission>;
+type Intent = Parameters<Service['submitIntent']>[0];
+
 const scope={authorityScopeCid:submissionEpoch.authorityScopeCid,namespaceId:'original'};
-const deferred=()=>{let resolve;const promise=new Promise(done=>{resolve=done;});return {promise,resolve};};
+const deferred=()=>{let resolve!: () => void;const promise=new Promise<void>(done=>{resolve=done;});return {promise,resolve};};
 
 // The real submission adapter with explicit Journal/authentication ports.
 // No epoch authenticator, Account grant, Run or physical Journal is issued.
 test('bootstrap epoch uses the original immutable authenticated request and same Journal receiver',async()=>{
-  const entered=deferred(),released=deferred(),moon={};let calls=0,observed;
-  const journal={issueSubmissionEpoch(fields,runtime){
+  const entered=deferred(),released=deferred(),moon={};let calls=0,observed: EpochRequest | undefined;
+  const journal={issueSubmissionEpoch(fields: unknown,runtime: unknown){
     assert.strictEqual(this,journal);assert.strictEqual(runtime,moon);
     assert.deepEqual(fields,{...scope,currentAuthorization:true});calls++;return submissionEpoch;}};
   const request={principalId:'original',connection:{mode:'local'}};
-  const pending=issueNodeClientSubmissionEpoch({journal,moon,async authorizedScope(value){
-    observed=value;entered.resolve();await released.promise;return scope;}},request);
+  const pending=issueNodeClientSubmissionEpoch({journal,moon,async authorizedScope(value: EpochRequest){
+    observed=value;entered.resolve();await released.promise;return scope;}} as unknown as EpochOptions,request as EpochRequest);
   await entered.promise;request.principalId='replacement';request.connection.mode='remote';
   assert.deepEqual(observed,{principalId:'original',connection:{mode:'local'}});
-  assert.ok(Object.isFrozen(observed)&&Object.isFrozen(observed.connection));
+  assert.ok(Object.isFrozen(observed)&&Object.isFrozen(observed!.connection));
   assert.equal(calls,0);released.resolve();
   assert.strictEqual(await pending,submissionEpoch);assert.equal(calls,1);
 });
@@ -28,7 +34,7 @@ test('bootstrap epoch refuses missing or malformed current scope before Journal 
   for(const selected of [undefined,{...scope,authorityScopeCid:'same-looking'},
     {...scope,namespaceId:''}]){
     await assert.rejects(issueNodeClientSubmissionEpoch({journal,moon:{},
-      authorizedScope:()=>selected},{principalId:'original'}),{code:'ClientRequestLookupDenied'});
+      authorizedScope:()=>selected} as unknown as EpochOptions,{principalId:'original'} as EpochRequest),{code:'ClientRequestLookupDenied'});
   }
   assert.equal(calls,0);
 });
@@ -37,27 +43,27 @@ test('ordinary submission service retains the same epoch operation without start
   let epochs=0;
   const moon={clientSubmittedIntent(){assert.fail('No submitted intent');}};
   const journal={recordSubmittedIntent(){},checkSubmittedIntent(){},
-    issueSubmissionEpoch(fields,runtime){assert.strictEqual(runtime,moon);
+    issueSubmissionEpoch(fields: unknown,runtime: unknown){assert.strictEqual(runtime,moon);
       assert.deepEqual(fields,{...scope,currentAuthorization:true});epochs++;return submissionEpoch;}};
   const unused=()=>assert.fail('Epoch issuance starts no Program or Run');
   const service=installNodeClientSubmission({journal,moon,authorizedScope:()=>scope,
-    prepareSubmit:unused,submit:unused,lookupRequest:unused});
-  assert.strictEqual(await service.issueEpoch({principalId:'original'}),submissionEpoch);
+    prepareSubmit:unused,submit:unused,lookupRequest:unused} as unknown as SubmissionOptions);
+  assert.strictEqual(await service.issueEpoch({principalId:'original'} as EpochRequest),submissionEpoch);
   assert.equal(epochs,1);
 });
 
 
 for (const [name, input, minimumNodes] of [
   ['encoded text beyond the old one-MiB ceiling', {format:'json', text:'é'.repeat(600000)}, 1],
-  ['flat Program beyond the old 65536-node ceiling', {stages:[{values:Array(65537).fill(0)}]}, 65537],
-]) {
+  ['flat Program beyond the old 65536-node ceiling', {stages:[{values:Array<number>(65537).fill(0)}]}, 65537],
+] as const) {
   test(`submission compatibility codec uses the original finite wire geometry: ${name}`, async()=>{
     const stopped=Object.freeze({stage:'original Journal check'});
     const original=Object.freeze({kind:'original typed intent'});
     const intentCid='sha256:'+'d'.repeat(64);
     const ref={epoch:submissionEpoch,nonce:'e'.repeat(64)};
     let codecs=0,checks=0,releases=0;
-    const moon={clientSubmittedIntent(wire,maxBytes,maxNodes,maxDepth){
+    const moon={clientSubmittedIntent(wire: string,maxBytes: number,maxNodes: number,maxDepth: number){
       codecs++;
       if(minimumNodes>1) assert.ok(maxNodes>=minimumNodes);
       else assert.ok(maxBytes>=Buffer.byteLength(wire,'utf8'));
@@ -65,23 +71,23 @@ for (const [name, input, minimumNodes] of [
       assert.equal(maxNodes,wire.length);
       assert.equal(maxDepth,64);
       return original;
-    },clientSubmittedIntentCid(value){assert.strictEqual(value,original);return intentCid;}};
+    },clientSubmittedIntentCid(value: unknown){assert.strictEqual(value,original);return intentCid;}};
     const journal={recordSubmittedIntent(){assert.fail('No durable admission');},
-      checkSubmittedIntent(submissionRef,value,fields,runtime){
+      checkSubmittedIntent(submissionRef: unknown,value: unknown,fields: {actorId: string},runtime: unknown){
         checks++;assert.strictEqual(this,journal);assert.deepEqual(submissionRef,ref);
         assert.strictEqual(value,original);assert.strictEqual(runtime,moon);
         assert.equal(fields.actorId,'original');throw stopped;
       },
-      retainSubmissionOperation(epoch,runtime,borrowed){
+      retainSubmissionOperation(epoch: unknown,runtime: unknown,borrowed: unknown){
         assert.deepEqual(epoch,submissionEpoch);assert.strictEqual(runtime,moon);
         assert.equal(borrowed,undefined);return ()=>{releases++;};
       }};
     const unused=()=>assert.fail('No preparation, Run or lookup');
     const service=installNodeClientSubmission({journal,moon,authorizedScope:()=>scope,
-      prepareSubmit:unused,submit:unused,lookupRequest:unused});
+      prepareSubmit:unused,submit:unused,lookupRequest:unused} as unknown as SubmissionOptions);
     await assert.rejects(service.submitIntent({principalId:'original',connection:{mode:'local'},
       submissionRef:ref,intentCid,kind:name.startsWith('encoded')?'aql':'program',input,
-      parameters:null}),error=>error===stopped);
+      parameters:null} as Intent),(error: unknown)=>error===stopped);
     assert.equal(codecs,1);assert.equal(checks,1);assert.equal(releases,1);
   });
 }
@@ -93,19 +99,19 @@ test('submission keeps the original retained intent ahead of every codec', async
   const intentCid='sha256:'+'d'.repeat(64);
   let retained=0,releases=0,checks=0;
   const moon={clientSubmittedIntent(){assert.fail('No codec for a retained original');},
-    clientSubmittedIntentCid(value){assert.strictEqual(value,original);return intentCid;}};
+    clientSubmittedIntentCid(value: unknown){assert.strictEqual(value,original);return intentCid;}};
   const journal={recordSubmittedIntent(){assert.fail('No admission');},
     prepareSubmittedIntent(){assert.fail('No second original');},
-    retainSubmissionOperation(epoch,runtime,borrowed){assert.strictEqual(borrowed,original);
+    retainSubmissionOperation(epoch: unknown,runtime: unknown,borrowed: unknown){assert.strictEqual(borrowed,original);
       return ()=>{releases++;};},
-    checkSubmittedIntent(ref,value){checks++;assert.strictEqual(value,original);throw stopped;}};
+    checkSubmittedIntent(ref: unknown,value: unknown){checks++;assert.strictEqual(value,original);throw stopped;}};
   const unused=()=>assert.fail('No Program or Run');
   const service=installNodeClientSubmission({journal,moon,authorizedScope:()=>scope,
     submittedIntentOriginal(){retained++;return original;},prepareSubmit:unused,submit:unused,
-    lookupRequest:unused});
+    lookupRequest:unused} as unknown as SubmissionOptions);
   await assert.rejects(service.submitIntent({principalId:'original',connection:{mode:'local'},
     submissionRef:{epoch:submissionEpoch,nonce:'e'.repeat(64)},intentCid,kind:'program',
-    input:{stages:[]},parameters:null}),error=>error===stopped);
+    input:{stages:[]},parameters:null} as Intent),(error: unknown)=>error===stopped);
   assert.equal(retained,2);assert.equal(checks,1);assert.equal(releases,1);
 });
 
@@ -116,14 +122,14 @@ test('submission keeps the original Journal refusal without compatibility fallba
   const journal={recordSubmittedIntent(){assert.fail('No admission');},
     checkSubmittedIntent(){assert.fail('No original was admitted');},
     retainSubmissionOperation(){return ()=>{releases++;};},
-    prepareSubmittedIntent(epoch,wire,runtime){calls++;assert.strictEqual(this,journal);
+    prepareSubmittedIntent(epoch: unknown,wire: string,runtime: unknown){calls++;assert.strictEqual(this,journal);
       assert.deepEqual(epoch,submissionEpoch);assert.strictEqual(runtime,moon);
       assert.equal(JSON.parse(wire).kind,'program');throw refusal;}};
   const unused=()=>assert.fail('No Program or Run');
   const service=installNodeClientSubmission({journal,moon,authorizedScope:()=>scope,
-    prepareSubmit:unused,submit:unused,lookupRequest:unused});
+    prepareSubmit:unused,submit:unused,lookupRequest:unused} as unknown as SubmissionOptions);
   await assert.rejects(service.submitIntent({principalId:'original',connection:{mode:'local'},
     submissionRef:{epoch:submissionEpoch,nonce:'e'.repeat(64)},intentCid:'sha256:'+'d'.repeat(64),
-    kind:'program',input:{stages:[]},parameters:null}),error=>error===refusal);
+    kind:'program',input:{stages:[]},parameters:null} as Intent),(error: unknown)=>error===refusal);
   assert.equal(calls,1);assert.equal(releases,1);
 });

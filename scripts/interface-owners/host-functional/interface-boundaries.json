@@ -43339,7 +43339,7 @@
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
-                "path": "adapters/host-node/client-submission-bootstrap-epoch.test.mjs",
+                "path": "adapters/host-node/client-submission-bootstrap-epoch.test.mts",
                 "anchor": "test('bootstrap epoch uses the original immutable authenticated request and same Journal receiver',async()=>{"
               },
               {
@@ -44003,7 +44003,7 @@
                 "anchor": "test('same-Run original read-only restriction survives material/journal reopen"
               },
               {
-                "path": "adapters/host-node/client-submission-bootstrap-epoch.test.mjs",
+                "path": "adapters/host-node/client-submission-bootstrap-epoch.test.mts",
                 "anchor": "test('bootstrap epoch uses the original immutable authenticated request and same Journal receiver',async()=>{"
               },
               {
