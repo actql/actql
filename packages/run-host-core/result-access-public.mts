@@ -1,3 +1,5 @@
+import * as original from './result-access.mjs';
+
 declare const resultAuthorityBrand: unique symbol;
 declare const resultServiceBrand: unique symbol;
 
@@ -35,17 +37,19 @@ export interface ResultDeliverySink {
 // to sample the installed Host clock after reading its durable lower bound.
 // It returns the exact durably accepted sample and must re-sample after a CAS
 // conflict. Explicit observeTrustedClock remains the compatibility contract.
-export function installResultAccessAuthority(
-  configuration: unknown): ResultAccessAuthority;
-export function installResultAccessService(
-  configuration: unknown): ResultAccessService;
-export function deliverAuthorizedResult(service: ResultAccessService,
+// The canonical constructors validate untyped input before retaining its callbacks.
+export const installResultAccessAuthority: (configuration: unknown) => ResultAccessAuthority =
+  original.installResultAccessAuthority as (configuration: unknown) => ResultAccessAuthority;
+export const installResultAccessService: (configuration: unknown) => ResultAccessService =
+  original.installResultAccessService as (configuration: unknown) => ResultAccessService;
+export const deliverAuthorizedResult: (service: ResultAccessService,
   request: ResultAccessRequest, sink: ResultDeliverySink,
-  signal?: AbortSignal): Promise<unknown>;
-export function inspectAuthorizedDeliveryAttempt(
-  service: ResultAccessService,
-  request: Omit<ResultAccessRequest, 'format'>): Promise<unknown>;
-export function describeAuthorizedResult(service: ResultAccessService,
+  signal?: AbortSignal) => Promise<unknown> = original.deliverAuthorizedResult;
+export const inspectAuthorizedDeliveryAttempt: (service: ResultAccessService,
+  request: Omit<ResultAccessRequest, 'format'>) => Promise<unknown> =
+  original.inspectAuthorizedDeliveryAttempt;
+export const describeAuthorizedResult: (service: ResultAccessService,
   request: ResultAccessRequest & Readonly<{
     maxWireBytes: number; maxNodes: number; maxDepth: number}>,
-  signal?: AbortSignal): Promise<import('@actql/client-wire').WireResultDescription>;
+  signal?: AbortSignal) => Promise<import('@actql/client-wire').WireResultDescription> =
+  original.describeAuthorizedResult;

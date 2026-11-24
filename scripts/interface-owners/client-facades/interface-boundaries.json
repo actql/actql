@@ -15516,7 +15516,7 @@
     {
       "module": "packages/run-host-core/result-access-public.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "55649f64f3a67ee282c533f8d65761d975f333020c835eb3ee33c7d28a773515",
+      "sha256": "2db232996b32b7f8fc3f39be770e8ad855419f2c513b8a62823859cea73c9704",
       "exports": [
         "deliverAuthorizedResult",
         "describeAuthorizedResult",

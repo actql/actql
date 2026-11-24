@@ -2500,6 +2500,8 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /packages/provider-http/installed-http-chat.test.d.mts
 /packages/run-host-core/checkpoint-resolution.test.mjs
 /packages/run-host-core/checkpoint-resolution.test.d.mts
+/packages/run-host-core/result-access-public.mjs
+/packages/run-host-core/result-access-public.d.mts
 /packages/run-host-core/checkpoints.mjs
 /packages/run-host-core/checkpoints.d.mts
 /packages/run-host-core/checkpoints.test.mjs

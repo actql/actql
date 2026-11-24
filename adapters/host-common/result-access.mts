@@ -7,7 +7,7 @@ import {validDeliveryAttemptLookup, validResultDescription,
   '../../packages/client-wire/index.mjs';
 
 import type {WireDeliveryAttemptLookup, WireResultDescription} from '../../packages/client-wire/index.js';
-import type {ResultAccessAuthority, ResultAccessRequest, ResultAccessService} from '../../packages/run-host-core/result-access.js';
+import type {ResultAccessAuthority, ResultAccessRequest, ResultAccessService} from '../../packages/run-host-core/result-access-public.mjs';
 import type {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import type {PublicationContract} from '../store-local/publication-contract-store.mjs';
 import type {publicationProgressControl} from './publication-progress-control.mjs';

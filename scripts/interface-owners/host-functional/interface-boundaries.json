@@ -115490,9 +115490,9 @@
       "compilerFields": []
     },
     {
-      "module": "packages/run-host-core/result-access.d.ts",
+      "module": "packages/run-host-core/result-access-public.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "ac0dd3b5c8ab7b2b971400e0fabfbc0b1db4be364e67d3d1d29ce9b18bf0a7e1",
+      "sha256": "e2bf8eb63928e29e157dc231ffc71f74f499d388d9ad8cdec578bb6a4f88bf7b",
       "role": "common-semantics",
       "owner": "Existing Result access/delivery/publication Owners and physical read/sink adapter",
       "exports": [
@@ -115509,7 +115509,21 @@
       ],
       "operations": [
         {
-          "name": "deliverAuthorizedResult",
+          "name": "<call>",
+          "parameters": [
+            "configuration: unknown"
+          ],
+          "result": "ResultAccessAuthority"
+        },
+        {
+          "name": "<call>#2",
+          "parameters": [
+            "configuration: unknown"
+          ],
+          "result": "ResultAccessService"
+        },
+        {
+          "name": "<call>#3",
           "parameters": [
             "service: ResultAccessService",
             "request: ResultAccessRequest",
@@ -115519,16 +115533,7 @@
           "result": "Promise<unknown>"
         },
         {
-          "name": "describeAuthorizedResult",
-          "parameters": [
-            "service: ResultAccessService",
-            "request: ResultAccessRequest & Readonly<{\n    maxWireBytes: number; maxNodes: number; maxDepth: number}>",
-            "signal?: AbortSignal"
-          ],
-          "result": "Promise<import('@actql/client-wire').WireResultDescription>"
-        },
-        {
-          "name": "inspectAuthorizedDeliveryAttempt",
+          "name": "<call>#4",
           "parameters": [
             "service: ResultAccessService",
             "request: Omit<ResultAccessRequest, 'format'>"
@@ -115536,18 +115541,13 @@
           "result": "Promise<unknown>"
         },
         {
-          "name": "installResultAccessAuthority",
+          "name": "<call>#5",
           "parameters": [
-            "configuration: unknown"
+            "service: ResultAccessService",
+            "request: ResultAccessRequest & Readonly<{\n    maxWireBytes: number;\n    maxNodes: number;\n    maxDepth: number;\n}>",
+            "signal?: AbortSignal"
           ],
-          "result": "ResultAccessAuthority"
-        },
-        {
-          "name": "installResultAccessService",
-          "parameters": [
-            "configuration: unknown"
-          ],
-          "result": "ResultAccessService"
+          "result": "Promise<import('@actql/client-wire').WireResultDescription>"
         },
         {
           "name": "ResultDeliverySink/finish",
@@ -115568,13 +115568,13 @@
       "contracts": [
         {
           "operations": [
+            "<call>",
+            "<call>#2",
+            "<call>#3",
+            "<call>#4",
+            "<call>#5",
             "ResultDeliverySink/finish",
-            "ResultDeliverySink/write",
-            "deliverAuthorizedResult",
-            "describeAuthorizedResult",
-            "inspectAuthorizedDeliveryAttempt",
-            "installResultAccessAuthority",
-            "installResultAccessService"
+            "ResultDeliverySink/write"
           ],
           "exports": [
             "ResultAccessAuthority",
@@ -115591,7 +115591,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "export interface ResultAccessAuthority {"
               },
               {
@@ -115605,7 +115605,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "export interface ResultAccessAuthority {"
               },
               {
@@ -115619,7 +115619,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "readonly authorityScopeCid: string;"
               },
               {
@@ -115633,7 +115633,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "export interface ResultAccessAuthority {"
               },
               {
@@ -115647,7 +115647,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "write(bytes: Uint8Array, signal?: AbortSignal): Promise<unknown>;"
               },
               {
@@ -115661,7 +115661,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "write(bytes: Uint8Array, signal?: AbortSignal): Promise<unknown>;"
               },
               {
@@ -115675,7 +115675,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "write(bytes: Uint8Array, signal?: AbortSignal): Promise<unknown>;"
               },
               {
@@ -115689,7 +115689,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "write(bytes: Uint8Array, signal?: AbortSignal): Promise<unknown>;"
               },
               {
@@ -115703,7 +115703,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "// to sample the installed Host clock after reading its durable lower bound."
               },
               {
@@ -115739,7 +115739,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "export interface ResultAccessAuthority {"
               },
               {
@@ -115753,7 +115753,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "export interface ResultAccessAuthority {"
               },
               {
@@ -115767,7 +115767,7 @@
             ],
             "identity": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "readonly authorityScopeCid: string;"
               },
               {
@@ -115781,7 +115781,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "export interface ResultAccessAuthority {"
               },
               {
@@ -115795,7 +115795,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "write(bytes: Uint8Array, signal?: AbortSignal): Promise<unknown>;"
               },
               {
@@ -115809,7 +115809,7 @@
             ],
             "failure": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "write(bytes: Uint8Array, signal?: AbortSignal): Promise<unknown>;"
               },
               {
@@ -115823,7 +115823,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "write(bytes: Uint8Array, signal?: AbortSignal): Promise<unknown>;"
               },
               {
@@ -115837,7 +115837,7 @@
             ],
             "resources": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "write(bytes: Uint8Array, signal?: AbortSignal): Promise<unknown>;"
               },
               {
@@ -115851,7 +115851,7 @@
             ],
             "extension": [
               {
-                "path": "packages/run-host-core/result-access.d.ts",
+                "path": "packages/run-host-core/result-access-public.mts",
                 "anchor": "// to sample the installed Host clock after reading its durable lower bound."
               },
               {
