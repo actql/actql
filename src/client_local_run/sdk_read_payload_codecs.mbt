@@ -198,7 +198,7 @@ pub fn[E] prepare_local_sdk_read_payload_codecs(
   LocalSDKReadPayloadCodecIssue[E],
 ] {
   prepare_local_sdk_read_payload_codecs_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,

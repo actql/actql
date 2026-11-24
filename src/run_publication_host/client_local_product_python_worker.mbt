@@ -9,9 +9,13 @@ pub fn client_local_product_python_worker_bootstrap_originals(
   ClientLocalProductSDKBootstrapOriginals,
   ClientLocalProductConfigurationIssue,
 ] {
+  // The current Worker selection uses its independently authorized, finite
+  // answer scope and the same marked SDK schema as ordinary provisioning.
   let sdk = match
-    client_local_product_sdk_bootstrap_originals(
-      configuration_root, observed_at,
+    product_sdk_bootstrap_originals(
+      configuration_root,
+      observed_at,
+      WorkerAnswer,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

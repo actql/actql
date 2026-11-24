@@ -110,7 +110,14 @@ test "selected read snapshot shares original admission and rejects changed targe
   }).unwrap()
   full.val = 0
   let first = read_binding_in_journal_snapshot(host.journal, reads, () => {
-    match binding.require_request_in_snapshot(request, facts, material, reads) {
+    match
+      binding.require_request_in_snapshot(
+        request,
+        facts.request,
+        facts.observed_at,
+        material,
+        reads,
+      ) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -129,7 +136,14 @@ test "selected read snapshot shares original admission and rejects changed targe
   let key = @host.client_request_scope_cid(request)
   let before = host.database.read("client_runs", key).unwrap()
   let changed = read_binding_in_journal_snapshot(host.journal, reads, () => {
-    match binding.require_request_in_snapshot(request, facts, material, reads) {
+    match
+      binding.require_request_in_snapshot(
+        request,
+        facts.request,
+        facts.observed_at,
+        material,
+        reads,
+      ) {
       Err(issue) => return Err(issue)
       Ok(_) => ()
     }
@@ -150,12 +164,69 @@ test "selected read snapshot shares original admission and rejects changed targe
   live.val = false
   assert_true(
     read_binding_in_journal_snapshot(host.journal, reads, () => {
-      binding.require_request_in_snapshot(request, facts, material, reads)
+      binding.require_request_in_snapshot(
+        request,
+        facts.request,
+        facts.observed_at,
+        material,
+        reads,
+      )
     })
     is Err(Adoption(Closed)),
   )
   assert_eq(full.val, 2)
   assert_true(host.journal.admitted_adoption is None)
+  host.close().unwrap()
+}
+
+///|
+test "installed Result authority cannot be used for a foreign original or without a live capture" {
+  let (host, binding, original, facts) = read_snapshot_selected_original(
+    "read-snapshot-installed-result-scope",
+  )
+  let request = facts.request
+  // Exercise identity/refusal only. This copied binding cannot obtain a live
+  // capture or prove a manifest membership outside the real constructor.
+  let scoped = {
+    ..binding,
+    account_purpose: InstalledOriginalResultRead(
+      request.namespace_id,
+      request.run_definition_cid,
+    ),
+  }
+  let foreign_run = {
+    ..request,
+    run_definition_cid: "sha256:" + "b".repeat(64),
+  }
+  let foreign_namespace = { ..request, namespace_id: "foreign-namespace", }
+  for foreign in [foreign_run, foreign_namespace] {
+    assert_true(
+      scoped.require_request_constraints(original, foreign, facts.observed_at)
+      is Err(Journal(ForeignRun)),
+    )
+  }
+  assert_true(
+    scoped.require_request_constraints(
+      original,
+      { ..request, result_name: "absent", },
+      facts.observed_at,
+    )
+    is Err(SelectionMismatch),
+  )
+  assert_true(
+    scoped.authorize_selected_result_lookup(
+      original,
+      request,
+      facts.observed_at,
+    )
+    is Err(AuthorizationDenied),
+  )
+  let archived = { ..binding, account_purpose: ArchivedOriginalResultRead, }
+  assert_false(archived.installed_original_result_read_selected())
+  assert_true(
+    archived.require_request_constraints(original, request, facts.observed_at)
+    is Err(AuthorizationDenied),
+  )
   host.close().unwrap()
 }
 

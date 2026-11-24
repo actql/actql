@@ -1,4 +1,28 @@
 ///|
+/// This binding retains the original Run and selected installer role. The
+/// fact chooses the recheck route and never supplies a current decision.
+pub fn NativeLocalReadPolicyBinding::installed_original_result_read_selected(
+  self : NativeLocalReadPolicyBinding,
+) -> Bool {
+  self.account_purpose is InstalledOriginalResultRead(_, _)
+}
+
+///|
+/// Check the exact admitted selection for a delivery lookup before any sink
+/// opens. Receiver custody is checked separately when the delivery starts.
+pub fn NativeLocalReadPolicyBinding::authorize_selected_result_lookup(
+  self : NativeLocalReadPolicyBinding,
+  original : @host.ClientRequestIdentity,
+  request : @result_access.NativeResultAccessRequest,
+  observed_at : String,
+) -> Result[Unit, NativeLocalReadBindingIssue] {
+  if !self.installed_original_result_read_selected() {
+    return Err(SelectionMismatch)
+  }
+  self.require_request_selection(original, request, observed_at)
+}
+
+///|
 /// Check the current explicit selection before the existing Result owner
 /// resolves a payload. Possession of an attempt or a saved grant is not allow.
 pub fn NativeLocalReadPolicyBinding::authorize_read_request(

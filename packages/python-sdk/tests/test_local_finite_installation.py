@@ -74,12 +74,18 @@ class FiniteInstallationTests(unittest.TestCase):
     def test_independent_body_cid_closed_schema_and_existing_jsonl_format(self):
         body = _object(VECTOR['body'].encode(), 8192)
         self.assertTrue(_wire.valid(body, SCHEMA))
-        self.assertEqual(VECTOR['cid'], 'sha256:13906dcd43b46a467520bf3ea87a8889fd9d04701106b814e85142703e751f27')
+        self.assertEqual(VECTOR['cid'], 'sha256:8e336e72421b0dcf0a561bdad1b880cf5f209176a6c3ab121a96858333025291')
         self.assertEqual('sha256:' + hashlib.sha256(VECTOR['body'].encode()).hexdigest(), VECTOR['cid'])
         for field in SCHEMA['required']:
             changed = body.copy(); del changed[field]
             self.assertFalse(_wire.valid(changed, SCHEMA), field)
-        for changed in (body | {'purpose': 'cli-read'}, body | {'sink': 'stdout'},
+        worker = body | {'result_selection': {
+            'authority': 'named_result_read', 'kind': 'finite_result_names', 'names': ['answer']}}
+        self.assertTrue(_wire.valid(worker, SCHEMA))
+        unmarked = {key: value for key, value in body.items() if key != 'result_selection'}
+        unmarked['result_names'] = ['answer']
+        for changed in (unmarked, worker | {'result_selection': worker['result_selection'] | {'names': ['other']}},
+                        body | {'purpose': 'cli-read'}, body | {'sink': 'stdout'},
                         body | {'formats': ['sdk-rows']}, body | {'max_uses': 2},
                         body | {'max_bytes': 65537}, body | {'expires_at': '2099-01-01'},
                         body | {'extra': True}, body | {'data_policy_cids': []}):

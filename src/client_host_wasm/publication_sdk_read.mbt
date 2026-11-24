@@ -192,6 +192,7 @@ fn produce_sdk_read_field(
       run,
       current_configuration,
       same_reader_census=kind is Decision || kind is DeliveryStorage,
+      request_input=Some(slot),
     ) {
     Ok(context) => context
     Err(code) => return code
@@ -228,11 +229,7 @@ fn produce_sdk_read_field(
   // The original buffer Owner returns this loan only after output cleanup.
   // Decode, capacity and projection failures retain this exact handle.
   record.state_borrow = Some(borrow)
-  guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, [
-      "result_name", "format", "attempt_id", "observed_at",
-    ])
-    is Ok(object) &&
+  guard sdk_read_request_fields(value, borrow.slot) is Some(object) &&
     required_text(object, "result_name") == Some(result_name) &&
     required_text(object, "format") == Some(format) &&
     required_text(object, "attempt_id") is Some(attempt_id) &&
