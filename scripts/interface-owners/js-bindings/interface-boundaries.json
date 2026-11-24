@@ -85348,9 +85348,292 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/installed-infer-model-preparation.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "0a5f35ea0fc36e5eb930ec8dc6db1bc358d28a032bb608206cb2c7a8d3497997",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "sourceFreeModelPreparation",
+        "sourceFreeModelsPreparation"
+      ],
+      "operations": [
+        {
+          "name": "sourceFreeModelPreparation",
+          "parameters": [
+            "moon",
+            "control",
+            "prepared",
+            "plan",
+            "selected",
+            "model",
+            "acquired"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/current/current",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelPreparation/init:retire/init:retire",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation",
+          "parameters": [
+            "moon",
+            "control",
+            "prepared",
+            "plan",
+            "selected",
+            "model",
+            "acquired",
+            "preparationHolder"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/current/current/current",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "captures"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "registry",
+            "values",
+            "fragment",
+            "ordered",
+            "providers"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
+          "parameters": [
+            "provider",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:retain/init:retain",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "sourceFreeModelsPreparation/init:retire/init:retire",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "sourceFreeModelsPreparation/originals/originals",
+          "parameters": [
+            "member",
+            "index"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "sourceFreeModelPreparation",
+            "sourceFreeModelPreparation/current/current",
+            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+            "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
+            "sourceFreeModelPreparation/init:retain/init:retain",
+            "sourceFreeModelPreparation/init:retire/init:retire",
+            "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
+            "sourceFreeModelsPreparation",
+            "sourceFreeModelsPreparation/current/current/current",
+            "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
+            "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
+            "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
+            "sourceFreeModelsPreparation/init:retain/init:retain",
+            "sourceFreeModelsPreparation/init:retire/init:retire",
+            "sourceFreeModelsPreparation/originals/originals"
+          ],
+          "exports": [
+            "sourceFreeModelPreparation",
+            "sourceFreeModelsPreparation"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "export function sourceFreeModelPreparation(moon: Runtime, control: Control, prepared: unknown,"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "const original = managed?.value, request = managed?.request"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "model.originalReadInstallation !== installation || model.managed !== managed"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "model.taken = true;"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "if (model.readAttempted && Object.hasOwn(model, 'readFailure')) throw model.readFailure;"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "catch (cause) {model.readFailure = cause; throw cause;}"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "retireNodeInferOriginalRead(model);"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "readRetainedBytes: budget.readRetainedBytes, readExecutionBytes: budget.readExecutionBytes"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-infer-model-preparation.mts",
+                "anchor": "openSourceFreeHost(registry: unknown, values: string, fragment: string, ordered: string, providers: readonly unknown[])"
+              },
+              {
+                "path": "docs/design/infer-physical-observation.md",
+                "anchor": "## Complete Model groups on one Request"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
+                "anchor": "configured source-free Model uses its original Run and defers its one read until the component consumes it"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "./infer-operation.mjs",
+        "./infer-original-installation.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "39af3cdfa363a26a5dc03d435d8bfffe2f1d1842e5f46293c0c8247bdf6a75af",
+      "sha256": "cb765edac236ca8e5f1701e3ab5d8c1227d31d6eb525d93c78a348f205e84603",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -85776,115 +86059,6 @@
         {
           "name": "installNodeInferRun/run/run/run#9",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelPreparation/current/current",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
-          "parameters": [
-            "captures"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
-          "parameters": [
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "providers"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelPreparation/init:retain/init:retain",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelPreparation/init:retire/init:retire",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation/current/current/current",
-          "parameters": [
-            "member",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost",
-          "parameters": [
-            "captures"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
-          "parameters": [
-            "registry",
-            "values",
-            "fragment",
-            "ordered",
-            "providers"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
-          "parameters": [
-            "provider",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation/init:retain/init:retain",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "sourceFreeModelsPreparation/init:retire/init:retire",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "sourceFreeModelsPreparation/originals/originals",
-          "parameters": [
-            "member",
-            "index"
-          ],
           "async": false
         }
       ],
@@ -86341,125 +86515,6 @@
         },
         {
           "operations": [
-            "sourceFreeModelPreparation/current/current",
-            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost",
-            "sourceFreeModelPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
-            "sourceFreeModelPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
-            "sourceFreeModelPreparation/init:prepareRead/init:prepareRead",
-            "sourceFreeModelPreparation/init:retain/init:retain",
-            "sourceFreeModelPreparation/init:retire/init:retire",
-            "sourceFreeModelPreparation/publicationCapacity/publicationCapacity",
-            "sourceFreeModelsPreparation/current/current/current",
-            "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost",
-            "sourceFreeModelsPreparation/init:openCapturedHost/init:openCapturedHost/init:openCapturedHost",
-            "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost",
-            "sourceFreeModelsPreparation/init:openSourceFreeHost/init:openSourceFreeHost/init:openSourceFreeHost",
-            "sourceFreeModelsPreparation/init:retain/init:retain",
-            "sourceFreeModelsPreparation/init:retire/init:retire",
-            "sourceFreeModelsPreparation/originals/originals"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "function sourceFreeModelPreparation(moon, control, prepared, plan, selected, model, acquired)"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "const original = managed?.value, request = managed?.request"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "model.originalReadInstallation !== installation || model.managed !== managed"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "model.taken = true;"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "if (model.readAttempted && Object.hasOwn(model, 'readFailure')) throw model.readFailure;"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "catch (cause) {model.readFailure = cause; throw cause;}"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "retireNodeInferOriginalRead(model);"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "readRetainedBytes: budget.readRetainedBytes, readExecutionBytes: budget.readExecutionBytes"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-infer-run.mjs",
-                "anchor": "openSourceFreeHost(registry, values, fragment, ordered, providers)"
-              },
-              {
-                "path": "docs/design/infer-physical-observation.md",
-                "anchor": "## Complete Model groups on one Request"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/request-model-caller-lifetime.test.mjs",
-                "anchor": "configured source-free Model uses its original Run and defers its one read until the component consumes it"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
             "installNodeInferRun/run/run/run/init:assertCurrent/init:assertCurrent"
           ],
           "exports": [],
@@ -86539,6 +86594,7 @@
         "./infer-original-installation.mjs",
         "./infer-result-publication.mjs",
         "./installed-composed-infer-run.mjs",
+        "./installed-infer-model-preparation.mjs",
         "./local-values-plan.mjs"
       ],
       "compilerFields": [],

@@ -3226,3 +3226,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/client-dispatch-owner.d.mts
 /adapters/host-node/acquired-effect-computation.mjs
 /adapters/host-node/acquired-effect-computation.d.mts
+/adapters/host-node/installed-infer-model-preparation.mjs
+/adapters/host-node/installed-infer-model-preparation.d.mts
