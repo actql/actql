@@ -13,7 +13,8 @@ import {npmInterfaceRoots} from './distribution-interface-roots.mjs';
 import {interfaceOwnerDeclarations} from './interface-owner-discovery.mjs';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {installedInterfaceInventory} from './installed-interface-inventory.mjs';
-import {installedInterfaceCorrespondence, assertInstalledDependencyClosure} from './installed-interface-correspondence.mjs';
+import {installedInterfaceCorrespondence, assertInstalledDependencyClosure, installedDeclarationEmits} from './installed-interface-correspondence.mjs';
+import {typescriptInterfaceInputs} from './typescript-interface-inventory.mjs';
 import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
 import {buildLocalNodeAdapters, localNodeAdapterSourceInputs} from './build-local-node-adapters.mjs';
@@ -46,6 +47,12 @@ export async function releaseInterfaceCheck({repository, directory}: {repository
   const roots = npmInterfaceRoots(repository), plans = runtimePackageInputs(repository);
   const owners = interfaceOwnerDeclarations(repository);
   const manifestSha256 = hash(readFileSync(join(directory, 'release.json')));
+  const members = manifest.packages.flatMap(item => {
+    const root = roots.find(value => value.name === item.name);
+    assert(root, `Missing normal package source entrance: ${item.name}`);
+    return item.files.map(file => join(dirname(root.manifest), file.path));
+  });
+  let declaredEmits: ReturnType<typeof installedDeclarationEmits> | undefined;
   return {manifest, async verifyConsumer(consumer: string, names: readonly string[]) {
     assert.equal(new Set(names).size, names.length, 'Duplicate installed interface package');
     const reports = [];
@@ -157,7 +164,31 @@ export async function releaseInterfaceCheck({repository, directory}: {repository
           verification: {manifestSha256, originalSha256: item.originalSha256,
             build: `scripts/${plan.script}.mjs`, sourcePackages: plan.sources}};
       }).concat(localArtifacts);
-      const actual = installedInterfaceInventory(installed, {artifacts});
+      const emittedDeclarations = declaredEmits ??= installedDeclarationEmits(repository, before.revision, members);
+      const declarations = item.files.flatMap(file => {
+        const emit = emittedDeclarations.get(join(packageSource, file.path));
+        if (!emit) return [];
+        assert.equal(file.sha256, emit.sha256, `Changed original emitted declaration: ${file.path}`);
+        return [{module: file.path, sha256: emit.sha256, sourceSha: before.revision,
+          target: 'node-typescript-declaration',
+          verification: {manifestSha256, originalSha256: item.originalSha256,
+            author: emit.author, build: 'tsconfig.tooling.json',
+            qualification: 'exact semantic declaration emit from the original TypeScript author'}}];
+      });
+      const installedArtifacts = [...artifacts, ...declarations];
+      const actual = installedInterfaceInventory(installed, {artifacts: installedArtifacts});
+      if (declarations.length) {
+        const runtimeMembers = new Set(actual.modules.map(file => file.module));
+        const typeModules = typescriptInterfaceInputs(installed, declarations.map(file => file.module)).modules;
+        assert(!typeModules.some(module => module.unresolvedSyntax?.length), 'Unresolved installed TypeScript interface');
+        for (const file of declarations) {
+          assert(runtimeMembers.has(file.module.replace(/\.d\.mts$/u, '.mjs')),
+            `Missing checked runtime for installed declaration: ${file.module}`);
+          const syntax = typeModules.find(module => module.module === file.module);
+          assert(syntax, `Unresolved installed declaration syntax: ${file.module}`);
+          assert.equal(syntax.sha256, file.sha256, `Changed installed declaration interface: ${file.module}`);
+        }
+      }
       const authoredEntrances = actual.modules.map(module => {
         const binding = bindings.get(module.module);
         assert(binding, `Unbound installed authored interface: ${module.module}`);
@@ -170,7 +201,7 @@ export async function releaseInterfaceCheck({repository, directory}: {repository
       const dependencies = await assertInstalledDependencyClosure({directory: installed,
         modules: actual.modules, artifacts, runtimeBindings});
       reports.push({...installedInterfaceCorrespondence({repository, directory: installed,
-        source: before.revision, bindings: [...bindings.values()], artifacts,
+        source: before.revision, bindings: [...bindings.values()], artifacts: installedArtifacts,
         owners, generated: checkedSource.generatedQualification, checkedSource}), dependencies});
     }
     assert.deepEqual(checkoutState(repository), before, 'Release interface source changed during verification');

@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {dirname, isAbsolute, relative, resolve} from 'node:path';
+import {dirname, isAbsolute, relative, resolve, sep} from 'node:path';
 import {existsSync, readFileSync, realpathSync} from 'node:fs';
 import ts from 'typescript';
 import {build} from 'esbuild';
@@ -32,13 +32,100 @@ const inside = (path: string) => typeof path === 'string' && path.length && !isA
   !path.split(/[\\/]/u).includes('..');
 const digest = (bytes: BinaryLike) => createHash('sha256').update(bytes).digest('hex');
 
+function originalGitInputs(repository: string, source: string) {
+  assert.match(source, /^[0-9a-f]{40}$/u);
+  const git = (args: readonly string[]) => execFileSync('git', args,
+    {cwd: repository, maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
+  return {git, blob: (path: string) => git(['show', `${source}:${path}`])};
+}
+
+function originalTypeScriptPreparation(repository: string, blob: (path: string) => Buffer) {
+  const preparation = new Map<string, string>();
+  for (const file of ['tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json']) {
+    const path = resolve(repository, file), original = blob(file);
+    assert(readFileSync(path).equals(original), `Changed TypeScript preparation input: ${file}`);
+    preparation.set(path, original.toString('utf8'));
+  }
+  const lock = JSON.parse(preparation.get(resolve(repository, 'package-lock.json'))!) as
+    {packages: Record<string, {version: string}>};
+  assert.equal(ts.version, lock.packages['node_modules/typescript'].version,
+    'TypeScript emitter differs from the original package lock');
+  const readFile = (path: string) => preparation.get(path);
+  const file = resolve(repository, 'tsconfig.tooling.json');
+  const read = ts.readConfigFile(file, readFile);
+  assert(!read.error, 'Invalid original TypeScript preparation config');
+  const config = ts.parseJsonConfigFileContent(read.config, {...ts.sys, readFile},
+    repository, undefined, file);
+  assert(!config.errors.length && config.options.noEmitOnError && !config.options.noEmit &&
+    !config.options.emitDeclarationOnly && !config.options.outDir && !config.options.outFile,
+  'Expected the canonical in-place TypeScript preparation');
+  return config;
+}
+
+// Compiled declarations use the same semantic emitter as preparation. Their
+// inferred types can depend on imported members, so they cannot be derived by
+// independently erasing or transpiling each author.
+export function installedDeclarationEmits(repository: string, source: string, members: readonly string[]) {
+  const result = new Map<string, {author: string; sha256: string}>();
+  const paths = members.filter(path => path.endsWith('.d.mts'));
+  if (!paths.length) return result;
+  repository = realpathSync(repository);
+  const {git, blob} = originalGitInputs(repository, source);
+  const tracked = new Map<string, string>();
+  for (const entry of git(['ls-tree', '-r', '-z', source]).toString('utf8').split('\0')) {
+    const match = /^100(?:644|755) blob ([0-9a-f]{40})\t([\s\S]+)$/u.exec(entry);
+    if (match) tracked.set(match[2], match[1]);
+  }
+  const selected = new Set(members), inputs = new Map<string, string>();
+  for (const path of paths) {
+    assert(inside(path), `Escaped installed declaration: ${path}`);
+    if (tracked.has(path)) continue;
+    const stem = path.slice(0, -'.d.mts'.length), author = stem + '.mts';
+    assert(tracked.has(author) && !tracked.has(stem + '.mjs') && selected.has(stem + '.mjs'),
+      `Missing original TypeScript author or paired runtime: ${path}`);
+    inputs.set(path, author);
+  }
+  if (!inputs.size) return result;
+  const config = originalTypeScriptPreparation(repository, blob);
+  assert(config.options.declaration, 'Original TypeScript preparation does not emit declarations');
+  const included = new Set(config.fileNames), authors = [...inputs.values()].map(path => resolve(repository, path));
+  for (const author of authors) assert(included.has(author), `Unselected TypeScript package source: ${author}`);
+  const host = ts.createCompilerHost(config.options);
+  host.getCurrentDirectory = () => repository;
+  const dependencyPrefix = 'node_modules' + sep;
+  // Generated checkout outputs cannot serve as an original compiler input.
+  // The compiler can otherwise read the ordinary separately installed deps.
+  host.readFile = filename => {
+    if (!existsSync(filename)) return undefined;
+    const path = realpathSync(filename), key = relative(repository, path);
+    if (key.startsWith(dependencyPrefix)) return ts.sys.readFile(path);
+    const expected = tracked.get(key);
+    if (!expected) return undefined;
+    const bytes = readFileSync(path);
+    const actual = createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex');
+    assert.equal(actual, expected, `Changed original TypeScript dependency: ${key}`);
+    return bytes.toString('utf8').replace(/^\uFEFF/u, '');
+  };
+  const program = ts.createProgram(authors, config.options, host);
+  const emitted = program.emit(undefined, (filename, output, bom, _error, files) => {
+    const module = relative(repository, filename), author = inputs.get(module);
+    if (author === undefined) return;
+    assert(files?.some(file => file.fileName === resolve(repository, author)),
+      `Foreign emitted declaration author: ${module}`);
+    assert(!result.has(module), `Duplicate emitted declaration: ${module}`);
+    result.set(module, {author, sha256: digest((bom ? '\uFEFF' : '') + output)});
+  }, undefined, true);
+  assert(!emitted.emitSkipped, `Cannot derive installed TypeScript declarations:\n${emitted.diagnostics
+    .map(item => ts.flattenDiagnosticMessageText(item.messageText, '\n')).join('\n')}`);
+  assert.equal(result.size, inputs.size, 'Incomplete installed TypeScript declaration emit');
+  return result;
+}
+
 // Runtime paths remain package identities. For emitted members, derive the
 // expected bytes from the selected Git source and the same compiler options
 // as preparation. The working .mjs is never an input to this derivation.
 function installedOriginalBytes(repository: string, source: string, selected: readonly string[]) {
-  const git = (args: readonly string[]) => execFileSync('git', args,
-    {cwd: repository, maxBuffer: 16 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe']});
-  const blob = (path: string) => git(['show', `${source}:${path}`]);
+  const {git, blob} = originalGitInputs(repository, source);
   const runtimePaths = [...new Set(selected.filter(path => path.endsWith('.mjs')))];
   const authoredPath = (path: string) => path.slice(0, -4) + '.mts';
   let tracked: Set<string> | undefined, config: ts.ParsedCommandLine | undefined, included: Set<string> | undefined;
@@ -51,24 +138,7 @@ function installedOriginalBytes(repository: string, source: string, selected: re
       if (tracked.has(path) || !tracked.has(authoredPath(path))) throw error;
     }
     if (!config) {
-      const preparation = new Map<string, string>();
-      for (const file of ['tsconfig.base.json', 'tsconfig.tooling.json', 'package-lock.json']) {
-        const path = resolve(repository, file), original = blob(file);
-        assert(readFileSync(path).equals(original), `Changed TypeScript preparation input: ${file}`);
-        preparation.set(path, original.toString('utf8'));
-      }
-      const lock = JSON.parse(preparation.get(resolve(repository, 'package-lock.json'))!) as {packages: Record<string, {version: string}>};
-      assert.equal(ts.version, lock.packages['node_modules/typescript'].version,
-        'TypeScript emitter differs from the original package lock');
-      const readConfig = (path: string) => preparation.get(resolve(repository, path));
-      const file = resolve(repository, 'tsconfig.tooling.json');
-      const read = ts.readConfigFile(file, readConfig);
-      assert(!read.error, 'Invalid original TypeScript preparation config');
-      config = ts.parseJsonConfigFileContent(read.config, {...ts.sys, readFile: readConfig},
-        repository, undefined, file);
-      assert(!config.errors.length && config.options.noEmitOnError && !config.options.noEmit &&
-        !config.options.emitDeclarationOnly && !config.options.outDir && !config.options.outFile,
-      'Expected the canonical in-place TypeScript preparation');
+      config = originalTypeScriptPreparation(repository, blob);
       included = new Set(config.fileNames);
     }
     const authored = authoredPath(path), fileName = resolve(repository, authored);
