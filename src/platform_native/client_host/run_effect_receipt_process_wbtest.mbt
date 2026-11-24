@@ -4,7 +4,13 @@
 /// This is physical journal acceptance, not public CLI or Provider acceptance.
 test "Native terminal receipt handoff re-admits original saved custody without execution" {
   let phase = @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_RESPONSE_PHASE")
-  assert_true(phase is None || phase == Some("write") || phase == Some("read"))
+  let reply_lost = phase == Some("write-reply-lost")
+  assert_true(
+    phase is None ||
+    phase == Some("write") ||
+    phase == Some("read") ||
+    reply_lost,
+  )
   let name = "client-effect-receipt-process"
   if phase != Some("read") {
     let wire = Ref("")
@@ -12,15 +18,37 @@ test "Native terminal receipt handoff re-admits original saved custody without e
       name,
       preview_wire_sink=value => wire.val = value,
     )
-    journal
-    .record_effect_row_response(dispatch, response_test_value(), 4096)
-    .unwrap()
+    let response = response_test_value()
+    journal.record_effect_row_response(dispatch, response, 4096).unwrap()
     journal.record_effect_row_unknown(dispatch).unwrap() |> ignore
-    let (receipt, _) = receipt_test_settle(
-      journal, dispatch, preview, locator, key, basis,
-    ).unwrap()
+    let receipt = if reply_lost {
+      // Derive the expected receipt from the fixture's authored raw response
+      // and original dispatch before attempting the failing commit call.
+      let bounds = native_client_effect_ledger_limits()
+      @publication.issue_effect_row_outcome_receipt(
+        preview,
+        0,
+        0,
+        dispatch.dispatching.cid,
+        response.credential_use_cid,
+        response.body,
+        response.status_code,
+        "{\"result\":{\"id\":\"001\"},\"state\":\"applied\"}",
+        4096,
+        bounds.max_wire_bytes,
+        bounds.max_nodes,
+        bounds.max_depth,
+      ).unwrap()
+    } else {
+      receipt_test_settle(journal, dispatch, preview, locator, key, basis).unwrap().0
+    }
     guard journal.lookup(dispatch.request, true) is Ok(Retained(record)) else {
       fail("original Run missing")
+    }
+    let revision = if reply_lost {
+      record.revision + 1L
+    } else {
+      record.revision
     }
     for
       (field, value) in [
@@ -41,16 +69,28 @@ test "Native terminal receipt handoff re-admits original saved custody without e
         ("correlation", locator.item_correlation_wire),
         ("request_cid", basis.canonical_request_cid),
         ("receipt", @publication.publication_contract_identity(receipt)),
-        ("revision", record.revision.to_string()),
+        ("revision", revision.to_string()),
       ] {
       database
       .insert("test_effect_receipt_reference", field, @utf8.encode(value))
       .unwrap()
       |> ignore
     }
+    if reply_lost {
+      client_test_fail_commit_reply(database, 1)
+      assert_true(
+        receipt_test_settle(journal, dispatch, preview, locator, key, basis)
+        is Err(TransactionUnknown),
+      )
+      assert_true(
+        database.transaction_state() is Ok(@sqlite.NoActiveSqliteTransaction),
+      )
+      // Leave verification to the next process. No receipt read or replay on
+      // the writer's connection can resolve the lost response here.
+    }
     database.close_checked().unwrap()
   }
-  if phase != Some("write") {
+  if phase is None || phase == Some("read") {
     let database = epoch_test_database(name)
     let saved = (field : String) => {
       @utf8.decode(

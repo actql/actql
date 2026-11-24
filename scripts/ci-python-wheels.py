@@ -455,6 +455,37 @@ def accept_installed_numeric_reductions(run, consumer: Path, destination: Path,
         previous_pid = pid
 
 
+def accept_installed_named_results(run, consumer: Path, destination: Path,
+                                   version: str, env: dict[str, str]) -> None:
+    work = destination / 'named-results'
+    work.mkdir(mode=0o700)
+    fixture = work / 'named-result-publication.json'
+    shutil.copyfile(ROOT / 'scripts/fixtures' / fixture.name, fixture)
+    receipt = work / 'original.json'
+    previous_pid = None
+    for phase in ('initial', 'resume'):
+        observed = json.loads(run('installed-linux-named-results-' + phase, [
+            consumer, '-I', '-B', destination / 'ci-python-installed-run.py',
+            destination / 'python-product-installed.py', '--mode', 'local', '--facade', 'sync',
+            '--version', version, '--phase', phase, '--case', 'named-results',
+            '--named-results-fixture', fixture, '--receipt', receipt,
+        ], cwd=work, env=env, timeout=180))
+        if type(observed) is not dict:
+            raise ValueError('Invalid installed named Results receipt')
+        pid = observed.get('pid')
+        names = observed.get('results')
+        if (observed.get('mode') != 'local' or observed.get('version') != version
+                or observed.get('case') != 'named-results' or observed.get('phase') != phase
+                or type(names) is not list or len(names) != 2
+                or 'before_change' not in names or 'after_change' not in names
+                or observed.get('submitted') is not (phase == 'initial')
+                or observed.get('original_run_reused') is not (phase == 'resume')
+                or observed.get('first_close') is not True
+                or type(pid) is not int or pid <= 0 or pid == previous_pid):
+            raise ValueError('Incomplete installed named Results or original Saved')
+        previous_pid = pid
+
+
 def run_acceptance(destination: Path) -> None:
     target_platform = normal_target()
     _, _, archive_bytes, library_name = duckdb_release(target_platform)
@@ -562,6 +593,7 @@ def run_acceptance(destination: Path) -> None:
     if target_platform == 'linux-x64':
         accept_installed_numeric_reductions(
             run, consumer, destination, source, cohort['module_sha256'], env)
+        accept_installed_named_results(run, consumer, destination, version, env)
     repeated_host = accept_installed_repeated_host(run, consumer, destination, env)
     accept_installed_fuel(run, consumer, destination, source, cohort, env)
     saved_read = accept_installed_saved(run, consumer, destination, source, cohort, env)

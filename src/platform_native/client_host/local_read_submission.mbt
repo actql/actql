@@ -27,7 +27,7 @@ fn NativeLocalReadPolicyBinding::require_lookup_request(
   facts : @result_access.NativeResultReadFacts,
 ) -> Result[Unit, NativeLocalReadBindingIssue] {
   if self.selection.sink == File {
-    self.require_request_selection(original, facts)
+    self.require_request_selection(original, facts.request, facts.observed_at)
   } else {
     self.require_request(original, facts)
   }

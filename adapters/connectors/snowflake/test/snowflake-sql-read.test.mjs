@@ -30,11 +30,9 @@ test('actual TLS POST, same-handle GET and gzip partition feed the original Host
   assert.deepEqual(JSON.parse(f.state.requests[0].body), {parameters: {multi_statement_count: '1'},
     role: 'READER', statement: 'SELECT "ACCOUNT_ID","ACTIVE_USERS","TREND" FROM "PRODUCT"."USAGE"."USAGE_30D"',
     timeout: 60, warehouse: 'ANALYTICS'});
-  assert.equal(result.statementHandle, 'slash/?雪%');
-  assert.equal(result.pages, 2); assert.equal(result.rows, 2n); assert.equal(result.exchanges, 3);
-  assert.equal(result.wireBytes, BigInt(wire.reduce((n, b) => n + b.byteLength, 0)));
-  assert.equal(result.decodedBytes, BigInt(bodies.reduce((n, b) => n + b.byteLength, 0)));
-  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, result.wireBytes, 'wire is charged once, never inflated bytes');
+  assert.deepEqual(result, {pages: 3, rowCount: 2});
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,
+    BigInt(wire.reduce((n, b) => n + b.byteLength, 0)), 'wire is charged once, never inflated bytes');
   assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n,
     'transport retirement is not original Host reservation retirement');
   assert.deepEqual(f.journal.recover().map(r => r.outcome), ['succeeded', 'succeeded', 'succeeded']);
@@ -50,7 +48,7 @@ test('complete first response needs no GET and does not convert transport succes
   const f = await snowflakeFixture(t);
   const result = await f.read();
   assert.equal(f.state.requests.length, 1);
-  assert.equal(result.pages, 1); assert.equal(result.rows, 2n);
+  assert.deepEqual(result, {pages: 1, rowCount: 2});
   f.row.assertNoCapture();
   assert.equal(f.row.captureRows().length, 2);
 });
@@ -90,7 +88,7 @@ test('foreign original scope is rejected before secret, claim or network I/O', a
   const f = await snowflakeFixture(t);
   await assert.rejects(f.read({authorizationFor: async () => ({grant: f.grant,
     scope: {...f.scope, dispatchRequestCid: `sha256:${'e'.repeat(64)}`}, useId: 'foreign'})}),
-  {code: 'ForeignSnowflakeReadAuthorization'});
+  {code: 'ForeignInstalledSourceReadChild'});
   assert.equal(f.state.requests.length, 0); assert.equal(f.state.resolutions, 0);
   assert.deepEqual(f.journal.recover(), []); assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, 0n);
 });
@@ -235,12 +233,12 @@ test('parent close during secret resolution retains the same Root until physical
 test('in-flight response processing keeps the original Root after socket stop and parent close', async t => {
   const f = await snowflakeFixture(t);
   let closeFailure, heldAfterClose;
-  f.state.beforeCurrent = async calls => {
-    if (calls !== 4) return;
+  f.state.beforeCurrent = async () => {
+    if (f.state.requests.length !== 1 || heldAfterClose !== undefined) return;
     try { f.row.close(); } catch (error) { closeFailure = error; }
     heldAfterClose = ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes;
   };
-  await assert.rejects(f.read(), {code: 'MoonBitHostFailure'});
+  await assert.rejects(f.read());
   assert.equal(closeFailure?.code, 'MoonBitHostFailure',
     'socket stop must not retire workspace still used by this driver');
   assert.ok(heldAfterClose > 0n);
@@ -252,12 +250,12 @@ test('in-flight response processing keeps the original Root after socket stop an
 test('in-flight decoder failure preserves its primary cause when original refusal recording is stale', async t => {
   const f = await snowflakeFixture(t);
   f.state.onRequest = () => ({body: 'not-gzip', headers: {'content-encoding': 'gzip'}});
-  f.state.beforeCurrent = async calls => {
-    if (calls === 4) {
-      try { f.row.close(); } catch { /* The original parent cleanup is pending. */ }
-    }
-  };
-  await assert.rejects(f.read(), error => {
+  const moon = {...f.moon, clientProgramSnowflakeAdoptManagedResponse(...args) {
+    const response = f.moon.clientProgramSnowflakeAdoptManagedResponse(...args);
+    assert.throws(f.row.close, {code: 'MoonBitHostFailure'});
+    return response;
+  }};
+  await assert.rejects(f.read({moon}), error => {
     assert.equal(error.code, 'Z_DATA_ERROR');
     assert.equal(error.cause.code, 'Z_DATA_ERROR');
     assert.equal(error.recordingFailure.code, 'MoonBitHostFailure');
@@ -315,9 +313,8 @@ for (const method of ['open', 'openCapture']) test(
       inner = new AcquisitionOpenError(new Error('original-exchange-unknown'), 'unknown');
       throw inner;
     }, ({declaration, requirement, queryContract, evidenceContract}) => {
-      const prepared = checked(f.moon.clientProgramSnowflakePrepareRead(o.description,
-        declaration, requirement, queryContract, evidenceContract, o.descriptionLimits, o.declarationLimits));
-      expectedAcquisition = f.moon.clientProgramSnowflakeReadAcquisition(prepared);
+      expectedAcquisition = checked(f.moon.clientProgramRowSourcePrepareAcquisition(
+        declaration, requirement, queryContract, evidenceContract));
       return expectedAcquisition;
     });
     const ledger = checked(f.moon.clientProgramAcquisitionLedger(1, 1, 8192n, 100000000n, 100000000n, 0));

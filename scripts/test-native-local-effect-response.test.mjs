@@ -11,7 +11,7 @@ import {fileURLToPath} from 'node:url';
 import {nativeClientCheckpointFixture} from './native-client-checkpoint-fixture.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 
-async function handoff(file, expectedName, prefix) {
+async function handoff(file, expectedName, prefix, writePhase = 'write') {
   const root = fileURLToPath(new URL('../', import.meta.url));
   const scratch = await createOwnedScratch({parent: tmpdir(), prefix,
     label: 'Original Native Effect response process handoff'});
@@ -25,7 +25,7 @@ async function handoff(file, expectedName, prefix) {
   assert.equal(cases[0].name, expectedName);
   const sha256 = createHash('sha256').update(readFileSync(binary)).digest('hex');
   const receipts = [];
-  for (const phase of ['write', 'read', 'read']) {
+  for (const phase of [writePhase, 'read', 'read']) {
     // This is the selected pinned moon Native runner protocol. Only this one
     // generated file/index is executed; the actual Native PID must exit before
     // another process can reopen the original custody.
@@ -35,7 +35,7 @@ async function handoff(file, expectedName, prefix) {
       env: {...env, ACTQL_TEST_NATIVE_EFFECT_RESPONSE_PHASE: phase},
       encoding: 'utf8', timeout: 15_000, maxBuffer: 1024 * 1024});
     assert.ifError(result.error);
-    assert.equal(result.signal, null);
+    assert.equal(result.signal, null, phase + ': ' + result.stderr);
     assert.equal(result.status, 0, result.stderr);
     const records = result.stdout.split(/\r?\n/u).filter(line => line.startsWith('{'))
       .map(line => JSON.parse(line)).filter(record => record.type === 'result');
@@ -63,4 +63,10 @@ test('Original Native terminal receipt survives exited writer and independent re
   await handoff('run_effect_receipt_process_wbtest.mbt',
     'Native terminal receipt handoff re-admits original saved custody without execution',
     'actql-native-receipt-process-');
+});
+
+test('Original Native committed receipt survives a lost writer reply and exited process', async () => {
+  await handoff('run_effect_receipt_process_wbtest.mbt',
+    'Native terminal receipt handoff re-admits original saved custody without execution',
+    'actql-native-receipt-lost-reply-process-', 'write-reply-lost');
 });

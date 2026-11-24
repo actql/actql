@@ -334,6 +334,12 @@ Run — there is no flag to point it at another connection. It never resends
 the write. If the outcome is still unknown, the Run stays in
 `needs_reconciliation` and the attempt is recorded.
 
+For Native Local File Effects, `reconcile --ref-file <path>` settles the
+original Run when its committed publication and saved File responses can be
+confirmed. The existing saved approval and current Run authority must still
+match. Reconciliation leaves unresolved evidence in custody and never repeats
+the File write. `status` and `result` remain read-only.
+
 **`result`** reads a named Result of a finished Run — to stdout with
 `--format`, or to files with `--output` / `--deliver`. `--receipt` saves a
 delivery receipt for `verify output`. One requested delivery writes the existing
@@ -343,6 +349,14 @@ partial failure still uses an array with zero or one object. Each destination
 has its own outcome and receipt. Exporting the array does not certify aggregate
 success or roll back files, and retrying receipt export must not resend output.
 `run --receipt` remains a Run receipt.
+
+Fresh Native Local projects use the requested Result from that Run's committed
+manifest. The selected principal, connection, Data Policy, retention, delivery
+permission, and read limits still apply. An explicitly adopted `result_names`
+list limits selection to those names. Requested-original selections carry
+an explicit authority marker. Opening a selection without that marker
+refuses it without rewriting the retained configuration.
+
 Native Local file delivery creates each destination exclusively. Repeating the
 same Run, Result, format and destination inspects the existing attempt first:
 a completed output must still match its original file identity and bytes;

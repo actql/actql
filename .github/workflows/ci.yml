@@ -2632,7 +2632,7 @@ jobs:
       artifact-run-attempt: ${{ github.run_attempt }}
       artifact-source-sha: ${{ github.sha }}
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.native_shared_remote_linux && 90 || 50 }}
+    timeout-minutes: ${{ inputs.native_shared_remote_linux && 90 || 75 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2688,26 +2688,32 @@ jobs:
           for name, original in [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]:
               retain_original(original, inputs / name)
           PY
-      - name: Prepare the verified synchronous Remote HTTPS member
-        if: github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux
+      - name: Prepare the verified Local HTTPS member
         timeout-minutes: 25
+        env:
+          SHARED_REMOTE_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux }}
         run: |
           test "$(uname -m)" = x86_64
-          sudo apt-get update
           sudo apt-get install --yes --no-install-recommends gnupg gpgv
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          selected=(--model-resolver --destination "$output/model-http")
+          if [ "$SHARED_REMOTE_LINUX" = true ]; then
+            selected=(--destination "$output/http")
+          fi
           python3 scripts/prepare-native-resident-http-component.py \
             --source "$(git rev-parse HEAD)" --target linux-x64 \
             --clang "$(realpath /usr/bin/clang-19)" --make "$(realpath /usr/bin/make)" \
             --perl "$(realpath /usr/bin/perl)" --gpg "$(realpath /usr/bin/gpg)" \
             --gpgv "$(realpath /usr/bin/gpgv)" \
-            --destination "$RUNNER_TEMP/native-cli-linux-local/http" --seconds 1200 --tls-jobs 2
+            --seconds 1200 --tls-jobs 2 "${selected[@]}"
       - name: Produce normal selected Linux Local artifact
         env:
           SHARED_REMOTE_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux }}
         run: |
-          remote_http=()
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          http_member=(--model-http-preparation "$output/model-http/preparation.json")
           if [ "$SHARED_REMOTE_LINUX" = true ]; then
-            remote_http=(--remote-http-preparation "$RUNNER_TEMP/native-cli-linux-local/http/preparation.json")
+            http_member=(--remote-http-preparation "$output/http/preparation.json")
           fi
           node scripts/produce-native-cli-linux-local.mjs \
             --source "$(git rev-parse HEAD)" --package-version 0.0.2 \
@@ -2716,7 +2722,7 @@ jobs:
             --sqlite-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/sqlite.zip" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl-dev.deb" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl3t64.deb" \
-            --component-seconds 300 --compile-seconds 1800 "${remote_http[@]}"
+            --component-seconds 300 --compile-seconds 1800 "${http_member[@]}"
       - name: Require Local payload in the selected npm cohort
         id: local_cohort
         run: |
@@ -2759,6 +2765,9 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/http/preparation.json
             ${{ runner.temp }}/native-cli-linux-local/http/component/build.json
             ${{ runner.temp }}/native-cli-linux-local/http/owned-tls/build.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/preparation.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/component/build.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/owned-tls/build.json
             ${{ runner.temp }}/native-cli-linux-local/release/install-linux-x64-gnu-*.json
             ${{ runner.temp }}/native-cli-linux-local/node-release/release.json
             ${{ runner.temp }}/native-cli-linux-local/node-release/*.tgz

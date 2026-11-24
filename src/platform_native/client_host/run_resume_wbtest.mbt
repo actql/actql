@@ -178,6 +178,68 @@ test "Native original resume lease survives reopen and fences an expired generat
 }
 
 ///|
+test "Native File settlement fences the old connection after another claimant takes the same Run" {
+  let name = "client-resume-settlement-competition"
+  let first_db = epoch_test_database(name)
+  let (first_journal, request, _) = resume_test_approved(first_db)
+  guard resume_test_claim(
+      first_journal,
+      request,
+      "host-first",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => true,
+    )
+    is Ok(Claimed(first)) else {
+    fail("original claim missing")
+  }
+  first_journal
+  .transaction(() => {
+    first_journal.require_current_file_effect_settlement_locked(first, 1099L)
+  })
+  .unwrap()
+  let second_db = epoch_test_database(name)
+  let second_journal = open_native_client_run_journal(second_db, 8).unwrap()
+  guard resume_test_claim(
+      second_journal,
+      request,
+      "host-second",
+      1100L,
+      100L,
+      resume_test_binding(),
+      () => true,
+    )
+    is Ok(Claimed(second)) &&
+    second_journal.lookup(request, true) is Ok(Retained(taken)) else {
+    fail("original Run takeover missing")
+  }
+  assert_eq(second.claim.generation, first.claim.generation + 1L)
+  assert_true(
+    first_journal.transaction(() => {
+      first_journal.require_current_file_effect_settlement_locked(first, 1100L)
+    })
+    is Err(Checkpoint(StaleRevision)),
+  )
+  second_journal
+  .transaction(() => {
+    second_journal.require_current_file_effect_settlement_locked(second, 1100L)
+  })
+  .unwrap()
+  guard second_journal.lookup(request, true) is Ok(Retained(after)) else {
+    fail("original Run missing after refused settlement")
+  }
+  assert_eq(after.revision, taken.revision)
+  assert_eq(after.checkpoint.unwrap().state.status, @publication.Resuming)
+  assert_eq(
+    after.checkpoint.unwrap().resume_intent,
+    taken.checkpoint.unwrap().resume_intent,
+  )
+  first_db.close_checked().unwrap()
+  second_db.close_checked().unwrap()
+}
+
+///|
 test "Native resume requires original approval and current installed authority" {
   let database = epoch_test_database("client-resume-authority")
   let (journal, request, _) = checkpoint_test_waiting(database, [])
@@ -578,6 +640,66 @@ test "Native resume custody rejects missing inconsistent or noncanonical retaine
     ),
     None,
   )
+  database.close_checked().unwrap()
+}
+
+///|
+test "Native Checkpoint row restores a completed intent only with its paired successful Run state" {
+  let database = epoch_test_database("client-resume-completed-pair")
+  let (_, _, approved) = resume_test_approved(database)
+  let checkpoint = approved.checkpoint.unwrap()
+  let names = checkpoint.declared_results
+  let updated_at = "2026-10-10T00:04:00.000Z"
+  let wire = @publication.issue_succeeded_run_state_wire(
+    checkpoint.state.run_id,
+    updated_at,
+    names,
+    names,
+    names.map(_ => "unknown"),
+    names.map(_ => "verification_pending"),
+    names.map(_ => updated_at),
+    65536,
+    4096,
+    64,
+  ).unwrap()
+  let terminal = @checkpoint.admit_run_state_wire(
+    wire,
+    native_checkpoint_limits(),
+  ).unwrap()
+  let completed : @checkpoint.ResumeIntentView = {
+    state: @checkpoint.ResumeCompleted,
+    claimant: "host",
+    generation: 2L,
+    lease_expires_ms: 5000L,
+  }
+  let paired = {
+    ..checkpoint,
+    state: terminal,
+    updated_at,
+    resume_intent: Some(completed),
+  }
+  let restored = read_checkpoint_record(
+    checkpoint_record_body(paired).unwrap(),
+    approved.definition,
+  ).unwrap()
+  assert_eq(restored.resume_intent, Some(completed))
+  assert_eq(restored.state, terminal)
+  for
+    invalid in [
+      { ..paired, state: checkpoint.state, },
+      { ..paired, resume_intent: checkpoint.resume_intent, },
+      { ..paired, updated_at: checkpoint.updated_at, },
+      { ..paired, declared_results: ["foreign"], },
+      { ..paired, settlement_only: true, },
+    ] {
+    assert_true(
+      read_checkpoint_record(
+        checkpoint_record_body(invalid).unwrap(),
+        approved.definition,
+      )
+      is Err(InvalidMaterial),
+    )
+  }
   database.close_checked().unwrap()
 }
 

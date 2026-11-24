@@ -98,10 +98,12 @@ An Account entry alone is neither a provisioning identity nor physical funding.
 
 The independent canonical Account CID is
 `sha256:3cc3f50ac60482bd2362dd7ce4325ffe268f41a379153b1cba05ec97b2e2cc8c`.
-The existing Native/SDK Account remains
-`sha256:fd6d54cc5bcc0a7af2a7919981b4e06604a3380897bcf9ceb51cf764ecdfb396`.
-The new Account is 746 bytes, 223 bytes above the original, within the unchanged
-65536-byte per-file bound. The selection remains Account plus eight originals.
+Worker provisioning selects the marked finite `answer` scope of the current
+SDK read body with its independently issued Account. Ordinary SDK adoption
+selects the marked requested-original Result scope. Restoration authenticates
+the exact current selection and refuses the retired unmarked SDK body.
+The worker Account is 746 bytes, within the unchanged 65536-byte per-file
+bound. The selection remains Account plus eight originals.
 
 `begin_native_local_python_worker_configuration` explicitly selects and retains
 these nine exact bodies through the existing durable product-configuration

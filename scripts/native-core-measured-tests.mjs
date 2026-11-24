@@ -1,8 +1,28 @@
 // Measure compilation separately without executing a second test campaign.
 // Both Moon invocations retain the same arguments, environment and build tree.
 import assert from 'node:assert/strict';
+import {basename, dirname, join, resolve} from 'node:path';
 import {createCommandEvidence, redactCommandEvidence} from './packed-query-evidence.mjs';
 import {runFocusedTests} from './test-execution.mjs';
+
+export function selectsNativeStartClaim(args) {
+  return args.includes('src/platform_native/remote_journal') ||
+    args.includes('src/platform_native/remote_journal/journal_native_wbtest.mbt');
+}
+
+function startClaimArtifacts(stdout, cwd) {
+  const artifacts = stdout.split(/\r?\n/u)
+    .filter(line => line.startsWith('{"artifacts_path":'))
+    .flatMap(line => JSON.parse(line).artifacts_path);
+  const selected = artifacts.filter(path => basename(path) === 'remote_journal.whitebox_test.exe');
+  assert.equal(selected.length, 1, 'Moon must report one Native Remote Journal whitebox executable');
+  const binary = resolve(cwd, selected[0]);
+  // The pinned Moon whitebox driver writes this companion beside its reported executable.
+  return {
+    ACTQL_TEST_NATIVE_START_CLAIM_EXECUTABLE: binary,
+    ACTQL_TEST_NATIVE_START_CLAIM_METADATA: join(dirname(binary), '__whitebox_test_info.json'),
+  };
+}
 
 export function runMeasuredNativeTests(args, options, {
   evidence = createCommandEvidence, execute = runFocusedTests,
@@ -35,5 +55,15 @@ export function runMeasuredNativeTests(args, options, {
   // compiled tests. That graph-check overhead remains in the execution interval.
   const code = execute('moon', args, {...options, timeout: budget});
   report({phase: 'execute', milliseconds: Math.round(now() - executeStart), succeeded: code === 0});
-  return code;
+  if (code !== 0 || !selectsNativeStartClaim(args)) return code;
+  const raceBudget = Math.min(remaining(), 45_000);
+  if (raceBudget <= 0) return 1;
+  const raceStart = now();
+  const artifacts = startClaimArtifacts(result.stdout, options.cwd ?? process.cwd());
+  const raceCode = execute('node', ['scripts/test-native-start-claim-process.test.mjs'], {
+    ...options, timeout: raceBudget, expectedTests: 1, requireAllPassed: true,
+    env: {...(options.env ?? process.env), ...artifacts},
+  });
+  report({phase: 'start-claim', milliseconds: Math.round(now() - raceStart), succeeded: raceCode === 0});
+  return raceCode;
 }

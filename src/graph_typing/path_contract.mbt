@@ -18,6 +18,7 @@ pub fn check_path_contract(
   source : @decode.Cursor,
   input : @carrier.Carrier,
   limits : Limits,
+  endpoint_properties : Array[TraversalEndpointProperty],
 ) -> Result[CheckedPathContract, Issue] {
   try {
     if limits.max_work < 0 ||
@@ -81,6 +82,9 @@ pub fn check_path_contract(
           ),
         )
       }
+    }
+    for property in endpoint_properties {
+      fields.push((Unqualified(property.name), Some(property.contract)))
     }
     spend(b, source, fields.length())
     for (name, _) in fields {
