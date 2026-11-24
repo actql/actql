@@ -73418,7 +73418,7 @@
                 "anchor": "test('failed reference Effect constructor keeps its real token through same cleanup retry'"
               },
               {
-                "path": "adapters/host-node/installed-effect-site-primary-cause.test.mjs",
+                "path": "adapters/host-node/installed-effect-site-primary-cause.test.mts",
                 "anchor": "primaryFailure"
               }
             ]

@@ -4,12 +4,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createInstalledEffectSite} from './installed-effect-site.mjs';
 
+type Execute = Parameters<ReturnType<typeof createInstalledEffectSite>['execute']>[0];
+type Captured = Parameters<Parameters<typeof createInstalledEffectSite>[0]['prepareCaptured']>[0];
+type Custody = Parameters<Execute['retainExecution']>[0];
+// These fixtures stop at the original Content observation. Downstream
+// Common and publication ports are deliberately absent.
+type ContentBoundary = Pick<Execute, 'retainExecution' | 'contentOwner'> & Readonly<{
+  openComputation(): Promise<Readonly<{execution: Pick<Custody, 'close' | 'cleanup' | 'cleanupPending'>;
+    checkedHost: object; contentOwner?: object}>>;
+}>;
+
 for (const present of [true, false]) {
   test(`Effect capture ${present ? 'borrows the original' : 'omits an absent'} computation Content owner`, async () => {
     const original = Object.freeze({});
     const unrelated = Object.freeze({});
     const stop = new Error('CapturedOriginalBoundary');
-    let captured, retained, ownerReads = 0, closed = 0;
+    let captured!: Captured;
+    let retained!: Custody;
+    let ownerReads = 0, closed = 0;
     const execution = {async close() {}, async cleanup() {closed++; return true;},
       cleanupPending: () => false};
     const site = createInstalledEffectSite({environmentWire:'{}',
@@ -20,8 +32,8 @@ for (const present of [true, false]) {
     await assert.rejects(site.execute({
       contentOwner:unrelated,
       openComputation:async () => opened,
-      retainExecution(owner) {retained=owner;},
-    }),error => error===stop);
+      retainExecution(owner: Custody) {retained=owner;},
+    } satisfies ContentBoundary as unknown as Execute),error => error===stop);
     assert.equal(ownerReads,1);
     assert(Object.isFrozen(captured));
     assert.strictEqual(captured.execution,execution);
@@ -36,7 +48,8 @@ for (const present of [true, false]) {
 
 test('Content-owner access failure keeps the already acquired computation under cleanup', async () => {
   const failure = new Error('OriginalContentOwnerUnavailable');
-  let retained, closed=0;
+  let retained!: Custody;
+  let closed=0;
   const execution={async close() {},async cleanup() {closed++; return true;},
     cleanupPending:() => false};
   const site=createInstalledEffectSite({environmentWire:'{}',
@@ -44,9 +57,9 @@ test('Content-owner access failure keeps the already acquired computation under 
     prepareRecovered() {assert.fail('No replacement computation');}});
   await assert.rejects(site.execute({
     openComputation:async () => ({execution,checkedHost:{},
-      get contentOwner() {throw failure;}}),
-    retainExecution(owner) {retained=owner;},
-  }),error => error===failure);
+      get contentOwner(): never {throw failure;}}),
+    retainExecution(owner: Custody) {retained=owner;},
+  } satisfies ContentBoundary as unknown as Execute),error => error===failure);
   assert.equal(closed,0);
   assert.equal(await retained.cleanup(),true);
   assert.equal(closed,1);
