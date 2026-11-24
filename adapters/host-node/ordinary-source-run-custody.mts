@@ -8,28 +8,29 @@ import type {SourceProducerCustody} from './ordinary-source-producer-custody.mjs
 type Requirements = Parameters<typeof resourceRuntime.retainOrdinaryManagedRun>[1];
 type Purpose = NonNullable<Parameters<typeof resourceRuntime.retainOrdinaryManagedRun>[4]>;
 type Preparation = Readonly<{adopting?: boolean; prepared?: unknown; original?: unknown}>;
-type Producer = SourceProducerCustody & {preparation?: Preparation};
-export type OrdinarySourceRun = {
+type RetainedProducer = SourceProducerCustody & {preparation?: Preparation};
+export type OrdinarySourceRun<Producer extends RetainedProducer = RetainedProducer> = {
   prepared?: object; request?: object; producer?: Producer; purpose: Purpose;
   original?: object; operationPlan?: object; value?: unknown;
   required?: Requirements; effectful: boolean; model?: unknown; content?: unknown;
-  children: SourceReaderChild[]; fileIdentity?: readonly bigint[];
+  children: (SourceReaderChild & {index?: number; request?: object})[]; fileIdentity?: readonly bigint[];
 };
-type Run = OrdinarySourceRun;
-type RetainedRun = Run & {prepared: object; producer: Producer};
-type Ports = Readonly<{
-  originals: unknown;
-  callbacks: Readonly<{retainedValidator(originals: unknown): void; request(originals: unknown, prepared: object): object;
-    requirements(originals: unknown, prepared: object): Requirements}>;
-  runs: WeakMap<object, Run>; liveRuns: Set<Run>; receipts: Pick<WeakMap<object, Producer>, 'get'>;
+type Ports<Original, Producer extends RetainedProducer> = Readonly<{
+  originals: Original;
+  callbacks: Readonly<{retainedValidator?(originals: Original): void; request?(originals: Original, prepared: object): object;
+    requirements?(originals: Original, prepared: object): Requirements}>;
+  runs: WeakMap<object, OrdinarySourceRun<Producer>>; liveRuns: Set<OrdinarySourceRun<Producer>>;
+  receipts: Pick<WeakMap<object, Producer>, 'get'>;
   retiredRuns: Pick<WeakMap<object, object>, 'has'>; pendingRunRegistrations: Set<object>;
   producerForRequest(request: object): Producer | undefined;
   current(): void; fail(code: string): never; closed: boolean;
 }>;
 
-export function createOrdinarySourceRunCustody(ports: Ports) {
+export function createOrdinarySourceRunCustody<Original, Producer extends RetainedProducer>(ports: Ports<Original, Producer>) {
   const {originals, callbacks, runs, liveRuns, receipts, retiredRuns, pendingRunRegistrations,
     producerForRequest, current, fail} = ports;
+  type Run = OrdinarySourceRun<Producer>;
+  type RetainedRun = Run & {prepared: object; producer: Producer};
   function retainedRunCurrent(run: Run | undefined): asserts run is RetainedRun {
     const producer = run?.producer, state = producer?.preparation;
     if (ports.closed || run === undefined || runs.get(run.prepared!) !== run ||
@@ -38,7 +39,7 @@ export function createOrdinarySourceRunCustody(ports: Ports) {
         receipts.get(producer!.receipt) !== producer || run.value === undefined) {
       fail('ForeignInstalledSourceProducer');
     }
-    callbacks.retainedValidator(originals);
+    callbacks.retainedValidator!(originals);
     // Keep exact custody across the currentness callback's possible reentry.
     if (ports.closed || runs.get(run!.prepared!) !== run || !liveRuns.has(run!) ||
         producer!.preparation !== state || state!.original !== run!.original) {
@@ -56,9 +57,9 @@ export function createOrdinarySourceRunCustody(ports: Ports) {
     const run = runs.get(prepared);
     if (run === undefined) fail('NodeManagedRunAdmissionUnavailable');
     resourceRuntime.assertOrdinaryManagedRunCurrent(run!.original!, (run!.producer!.preparation === undefined ? run!.operationPlan ?? prepared : run!.producer!.receipt));
-    return run;
+    return run! as Run & {producer: Producer};
   }
-  function prepareRun(prepared: object, purpose: Purpose, model: unknown, content: unknown) {
+  function prepareRun(prepared: object, purpose: Purpose, model: unknown, content?: unknown) {
     current();
     if (retiredRuns.has(prepared)) fail('ForeignInstalledModelPreparation');
     const old = runs.get(prepared);
@@ -68,7 +69,7 @@ export function createOrdinarySourceRunCustody(ports: Ports) {
       }
       return runFor(prepared)!.original;
     }
-    const request = callbacks.request(originals, prepared);
+    const request = callbacks.request!(originals, prepared);
     const producer = producerForRequest(request);
     if (producer === undefined || pendingRunRegistrations.has(prepared) ||
         liveRuns.size + pendingRunRegistrations.size >= 4096) fail('ForeignInstalledSourceProducer');
@@ -80,7 +81,7 @@ export function createOrdinarySourceRunCustody(ports: Ports) {
     liveRuns.add(run);
     // A failed quote remains attached to this one preparation. It cannot be
     // retried under a different purpose or replaced by another original.
-    const required = callbacks.requirements(originals, prepared);
+    const required = callbacks.requirements!(originals, prepared);
     run.required = required;
     const producerReceipt = producer!.receipt;
     const requestOriginals = new WeakSet<object>();

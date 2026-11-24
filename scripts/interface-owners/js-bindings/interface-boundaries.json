@@ -57648,7 +57648,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "child.reader = actual;"
               }
             ],
@@ -66410,7 +66410,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "fail('ForeignInstalledSourceProducer');"
               }
             ],

@@ -32,7 +32,7 @@ export type OrdinaryModelMaterialsState = DomainState & {
   effectBorrowMethods?: Readonly<{clientProgramEffectPreparationInputRead?(holder: unknown): unknown}>;
 };
 type State = OrdinaryModelMaterialsState;
-type Producer = Readonly<{receipt: object; finished?: boolean; preparation: State}>;
+type Producer = Readonly<{receipt: object; finished?: boolean; preparation?: State}>;
 type Ports = Readonly<{
   current(): void; producerForRequest(request: object): Producer | undefined;
   fail(code: string): never; checked(value: unknown): unknown;

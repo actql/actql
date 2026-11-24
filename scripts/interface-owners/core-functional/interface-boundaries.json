@@ -73841,7 +73841,7 @@
                 "anchor": "issuer's existing finite policy. The same owner fences reentry, and the installed"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "              assertOriginal();"
               }
             ],
@@ -73853,7 +73853,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -105837,7 +105837,7 @@
                 "anchor": "issuer's existing finite policy. The same owner fences reentry, and the installed"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "              assertOriginal();"
               }
             ],
@@ -105849,7 +105849,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {

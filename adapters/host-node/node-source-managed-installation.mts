@@ -1,9 +1,7 @@
 import {createRequire} from 'node:module';
 import {types} from 'node:util';
 import {prepareOrdinarySourceManagedInstallation, prepareOrdinaryProjectSourceManagedInstallation,
-  assertOrdinarySourcePreparationCurrent}
-  // @ts-expect-error TS7016: the ordinary Source owner is still authored in JavaScript.
-  from './ordinary-source-managed.mjs';
+  assertOrdinarySourcePreparationCurrent} from './ordinary-source-managed.mjs';
 import {assertSourceManagedHostPreparation, assertRetainedSourceManagedHost, prepareInstalledMockSourcePreparation,
   readInstalledMockPreparation, readInstalledProjectSourcePreparation,
   originalSourceManagedHostRequest, sourceManagedSubmittedIntentCid,
@@ -22,6 +20,7 @@ type State = {
   closed: boolean; failure: unknown; flight: Promise<unknown> | undefined;
 };
 type SelectedInstallation = Awaited<ReturnType<typeof prepareInstallation>>;
+type OrdinaryInstallation = Awaited<ReturnType<typeof prepareOrdinarySourceManagedInstallation>>;
 type CleanupCarrier = Error & {
   code: string;
   cleanupHandle: Readonly<{status(): Readonly<{pending: boolean}>; retry(): Promise<unknown>}>;
@@ -29,6 +28,7 @@ type CleanupCarrier = Error & {
 type BorrowingHost = Readonly<{
   installation: Readonly<{borrowSourceInitializationMaterial?: NativeMethod}>;
 }>;
+type OrdinaryOriginals = Parameters<typeof prepareOrdinarySourceManagedInstallation>[0] & BorrowingHost;
 
 // The actual ordinary prefix or the unchanged preload initializes this ESM
 // namespace. Capture that SAME published receiver before application entry;
@@ -147,8 +147,8 @@ function borrowSourceInitializationMaterial(originals: BorrowingHost): unknown {
 
 // Selection is private and fixed by these two exported consumer entries,
 // never a callback table or purpose Boolean supplied by an application.
-export function prepareSourceManagedInstallation(originals: unknown): Promise<SelectedInstallation> {
-  if (!explicitStartup) return prepareOrdinarySourceManagedInstallation(originals, {
+export function prepareSourceManagedInstallation(originals: unknown): Promise<SelectedInstallation | OrdinaryInstallation> {
+  if (!explicitStartup) return prepareOrdinarySourceManagedInstallation<OrdinaryOriginals>(originals as OrdinaryOriginals, {
     validator: assertSourceManagedHostPreparation, retainedValidator: assertRetainedSourceManagedHost, borrowSourceInitializationMaterial, prepare: prepareInstalledMockSourcePreparation,
     read: readInstalledMockPreparation, request: originalSourceManagedHostRequest,
     intent: sourceManagedSubmittedIntentCid, requirements: readSourceManagedRunRequirements,
@@ -159,10 +159,10 @@ export function prepareSourceManagedInstallation(originals: unknown): Promise<Se
   }, true);
   return prepareInstallation(originals, callbacks);
 }
-export function prepareManagedComputeInstallation(originals: unknown): Promise<SelectedInstallation> {
+export function prepareManagedComputeInstallation(originals: unknown): Promise<SelectedInstallation | OrdinaryInstallation> {
   if (!explicitStartup) {
     prepareInstalledSequenceContractOriginal(originals);
-    return prepareOrdinarySourceManagedInstallation(originals, {
+    return prepareOrdinarySourceManagedInstallation<OrdinaryOriginals>(originals as OrdinaryOriginals, {
     validator: assertSourceManagedHostPreparation, retainedValidator: assertRetainedSourceManagedHost, borrowSourceInitializationMaterial, request: originalSourceManagedHostRequest,
     intent: managedComputeSubmittedIntentCid, requirements: readManagedComputeRunRequirements,
     effectRequirements: readSourceManagedEffectRunRequirements,
@@ -177,9 +177,9 @@ export function prepareManagedComputeInstallation(originals: unknown): Promise<S
 // The ordinary Host already retained the existing Connector's nominal Project
 // preparation. Its real Root/readers are acquired by that same consumer, not
 // by the Mock document reader or an unrelated selected-preload callback table.
-export function prepareProjectSourceManagedInstallation(originals: unknown): Promise<SelectedInstallation> {
+export function prepareProjectSourceManagedInstallation(originals: unknown): Promise<OrdinaryInstallation> {
   if (explicitStartup) unavailable();
-  return prepareOrdinaryProjectSourceManagedInstallation(originals, {
+  return prepareOrdinaryProjectSourceManagedInstallation<OrdinaryOriginals>(originals as OrdinaryOriginals, {
     validator: assertSourceManagedHostPreparation, retainedValidator: assertRetainedSourceManagedHost, borrowSourceInitializationMaterial,
     prepare: () => {readInstalledProjectSourcePreparation(originals);},
     read: readInstalledProjectSourcePreparation, request: originalSourceManagedHostRequest,

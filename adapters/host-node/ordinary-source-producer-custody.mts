@@ -13,14 +13,14 @@ export type SourceProducerCustody = {
   receipt: object; request?: object; finished: boolean; liveRuns: number;
   preparation?: unknown; sourceInitialization?: Material; snapshotPublication?: unknown;
 };
-type Ports<Producer extends SourceProducerCustody> = Readonly<{
-  originals: unknown; callbacks: object; borrowSourceInitialization?: (originals: unknown) => unknown;
+type Ports<Original, Producer extends SourceProducerCustody> = Readonly<{
+  originals: Original; callbacks: object; borrowSourceInitialization?: (originals: Original) => unknown;
   receipts: Pick<WeakMap<object, Producer>, 'get'>; producers: Set<Producer>;
   requestProducers: Pick<WeakMap<object, WeakRef<Producer>>, 'get'>;
   closing: boolean; closed: boolean; fail(code: string): never;
 }>;
 
-export function createOrdinarySourceProducerCustody<Producer extends SourceProducerCustody>(ports: Ports<Producer>) {
+export function createOrdinarySourceProducerCustody<Original, Producer extends SourceProducerCustody>(ports: Ports<Original, Producer>) {
   const {originals, callbacks, borrowSourceInitialization, receipts, producers, requestProducers, fail} = ports;
   function captureSourceMaterialMethod(record: Material, name: 'release' | 'environment'): Callback {
     const field = Object.getOwnPropertyDescriptor(record.view!, name);

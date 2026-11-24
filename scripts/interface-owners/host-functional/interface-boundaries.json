@@ -52240,7 +52240,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "fail('ForeignInstalledSourceProducer');"
               }
             ],
@@ -96165,7 +96165,7 @@
     },
     {
       "module": "adapters/host-node/node-source-managed-installation.mjs",
-      "sha256": "5bda3784e31288495165280b86498d1fdfd77ddcaa0bcf8b7adfdb4c20eae49d",
+      "sha256": "ffaa8bcce8a56bb7b1544dda829a5ad09baa4107cfd47084f5955c9f9a4115fc",
       "exports": [
         "assertManagedComputeInstallationCurrent",
         "assertManagedComputePreparationCurrent",
@@ -96803,7 +96803,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "child.reader = actual;"
               }
             ],
@@ -119843,8 +119843,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "export async function prepareOrdinarySourceManagedInstallation("
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "export async function prepareOrdinarySourceManagedInstallation<Original extends Originals>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -119857,7 +119857,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "state.originals !== originals"
               },
               {
@@ -119873,7 +119873,7 @@
                 "anchor": "### Request lookup within the existing producer owner"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const index = project || occurrence !== undefined ? occurrence?.task : declared;"
               }
             ],
@@ -119925,7 +119925,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "closing = true;"
               },
               {
@@ -120289,7 +120289,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "child.reader = actual;"
               },
               {
@@ -120916,7 +120916,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -120958,7 +120958,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -121000,7 +121000,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -121050,7 +121050,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -121096,7 +121096,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -121136,13 +121136,13 @@
                 "anchor": "issuer's existing finite policy. The same owner fences reentry, and the installed"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "              assertOriginal();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -121184,7 +121184,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -121220,13 +121220,13 @@
                 "anchor": "Aborting a static read ends that read; it cannot cancel or create a Run."
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -121272,7 +121272,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const retireInitialPreparation ="
               },
               {
@@ -121389,8 +121389,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121407,8 +121407,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121425,8 +121425,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121443,8 +121443,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121461,8 +121461,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121479,8 +121479,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121497,8 +121497,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121515,8 +121515,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121533,8 +121533,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "retireRun(prepared, original) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "retireRun(prepared: object, original: object | undefined) {"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -121597,8 +121597,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121617,8 +121617,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121631,8 +121631,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121655,8 +121655,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121669,8 +121669,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121689,8 +121689,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121703,8 +121703,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121723,8 +121723,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121737,8 +121737,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121757,8 +121757,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121771,8 +121771,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121791,8 +121791,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121805,8 +121805,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121825,8 +121825,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121839,8 +121839,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121859,8 +121859,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121873,8 +121873,8 @@
                 "anchor": "## Request-owned captured Source Plan construction"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptCapturePreparation(prepared, request, identity, constructPlan, constructInvocation)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptCapturePreparation(prepared: object, request: object, identity: unknown, constructPlan: CapturePlanConstructor,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -121893,8 +121893,8 @@
                 "anchor": "## Complete Model groups on one Request"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareEffectKeyedPlan(prepared, request, keyed, declarations)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareEffectKeyedPlan(prepared: object, request: object, keyed: unknown, declarations?: readonly unknown[])"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -121971,8 +121971,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptEffectModelPreparation(prepared: object, request: object, identity: unknown, operationPlan: object,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -121985,8 +121985,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptEffectModelPreparation(prepared: object, request: object, identity: unknown, operationPlan: object,"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -121999,8 +121999,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptEffectModelPreparation(prepared: object, request: object, identity: unknown, operationPlan: object,"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -122013,8 +122013,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptEffectModelPreparation(prepared: object, request: object, identity: unknown, operationPlan: object,"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -122027,8 +122027,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptEffectModelPreparation(prepared: object, request: object, identity: unknown, operationPlan: object,"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -122073,8 +122073,8 @@
                 "anchor": "## Installed JSON Source service originals"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptEffectModelPreparation(prepared: object, request: object, identity: unknown, operationPlan: object,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122083,8 +122083,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "adoptEffectModelPreparation(prepared, request, identity, operationPlan, retainedRun)"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "adoptEffectModelPreparation(prepared: object, request: object, identity: unknown, operationPlan: object,"
               },
               {
                 "path": "adapters/host-node/installed-effect-plan-consumer.test.mjs",
@@ -122404,8 +122404,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "prepareKeyedRead(prepared, declaration, originalRun, request) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "prepareKeyedRead(prepared: object, declaration: object, originalRun: unknown, request: object) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122422,7 +122422,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "run.purpose !== 'local-content' || run.original !== originalRun"
               },
               {
@@ -122440,7 +122440,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "child.reader = actual;"
               },
               {
@@ -122458,7 +122458,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "captureReader(child);"
               },
               {
@@ -122476,7 +122476,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "fail('InstalledSourcePreparationMismatch');"
               },
               {
@@ -122512,8 +122512,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "run.children.length >= run.required.attempts"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "run.children.length >= run.required!.attempts"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122588,8 +122588,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122610,8 +122610,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122632,8 +122632,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122654,8 +122654,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122676,8 +122676,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122698,8 +122698,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122720,8 +122720,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122742,8 +122742,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122764,8 +122764,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelCompilation(prepared, request, graph) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelCompilation(prepared: object, request: object, graph: unknown): unknown {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122813,8 +122813,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122823,8 +122823,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122833,8 +122833,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122843,8 +122843,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122853,8 +122853,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122863,8 +122863,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122873,8 +122873,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122883,8 +122883,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122893,8 +122893,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "    prepareModelRun(prepared, request, identity, model, constructPlan) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "    prepareModelRun(prepared: object, request: object, identity: unknown,"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -122920,7 +122920,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -122938,7 +122938,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -122956,7 +122956,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -122974,7 +122974,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -122992,7 +122992,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -123010,7 +123010,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -123028,7 +123028,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -123046,7 +123046,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -123064,7 +123064,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareContentCompilation("
               },
               {
@@ -123105,7 +123105,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123119,7 +123119,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123133,7 +123133,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123147,7 +123147,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123161,7 +123161,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123175,7 +123175,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123189,7 +123189,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123203,7 +123203,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123217,7 +123217,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    prepareKeyedContentRun("
               },
               {
@@ -123249,7 +123249,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123259,7 +123259,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123269,7 +123269,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123279,7 +123279,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123289,7 +123289,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123299,7 +123299,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123309,7 +123309,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123319,7 +123319,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123329,7 +123329,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "    retainContentPreparation("
               },
               {
@@ -123367,8 +123367,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "export async function prepareOrdinarySourceManagedInstallation("
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "export async function prepareOrdinarySourceManagedInstallation<Original extends Originals>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -123381,7 +123381,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "state.originals !== originals"
               },
               {
@@ -123437,7 +123437,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "closing = true;"
               },
               {
@@ -123503,7 +123503,7 @@
                 "anchor": "For source-free Request preparation, the configured Plan's complete execution"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "if (capacity !== undefined) diagnostic('preparation_capacity_refused', capacity);"
               }
             ],
@@ -123521,7 +123521,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const diagnostic = diagnosticObserver(originals.installation?.authorization?.observe);"
               }
             ],
@@ -123611,7 +123611,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "fail('ForeignInstalledSourceProducer');"
               }
             ],
@@ -123979,7 +123979,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "child.reader = actual;"
               },
               {
@@ -124940,7 +124940,7 @@
                 "anchor": "issuer's existing finite policy. The same owner fences reentry, and the installed"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "              assertOriginal();"
               }
             ],
@@ -124952,7 +124952,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -125012,19 +125012,19 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "visit, modelInstallation, fileReadDeclarations) {"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "maxWork: number, visit: StaticExplanationVisitor<Value>, modelInstallation?: StaticModelInstallation,"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "const response = await visit(wires, assertOriginal);"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "const response = await visit(wires as StaticExplanationWires, assertOriginal);"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "state.parent !== parent || state.staticExplanationDelivery !== visit) {"
               }
             ],
@@ -125036,19 +125036,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "state.staticExplanationDelivery = visit;"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "fail('ClientOperationUnavailable');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
@@ -125060,7 +125060,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "return constructRequestDomain(state, function projectOriginalStaticExplanation() {"
               }
             ],
@@ -126307,7 +126307,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "300addd03ef0ccf7ffef4dbf9c351a9cb5998a418203f4351475403a25e0a76a"
+      "sha256": "58ff132f2e015f233f5fe94f72f5241a9ed4c7bf8a7bee8102d34903568d3f4d"
     },
     {
       "module": "adapters/host-node/ordinary-source-model-materials.mjs",
@@ -126462,7 +126462,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "createOrdinarySourceModelMaterials({current, producerForRequest, fail, checked, checkedRequestProgramPreparation, runtimeCore});"
               }
             ],
@@ -126599,13 +126599,13 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/ordinary-source-run-custody.mts",
-                "anchor": "export function createOrdinarySourceRunCustody(ports: Ports)"
+                "anchor": "export function createOrdinarySourceRunCustody<Original, Producer extends RetainedProducer>"
               }
             ],
             "inputsOutputs": [
               {
                 "path": "adapters/host-node/ordinary-source-run-custody.mts",
-                "anchor": "export type OrdinarySourceRun = {"
+                "anchor": "export type OrdinarySourceRun<Producer extends RetainedProducer = RetainedProducer> = {"
               }
             ],
             "identity": [
@@ -126616,14 +126616,14 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const {retainedRunCurrent, publicationRunFor, runFor, prepareRun} = createOrdinarySourceRunCustody({"
               }
             ],
             "synchronization": [
               {
                 "path": "adapters/host-node/ordinary-source-run-custody.mts",
-                "anchor": "callbacks.retainedValidator(originals);"
+                "anchor": "callbacks.retainedValidator!(originals);"
               }
             ],
             "failure": [
@@ -126647,7 +126647,7 @@
             "extension": [
               {
                 "path": "adapters/host-node/ordinary-source-run-custody.mts",
-                "anchor": "function prepareRun(prepared: object, purpose: Purpose, model: unknown, content: unknown)"
+                "anchor": "function prepareRun(prepared: object, purpose: Purpose, model: unknown, content?: unknown)"
               }
             ],
             "verification": [
@@ -126919,7 +126919,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/ordinary-source-request-custody.mts",
-                "anchor": "export function createOrdinarySourceRequestCustody(ports: Ports)"
+                "anchor": "export function createOrdinarySourceRequestCustody<Original extends OriginalContracts, Run extends OrdinarySourceRun>"
               }
             ],
             "inputsOutputs": [
@@ -126936,8 +126936,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "cleanupOriginalRequestInput, beginProducer, requestInput, requestSnapshot} = createOrdinarySourceRequestCustody({originals, current, fail,"
+                "path": "adapters/host-node/ordinary-source-managed.mts",
+                "anchor": "cleanupOriginalRequestInput, beginProducer, requestInput, requestSnapshot} = createOrdinarySourceRequestCustody<Original, Run>({originals, current, fail,"
               }
             ],
             "synchronization": [
@@ -127085,7 +127085,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/ordinary-source-producer-custody.mts",
-                "anchor": "export function createOrdinarySourceProducerCustody<Producer extends SourceProducerCustody>"
+                "anchor": "export function createOrdinarySourceProducerCustody<Original, Producer extends SourceProducerCustody>"
               }
             ],
             "inputsOutputs": [
@@ -127102,7 +127102,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "createOrdinarySourceProducerCustody({originals, callbacks, borrowSourceInitialization,"
               }
             ],
@@ -127274,7 +127274,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-managed.mts",
                 "anchor": "const {captureReader, closeChild, readBytes} = createOrdinarySourceReaders({"
               }
             ],

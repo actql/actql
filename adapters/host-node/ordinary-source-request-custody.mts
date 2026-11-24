@@ -40,10 +40,11 @@ type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number
 type Contracts = Readonly<{moon: Runtime; admission: unknown}>;
 type Explanation = {
   preparation?: unknown; scope?: unknown; definition?: unknown; journal?: OriginalJournal;
-  factsWire?: string; contextWire?: string; invocationTemplateWire?: string; plan?: unknown;
-  offered: boolean; acknowledged: boolean; returning: boolean; databaseClosed: boolean; dispatchReady: boolean;
-  methods: Readonly<{adopt: Callback; returnPreparation: (...args: unknown[]) => unknown;
-    returnCapture: (...args: unknown[]) => unknown}>;
+  factsWire?: string; contextWire?: string; invocationTemplateWire?: string;
+  plan?: Readonly<{compiledPlanWire: string; planViewWire: string}>;
+  offered: boolean; acknowledged: boolean; returning: boolean; databaseClosed: boolean; dispatchReady?: boolean;
+  methods: Readonly<{adopt?: Callback; returnPreparation?: (...args: unknown[]) => unknown;
+    returnCapture: (scope: unknown, definition: unknown, decline: boolean) => unknown}>;
 };
 export type OrdinarySourceRequestState = RequestPreparationState & {
   context: Readonly<{runtime: Runtime; retainedRelationOutput: boolean}> &
@@ -60,17 +61,18 @@ type RequestConnection = Parameters<typeof beginRequestInput>[2];
 type OpenParent = (state: State, receipt: object,
   assertCurrent: () => undefined, childrenPending: () => boolean) => unknown;
 
-type Ports = Readonly<{
-  originals: Readonly<{installation: Readonly<{sequenceContractOriginal?: Contracts}>}>;
+type OriginalContracts = Readonly<{installation?: Readonly<{sequenceContractOriginal?: Contracts}>}>;
+type Ports<Original extends OriginalContracts, Run extends OrdinarySourceRun> = Readonly<{
+  originals: Original;
   current(): void; fail(code: string): never; closing: boolean; closed: boolean;
   callbacks: Readonly<{
-    preparationContext?(originals: unknown): State['context'] | undefined;
-    validator(originals: unknown): void;
+    preparationContext?(originals: Original): State['context'] | undefined;
+    validator(originals: Original): void;
   }>;
   receipts: WeakMap<object, RequestProducer>; producers: Set<RequestProducer>;
-  runs: Pick<WeakMap<object, OrdinarySourceRun>, 'get'>; liveRuns: Set<OrdinarySourceRun>;
+  runs: Pick<WeakMap<object, Run>, 'get'>; liveRuns: Set<Run>;
   retainSourceInitializationMaterial(producer: RequestProducer): unknown;
-  retainedRunCurrent(run: OrdinarySourceRun): void;
+  retainedRunCurrent(run: Run): void;
   releaseFinishedProducer(producer: RequestProducer): boolean;
   producerFor(receipt: object): RequestProducer;
   producerForRequest(request: object): RequestProducer | undefined;
@@ -79,7 +81,7 @@ type Ports = Readonly<{
   view: Readonly<{beforeSourceSnapshot(kind: string, input: unknown, options: unknown, connection: RequestConnection): object}>;
 }>;
 
-export function createOrdinarySourceRequestCustody(ports: Ports) {
+export function createOrdinarySourceRequestCustody<Original extends OriginalContracts, Run extends OrdinarySourceRun>(ports: Ports<Original, Run>) {
   const {originals, current, fail, callbacks, receipts, producers, runs, liveRuns,
     retainSourceInitializationMaterial, retainedRunCurrent, releaseFinishedProducer, producerFor,
     producerForRequest, requestProducers, reportCapacityRefusal} = ports;
@@ -95,7 +97,7 @@ export function createOrdinarySourceRequestCustody(ports: Ports) {
     const assertOriginal = () => {
       current();
       if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
-          originals.installation.sequenceContractOriginal !== contracts || state.parent === undefined || state.holder === undefined ||
+          originals.installation!.sequenceContractOriginal !== contracts || state.parent === undefined || state.holder === undefined ||
           moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
         fail('ForeignInstalledSourceProducer');
       }
@@ -179,7 +181,7 @@ export function createOrdinarySourceRequestCustody(ports: Ports) {
         original.scope = undefined;
       }
       if (original.preparation !== undefined) {
-        checked(Reflect.apply(original.methods.returnPreparation, moon, [original.preparation]));
+        checked(Reflect.apply(original.methods.returnPreparation!, moon, [original.preparation]));
         original.preparation = undefined;
       }
       state!.originalExplanation = undefined;

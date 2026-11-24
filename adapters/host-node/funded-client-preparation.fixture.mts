@@ -3,7 +3,6 @@ import {readFile} from 'node:fs/promises';
 import type {TestContext} from 'node:test';
 import {snapshotClientRequest} from '../../packages/client-wire/index.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-// @ts-expect-error The original Ordinary manager is still authored in JavaScript.
 import {prepareOrdinarySourceManagedInstallation} from './ordinary-source-managed.mjs';
 import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
@@ -18,7 +17,10 @@ type FixtureRequest = Readonly<{
 }>;
 type InstallPreparation = typeof installNodeClientProgramPreparation<FixtureRequest>;
 type Preparation = ReturnType<InstallPreparation>;
-type FixtureMoon = Parameters<InstallPreparation>[0]['moon'] & Readonly<{
+type ActualPreparationContext = NonNullable<ReturnType<
+  NonNullable<Parameters<typeof prepareOrdinarySourceManagedInstallation>[1]['preparationContext']>
+>>;
+type FixtureMoon = Parameters<InstallPreparation>[0]['moon'] & ActualPreparationContext['runtime'] & Readonly<{
   clientProgramCheckingEnvironmentCid(environment: unknown): string;
   clientProgramPreparePublicSourceEnvironment(environment: unknown, publication: string): unknown;
   clientPrepareInstalledSequenceContracts(registry: string, values: string, fragment: string, ordered: string): unknown;
@@ -40,27 +42,14 @@ type FundedOriginal = NonNullable<Awaited<ReturnType<
   NonNullable<Parameters<InstallPreparation>[0]['getFundedPreparation']>
 >>> & Readonly<{kind: 'effect_free' | 'effectful'; prepared: object}>;
 type Terminal = 'failed' | 'returned';
-type OrdinaryManager = Readonly<{
-  beforeSourceSnapshot(kind: string, input: unknown, options: unknown, connection: unknown): object;
-  captureSourceSnapshot(receipt: object, request: FixtureRequest, snapshot: typeof snapshotClientRequest): FixtureRequest;
-  assertSourceSnapshotCurrent(receipt: object): void;
-  bindSourceSnapshot(receipt: object, body: FixtureRequest): void;
-  bindSourceRequest(receipt: object, body: FixtureRequest, request: FixtureRequest): void;
-  intentCid(receipt: object, body: FixtureRequest): unknown;
-  fundedPreparation(request: FixtureRequest, environment: unknown, verifier: undefined,
-    signal: AbortSignal | undefined): Promise<FundedOriginal>;
-  authoringContextOriginal(prepared: object, request: FixtureRequest): unknown;
-  submittedIntentOriginal(request: FixtureRequest): unknown;
-  finishSourceProducer(receipt: object, terminal: Terminal): void;
-  close(): Promise<unknown>;
-}>;
+type OrdinaryManager = Awaited<ReturnType<typeof prepareOrdinarySourceManagedInstallation>>;
 type PreparationPorts = Readonly<{
   installNodeClientProgramPreparation: InstallPreparation;
   prepareOrdinarySourceManagedInstallation(originals: FixtureOriginals, callbacks: Readonly<{
     validator(originals: FixtureOriginals): void;
     retainedValidator(originals: FixtureOriginals): void;
     preparationContext(originals: FixtureOriginals): PreparationContext;
-    retireInitialPreparation(originals: FixtureOriginals, prepared: object): void;
+    retireInitialPreparation(originals: FixtureOriginals, prepared: object): undefined;
   }>, retained: false): Promise<OrdinaryManager>;
 }>;
 type FixtureOptions = Readonly<{
@@ -191,7 +180,7 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
   const view = await ports.prepareOrdinarySourceManagedInstallation(originals, {
     validator: current, retainedValidator: current,
     preparationContext(actual) {current(actual); return context;},
-    retireInitialPreparation(actual, prepared) {
+    retireInitialPreparation(actual, prepared): undefined {
       current(actual);
       retireOriginal(prepared);
       // Effect membership is weak; clearing this fixture's actual alias is
@@ -207,11 +196,11 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
         const input = request.kind === 'program' ? request.input : (request.input as {text: unknown}).text;
         const receipt = view.beforeSourceSnapshot(request.kind, input, {parameters: request.parameters}, connection);
         receipts.add(receipt);
-        const body = view.captureSourceSnapshot(receipt, request, snapshotClientRequest);
+        const body = view.captureSourceSnapshot(receipt, request, snapshotClientRequest) as FixtureRequest;
         view.bindSourceSnapshot(receipt, body);
         view.bindSourceRequest(receipt, body, request);
       }
-      const original = await view.fundedPreparation(request, selected, verifier, signal);
+      const original = await view.fundedPreparation(request, selected, verifier, signal) as FundedOriginal;
       assert.equal(retained.has(original.prepared), false);
       retained.set(original.prepared, original.kind);
       if (original.kind === 'effect_free') {
@@ -250,9 +239,10 @@ export async function openFundedClientPreparation({moon, environment, allowEffec
     };
     try {
       if (['plan', 'submit', 'submit-intent', 'submit-named-intent', 'restart-intent'].includes(operation)) {
-        receipt = view.beforeSourceSnapshot(request.kind, request.input, request, request.connection);
+        receipt = view.beforeSourceSnapshot(request.kind, request.input, request,
+          request.connection as Parameters<OrdinaryManager['beforeSourceSnapshot']>[3]);
         receipts.add(receipt);
-        body = view.captureSourceSnapshot(receipt, request, snapshotClientRequest);
+        body = view.captureSourceSnapshot(receipt, request, snapshotClientRequest) as FixtureRequest;
         view.assertSourceSnapshotCurrent(receipt);
         freezeInput(body);
         view.bindSourceSnapshot(receipt, body);

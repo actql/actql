@@ -28,7 +28,7 @@ function sourceTokens(source: string) {
 const measurementChecks = new Map([
   // This closed transport envelope guard only refuses a foreign original.
   // The modes do not select a connector, implementation or provider call.
-  ['adapters/host-node/ordinary-source-managed.mjs', `
+  ['adapters/host-node/ordinary-source-request-custody.mjs', `
     if (producer.finished || producer.kind !== undefined || producer.body !== undefined ||
         state?.parent === undefined || state.snapshotting || state.snapshot !== undefined ||
         !['program', 'aql'].includes(kind) || !Object.isFrozen(connection) ||
@@ -37,7 +37,7 @@ const measurementChecks = new Map([
       fail('ForeignInstalledSourceProducer');
     }
   `],
-  ['adapters/host-node/client-request-journal.mjs', `
+  ['adapters/host-node/client-request-journal-facility.mjs', `
     const facilityDescriptor = Object.getOwnPropertyDescriptor;
     const facilityRealpath = realpathSync;
     const facilityNativeRealpath = facilityDescriptor(facilityRealpath, 'native')?.value;

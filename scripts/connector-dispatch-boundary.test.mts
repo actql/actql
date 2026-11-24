@@ -39,7 +39,7 @@ test('HTTP transport custody guard only admits its complete refusal in the origi
       fail('ForeignInstalledSourceProducer');
     }
   `;
-  const owner = 'adapters/host-node/ordinary-source-managed.mjs';
+  const owner = 'adapters/host-node/ordinary-source-request-custody.mjs';
   assert.deepEqual(connectorDispatchViolations(source, names, owner), []);
   for (const changed of [source.replace("fail('ForeignInstalledSourceProducer')", 'dispatch()'),
     source.replace('connection.mode', 'connection.connector'),
@@ -49,6 +49,8 @@ test('HTTP transport custody guard only admits its complete refusal in the origi
   }
   assert.ok(connectorDispatchViolations(source, names,
     'adapters/host-common/strategy.mjs').length > 0);
+  assert.ok(connectorDispatchViolations(source, names,
+    'adapters/host-node/ordinary-source-managed.mjs').length > 0);
 });
 
 test('concrete comparisons variants and dispatch tables are rejected', () => {
@@ -155,7 +157,7 @@ test('observation scope defaults cannot hide concrete dispatch in the same owner
 test('fixed native filesystem intrinsic captures are not connector selectors', () => {
   const names = ['mock', 'local', 'duckdb'];
   const statements = [
-    ['adapters/host-node/client-request-journal.mjs', `
+    ['adapters/host-node/client-request-journal-facility.mjs', `
       const facilityDescriptor = Object.getOwnPropertyDescriptor;
       const facilityRealpath = realpathSync;
       const facilityNativeRealpath = facilityDescriptor(facilityRealpath, 'native')?.value;
@@ -173,6 +175,7 @@ test('fixed native filesystem intrinsic captures are not connector selectors', (
       source.replace("'native'", "'local'"),
       source + "\nif (provider === 'native') selectNative();",
     ]) assert.ok(connectorDispatchViolations(changed, names, path).length > 0);
+    assert.ok(connectorDispatchViolations(source, names, 'adapters/host-node/client-request-journal.mjs').length > 0);
     assert.ok(connectorDispatchViolations(source, names, 'adapters/host-common/unrelated.mjs').length > 0);
   }
 });
