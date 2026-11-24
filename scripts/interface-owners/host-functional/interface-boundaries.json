@@ -19408,7 +19408,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7714c0df81ac995e315d35af28f43929d831708fb55cec08282cfeed7962a75b",
+      "sha256": "318bf57367709c73a8e95843b08d45288dbb4e7651c71c7e7e5f9762aee9087e",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -19416,36 +19416,6 @@
         "installRemoteCheckpoints"
       ],
       "operations": [
-        {
-          "name": "acquisitionsOf/acquisitionsOf",
-          "parameters": [
-            "item",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "capturedValueWire/capturedValueWire",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "captureEffectTargets/captureEffectTargets",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code",
-            "detail"
-          ],
-          "async": false
-        },
         {
           "name": "installHostRunAcceptance",
           "parameters": [
@@ -20440,27 +20410,11 @@
           "name": "installRemoteCheckpoints/sweep/sweep/sweep",
           "parameters": [],
           "async": false
-        },
-        {
-          "name": "principals/principals",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "without/without/without",
-          "parameters": [
-            "key"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
           "operations": [
-            "acquisitionsOf/acquisitionsOf",
-            "captureEffectTargets/captureEffectTargets",
             "installRemoteCheckpoints",
             "installRemoteCheckpoints/answerers/answerers",
             "installRemoteCheckpoints/authorities/authorities",
@@ -20589,10 +20543,6 @@
             "installRemoteCheckpoints/sweep",
             "installRemoteCheckpoints/sweep/sweep",
             "installRemoteCheckpoints/sweep/sweep/sweep",
-            "principals/principals",
-            "without/without/without",
-            "capturedValueWire/capturedValueWire",
-            "fail/fail",
             "installRemoteCheckpoints/modelCustody/modelCustody"
           ],
           "exports": [
@@ -20705,8 +20655,8 @@
                 "anchor": "if @publication.publication_contract_identity(definition) != expected_cid {"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "function computationSourceCheckpointId(runId, scopeCid) {"
+                "path": "adapters/host-node/client-checkpoint-admission-inputs.mts",
+                "anchor": "export function computationSourceCheckpointId(runId: string, scopeCid: string) {"
               }
             ],
             "ownership": [
@@ -21652,9 +21602,9 @@
         "../host-common/diagnostic-observer.mjs",
         "../host-common/installed-checkpoint-codec-limits.mjs",
         "./checkpoint-runtime.mjs",
+        "./client-checkpoint-admission-inputs.mjs",
         "./client-checkpoint-model-custody.mjs",
         "./effect-target-read-inventory.mjs",
-        "./installed-effect-limits.mjs",
         "./installed-host-cleanup.mjs",
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
@@ -21664,6 +21614,281 @@
         "node:crypto",
         "node:fs/promises",
         "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-checkpoint-admission-inputs.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "4d57622066c4c5d42d254240d619dcf12485e51e6118b1002d26a7d9c28f4ed4",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "IDENTIFIER",
+        "acquisitionsOf",
+        "captureEffectTargets",
+        "capturedValueCid",
+        "capturedValueWire",
+        "coded",
+        "computationSourceCheckpointId",
+        "fail",
+        "hex",
+        "occurrenceIdentity",
+        "occurrenceKey",
+        "pluralCapture",
+        "principals",
+        "trustedReviewers",
+        "without"
+      ],
+      "operations": [
+        {
+          "name": "acquisitionsOf",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "acquisitionsOf/acquisitionsOf",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturedValueCid/capturedValueCid",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "capturedValueWire/capturedValueWire",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureEffectTargets",
+          "parameters": [
+            "effectTargets"
+          ],
+          "async": false
+        },
+        {
+          "name": "captureEffectTargets/captureEffectTargets",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "coded",
+          "parameters": [
+            "code",
+            "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "computationSourceCheckpointId",
+          "parameters": [
+            "runId",
+            "scopeCid"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "detail"
+          ],
+          "async": false
+        },
+        {
+          "name": "hex/hex",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "occurrenceIdentity/occurrenceIdentity",
+          "parameters": [
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "occurrenceKey/occurrenceKey",
+          "parameters": [
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "pluralCapture/pluralCapture",
+          "parameters": [
+            "captured"
+          ],
+          "async": false
+        },
+        {
+          "name": "principals",
+          "parameters": [
+            "values",
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "principals/principals",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "trustedReviewers",
+          "parameters": [
+            "reviewers"
+          ],
+          "async": false
+        },
+        {
+          "name": "without/without",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "without/without/without",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "acquisitionsOf",
+            "acquisitionsOf/acquisitionsOf",
+            "capturedValueCid/capturedValueCid",
+            "capturedValueWire/capturedValueWire",
+            "captureEffectTargets",
+            "captureEffectTargets/captureEffectTargets",
+            "coded",
+            "computationSourceCheckpointId",
+            "fail/fail",
+            "hex/hex",
+            "occurrenceIdentity/occurrenceIdentity",
+            "occurrenceKey/occurrenceKey",
+            "pluralCapture/pluralCapture",
+            "principals",
+            "principals/principals",
+            "trustedReviewers",
+            "without/without",
+            "without/without/without"
+          ],
+          "exports": [
+            "IDENTIFIER",
+            "acquisitionsOf",
+            "captureEffectTargets",
+            "capturedValueCid",
+            "capturedValueWire",
+            "coded",
+            "computationSourceCheckpointId",
+            "fail",
+            "hex",
+            "occurrenceIdentity",
+            "occurrenceKey",
+            "pluralCapture",
+            "principals",
+            "trustedReviewers",
+            "without"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-checkpoint-admission-inputs.mts",
+                "anchor": "export function captureEffectTargets(effectTargets: readonly EffectTarget[]): InstalledEffectTarget[]"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-checkpoint-admission-inputs.mts",
+                "anchor": "export function acquisitionsOf(captured: SourceCapture): readonly CapturedOccurrence[]"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-checkpoint-admission-inputs.mts",
+                "anchor": "export const occurrenceKey = (occurrence: CapturedOccurrence) =>"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": ": captureEffectTargets(effectTargets);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoint-admission-inputs.mts",
+                "anchor": "context: Object.freeze({...context}),"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoint-admission-inputs.mts",
+                "anchor": "fail('HeldAcquisitionChanged');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-effect-target-checkpoints.test.mjs",
+                "anchor": "closing the Checkpoint owner closes every plural current authority and target scope"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-checkpoint-admission-inputs.mts",
+                "anchor": "effectTargets.length > MAX_INSTALLED_EFFECT_PROFILES) invalid();"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-checkpoint-admission-inputs.mts",
+                "anchor": "export const capturedValueCid = (value: unknown)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-two-source-checkpoints.test.mjs",
+                "anchor": "plural capture requires its tag and exact bounded occurrence inventory"
+              },
+              {
+                "path": "adapters/host-node/client-effect-target-checkpoints.test.mjs",
+                "anchor": "plural target configuration and context are captured before the first installation await"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "./installed-effect-limits.mjs",
+        "./local-account-config.mjs",
+        "./ordinary-source-binding.mjs",
+        "node:crypto"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

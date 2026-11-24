@@ -3250,3 +3250,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-model-continuation.d.mts
 /adapters/host-node/client-checkpoint-model-custody.mjs
 /adapters/host-node/client-checkpoint-model-custody.d.mts
+/adapters/host-node/client-checkpoint-admission-inputs.mjs
+/adapters/host-node/client-checkpoint-admission-inputs.d.mts
