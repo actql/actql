@@ -3,31 +3,17 @@
 // it is not a separate fixture evaluator or an execution-proof constructor.
 import {serveManagedStrategy} from '../../../../host-node/managed-strategy-worker.mjs';
 import {enableNodeCompileCache} from '../../../../host-node/compile-cache.mjs';
-// @ts-expect-error The installed example preparation is still authored as JavaScript.
 import {prepareExampleText} from './physical-strategy.mjs';
 import {bindProcessStore} from '../../../../store-local/process-binding.mjs';
 import {installProcessCompletionObserver} from '../../../../host-node/process-completion-observer.mjs';
 import {installCompletionObserver, completionObserver} from '../../../../host-common/completion-observer.mjs';
 
-import type {ManagedStrategyPlan} from '../../../../host-node/managed-strategy-worker.mjs';
 import type {taskStartObserver} from '../../../../host-common/completion-observer.mjs';
 import type {ProcessFrameValue} from '../../../../host-node/process-frames.mjs';
 
 type ExampleInput = Extract<ProcessFrameValue, Record<string, ProcessFrameValue>> & {
   dataProfile?: {columns?: number};
 };
-type OpenedStrategy = Awaited<ReturnType<ManagedStrategyPlan['open']>>;
-type ExampleOpened = Omit<OpenedStrategy, 'describe'> & {
-  describe: (execution: Parameters<OpenedStrategy['describe']>[0]) => Readonly<Record<string, unknown>>;
-};
-type ExamplePlan = Omit<ManagedStrategyPlan, 'open' | 'taskIdentities' | 'usage'> & {
-  usage: NonNullable<ManagedStrategyPlan['usage']>;
-  taskIdentities: () => unknown;
-  completionTask: Parameters<typeof installProcessCompletionObserver>[2];
-  open: (signal: AbortSignal, binding: ReturnType<typeof bindProcessStore> | undefined) =>
-    ExampleOpened | PromiseLike<ExampleOpened>;
-};
-
 enableNodeCompileCache();
 
 serveManagedStrategy(async (input: ExampleInput, _signal, context) => {
@@ -39,7 +25,7 @@ serveManagedStrategy(async (input: ExampleInput, _signal, context) => {
   if (controlStore && (!input.retainedOutput || input.localImportWorkMilliseconds === undefined)) {
     throw new Error('ControlStoreRequiresRetainedOutputAndLocalImportPolicy');
   }
-  const plan = await prepareExampleText(input, context.resourceLimits) as ExamplePlan;
+  const plan = await prepareExampleText(input as ExampleInput & Parameters<typeof prepareExampleText>[0], context.resourceLimits);
   return {resourceLimits: plan.resourceLimits, usage: plan.usage,
     taskIdentities: () => JSON.parse(JSON.stringify(plan.taskIdentities())), async open(signal, context) {
     const binding = controlStore ? bindProcessStore(context) : undefined;

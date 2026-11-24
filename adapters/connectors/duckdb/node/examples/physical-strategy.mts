@@ -18,6 +18,121 @@ import {createLocalAuthorizationGate, sourceReadAccountConfiguration} from
   '../../../../host-node/local-account-config.mjs';
 import {requireAuthorizedDispatch} from '../../../../host-common/authorization-gate.mjs';
 
+import type { PathLike } from 'node:fs';
+import type {decodeProcessLimits, decodeProcessUsage} from '../../../../host-node/process-accounting.mjs';
+import type {ProcessStoreBinding} from '../../../../store-local/process-binding.mjs';
+
+type ResourceLimits = ReturnType<typeof decodeProcessLimits>;
+type ResourceUsage = ReturnType<typeof decodeProcessUsage>;
+type Execution = Awaited<ReturnType<typeof runCapturedStrategy>>;
+type DataProfile = NonNullable<ReturnType<typeof snapshotDataProfile>>;
+type SourceScope = Readonly<{database: string; schema?: string; table?: string}>;
+type Gate = Parameters<typeof requireAuthorizedDispatch>[0];
+type Authorization = Pick<NonNullable<Parameters<typeof createLocalAuthorizationGate>[0]>,
+  'accountConfig' | 'accountConfiguration' | 'principal'> & {authorization?: Gate};
+type ExampleProfile = SourceScope & Authorization & Readonly<{
+  environmentCid: string;
+  nativeMilliseconds?: string;
+  resident?: boolean;
+  retainedOutput?: unknown;
+  acquisitionRetainedOutput?: unknown;
+  managedOutput?: unknown;
+  retainedWorkMilliseconds?: string;
+  localImportWorkMilliseconds?: string;
+  localExportWorkMilliseconds?: string;
+  nativeTaskMilliseconds?: readonly unknown[];
+  localTaskMilliseconds?: readonly unknown[];
+  localEligible?: boolean;
+  dataProfile?: unknown;
+}>;
+type CapturedTexts = Readonly<{programText: string; environmentText: string; parameterText: string}>;
+type PrepareInput = ExampleProfile & CapturedTexts & Readonly<{
+  adoptedText: string; query: string; evidence: string; receipts: string; acquisitionSubjectCid?: string;
+}>;
+type RunInput = ExampleProfile & Readonly<{
+  program: PathLike;
+  environment: PathLike;
+  parameters: PathLike;
+  signal?: AbortSignal;
+  invocation?: Readonly<{
+    requestCid?: string;
+    seal?: NonNullable<Parameters<typeof requireAuthorizedDispatch>[3]>['sealDeferredSubject'];
+    texts?: CapturedTexts;
+    identify?: (texts: CapturedTexts) => string | undefined;
+  }>;
+  continuation?: Readonly<{beforeAcquisition?: () => unknown; beforeRun?: () => unknown}>;
+}>;
+type Capture = Extract<Awaited<ReturnType<typeof runStrategyNativeHostQuery | typeof runRetainedStrategyNativeHostQuery>>,
+  {openDAG: (graph: unknown) => unknown}>;
+type ExampleReport = Readonly<{
+  status: Execution['status'];
+  program_success: false;
+  estimate_model: string;
+  preparation_diagnostics: Readonly<Record<string, number>>;
+  acquisition_evidence: ReturnType<Capture['evidence']>;
+  acquisition_diagnostics: Capture['diagnostics'];
+  completed: Execution['completed'];
+  internal_output_cids: readonly {task: Execution['completed'][number]['task']; cid: string | null}[];
+  failure: unknown;
+  cleanup_pending: boolean;
+  explanation: ReturnType<Execution['explain']>;
+}>;
+type OpenedExample = Readonly<{
+  setup: Parameters<typeof runCapturedStrategy>[0];
+  capture: Capture;
+  describe: (execution: Execution) => ExampleReport;
+  configurations: Readonly<{
+    duckdb: ReturnType<typeof prepareDuckDBStrategyConfiguration>;
+    local?: ReturnType<typeof configureLocalProcessStore>;
+  }>;
+  close: () => Promise<void>;
+}>;
+type CaptureError = {cleanupHandle?: Capture['cleanupHandle']};
+type ExampleError = CaptureError & {runtimeCode?: string; code?: unknown};
+
+declare const exampleHandle: unique symbol;
+type ExampleHandle<Kind extends string> = {readonly [exampleHandle]: Kind};
+type Application = ExampleHandle<'application'>;
+type CapturedGraph = ExampleHandle<'captured-graph'>;
+type Ledger = ExampleHandle<'ledger'>;
+type TaskReference = ExampleHandle<'task-reference'>;
+type ApplicationDocuments = readonly [
+  program: string, environment: string, environmentCid: string, parameters: string,
+  registry: string, values: string, fragment: string, query: string,
+  evidence: string, receipts: string, schema: string, table: string,
+];
+type RetainedCosts = [nativeMs: bigint, bytes: bigint, retainedMs: bigint];
+type MaterializingCosts = [...RetainedCosts, localImportMs: bigint];
+type LocalCosts = [...MaterializingCosts, localExportMs: bigint];
+type ExampleRuntime = Readonly<{
+  // Raising exports return the pinned compiler's Result representation.
+  prepareApplication(...documents: ApplicationDocuments): unknown;
+  prepareApplicationWithData(...arguments_: [...ApplicationDocuments, DataProfile]): unknown;
+  applicationAcquisition(prepared: Application): unknown;
+  applicationGraph(prepared: Application): unknown;
+  applicationComputeCount(prepared: Application): number;
+  applicationComputeTransferCapacity(prepared: Application): bigint;
+  applicationLedger(): Ledger;
+  applicationBoundedLedger(limits: ResourceLimits): unknown;
+  applicationLedgerLimits(ledger: Ledger): ResourceLimits;
+  applicationLedgerUsage(ledger: Ledger): ResourceUsage;
+  applicationTaskReference(prepared: Application, task: number): unknown;
+  applicationTaskIdentity(task: TaskReference): unknown;
+  applicationTaskContentRead(prepared: Application, task: number, descriptor: unknown): unknown;
+  applicationTaskCompletionPreparation(prepared: Application, task: number): unknown;
+  applicationBindReadmittedOutput(prepared: Application, producer: number, consumer: number, input: number, output: unknown): unknown;
+  applicationTaskOutputMatches(task: TaskReference, output: unknown): boolean;
+  applicationDispatch(prepared: Application, graph: CapturedGraph, nativeMs: bigint, resident: boolean): unknown;
+  applicationManagedDispatch(prepared: Application, graph: CapturedGraph, ...arguments_: [...RetainedCosts, boolean]): unknown;
+  applicationRetainedDispatch(prepared: Application, graph: CapturedGraph, ...arguments_: [...RetainedCosts, boolean]): unknown;
+  applicationMaterializingDispatch(prepared: Application, graph: CapturedGraph, ...arguments_: [...MaterializingCosts, boolean]): unknown;
+  applicationRetainedLocalDispatch(prepared: Application, graph: CapturedGraph, ...arguments_: [...LocalCosts, bigint[], boolean]): unknown;
+  applicationRetainedTaskEstimateDispatch(prepared: Application, graph: CapturedGraph,
+    ...arguments_: [...LocalCosts, localEstimates: bigint[], nativeEstimates: bigint[], localEligible: boolean, resident: boolean]): unknown;
+  applicationProfileOutputCid(prepared: Application, graph: CapturedGraph, task: number): string | undefined;
+}>;
+
+
 const root = new URL('../../../../../', import.meta.url);
 const runtimeUrl = new URL('_build/js/release/build/physical_strategy_example/physical_strategy_example.js', root);
 const limits = Object.freeze({ maxRows: 100, maxCells: 1000, maxTransportBytes: 100000,
@@ -25,9 +140,9 @@ const limits = Object.freeze({ maxRows: 100, maxCells: 1000, maxTransportBytes: 
   memoryBytes: 128 * 1024 * 1024, threads: 1 });
 
 export function exampleDatabaseMemoryBytes(
-  dataProfile,
-  resourceLimits,
-  managedOutput,
+  dataProfile: unknown,
+  resourceLimits: Readonly<{execution_bytes?: unknown}> | undefined,
+  managedOutput: unknown,
 ) {
   const data = snapshotDataProfile(dataProfile);
   const configured = resourceLimits?.execution_bytes;
@@ -37,7 +152,7 @@ export function exampleDatabaseMemoryBytes(
     throw new Error('Invalid execution memory limit');
   }
   return data && managedOutput !== undefined && configured !== undefined
-    ? Number(configured / 2n) : limits.memoryBytes;
+    ? Number((configured as bigint) / 2n) : limits.memoryBytes;
 }
 
 // Text of an explicit execution-account configuration that allows reading
@@ -45,7 +160,8 @@ export function exampleDatabaseMemoryBytes(
 // It is a convenience for writing an operator-owned file; the example never
 // installs it by itself.
 export function exampleAccountConfiguration({database, schema = 'main',
-  table = 'records', outcome = 'allow', accountId = 'example-application'}) {
+  table = 'records', outcome = 'allow', accountId = 'example-application'}:
+    SourceScope & Pick<Parameters<typeof sourceReadAccountConfiguration>[0], 'outcome' | 'accountId'>) {
   return sourceReadAccountConfiguration({connection: database,
     resource: `${schema}.${table}`, outcome, accountId, entryId: 'example-source'});
 }
@@ -57,16 +173,16 @@ export function exampleAccountConfiguration({database, schema = 'main',
 // its managed worker. With none, the Missing gate denies every protected
 // boundary (ACTQL_E_ACCOUNT_CONFIG_INVALID); there is no allow-all default.
 export function exampleAuthorization({authorization, accountConfig,
-  accountConfiguration, principal = 'example-application'} = {}) {
+  accountConfiguration, principal = 'example-application'}: Authorization = {}): Gate | PromiseLike<Gate> {
   if (authorization !== undefined) return authorization;
   return createLocalAuthorizationGate({accountConfig, accountConfiguration,
     principal});
 }
 
-const exampleSourceScope = ({database, schema = 'main', table = 'records'}) =>
+const exampleSourceScope = ({database, schema = 'main', table = 'records'}: SourceScope) =>
   Object.freeze({connection: database, resource: `${schema}.${table}`});
 
-async function boundedText(path) {
+async function boundedText(path: PathLike) {
   if ((await stat(path)).size > 1000000) throw new Error('Example input exceeds 1000000 bytes');
   const bytes = await readFile(path);
   if (bytes.length > 1000000) throw new Error('Example input exceeds 1000000 bytes');
@@ -81,8 +197,8 @@ export async function runExample({ database, environment, environmentCid, progra
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
   nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile, signal,
-  authorization, accountConfig, accountConfiguration, invocation, continuation },
-  observer) {
+  authorization, accountConfig, accountConfiguration, invocation, continuation }: RunInput,
+  observer?: Parameters<typeof runCapturedStrategy>[3]) {
   completionObserver(observer); // Validate installed supervision before source/file I/O.
   if (!/^\d{1,18}$/.test(nativeMilliseconds)) throw new Error('Invalid native estimate');
   if (typeof database !== 'string') throw new Error('Invalid example configuration');
@@ -124,7 +240,7 @@ export async function runExample({ database, environment, environmentCid, progra
   // creates its Run only once capture completed.
   await continuation?.beforeAcquisition?.();
   const opened = await plan.open(signal);
-  let execution;
+  let execution: Execution | undefined;
   try {
     await continuation?.beforeRun?.();
     execution = await runCapturedStrategy(opened.setup,
@@ -134,7 +250,7 @@ export async function runExample({ database, environment, environmentCid, progra
         // Revoke both result ports synchronously; await independent physical
         // cleanup without postponing capture close behind the task finalizers.
         let taskClose;
-        try { taskClose = execution.close(); }
+        try { taskClose = execution!.close(); }
         catch (error) { taskClose = Promise.reject(error); }
         return Promise.all([taskClose, opened.close()]).then(() => {});
       }});
@@ -156,8 +272,8 @@ export async function prepareExampleText({database, environmentCid, programText,
   retainedWorkMilliseconds,
   localImportWorkMilliseconds, localExportWorkMilliseconds,
   nativeTaskMilliseconds, localTaskMilliseconds, localEligible, dataProfile,
-  authorization, accountConfig, accountConfiguration, acquisitionSubjectCid},
-  resourceLimits) {
+  authorization, accountConfig, accountConfiguration, acquisitionSubjectCid}: PrepareInput,
+  resourceLimits?: ResourceLimits) {
   const preparationStarted = performance.now();
   const data = snapshotDataProfile(dataProfile);
   const memoryBytes = exampleDatabaseMemoryBytes(
@@ -231,15 +347,15 @@ export async function prepareExampleText({database, environmentCid, programText,
     throw new Error('Invalid retained example configuration');
   }
   const configuredAt = performance.now();
-  const app = await import(runtimeUrl);
+  const app: ExampleRuntime = await import(runtimeUrl.href);
   const importedAt = performance.now();
   const adopted = JSON.parse(adoptedText);
-  let prepared;
+  let prepared: Application;
   try {
-    const args = [programText, environmentText, environmentCid,
+    const args: ApplicationDocuments = [programText, environmentText, environmentCid,
       parameterText, JSON.stringify(adopted.registry), JSON.stringify(adopted.values),
       JSON.stringify(adopted.fragment), query, evidence, receipts, schema, table];
-    prepared = checked(data ? app.prepareApplicationWithData(...args, data) : app.prepareApplication(...args));
+    prepared = checked(data ? app.prepareApplicationWithData(...args, data) : app.prepareApplication(...args)) as Application;
   } catch (cause) {
     throw new Error('Example preparation rejected: check the filter or join/count profile, Environment CID, Parameters and selected contracts', { cause });
   }
@@ -264,9 +380,9 @@ export async function prepareExampleText({database, environmentCid, programText,
     importLimits: {maxRows: data?.task_rows ?? 100,
       maxCells: data ? 2 * data.task_rows * data.columns : 1000},
     retainedOutput: retained, managedOutput: managed});
-  const ledger = resourceLimits === undefined ? app.applicationLedger() : checked(app.applicationBoundedLedger(resourceLimits));
+  const ledger = resourceLimits === undefined ? app.applicationLedger() : checked(app.applicationBoundedLedger(resourceLimits)) as Ledger;
   const taskReferences = Array.from({length: app.applicationComputeCount(prepared)},
-    (_, index) => checked(app.applicationTaskReference(prepared, index + 1)));
+    (_, index) => checked(app.applicationTaskReference(prepared, index + 1)) as TaskReference);
   const projectedAt = performance.now();
   const preparationDiagnostics = Object.freeze({
     applicationPrepareCalls: 1,
@@ -278,23 +394,23 @@ export async function prepareExampleText({database, environmentCid, programText,
   return Object.freeze({resourceLimits: Object.freeze({...app.applicationLedgerLimits(ledger)}),
     preparationDiagnostics,
     taskIdentities: () => taskReferences.map(reference => app.applicationTaskIdentity(reference)),
-    contentRead(task, descriptor) {
+    contentRead(task: number, descriptor: unknown) {
       return checked(app.applicationTaskContentRead(prepared, task, descriptor));
     },
-    completionPreparation(task) {
+    completionPreparation(task: number) {
       return checked(app.applicationTaskCompletionPreparation(prepared, task));
     },
-    bindReadmittedOutput(producer, consumer, input, output) {
+    bindReadmittedOutput(producer: number, consumer: number, input: number, output: unknown) {
       return checked(app.applicationBindReadmittedOutput(prepared, producer, consumer, input, output));
     },
-    completionTask(task, output) {
+    completionTask(task: number, output: unknown) {
       const reference = taskReferences[task - 1];
       if (!Number.isSafeInteger(task) || !reference || !app.applicationTaskOutputMatches(reference, output)) {
         throw new Error('ForeignCompletionTask');
       }
       return app.applicationTaskIdentity(reference);
     },
-    usage: () => Object.freeze({...app.applicationLedgerUsage(ledger)}), async open(signal, storeBinding) {
+    usage: () => Object.freeze({...app.applicationLedgerUsage(ledger)}), async open(signal?: AbortSignal, storeBinding?: ProcessStoreBinding): Promise<OpenedExample> {
     signal?.throwIfAborted();
     if (localExportWorkMilliseconds !== undefined && !storeBinding) throw new Error('Local export requires the installed process Store');
     const acquisitionSource = acquisitionRetained ??
@@ -329,67 +445,67 @@ export async function prepareExampleText({database, environmentCid, programText,
       subjectCid: acquisitionSubjectCid,
     });
     signal?.throwIfAborted();
-    const capture = acquisitionRetention
+    const capture = (acquisitionRetention
       ? await runRetainedStrategyNativeHostQuery(grant, app.applicationAcquisition(prepared),
         ledger, transportLimits, acquisitionRetention, signal)
       : await runStrategyNativeHostQuery(grant, app.applicationAcquisition(prepared),
-        ledger, transportLimits, signal);
+        ledger, transportLimits, signal)) as Capture;
     const closeCapture = async () => {
       capture.close();
       try {
         await capture.cleanupHandle?.retry();
         if (capture.cleanupHandle?.status().pending) throw new Error('CaptureCleanupPending');
       } catch (error) {
-        error.cleanupHandle = capture.cleanupHandle;
+        (error as CaptureError).cleanupHandle = capture.cleanupHandle;
         throw error;
       }
     };
     try {
-      const graph = capture.openDAG(app.applicationGraph(prepared));
+      const graph = capture.openDAG(app.applicationGraph(prepared)) as CapturedGraph;
       const setup = checked(managed
         ? app.applicationManagedDispatch(prepared, graph,
           BigInt(nativeMilliseconds), BigInt(managed.wire.max_bytes),
-          BigInt(retainedWorkMilliseconds), resident)
+          BigInt(retainedWorkMilliseconds!), resident)
         : retained
         ? localExportWorkMilliseconds !== undefined
           ? localTaskMilliseconds !== undefined || localEligible === false
             ? app.applicationRetainedTaskEstimateDispatch(prepared, graph, BigInt(nativeMilliseconds),
-            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds),
-            BigInt(localImportWorkMilliseconds), BigInt(localExportWorkMilliseconds),
-            localTaskEstimates.map(BigInt), taskEstimates.map(BigInt), localEligible !== false, resident)
+            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds!),
+            BigInt(localImportWorkMilliseconds!), BigInt(localExportWorkMilliseconds),
+            (localTaskEstimates as readonly string[]).map(BigInt), (taskEstimates as readonly string[]).map(BigInt), localEligible !== false, resident)
             : app.applicationRetainedLocalDispatch(prepared, graph, BigInt(nativeMilliseconds),
-            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds),
-            BigInt(localImportWorkMilliseconds), BigInt(localExportWorkMilliseconds), taskEstimates.map(BigInt), resident)
+            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds!),
+            BigInt(localImportWorkMilliseconds!), BigInt(localExportWorkMilliseconds), (taskEstimates as readonly string[]).map(BigInt), resident)
           : localImportWorkMilliseconds !== undefined
           ? app.applicationMaterializingDispatch(prepared, graph, BigInt(nativeMilliseconds),
-            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds), BigInt(localImportWorkMilliseconds), resident)
+            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds!), BigInt(localImportWorkMilliseconds!), resident)
           : app.applicationRetainedDispatch(prepared, graph, BigInt(nativeMilliseconds),
-            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds), resident)
-        : app.applicationDispatch(prepared, graph, BigInt(nativeMilliseconds), resident));
-      const describe = execution => Object.freeze({ status: execution.status, program_success: false,
+            BigInt(retained.wire.max_bytes), BigInt(retainedWorkMilliseconds!), resident)
+        : app.applicationDispatch(prepared, graph, BigInt(nativeMilliseconds), resident)) as Parameters<typeof runCapturedStrategy>[0];
+      const describe = (execution: Execution): ExampleReport => Object.freeze({ status: execution.status, program_success: false,
       estimate_model: 'supplied example estimates, not measured speed',
       preparation_diagnostics: preparationDiagnostics,
       acquisition_evidence: capture.evidence(),
       acquisition_diagnostics: capture.diagnostics,
       completed: execution.completed,
       internal_output_cids: execution.completed.map(({ task }) => ({ task, cid: app.applicationProfileOutputCid(prepared, graph, task) ?? null })),
-      failure: execution.failure?.code ?? (execution.failure ? 'HostFailure' : null),
+      failure: (execution.failure as {code?: unknown} | null | undefined)?.code ?? (execution.failure ? 'HostFailure' : null),
       cleanup_pending: execution.cleanupPending(),
       explanation: execution.explain() });
       return Object.freeze({setup, capture, describe,
         configurations: {duckdb: configuration,
-          ...(localExportWorkMilliseconds !== undefined ? {local: configureLocalProcessStore(storeBinding)} : {})},
+          ...(localExportWorkMilliseconds !== undefined ? {local: configureLocalProcessStore(storeBinding!)} : {})},
         close: closeCapture});
     } catch (error) {
       try { await closeCapture(); }
-      catch { error.cleanupHandle = capture.cleanupHandle; }
+      catch { (error as CaptureError).cleanupHandle = capture.cleanupHandle; }
       throw error;
     }
   }});
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  let result;
+  let result: Awaited<ReturnType<typeof runExample>> | undefined;
   try {
     const { values } = parseArgs({ options: {
       database: { type: 'string' }, environment: { type: 'string' },
@@ -401,10 +517,11 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       // protected boundary is denied (ACTQL_E_ACCOUNT_CONFIG_INVALID).
       'account-config': { type: 'string' },
     } });
-    for (const key of ['database', 'environment', 'environment-cid', 'program', 'parameters']) {
+    for (const key of ['database', 'environment', 'environment-cid', 'program', 'parameters'] as const) {
       if (!values[key]) throw new Error(`Required --${key}`);
     }
-    result = await runExample({ ...values, environmentCid: values['environment-cid'],
+    result = await runExample({ ...values as typeof values & Required<Pick<typeof values,
+      'database' | 'environment' | 'program' | 'parameters'>>, environmentCid: values['environment-cid']!,
       nativeMilliseconds: values['native-ms'], accountConfig: values['account-config'] });
     console.log(JSON.stringify(result.report, (_, value) => typeof value === 'bigint' ? value.toString() : value, 2));
     if (result.execution.failure) {
@@ -414,9 +531,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
       process.exitCode = 1;
     }
   } catch (error) {
-    if (error.runtimeCode) console.error(`${error.runtimeCode}: ${error.code}`);
+    if ((error as ExampleError).runtimeCode) console.error(`${(error as ExampleError).runtimeCode}: ${(error as ExampleError).code}`);
     console.error(error);
-    if (error.cleanupHandle?.status().pending) await error.cleanupHandle.retry();
+    if ((error as ExampleError).cleanupHandle?.status().pending) await (error as ExampleError).cleanupHandle!.retry();
     process.exitCode = 1;
   } finally { await result?.close(); }
 }

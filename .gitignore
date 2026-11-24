@@ -1881,6 +1881,8 @@ target/
 /adapters/host-node/managed-strategy-worker.d.mts
 /adapters/connectors/duckdb/node/examples/managed-worker.mjs
 /adapters/connectors/duckdb/node/examples/managed-worker.d.mts
+/adapters/connectors/duckdb/node/examples/physical-strategy.mjs
+/adapters/connectors/duckdb/node/examples/physical-strategy.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
 /adapters/host-node/result-transformation-control.test.mjs
