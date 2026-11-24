@@ -1,10 +1,10 @@
 import {snapshotClientRequest} from '@actql/client-wire';
 import {requestPreparationAvailable,openRequestPreparation,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
-import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
+import {freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
-import {checkedRequestProgramPreparation, checkedRequestSnapshotPreparation,
+import {checkedRequestProgramPreparation,
   requestProgramCapacityRefusal} from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {runtimeIsError, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
@@ -107,9 +107,10 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     originals, callbacks, runs, liveRuns, receipts, retiredRuns, pendingRunRegistrations,
     producerForRequest, current, fail, get closed() { return closed; }});
   const {originalTimedInvocation, prepareOriginalExplanation, disposeOriginalExplanation,
-    cleanupOriginalRequestInput, beginProducer, requestInput} = createOrdinarySourceRequestCustody({originals, current, fail,
+    cleanupOriginalRequestInput, beginProducer, requestInput, requestSnapshot} = createOrdinarySourceRequestCustody({originals, current, fail,
       callbacks, receipts, producers, runs, liveRuns, retainSourceInitializationMaterial, retainedRunCurrent,
-      releaseFinishedProducer, producerFor,
+      releaseFinishedProducer, producerFor, producerForRequest, requestProducers, reportCapacityRefusal,
+      get view() { return view; },
       get closing() { return closing; }, get closed() { return closed; }});
   function constructRequestDomain(state, construct) {
     state.preparing = true;
@@ -571,84 +572,7 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
         if (state !== undefined) state.preparing = false;
       }
     },
-    beforeSourceQuery(format, text, parameters, options, originalConnection) {
-      // SDK owns documented option and input validation/snapshot semantics.
-      // No data-only restriction on the trusted embedding caller is added.
-      return view.beforeSourceSnapshot('aql', text, options, originalConnection);
-    },
-    captureSourceSnapshot(receipt, value, snapshot) {
-      const producer = producerFor(receipt), state = producer.preparation;
-      if (producer.finished || producer.body !== undefined || typeof snapshot !== 'function') {
-        fail('ForeignInstalledSourceProducer');
-      }
-      if (state === undefined) return snapshot(value);
-      if (state.parent === undefined || state.snapshotting || state.snapshot !== undefined) {
-        fail('ForeignInstalledSourceProducer');
-      }
-      state.snapshotting = true;
-      try {
-        const captured = snapshot(value, (units, document, values) => {
-          if (producer.finished || producer.preparation !== state || state.parent === undefined) {
-            fail('ForeignInstalledSourceProducer');
-          }
-          if (state.snapshotUnits !== units || state.snapshotValues !== values) {
-            checkedRequestSnapshotPreparation(state.context.runtime,
-              state.context.runtime.clientProgramReserveRequestSnapshot(
-                state.parent, receipt, BigInt(units), BigInt(values)));
-            state.snapshotUnits = units;state.snapshotValues = values;
-          }
-          // Retain the existing serializer's original wire before JSON.parse.
-          // No second serialization observes this caller's input or getters.
-          if (document !== undefined) state.snapshotDocument = document;
-        });
-        state.snapshot = captured;
-        return captured;
-      } catch (cause) {reportCapacityRefusal(cause); throw cause;}
-      finally {state.snapshotting = false;}
-    },
-    bindSourceSnapshot(receipt, body) {
-      current(); const producer = producerFor(receipt);
-      if (producer.body !== undefined || producer.finished) fail('ForeignInstalledSourceProducer');
-      producer.body = body;
-      const state = producer.preparation;
-      if (state !== undefined && (state.snapshot !== body ||
-          typeof state.snapshotDocument !== 'string' || state.snapshotting)) {
-        fail('ForeignInstalledSourceProducer');
-      }
-    },
-    publishSourceSnapshot(receipt, body, publication) {
-      current(); const producer = producerFor(receipt);
-      if (producer.body !== body || producer.finished || producer.snapshotPublication !== undefined ||
-          !matchesPublishedSubmissionSnapshot(publication, body)) fail('ForeignInstalledSourceProducer');
-      producer.snapshotPublication = publication;
-    },
-    bindSourceRequest(receipt, body, request) {
-      current(); const producer = producerFor(receipt);
-      if (producer.body !== body || producer.request !== undefined || producer.finished ||
-          request === null || (typeof request !== 'object' && typeof request !== 'function') ||
-          requestProducers.has(request)) {
-        fail('ForeignInstalledSourceProducer');
-      }
-      requestProducers.set(request, new WeakRef(producer));
-      producer.request = request;
-      // Keep the original weak association through finish/retirement. Lookup
-      // requires live inventory and the same request; a stale key cannot bind
-      // another producer. No strong alias collection or cleanup owner is added.
-    },
-    submittedIntentOriginal(request) {
-      current();
-      const producer = producerForRequest(request);
-      if (producer === undefined) fail('ForeignInstalledSourceProducer');
-      const state = producer?.preparation;
-      if (state === undefined) return undefined;
-      if (producer.finished || state.adopting) {
-        fail('ForeignInstalledSourceProducer');
-      }
-      const moon = state.context.runtime;
-      const intent = moon.clientProgramRequestSubmittedIntentOriginal(state.parent, producer.receipt);
-      if (intent === undefined) fail('ForeignInstalledSourceProducer');
-      return intent;
-    },
+    ...requestSnapshot,
     observeOriginalCheckOutcome(request, failure, visit) {
       current();
       const producer = producerForRequest(request), state = producer?.preparation;

@@ -3,7 +3,8 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import {assertRequestPreparationControl, beginRequestInput, beginHttpRequestInput, cleanupRequestInput, requestPreparationAvailable}
   from '../local-node/request-preparation-adapter.mjs';
-import {checkedRequestProgramPreparation} from './client-program-preparation.mjs';
+import {checkedRequestProgramPreparation, checkedRequestSnapshotPreparation} from './client-program-preparation.mjs';
+import {matchesPublishedSubmissionSnapshot} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {assertOriginalClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
@@ -11,9 +12,11 @@ import resourceRuntime from './ordinary-node-resource-runtime.cjs';
 import type {RequestPreparationState} from '../local-node/request-preparation-adapter.mjs';
 import type {SourceProducerCustody} from './ordinary-source-producer-custody.mjs';
 import type {OrdinarySourceRun} from './ordinary-source-run-custody.mjs';
+import type {snapshotClientRequest} from '@actql/client-wire';
 
 type Callback = (...args: never[]) => unknown;
-type CheckedRuntime = Parameters<typeof checkedRequestProgramPreparation>[0];
+type CheckedRuntime = Parameters<typeof checkedRequestProgramPreparation>[0] &
+  Parameters<typeof checkedRequestSnapshotPreparation>[0];
 type IssueCode = Parameters<typeof checkedRequestProgramPreparation>[2];
 type ModuleCompilation = (parent: unknown, receipt: object, admission: unknown, output: boolean) => unknown;
 type Runtime = RequestPreparationState['context']['runtime'] & CheckedRuntime & Readonly<{
@@ -21,6 +24,8 @@ type Runtime = RequestPreparationState['context']['runtime'] & CheckedRuntime & 
   clientProgramRequestProgramModuleIssueCode: IssueCode;
   clientProgramReserveRequestQueryTimeInvocation?: unknown;
   clientProgramRequestProgramCompilationOriginal?: unknown;
+  clientProgramReserveRequestSnapshot?(parent: unknown, receipt: object, units: bigint, values: bigint): unknown;
+  clientProgramRequestSubmittedIntentOriginal(parent: unknown, receipt: object): unknown;
   clientProgramPreparationBorrowRead(holder: unknown): unknown;
   clientProgramPrepareRequestOriginalExplanation?: unknown;
   clientProgramAdoptRequestProgramWithExplanation?: unknown;
@@ -44,11 +49,13 @@ export type OrdinarySourceRequestState = RequestPreparationState & {
   context: Readonly<{runtime: Runtime; retainedRelationOutput: boolean}> &
     Parameters<typeof assertRequestPreparationControl>[0];
   requiresQueryTime?: boolean; phase?: unknown; originalExplanation?: Explanation; staticExplanationDelivery?: unknown;
+  snapshotUnits?: number; snapshotValues?: number;
   staticPlanRead?: boolean; staticModelOccurrences?: unknown; staticModelExecutions?: unknown; staticModelGraphs?: unknown;
 };
 type State = OrdinarySourceRequestState;
 type Producer = Pick<SourceProducerCustody, 'finished' | 'preparation' | 'receipt'>;
 type RequestProducer = SourceProducerCustody & {kind?: string; body?: object; preparation?: State};
+type Snapshot = typeof snapshotClientRequest;
 type RequestConnection = Parameters<typeof beginRequestInput>[2];
 type OpenParent = (state: State, receipt: object,
   assertCurrent: () => undefined, childrenPending: () => boolean) => unknown;
@@ -66,11 +73,16 @@ type Ports = Readonly<{
   retainedRunCurrent(run: OrdinarySourceRun): void;
   releaseFinishedProducer(producer: RequestProducer): boolean;
   producerFor(receipt: object): RequestProducer;
+  producerForRequest(request: object): RequestProducer | undefined;
+  requestProducers: WeakMap<object, WeakRef<RequestProducer>>;
+  reportCapacityRefusal(cause: unknown): void;
+  view: Readonly<{beforeSourceSnapshot(kind: string, input: unknown, options: unknown, connection: RequestConnection): object}>;
 }>;
 
 export function createOrdinarySourceRequestCustody(ports: Ports) {
   const {originals, current, fail, callbacks, receipts, producers, runs, liveRuns,
-    retainSourceInitializationMaterial, retainedRunCurrent, releaseFinishedProducer, producerFor} = ports;
+    retainSourceInitializationMaterial, retainedRunCurrent, releaseFinishedProducer, producerFor,
+    producerForRequest, requestProducers, reportCapacityRefusal} = ports;
   function originalTimedInvocation<Value>(state: State, producer: Producer, prepared: unknown, construct: (artifact: unknown) => Value, contracts?: Contracts) {
     if (state.requiresQueryTime !== true) return undefined;
     const moon = state.context.runtime, compile = moon.clientProgramPrepareRequestProgramCompilation;
@@ -325,6 +337,84 @@ export function createOrdinarySourceRequestCustody(ports: Ports) {
       }
       producer.kind = kind;
     },
+  }, requestSnapshot: {
+    beforeSourceQuery(format: unknown, text: unknown, parameters: unknown, options: unknown, originalConnection: RequestConnection) {
+      // SDK owns documented option and input validation/snapshot semantics.
+      // No data-only restriction on the trusted embedding caller is added.
+      return ports.view.beforeSourceSnapshot('aql', text, options, originalConnection);
+    },
+    captureSourceSnapshot(receipt: object, value: unknown, snapshot: Snapshot) {
+      const producer = producerFor(receipt), state = producer.preparation;
+      if (producer.finished || producer.body !== undefined || typeof snapshot !== 'function') {
+        fail('ForeignInstalledSourceProducer');
+      }
+      if (state === undefined) return snapshot(value);
+      if (state.parent === undefined || state.snapshotting || state.snapshot !== undefined) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      state.snapshotting = true;
+      try {
+        const captured = snapshot(value, (units, document, values) => {
+          if (producer.finished || producer.preparation !== state || state.parent === undefined) {
+            fail('ForeignInstalledSourceProducer');
+          }
+          if (state.snapshotUnits !== units || state.snapshotValues !== values) {
+            checkedRequestSnapshotPreparation(state.context.runtime,
+              state.context.runtime.clientProgramReserveRequestSnapshot!(
+                state.parent, receipt, BigInt(units), BigInt(values)));
+            state.snapshotUnits = units;state.snapshotValues = values;
+          }
+          // Retain the existing serializer's original wire before JSON.parse.
+          // No second serialization observes this caller's input or getters.
+          if (document !== undefined) state.snapshotDocument = document;
+        });
+        state.snapshot = captured;
+        return captured;
+      } catch (cause) {reportCapacityRefusal(cause); throw cause;}
+      finally {state.snapshotting = false;}
+    },
+    bindSourceSnapshot(receipt: object, body: object) {
+      current(); const producer = producerFor(receipt);
+      if (producer.body !== undefined || producer.finished) fail('ForeignInstalledSourceProducer');
+      producer.body = body;
+      const state = producer.preparation;
+      if (state !== undefined && (state.snapshot !== body ||
+          typeof state.snapshotDocument !== 'string' || state.snapshotting)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+    },
+    publishSourceSnapshot(receipt: object, body: object, publication: unknown) {
+      current(); const producer = producerFor(receipt);
+      if (producer.body !== body || producer.finished || producer.snapshotPublication !== undefined ||
+          !matchesPublishedSubmissionSnapshot(publication, body)) fail('ForeignInstalledSourceProducer');
+      producer.snapshotPublication = publication;
+    },
+    bindSourceRequest(receipt: object, body: object, request: object) {
+      current(); const producer = producerFor(receipt);
+      if (producer.body !== body || producer.request !== undefined || producer.finished ||
+          request === null || (typeof request !== 'object' && typeof request !== 'function') ||
+          requestProducers.has(request)) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      requestProducers.set(request, new WeakRef(producer));
+      producer.request = request;
+      // Keep the original weak association through finish/retirement. Lookup
+      // requires live inventory and the same request; a stale key cannot bind
+      // another producer. No strong alias collection or cleanup owner is added.
+    },
+    submittedIntentOriginal(request: object) {
+      current();
+      const producer = producerForRequest(request);
+      if (producer === undefined) fail('ForeignInstalledSourceProducer');
+      const state = producer?.preparation;
+      if (state === undefined) return undefined;
+      if (producer!.finished || state.adopting) {
+        fail('ForeignInstalledSourceProducer');
+      }
+      const moon = state.context.runtime;
+      const intent = moon.clientProgramRequestSubmittedIntentOriginal(state.parent, producer!.receipt);
+      if (intent === undefined) fail('ForeignInstalledSourceProducer');
+      return intent;
+    },
   }};
-
 }
