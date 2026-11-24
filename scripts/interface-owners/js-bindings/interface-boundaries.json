@@ -179522,7 +179522,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179532,7 +179532,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179542,7 +179542,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179552,7 +179552,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179562,7 +179562,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179572,7 +179572,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179582,7 +179582,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179592,7 +179592,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179602,7 +179602,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179612,7 +179612,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -179636,7 +179636,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179646,7 +179646,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179656,7 +179656,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179666,7 +179666,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179676,7 +179676,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179686,7 +179686,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179696,7 +179696,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179706,7 +179706,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179716,7 +179716,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179726,7 +179726,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "activeAt"
               },
               {
@@ -179750,7 +179750,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179760,7 +179760,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179770,7 +179770,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179780,7 +179780,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179790,7 +179790,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179800,7 +179800,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179810,7 +179810,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179820,7 +179820,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179830,7 +179830,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179840,7 +179840,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitDurableJson"
               },
               {
@@ -179864,7 +179864,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179874,7 +179874,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179884,7 +179884,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179894,7 +179894,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179904,7 +179904,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179914,7 +179914,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179924,7 +179924,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179934,7 +179934,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179944,7 +179944,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179954,7 +179954,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "admitEnvelopeJson"
               },
               {
@@ -179974,7 +179974,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -179984,7 +179984,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -179994,7 +179994,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -180004,7 +180004,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -180014,7 +180014,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -180024,7 +180024,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -180034,7 +180034,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -180044,7 +180044,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -180054,7 +180054,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -180064,7 +180064,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "checked"
               },
               {
@@ -180091,7 +180091,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180101,7 +180101,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180111,7 +180111,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180121,7 +180121,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180131,7 +180131,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180141,7 +180141,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180151,7 +180151,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180161,7 +180161,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180171,7 +180171,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180181,7 +180181,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "chunks"
               },
               {
@@ -180205,7 +180205,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180215,7 +180215,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180225,7 +180225,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180235,7 +180235,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180245,7 +180245,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180255,7 +180255,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180265,7 +180265,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180275,7 +180275,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180285,7 +180285,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180295,7 +180295,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "commitTransition"
               },
               {
@@ -180315,7 +180315,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180325,7 +180325,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180335,7 +180335,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180345,7 +180345,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180355,7 +180355,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180365,7 +180365,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180375,7 +180375,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180385,7 +180385,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180395,7 +180395,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180405,7 +180405,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "limits"
               },
               {
@@ -180429,7 +180429,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180439,7 +180439,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180449,7 +180449,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180459,7 +180459,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180469,7 +180469,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180479,7 +180479,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180489,7 +180489,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180499,7 +180499,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180509,7 +180509,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180519,7 +180519,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareCleanup"
               },
               {
@@ -180543,7 +180543,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180553,7 +180553,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180563,7 +180563,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180573,7 +180573,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180583,7 +180583,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180593,7 +180593,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180603,7 +180603,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180613,7 +180613,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180623,7 +180623,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180633,7 +180633,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareDestinationCommit"
               },
               {
@@ -180657,7 +180657,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180667,7 +180667,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180677,7 +180677,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180687,7 +180687,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180697,7 +180697,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180707,7 +180707,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180717,7 +180717,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180727,7 +180727,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180737,7 +180737,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180747,7 +180747,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareFailure"
               },
               {
@@ -180771,7 +180771,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180781,7 +180781,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180791,7 +180791,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180801,7 +180801,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180811,7 +180811,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180821,7 +180821,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180831,7 +180831,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180841,7 +180841,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180851,7 +180851,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180861,7 +180861,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareSourceSettled"
               },
               {
@@ -180885,7 +180885,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180895,7 +180895,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180905,7 +180905,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180915,7 +180915,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180925,7 +180925,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180935,7 +180935,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180945,7 +180945,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180955,7 +180955,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180965,7 +180965,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180975,7 +180975,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareStart"
               },
               {
@@ -180999,7 +180999,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181009,7 +181009,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181019,7 +181019,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181029,7 +181029,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181039,7 +181039,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181049,7 +181049,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181059,7 +181059,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181069,7 +181069,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181079,7 +181079,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181089,7 +181089,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "prepareUnknown"
               },
               {
@@ -181113,7 +181113,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181123,7 +181123,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181133,7 +181133,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181143,7 +181143,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181153,7 +181153,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181163,7 +181163,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181173,7 +181173,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181183,7 +181183,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181193,7 +181193,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181203,7 +181203,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "recordDurableJson"
               },
               {
@@ -181227,7 +181227,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181237,7 +181237,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181247,7 +181247,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181257,7 +181257,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181267,7 +181267,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181277,7 +181277,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181287,7 +181287,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181297,7 +181297,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181307,7 +181307,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181317,7 +181317,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "replyJson"
               },
               {
@@ -181342,7 +181342,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181352,7 +181352,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181362,7 +181362,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181372,7 +181372,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181382,7 +181382,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181392,7 +181392,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181402,7 +181402,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181412,7 +181412,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181422,7 +181422,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181432,7 +181432,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestJournalKey"
               },
               {
@@ -181457,7 +181457,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181467,7 +181467,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181477,7 +181477,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181487,7 +181487,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181497,7 +181497,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181507,7 +181507,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181517,7 +181517,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181527,7 +181527,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181537,7 +181537,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181547,7 +181547,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "requestProjection"
               },
               {
@@ -181571,7 +181571,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181581,7 +181581,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181591,7 +181591,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181601,7 +181601,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181611,7 +181611,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181621,7 +181621,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181631,7 +181631,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181641,7 +181641,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181651,7 +181651,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181661,7 +181661,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "restoreDurable"
               },
               {
@@ -181685,7 +181685,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181695,7 +181695,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181705,7 +181705,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181715,7 +181715,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181725,7 +181725,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181735,7 +181735,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181745,7 +181745,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181755,7 +181755,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181765,7 +181765,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181775,7 +181775,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "transitionDurableJson"
               },
               {
@@ -181797,7 +181797,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181807,7 +181807,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181817,7 +181817,7 @@
             ],
             "identity": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181827,7 +181827,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181837,7 +181837,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181847,7 +181847,7 @@
             ],
             "failure": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181857,7 +181857,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181867,7 +181867,7 @@
             ],
             "resources": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181877,7 +181877,7 @@
             ],
             "extension": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {
@@ -181887,7 +181887,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.mjs",
+                "path": "packages/transfer-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsOk} from './compiler-binding.generated.mjs';"
               },
               {

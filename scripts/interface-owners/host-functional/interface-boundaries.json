@@ -118282,7 +118282,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.test.mjs",
+                "path": "packages/transfer-core/index.test.mts",
                 "anchor": "test('portable Transfer owner admits exact envelope and canonical record',"
               },
               {
@@ -118426,7 +118426,7 @@
             ],
             "verification": [
               {
-                "path": "packages/transfer-core/index.test.mjs",
+                "path": "packages/transfer-core/index.test.mts",
                 "anchor": "test('portable Transfer owner admits exact envelope and canonical record',"
               },
               {
