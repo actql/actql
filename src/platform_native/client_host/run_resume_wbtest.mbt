@@ -19,6 +19,7 @@ fn resume_test_claim(
   installed? : Bool = true,
   resolution_mode? : String = "APPROVE",
   operations? : NativeClientJournalOperationAccess? = None,
+  expected_revision? : Int64? = None,
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
   let wire = @env.get_env_var(
     "ACTQL_TEST_CLIENT_" + resolution_mode + "_RESOLUTION_WIRE",
@@ -57,6 +58,7 @@ fn resume_test_claim(
       ("2026-10-10T00:03:00.000Z", at)
     },
     operations,
+    expected_revision~,
   )
 }
 
@@ -83,6 +85,77 @@ fn resume_test_approved(
     lease_expires_ms: 0L,
   })
   (journal, request, record)
+}
+
+///|
+test "Native pre-claim approval fences a competing exact-revision claim" {
+  let database = epoch_test_database("client-resume-first-claim")
+  let (journal, request, approved) = resume_test_approved(database)
+  let expected_revision = Some(approved.revision)
+  assert_true(native_pending_effect_approval(approved, resume_test_binding()))
+  assert_false(
+    native_pending_effect_approval(approved, {
+      ..resume_test_binding(),
+      environment_binding_cid: "sha256:" + "c".repeat(64),
+    }),
+  )
+  assert_true(
+    resume_test_claim(
+      journal,
+      request,
+      "denied",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => false,
+      expected_revision~,
+    )
+    is Err(AuthorizationDenied),
+  )
+  guard resume_test_claim(
+      journal,
+      request,
+      "winner",
+      1000L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      expected_revision~,
+    )
+    is Ok(Claimed(first)) else {
+    fail("original pending approval was not claimed")
+  }
+  assert_eq(first.claim.generation, 1L)
+  database.close_checked().unwrap()
+  let reopened = epoch_test_database("client-resume-first-claim")
+  let reopened_journal = open_native_client_run_journal(reopened, 8).unwrap()
+  assert_true(
+    resume_test_claim(
+      reopened_journal,
+      request,
+      "stale",
+      1101L,
+      100L,
+      resume_test_binding(),
+      () => true,
+      expected_revision~,
+    )
+    is Err(Checkpoint(StaleRevision)),
+  )
+  guard reopened_journal.lookup(request, true) is Ok(Retained(actual)) else {
+    fail("original Run missing")
+  }
+  assert_eq(actual.revision, approved.revision + 1L)
+  assert_false(native_pending_effect_approval(actual, resume_test_binding()))
+  let checkpoint = actual.checkpoint.unwrap()
+  assert_eq(
+    checkpoint.verified_wire,
+    approved.checkpoint.unwrap().verified_wire,
+  )
+  assert_eq(checkpoint.resume_intent_id, Some(first.intent_id))
+  assert_true(checkpoint.effect_ledger.is_empty())
+  assert_eq(checkpoint.resume_intent.unwrap().claimant, "winner")
+  reopened.close_checked().unwrap()
 }
 
 ///|

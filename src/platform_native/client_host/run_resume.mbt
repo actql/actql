@@ -75,6 +75,7 @@ fn NativeClientRunJournal::claim_effect_resume_with_operations(
   current : () -> Bool,
   clock : () -> (String, Int64),
   operations : NativeClientJournalOperationAccess?,
+  expected_revision? : Int64? = None,
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
   if operations is Some(original) &&
     !physical_equal(self.database, original.reads.database) {
@@ -89,6 +90,9 @@ fn NativeClientRunJournal::claim_effect_resume_with_operations(
     Ok(Retained(value)) => value
     Ok(_) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
+  }
+  if expected_revision is Some(revision) && before.revision != revision {
+    return Err(Checkpoint(StaleRevision))
   }
   guard before.checkpoint is Some(original) &&
     original.verified_wire is Some(wire) &&
