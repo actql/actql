@@ -3322,3 +3322,13 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/native-http-library-lifetime.test.d.mts
 /scripts/native-http-response-bound.test.mjs
 /scripts/native-http-response-bound.test.d.mts
+/scripts/native-core-c-compiler.mjs
+/scripts/native-core-c-compiler.d.mts
+/scripts/native-core-source-release.mjs
+/scripts/native-core-source-release.d.mts
+/scripts/native-runtime-reader-custody-fixture.mjs
+/scripts/native-runtime-reader-custody-fixture.d.mts
+/scripts/native-http-phases.test.mjs
+/scripts/native-http-phases.test.d.mts
+/scripts/native-core-c-compiler.test.mjs
+/scripts/native-core-c-compiler.test.d.mts

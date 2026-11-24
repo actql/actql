@@ -5,16 +5,16 @@ import {createHash} from 'node:crypto';
 import {lstatSync, mkdirSync, readFileSync, realpathSync, writeFileSync} from 'node:fs';
 import {isAbsolute, join} from 'node:path';
 
-const sourcePath = root => join(root, 'scripts/fixtures/native-runtime-reader-custody.c');
+const sourcePath = (root: string) => join(root, 'scripts/fixtures/native-runtime-reader-custody.c');
 const flags = () => ['-std=c11', '-O0', '-Wall', '-Wextra', '-Werror',
   ...(process.platform === 'darwin'
     ? ['-dynamiclib', '-arch', 'arm64', '-arch', 'arm64e'] : ['-shared', '-fPIC'])];
-const hash = value => createHash('sha256').update(value).digest('hex');
-const recipe = (root, compiler) => ({sourceSha256: hash(readFileSync(sourcePath(root))),
+const hash = (value: Buffer | string) => createHash('sha256').update(value).digest('hex');
+const recipe = (root: string, compiler: string) => ({sourceSha256: hash(readFileSync(sourcePath(root))),
   compiler: realpathSync(compiler), compilerSha256: hash(readFileSync(compiler)), flags: flags()});
-const physical = library => {
+const physical = (library: string) => {
   const stat = lstatSync(library);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.uid !== process.getuid())
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.uid !== process.getuid!())
     throw new Error('Original Reader fixture library required');
   return {path: library, dev: stat.dev, ino: stat.ino, mode: stat.mode, size: stat.size,
     mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs, sha256: hash(readFileSync(library))};
@@ -23,10 +23,10 @@ const physical = library => {
 // Compiler DATA only: keep this exec's actual library correspondence separate
 // from the stable source/recipe key. A fresh dylib has a new UUID/install path;
 // neither is a C object input. The two injected paths are outside compilation.
-export function nativeRuntimeReaderCustodyCacheInput(root, compiler, env = process.env) {
+export function nativeRuntimeReaderCustodyCacheInput(root: string, compiler: string, env: NodeJS.ProcessEnv = process.env) {
   if (process.platform !== 'darwin' || !env.DYLD_INSERT_LIBRARIES || env.LD_PRELOAD) return;
   try {
-    const scratch = env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT;
+    const scratch = env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT!;
     if (!isAbsolute(scratch) || scratch !== realpathSync(scratch)) return;
     const library = join(scratch, 'runtime-reader-custody.dylib');
     if (env.DYLD_INSERT_LIBRARIES !== library) return;
@@ -36,7 +36,7 @@ export function nativeRuntimeReaderCustodyCacheInput(root, compiler, env = proce
   } catch { return; }
 }
 
-export function nativeRuntimeReaderCustodyFixture(root, scratch) {
+export function nativeRuntimeReaderCustodyFixture(root: string, scratch: string) {
   if (!['darwin', 'linux'].includes(process.platform)) {
     throw new Error('Native Reader custody injection is unavailable on this platform');
   }

@@ -14,10 +14,27 @@ import {commandSource} from './packed-query-evidence.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {runLocalCheck} from './local-checks-guard.mjs';
 
+import type {SpawnSyncOptions, SpawnSyncReturns} from 'node:child_process';
+
+type SourceEnvironment = NodeJS.ProcessEnv & {ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: string};
+type OwnerOptions = {root?: string; env?: NodeJS.ProcessEnv; platform?: string; arch?: string};
+type Inventory = ReturnType<typeof nativeCoreTestCaseInventory>;
+type ScratchPorts = Pick<Awaited<ReturnType<typeof createOwnedScratch>>, 'path' | 'passed'> & {close(): unknown};
+type ExecuteOptions = OwnerOptions & {
+  source?: (root: string) => Pick<ReturnType<typeof commandSource>, 'revision' | 'dirty'> &
+    Partial<Pick<ReturnType<typeof commandSource>, 'root'>>;
+  verifyPreparation?: typeof verifyNativeResidentPortablePreparation;
+  scratch?: (options: Parameters<typeof createOwnedScratch>[0]) => ScratchPorts | Promise<ScratchPorts>;
+  discover?: typeof nativeCoreTestCaseInventory;
+  execute?: (command: string, args: readonly string[], options: SpawnSyncOptions) =>
+    Pick<SpawnSyncReturns<Buffer>, 'error' | 'signal' | 'status'>;
+  report?: (message: string) => void;
+};
+
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const sourcePackage = 'src/platform_native/remote_resident_source_compute_tests';
 
-function requireLinuxSourceOwner(platform, arch, env) {
+function requireLinuxSourceOwner(platform: string, arch: string, env: NodeJS.ProcessEnv): asserts env is SourceEnvironment {
   assert.equal(platform, 'linux', 'Actual Linux Source owner required');
   assert.equal(arch, 'x64');
   for (const name of ['MOON_CC', 'CC', 'CXX']) assert.equal(env[name], undefined,
@@ -27,7 +44,7 @@ function requireLinuxSourceOwner(platform, arch, env) {
   'The existing completed portable preparation is required');
 }
 
-export function nativeCoreSourceReleaseSelection(inventory) {
+export function nativeCoreSourceReleaseSelection(inventory: Inventory) {
   assert(Array.isArray(inventory?.records) && inventory.records.length > 0,
     'Complete nonempty compiler-owned Source inventory required');
   const identities = new Set();
@@ -55,8 +72,9 @@ export function nativeCoreSourceReleaseSelection(inventory) {
 // The portable receipt is verified before the fixture enters this boundary.
 // Only the Native child receives this original release-test C profile; the JS
 // preparation's compiler/environment identity is never rewritten to match it.
-export function nativeCoreSourceCompilerEnvironment(args, root, scratch, env,
-  {platform = process.platform, compiler = nativeCoreCCompiler} = {}) {
+export function nativeCoreSourceCompilerEnvironment(args: readonly string[], root: string, scratch: string, env: NodeJS.ProcessEnv,
+  {platform = process.platform, compiler = nativeCoreCCompiler}:
+  {platform?: string; compiler?: typeof nativeCoreCCompiler} = {}): NodeJS.ProcessEnv {
   if (platform !== 'linux' || !args.includes('--release')) return env;
   assert.deepEqual(args, [...nativeCoreLinuxCommonArguments, sourcePackage],
     'The Linux proof must retain the complete original Core Source recipe');
@@ -64,7 +82,7 @@ export function nativeCoreSourceCompilerEnvironment(args, root, scratch, env,
 }
 
 export async function runNativeCoreSourceRelease({root = repository, env = process.env,
-  platform = process.platform, arch = process.arch, execute = runLocalCheck} = {}) {
+  platform = process.platform, arch = process.arch, execute = runLocalCheck}: OwnerOptions & {execute?: typeof runLocalCheck} = {}) {
   requireLinuxSourceOwner(platform, arch, env);
   assert.equal(realpathSync(root), realpathSync(repository), 'Same checkout required');
   return await execute({root, heavy: true, timeoutSeconds: 1200, graceSeconds: 5,
@@ -77,7 +95,7 @@ export async function executeNativeCoreSourceRelease({root = repository, env = p
   platform = process.platform, arch = process.arch,
   source = commandSource, verifyPreparation = verifyNativeResidentPortablePreparation,
   scratch = createOwnedScratch, discover = nativeCoreTestCaseInventory,
-  execute = spawnSync, report = console.log} = {}) {
+  execute = spawnSync, report = console.log}: ExecuteOptions = {}) {
   requireLinuxSourceOwner(platform, arch, env);
   root = realpathSync(root);
   const original = source(root);

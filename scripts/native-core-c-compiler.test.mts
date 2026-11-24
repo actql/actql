@@ -7,6 +7,9 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {nativeCoreCArguments, nativeCoreCCompiler} from './native-core-c-compiler.mjs';
 import * as compilerModule from './native-core-c-compiler.mjs';
+
+type CompilerObservation = {inputs: string[]; flags: string[]; backend: string};
+type CompilerPlan = NonNullable<ReturnType<typeof compilerModule.nativeCoreCObjectCommands>>;
 import {nativeRuntimeReaderCustodyFixture, nativeRuntimeReaderCustodyCacheInput} from './native-runtime-reader-custody-fixture.mjs';
 
 test('the pinned Moon ordinary release command reaches the closed Darwin cache planner',
@@ -33,14 +36,14 @@ test('the pinned Moon ordinary release command reaches the closed Darwin cache p
       `writeFileSync(${JSON.stringify(captured)},JSON.stringify({args,` +
       'plan:nativeCoreCObjectCommands(process.cwd(),"/usr/bin/cc",args)}));process.exit(23);})();\n', {mode: 0o700});
     symlinkSync(realpathSync('/usr/bin/ar'), join(tools, 'ar'));
-    const env = {...process.env, PATH: tools + delimiter + process.env.PATH, MOONBIT_NEW_NATIVE: '0'};
+    const env: NodeJS.ProcessEnv = {...process.env, PATH: tools + delimiter + process.env.PATH, MOONBIT_NEW_NATIVE: '0'};
     delete env.MOON_CC;
-    const result = spawnSync(join(process.env.MOON_HOME, 'bin/moon'),
+    const result = spawnSync(join(process.env.MOON_HOME!, 'bin/moon'),
       ['test', '--target', 'native', '--release', '--strip', '-j', '1'],
       {cwd: root, encoding: 'utf8', timeout: 10000, env});
     assert.ifError(result.error); assert.notEqual(result.status, 0, 'the capture port intentionally refuses before C compilation');
     assert(existsSync(captured), result.stderr);
-    const {args, plan} = JSON.parse(readFileSync(captured));
+    const {args, plan} = JSON.parse(readFileSync(captured) as unknown as string) as {args: string[]; plan?: CompilerPlan};
     assert(plan, JSON.stringify(args));
     assert(args.includes('-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC'));
     assert(args.some(arg => arg.endsWith('/libmoonbitrun.o')));
@@ -59,7 +62,7 @@ test('Reader compiler cache inputs refuse changed physical or recipe data withou
     process.env.ACTQL_TEST_NATIVE_CORE_CCACHE = '/not-consumed-by-this-input-test';
     try {
       const first = join(root, 'first'); mkdirSync(first);
-      const original = nativeRuntimeReaderCustodyFixture(root, first);
+      const original: NodeJS.ProcessEnv = nativeRuntimeReaderCustodyFixture(root, first);
       const value = nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', original);
       assert(value); assert.equal(value.source, source);
       const missing = {...original}; delete missing.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE;
@@ -67,12 +70,12 @@ test('Reader compiler cache inputs refuse changed physical or recipe data withou
       assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', {...original,
         DYLD_INSERT_LIBRARIES: original.DYLD_INSERT_LIBRARIES + ':foreign.dylib'}), undefined);
       assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/clang', original), undefined);
-      const changed = JSON.parse(original.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE);
+      const changed = JSON.parse(original.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE!);
       changed.recipe.flags[1] = '-O1';
       assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', {...original,
         ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_CACHE_PROFILE: JSON.stringify(changed)}), undefined);
       const old = original.DYLD_INSERT_LIBRARIES + '.original';
-      renameSync(original.DYLD_INSERT_LIBRARIES, old); copyFileSync(old, original.DYLD_INSERT_LIBRARIES);
+      renameSync(original.DYLD_INSERT_LIBRARIES!, old); copyFileSync(old, original.DYLD_INSERT_LIBRARIES!);
       assert.equal(nativeRuntimeReaderCustodyCacheInput(root, '/usr/bin/cc', original), undefined,
         'byte-identical replacement cannot claim the original physical construction');
       writeFileSync(source, readFileSync(source, 'utf8') + '\n// Changed actual fixture source.\n');
@@ -116,7 +119,7 @@ test('ordinary object planning refuses unsupported profiles before any compiler 
     ['/usr/bin/clang', args.map(x => x === '-O2' ? '-O0' : x)],
     ['/usr/bin/clang', args.map(x => x === source ? source.replace('/release/', '/debug/') : x)],
     ['/usr/bin/clang', args.map(x => x.endsWith('.exe') ? '/foreign/output.exe' : x)],
-  ]) assert.equal(compilerModule.nativeCoreCObjectCommands('/original', compiler, changed, '/owned/object.o'),
+  ] as const) assert.equal(compilerModule.nativeCoreCObjectCommands('/original', compiler, changed, '/owned/object.o'),
     undefined, JSON.stringify([compiler, changed]));
 });
 
@@ -128,7 +131,7 @@ test('unsupported cache mode keeps the original combined compiler result and act
   const script = `import {runNativeCoreCCompiler} from ${JSON.stringify(module)};` +
     `runNativeCoreCCompiler(${JSON.stringify(root)},${JSON.stringify(compiler)},process.argv.slice(1));`;
   const args = ['-o', 'unsupported.exe', '-O2', 'original.c', '-flto'];
-  const env = {...process.env, ACTQL_TEST_NATIVE_CORE_CCACHE: '/absent/cache',
+  const env: NodeJS.ProcessEnv = {...process.env, ACTQL_TEST_NATIVE_CORE_CCACHE: '/absent/cache',
     ACTQL_TEST_NATIVE_CORE_CCACHE_DIR: '/absent/unused', ACTQL_FIXTURE_CURRENT: 'original'};
   writeFileSync(compiler, '#!' + process.execPath + '\nconsole.log(JSON.stringify({' +
     'args:process.argv.slice(2),current:process.env.ACTQL_FIXTURE_CURRENT}));process.exit(23);\n', {mode: 0o700});
@@ -176,10 +179,10 @@ test('Native Core compiler PATH routing retains package C++/stub drivers and the
   writeFileSync(join(root, 'custom/helper.c'), 'int original_stub(void) { return 1; }\n');
   for (const name of ['plain', 'custom']) writeFileSync(join(root, name, 'main.mbt'),
     'test "original selection" { assert_eq(1, 1) }\n');
-  const env = {...process.env, MOONBIT_NEW_NATIVE: '0'};
+  const env: NodeJS.ProcessEnv = {...process.env, MOONBIT_NEW_NATIVE: '0'};
   delete env.MOON_CC;delete env.MOONBIT_ALLOCATOR;delete env.CXX;
-  const plan = profile => {
-    const result = spawnSync(join(env.MOON_HOME, 'bin/moon'),
+  const plan = (profile: NodeJS.ProcessEnv) => {
+    const result = spawnSync(join(env.MOON_HOME!, 'bin/moon'),
       ['test', '--target', 'native', '--release', '--strip', '--dry-run'],
       {cwd: root, env: {...env, ...profile}, encoding: 'utf8', timeout: 10000, maxBuffer: 2 * 1024 ** 2});
     assert.ifError(result.error);assert.equal(result.status, 0, result.stderr);
@@ -196,7 +199,7 @@ test('Native Core compiler PATH routing retains package C++/stub drivers and the
   assert.equal(actual.command.slice(actual.command.indexOf(' ')),
     original.command.slice(original.command.indexOf(' ')));
   assert(actual.overrides.length > 0);
-  const stub = lines => lines.find(line => line.includes('/custom/helper.o '));
+  const stub = (lines: readonly string[]) => lines.find(line => line.includes('/custom/helper.o '));
   const originalStub = stub(original.overrides), actualStub = stub(actual.overrides);
   assert(originalStub && actualStub);
   assert.match(actualStub.slice(0, actualStub.indexOf(' ')), /test-c-compiler\/c\+\+$/u);
@@ -217,12 +220,12 @@ test('Native Core C launcher preserves compiler arguments, original environment 
     'current:process.env.ACTQL_FIXTURE_CURRENT}));process.exit(7);\n');
   chmodSync(compiler, 0o700);
   writeFileSync(join(tools, 'ar'), '#!' + process.execPath + '\nprocess.exit(7);\n', {mode: 0o700});
-  const env = {...process.env, PATH: tools + delimiter + process.env.PATH,
+  const env: NodeJS.ProcessEnv = {...process.env, PATH: tools + delimiter + process.env.PATH,
     MOONBIT_ALLOCATOR: 'mimalloc', ACTQL_FIXTURE_CURRENT: 'same-original'};
   delete env.MOON_CC;
   const profile = nativeCoreCCompiler(root, scratch, env);
   assert.deepEqual(Object.keys(profile), ['PATH']);
-  assert.equal(profile.PATH.split(delimiter)[1], tools);
+  assert.equal(profile.PATH!.split(delimiter)[1], tools);
   for (const input of ['_build/native/release/test/pkg/pkg.whitebox_test.c',
     '_build/native/release/build/pkg/pkg.c', 'src/original_stub.c']) {
     const args = ['-fwrapv', '-O2', join(root, input), '-Wl,--start-group', 'original.a', '-Wl,--end-group'];
@@ -245,7 +248,7 @@ test('actual package C++ driver deoptimizes only generated release test C and re
   for (const path of [scratch, testDirectory, productDirectory]) mkdirSync(path, {recursive: true});
   const env = {...process.env}; delete env.MOON_CC; delete env.CXX;
   const profile = nativeCoreCCompiler(root, scratch, env);
-  assert.equal(existsSync(join(profile.PATH.split(delimiter)[0], 'c++')), true);
+  assert.equal(existsSync(join(profile.PATH!.split(delimiter)[0], 'c++')), true);
   const driver = fileURLToPath(new URL('native-cxx-link-driver.sh', import.meta.url));
   const stub = join(root, 'original.cpp'), object = join(root, 'original.o');
   writeFileSync(stub, '#ifndef __OPTIMIZE__\n#error original C++ stub must stay optimized\n#endif\n' +
@@ -253,7 +256,7 @@ test('actual package C++ driver deoptimizes only generated release test C and re
   const compile = spawnSync('c++', ['-O2', '-Werror', '-c', stub, '-o', object],
     {cwd: root, env: {...env, ...profile}, encoding: 'utf8', timeout: 10000});
   assert.ifError(compile.error); assert.equal(compile.signal, null); assert.equal(compile.status, 0, compile.stderr);
-  for (const [directory, optimized] of [[testDirectory, false], [productDirectory, true]]) {
+  for (const [directory, optimized] of [[testDirectory, false], [productDirectory, true]] as const) {
     const input = join(directory, optimized ? 'pkg.c' : 'pkg.whitebox_test.c'), executable = join(directory, 'original.exe');
     writeFileSync(input, (optimized ? '#ifndef' : '#ifdef') + ' __OPTIMIZE__\n#error wrong C optimization boundary\n#endif\n' +
       'extern int original_stub(void);\nint main(void) { return original_stub() == 7 ? 0 : 1; }\n');
@@ -265,7 +268,7 @@ test('actual package C++ driver deoptimizes only generated release test C and re
   }
   const explicitScratch = join(root, 'explicit'); mkdirSync(explicitScratch);
   const explicit = nativeCoreCCompiler(root, explicitScratch, {...env, CXX: '/selected/original-c++'});
-  assert.equal(existsSync(join(explicit.PATH.split(delimiter)[0], 'c++')), false,
+  assert.equal(existsSync(join(explicit.PATH!.split(delimiter)[0], 'c++')), false,
     'an explicitly selected C++ driver is never replaced');
 });
 
@@ -287,9 +290,9 @@ test('Native Core compiler retains the logical compiler companion without realpa
     {mode: 0o700});
   }
   symlinkSync(join(selected, 'archiver'), join(selected, 'ar'));
-  const env = {...process.env, PATH: [selected, unrelated, process.env.PATH].join(delimiter)};
+  const env: NodeJS.ProcessEnv = {...process.env, PATH: [selected, unrelated, process.env.PATH].join(delimiter)};
   delete env.MOON_CC;
-  const profile = nativeCoreCCompiler(root, scratch, env), directory = profile.PATH.split(delimiter)[0];
+  const profile = nativeCoreCCompiler(root, scratch, env), directory = profile.PATH!.split(delimiter)[0];
   assert.equal(lstatSync(join(directory, 'ar')).isSymbolicLink(), true);
   assert.equal(realpathSync(join(directory, 'ar')), realpathSync(join(selected, 'ar')));
   for (const args of [['rcs', 'original archive.a', 'same object.o'], ['--fail', 'original archive.a']]) {
@@ -302,7 +305,7 @@ test('Native Core compiler retains the logical compiler companion without realpa
   }
   rmSync(join(selected, 'ar'));
   assert.throws(() => nativeCoreCCompiler(root, missing, env), error =>
-    error.code === 'ENOENT' && error.path === join(selected, 'ar'));
+    (error as NodeJS.ErrnoException).code === 'ENOENT' && (error as NodeJS.ErrnoException).path === join(selected, 'ar'));
   assert.equal(existsSync(join(missing, 'test-c-compiler')), false);
   assert.deepEqual(nativeCoreCCompiler(root, missing, {...env, MOON_CC: compiler}), {});
 });
@@ -332,11 +335,11 @@ test('same selected Native Core compiler reuses actual release test C from prere
     'if(result.error)throw result.error;if(result.signal)process.kill(process.pid,result.signal);process.exitCode=result.status??1;\n',
     {mode:0o700});
   symlinkSync(archiver, join(tools, 'ar'));
-  const env = {...process.env, PATH: tools + delimiter + process.env.PATH, MOONBIT_NEW_NATIVE:'0'};
+  const env: NodeJS.ProcessEnv = {...process.env, PATH: tools + delimiter + process.env.PATH, MOONBIT_NEW_NATIVE:'0'};
   delete env.MOON_CC; delete env.CXX;
-  const profile = nativeCoreCCompiler(root, scratch, env), selected = {...env, ...profile};
-  const run = tail => {
-    const result = spawnSync(join(selected.MOON_HOME, 'bin/moon'),
+  const profile = nativeCoreCCompiler(root, scratch, env), selected: NodeJS.ProcessEnv = {...env, ...profile};
+  const run = (tail: readonly string[]) => {
+    const result = spawnSync(join(selected.MOON_HOME!, 'bin/moon'),
       ['test', '--target', 'native', '--release', '--strip', '--deny-warn', '-j', '2', '--no-parallelize', ...tail],
       {cwd:root, env:selected, encoding:'utf8', timeout:30000, maxBuffer:2*1024**2});
     assert.ifError(result.error); assert.equal(result.signal,null); assert.equal(result.status,0,result.stderr);
@@ -348,11 +351,11 @@ test('same selected Native Core compiler reuses actual release test C from prere
   const secondScratch = join(root, 'second-scratch'); mkdirSync(secondScratch);
   assert.deepEqual(nativeCoreCCompiler(root, secondScratch, selected), {});
   assert.equal(existsSync(join(secondScratch, 'test-c-compiler')), false);
-  const before = readFileSync(observations,'utf8').trim().split('\n').map(JSON.parse);
-  const whitebox = values => values.filter(row => row.inputs.some(input => input.endsWith('.whitebox_test.c')));
+  const before = readFileSync(observations,'utf8').trim().split('\n').map(JSON.parse as (row: string) => CompilerObservation);
+  const whitebox = (values: readonly CompilerObservation[]) => values.filter(row => row.inputs.some(input => input.endsWith('.whitebox_test.c')));
   assert(whitebox(before).length > 0);
   assert.match(run([]), /Total tests: 2, passed: 2, failed: 0\./u);
-  const after = readFileSync(observations,'utf8').trim().split('\n').map(JSON.parse);
+  const after = readFileSync(observations,'utf8').trim().split('\n').map(JSON.parse as (row: string) => CompilerObservation);
   assert.deepEqual(whitebox(after), whitebox(before), 'the full selection must not recompile its original prerequisite');
   assert(after.some(row => row.inputs.some(input => input.endsWith('.blackbox_test.c'))),
     'the remaining independent test must still be compiled and executed');
@@ -365,8 +368,8 @@ test('retained Native compiler profile refuses changed launcher or companion and
   t.after(() => rmSync(root, {recursive: true, force: true}));
   const first = join(root, 'first'); mkdirSync(first);
   const env = {...process.env}; delete env.MOON_CC; delete env.CXX;
-  const profile = nativeCoreCCompiler(root, first, env), selected = {...env, ...profile};
-  const directory = profile.PATH.split(delimiter)[0];
+  const profile = nativeCoreCCompiler(root, first, env), selected: NodeJS.ProcessEnv = {...env, ...profile};
+  const directory = profile.PATH!.split(delimiter)[0];
   const cc = join(directory, 'cc'), original = readFileSync(cc, 'utf8');
   for (const mode of ['changed-launcher', 'changed-companion', 'foreign-repository']) {
     const scratch = join(root, mode); mkdirSync(scratch);
@@ -375,7 +378,7 @@ test('retained Native compiler profile refuses changed launcher or companion and
       unlinkSync(join(directory, 'ar')); symlinkSync(process.execPath, join(directory, 'ar'));
     }
     const actual = nativeCoreCCompiler(mode === 'foreign-repository' ? scratch : root, scratch, selected);
-    assert.equal(actual.PATH.split(delimiter)[0], join(scratch, 'test-c-compiler'));
+    assert.equal(actual.PATH!.split(delimiter)[0], join(scratch, 'test-c-compiler'));
     assert.notEqual(actual.PATH, selected.PATH);
     writeFileSync(cc, original);
     if (mode === 'changed-companion') {

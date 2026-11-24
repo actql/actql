@@ -12,10 +12,22 @@ import {nativeCoreHostedPartitions, nativeCoreLinuxCommonArguments} from './ci-c
 import {executeNativeCoreSourceRelease, nativeCoreSourceCompilerEnvironment,
   nativeCoreSourceReleaseSelection, runNativeCoreSourceRelease} from './native-core-source-release.mjs';
 
-const groups = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)));
+type SourceInventory = Parameters<typeof nativeCoreSourceReleaseSelection>[0];
+type SourceExecution = NonNullable<Parameters<typeof executeNativeCoreSourceRelease>[0]>;
+type WorkflowStep = {id: string; name: string; run?: string; env: NodeJS.ProcessEnv; if?: string;
+  'continue-on-error'?: boolean; 'timeout-minutes': number; timeoutMinutes?: number};
+type Workflow = {jobs: Record<string, {
+  'runs-on': string; needs: readonly string[]; steps: WorkflowStep[];
+  strategy: {matrix: {target: string[]; partition: string[]; exclude?: {target: string; partition: string}[]}};
+}>};
+type SourceLoop = {type: string; left: {declarations?: {id: {name: string}}[]};
+  right: {alternate: {elements: unknown[]}};
+  body: {body: {type: string; consequent: {type: string}; test: {start: number; end: number}}[]}};
+const groups = JSON.parse(readFileSync(new URL('./ci-native-background-groups.json', import.meta.url)) as unknown as string) as
+  Record<string, {steps: WorkflowStep[]}[]>;
 
 const sourcePackage = 'src/platform_native/remote_resident_source_compute_tests';
-const sourceInventory = () => ({runnableCases: 2, records: [0, 1].map(index => ({
+const sourceInventory = (): SourceInventory => ({runnableCases: 2, records: [0, 1].map(index => ({
   directory: sourcePackage, source: sourcePackage + '/original_wbtest.mbt', benchmark: false,
   entry: [JSON.stringify(['actql/actql/platform_native/remote_resident_source_compute_tests', 'whitebox']),
     'original_wbtest.mbt', {index, name: 'original ' + index, attrs: []}],
@@ -28,24 +40,24 @@ test('Linux Source release retains the actual complete compiler count and refuse
   for (const flag of ['--deny-warn', '--release', '--strip', '--no-parallelize', '--verbose'])
     assert(selected.args.includes(flag));
   assert(!selected.args.some(value => ['--filter', '--index', '--doc-index'].includes(value)));
-  for (const mutate of [value => { value.records = []; value.runnableCases = 0; },
+  for (const mutate of ([value => { value.records = []; value.runnableCases = 0; },
     value => { value.runnableCases++; }, value => { value.records.push(value.records[0]); value.runnableCases++; },
     value => { value.records[0].benchmark = true; }, value => { value.records[0].entry[2].attrs = ['skip']; },
     value => { value.records[0].directory = 'src/other'; },
     value => { value.records[0].entry[1] = '../other.mbt'; },
     value => { value.records[0].entry[0] = JSON.stringify(['foreign', 'whitebox']); },
-    value => { value.records[1].entry[2].index = value.records[0].entry[2].index; }]) {
+    value => { value.records[1].entry[2].index = value.records[0].entry[2].index; }] satisfies ((value: SourceInventory) => void)[])) {
     const changed = structuredClone(inventory); mutate(changed);
     assert.throws(() => nativeCoreSourceReleaseSelection(changed));
   }
 });
 
 test('Linux Source release compiler is confined to the matching Native child', () => {
-  const env = {ORIGINAL: 'retained', PATH: '/original/compiler/bin',
+  const env: NodeJS.ProcessEnv & {PATH: string} = {ORIGINAL: 'retained', PATH: '/original/compiler/bin',
     ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: '/original/portable.json'};
   const args = [...nativeCoreLinuxCommonArguments, sourcePackage];
   let calls = 0;
-  const compiler = (root, scratch, original) => {
+  const compiler: typeof import('./native-core-c-compiler.mjs').nativeCoreCCompiler = (root, scratch, original) => {
     assert.equal(root, '/repository'); assert.equal(scratch, '/fresh/source'); assert.equal(original, env);
     calls++; return {PATH: '/fresh/test-c-compiler' + delimiter + original.PATH};
   };
@@ -55,7 +67,7 @@ test('Linux Source release compiler is confined to the matching Native child', (
   assert.equal(selected.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION, env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
   assert.equal(env.MOON_CC, undefined);
   assert.equal(env.PATH, '/original/compiler/bin');
-  for (const [platform, original] of [['darwin', args], ['linux', [sourcePackage]]])
+  for (const [platform, original] of [['darwin', args], ['linux', [sourcePackage]]] as const)
     assert.equal(nativeCoreSourceCompilerEnvironment(original, '/repository', '/fresh/source', env,
       {platform, compiler}), env);
   assert.equal(calls, 1);
@@ -65,40 +77,40 @@ test('Linux Source release compiler is confined to the matching Native child', (
 });
 
 test('Linux Source release verifies original preparation before a fresh counted fixture and confirms cleanup only after join', async () => {
-  const original = {revision: 'a'.repeat(40), dirty: false}, events = [], reports = [];
+  const original = {revision: 'a'.repeat(40), dirty: false}, events: string[] = [], reports: string[] = [];
   const env = {RUNNER_TEMP: '/original/tmp', ORIGINAL: 'same',
     ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: '/original/portable.json'};
-  const run = overrides => executeNativeCoreSourceRelease({root: process.cwd(), env,
+  const run = (overrides?: SourceExecution) => executeNativeCoreSourceRelease({root: process.cwd(), env,
     platform: 'linux', arch: 'x64', source: () => original,
     verifyPreparation: (root, receipt, options) => {
       assert.equal(root, realpathSync(process.cwd())); assert.equal(receipt, env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
-      assert.equal(options.env, env); events.push('verified');
+      assert.equal(options!.env, env); events.push('verified');
     }, scratch: async options => {
       assert.deepEqual(events, ['verified']); assert.equal(options.parent, '/original/tmp/native-source-release');
       events.push('fresh');
       return {path: '/fresh/source', passed: () => events.push('passed'), close: () => events.push('closed')};
     }, discover: (root, args, options) => {
-      assert.deepEqual(events, ['verified', 'fresh']); assert.equal(options.env, env);
+      assert.deepEqual(events, ['verified', 'fresh']); assert.equal(options!.env, env);
       assert(args.includes('--release') && args.at(-1) === sourcePackage);
       events.push('discovered'); return sourceInventory();
     }, execute: (command, args, options) => {
       assert.deepEqual(events, ['verified', 'fresh', 'discovered']); assert.equal(command, process.execPath);
       assert.deepEqual(args, ['scripts/test-native-http-client.mjs']);
-      assert.equal(options.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION, env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
-      assert.equal(options.env.ACTQL_TEST_SCRATCH_ROOT, '/fresh/source');
-      assert.equal(options.env.ACTQL_TEST_PRESERVE_SCRATCH, '1');
-      assert.equal(options.env.ACTQL_TEST_NATIVE_HTTP_FOCUS, 'core-source');
-      assert.equal(options.env.ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT, '2');
-      assert.equal(options.env.MOON_CC, undefined, 'The portable verifier must see its original compiler environment');
-      const selected = JSON.parse(options.env.ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS);
+      assert.equal(options.env!.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION, env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
+      assert.equal(options.env!.ACTQL_TEST_SCRATCH_ROOT, '/fresh/source');
+      assert.equal(options.env!.ACTQL_TEST_PRESERVE_SCRATCH, '1');
+      assert.equal(options.env!.ACTQL_TEST_NATIVE_HTTP_FOCUS, 'core-source');
+      assert.equal(options.env!.ACTQL_TEST_NATIVE_CORE_SOURCE_COUNT, '2');
+      assert.equal(options.env!.MOON_CC, undefined, 'The portable verifier must see its original compiler environment');
+      const selected = JSON.parse(options.env!.ACTQL_TEST_NATIVE_CORE_SOURCE_ARGS!);
       assert(selected.includes('--release') && selected.at(-1) === sourcePackage);
       events.push('joined'); return {status: 0, signal: null};
     }, report: value => reports.push(value), ...overrides});
   assert.equal(await run(), 0);
   assert.deepEqual(events, ['verified', 'fresh', 'discovered', 'joined', 'passed', 'closed']);
   assert.equal(reports.filter(value => value.startsWith('ACTQL_NATIVE_SOURCE_RELEASE_EXECUTION ')).length, 1);
-  for (const result of [{status: 7, signal: null}, {status: null, signal: 'SIGTERM'},
-    {error: new Error('original fixture failure'), status: null, signal: null}]) {
+  for (const result of ([{status: 7, signal: null}, {status: null, signal: 'SIGTERM'},
+    {error: new Error('original fixture failure'), status: null, signal: null}] satisfies ReturnType<NonNullable<SourceExecution['execute']>>[])) {
     events.length = reports.length = 0;
     const execute = () => { events.push('joined'); return result; };
     if (result.error || result.signal) await assert.rejects(run({execute}), result.error ? error => error === result.error : /signal/);
@@ -113,26 +125,26 @@ test('Linux Source release verifies original preparation before a fresh counted 
 });
 
 test('Linux Source release uses one bounded existing owner and preserves the original debug fixture', async () => {
-  const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')) as Workflow;
   const job = workflow.jobs['native-http'];
   const original = job.steps.find(step => step.id === 'native-http');
   const release = job.steps.find(step => step.run?.includes('node scripts/native-core-source-release.mjs'));
   const preparation = job.steps.filter(step => step.run?.includes('prepareNativeResidentPortableRuntime('));
   assert.equal(job['runs-on'], 'ubuntu-24.04'); assert.equal(preparation.length, 1);
-  assert(original.run.includes('node scripts/test-native-http-client.mjs'));
-  assert.equal(original.env.ACTQL_TEST_NATIVE_HTTP_FOCUS, undefined, 'Original complete debug fixture remains selected');
-  assert.equal(original.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION,
-    release.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
-  assert(job.steps.indexOf(preparation[0]) < job.steps.indexOf(original) && job.steps.indexOf(original) < job.steps.indexOf(release));
-  assert.equal(release.if, undefined, 'A failed original prerequisite cannot run the new proof');
-  assert(!release['continue-on-error']);
+  assert(original!.run!.includes('node scripts/test-native-http-client.mjs'));
+  assert.equal(original!.env.ACTQL_TEST_NATIVE_HTTP_FOCUS, undefined, 'Original complete debug fixture remains selected');
+  assert.equal(original!.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION,
+    release!.env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
+  assert(job.steps.indexOf(preparation[0]) < job.steps.indexOf(original!) && job.steps.indexOf(original!) < job.steps.indexOf(release!));
+  assert.equal(release!.if, undefined, 'A failed original prerequisite cannot run the new proof');
+  assert(!release!['continue-on-error']);
   let calls = 0;
   const env = {ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: '/original/portable.json'};
   assert.equal(await runNativeCoreSourceRelease({env, platform: 'linux', arch: 'x64', execute: async config => {
-    calls++; assert(config.heavy); assert(config.timeoutSeconds > 0 && config.graceSeconds > 0);
-    assert(config.timeoutSeconds + config.graceSeconds < release['timeout-minutes'] * 60);
+    calls++; assert(config.heavy); assert(config.timeoutSeconds > 0 && config.graceSeconds! > 0);
+    assert(config.timeoutSeconds + config.graceSeconds! < release!['timeout-minutes'] * 60);
     assert.equal(config.steps.length, 1);
-    assert.equal(config.steps[0].env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION, env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
+    assert.equal(config.steps[0].env!.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION, env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION);
     return 9;
   }}), 9);
   assert.equal(calls, 1);
@@ -146,7 +158,7 @@ test('Linux Source release keeps changed-source and invalid-discovery duties unc
   const original = {revision: 'a'.repeat(40), dirty: false};
   for (const failure of ['changed-source', 'empty-inventory']) {
     let reads = 0, executed = 0, passed = 0, closed = 0;
-    const reports = [];
+    const reports: string[] = [];
     await assert.rejects(executeNativeCoreSourceRelease({root: process.cwd(),
       env: {ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION: '/original/portable.json'},
       platform: 'linux', arch: 'x64',
@@ -173,14 +185,14 @@ test('Source coverage defaults to complete and only the closed Darwin package ow
   assert.deepEqual(httpScope.nativeHttpSourceCoverage('http-packages', {platform: 'darwin', owner}),
     {includeSource: false, effectTargets: {reads: 0, writes: 0}});
   for (const options of [{platform: 'linux', owner}, {platform: 'darwin', owner: ''},
-    {platform: 'darwin', owner: 'other'}, {platform: 'darwin', owner: null}])
+    {platform: 'darwin', owner: 'other'}, {platform: 'darwin', owner: null!}])
     assert.throws(() => httpScope.nativeHttpSourceCoverage('http-packages', options));
   for (const focus of [undefined, 'http-controls', 'core-source', 'core-http'])
     assert.throws(() => httpScope.nativeHttpSourceCoverage(focus, {platform: 'darwin', owner}));
 });
 
 test('Source coverage redistribution requires current Linux HTTP and complete Darwin Core outcomes', () => {
-  const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const workflow = parseYaml(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')) as Workflow;
   const gate = workflow.jobs['native-http-macos'];
   assert.deepEqual(gate.needs, ['select-targets', 'native-macos-workloads', 'native-http', 'core']);
   assert.equal(gate['runs-on'], 'ubuntu-24.04');
@@ -193,7 +205,7 @@ test('Source coverage redistribution requires current Linux HTTP and complete Da
   assert.equal(selected[0].env.ACTQL_TEST_NATIVE_HTTP_SOURCE_OWNER, 'linux-http+darwin-core-source');
   const keys = ['WORKLOAD_RESULT', 'HTTP_RESULT', 'LINUX_HTTP_RESULT', 'DARWIN_CORE_RESULT'];
   const success = {...Object.fromEntries(keys.map(key => [key, 'success'])), CORE_TARGETS: '["js","wasm","native"]'};
-  const run = env => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
+  const run = (env: NodeJS.ProcessEnv) => spawnSync('bash', ['-eo', 'pipefail', '-c', step.run!], {
     encoding: 'utf8', timeout: 5000, env: {...process.env, ...env},
   });
   assert.equal(run(success).status, 0);
@@ -212,7 +224,7 @@ test('Source coverage redistribution requires current Linux HTTP and complete Da
   assert.deepEqual(profiles.sort(), ['1/2', '2/2', 'source', 'scoped-runtime', 'scoped-review'].sort(),
     'Current hosted jobs must execute every original logical profile exactly once');
   const core = workflow.jobs['core-darwin'].steps.find(step => step.name === 'Test common core');
-  assert(core.run.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
+  assert(core!.run!.includes('MOONBIT_NEW_NATIVE=0 node scripts/test-native-core.mjs --deny-warn --release --strip -j 2 --no-parallelize --verbose'));
   const linux = workflow.jobs['native-http'];
   assert.equal(linux['runs-on'], 'ubuntu-24.04');
   assert(linux.steps.some(step => step.run?.includes('node scripts/test-native-http-client.mjs')));
@@ -221,16 +233,16 @@ test('Source coverage redistribution requires current Linux HTTP and complete Da
 test('Source coverage caller omits only the repeated complete package and keeps independent exact physical oracles', () => {
   const source = readFileSync(new URL('./test-native-http-client.mjs', import.meta.url), 'utf8');
   const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const found = [];
-  function walk(node) {
+  const found: SourceLoop[] = [];
+  function walk(node: SourceLoop | null | undefined) {
     if (!node || typeof node !== 'object') return;
     if (node.type === 'ForOfStatement' && node.left.declarations?.[0]?.id.name === 'packagePath') found.push(node);
     for (const child of Object.values(node)) {
       if (Array.isArray(child)) for (const value of child) walk(value);
-      else if (child && typeof child === 'object') walk(child);
+      else if (child && typeof child === 'object') walk(child as unknown as SourceLoop);
     }
   }
-  walk(tree); assert.equal(found.length, 1);
+  walk(tree as unknown as SourceLoop); assert.equal(found.length, 1);
   const loop = found[0];
   assert.equal(loop.right.alternate.elements.length, 15);
   const skip = loop.body.body[0];

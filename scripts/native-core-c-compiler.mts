@@ -8,7 +8,12 @@ import {version as kernelVersion} from 'node:os';
 import {basename, delimiter, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {nativeRuntimeReaderCustodyCacheInput} from './native-runtime-reader-custody-fixture.mjs';
 
-export function nativeCoreCArguments(repository, args) {
+import type {SpawnSyncReturns} from 'node:child_process';
+
+type CompileResult = SpawnSyncReturns<string | Buffer>;
+type ObjectCommands = {source: string; output: string; compile: readonly string[]; link: readonly string[]};
+
+export function nativeCoreCArguments(repository: string, args: readonly string[]) {
   const inputs = args.filter(arg => /\.(?:c|cc|cpp|cxx)$/u.test(arg));
   if (inputs.length !== 1) return args;
   const path = relative(repository, resolve(inputs[0])).split(sep).join('/');
@@ -29,11 +34,11 @@ export const nativeCoreCCachePin = Object.freeze({
 
 // This is a closed decomposition of the existing ordinary generated-C command,
 // not another build planner. Unfamiliar flags retain the original combined call.
-export function nativeCoreCObjectCommands(repository, compiler, args, object) {
+export function nativeCoreCObjectCommands(repository: string, compiler: string, args: readonly string[], object?: string) {
   if (!['cc', 'clang'].includes(basename(compiler))) return;
   const selected = nativeCoreCArguments(repository, args);
   if (selected === args || selected.filter(x => x === '-o').length !== 1) return;
-  const source = selected.find(x => x.endsWith('.c'));
+  const source = selected.find(x => x.endsWith('.c'))!;
   const outputIndex = selected.indexOf('-o'), output = selected[outputIndex + 1];
   if (!output || /[\0\r\n]/u.test(output) || resolve(output) !== resolve(source).slice(0, -2) + '.exe') return;
   object ??= resolve(source) + '.object.o';
@@ -66,7 +71,7 @@ export function nativeCoreCObjectCommands(repository, compiler, args, object) {
     link: ['-o', output, ...link]};
 }
 
-function ordinaryObjectCache(repository, compiler) {
+function ordinaryObjectCache(repository: string, compiler: string) {
   const tool = process.env.ACTQL_TEST_NATIVE_CORE_CCACHE;
   if (tool === undefined || process.platform !== 'darwin' || process.arch !== 'arm64' ||
       process.env.MOON_CC !== undefined || process.env.LD_PRELOAD) return;
@@ -86,7 +91,7 @@ function ordinaryObjectCache(repository, compiler) {
   assert(typeof cacheDirectory === 'string' && isAbsolute(cacheDirectory), 'Private compiler-cache directory required');
   mkdirSync(cacheDirectory, {recursive: true, mode: 0o700});
   const directory = lstatSync(cacheDirectory);
-  assert(directory.isDirectory() && !directory.isSymbolicLink() && directory.uid === process.getuid(),
+  assert(directory.isDirectory() && !directory.isSymbolicLink() && directory.uid === process.getuid!(),
     'Original private compiler-cache directory required');
   const cache = realpathSync(cacheDirectory);
   mkdirSync(join(cache, 'tmp'), {recursive: true, mode: 0o700});
@@ -110,7 +115,7 @@ function ordinaryObjectCache(repository, compiler) {
   return {tool, environment, log: join(cache, 'compiler.log')};
 }
 
-function compilerLauncher(repository, original) {
+function compilerLauncher(repository: string, original: string) {
   return '#!' + process.execPath + '\nimport(' + JSON.stringify(import.meta.url) +
     ').then(m => m.runNativeCoreCCompiler(' + JSON.stringify(repository) + ',' +
     JSON.stringify(original) + ',process.argv.slice(2)));\n';
@@ -119,22 +124,22 @@ function compilerLauncher(repository, original) {
 // Reuse only this same generated software profile, never the enclosing prior
 // fixture namespace. Its original compiler/companion and current launcher bytes
 // must still match. A changed or foreign caller shim follows normal selection.
-function retainedCompilerProfile(repository, selected, env) {
+function retainedCompilerProfile(repository: string, selected: string, env: NodeJS.ProcessEnv) {
   try {
     const directory = realpathSync(dirname(selected));
     if (basename(directory) !== 'test-c-compiler' || selected !== join(directory, 'cc')) return false;
     const owner = lstatSync(directory);
-    if (!owner.isDirectory() || owner.uid !== process.getuid() || (owner.mode & 0o777) !== 0o700) return false;
+    if (!owner.isDirectory() || owner.uid !== process.getuid!() || (owner.mode & 0o777) !== 0o700) return false;
     const expected = env.CXX ? ['ar', 'cc'] : ['ar', 'c++', 'cc'];
     if (JSON.stringify(readdirSync(directory).sort()) !== JSON.stringify(expected.sort())) return false;
-    const originalEnv = {...env, PATH: env.PATH.split(delimiter).filter(path => {
+    const originalEnv = {...env, PATH: env.PATH!.split(delimiter).filter(path => {
       try { return realpathSync(path || '.') !== directory; } catch { return true; }
     }).join(delimiter)};
-    const original = name => execFileSync('/bin/sh', ['-c', 'command -v ' + name],
+    const original = (name: string) => execFileSync('/bin/sh', ['-c', 'command -v ' + name],
       {env: originalEnv, encoding: 'utf8', timeout: 5000}).trim();
-    const matches = (name, compiler) => {
+    const matches = (name: string, compiler: string) => {
       const path = join(directory, name), stat = lstatSync(path);
-      return stat.isFile() && stat.uid === process.getuid() && (stat.mode & 0o777) === 0o700 &&
+      return stat.isFile() && stat.uid === process.getuid!() && (stat.mode & 0o777) === 0o700 &&
         readFileSync(path, 'utf8') === compilerLauncher(repository, compiler);
     };
     const compiler = original('cc'), companion = join(dirname(compiler), 'ar');
@@ -149,7 +154,7 @@ function retainedCompilerProfile(repository, selected, env) {
   }
 }
 
-export function nativeCoreCCompiler(repository, scratch, env = process.env) {
+export function nativeCoreCCompiler(repository: string, scratch: string, env: NodeJS.ProcessEnv = process.env) {
   if (env.MOON_CC !== undefined) {
     // An explicitly selected driver remains authoritative, including its
     // allocator and package override behaviour. Do not replace that profile.
@@ -169,7 +174,7 @@ export function nativeCoreCCompiler(repository, scratch, env = process.env) {
   mkdirSync(directory, {mode: 0o700});
   // Launch Node directly, without another system shell stripping the original
   // Reader injection environment before it reaches the selected compiler.
-  const launcher = (name, original) => writeFileSync(join(directory, name),
+  const launcher = (name: string, original: string) => writeFileSync(join(directory, name),
     compilerLauncher(repository, original), {mode: 0o700, flag: 'wx'});
   launcher('cc', compiler);
   // The package C++ link driver compiles its generated test C through c++,
@@ -190,8 +195,8 @@ export function nativeCoreCCompiler(repository, scratch, env = process.env) {
   return {PATH: directory + delimiter + env.PATH};
 }
 
-export function runNativeCoreCCompiler(repository, compiler, args) {
-  const finish = result => {
+export function runNativeCoreCCompiler(repository: string, compiler: string, args: readonly string[]) {
+  const finish = (result: CompileResult) => {
     if (result.error) throw result.error;
     if (result.signal) process.kill(process.pid, result.signal);
     process.exitCode = result.status ?? 1;
@@ -202,13 +207,14 @@ export function runNativeCoreCCompiler(repository, compiler, args) {
 
 // Both original compiler owners admit their own command before selecting this
 // same optional object cache. Unknown recipes retain the original combined call.
-export function runNativeCoreCCommands(repository, compiler, selected, objectCommands) {
+export function runNativeCoreCCommands(repository: string, compiler: string, selected: readonly string[],
+  objectCommands: (object?: string) => ObjectCommands | undefined) {
   const eligible = process.env.ACTQL_TEST_NATIVE_CORE_CCACHE === undefined ? undefined
     : objectCommands();
   const cache = eligible && ordinaryObjectCache(repository, compiler);
   if (!cache) return spawnSync(compiler, selected, {stdio: 'inherit'});
-  const temporary = mkdtempSync(join(dirname(resolve(eligible.output)), '.ordinary-c-object-'));
-  const plan = objectCommands(join(temporary, 'test.o'));
+  const temporary = mkdtempSync(join(dirname(resolve(eligible!.output)), '.ordinary-c-object-'));
+  const plan = objectCommands(join(temporary, 'test.o'))!;
   const compiled = spawnSync(cache.tool, [compiler, ...plan.compile],
     {stdio: 'inherit', env: cache.environment});
   if (compiled.error || compiled.signal || compiled.status !== 0) return compiled;
@@ -216,7 +222,7 @@ export function runNativeCoreCCommands(repository, compiler, selected, objectCom
   let reportError;
   try {
     appendFileSync(cache.log, 'ACTQL_NATIVE_C_LINK ' + JSON.stringify({source: plan.source,
-      status: linked.status, signal: linked.signal, error: linked.error?.code ?? null}) + '\n');
+      status: linked.status, signal: linked.signal, error: (linked.error as NodeJS.ErrnoException | undefined)?.code ?? null}) + '\n');
   } catch (error) { reportError = error; }
   if (!linked.error && !linked.signal && linked.status === 0) rmSync(temporary, {recursive: true});
   // Keep one enclosing caller deadline. No retry, fresh allowance or fallback
