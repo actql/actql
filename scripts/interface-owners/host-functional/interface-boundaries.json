@@ -22181,7 +22181,7 @@
     {
       "module": "adapters/host-node/client-effect-run.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e0caf62faa56f04c47f17b9a527d706106cbdd1905a1285e2951a1c6a9632d1a",
+      "sha256": "012892ae194646ab66eb602cf0f3fca946c5fd92ccf093ec5aef5cb6db57c3a9",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -22410,7 +22410,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "export {openClientRequestJournal} from './client-request-journal.mjs';"
               },
               {
@@ -22422,8 +22422,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -22448,7 +22448,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "export {openClientRequestJournal} from './client-request-journal.mjs';"
               },
               {
@@ -22460,8 +22460,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -22486,7 +22486,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "import {originalModelRunWire} from './installed-model-originals.mjs';"
               },
               {
@@ -22498,8 +22498,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -22524,7 +22524,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "// Physical Host composition for the shared Effect compiler and Run owner."
               },
               {
@@ -22536,8 +22536,8 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -22562,7 +22562,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "// The request journal applies MoonBit's atomic start decisions. This adapter"
               },
               {
@@ -22574,8 +22574,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -22600,7 +22600,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "// never schedules Effect apply or interprets a provider's unknown outcome."
               },
               {
@@ -22612,8 +22612,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -22638,8 +22638,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "async start(handle, {beforePhysicalStart, started, signal} = {}) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "async start(handle: object, {beforePhysicalStart, started, signal}: StartOptions = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -22654,7 +22654,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -22672,7 +22672,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,"
               },
               {
@@ -22714,7 +22714,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "import {installNodeClientRunStart} from './client-run-start.mjs';"
               },
               {
@@ -22726,8 +22726,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -23001,7 +23001,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "export {openClientRequestJournal} from './client-request-journal.mjs';"
               },
               {
@@ -23013,8 +23013,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "docs/design/client-submission-identity.md",
@@ -23031,7 +23031,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "export {openClientRequestJournal} from './client-request-journal.mjs';"
               },
               {
@@ -23043,8 +23043,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "spec/contracts/actql-client-host.json",
@@ -23061,7 +23061,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "import {originalModelRunWire} from './installed-model-originals.mjs';"
               },
               {
@@ -23073,8 +23073,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "src/run_publication_host/client_requested_effect_stop.mbt",
@@ -23091,7 +23091,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "// Physical Host composition for the shared Effect compiler and Run owner."
               },
               {
@@ -23103,8 +23103,8 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "adapters/host-node/client-request-journal.mts",
@@ -23121,7 +23121,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "// The request journal applies MoonBit's atomic start decisions. This adapter"
               },
               {
@@ -23133,8 +23133,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -23151,7 +23151,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "// never schedules Effect apply or interprets a provider's unknown outcome."
               },
               {
@@ -23163,8 +23163,8 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "adapters/host-node/client-checkpoints.mjs",
@@ -23181,8 +23181,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "async start(handle, {beforePhysicalStart, started, signal} = {}) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "async start(handle: object, {beforePhysicalStart, started, signal}: StartOptions = {}) {"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -23197,7 +23197,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -23207,7 +23207,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,"
               },
               {
@@ -23237,7 +23237,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "import {installNodeClientRunStart} from './client-run-start.mjs';"
               },
               {
@@ -23249,8 +23249,8 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "capturePreparedOriginal(prepared, original) {"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -27446,7 +27446,7 @@
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -28241,7 +28241,7 @@
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -29658,7 +29658,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -30980,7 +30980,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -34385,7 +34385,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -35785,7 +35785,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -36593,7 +36593,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -39297,7 +39297,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -43221,7 +43221,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -43885,7 +43885,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {

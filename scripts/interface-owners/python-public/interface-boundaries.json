@@ -9388,7 +9388,7 @@
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {

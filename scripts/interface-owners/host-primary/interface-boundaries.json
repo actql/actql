@@ -10341,7 +10341,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -14626,7 +14626,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "prepareDefinition, captureDefinitionExplanation, assertRequestedStopAvailable,"
               },
               {
@@ -14636,19 +14636,19 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
-                "anchor": "requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent);"
+                "path": "adapters/host-node/client-effect-run.mts",
+                "anchor": "requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent) as boolean;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "const accepted = await journal.admitOrLookupDefinition(identity, {"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "if (requestedStop) assertRequestedStopAvailable?.();"
               }
             ],
@@ -17257,7 +17257,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -19716,7 +19716,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -21886,7 +21886,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -23170,7 +23170,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -24450,7 +24450,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -25730,7 +25730,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {

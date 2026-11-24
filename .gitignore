@@ -3204,3 +3204,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/client-submission.d.mts
 /adapters/host-node/client-submission-bootstrap-epoch.test.mjs
 /adapters/host-node/client-submission-bootstrap-epoch.test.d.mts
+/adapters/host-node/client-effect-run.mjs
+/adapters/host-node/client-effect-run.d.mts

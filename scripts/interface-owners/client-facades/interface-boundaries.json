@@ -7227,7 +7227,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -13058,7 +13058,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -15224,7 +15224,7 @@
                 "anchor": "const collectSelected = (kind: ReadKind, schemaOrOptions: unknown, options?: unknown) => collectAfterQuery(query,"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],

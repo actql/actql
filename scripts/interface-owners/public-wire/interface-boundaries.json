@@ -1186,7 +1186,7 @@
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],

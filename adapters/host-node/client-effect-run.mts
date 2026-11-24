@@ -11,11 +11,112 @@ import {installNodeClientRunStart} from './client-run-start.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {sampleOriginalQueryTime} from './query-evaluation-clock.mjs';
 
+import type {WireConnection, WireRunRef, WireRunState} from '../../packages/client-wire/index.js';
+import type {openClientRequestJournal} from './client-request-journal.mjs';
+import type {installUpdateTargetOriginals} from './installed-update-originals.mjs';
+
+type Journal = Pick<ReturnType<typeof openClientRequestJournal>, 'admitOrLookupDefinition' | 'resolveDefinition' |
+  'lookupDefinition' | 'lookupRunDefinition' | 'lookupSubmittedIntent' | 'reserveDispatch' | 'reservePhysicalStart' |
+  'originalSubmittedIntent' | 'recordReconciliationState' | 'lookupReconciliationState' | 'markPreDispatchFailure'>;
+type DefinitionOptions = Parameters<Journal['admitOrLookupDefinition']>[1];
+type Retained = NonNullable<ReturnType<Journal['resolveDefinition']>>;
+type RunDefinition = NonNullable<Retained['runDefinition']>;
+type AdmissionMaterial = NonNullable<Retained['runAdmissionEvidence']>;
+type OriginalIntent = ReturnType<Journal['originalSubmittedIntent']>;
+type Publication = Parameters<Journal['admitOrLookupDefinition']>[3] &
+  Pick<ReturnType<typeof runtimeCore>['publicationControl'], 'effectReconciliationRunState' | 'adoptCheckedClientEffectInferRun'>;
+type Runtime = Readonly<{
+    clientRequestAuthorityScopeCid(identity: unknown): string;
+    clientRequestCallerId(identity: unknown): string;
+    clientProgramEffectTargetSelections?(prepared: unknown): string | undefined;
+    clientProgramEffectTargetSelectionOriginal?(prepared: unknown): readonly unknown[];
+    clientProgramEffectCompilationIssueCode(result: unknown): string | undefined;
+    clientProgramEffectRunStartCurrent(allowed: unknown, definition: unknown, now: string): boolean;
+    clientProgramEffectAcquisitionCount(prepared: unknown): number;
+    clientProgramEffectSerializationOccurrences?(prepared: unknown): readonly unknown[];
+    clientProgramCompileLocalEffectsWithSourceFreePolicyBody(prepared: unknown, cid: string, wire: string,
+      bytes: number, nodes: number, depth: number): unknown;
+    clientProgramCompileLocalEffects(prepared: unknown): unknown;
+    clientProgramCompileLocalEffectsWithInfer(prepared: unknown, infer: unknown): unknown;
+    clientProgramCompileLocalEffectsWithInfers(prepared: unknown, infers: readonly unknown[]): unknown;
+    clientProgramEffectRequestIdentity(prepared: unknown, authorityScopeCid: string, requestId: string, intentCid: string): unknown;
+    clientProgramSourceFreeInputIntentCid(): string;
+    clientSubmittedIntentEffectCompatible(intent: unknown, prepared: unknown): boolean;
+    clientSubmittedIntentRequestsCommitStop(intent: unknown): boolean;
+    clientProgramIssueAllowedEffectRun(compilation: unknown, executionContextCid: string,
+      hostPolicyCid: string, expiresAt: string): unknown;
+    clientProgramIssueEffectRunDefinition(allowed: unknown, namespace: string, runId: string,
+      createdAt: string, expiresAt: string): unknown;
+    clientProgramEffectCompilationResultNames(compilation: unknown): readonly string[];
+    clientProgramAllowedEffectRunPrepared(allowed: unknown): unknown;
+    clientProgramAllowedEffectRunAuthorization(allowed: unknown): unknown;
+    clientProgramAdmitAllowedEffectRun(compilation: unknown, preparedEvidence: unknown, authorization: unknown): unknown;
+    clientProgramBindCompiledEffectRun(prepared: unknown, allowed: unknown, definition: unknown): unknown;
+    strategyPublicationContractIdentity(contract: unknown): string;
+    strategyPublicationContractJson(contract: unknown): string;
+    strategyRunEvidenceJson(original: unknown): string;
+    strategyRunEvidenceAdmit(name: string, wire: string, bytes: number, nodes: number, depth: number): unknown;
+    strategyPublicationAdmit(name: 'run_definition', wire: string, bytes: number, nodes: number, depth: number): unknown;
+  }> & Parameters<Journal['admitOrLookupDefinition']>[2] & Parameters<Journal['lookupSubmittedIntent']>[2] &
+  Parameters<Journal['originalSubmittedIntent']>[2] & Parameters<Journal['reserveDispatch']>[2] &
+  Parameters<Journal['reservePhysicalStart']>[2] & Parameters<Journal['lookupDefinition']>[1];
+type MaybePromise<Value> = Value | PromiseLike<Value>;
+type ResultPolicy = NonNullable<AdmissionMaterial['resultPolicyOriginal']>;
+type UpdateOriginals = ReturnType<typeof installUpdateTargetOriginals>;
+type ReserveOriginal = Parameters<UpdateOriginals['captureRun']>[1];
+type CapturedPrepared = Parameters<UpdateOriginals['validatePreparedOriginal']>[2];
+type UpdateSelection = Partial<Pick<ReturnType<UpdateOriginals['restoreRun']>,
+  'updateTargetSelections' | 'assertUpdateSelectionCurrent'>>;
+type RetainedUpdateMaterial = Parameters<UpdateOriginals['restoreRun']>[0];
+type RunUpdateEvidence = Parameters<UpdateOriginals['validateRun']>[0]['evidence'];
+type QueryTime = Readonly<{queryTimePreparation?: unknown; queryTime?: unknown}>;
+type Policy = Readonly<{createdAt: string; expiresAt: string; executionContextCid: string; hostPolicyCid: string}>;
+type Accept = Readonly<{prepared: unknown; authorityScopeCid: string; requestId: string; namespaceId: string;
+  principalId: string; connection: WireConnection; lookupExpiresAt: string; submission?: DefinitionOptions['submission']}>;
+type RequestFacts = Pick<Accept, 'prepared' | 'authorityScopeCid' | 'requestId'>;
+type AcceptFacts = RequestFacts & Pick<Accept, 'namespaceId' | 'principalId' | 'connection'>;
+type StartAuthority = Pick<Accept, 'namespaceId' | 'principalId' | 'connection'> &
+  Readonly<{ref: WireRunRef; runDefinition: RunDefinition}>;
+type DefinitionFacts = Readonly<{prepared: unknown; identity: unknown; compilation: unknown; allowed: unknown; definition: unknown;
+  runDefinition: RunDefinition; queryTimePreparation?: unknown; modelCompiled?: unknown; resultPolicyOriginal?: ResultPolicy}>;
+type InitialPreparation = Pick<DefinitionFacts, 'prepared' | 'identity' | 'compilation' | 'allowed' | 'definition' |
+  'queryTimePreparation' | 'modelCompiled'>;
+type PreparationResponse = (Partial<InitialPreparation> & Readonly<{then?: unknown}>) | null | undefined;
+type Compile = (() => unknown) & {initialOriginal?: InitialPreparation};
+type Owner = Pick<Accept, 'prepared' | 'namespaceId' | 'principalId' | 'connection'> &
+  Readonly<{identity: unknown; compile: Compile; requiresQueryTime: boolean}>;
+type Restore = Pick<Owner, 'prepared' | 'identity' | 'namespaceId'> &
+  Readonly<{ref: WireRunRef; originalSubmittedIntent?: OriginalIntent}>;
+type StartOptions = Readonly<{beforePhysicalStart?(): unknown; started?(): unknown; signal?: AbortSignal}>;
+type ReceiptSet = Parameters<typeof issuedEffectSetReceiptWires>[0];
+type Reconciliation = Readonly<{issuedSet: ReceiptSet; ledger: unknown; preview: object; updatedAt?: string}>;
+type ExecutionFacts = DefinitionFacts & QueryTime & UpdateSelection & Readonly<{
+  ref: WireRunRef; owner: unknown; originalSubmittedIntent?: OriginalIntent; preparedExecution?: unknown; signal?: AbortSignal;
+}>;
+type EvidenceReader = (maxOptionalBytes?: number) => AdmissionMaterial | undefined;
+type Installation<Value> = Readonly<{moon: Runtime; publicationControl?: Publication; journal: Journal;
+  authorizeRequest(input: AcceptFacts): MaybePromise<Policy | null | undefined>;
+  authorizeRunStart(input: StartAuthority): MaybePromise<boolean>;
+  prepareExecution?(input: ExecutionFacts): unknown;
+  execute(input: ExecutionFacts): MaybePromise<Value>;
+  prepareDefinition?(input: DefinitionFacts): PreparationResponse;
+  captureDefinitionExplanation?(input: DefinitionFacts, evidence: EvidenceReader, hasIntent: boolean):
+    Readonly<{ticket: unknown; evidence?: AdmissionMaterial}> | undefined;
+  assertRequestedStopAvailable?(): unknown;
+  requestIdentityFor?(input: RequestFacts): unknown;
+  inferPlanFor?(prepared: unknown): unknown;
+  resultPolicyOriginalFor?(prepared: unknown): ResultPolicy | undefined;
+  validateInstallation?(input: Pick<DefinitionFacts, 'prepared' | 'compilation'>): unknown;
+  updateTargetOriginals?: UpdateOriginals;
+  reserveOriginal?: ReserveOriginal;
+  now?: () => string;
+}>;
+
 const limits = Object.freeze({maxWireBytes: 1000000, maxNodes: 100000,
   maxDepth: 100});
-const denied = () => Object.assign(new Error('ClientEffectRunDenied'),
+const denied = (): Error => Object.assign(new Error('ClientEffectRunDenied'),
   {code: 'ClientEffectRunDenied'});
-const expired = ref => Object.assign(new Error('ClientEffectRunExpired'),
+const expired = (ref?: WireRunRef) => Object.assign(new Error('ClientEffectRunExpired'),
   {code: 'ClientEffectRunExpired', ref});
 const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
   {code: 'ClientProgramUnsupported'});
@@ -23,16 +124,17 @@ const unsupported = () => Object.assign(new Error('ClientProgramUnsupported'),
 // Optional checked preparation DATA on this exact per-handle compiler thunk.
 // The selected Request already funded its one borrowed slot before returning
 // this tuple. It is never an Account decision, current proof or dispatch grant.
-function retainInitialEffectPreparation(compiled, value, facts) {
+function retainInitialEffectPreparation(compiled: Compile, value: PreparationResponse, facts: DefinitionFacts) {
   if (value === undefined || value === null || typeof value !== 'object' || value.prepared === undefined) return;
   if (!Object.isFrozen(value) || value.prepared !== facts.prepared || value.identity !== facts.identity ||
       value.compilation !== facts.compilation || value.allowed !== facts.allowed || value.definition !== facts.definition ||
       value.queryTimePreparation !== facts.queryTimePreparation || value.modelCompiled !== facts.modelCompiled) throw denied();
   if (compiled.initialOriginal !== undefined && compiled.initialOriginal !== value) throw denied();
-  compiled.initialOriginal = value;
+  compiled.initialOriginal = value as InitialPreparation;
 }
 
-function checkInitialEffectPreparation(value, prepared, identity, compilation, retained, moon) {
+function checkInitialEffectPreparation(value: InitialPreparation, prepared: unknown, identity: unknown,
+  compilation: unknown, retained: Retained, moon: Runtime) {
   const evidence = retained.runAdmissionEvidence;
   if (!Object.isFrozen(value) || value.prepared !== prepared || value.identity !== identity ||
       value.compilation !== compilation || evidence === undefined ||
@@ -43,12 +145,12 @@ function checkInitialEffectPreparation(value, prepared, identity, compilation, r
       moon.strategyRunEvidenceJson(moon.clientProgramAllowedEffectRunAuthorization(value.allowed)) !== evidence.authorization) throw denied();
 }
 
-export function installNodeClientEffectRun({moon,
+export function installNodeClientEffectRun<Value>({moon,
   publicationControl: control = runtimeCore(moon).publicationControl,
   journal, authorizeRequest, authorizeRunStart, prepareExecution, execute,
   prepareDefinition, captureDefinitionExplanation, assertRequestedStopAvailable, requestIdentityFor,
   inferPlanFor, resultPolicyOriginalFor, validateInstallation, updateTargetOriginals, reserveOriginal,
-  now = () => new Date().toISOString()}) {
+  now = () => new Date().toISOString()}: Installation<Value>) {
   if (typeof moon?.clientProgramEffectCompilationIssueCode !== 'function' ||
       typeof authorizeRequest !== 'function' ||
       (prepareExecution !== undefined &&
@@ -73,7 +175,7 @@ export function installNodeClientEffectRun({moon,
       typeof moon?.clientProgramEffectRunStartCurrent !== 'function') {
     throw new TypeError('InvalidClientEffectRunInstallation');
   }
-  const startRun = installNodeClientRunStart({journal, requestControl: moon,
+  const startRun = installNodeClientRunStart<unknown, WireConnection, Runtime, Publication, RunDefinition>({journal, requestControl: moon,
     publicationControl: control, authorizeRunStart});
   const queryTimeNames = ['clientProgramEffectRequiresQueryTime',
     'clientProgramPrepareEffectQueryTime', 'clientProgramQueryTimeCreatedAt',
@@ -84,14 +186,15 @@ export function installNodeClientEffectRun({moon,
   if (hasQueryTime && queryTimePorts.some(value => typeof value !== 'function')) {
     throw new TypeError('InvalidClientEffectRunInstallation');
   }
-  const queryTimeCall = (index, args) => Reflect.apply(queryTimePorts[index], moon, args);
-  const queryTimeRequired = prepared => {
+  const queryTimeCall = (index: number, args: readonly unknown[]): unknown => Reflect.apply(queryTimePorts[index], moon, args);
+  const queryTimeRequired = (prepared: unknown) => {
     if (!hasQueryTime) return false;
     const required = checked(queryTimeCall(0, [prepared, limits.maxNodes, limits.maxNodes]));
     if (typeof required !== 'boolean') throw denied();
     return required;
   };
-  const restoreQueryTime = (required, prepared, allowed, definition, identity, retainedPreparation) => {
+  const restoreQueryTime = (required: boolean, prepared: unknown, allowed: unknown, definition: unknown,
+    identity: unknown, retainedPreparation?: unknown): QueryTime => {
     if (!required) return {};
     const queryTimePreparation = retainedPreparation ?? checked(queryTimeCall(4,
       [prepared, allowed, definition, identity]));
@@ -101,10 +204,10 @@ export function installNodeClientEffectRun({moon,
     if (queryTime === undefined) throw denied();
     return {queryTimePreparation, queryTime};
   };
-  const handles = new WeakMap();
-  const compilations = new WeakMap();
-  const contentPolicies = new WeakMap();
-  const compile = prepared => {
+  const handles = new WeakMap<object, Owner>();
+  const compilations = new WeakMap<object, unknown>();
+  const contentPolicies = new WeakMap<object, ResultPolicy>();
+  const compile = (prepared: unknown) => {
     if (prepared === null || typeof prepared !== 'object') throw denied();
     let compilation = compilations.get(prepared) ?? updateTargetOriginals?.compilationFor(prepared);
     if (compilation !== undefined) {
@@ -140,18 +243,18 @@ export function installNodeClientEffectRun({moon,
     compilations.set(prepared, compilation);
     return compilation;
   };
-  const admitEvidence = (name, wire) => checked(
-    moon.strategyRunEvidenceAdmit(name, wire, limits.maxWireBytes,
+  const admitEvidence = (name: string, wire: unknown) => checked(
+    moon.strategyRunEvidenceAdmit(name, wire as string, limits.maxWireBytes,
       limits.maxNodes, limits.maxDepth));
-  const definitionToken = definition => checked(moon.strategyPublicationAdmit(
+  const definitionToken = (definition: RunDefinition) => checked(moon.strategyPublicationAdmit(
     'run_definition', definition.wire, limits.maxWireBytes,
     limits.maxNodes, limits.maxDepth));
   return Object.freeze({
     // A held Run-acceptance Checkpoint must never be opened for a Program
     // this installed Host cannot compile. The exact compiled owner is reused
     // by acceptance; this check neither issues a Run nor starts physical I/O.
-    checkSupported(prepared) { compile(prepared); },
-    capturePreparedOriginal(prepared, original) {
+    checkSupported(prepared: unknown) { compile(prepared); },
+    capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {
       if (original !== undefined) {
         if (updateTargetOriginals === undefined) throw denied();
         // Held restoration already owns these complete materials. Preserve its
@@ -166,7 +269,7 @@ export function installNodeClientEffectRun({moon,
     // Run. No start claim, execution Owner, new Definition, query-time sample
     // or business authorization is issued here. Canceled/unknown Runs still
     // need their same resources for original observation and cleanup.
-    async restoreRetainedPreparation({prepared, identity, namespaceId, ref, originalSubmittedIntent}) {
+    async restoreRetainedPreparation({prepared, identity, namespaceId, ref, originalSubmittedIntent}: Restore) {
       const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control);
       if (typeof prepareDefinition !== 'function' ||
           retained?.ref.runDefinitionCid !== ref?.runDefinitionCid ||
@@ -180,7 +283,7 @@ export function installNodeClientEffectRun({moon,
       const compilation = compile(prepared);
       let restored;
       if (evidence.updateTargetRunOriginal !== undefined) {
-        restored = updateTargetOriginals.restoreRun(evidence.updateTargetRunOriginal,
+        restored = updateTargetOriginals.restoreRun(evidence.updateTargetRunOriginal as RetainedUpdateMaterial,
           retained.runDefinition, identity, compilation, prepared);
       } else {
         if (typeof evidence.effectOriginalRunWire !== 'string') throw denied();
@@ -198,18 +301,18 @@ export function installNodeClientEffectRun({moon,
         allowed, definition, runDefinition: retained.runDefinition,
         queryTimePreparation: queryTime.queryTimePreparation,
         queryTime: queryTime.queryTime, modelCompiled, resultPolicyOriginal: evidence.resultPolicyOriginal,
-        ...restored, originalSubmittedIntent});
+        ...restored as Partial<typeof restored>, originalSubmittedIntent});
       // Reuse the same actual normal constructor/adoption callback, with its
       // original eight-field tuple. Its existing Host bag owns partial failure.
       const selected = prepareDefinition?.(facts);
       const then = selected?.then;
       if (typeof then === 'function') {
-        try {await new Promise((resolve, reject) => Reflect.apply(then, selected, [resolve, reject]));}
+        try {await new Promise<void>((resolve, reject) => Reflect.apply(then, selected, [resolve, reject]));}
         catch { /* Join the original invalid borrow before refusing it. */ }
         throw new TypeError('AsyncClientEffectDefinitionPreparation');
       }
       originalSubmittedIntent.assertCurrent();
-      restored.assertUpdateSelectionCurrent?.();
+      (restored as UpdateSelection).assertUpdateSelectionCurrent?.();
       return facts;
     },
     // Record the public state of a started Run whose complete admitted Effect
@@ -218,8 +321,8 @@ export function installNodeClientEffectRun({moon,
     // Nothing is resent, and no answer or Store write relabels the outcome.
     // `issuedSet` must be the exact Set the receipt owner issued for this
     // ledger and Preview, as for publication.
-    recordReconciliation(ref, {issuedSet, ledger, preview,
-      updatedAt = now()}) {
+    recordReconciliation(ref: WireRunRef, {issuedSet, ledger, preview,
+      updatedAt = now()}: Reconciliation) {
       const retained = journal.lookupRunDefinition(ref, moon, control);
       if (retained === undefined || retained.resultNames === undefined) {
         throw denied();
@@ -231,20 +334,20 @@ export function installNodeClientEffectRun({moon,
       // comparison: a new read must not rewrite that observation or Effect set.
       const original = journal.lookupReconciliationState(ref);
       const observedAt = original === undefined
-        ? updatedAt : JSON.parse(original).updated_at;
+        ? updatedAt : JSON.parse(original as string).updated_at;
       const wire = control.effectReconciliationRunState(preview, receipts,
         {runId, updatedAt: observedAt, resultNames: retained.resultNames}, limits);
       journal.recordReconciliationState(ref, wire);
-      return JSON.parse(wire);
+      return JSON.parse(wire) as WireRunState;
     },
     // The recorded reconciliation state of a Run, or undefined. Reading it
     // performs no provider I/O and never starts or resends work.
-    reconciliation(ref) {
+    reconciliation(ref: WireRunRef) {
       const wire = journal.lookupReconciliationState(ref);
-      return wire === undefined ? undefined : Object.freeze(JSON.parse(wire));
+      return wire === undefined ? undefined : Object.freeze(JSON.parse(wire as string) as WireRunState);
     },
     async accept({prepared, authorityScopeCid, requestId, namespaceId,
-      principalId, connection, lookupExpiresAt, submission}) {
+      principalId, connection, lookupExpiresAt, submission}: Accept) {
       // Authentication/current acceptance authority precedes even lookup, so
       // a caller cannot infer the presence of another caller's request.
       const policy = await authorizeRequest(Object.freeze({prepared,
@@ -268,9 +371,9 @@ export function installNodeClientEffectRun({moon,
           1048576, 65536, 64);
         if (intent === undefined) throw denied();
         if (!moon.clientSubmittedIntentEffectCompatible(intent, prepared)) throw denied();
-        requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent);
+        requestedStop = moon.clientSubmittedIntentRequestsCommitStop(intent) as boolean;
       }
-      const compiled = () => compile(prepared);
+      const compiled: Compile = () => compile(prepared);
       const requiresQueryTime = queryTimeRequired(prepared);
       const accepted = await journal.admitOrLookupDefinition(identity, {
         namespaceId, lookupExpiresAt, submission,
@@ -287,10 +390,10 @@ export function installNodeClientEffectRun({moon,
             ? checked(queryTimeCall(1, [prepared, identity, sampleOriginalQueryTime()]))
             : undefined;
           const createdAt = queryTimePreparation === undefined ? policy.createdAt
-            : queryTimeCall(2, [queryTimePreparation]);
+            : queryTimeCall(2, [queryTimePreparation]) as string;
           // The installed Host selects an actual Result policy original before
           // this new Run is recorded. A retained Run reuses its saved original.
-          const resultPolicyOriginal = contentPolicies.get(prepared) ?? resultPolicyOriginalFor?.(prepared);
+          const resultPolicyOriginal = contentPolicies.get(prepared as object) ?? resultPolicyOriginalFor?.(prepared);
           const definitionCompilation = compiled();
           const allowed = checked(moon.clientProgramIssueAllowedEffectRun(
             definitionCompilation, policy.executionContextCid, policy.hostPolicyCid,
@@ -303,7 +406,7 @@ export function installNodeClientEffectRun({moon,
           if (!moon.clientProgramEffectRunStartCurrent(allowed,
             definition, now())) throw expired();
           const runDefinition = control.admit('run_definition',
-            moon.strategyPublicationContractJson(definition), limits);
+            moon.strategyPublicationContractJson(definition), limits) as RunDefinition;
           const updateTargetRunOriginal = updateTargetOriginals?.captureRun({prepared,
             allowed, definition, identity, compilation: definitionCompilation, runDefinition}, reserveOriginal);
           // Selected UPDATE/STORE custody already contains this exact codec;
@@ -328,7 +431,7 @@ export function installNodeClientEffectRun({moon,
           const definitionFacts = Object.freeze({prepared,
             compilation: compiled(), allowed, definition, identity, runDefinition,
             modelCompiled, resultPolicyOriginal, queryTimePreparation});
-          const evidence = maxOptionalBytes => {
+          const evidence: EvidenceReader = maxOptionalBytes => {
             const modelOriginal = modelCompiled === undefined ? undefined :
               originalModelRunWire(modelCompiled, runDefinition, maxOptionalBytes);
             if (modelCompiled !== undefined && modelOriginal === undefined) return undefined;
@@ -352,7 +455,7 @@ export function installNodeClientEffectRun({moon,
             // async construction stays joined to its original acceptance
             // before refusal; settlement is not a cleanup acknowledgement.
             try {
-              await new Promise((resolve, reject) => Reflect.apply(
+              await new Promise<void>((resolve, reject) => Reflect.apply(
                 preparationThen, originalPreparation, [() => resolve(), reject]));
             } catch {
               // A rejected async constructor remains invalid at this sync
@@ -379,7 +482,7 @@ export function installNodeClientEffectRun({moon,
         connection, compile: compiled, requiresQueryTime});
       return handle;
     },
-    async start(handle, {beforePhysicalStart, started, signal} = {}) {
+    async start(handle: object, {beforePhysicalStart, started, signal}: StartOptions = {}) {
       const owned = handles.get(handle);
       if (owned === undefined ||
           beforePhysicalStart !== undefined &&
@@ -389,7 +492,7 @@ export function installNodeClientEffectRun({moon,
       }
       const {prepared, identity, namespaceId, principalId, connection, compile, requiresQueryTime} = owned;
       const start = await startRun({identity, namespaceId, principalId, connection});
-      const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control);
+      const retained = journal.resolveDefinition(identity, {namespaceId}, moon, control)!;
       if (retained.physicalStartReserved !== false ||
           retained.preDispatchFailureConfirmed) {
         return Object.freeze({kind: 'reconcile', ref: start.ref});
@@ -406,8 +509,8 @@ export function installNodeClientEffectRun({moon,
         throw denied();
       }
       const compilation = compile();
-      const original = updateTargetOriginals?.validateRun({prepared, compilation,
-        evidence, runDefinition: retained.runDefinition, identity}) ?? {};
+      const original: UpdateSelection = updateTargetOriginals?.validateRun({prepared, compilation,
+        evidence: evidence as RunUpdateEvidence, runDefinition: retained.runDefinition, identity}) ?? {};
       if (compile.initialOriginal !== undefined) {
         checkInitialEffectPreparation(compile.initialOriginal, prepared, identity, compilation, retained, moon);
       }
@@ -449,7 +552,7 @@ export function installNodeClientEffectRun({moon,
       }
       signal?.throwIfAborted();
       original.assertUpdateSelectionCurrent?.();
-      let preparedExecution;
+      let preparedExecution: unknown;
       if (prepareExecution !== undefined && authorized === true) {
         try {
           preparedExecution = prepareExecution(Object.freeze({ref: start.ref,
@@ -459,7 +562,7 @@ export function installNodeClientEffectRun({moon,
             originalSubmittedIntent,
             ...original,
             resultPolicyOriginal: evidence.resultPolicyOriginal}));
-          if (typeof preparedExecution?.then === 'function') {
+          if (typeof (preparedExecution as {then?: unknown} | null | undefined)?.then === 'function') {
             // A misinstalled asynchronous preparer is not a physical-start
             // permit. Consume its eventual rejection without accepting it
             // as evidence or retrying this Run.
@@ -510,7 +613,7 @@ export function installNodeClientEffectRun({moon,
     // owner. This grants no physical-start permit and never clears the Run's
     // original start claim. The caller must retain its fenced continuation
     // and restore completed inputs before asking an adapter for new I/O.
-    async restoreComputation(handle) {
+    async restoreComputation(handle: Readonly<{ref: WireRunRef}>) {
       const owned = handles.get(handle);
       if (owned === undefined) throw denied();
       const {prepared, identity, namespaceId, principalId, connection, compile, requiresQueryTime} = owned;
@@ -528,8 +631,8 @@ export function installNodeClientEffectRun({moon,
         throw denied();
       }
       const compilation = compile();
-      const original = updateTargetOriginals?.validateRun({prepared, compilation,
-        evidence, runDefinition: retained.runDefinition, identity}) ?? {};
+      const original: UpdateSelection = updateTargetOriginals?.validateRun({prepared, compilation,
+        evidence: evidence as RunUpdateEvidence, runDefinition: retained.runDefinition, identity}) ?? {};
       const allowed = checked(moon.clientProgramAdmitAllowedEffectRun(compilation,
         admitEvidence('prepared_invocation', evidence.prepared),
         admitEvidence('run_authorization', evidence.authorization)));
@@ -560,7 +663,7 @@ export function installNodeClientEffectRun({moon,
       const preparationThen = originalPreparation?.then;
       if (typeof preparationThen === 'function') {
         try {
-          await new Promise((resolve, reject) => Reflect.apply(
+          await new Promise<void>((resolve, reject) => Reflect.apply(
             preparationThen, originalPreparation, [() => resolve(), reject]));
         } catch { /* Join the same invalid borrow before refusing it. */ }
         throw new TypeError('AsyncClientEffectDefinitionPreparation');
@@ -578,7 +681,7 @@ export function installNodeClientEffectRun({moon,
         if (!moon.clientProgramEffectRunStartCurrent(allowed, definition, now())) throw expired(retained.ref);
       }
       const preparedExecution = prepareExecution?.(facts);
-      if (typeof preparedExecution?.then === 'function') {
+      if (typeof (preparedExecution as {then?: unknown} | null | undefined)?.then === 'function') {
         void Promise.resolve(preparedExecution).catch(() => {});
         throw new TypeError('AsyncClientEffectPreparation');
       }
