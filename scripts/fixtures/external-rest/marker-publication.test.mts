@@ -4,9 +4,10 @@ import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
-import {publishStandardRestBarrier} from './cancel-conformance.mjs';
+import type {TestContext} from 'node:test';
+import {publishStandardRestBarrier} from './publish-barrier.mjs';
 
-async function fixture(t) {
+async function fixture(t: TestContext) {
   const root = await mkdtemp(join(tmpdir(), 'actql-rest-marker-'));
   t.after(() => rm(root, {recursive: true, force: true}));
   return join(root, 'marker.json');
@@ -33,9 +34,9 @@ test('REST marker final-name collision preserves the first bytes and physical or
 });
 
 test('REST marker preserves the original write failure without a published name', async t => {
-  const path = await fixture(t), originalWrite = fs.writeFile;
+  const path = await fixture(t), originalWrite: typeof fs.writeFile = fs.writeFile;
   const primary = Object.assign(new Error('synthetic original write failed'), {code: 'EIO'});
-  t.mock.method(fs, 'writeFile', (candidate, ...args) => candidate === path + '.pending'
+  t.mock.method(fs, 'writeFile', (candidate: Parameters<typeof originalWrite>[0], ...args: [Parameters<typeof originalWrite>[1], Parameters<typeof originalWrite>[2]?]) => candidate === path + '.pending'
     ? Promise.reject(primary) : originalWrite(candidate, ...args));
   syncBuiltinESMExports();
   try {

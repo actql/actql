@@ -11,7 +11,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {createInstalledFamilyScenario} from './external-rest/fixture-source/adapters/host-node/fixtures/installed-family-scenario.fixture.mjs';
 import {externalRestDefinition, externalRestProvider, externalRestProgram} from './external-rest/provider.fixture.mjs';
 import {externalRestConfiguration} from './external-rest/configuration.mjs';
-import {publishStandardRestBarrier} from './external-rest/cancel-conformance.mjs';
+import {publishStandardRestBarrier} from './external-rest/publish-barrier.mjs';
 import {runNativeInstallCommand} from '../release-install-child.mjs';
 import {verifyNodeBenchmarkPackages} from '../benchmark-node-operations.mjs';
 import {inventory} from '../package-release.mjs';
