@@ -1403,8 +1403,18 @@ test "prepared static Effect Explanation renders the admitted original within it
 
 ///|
 test "prepared static Effect Explanation reuses its borrowed singleton or composed Model plans" {
-  for plural in [false, true] {
-    let (parent, input, holder) = request_effect_model_material_fixture(plural~)
+  let mut first_parameters = None
+  for
+    (plural, parameter) in [
+      (false, None),
+      (true, None),
+      (false, Some("private_original_a")),
+      (false, Some("private_original_b")),
+    ] {
+    let (parent, input, holder) = request_effect_model_material_fixture(
+      plural~,
+      parameter~,
+    )
     let prepared = @resources.preparation_body_borrow_value(holder).unwrap()
     let occurrences = @publication_host.prepared_client_effect_infer_occurrences(
       prepared,
@@ -1446,6 +1456,22 @@ test "prepared static Effect Explanation reuses its borrowed singleton or compos
       is Some(@identity.Array(items)) else {
       fail("Context must contain its original item inventory")
     }
+    if parameter is Some(original) {
+      let binding = @identity.object_field(context, "binding").unwrap()
+      let identity = @publication_host.prepared_client_effect_identity(prepared)
+      assert_true(
+        @identity.object_field(binding, "parameter_values_cid")
+        is Some(@identity.String(cid)) &&
+        cid == identity.parameter_values_cid,
+      )
+      assert_false(value.context.contains(original))
+      assert_false(value.facts.contains(original))
+      assert_false(value.plan.contains(original))
+      match first_parameters {
+        None => first_parameters = Some(identity.parameter_values_cid)
+        Some(prior) => assert_false(prior == identity.parameter_values_cid)
+      }
+    }
     let mut found = 0
     for index in 0..<@identity.array_count(items) {
       let item = @identity.array_at(items, index).unwrap()
@@ -1455,6 +1481,31 @@ test "prepared static Effect Explanation reuses its borrowed singleton or compos
           @identity.object_field(item, "task_id")
           is Some(@identity.String("model-task:risk-score.v1")),
         )
+        if parameter is Some(_) {
+          guard @identity.object_field(item, "input_bindings")
+            is Some(@identity.Array(inputs)) else {
+            fail("Model Context must contain checked input bindings")
+          }
+          let selected = @identity.array_at(inputs, 0).unwrap()
+          assert_eq(
+            @identity.stringify_value(
+              @identity.object_field(selected, "binding").unwrap(),
+              100,
+              10,
+              4,
+            ),
+            "{\"name\":\"input_text\",\"state\":\"parameter\"}",
+          )
+          let kind = @identity.object_field(selected, "type").unwrap()
+          assert_true(
+            @identity.object_field(kind, "kind")
+            is Some(@identity.String("string")),
+          )
+          assert_true(
+            @identity.object_field(kind, "nullable")
+            is Some(@identity.Bool(false)),
+          )
+        }
         found += 1
       }
     }

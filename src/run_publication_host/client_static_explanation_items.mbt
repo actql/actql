@@ -100,12 +100,20 @@ fn write_static_explanation_model_input(
   @encode.key(writer, "binding")
   @encode.begin_object(writer)
   match @expression.node_form(expression, 0) {
-    Some(Expression(form, body)) if form == "field" || form == "parameter" => {
+    Some(Expression(form, body)) if form == "field" || form == "$param" => {
       guard @decode.text(body) is Ok(name) else {
         raise @encode.InvalidStructure
       }
       explanation_text(writer, "name", name)
-      explanation_text(writer, "state", form)
+      explanation_text(
+        writer,
+        "state",
+        if form == "$param" {
+          "parameter"
+        } else {
+          "field"
+        },
+      )
     }
     Some(Expression("literal", _)) =>
       explanation_text(writer, "state", "redacted")
