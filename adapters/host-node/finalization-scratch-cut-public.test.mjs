@@ -28,16 +28,14 @@ test('completed managed finalization retires scratch before publication while ou
  const loader=registerHooks({load(url,context,next){
   const loaded=next(url,context);if(url!==target)return loaded;
   const original=String(loaded.source);
-  const reserve=`      return checkedPreparation(state.context.runtime,
-        state.context.runtime.clientProgramReservePublication(
-          run.value, prepared));`;
-  const stop='      liveRuns.delete(run);producer.liveRuns--;';
+  const reserve='            return checkedPreparation(state.context.runtime, state.context.runtime.clientProgramReservePublication(run.value, prepared));';
+  const stop=`            liveRuns.delete(run);
+            producer.liveRuns--;
+            producer.preparation = undefined;`;
   assert.equal(original.split(reserve).length,2);assert.equal(original.split(stop).length,2);
-  const source=original.replace(reserve,`      const publication = checkedPreparation(state.context.runtime,
-        state.context.runtime.clientProgramReservePublication(
-          run.value, prepared));
-      globalThis[Symbol.for('actql.test.finalization-scratch-cut')](state,'publication');
-      return publication;`).replace(stop,`      globalThis[Symbol.for('actql.test.finalization-scratch-cut')](state,'stopped');\n${stop}`);
+  const source=original.replace(reserve,`            const publication = checkedPreparation(state.context.runtime, state.context.runtime.clientProgramReservePublication(run.value, prepared));
+            globalThis[Symbol.for('actql.test.finalization-scratch-cut')](state,'publication');
+            return publication;`).replace(stop,`            globalThis[Symbol.for('actql.test.finalization-scratch-cut')](state,'stopped');\n${stop}`);
   console.log(JSON.stringify({testInstrumentation:'readonly-finalization-accounting',cohort:coherence.sourceTreeDigest,originalSha256:createHash('sha256').update(original).digest('hex'),instrumentedSha256:createHash('sha256').update(source).digest('hex')}));
   return {...loaded,source};
  }});

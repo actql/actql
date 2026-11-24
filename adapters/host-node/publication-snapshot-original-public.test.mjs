@@ -14,13 +14,13 @@ const hookKey=Symbol.for('actql.test.snapshot-original');
 let open,coherence,loader;
 before(async()=>{
  coherence=await verifyLocalSourceRuntime(root);
- const target=new URL('../../packages/local-node/adapters/host-common/runtime-core.mjs',import.meta.url).href;
+ const target=new URL('../../packages/local-node/adapters/host-common/runtime-captured-publication-control.mjs',import.meta.url).href;
  loader=registerHooks({load(url,context,next){
   const loaded=next(url,context);if(url!==target)return loaded;
   const original=String(loaded.source);
-  const begin='    const snapshot = checked(moon.clientProgramBeginSnapshot(publication, output));';
+  const begin='        const snapshot = checked(moon.clientProgramBeginSnapshot(publication, output));';
   assert.equal(original.split(begin).length,2,'one exact typed snapshot issuer seam');
-  const source=original.replace(begin,`    const snapshot = checked(globalThis[Symbol.for('actql.test.snapshot-original')].begin(moon,publication,output));\n    await globalThis[Symbol.for('actql.test.snapshot-original')].afterBegin(snapshot);`);
+  const source=original.replace(begin,`        const snapshot = checked(globalThis[Symbol.for('actql.test.snapshot-original')].begin(moon,publication,output));\n        await globalThis[Symbol.for('actql.test.snapshot-original')].afterBegin(snapshot);`);
   console.log(JSON.stringify({testInstrumentation:'snapshot-original-negative',path:target,originalSha256:createHash('sha256').update(original).digest('hex'),instrumentedSha256:createHash('sha256').update(source).digest('hex')}));
   return {...loaded,source};
  }});
