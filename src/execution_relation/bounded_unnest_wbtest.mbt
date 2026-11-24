@@ -466,3 +466,51 @@ test "bounded unnest funds persistent original values before row transfer" {
     assert_true(completed_output_available(source))
   }
 }
+
+///|
+test "cancelled UNNEST exposes progress only while its private output drains" {
+  // Twenty four-cell rows need more than one 64-reference cleanup slice.
+  let (control, execution, source) = bounded_unnest_fixture(
+    long_unnest_items_rows(32),
+    large_items=true,
+    max_rows=32,
+    max_work=100000,
+  )
+  for _ in 0..<4096 {
+    if execution.state.emitted >= 20 {
+      break
+    }
+    assert_true(
+      advance_bounded_unnest(execution, 256).unwrap()
+      is BoundedUnnestContinue(..),
+    )
+  }
+  assert_true(execution.state.emitted >= 20)
+  assert_eq(bounded_unnest_cleanup_continuation(execution), -1L)
+  assert_true(@bounded.request_cancel(control))
+  assert_true(
+    advance_bounded_unnest(execution, 1).unwrap() is BoundedUnnestStopped(_, ..),
+  )
+  cleanup_bounded_unnest(execution).unwrap() |> ignore
+  assert_true(bounded_unnest_cleanup_pending(execution))
+  let first = bounded_unnest_cleanup_continuation(execution)
+  assert_true(first > 0L)
+  let output = execution.state.output.unwrap()
+  output.buffer.reading = true
+  assert_eq(bounded_unnest_cleanup_continuation(execution), -1L)
+  output.buffer.reading = false
+  assert_eq(bounded_unnest_cleanup_continuation(execution), first)
+  let mut previous = first
+  for _ in 0..<32 {
+    cleanup_bounded_unnest(execution).unwrap() |> ignore
+    if !bounded_unnest_cleanup_pending(execution) {
+      break
+    }
+    let next = bounded_unnest_cleanup_continuation(execution)
+    assert_true(next > previous)
+    previous = next
+  }
+  assert_false(bounded_unnest_cleanup_pending(execution))
+  assert_eq(bounded_unnest_cleanup_continuation(execution), -1L)
+  assert_true(completed_output_available(source))
+}
