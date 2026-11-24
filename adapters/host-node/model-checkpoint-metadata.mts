@@ -11,8 +11,8 @@ type CheckpointView = Readonly<{
   prepareAttemptId: string | null;
   phase: string;
   checkpointCid: string;
-  runId: string;
-  runDefinitionCid: string;
+  runId: string | null;
+  runDefinitionCid: string | null;
   reviewProjectionCid: string;
   requiredArtifact?: Readonly<{type: string; cid: string}> | null;
 }>;

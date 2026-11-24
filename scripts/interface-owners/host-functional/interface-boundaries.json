@@ -19408,7 +19408,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ef5af1072f02e402080ae2619629c465aa7cabca8644fcd268079f46c9f440af",
+      "sha256": "de87b9a1031a4a5ff0b177393d3977da0eaafa989db3a943ac1751520f1f5030",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -19978,28 +19978,6 @@
           "async": true
         },
         {
-          "name": "installRemoteCheckpoints/init:listCheckpoints/init:listCheckpoints",
-          "parameters": [
-            "input"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:localSigningContext/init:localSigningContext",
-          "parameters": [
-            "principalId",
-            "summary",
-            "signingResource",
-            "signal"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:localSigningContext/init:localSigningContext/assertCurrent/assertCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installRemoteCheckpoints/init:modelAuthorization/init:modelAuthorization",
           "parameters": [
             "runId",
@@ -20098,58 +20076,6 @@
           "async": false
         },
         {
-          "name": "installRemoteCheckpoints/init:resolve/init:resolve",
-          "parameters": [
-            "principalId",
-            "items"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve",
-          "parameters": [
-            "item",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve/init:resolve",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve/init:resolve#2",
-          "parameters": [
-            "key"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve#2",
-          "parameters": [
-            "result",
-            "position"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve#3",
-          "parameters": [
-            "result"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve#4",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
           "name": "installRemoteCheckpoints/init:retainComputationSource/init:retainComputationSource",
           "parameters": [
             "runId",
@@ -20162,16 +20088,6 @@
           "name": "installRemoteCheckpoints/init:retireComputationSources/init:retireComputationSources",
           "parameters": [
             "runId"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:reviewCheckpoint/init:reviewCheckpoint",
-          "parameters": [
-            "principalId",
-            "checkpointCid",
-            "maxBytes",
-            "signal"
           ],
           "async": true
         },
@@ -20260,6 +20176,11 @@
         },
         {
           "name": "installRemoteCheckpoints/installRemoteCheckpoints#8",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "installRemoteCheckpoints/installRemoteCheckpoints#9",
           "parameters": [
             "principal"
           ],
@@ -20342,13 +20263,6 @@
         {
           "name": "installRemoteCheckpoints/stop",
           "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/summaryOf/summaryOf",
-          "parameters": [
-            "view"
-          ],
           "async": true
         },
         {
@@ -20439,7 +20353,6 @@
             "installRemoteCheckpoints/init:heldLookup/init:heldLookup",
             "installRemoteCheckpoints/init:heldOrigin/init:heldOrigin",
             "installRemoteCheckpoints/init:inspectEffectTargetApprovals/init:inspectEffectTargetApprovals",
-            "installRemoteCheckpoints/init:listCheckpoints/init:listCheckpoints",
             "installRemoteCheckpoints/init:modelAuthorization/init:modelAuthorization",
             "installRemoteCheckpoints/init:modelAuthorization/init:modelAuthorization/init:modelAuthorization",
             "installRemoteCheckpoints/init:modelAuthorization/init:modelAuthorization/init:modelAuthorization#2",
@@ -20453,16 +20366,8 @@
             "installRemoteCheckpoints/init:preparation/init:preparation",
             "installRemoteCheckpoints/init:readComputationSource/init:readComputationSource",
             "installRemoteCheckpoints/init:releaseAcquisition/init:releaseAcquisition",
-            "installRemoteCheckpoints/init:resolve/init:resolve",
-            "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve",
-            "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve#2",
-            "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve#3",
-            "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve#4",
-            "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve/init:resolve",
-            "installRemoteCheckpoints/init:resolve/init:resolve/init:resolve/init:resolve#2",
             "installRemoteCheckpoints/init:retainComputationSource/init:retainComputationSource",
             "installRemoteCheckpoints/init:retireComputationSources/init:retireComputationSources",
-            "installRemoteCheckpoints/init:reviewCheckpoint/init:reviewCheckpoint",
             "installRemoteCheckpoints/init:runFinished/init:runFinished",
             "installRemoteCheckpoints/init:runUnitReadContinuation/init:runUnitReadContinuation",
             "installRemoteCheckpoints/init:start/init:start",
@@ -20486,13 +20391,13 @@
             "installRemoteCheckpoints/resumeOne/read/read#2",
             "installRemoteCheckpoints/step/step",
             "installRemoteCheckpoints/stop",
-            "installRemoteCheckpoints/summaryOf/summaryOf",
             "installRemoteCheckpoints/sweep",
             "installRemoteCheckpoints/sweep/sweep",
             "installRemoteCheckpoints/sweep/sweep/sweep",
             "installRemoteCheckpoints/modelCustody/modelCustody",
             "installRemoteCheckpoints/installedSource",
-            "installRemoteCheckpoints/captureInventory"
+            "installRemoteCheckpoints/captureInventory",
+            "installRemoteCheckpoints/installRemoteCheckpoints#9"
           ],
           "exports": [
             "installRemoteCheckpoints"
@@ -20991,10 +20896,7 @@
           }
         },
         {
-          "operations": [
-            "installRemoteCheckpoints/init:localSigningContext/init:localSigningContext",
-            "installRemoteCheckpoints/init:localSigningContext/init:localSigningContext/assertCurrent/assertCurrent"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -21544,7 +21446,6 @@
       ],
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
-        "../../packages/client-wire/index.mjs",
         "../../packages/sdk/host-port.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/checkpoint-approval.mjs",
@@ -21555,15 +21456,238 @@
         "./client-checkpoint-held-deferral.mjs",
         "./client-checkpoint-held-recovery.mjs",
         "./client-checkpoint-model-custody.mjs",
+        "./client-checkpoint-review.mjs",
         "./effect-target-read-inventory.mjs",
         "./installed-host-cleanup.mjs",
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
-        "./model-checkpoint-metadata.mjs",
         "./sqlite-checkpoint-journal.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-checkpoint-review.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "fe53571754129718835e64098ff6c7d09db38b3af3c718dd8417e1b5ed2d52cb",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "MODEL_CHECKPOINT_STORAGE",
+        "createCheckpointReview"
+      ],
+      "operations": [
+        {
+          "name": "createCheckpointReview",
+          "parameters": [
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointReview/init:listCheckpoints/init:listCheckpoints",
+          "parameters": [
+            "input"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointReview/init:localSigningContext/init:localSigningContext",
+          "parameters": [
+            "principalId",
+            "summary",
+            "signingResource",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointReview/init:localSigningContext/init:localSigningContext/assertCurrent/assertCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCheckpointReview/init:resolve/init:resolve",
+          "parameters": [
+            "principalId",
+            "items"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointReview/init:resolve/init:resolve/init:resolve",
+          "parameters": [
+            "item",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointReview/init:resolve/init:resolve/init:resolve/init:resolve",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointReview/init:resolve/init:resolve/init:resolve/init:resolve#2",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointReview/init:resolve/init:resolve/init:resolve#2",
+          "parameters": [
+            "result",
+            "position"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointReview/init:resolve/init:resolve/init:resolve#3",
+          "parameters": [
+            "result"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointReview/init:resolve/init:resolve/init:resolve#4",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointReview/init:reviewCheckpoint/init:reviewCheckpoint",
+          "parameters": [
+            "principalId",
+            "checkpointCid",
+            "maxBytes",
+            "signal"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointReview/modelStoredContinuation",
+          "parameters": [
+            "view"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointReview/summaryOf/summaryOf",
+          "parameters": [
+            "view"
+          ],
+          "async": true
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createCheckpointReview",
+            "createCheckpointReview/init:listCheckpoints/init:listCheckpoints",
+            "createCheckpointReview/init:localSigningContext/init:localSigningContext",
+            "createCheckpointReview/init:localSigningContext/init:localSigningContext/assertCurrent/assertCurrent",
+            "createCheckpointReview/init:resolve/init:resolve",
+            "createCheckpointReview/init:resolve/init:resolve/init:resolve",
+            "createCheckpointReview/init:resolve/init:resolve/init:resolve/init:resolve",
+            "createCheckpointReview/init:resolve/init:resolve/init:resolve/init:resolve#2",
+            "createCheckpointReview/init:resolve/init:resolve/init:resolve#2",
+            "createCheckpointReview/init:resolve/init:resolve/init:resolve#3",
+            "createCheckpointReview/init:resolve/init:resolve/init:resolve#4",
+            "createCheckpointReview/init:reviewCheckpoint/init:reviewCheckpoint",
+            "createCheckpointReview/modelStoredContinuation",
+            "createCheckpointReview/summaryOf/summaryOf"
+          ],
+          "exports": [
+            "MODEL_CHECKPOINT_STORAGE",
+            "createCheckpointReview"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "export function createCheckpointReview(ports: Ports)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "type ResolutionInput = Readonly<{principalId: string; items: ResolutionInputs}>;"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "type ReviewInput = Readonly<{principalId: string; checkpointCid: string; maxBytes: number; signal?: AbortSignal}>;"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "original.view.kind !== 'effect_set' || original.view.prepareAttemptId !== null ||"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const {modelStoredContinuation, review} = createCheckpointReview({journal, evidence,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "const current = journal.originalCheckpointForSigning(original.view.checkpointCid);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "fail('CheckpointReviewUnavailable', error);"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "signal?.throwIfAborted();"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "const bound = Math.min(maxBytes, maxReviewBytes);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-checkpoint-review.mts",
+                "anchor": "const answered = await journal.submitResolutions(admitted);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/remote-acquisition-checkpoint.test.mjs",
+                "anchor": "A4/A7: a held read keeps separate review rights and one answer"
+              },
+              {
+                "path": "adapters/host-node/local-checkpoint-answer.actual.test.mjs",
+                "anchor": "actual Local Mock answers its original Checkpoint after reopen and applies the same Run once"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../packages/client-wire/index.mjs",
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/installed-checkpoint-codec-limits.mjs",
+        "./client-checkpoint-admission-inputs.mjs",
+        "./model-checkpoint-metadata.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []

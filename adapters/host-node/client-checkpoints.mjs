@@ -30,7 +30,6 @@ import {createHeldCheckpointDeferrals} from './client-checkpoint-held-deferral.m
 import {createCheckpointHeldIndex, createCheckpointHeldRecovery} from './client-checkpoint-held-recovery.mjs';
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
-import {modelCheckpointMetadata} from './model-checkpoint-metadata.mjs';
 import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from
   '../host-common/installed-checkpoint-codec-limits.mjs';
 import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
@@ -38,12 +37,10 @@ import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
 import {acquisitionsOf, captureEffectTargets, capturedValueCid, capturedValueWire, coded,
   computationSourceCheckpointId, fail, hex, IDENTIFIER, occurrenceIdentity, occurrenceKey,
   pluralCapture, principals, trustedReviewers, without} from './client-checkpoint-admission-inputs.mjs';
-import {validCheckpointLookup} from '../../packages/client-wire/index.mjs';
+import {createCheckpointReview, MODEL_CHECKPOINT_STORAGE} from './client-checkpoint-review.mjs';
 
 const MAX_REVIEW_BYTES = INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxWireBytes;
-const MAX_PAGE = 100;
 const PAGE = 100;
-const MODEL_CHECKPOINT_STORAGE = 'actql-installed-model-checkpoint-storage/0.1';
 
 // Account admission and signed Checkpoint continuation are distinct Host
 // capabilities. An omitted signer configuration does not make an admitted
@@ -855,44 +852,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
     return sweeping;
   }
 
-  const summaryOf = async view => {
-    let subject;
-    if (view.prepareAttemptId !== null) {
-      const requestId = await heldRequestId(view.prepareAttemptId);
-      if (requestId === undefined) fail('HeldRequestIndexMissing');
-      subject = {kind: 'prepare_attempt',
-        prepareAttemptId: view.prepareAttemptId, requestId};
-    } else {
-      subject = {kind: 'run_unit', runId: view.runId,
-        runDefinitionCid: view.runDefinitionCid};
-    }
-    return Object.freeze({checkpointId: view.checkpointId,
-      checkpointCid: view.checkpointCid, kind: view.kind, phase: view.phase,
-      subject, requiredArtifact: {type: view.requiredArtifact.type,
-        cid: view.requiredArtifact.cid},
-      reviewProjectionCid: view.reviewProjectionCid,
-      requirements: [...view.requirements], createdAt: view.createdAt,
-      expiresAt: view.expiresAt, humanSummary: view.humanSummary,
-      ...modelCheckpointMetadata(journal, view)});
-  };
-
-  async function modelStoredContinuation(view) {
-    if (view?.kind !== 'model_invocation' || view.prepareAttemptId !== null) {
-      fail('InvalidInstalledModelContinuation');
-    }
-    const held = await evidence.open(`model-${view.runId}`);
-    if (held.requestCid !== view.runDefinitionCid) fail('ModelContinuationRunMismatch');
-    const record = await held.record('continuation_record', view.continuationStateCid);
-    if (record?.version !== MODEL_CHECKPOINT_STORAGE ||
-        record.run_definition_cid !== view.runDefinitionCid ||
-        record.model_invocation_scope_cid !== view.requiredArtifact.cid ||
-        record.review_projection_cid !== view.reviewProjectionCid ||
-        !/^sha256:[0-9a-f]{64}$/u.test(record.review_storage_cid ?? '') ||
-        typeof record.continuation_wire !== 'string') {
-      fail('InvalidInstalledModelContinuation');
-    }
-    return {held, record};
-  }
+  const {modelStoredContinuation, review} = createCheckpointReview({journal, evidence,
+    contractControl, gate, authorityScopeCid, ownerPrincipal, siteKey, readers, answerers, trusted,
+    maxReviewBytes, heldRequestId, resumeAfterAnswer, sweep, get closed() { return closed; }});
 
   return Object.freeze({
     configured,
@@ -1811,202 +1773,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
 
     prepareAttemptIdOf,
 
-    async listCheckpoints(input) {
-      const {principalId, after, limit, checkpointId} = input;
-      if (!(principalId === ownerPrincipal || readers.has(principalId) ||
-          answerers.has(principalId))) {
-        fail('CheckpointListDenied');
-      }
-      const lookup = Object.hasOwn(input, 'checkpointId');
-      // This empty shape probes only the public Owner's identifier class. It
-      // is not a Journal observation or a fabricated lookup return value.
-      if (lookup && (after !== '' || limit !== 1 ||
-          !validCheckpointLookup({items: []}, checkpointId))) {
-        fail('InvalidCheckpointLookup');
-      }
-      journal.expire();
-      if (lookup) {
-        // Inspect uses this same Journal's exact ID/CID index and refuses
-        // ambiguous IDs. A CID fallback is not an ID match or a new grant.
-        const view = journal.inspect(checkpointId);
-        if (view === undefined || view.checkpointId !== checkpointId || view.closure !== 'open') {
-          return Object.freeze({items: []});
-        }
-        const summary = await summaryOf(view);
-        const current = journal.inspect(view.checkpointCid);
-        if (current?.checkpointId !== checkpointId || current.closure !== 'open') {
-          return Object.freeze({items: []});
-        }
-        return Object.freeze({items: [summary]});
-      }
-      const bounded = Math.min(limit, MAX_PAGE);
-      const rows = journal.listPending({after: after === '' ? undefined
-        : after, limit: bounded + 1});
-      const page = rows.slice(0, bounded);
-      return Object.freeze({items: await Promise.all(page.map(summaryOf)),
-        ...(rows.length > bounded ? {next: page.at(-1).cursor} : {})});
-    },
-
-    // The ordinary Local default signs only an explicitly selected original
-    // Checkpoint, never arbitrary caller DATA. These current decisions are
-    // distinct from the Effect Delegate/approval and the actual key/use claim.
-    async localSigningContext({principalId, summary, signingResource, signal}) {
-      if (principalId !== ownerPrincipal || !answerers.has(principalId) ||
-          !readers.has(principalId) || typeof signingResource !== 'string') {
-        fail('CheckpointAnswerDenied');
-      }
-      const original = journal.originalCheckpointForSigning(summary?.checkpointCid);
-      if (original.view.kind !== 'effect_set' || original.view.prepareAttemptId !== null ||
-          original.view.closure !== 'open' ||
-          canonicalValueJson(await summaryOf(original.view)) !== canonicalValueJson(summary)) {
-        fail('LocalSigningOriginalConflict');
-      }
-      const decisions = [];
-      for (const [resource, operation] of [['run', 'read'], ['run', 'resolve'], [signingResource, 'sign']]) {
-        signal?.throwIfAborted();
-        const decision = await gate.authorize('preparation',
-          {connection: siteKey, resource, operation},
-          {subjectCid: original.view.checkpointCid, signal});
-        if (decision.action !== 'dispatch') throw new ExecutionAuthorizationError(decision);
-        decisions.push(decision);
-      }
-      const assertCurrent = () => {
-        signal?.throwIfAborted();
-        if (closed) fail('ClientHostClosing');
-        gate.assertConfigurationCurrent();
-        for (const decision of decisions) gate.assertAccountCurrent(decision);
-        const current = journal.originalCheckpointForSigning(original.view.checkpointCid);
-        if (current.wire !== original.wire || current.view.closure !== 'open') {
-          fail('LocalSigningOriginalConflict');
-        }
-        const state = journal.getRunState(original.view.runId);
-        if (state?.status !== 'waiting_checkpoint' || state.cancelRequested === true) {
-          fail('LocalSigningOriginalConflict');
-        }
-      };
-      assertCurrent();
-      return Object.freeze({...original, configurationCid: gate.configurationCid,
-        assertCurrent});
-    },
-
-    async reviewCheckpoint({principalId, checkpointCid, maxBytes, signal}) {
-      if (!readers.has(principalId)) fail('CheckpointReviewDenied');
-      const view = journal.inspect(checkpointCid);
-      // Only a Checkpoint of this Host scope, named by its exact CID, and
-      // only its own review projection; never an arbitrary Store CID.
-      if (view === undefined || view.checkpointCid !== checkpointCid ||
-          view.prepareAttemptId === null &&
-            !['effect_set', 'read_access', 'model_invocation'].includes(view.kind)) {
-        fail('CheckpointReviewDenied');
-      }
-      if (view.closure === 'expired' || view.closure === 'cancelled') {
-        fail('CheckpointReviewUnavailable');
-      }
-      signal?.throwIfAborted();
-      const bound = Math.min(maxBytes, maxReviewBytes);
-      let bytes;
-      try {
-        if (view.kind === 'model_invocation') {
-          const {held, record} = await modelStoredContinuation(view);
-          bytes = await held.bytes('review_projection', record.review_storage_cid,
-            {maxBytes: bound});
-          const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-          const review = contractControl.admitRunEvidence('run_review_projection', wire,
-            {maxWireBytes: bound, maxNodes: 10000, maxDepth: 64});
-          if (review.wire !== wire || review.identity !== view.reviewProjectionCid) {
-            fail('ModelReviewProjectionMismatch');
-          }
-        } else if (view.kind === 'effect_set' && view.prepareAttemptId === null) {
-          const opened = await evidence.open(`effect-${view.runId}`);
-          if (opened.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
-          // Old pending checkpoints retain their original full-byte identity;
-          // this read never upgrades their evidence or reissues a checkpoint.
-          if (opened.held('review_projection').includes(view.reviewProjectionCid)) {
-            bytes = await opened.bytes('review_projection', view.reviewProjectionCid,
-              {maxBytes: bound});
-          } else {
-            bytes = await opened.artifactBytes('review_projection', view.reviewProjectionCid,
-              {maxBytes: bound});
-            const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-            const review = contractControl.admitRunEvidence('review_projection', wire,
-              {...INSTALLED_EFFECT_CHECKPOINT_LIMITS, maxWireBytes: bound});
-            if (review.wire !== wire || review.identity !== view.reviewProjectionCid) {
-              fail('EffectReviewProjectionMismatch');
-            }
-            const body = JSON.parse(wire);
-            if (body.effect_preview_cid !== view.requiredArtifact.cid ||
-                body.authority_scope_cid !== authorityScopeCid ||
-                JSON.stringify(body.approval_claims) !== JSON.stringify(view.requirements)) {
-              fail('EffectReviewProjectionMismatch');
-            }
-          }
-        } else {
-          const opened = await evidence.open(view.prepareAttemptId ?? `effect-${view.runId}`);
-          bytes = await opened.bytes('review_projection',
-            view.reviewProjectionCid, {maxBytes: bound});
-        }
-      } catch (error) {
-        if (error?.code === 'EvidenceReadLimitExceeded') {
-          fail('CheckpointReviewTooLarge');
-        }
-        fail('CheckpointReviewUnavailable', error);
-      }
-      signal?.throwIfAborted();
-      return Object.freeze({kind: 'review', checkpointCid,
-        artifactCid: view.reviewProjectionCid, byteLength: bytes.byteLength,
-        contentBase64: bytes.toString('base64')});
-    },
-
-    // Admit each signed answer on its own. The authenticated principal must
-    // be the principal of the trusted reviewer whose key signed it; the
-    // caller's claims about itself are never used.
-    async resolve({principalId, items}) {
-      if (!answerers.has(principalId)) fail('CheckpointAnswerDenied');
-      const results = new Array(items.length);
-      const admitted = [];
-      const positions = [];
-      items.forEach((item, index) => {
-        let reviewer;
-        try {
-          const resolution = JSON.parse(item.resolutionWire);
-          reviewer = trusted.get(resolution?.proof?.key_id);
-          if (resolution?.checkpoint_cid !== item.checkpointCid) {
-            throw coded('ResolutionCheckpointMismatch');
-          }
-        } catch (error) {
-          results[index] = {checkpointCid: item.checkpointCid,
-            status: 'invalid', reason: error?.code ?? 'InvalidResolution'};
-          return;
-        }
-        if (reviewer === undefined || reviewer.principalId !== principalId) {
-          results[index] = {checkpointCid: item.checkpointCid,
-            status: 'invalid', reason: 'AnswerPrincipalMismatch'};
-          return;
-        }
-        admitted.push({checkpointCid: item.checkpointCid,
-          resolutionWire: item.resolutionWire,
-          approvalEvidenceWire: item.approvalEvidenceWire});
-        positions.push(index);
-      });
-      if (admitted.length > 0) {
-        const answered = await journal.submitResolutions(admitted);
-        answered.forEach((result, position) => {
-          results[positions[position]] = Object.fromEntries(
-            ['checkpointCid', 'status', 'decision', 'resolutionCid', 'reason']
-              .filter(key => result[key] !== undefined && result[key] !== null)
-              .map(key => [key, result[key]]));
-        });
-      }
-      // The answer is stored; resuming is this Host's separate work. A Host
-      // that only records answers leaves the durable intent to the next
-      // Host start (for example a separate executing Host process).
-      if (resumeAfterAnswer && results.some(result =>
-        result.status === 'committed' && result.decision === 'approved')) {
-        void sweep();
-      }
-      return Object.freeze({results: results.map(item =>
-        Object.freeze(item))});
-    },
+    ...review,
 
     // Install the Host's physical port for held requests ({inspect, resume,
     // abandon, observe}), then sweep once (Host start).
