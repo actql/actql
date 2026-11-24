@@ -38,6 +38,8 @@ import {acquisitionsOf, captureEffectTargets, capturedValueCid, capturedValueWir
   computationSourceCheckpointId, fail, hex, IDENTIFIER, occurrenceIdentity, occurrenceKey,
   pluralCapture, principals, trustedReviewers, without} from './client-checkpoint-admission-inputs.mjs';
 import {createCheckpointReview, MODEL_CHECKPOINT_STORAGE} from './client-checkpoint-review.mjs';
+import {createCheckpointComputationSource, createCheckpointSourceSelection}
+  from './client-checkpoint-computation-source.mjs';
 
 const MAX_REVIEW_BYTES = INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxWireBytes;
 const PAGE = 100;
@@ -283,17 +285,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   }
   const effectTargetAuthorities = new Map(installedEffectTargets.map(installed =>
     [installed.authority, installed]));
-  function installedSource(occurrence) {
-    const installed = sources === undefined ? installedSources[0]
-      : installedSources.find(item => item.configuration.sourceRef ===
-        occurrence.checkedSource.sourceRef);
-    if (installed === undefined ||
-        (installed.configuration.sourceRef !== undefined &&
-          installed.configuration.sourceRef !== occurrence.checkedSource.sourceRef)) {
-      fail('HeldAcquisitionChanged');
-    }
-    return installed;
-  }
+  const installedSource = createCheckpointSourceSelection({sources, installedSources});
   function captureInventory(captured) {
     const inventory = acquisitionsOf(captured);
     if (pluralCapture(captured) && sources === undefined &&
@@ -856,6 +848,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
     contractControl, gate, authorityScopeCid, ownerPrincipal, siteKey, readers, answerers, trusted,
     maxReviewBytes, heldRequestId, resumeAfterAnswer, sweep, get closed() { return closed; }});
 
+  const computationSource = createCheckpointComputationSource({installedSource,
+    createLocalAuthorizationGate, journal, evidence, accountConstruction, decisionOptions,
+    decide, answeringAuthorities, authorities, binding, authorityScopeCid, ownerPrincipal,
+    now, maxReviewBytes, checkpointTtlMs});
+
   return Object.freeze({
     configured,
     journal,
@@ -1351,132 +1348,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         throw error;
       }
     },
-    // A Source read inside an admitted Effect Run uses the same durable
-    // Run-unit owner as Effect commit, but its own Source account and exact
-    // acquisition occurrence. An Effect answer is never a read permit.
-    async computationSourceAuthorization({runId, runDefinitionCid, unitId,
-      occurrence, declaredResults, continuation, beforeDefer, journalPort = journal}) {
-      // The checked Program/Plan owns Source cardinality. This original port's
-      // ordinal is not a second Host limit on the number of acquired Sources.
-      if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
-          typeof runDefinitionCid !== 'string' ||
-          typeof continuation !== 'function' || typeof beforeDefer !== 'function' ||
-          !Array.isArray(declaredResults) ||
-          ![occurrence?.stage, occurrence?.input, occurrence?.task]
-            .every(value => Number.isSafeInteger(value) && value >= 0)) {
-        fail('InvalidComputationSourceContinuation');
-      }
-      occurrence = JSON.parse(JSON.stringify(occurrence));
-      const freeze = value => {
-        if (value !== null && typeof value === 'object') {
-          for (const item of Object.values(value)) freeze(item);
-          Object.freeze(value);
-        }
-        return value;
-      };
-      freeze(occurrence);
-      declaredResults = Object.freeze([...declaredResults]);
-      const {configuration, gate: current} = installedSource(occurrence);
-      const scope = Object.freeze({version: 'actql-effect-source-read-scope/0.1',
-        run_definition_cid: runDefinitionCid, unit_id: unitId,
-        authority_scope_cid: authorityScopeCid,
-        principal_id: ownerPrincipal, occurrence});
-      const scopeCid = contentCid(scope);
-      const read = await createLocalAuthorizationGate({accountConstruction,
-        accountConfiguration: configuration.accountConfiguration,
-        context: configuration.context, ...decisionOptions, decide,
-        answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
-        deferral: {journal: journalPort, authorities, binding,
-          async describe(view) {
-            if (view.boundary !== 'acquisition' ||
-                view.subject.subject_cid !== scopeCid) {
-              fail('InvalidComputationSourceCheckpointBoundary');
-            }
-            // The acquisition owner confirms durable custody before the
-            // continuation may refer to any earlier completed Source.
-            await beforeDefer();
-            const wire = await continuation();
-            if (typeof wire !== 'string') fail('InvalidComputationSourceContinuation');
-            const reviewWire = JSON.stringify({scope,
-              configuration_cid: current.configurationCid,
-              context_cid: current.contextCid});
-            if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');
-            const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
-              {name: 'review_projection', wire: reviewWire},
-              {name: 'continuation_record', wire},
-            ]);
-            const created = now();
-            return {priorStatus: 'running', declaredResults, body: {
-              checkpoint_id: computationSourceCheckpointId(runId, scopeCid),
-              run_id: runId, run_definition_cid: runDefinitionCid,
-              continuation_state_cid: refs[1],
-              subject: {kind: 'run_unit', run_id: runId, unit_id: unitId,
-                continuation: 'resume_unit'},
-              kind: 'read_access',
-              required_artifact: {artifact_type: 'read_scope', artifact_cid: scopeCid},
-              review_projection_cid: refs[0],
-              human_summary: `Read ${occurrence.checkedSource.sourceRef} for Run ${runId}`,
-              created_at: new Date(created).toISOString(),
-              expires_at: new Date(created + checkpointTtlMs).toISOString(),
-            }};
-          },
-        }});
-      if (read.configurationCid !== current.configurationCid ||
-          read.contextCid !== current.contextCid) {
-        read.close();
-        fail('SourceCheckpointConfigurationChanged');
-      }
-      return Object.freeze({scopeCid,
-        assertCurrent: () => read.assertConfigurationCurrent(),
-        authorize: options => read.authorize('acquisition', occurrence.readTuple,
-          {...options, subjectCid: scopeCid}),
-        resume: options => read.resume('acquisition', occurrence.readTuple,
-          {...options, subjectCid: scopeCid}),
-        close: () => read.close(),
-      });
-    },
-    async retainComputationSource(runId, runDefinitionCid, wire) {
-      if (!IDENTIFIER.test(runId ?? '') || typeof runDefinitionCid !== 'string') {
-        fail('InvalidComputationSourceContinuation');
-      }
-      const [semanticCid] = await evidence.hold(`effect-${runId}`, runDefinitionCid,
-        [{name: 'source_capture', wire}]);
-      return semanticCid;
-    },
-    // Called only by the acquisition custody owner after confirmed physical
-    // close. A durable waiting/resuming Run still owns its evidence; a failed
-    // pre-Checkpoint persistence has no Run row and can now retire safely.
-    async retireComputationSources(runId) {
-      if (!IDENTIFIER.test(runId ?? '')) fail('InvalidComputationSourceContinuation');
-      await evidence.abandon(`effect-${runId}`);
-      return evidence.settle();
-    },
-    async readComputationSource(view, semanticCid, maxBytes) {
-      if (view?.prepareAttemptId !== null ||
-          !['read_access', 'model_invocation'].includes(view.kind)) {
-        fail('InvalidComputationSourceContinuation');
-      }
-      const held = await evidence.open(`effect-${view.runId}`);
-      if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
-      return held.bytes('source_capture', semanticCid, {maxBytes});
-    },
-    async computationSourceReferences(view) {
-      if (view?.prepareAttemptId !== null ||
-          !['read_access', 'model_invocation'].includes(view.kind)) {
-        fail('InvalidComputationSourceContinuation');
-      }
-      const held = await evidence.open(`effect-${view.runId}`);
-      if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
-      return held.held('source_capture');
-    },
-    async computationContinuation(view) {
-      if (view?.kind !== 'read_access' || view.prepareAttemptId !== null) {
-        fail('InvalidComputationSourceContinuation');
-      }
-      const held = await evidence.open(`effect-${view.runId}`);
-      if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
-      return held.record('continuation_record', view.continuationStateCid);
-    },
+    ...computationSource,
     async effectContinuation(view) {
       if (view?.kind !== 'effect_set' || view.prepareAttemptId !== null) {
         fail('InvalidEffectContinuation');

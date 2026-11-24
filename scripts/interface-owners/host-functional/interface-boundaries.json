@@ -19408,7 +19408,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "de87b9a1031a4a5ff0b177393d3977da0eaafa989db3a943ac1751520f1f5030",
+      "sha256": "539f76e16e1dbc9b7bb0c61712904b2d29494044e5182a4f988ba33dd0ba59ab",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -19656,86 +19656,6 @@
         {
           "name": "installRemoteCheckpoints/init:close/init:close",
           "parameters": [],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationContinuation/init:computationContinuation",
-          "parameters": [
-            "view"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization",
-          "parameters": [
-            "runId",
-            "runDefinitionCid",
-            "unitId",
-            "occurrence",
-            "declaredResults",
-            "continuation",
-            "beforeDefer",
-            "journalPort"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/freeze/freeze",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#3",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
-          "parameters": [
-            "options"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#5",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/read/init:describe/init:describe",
-          "parameters": [
-            "view"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/read/read",
-          "parameters": [
-            "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:computationSourceReferences/init:computationSourceReferences",
-          "parameters": [
-            "view"
-          ],
           "async": true
         },
         {
@@ -20060,36 +19980,11 @@
           "async": false
         },
         {
-          "name": "installRemoteCheckpoints/init:readComputationSource/init:readComputationSource",
-          "parameters": [
-            "view",
-            "semanticCid",
-            "maxBytes"
-          ],
-          "async": true
-        },
-        {
           "name": "installRemoteCheckpoints/init:releaseAcquisition/init:releaseAcquisition",
           "parameters": [
             "requestId"
           ],
           "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:retainComputationSource/init:retainComputationSource",
-          "parameters": [
-            "runId",
-            "runDefinitionCid",
-            "wire"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:retireComputationSources/init:retireComputationSources",
-          "parameters": [
-            "runId"
-          ],
-          "async": true
         },
         {
           "name": "installRemoteCheckpoints/init:runFinished/init:runFinished",
@@ -20110,20 +20005,6 @@
           "name": "installRemoteCheckpoints/init:start/init:start",
           "parameters": [
             "port"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/installedSource",
-          "parameters": [
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/installedSource/installed/installed",
-          "parameters": [
-            "item"
           ],
           "async": false
         },
@@ -20310,17 +20191,6 @@
             "installRemoteCheckpoints/init:cancelEffectContinuation/init:cancelEffectContinuation",
             "installRemoteCheckpoints/init:cancelHeld/init:cancelHeld",
             "installRemoteCheckpoints/init:close/init:close",
-            "installRemoteCheckpoints/init:computationContinuation/init:computationContinuation",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/freeze/freeze",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#2",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#3",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#5",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/read/init:describe/init:describe",
-            "installRemoteCheckpoints/init:computationSourceAuthorization/init:computationSourceAuthorization/read/read",
-            "installRemoteCheckpoints/init:computationSourceReferences/init:computationSourceReferences",
             "installRemoteCheckpoints/init:describe/init:describe",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization",
             "installRemoteCheckpoints/init:effectAuthorization/init:effectAuthorization/cleanupPending/cleanupPending",
@@ -20364,10 +20234,7 @@
             "installRemoteCheckpoints/init:modelAuthorization/init:modelAuthorization/port/port",
             "installRemoteCheckpoints/init:modelContinuation/init:modelContinuation",
             "installRemoteCheckpoints/init:preparation/init:preparation",
-            "installRemoteCheckpoints/init:readComputationSource/init:readComputationSource",
             "installRemoteCheckpoints/init:releaseAcquisition/init:releaseAcquisition",
-            "installRemoteCheckpoints/init:retainComputationSource/init:retainComputationSource",
-            "installRemoteCheckpoints/init:retireComputationSources/init:retireComputationSources",
             "installRemoteCheckpoints/init:runFinished/init:runFinished",
             "installRemoteCheckpoints/init:runUnitReadContinuation/init:runUnitReadContinuation",
             "installRemoteCheckpoints/init:start/init:start",
@@ -20379,7 +20246,6 @@
             "installRemoteCheckpoints/installRemoteCheckpoints#6",
             "installRemoteCheckpoints/installRemoteCheckpoints#7",
             "installRemoteCheckpoints/installRemoteCheckpoints#8",
-            "installRemoteCheckpoints/installedSource/installed/installed",
             "installRemoteCheckpoints/resumeGate/init:describe/init:describe",
             "installRemoteCheckpoints/resumeOne/cancelRequested/cancelRequested",
             "installRemoteCheckpoints/resumeOne/outcome/init:beforePhysicalStart/init:beforePhysicalStart",
@@ -20395,7 +20261,6 @@
             "installRemoteCheckpoints/sweep/sweep",
             "installRemoteCheckpoints/sweep/sweep/sweep",
             "installRemoteCheckpoints/modelCustody/modelCustody",
-            "installRemoteCheckpoints/installedSource",
             "installRemoteCheckpoints/captureInventory",
             "installRemoteCheckpoints/installRemoteCheckpoints#9"
           ],
@@ -21453,6 +21318,7 @@
         "../host-common/installed-checkpoint-codec-limits.mjs",
         "./checkpoint-runtime.mjs",
         "./client-checkpoint-admission-inputs.mjs",
+        "./client-checkpoint-computation-source.mjs",
         "./client-checkpoint-held-deferral.mjs",
         "./client-checkpoint-held-recovery.mjs",
         "./client-checkpoint-model-custody.mjs",
@@ -21465,6 +21331,272 @@
         "node:crypto",
         "node:fs/promises",
         "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-checkpoint-computation-source.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "cda98b16d90a45b2f805ccffe9b21c7988dadea5f27fe1b0147cef8bbaf65104",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "createCheckpointComputationSource",
+        "createCheckpointSourceSelection"
+      ],
+      "operations": [
+        {
+          "name": "createCheckpointComputationSource",
+          "parameters": [
+            "installedSource",
+            "createLocalAuthorizationGate",
+            "journal",
+            "evidence",
+            "accountConstruction",
+            "decisionOptions",
+            "decide",
+            "answeringAuthorities",
+            "authorities",
+            "binding",
+            "authorityScopeCid",
+            "ownerPrincipal",
+            "now",
+            "maxReviewBytes",
+            "checkpointTtlMs"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationContinuation/init:computationContinuation",
+          "parameters": [
+            "view"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization",
+          "parameters": [
+            "runId",
+            "runDefinitionCid",
+            "unitId",
+            "occurrence",
+            "declaredResults",
+            "continuation",
+            "beforeDefer",
+            "journalPort"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/freeze/freeze",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#3",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
+          "parameters": [
+            "options"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/read/init:describe/init:describe",
+          "parameters": [
+            "view"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/read/read",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointComputationSource/init:computationSourceReferences/init:computationSourceReferences",
+          "parameters": [
+            "view"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointComputationSource/init:readComputationSource/init:readComputationSource",
+          "parameters": [
+            "view",
+            "semanticCid",
+            "maxBytes"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointComputationSource/init:retainComputationSource/init:retainComputationSource",
+          "parameters": [
+            "runId",
+            "runDefinitionCid",
+            "wire"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointComputationSource/init:retireComputationSources/init:retireComputationSources",
+          "parameters": [
+            "runId"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointSourceSelection",
+          "parameters": [
+            "sources",
+            "installedSources"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointSourceSelection/installedSource",
+          "parameters": [
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointSourceSelection/installedSource/installed/installed",
+          "parameters": [
+            "item"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createCheckpointComputationSource",
+            "createCheckpointComputationSource/init:computationContinuation/init:computationContinuation",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/freeze/freeze",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#2",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#3",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#4",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/init:computationSourceAuthorization#5",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/read/init:describe/init:describe",
+            "createCheckpointComputationSource/init:computationSourceAuthorization/init:computationSourceAuthorization/read/read",
+            "createCheckpointComputationSource/init:computationSourceReferences/init:computationSourceReferences",
+            "createCheckpointComputationSource/init:readComputationSource/init:readComputationSource",
+            "createCheckpointComputationSource/init:retainComputationSource/init:retainComputationSource",
+            "createCheckpointComputationSource/init:retireComputationSources/init:retireComputationSources",
+            "createCheckpointSourceSelection",
+            "createCheckpointSourceSelection/installedSource",
+            "createCheckpointSourceSelection/installedSource/installed/installed"
+          ],
+          "exports": [
+            "createCheckpointComputationSource",
+            "createCheckpointSourceSelection"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-checkpoint-computation-source.mts",
+                "anchor": "export function createCheckpointComputationSource({installedSource, createLocalAuthorizationGate,"
+              },
+              {
+                "path": "adapters/host-node/client-checkpoint-computation-source.mts",
+                "anchor": "export function createCheckpointSourceSelection<Installed extends Source>({sources, installedSources}:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-checkpoint-computation-source.mts",
+                "anchor": "type AuthorizationInput = Readonly<{"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-checkpoint-computation-source.mts",
+                "anchor": "const scopeCid = contentCid(scope);"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "const computationSource = createCheckpointComputationSource({installedSource,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoint-computation-source.mts",
+                "anchor": "await beforeDefer();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoint-computation-source.mts",
+                "anchor": "fail('SourceCheckpointConfigurationChanged');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
+                "anchor": "continuation caller retains actual current refusal before the third Source gate"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-checkpoint-computation-source.mts",
+                "anchor": "if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-checkpoint-computation-source.mts",
+                "anchor": "async computationSourceReferences(view: View)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/acquired-effect-source-authorization.test.mjs",
+                "anchor": "three original Source ports reach the same continuation authorization caller without a two-Source cap"
+              },
+              {
+                "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
+                "anchor": "an acquired Effect Source wait retains its capture and resumes only the exact read"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./client-checkpoint-admission-inputs.mjs",
+        "./local-account-config.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
