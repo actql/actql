@@ -11,6 +11,7 @@ import {runtimeIsError, runtimeOptionalField} from '../host-common/compiler-bind
 import {createOrdinarySourceReaders} from './ordinary-source-reader.mjs';
 import {createOrdinarySourceProducerCustody} from './ordinary-source-producer-custody.mjs';
 import {createOrdinarySourceRequestCustody} from './ordinary-source-request-custody.mjs';
+import {createOrdinarySourceRunCustody} from './ordinary-source-run-custody.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
@@ -102,70 +103,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
   const status = () => Object.freeze({pending: !closed});
   const {captureReader, closeChild, readBytes} = createOrdinarySourceReaders({
     current, pending, fail, get bundle() { return bundle; }});
-  function retainedRunCurrent(run) {
-    const producer = run?.producer, state = producer?.preparation;
-    if (closed || run === undefined || runs.get(run.prepared) !== run ||
-        !liveRuns.has(run) || state === undefined || !state.adopting ||
-        state.prepared !== run.prepared || state.original !== run.original ||
-        receipts.get(producer.receipt) !== producer || run.value === undefined) {
-      fail('ForeignInstalledSourceProducer');
-    }
-    callbacks.retainedValidator(originals);
-    // Keep exact custody across the currentness callback's possible reentry.
-    if (closed || runs.get(run.prepared) !== run || !liveRuns.has(run) ||
-        producer.preparation !== state || state.original !== run.original) {
-      fail('ForeignInstalledSourceProducer');
-    }
-  }
-  function publicationRunFor(prepared) {
-    const run = runs.get(prepared);
-    retainedRunCurrent(run);
-    resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);
-    return run;
-  }
-  function runFor(prepared) {
-    current();
-    const run = runs.get(prepared);
-    if (run === undefined) fail('NodeManagedRunAdmissionUnavailable');
-    resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, (run.producer.preparation === undefined ? run.operationPlan ?? prepared : run.producer.receipt));
-    return run;
-  }
-  function prepareRun(prepared, purpose, model, content) {
-    current();
-    if (retiredRuns.has(prepared)) fail('ForeignInstalledModelPreparation');
-    const old = runs.get(prepared);
-    if (old !== undefined) {
-      if (old.purpose !== purpose || old.model !== model || old.effectful !== false || old.content !== content || old.operationPlan !== undefined) {
-        fail('ForeignInstalledModelPreparation');
-      }
-      return runFor(prepared).original;
-    }
-    const request = callbacks.request(originals, prepared);
-    const producer = producerForRequest(request);
-    if (producer === undefined || pendingRunRegistrations.has(prepared) ||
-        liveRuns.size + pendingRunRegistrations.size >= 4096) fail('ForeignInstalledSourceProducer');
-    const run = {prepared, request, producer, purpose, model, effectful: false, content, operationPlan: undefined, original: undefined,
-      children: [], fileIdentity: undefined};
-    if (producer.liveRuns === Number.MAX_SAFE_INTEGER) fail('InstalledSourceProducerLimit');
-    producer.liveRuns++;
-    runs.set(prepared, run);
-    liveRuns.add(run);
-    // A failed quote remains attached to this one preparation. It cannot be
-    // retried under a different purpose or replaced by another original.
-    const required = callbacks.requirements(originals, prepared);
-    run.required = required;
-    const producerReceipt = producer.receipt;
-    const requestOriginals = new WeakSet();
-    requestOriginals.add(request);
-    run.original = resourceRuntime.retainOrdinaryManagedRun(prepared, required,
-      () => {
-        current();
-        if (run.producer.receipt !== producerReceipt ||
-            !requestOriginals.has(run.producer.request)) fail('ForeignInstalledSourceProducer');
-      },
-      () => run.children.some(child => child.flight !== undefined || !child.closed), purpose);
-    return run.original;
-  }
+  const {retainedRunCurrent, publicationRunFor, runFor, prepareRun} = createOrdinarySourceRunCustody({
+    originals, callbacks, runs, liveRuns, receipts, retiredRuns, pendingRunRegistrations,
+    producerForRequest, current, fail, get closed() { return closed; }});
   const {originalTimedInvocation, prepareOriginalExplanation, disposeOriginalExplanation,
     cleanupOriginalRequestInput} = createOrdinarySourceRequestCustody({originals, current, fail});
   function constructRequestDomain(state, construct) {

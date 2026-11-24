@@ -17679,13 +17679,13 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function retainedRunCurrent(run)"
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "function retainedRunCurrent(run: Run | undefined)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
                 "anchor": "!liveRuns.has(run)"
               }
             ],
@@ -17706,8 +17706,8 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);"
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original!, run.producer.receipt);"
               }
             ],
             "extension": {

@@ -52222,13 +52222,13 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function retainedRunCurrent(run)"
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "function retainedRunCurrent(run: Run | undefined)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
                 "anchor": "!liveRuns.has(run)"
               }
             ],
@@ -52249,8 +52249,8 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);"
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original!, run.producer.receipt);"
               }
             ],
             "extension": {
@@ -119818,7 +119818,8 @@
             "fail/fail",
             "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation",
             "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#2",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#3"
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#3",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#4"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -120735,12 +120736,7 @@
           }
         },
         {
-          "operations": [
-            "prepareOrdinaryManagedInstallation/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
-            "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun"
-          ],
+          "operations": [],
           "exports": [],
           "attributes": {
             "responsibility": [
@@ -122057,7 +122053,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
                 "anchor": "fail('ForeignInstalledModelPreparation')"
               },
               {
@@ -122071,7 +122067,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
                 "anchor": "fail('ForeignInstalledModelPreparation')"
               },
               {
@@ -123605,19 +123601,19 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function retainedRunCurrent(run)"
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "function retainedRunCurrent(run: Run | undefined)"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function retainedRunCurrent(run)"
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "function retainedRunCurrent(run: Run | undefined)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
                 "anchor": "!liveRuns.has(run)"
               }
             ],
@@ -123638,8 +123634,8 @@
             },
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original, run.producer.receipt);"
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "resourceRuntime.assertOrdinaryManagedRunCurrent(run.original!, run.producer.receipt);"
               }
             ],
             "extension": {
@@ -125174,29 +125170,7 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun",
-          "parameters": [
-            "prepared",
-            "purpose",
-            "model",
-            "content"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun/prepareRun",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
+          "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#4",
           "parameters": [],
           "async": false
         },
@@ -126537,13 +126511,170 @@
         "./ordinary-source-producer-custody.mjs",
         "./ordinary-source-reader.mjs",
         "./ordinary-source-request-custody.mjs",
+        "./ordinary-source-run-custody.mjs",
         "./source-alias-construction.mjs",
         "@actql/client-wire",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "fab0b5c31af9e42f90de5bcbcf286395dfe3924713839a457928dfe658d08eaf"
+      "sha256": "31d405a6ac2d7566b356cd522ecddada778cefd27c42540c5be91d75b35d39dc"
+    },
+    {
+      "module": "adapters/host-node/ordinary-source-run-custody.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "48ac443063d816ef439dbba03c6b6174a06f5977fdb6e4bc1861f1d252797303",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
+      "exports": [
+        "createOrdinarySourceRunCustody"
+      ],
+      "operations": [
+        {
+          "name": "createOrdinarySourceRunCustody",
+          "parameters": [
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRunCustody/prepareRun",
+          "parameters": [
+            "prepared",
+            "purpose",
+            "model",
+            "content"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRunCustody/prepareRun/prepareRun",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRunCustody/prepareRun/prepareRun/prepareRun",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRunCustody/prepareRun/prepareRun#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRunCustody/publicationRunFor",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRunCustody/retainedRunCurrent",
+          "parameters": [
+            "run"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRunCustody/runFor",
+          "parameters": [
+            "prepared"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createOrdinarySourceRunCustody",
+            "createOrdinarySourceRunCustody/prepareRun",
+            "createOrdinarySourceRunCustody/prepareRun/prepareRun",
+            "createOrdinarySourceRunCustody/prepareRun/prepareRun/prepareRun",
+            "createOrdinarySourceRunCustody/prepareRun/prepareRun#2",
+            "createOrdinarySourceRunCustody/publicationRunFor",
+            "createOrdinarySourceRunCustody/retainedRunCurrent",
+            "createOrdinarySourceRunCustody/runFor"
+          ],
+          "exports": [
+            "createOrdinarySourceRunCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "export function createOrdinarySourceRunCustody(ports: Ports)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "export type OrdinarySourceRun = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "receipts.get(producer!.receipt) !== producer"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const {retainedRunCurrent, publicationRunFor, runFor, prepareRun} = createOrdinarySourceRunCustody({"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "callbacks.retainedValidator(originals);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "fail('ForeignInstalledModelPreparation')"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "() => run.children.some(child => child.flight !== undefined || !child.closed), purpose);"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "liveRuns.size + pendingRunRegistrations.size >= 4096"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-custody.mts",
+                "anchor": "function prepareRun(prepared: object, purpose: Purpose, model: unknown, content: unknown)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary source Run retirement waits for actual stop after producer completion"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-run-retirement.test.mjs",
+                "anchor": "ordinary installation close retains admitted Run until original stop and then retires references"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./ordinary-node-resource-runtime.cjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/ordinary-source-request-custody.mjs",
