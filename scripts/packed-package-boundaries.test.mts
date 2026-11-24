@@ -6,7 +6,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import {spawnSync} from 'node:child_process';
 import test, {type TestContext} from 'node:test';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
-import {normalNpmPackJsonArgs, parseNpmPackJson} from './packed-client-packages.mjs';
+import {normalNpmPackJsonArgs, packedClientPackage, parseNpmPackJson} from './packed-client-packages.mjs';
 
 type PackEntry = {name?: string; filename?: string};
 
@@ -174,13 +174,16 @@ test('normal SDK tarball resolves every shipped relative module outside the chec
   try {
     const tarballs = [];
     for (const name of ['client-wire', 'sdk']) {
-      const packed = parseNpmPackJson(run(normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', root]),
-        join(repository, 'packages', name))) as PackEntry[] | Record<string, PackEntry>;
-      const entries = Array.isArray(packed) ? packed : Object.values(packed);
-      assert.equal(entries.length, 1, JSON.stringify(packed));
-      assert.equal(entries[0].name, `@actql/${name}`);
-      assert.equal(typeof entries[0].filename, 'string');
-      tarballs.push(join(root, entries[0].filename!));
+      const standalone = await packedClientPackage({repository, name, destination: root, pack(selected) {
+        const packed = parseNpmPackJson(run(normalNpmPackJsonArgs(['pack', '--json', '--pack-destination', root]),
+          join(repository, 'packages', selected))) as PackEntry[] | Record<string, PackEntry>;
+        const entries = Array.isArray(packed) ? packed : Object.values(packed);
+        assert.equal(entries.length, 1, JSON.stringify(packed));
+        assert.equal(entries[0].name, `@actql/${selected}`);
+        assert.equal(typeof entries[0].filename, 'string');
+        return join(root, entries[0].filename!);
+      }});
+      tarballs.push(typeof standalone === 'string' ? standalone : join(root, `actql-${name}-0.0.0-development.tgz`));
     }
     await writeFile(join(root, 'package.json'), JSON.stringify({private: true, type: 'module'}));
     run(['install', '--ignore-scripts', '--no-audit', '--no-fund', ...tarballs], root);

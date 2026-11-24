@@ -41,6 +41,16 @@ const publishedPrefixes = (consumers, id, operator) => ['local', 'https'].flatMa
     name: `${entrance}: actual 121-row Run preserves its interrupted ${consumer} attempt and permits an explicit new read after restart`,
     assertions: [{id, operator}],
   })));
+const streamedRows = `for (const row of acceptText(decoder.decode(value.subarray(offset, offset + sliceBytes), { stream: true }))) {
+                                    const output = await acceptRow(row);
+                                    controller.signal.throwIfAborted();
+                                    rowsYielded++;
+                                    yield output;`;
+const flushedRows = `for (const row of acceptText(decoder.decode())) {
+                            const output = await acceptRow(row);
+                            controller.signal.throwIfAborted();
+                            rowsYielded++;
+                            yield output;`;
 const mutations = [
   ['an explicit reread silently starts another physical Compute', [
   [
@@ -52,12 +62,12 @@ const mutations = [
     "const readFailure = (cause, context, rowsYielded, prior) => {\n  unsafeReadRecomputations.add(context.ref);"
   ],
   [
-    "import {captureResponse, freezeInput, positive} from './data.mjs';",
-    "import {captureResponse, freezeInput, positive} from './data.mjs';\nimport {unsafeReadSubmissions} from './submission-observation.mjs';"
+    "import { captureResponse, freezeInput, positive } from './data.mjs';",
+    "import { captureResponse, freezeInput, positive } from './data.mjs';\nimport { unsafeReadSubmissions } from './submission-observation.mjs';"
   ],
   [
-    "        try {\n          const response = await runRequest('read', {",
-    "        try {\n          if (unsafeReadRecomputations.delete(ref)) {\n            await unsafeReadSubmissions.get(getExecution())?.();\n          }\n          const response = await runRequest('read', {"
+    "try {\n                    const response = await runRequest('read', {",
+    "try {\n                    if (unsafeReadRecomputations.delete(ref)) {\n                        await unsafeReadSubmissions.get(getExecution())?.();\n                    }\n                    const response = await runRequest('read', {"
   ],
   [
     "const submissionInputs = new WeakMap();",
@@ -87,16 +97,16 @@ const mutations = [
     "      const unsafeOffset = unsafeReadOffsets.get(ref)?.get(name) ?? 0;\n      let rowsYielded = 0, rawRows = 0, retainedBytes = 0;"
   ],
   [
-    "              const output = await acceptRow(row, size);\n              controller.signal.throwIfAborted();\n              rowsYielded++;\n              yield output;",
-    "              const output = await acceptRow(row, size);\n              controller.signal.throwIfAborted();\n              if (rawRows <= unsafeOffset) continue;\n              rowsYielded++;\n              yield output;"
+    "const output = await acceptRow(row, size);\n                            controller.signal.throwIfAborted();\n                            rowsYielded++;\n                            yield output;",
+    "const output = await acceptRow(row, size);\n                            controller.signal.throwIfAborted();\n                            if (rawRows <= unsafeOffset) continue;\n                            rowsYielded++;\n                            yield output;"
   ],
   [
-    "                  rowsYielded++;\n                  yield output;",
-    "                  if (rawRows <= unsafeOffset) continue;\n                  rowsYielded++;\n                  yield output;"
+    streamedRows,
+    streamedRows.replace('rowsYielded++;', 'if (rawRows <= unsafeOffset) continue; rowsYielded++;')
   ],
   [
-    "              rowsYielded++;\n              yield output;\n            }\n            if (line",
-    "              if (rawRows <= unsafeOffset) continue;\n              rowsYielded++;\n              yield output;\n            }\n            if (line"
+    flushedRows,
+    flushedRows.replace('rowsYielded++;', 'if (rawRows <= unsafeOffset) continue; rowsYielded++;')
   ]
 ], ['local', 'https'].flatMap(entrance => ['rows', 'all'].map(consumer => ({
     name: `${entrance}: explicit reordered ${consumer} reread never skips the previous prefix`,
@@ -116,7 +126,7 @@ const mutations = [
   })), 'adapters/host-node/client-read-opening.test.mjs', 'adapters/host-common/result-access.mjs'],
   ['lost terminator is treated as a completed HTTPS read', [
   [
-    "            if (line !== '\\x1e') fail('IncompleteResultStream');",
+    "if (line !== '\\x1e')\n                            fail('IncompleteResultStream');",
     ""
   ]
 ], ['rows', 'all'].map(consumer => ({
@@ -152,25 +162,25 @@ const mutations = [
 ], publishedPrefixes(['rows', 'all'], 'read-121-custody', 'strictEqual'), publishedRunAcceptance],
   ['non-object frames become successful rows', [
   [
-    "                if (row === null || typeof row !== 'object' ||\n                    Array.isArray(row)) fail('InvalidResultFrame');",
+    "if (row === null || typeof row !== 'object' ||\n                                    Array.isArray(row))\n                                    fail('InvalidResultFrame');",
     ""
   ]
 ], shape],
   ['lookup responses retain shared mutable owner records', [
   [
-    "          answer = captureResponse(answer);\n          if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');\n          return retainDeliveryExplanation(freezeInput(answer), {",
+    "answer = captureResponse(answer);\n                    if (!validDeliveryAttemptLookup(answer, expected))\n                        fail('InvalidHostAttemptLookup');\n                    return retainDeliveryExplanation(freezeInput(answer), {",
     "          if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');\n          return retainDeliveryExplanation(Object.freeze(answer), {"
   ]
 ], lookupSnapshots],
   ['lookup clone skips preservation and contract revalidation', [
   [
-    "          if (!validDeliveryAttemptLookup(answer, expected)) fail('InvalidHostAttemptLookup');",
+    "if (!validDeliveryAttemptLookup(answer, expected))\n                        fail('InvalidHostAttemptLookup');",
     ""
   ]
 ], lookupAdmission],
   ['malformed JSON loses its typed refusal', [
   [
-    "                catch { fail('InvalidResultFrame'); }",
+    "catch {\n                                    fail('InvalidResultFrame');\n                                }",
     "                catch (cause) { throw cause; }"
   ]
 ], syntax],
@@ -180,12 +190,12 @@ const mutations = [
     "                rowsYielded++;\n                let row;"
   ],
   [
-    "                  rowsYielded++;\n                  yield output;",
-    "                  yield output;"
+    streamedRows,
+    streamedRows.replace('rowsYielded++;', '')
   ],
   [
-    "            for (const row of acceptText(decoder.decode())) {\n              const output = await acceptRow(row);\n              controller.signal.throwIfAborted();\n              rowsYielded++;",
-    "            for (const row of acceptText(decoder.decode())) {\n              const output = await acceptRow(row);\n              controller.signal.throwIfAborted();"
+    flushedRows,
+    flushedRows.replace('rowsYielded++;', '')
   ]
 ], shape],
   ['absent lookup becomes Host delivery success', [
@@ -196,7 +206,7 @@ const mutations = [
 ], observations('before-commit'), observationAcceptance, "packages/sdk/operation-presentation.mjs"],
   ['an uncertain opening is described as a confirmed stopped read', [
   [
-    "state === 'opening' ? {observation: 'read_open_unknown'} : undefined",
+    "state === 'opening' ? { observation: 'read_open_unknown' } : undefined",
     "undefined"
   ]
 ], observations('after-commit'), observationAcceptance],

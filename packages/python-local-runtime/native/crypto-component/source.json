@@ -69,7 +69,7 @@
         "name": "libssl-dev",
         "version": "3.0.13-0ubuntu3.16",
         "architecture": "amd64",
-        "url": "https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl-dev_3.0.13-0ubuntu3.16_amd64.deb",
+        "url": "https://snapshot.ubuntu.com/ubuntu/20261101T000000Z/pool/main/o/openssl/libssl-dev_3.0.13-0ubuntu3.16_amd64.deb",
         "bytes": 2408684,
         "sha256": "2b4734df0475e305ac03abb0a2cc5659651ed37ef02d967a1c4033a154cf714b"
       },
@@ -92,7 +92,7 @@
           "name": "libssl3t64",
           "version": "3.0.13-0ubuntu3.16",
           "architecture": "amd64",
-          "url": "https://security.ubuntu.com/ubuntu/pool/main/o/openssl/libssl3t64_3.0.13-0ubuntu3.16_amd64.deb",
+          "url": "https://snapshot.ubuntu.com/ubuntu/20261101T000000Z/pool/main/o/openssl/libssl3t64_3.0.13-0ubuntu3.16_amd64.deb",
           "bytes": 1945300,
           "sha256": "219f43b1cd836a4da550938db5fda93160d269d39a4edcf1f1ce698a470db797"
         }
