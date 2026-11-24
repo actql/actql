@@ -3,6 +3,7 @@
 // schedules work, classifies a failure, or supplies authorization policy.
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {randomUUID} from 'node:crypto';
+import {prepareModelResumeStatements} from './model-resume-sqlite.mjs';
 // Physical FFI authentication, not another journal or receipt issuer. Escaped
 // tags cannot retain the journal/Run graph: the source is held only weakly here.
 // Only the existing journal's own issuer below can register a nominal port.
@@ -71,64 +72,6 @@ function immediateAdmission(port, decision, preparedCallSet, facts) {
   return copy(result);
 }
 
-export function createModelResumeTables(database) {
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS run_cancellation_fences (
-      run_id TEXT PRIMARY KEY NOT NULL,
-      owner_json TEXT NOT NULL,
-      original_run_wire TEXT NOT NULL,
-      cancelled_at TEXT NOT NULL
-    ) STRICT;
-    CREATE TABLE IF NOT EXISTS resume_model_scopes (
-      checkpoint_cid TEXT UNIQUE REFERENCES checkpoints (checkpoint_cid),
-      run_id TEXT NOT NULL REFERENCES runs (run_id),
-      scope_cid TEXT PRIMARY KEY NOT NULL,
-      task_index INTEGER NOT NULL CHECK (task_index >= 0),
-      strategy_revision INTEGER NOT NULL CHECK (strategy_revision >= 0),
-      inventory_json TEXT NOT NULL,
-      originals_json TEXT NOT NULL,
-      slot_count INTEGER NOT NULL CHECK (slot_count >= 0),
-      registered_at TEXT NOT NULL,
-      registration_kind TEXT NOT NULL CHECK (registration_kind IN ('immediate', 'deferred')),
-      checkpoint_inventory_json TEXT NOT NULL DEFAULT '',
-      checkpoint_originals_json TEXT NOT NULL DEFAULT '',
-      current_cut_link_json TEXT DEFAULT NULL,
-      current_cut_invalidation_json TEXT DEFAULT NULL,
-      CHECK (registration_kind != 'deferred' OR checkpoint_cid IS NOT NULL),
-      UNIQUE (run_id, task_index)
-    ) STRICT;
-    CREATE TABLE IF NOT EXISTS resume_model_slots (
-      scope_cid TEXT NOT NULL REFERENCES resume_model_scopes (scope_cid),
-      ordinal INTEGER NOT NULL CHECK (ordinal >= 0),
-      slot_cid TEXT NOT NULL,
-      binding_json TEXT NOT NULL,
-      state TEXT NOT NULL CHECK (state IN
-        ('Unsent', 'EnteredUnknown', 'SavedSuccess', 'SavedFailure')),
-      attempt_index INTEGER NOT NULL CHECK (attempt_index >= 0),
-      PRIMARY KEY (scope_cid, ordinal),
-      UNIQUE (scope_cid, slot_cid),
-      CHECK ((state = 'Unsent') = (attempt_index = 0))
-    ) STRICT;
-    CREATE TABLE IF NOT EXISTS resume_model_attempts (
-      scope_cid TEXT NOT NULL,
-      ordinal INTEGER NOT NULL,
-      attempt_index INTEGER NOT NULL CHECK (attempt_index >= 1),
-      attempt_cid TEXT NOT NULL UNIQUE,
-      entry_json TEXT NOT NULL,
-      attempt_wire TEXT NOT NULL,
-      authority_wire TEXT NOT NULL,
-      state TEXT NOT NULL CHECK (state IN
-        ('EnteredUnknown', 'SavedSuccess', 'SavedFailure')),
-      settlement_json TEXT NOT NULL DEFAULT '',
-      entered_at TEXT NOT NULL,
-      settled_at TEXT NOT NULL DEFAULT '',
-      PRIMARY KEY (scope_cid, ordinal, attempt_index),
-      FOREIGN KEY (scope_cid, ordinal) REFERENCES resume_model_slots (scope_cid, ordinal),
-      CHECK ((state = 'EnteredUnknown') = (settlement_json = ''))
-    ) STRICT;
-  `);
-}
-
 // Configured trusted ports, all fail closed when absent:
 // admitOriginalRun({originalRunWire}) -> {runId, runDefinitionCid,
 //   preparedInvocationCid}, checked against the original Run admission.
@@ -181,41 +124,7 @@ export function createModelResumeState(database, {
   // Private installation handles belong to this exact journal. They retain
   // admitted original scope data, not a user callback or a COMMIT permission.
   const originalJournalPorts = new WeakMap();
-  const q = {
-    scope: database.prepare('SELECT * FROM resume_model_scopes WHERE checkpoint_cid = ?'),
-    scopeByCid: database.prepare('SELECT * FROM resume_model_scopes WHERE scope_cid = ?'),
-    linkCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = ?, current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json IS NULL AND current_cut_invalidation_json IS NULL'),
-    cutRecords: database.prepare(`SELECT * FROM resume_model_scopes
-      WHERE (current_cut_link_json IS NOT NULL OR current_cut_invalidation_json IS NOT NULL)
-        AND (? IS NULL OR (run_id, task_index, scope_cid) > (?, ?, ?))
-      ORDER BY run_id, task_index, scope_cid LIMIT 1`),
-    updateCutInvalidation: database.prepare('UPDATE resume_model_scopes SET current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json = ? AND current_cut_invalidation_json = ?'),
-    invalidateCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = NULL, current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json = ? AND current_cut_invalidation_json = ?'),
-    slots: database.prepare('SELECT * FROM resume_model_slots WHERE scope_cid = ? ORDER BY ordinal'),
-    attempts: database.prepare('SELECT * FROM resume_model_attempts WHERE scope_cid = ? ORDER BY ordinal, attempt_index'),
-    cancelled: database.prepare('SELECT * FROM run_cancellation_fences WHERE run_id = ?'),
-    insertCancel: database.prepare('INSERT INTO run_cancellation_fences VALUES (?, ?, ?, ?)'),
-    insertScope: database.prepare(`INSERT INTO resume_model_scopes
-      (checkpoint_cid, run_id, scope_cid, task_index, strategy_revision,
-       inventory_json, originals_json, slot_count, registered_at, registration_kind)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`),
-    attachCheckpoint: database.prepare(`UPDATE resume_model_scopes SET checkpoint_cid = ?,
-      checkpoint_inventory_json = ?, checkpoint_originals_json = ?
-      WHERE scope_cid = ? AND checkpoint_cid IS NULL AND registration_kind = 'immediate'`),
-    insertSlot: database.prepare("INSERT INTO resume_model_slots VALUES (?, ?, ?, ?, 'Unsent', 0)"),
-    insertAttempt: database.prepare(`INSERT INTO resume_model_attempts
-      VALUES (?, ?, ?, ?, ?, ?, ?, 'EnteredUnknown', '', ?, '')`),
-    advanceSlot: database.prepare(`UPDATE resume_model_slots
-      SET state = 'EnteredUnknown', attempt_index = ?
-      WHERE scope_cid = ? AND ordinal = ? AND state = ? AND attempt_index = ?`),
-    settleAttempt: database.prepare(`UPDATE resume_model_attempts
-      SET state = ?, settlement_json = ?, settled_at = ?
-      WHERE scope_cid = ? AND ordinal = ? AND attempt_index = ?
-        AND state = 'EnteredUnknown'`),
-    settleSlot: database.prepare(`UPDATE resume_model_slots SET state = ?
-      WHERE scope_cid = ? AND ordinal = ? AND attempt_index = ?
-        AND state = 'EnteredUnknown'`),
-  };
+  const q = prepareModelResumeStatements(database);
   const changed = result => {
     if (result.changes !== 1) fail('ModelResumeStateConflict');
   };

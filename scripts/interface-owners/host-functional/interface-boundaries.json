@@ -90306,15 +90306,151 @@
       "unresolvedSyntax": []
     },
     {
+      "module": "adapters/host-node/model-resume-sqlite.mjs",
+      "responsibilityFacet": "primary",
+      "role": "physical-io",
+      "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
+      "sha256": "e7d9333100f7939b13502d5e282663f98909837f757b6386067f5ddf6adfcf17",
+      "exports": [
+        "createModelResumeTables",
+        "prepareModelResumeStatements"
+      ],
+      "operations": [
+        {
+          "name": "createModelResumeTables",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareModelResumeStatements",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": [],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createModelResumeTables",
+            "prepareModelResumeStatements"
+          ],
+          "exports": [
+            "createModelResumeTables",
+            "prepareModelResumeStatements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "export function createModelResumeTables("
+              },
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "export function prepareModelResumeStatements("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "CREATE TABLE IF NOT EXISTS resume_model_slots ("
+              },
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "SELECT * FROM resume_model_attempts WHERE scope_cid = ? ORDER BY ordinal, attempt_index"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "UNIQUE (run_id, task_index)"
+              },
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "attempt_cid TEXT NOT NULL UNIQUE"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "// The checkpoint journal owns the connection and the transactions."
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "anchor": "if (!initialized) transaction.run(() => {"
+              },
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "AND state = 'EnteredUnknown'"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "CHECK ((state = 'EnteredUnknown') = (settlement_json = ''))"
+              },
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "CHECK ((state = 'Unsent') = (attempt_index = 0))"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "CREATE TABLE IF NOT EXISTS run_cancellation_fences ("
+              },
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "SELECT * FROM run_cancellation_fences WHERE run_id = ?"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "ORDER BY run_id, task_index, scope_cid LIMIT 1"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/model-resume-sqlite.mts",
+                "anchor": "CHECK (registration_kind != 'deferred' OR checkpoint_cid IS NOT NULL)"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/model-resume-state.test.mjs",
+                "anchor": "Model cancellation fence readback binds the original Run across restart"
+              },
+              {
+                "path": "adapters/host-node/model-cut-durable-invalidation.test.mjs",
+                "anchor": "three confirmed transactions preserve one ID, same request, exact link and old four-ref ACK"
+              },
+              {
+                "path": "adapters/host-node/model-cut-durable-invalidation.test.mjs",
+                "anchor": "old layout discriminator refuses before DDL and does not change synthetic database bytes"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "adapters/host-node/model-resume-state.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ff959caf4103846ad5e5f698a7df70270d3670f84d6ce32a2e70f1d6cf57f86c",
+      "sha256": "a1167f46fc114cf83e815801243af2429b58136e3901ccaef8b4079c89a63864",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
         "assertOriginalModelJournalInvalidation",
-        "createModelResumeState",
-        "createModelResumeTables"
+        "createModelResumeState"
       ],
       "operations": [
         {
@@ -90944,13 +91080,6 @@
           "async": false
         },
         {
-          "name": "createModelResumeTables",
-          "parameters": [
-            "database"
-          ],
-          "async": false
-        },
-        {
           "name": "freeze/freeze",
           "parameters": [
             "value"
@@ -91086,7 +91215,6 @@
             "createModelResumeState/view/view/view",
             "createModelResumeState/view/view/view/view",
             "createModelResumeState/view/view/view/view#2",
-            "createModelResumeTables",
             "freeze/freeze",
             "omit/omit/omit",
             "ownerValid/ownerValid/ownerValid",
@@ -91096,8 +91224,7 @@
           ],
           "exports": [
             "assertOriginalModelJournalInvalidation",
-            "createModelResumeState",
-            "createModelResumeTables"
+            "createModelResumeState"
           ],
           "attributes": {
             "responsibility": [
@@ -91186,7 +91313,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-sqlite.mts",
                 "anchor": "CREATE TABLE IF NOT EXISTS run_cancellation_fences ("
               },
               {
@@ -91334,7 +91461,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-sqlite.mts",
                 "anchor": "CREATE TABLE IF NOT EXISTS run_cancellation_fences ("
               },
               {
@@ -91394,6 +91521,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../../packages/sdk/host-port.mjs",
+        "./model-resume-sqlite.mjs",
         "node:crypto"
       ],
       "compilerFields": [],
@@ -102322,7 +102450,7 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "35f5aace1229f75df1bc5493888ce988f43c4cc84357de76c5a5c30aea33ba13",
+      "sha256": "40bb599b3536e515ab7025c3c76669f04139847136544bc465a069d44f6114b9",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -103533,6 +103661,7 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/sqlite-transaction.mjs",
+        "./model-resume-sqlite.mjs",
         "./model-resume-state.mjs",
         "./sqlite-checkpoint-journal-close.mjs",
         "node:fs",

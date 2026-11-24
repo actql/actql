@@ -15,8 +15,8 @@ import {mkdirSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {createSqliteTransaction, throwSqliteInitializationFailure} from
   '../host-common/sqlite-transaction.mjs';
-import {createModelResumeTables, createModelResumeState} from
-  './model-resume-state.mjs';
+import {createModelResumeTables} from './model-resume-sqlite.mjs';
+import {createModelResumeState} from './model-resume-state.mjs';
 import {checkpointJournalClose} from './sqlite-checkpoint-journal-close.mjs';
 
 const runtimeUrl = new URL(
