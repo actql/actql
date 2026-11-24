@@ -1,15 +1,15 @@
 # Private SQLite source candidate
 
-This is a review candidate, not a selected runtime, installed supplier or normal
-profile. It does not change the system SQLite, Python SQLite, Native Library
-loader, existing DBs, journal format, CAS, Unknown handling or same-key lookup.
+This recipe stages a private component without selecting a runtime or granting
+Host authority. The Native CLI producers and Native runtime component preparer
+consume its process component. Node and Python use their own runtime SQLite.
 
-The candidate is upstream SQLite **3.51.0**, pinned by archive SHA256, individual
+The candidate is upstream SQLite **3.51.3**, pinned by archive SHA256, individual
 source/header SHA256 and SHA3-256, and the full upstream source ID in
-`source.json`. The official [release page](https://www.sqlite.org/releaselog/3_51_0.html)
-publishes the independent `sqlite3.c` SHA3. This is a concrete review input,
-not adoption of that version. The selected macOS SDK's Apple SQLite header has
-the same version number and a different source ID; they are not interchangeable.
+`source.json`. The official [release page](https://www.sqlite.org/releaselog/3_51_3.html)
+publishes the independent `sqlite3.c` SHA3. The Native producers compile the
+header from the same archive. An SDK header or a library with a different
+source ID does not satisfy this recipe.
 `NOTICE` and the unchanged original source/header notices accompany staging.
 
 `prepare.py --archive <verified-download> --destination <fresh-directory>` stages
