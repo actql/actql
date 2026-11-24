@@ -8,6 +8,22 @@ other tools — and for Programs you develop before pointing them at a
 warehouse. Everything it does runs on the Host itself: its Site is always
 `host:local`.
 
+## Node Local availability
+
+In `@actql/node` Local mode, the Project connection exposes File listing
+and content sources. These reads require an admitted Local Account for the
+selected operation as well as filesystem access under `root`.
+
+The installed Project connection also supports read-only CSV tables declared
+in `connectors.json`. A table such as `local.small` can use `"path": "small.csv"`,
+`"key": ["id"]` and `"columns": {"id": "int64", "name": "string"}`. Read it
+with `SELECT id, name FROM local.small ORDER BY id`. This profile reads one
+UTF-8 file under `root`, with a header, explicit `int64` and `string` columns,
+and at most 256 data rows. The input and encoded output each fit within one
+1 MiB Source page. An invalid cell, duplicate declared key or oversized file
+refuses the read as a whole. The broader formats, inferred types and table
+Effects below describe the Connector design.
+
 ## Sources
 
 Each table you declare in the connection is a source: `local.orders`,
@@ -105,10 +121,10 @@ neither can an Effect.
 }
 ```
 
-No credentials are needed. `root` is relative to the configuration file. The
-Host process needs read access under the root for sources and write access
-for Effects; nothing else is required. On ActQL Cloud a `local` connection
-refers to the Cloud worker's own storage and is scoped the same way.
+`root` is relative to the configuration file. The Host process needs read
+access under the root for sources and write access for Effects. The Local
+Account controls ActQL operations on the selected resources. On ActQL Cloud
+a `local` connection refers to the Cloud worker's own storage.
 
 ## Capabilities and pushdown
 
@@ -116,7 +132,7 @@ refers to the Cloud worker's own storage and is scoped the same way.
 | --- | --- |
 | Projection | Parquet and Iceberg read only the columns a Program uses; CSV and JSON lines are parsed whole and projected in the engine. |
 | `WHERE` | Parquet row groups and Iceberg files whose statistics rule the predicate out are skipped; the predicate itself is evaluated in the engine, so there is no residual. |
-| `ORDER BY`, `LIMIT` | In the engine; a `LIMIT` on a CSV read stops parsing once the rows are found. |
+| `ORDER BY`, `LIMIT` | In the engine. The installed CSV reader validates the whole bounded file before returning rows. |
 | Aggregation, `JOIN` | In the engine, or in DuckDB when the package bundles it — the Site is the same `host:local` either way. |
 
 ## Preview and reconciliation

@@ -115,6 +115,7 @@ type SourceOptions<Publication extends object, Surface extends readonly string[]
   closeSourceRead?: Acquisition['closeSourceRead'];
   prepareKeyedSourceRead?: KeyedRead['prepareKeyedSourceRead'];
   closeKeyedSourceRead?: KeyedRead['closeKeyedSourceRead'];
+  originalReadTransports?: Readonly<Record<string, Readonly<{transferBytes: bigint; executionBytes: bigint}>>>;
   originalKeyedTransport?: Readonly<{transferBytes: bigint; executionBytes: bigint}>;
   readAsset?: (path: string) => string;
   originalPageLimits?: Acquisition['pageLimits'];
@@ -161,7 +162,7 @@ export async function createInstalledRowSource<Publication extends object = obje
   listingReportCapacity, prepareAcquisition, directReadIdentity,
   prepareRead, grantBeforeBegin = false, originalSourceAccess, providerReader,
   prepareSourceRead, closeSourceRead, prepareKeyedSourceRead, closeKeyedSourceRead,
-  originalKeyedTransport, readAsset, originalPageLimits}: SourceOptions<Publication, Surface, Realization>) {
+  originalKeyedTransport, originalReadTransports, readAsset, originalPageLimits}: SourceOptions<Publication, Surface, Realization>) {
   if (typeof realizationKey !== 'string' || realizationKey.length === 0) fail('InvalidInstalledSourcePublication');
   let selectedSurface: string[] | undefined;
   if (publicationSurface !== undefined) {
@@ -366,6 +367,23 @@ export async function createInstalledRowSource<Publication extends object = obje
       limits.maxCaptureRows !== readerDemand.maxTotalRows)) fail('ForeignInstalledSourceReaderDemand');
   const maxTransferBytes = readerDemand?.transferBytes ??
     BigInt(limits.maxPages) * BigInt(limits.maxPageBytes);
+  const defaultReadTransport = Object.freeze({transferBytes:maxTransferBytes,
+    executionBytes:BigInt(limits.maxPageBytes)});
+  const readTransports = originalReadTransports === undefined ? undefined : new Map<string, typeof defaultReadTransport>();
+  if (originalReadTransports !== undefined) {
+    if (originalReader !== undefined || typeof prepareSourceRead !== 'function' ||
+        !Object.isFrozen(originalReadTransports)) fail('InvalidInstalledOriginalReadTransports');
+    for (const [ref, transport] of Object.entries(originalReadTransports)) {
+      if (!sourceRefs.has(ref) || !Object.isFrozen(transport) ||
+          !(['transferBytes','executionBytes'] as const).every(name =>
+            typeof transport[name] === 'bigint' && transport[name] >= 0n &&
+            transport[name] <= 9223372036854775807n)) fail('InvalidInstalledOriginalReadTransports');
+      readTransports!.set(ref, transport);
+    }
+  }
+  const readTransport = (ref: unknown) => (typeof ref === 'string' ? readTransports?.get(ref) : undefined) ?? defaultReadTransport;
+  const resourceTransport = (resource: string) => readTransports === undefined ? defaultReadTransport
+    : readTransport(declared.views.find(view => view.resource === resource)?.source_ref);
   let keyedTransferBytes = maxTransferBytes, keyedExecutionBytes = BigInt(limits.maxPageBytes);
   if (originalKeyedTransport !== undefined) {
     // Fixed installing Source limits, not a public packet, grant or Resource
@@ -429,8 +447,9 @@ export async function createInstalledRowSource<Publication extends object = obje
       const acquisition = prepareOriginalAcquisition(requirement);
       const capacity = moon.clientProgramInstalledRowCaptureCapacity(acquisition);
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
-      return Object.freeze({capacity, transferBytes: maxTransferBytes,
-        executionBytes: BigInt(limits.maxPageBytes)});
+      const transport = readTransports === undefined ? defaultReadTransport
+        : readTransport(moon.clientProgramQueryRequirementSourceRef(requirement));
+      return Object.freeze({capacity, ...transport});
     }
     if (typeof providerSiteCurrent !== 'function' ||
         Reflect.apply(providerSiteCurrent, site, []) !== true) fail('InstalledSourceReaderNotCurrent');
@@ -451,8 +470,9 @@ export async function createInstalledRowSource<Publication extends object = obje
       preparedProgram, sourceSelection, declaration, installedContracts, originalReader?.capacity,
       limits.maxCaptureRows, limits.maxPageBytes, selectedPageLimits?.maxNodes ?? 400000,
       selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows, limits.maxPages));
-    return Object.freeze({capacity, wholeInput: true, transferBytes: maxTransferBytes,
-      executionBytes: BigInt(limits.maxPageBytes)});
+    const transport = readTransports === undefined ? defaultReadTransport
+      : readTransport(moon.clientProgramSelectedSourceInputRef(sourceSelection));
+    return Object.freeze({capacity, wholeInput: true, ...transport});
   }
   const captureCapacity = (owner: PreparedOwner) => {
     if (originalReader !== undefined) {
@@ -509,7 +529,7 @@ export async function createInstalledRowSource<Publication extends object = obje
 
   const {open, openCapture} = createInstalledRowSourceAcquisition({
     prepare, preparations, originalReader, captureCapacity, currentRead, site, moon, directReadIdentity, cidPattern, cid,
-    prepareRead, maxTransferBytes, limits, readerDemand, listingReportCapacity, startInstalledRowRun, preparingSourceReads,
+    prepareRead, resourceTransport, limits, readerDemand, listingReportCapacity, startInstalledRowRun, preparingSourceReads,
     closeSourceRead, operationBindings, grantBeforeBegin, pageLimits, managedPageLimits, referenceIssuer, text,
     readPages, sourceAccess});
 
@@ -541,7 +561,7 @@ export async function createInstalledRowSource<Publication extends object = obje
       ? {managedCaptureCapacity: managedProviderCaptureCapacity} : {}),
     ...(originalReader !== undefined || typeof prepareSourceRead === 'function'
       ? {managedWholeSourceCapacity} : {}),
-      managedEffectPlanSelection(selection?: object) {
+      managedEffectPlanSelection(selection?: object, sourceRef?: string) {
         // This entry selects the common original acquisition constructor.
         // A compatibility preparer/policy or earlier physical callback cannot
         // be replaced by that default merely because its column counts match.
@@ -572,8 +592,7 @@ export async function createInstalledRowSource<Publication extends object = obje
             selectedPageLimits?.maxNodes ?? 400000, selectedPageLimits?.maxDepth ?? 32, limits.maxPageRows));
         }
         return Object.freeze({declaration, provider: originalReader?.capacity,
-          inputLimits,
-          transferBytes: maxTransferBytes, executionBytes: BigInt(limits.maxPageBytes)});
+          inputLimits, ...readTransport(sourceRef)});
       },
     admitsSource: (sourceRef: string) => sourceRefs.has(sourceRef),
     ordinaryRecoveryBinding,
@@ -606,8 +625,7 @@ export async function createInstalledRowSource<Publication extends object = obje
         capacity,
         ...(owner.wholeInput ? {wholeInput: true} : {}),
         ...(owner.managedRun === undefined ? {} : {managedRun: owner.managedRun}),
-        transferBytes: maxTransferBytes,
-        executionBytes: BigInt(limits.maxPageBytes),
+        ...resourceTransport(owner.resource),
       });
     },
     keyedLedgerCapacity(keyedAcquisition: unknown, {maxWork, originalWork}: Readonly<{maxWork?: number; originalWork?: number}> = {}) {

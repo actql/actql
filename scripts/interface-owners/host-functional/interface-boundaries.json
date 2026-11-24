@@ -16379,7 +16379,7 @@
     {
       "module": "adapters/host-node/acquired-effect-sources.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "091018e802be854051f2cd029253062d6c6ce09294ff103f6e5f6da5aa1c31b9",
+      "sha256": "dcb2a2c94f0e0c3667574181ef667f38f9f3fbbff4a8575a9edbef80f1aadba0",
       "role": "physical-io",
       "owner": "Existing checked Source/Run acquisition Owners and installed physical Source adapter",
       "exports": [
@@ -87122,7 +87122,7 @@
     {
       "module": "adapters/host-node/local-account-config.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "59a739d23b5283ac3f8abee0f558134f6050b9b2c36b9f2e742b6b63c44a79f0",
+      "sha256": "cdfc932d3409a9c8f5bc7f7e48a2cb3631895c0c30a53cd78f4dd73af84b965c",
       "role": "physical-io",
       "owner": "Existing execution_authorization/Checkpoint Owners and trusted Host gate",
       "exports": [

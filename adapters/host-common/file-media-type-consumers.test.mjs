@@ -20,14 +20,16 @@ async function localConsumers(t, mediaType) {
 
   const entry = {connection: 'local', connectorId: 'local', scopeCid: 'sha256:' + 'a'.repeat(64),
     declaration: {}, queryAliases: [], wire: '{"views":[]}', rootPath: directory, versionMode: 'metadata',
+    tables: Object.freeze([]), csvTransports: Object.freeze({}),
     limits: {maxEntries: 10, maxDepth: 2, maxPathBytes: 200, maxFiles: 10, maxFileBytes: 1000,
       maxReadBytes: 10000, maxPages: 10, maxPageBytes: 100000, maxPageRows: 10}};
-  const bundle = {sources: [entry]}, prepared = {}, managedRun = {}, requestIdentity = {};
+  const bundle = {sources: [entry], realizationKey:'installed-multi-acquired'}, prepared = {}, managedRun = {}, requestIdentity = {};
   const ok = _0 => ({$tag: 1, _0});
   let readPort;
   const modules = {
     '../../../host-node/installed-row-source.mjs': {
       createInstalledRowSource(options) {
+        assert.equal(Object.hasOwn(options,'originalReadTransports'),false);
         readPort = options;
         return {connectorBindings: [], admitsSource: () => true};
       },
