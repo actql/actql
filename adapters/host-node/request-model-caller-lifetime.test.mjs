@@ -1,3 +1,4 @@
+import {constructRequestDomain} from './ordinary-source-model-materials.mjs';
 import assert from 'node:assert/strict';
 import {createContentInferenceControls} from '../host-common/runtime-content-inference-control.mjs';
 import {readFileSync} from 'node:fs';
@@ -156,7 +157,7 @@ test('Local Model constructor failure keeps its issued Scope and original failur
 });
 
 const managerSource = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-const managerHelpers = managerSource.slice(managerSource.indexOf('  function constructRequestDomain('), managerSource.indexOf('  const view = Object.freeze({'));
+const managerHelpers = managerSource.slice(managerSource.indexOf('  function constructEffectMaterials('), managerSource.indexOf('  const view = Object.freeze({'));
 const methodStart = managerSource.indexOf('    prepareModelRun(');
 const methodEnd = managerSource.indexOf('    adoptModelPreparation(', methodStart);
 assert(methodStart >= 0 && methodEnd > methodStart);
@@ -175,9 +176,9 @@ function managerFixture(refusal) {
       assert.equal(state.preparing, false); calls.push('adopt'); return adopted;
     },
   };
-  object = Function('current', 'producerForRequest', 'fail', 'view',
+  object = Function('current', 'producerForRequest', 'fail', 'view', 'constructRequestDomain',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(methodStart, methodEnd).trim().replace(/,$/u, '')}});`)(
-    () => {}, r => {assert.equal(r, request); return producer;}, fail, view);
+    () => {}, r => {assert.equal(r, request); return producer;}, fail, view, constructRequestDomain);
   const construct = (p, i, c) => {
     assert.deepEqual([p, i, c], [parent, input, compilation]); assert.equal(state.preparing, true);
     calls.push('construct');
@@ -637,11 +638,11 @@ function requestGraphFixture({serialized = true, missingPort = false, replaceAft
   if (missingPort) delete moon.clientProgramPrepareRequestSerializedModelGraph;
   state.context = {runtime: moon};
   const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
-  object = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types',
+  object = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types', 'constructRequestDomain',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
     () => {if (replaceAfter && state.modelGraph !== undefined) state.contentGraph = {};},
     value => {assert.equal(value, request); return producer;}, fail, originals,
-    (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;}, types);
+    (actual, result, issue) => {assert.equal(actual, moon); assert.equal(issue, moon.clientProgramRequestProgramModuleIssueCode); return result.value;}, types, constructRequestDomain);
   const constructSerialized = missingPort ? undefined : (...args) =>
     Reflect.apply(moon.clientProgramPrepareRequestSerializedModelGraph, moon, args);
   return {state, calls, graph, invoke: () => object.prepareModelGraph(prepared, request, occurrence, execution, component, constructSerialized, fileReadDeclarations),
@@ -1138,10 +1139,10 @@ function originalFacadeGraphFixture() {
   const record = {managedSourceProfile: {fileReadDeclarations}};
   const originals = {installation: {sequenceContractOriginal: {moon, admission}}};
   const fail = code => {throw Object.assign(new Error(code), {code});};
-  const manager = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types',
+  const manager = Function('current', 'producerForRequest', 'fail', 'originals', 'checkedRequestProgramPreparation', 'types', 'constructRequestDomain',
     `const pendingRunRegistrations=new Set();${managerHelpers}return ({${managerSource.slice(graphMethodStart, graphMethodEnd).trim().replace(/,$/u, '')}});`)(
     () => {}, value => {assert.strictEqual(value, request); return producer;}, fail, originals,
-    (runtime, result) => {assert.strictEqual(runtime, moon); return result.value;}, types);
+    (runtime, result) => {assert.strictEqual(runtime, moon); return result.value;}, types, constructRequestDomain);
   host = Function('moon', 'sourceManaged', 'computeManaged', 'originals', 'clientOperationError',
     'assertSourceManagedInstallationCurrent', 'assertManagedComputeInstallationCurrent',
     'originalSourceManagedHostRequest', 'runtimeCore', 'record',

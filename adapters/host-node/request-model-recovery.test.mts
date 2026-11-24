@@ -1,77 +1,19 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { parse, type AnyNode, type Identifier, type Property } from 'acorn';
+import {createOrdinarySourceModelMaterials, type OrdinaryModelMaterialsState} from './ordinary-source-model-materials.mjs';
 type WireAt = (index: number) => string;
-type Definition = Readonly<{
-    wire: string;
-}>;
-type Original = Readonly<{
-    materialsWire: string;
-    resultPolicyOriginal: Readonly<{
-        wire: string;
-    }>;
-}>;
-type Restored = Readonly<{
-    prepared: object;
-    compiled: object;
-    graph: object;
-    runDefinition: Definition;
-}>;
 type FixtureOptions = Readonly<{
     reserveFailure?: unknown;
     constructFailure?: unknown;
 }>;
-type ProviderBinding = (id: string, installation: string, contract: string, configuration: string) => object;
-type State = {
-    parent: object;
-    context: {
-        runtime?: {
-            clientProgramModelProviderBinding: ProviderBinding;
-        };
-    };
-    recovery?: {
-        request: object;
-        definition: Definition;
-        assertCurrent(): void;
-        restored?: Restored;
-    };
-    prepared?: object;
-    modelProviderBinding?: object;
-};
 type Call = string | {
     reserve: readonly string[];
     containers: number;
 } | {
     binding: readonly string[];
 };
-type RecoveryMethods = {
-    restoreModelOriginal(request: object, original: Original, definition: Definition, identity: object, read: (parent: object, input: object) => Restored): Restored;
-    prepareModelMaterials(prepared: object, request: object, count: number, wireAt: WireAt, containers: number): unknown;
-    prepareModelBinding(prepared: object, request: object, ...args: Parameters<ProviderBinding>): object;
-};
-// Execute the actual recovery/material/binding methods with explicit Core
-// ports. Real nominal reservation/current/cleanup controls live in the paired
-// Core WB; these ports cannot grant Model IO or a saved Run.
-const source = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-const names = ['restoreModelOriginal', 'prepareModelMaterials', 'prepareModelBinding'];
-const selected: Property[] = [];
-function visit(value: AnyNode) {
-    if (value === null || typeof value !== 'object')
-        return;
-    if (value.type === 'Property' && value.method && names.includes((value.key as Identifier).name))
-        selected.push(value);
-    for (const child of Object.values(value)) {
-        if (Array.isArray(child))
-            child.forEach(visit);
-        else if (child && typeof child === 'object')
-            visit(child);
-    }
-}
-visit(parse(source, { ecmaVersion: 'latest', sourceType: 'module' }));
-assert.equal(selected.length, names.length);
-const helpers = source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  function registerRequestRun('));
-const methods = selected.map(node => source.slice(node.start, node.end)).join(',');
+// The real installer methods with explicit Core ports. Physical reservation
+// and Journal admission stay in their existing end-to-end controls.
 const fail = (code: string) => { throw Object.assign(new Error(code), { code }); };
 function fixture({ reserveFailure, constructFailure }: FixtureOptions = {}) {
     const request = {}, identity = {}, definition = { wire: 'definition' }, parent = {}, receipt = {};
@@ -79,7 +21,15 @@ function fixture({ reserveFailure, constructFailure }: FixtureOptions = {}) {
     const original = { materialsWire: 'saved', resultPolicyOriginal: { wire: 'policy' } };
     const calls: Call[] = [], binding = {}, bindings: object[] = [];
     let active = true;
-    const state: State = { parent, context: {}, recovery: { request: identity, definition, assertCurrent() {
+    const moon = {
+        clientProgramModelProviderBinding(id: string, installation: string, contract: string, configuration: string) {
+            const value = bindings.length === 0 ? binding : {};
+            bindings.push(value);
+            calls.push({ binding: [id, installation, contract, configuration] });
+            return value;
+        },
+    };
+    const state: OrdinaryModelMaterialsState = { parent, context: {runtime: moon}, recovery: { request: identity, definition, assertCurrent() {
                 calls.push('original current');
                 if (!active)
                     fail('OriginalRecoveryRetired');
@@ -87,7 +37,7 @@ function fixture({ reserveFailure, constructFailure }: FixtureOptions = {}) {
     const producer: {
         receipt: object;
         request: object;
-        preparation: State;
+        preparation: OrdinaryModelMaterialsState;
         finished?: boolean;
     } = { receipt, request, preparation: state };
     const control = {
@@ -99,21 +49,18 @@ function fixture({ reserveFailure, constructFailure }: FixtureOptions = {}) {
                 throw reserveFailure;
         },
     };
-    const moon = state.context.runtime = {
-        clientProgramModelProviderBinding(id: string, installation: string, contract: string, configuration: string) {
-            const value = bindings.length === 0 ? binding : {};
-            bindings.push(value);
-            calls.push({ binding: [id, installation, contract, configuration] });
-            return value;
-        },
-    };
-    const api = Function('current', 'producerForRequest', 'fail', 'checked', 'runtimeCore', helpers + `return ({${methods}});`)(() => { }, (actual: unknown) => {
-        assert.equal(actual, request);
-        return producer;
-    }, fail, (value: unknown) => value, (actual: unknown) => {
+    const materials = createOrdinarySourceModelMaterials({
+      current() {},
+      producerForRequest(actual) {assert.equal(actual, request); return producer;},
+      fail,
+      checked(value) {return value;},
+      checkedRequestProgramPreparation() {return assert.fail('Recovery uses retained Model originals');},
+      runtimeCore(actual) {
         assert.equal(actual, moon);
-        return { publicationControl: control };
-    }) as RecoveryMethods;
+        return {publicationControl: control};
+      },
+    });
+    const api = {restoreModelOriginal: materials.restoreModelOriginal, ...materials.modelMaterials};
     let constructed = 0;
     const restore = () => api.restoreModelOriginal(request, original, definition, identity, (actualParent, actualInput) => {
         assert.strictEqual(actualParent, parent);

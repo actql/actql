@@ -120153,8 +120153,6 @@
         {
           "operations": [
             "prepareOrdinaryManagedInstallation/view/init:modelRecoveryLedger/init:modelRecoveryLedger",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/assertOriginal/assertOriginal",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/componentViews/componentViews",
@@ -120184,9 +120182,6 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#2",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelRecoveryPlan/init:prepareModelRecoveryPlan/scopes/scopes#3",
-            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
-            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
-            "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery",
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt",
             "prepareOrdinaryManagedInstallation/view/init:retainModelRecovery/init:retainModelRecovery/receipt/receipt/receipt",
@@ -121585,12 +121580,8 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareContentGraph/init:prepareContentGraph/init:prepareContentGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan",
             "prepareOrdinaryManagedInstallation/view/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan/init:prepareEffectKeyedPlan",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph",
             "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
-            "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput",
             "prepareOrdinaryManagedInstallation/view/init:selectDomainSourceInput/init:selectDomainSourceInput/init:selectDomainSourceInput#2",
@@ -125756,35 +125747,6 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding",
-          "parameters": [
-            "prepared",
-            "request",
-            "providerId",
-            "installation",
-            "contract",
-            "configuration"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelCompilation/init:prepareModelCompilation",
           "parameters": [
             "prepared",
@@ -125814,22 +125776,6 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelGraph/init:prepareModelGraph/init:prepareModelGraph",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials",
-          "parameters": [
-            "prepared",
-            "request",
-            "count",
-            "wireAt",
-            "containerCount"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
           "parameters": [],
           "async": false
         },
@@ -126174,29 +126120,6 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal",
-          "parameters": [
-            "request",
-            "original",
-            "definition",
-            "identity",
-            "construct"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
-          "parameters": [
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/view/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "prepareOrdinaryManagedInstallation/view/init:retainContentPreparation/init:retainContentPreparation",
           "parameters": [
             "prepared",
@@ -126373,6 +126296,7 @@
         "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
+        "./ordinary-source-model-materials.mjs",
         "./ordinary-source-producer-custody.mjs",
         "./ordinary-source-reader.mjs",
         "./ordinary-source-request-custody.mjs",
@@ -126383,7 +126307,211 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "cdf836cb2ed4ddf35b9c9778f7d03d43ffda18079d9c35d6aa3d300151ab8f17"
+      "sha256": "300addd03ef0ccf7ffef4dbf9c351a9cb5998a418203f4351475403a25e0a76a"
+    },
+    {
+      "module": "adapters/host-node/ordinary-source-model-materials.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "e044ac7d2e254d3f618bfc313d26cec01a976bb2ff26b326412b255e4ce130df",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
+      "exports": [
+        "constructRequestDomain",
+        "createOrdinarySourceModelMaterials"
+      ],
+      "operations": [
+        {
+          "name": "constructRequestDomain",
+          "parameters": [
+            "state",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials",
+          "parameters": [
+            "current",
+            "producerForRequest",
+            "fail",
+            "checked",
+            "checkedRequestProgramPreparation",
+            "runtimeCore"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [
+            "prepared",
+            "request",
+            "providerId",
+            "installation",
+            "contract",
+            "configuration"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+          "parameters": [
+            "prepared",
+            "request",
+            "count",
+            "wireAt",
+            "containerCount"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/reserveModelRecovery",
+          "parameters": [
+            "producer",
+            "state",
+            "count",
+            "wireAt",
+            "containers"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
+          "parameters": [
+            "request",
+            "original",
+            "definition",
+            "identity",
+            "construct"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
+          "parameters": [
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceModelMaterials/restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2",
+          "parameters": [],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "constructRequestDomain",
+            "createOrdinarySourceModelMaterials",
+            "createOrdinarySourceModelMaterials/init:prepareModelBinding/init:prepareModelBinding",
+            "createOrdinarySourceModelMaterials/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding",
+            "createOrdinarySourceModelMaterials/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#2",
+            "createOrdinarySourceModelMaterials/init:prepareModelBinding/init:prepareModelBinding/init:prepareModelBinding#3",
+            "createOrdinarySourceModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+            "createOrdinarySourceModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials/init:prepareModelMaterials",
+            "createOrdinarySourceModelMaterials/reserveModelRecovery",
+            "createOrdinarySourceModelMaterials/restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
+            "createOrdinarySourceModelMaterials/restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal",
+            "createOrdinarySourceModelMaterials/restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal/init:restoreModelOriginal#2"
+          ],
+          "exports": [
+            "constructRequestDomain",
+            "createOrdinarySourceModelMaterials"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-model-materials.mts",
+                "anchor": "export function createOrdinarySourceModelMaterials("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-model-materials.mts",
+                "anchor": "export type OrdinaryModelMaterialsState = DomainState & {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-model-materials.mts",
+                "anchor": "state!.recovery !== recovery"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "createOrdinarySourceModelMaterials({current, producerForRequest, fail, checked, checkedRequestProgramPreparation, runtimeCore});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-model-materials.mts",
+                "anchor": "recovery.assertCurrent();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-model-materials.mts",
+                "anchor": "state.preparationFailed = true; state.preparationFailure = cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-model-materials.mts",
+                "anchor": "if (producer!.finished || producer!.preparation !== state"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-model-materials.mts",
+                "anchor": "Reflect.apply(reserve!, control, [state.parent, producer.receipt,"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-model-materials.mts",
+                "anchor": "prepareModelBinding(prepared: object, request: object, providerId: string, installation: string,"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/request-model-recovery.test.mts",
+                "anchor": "saved original and both material constructors reserve on one restoration parent without fresh compilation"
+              },
+              {
+                "path": "adapters/host-node/request-model-material-resources.test.mjs",
+                "anchor": "Effect Model actual Host reserves execution and dependency materials through its same Request before readers"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/ordinary-source-run-custody.mjs",

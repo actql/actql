@@ -3270,3 +3270,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/ordinary-source-request-custody.d.mts
 /adapters/host-node/ordinary-source-run-custody.mjs
 /adapters/host-node/ordinary-source-run-custody.d.mts
+/adapters/host-node/ordinary-source-model-materials.mjs
+/adapters/host-node/ordinary-source-model-materials.d.mts
