@@ -3,13 +3,14 @@
 // a source of dispatch permission from historical bytes.
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {assertAuthorizationAccountCurrent, authorizationDispatchFacts, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
+import {assertAuthorizationAccountCurrent, ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-import {bytesCid, contentCid} from './local-account-config.mjs';
+import {contentCid} from './local-account-config.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
-import {checkCapturedInventory, createInstalledModelInputCustody, MAX_MODEL_INPUT_BYTES} from
+import {checkCapturedInventory, MAX_MODEL_INPUT_BYTES} from
   './installed-model-input-custody.mjs';
-import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
+import {createInstalledModelContinuationCustody, entryIdentity, fail, limits, same, scopeKeys, select} from
+  './installed-model-continuation-custody.mjs';
 import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 import {withPreparedInferEvidence} from './infer-evaluation-evidence.mjs';
 import {createNodeInferEntryPersistence} from './infer-entry-persistence.mjs';
@@ -20,8 +21,6 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {selectedInferOriginalCurrentStateCodec,
   snapshotInferOriginalCurrentStateCodec as originalCurrentCodecLimits} from './infer-original-installation.mjs';
 
-const limits = Object.freeze({maxWireBytes: 1048576, maxNodes: 100000, maxDepth: 100});
-const fail = code => { throw Object.assign(new Error(code), {code}); };
 function requireModelDispatchPreparation(moon, selected) {
   if (selected.localMock === true) {
     // Only the same live Core Mock installation/provider has no external I/O.
@@ -39,241 +38,14 @@ function requireModelDispatchPreparation(moon, selected) {
     throw selected.egressFailure ?? new Error('InstalledModelEgressUnavailable');
   }
 }
-const parseCore = wire => {
-  const value = JSON.parse(wire);
-  if (value.ok !== true) fail(value.code ?? 'InstalledModelAdmissionRejected');
-  const {ok, ...facts} = value;
-  return facts;
-};
-const same = (a, b) => canonicalJson(a) === canonicalJson(b);
-const scopeKeys = ['runId', 'runDefinitionCid', 'preparedInvocationCid', 'scopeCid',
-  'providerBindingCid', 'inputArtifactCid', 'taskIndex', 'strategyRevision'];
-const select = (value, keys) => Object.fromEntries(keys.map(key => [key, value[key]]));
-const entryIdentity = entry => select(entry, entry.provenance === 'deferred'
-  ? ['runId', 'runDefinitionCid', 'preparedInvocationCid', 'checkpointCid',
-      ...scopeKeys.slice(3), 'ordinal', 'slotCid', 'attemptIndex', 'attemptCid',
-      'intentId', 'claimant', 'generation', 'resolutionCid']
-  : [...scopeKeys, 'provenance', 'ordinal', 'slotCid', 'attemptIndex', 'attemptCid', 'authorityCid']);
-const originalKeys = ['originalRunWire', 'preparedInvocationWire', 'scopeWire',
-  'providerBindingWire', 'inputArtifactWire', 'slotWires', 'expectedBoundary'];
-// Hash opaque original wires without the configuration canonicalizer's text normalization.
-const originalDigest = originals => bytesCid(Buffer.from(canonicalJson(select(originals, originalKeys))));
-const roles = ['model_call_attempt', 'model_attempt_accounting', 'model_attempt_outcome',
-  'model_dispatch_authority', 'model_slot_capture', 'model_capture_bundle', 'model_attachment_admission'];
-
 export async function installNodeModelContinuation({moon, control, store, storeAuthorityCid, namespaceId,
   authorityScopeCid, now, getCheckpoints, observe: observeDiagnostic, observation, inferEvidence}) {
   const runtime = await loadCheckpointRuntime();
-  const live = new WeakMap();
-  // Route only the original bare park to its existing installed operation's
-  // completed Common comparison. Escaped park refs retain no new callback or
-  // Owner graph through this weak membership; the operation keeps its borrow.
-  const originalResourceCuts = new WeakMap();
-  function originalResourceCut(park) {
-    const original = originalResourceCuts.get(park)?.deref();
-    if (original?.facts === undefined || !original.current()) {
-      fail('ModelOriginalCurrentCutUnavailable');
-    }
-    return original;
-  }
-  // Synchronous journal checks need the previously authenticated receipt and
-  // original digest while a Run is waiting or unknown. They do not need input
-  // rows, submitted programs or responses, and cannot authorize a fresh send.
-  const inventories = new Map();
-  const diagnostic = diagnosticObserver(observeDiagnostic);
-  let checkpointInstallation;
-  const {retain, ownedInput, release, usage, changed, hasRetainedReceipt, firstRetained, leaseReceiptWire} =
-    createInstalledModelInputCustody({inventorySize: () => inventories.size, retireReceipt, diagnostic, fail});
-  function retireReceipt(receiptWire) {
-    const held = inventories.get(receiptWire);
-    if (held === undefined || hasRetainedReceipt(receiptWire)) return;
-    const journal = checkpoints().journal;
-    const state = journal.getRunState(held.receipt.runId);
-    const records = journal.discoverModelCallSets({runId: held.receipt.runId, limit: 100});
-    const absent = records.length < 100 &&
-      !records.some(record => record.originals.fixedInputReceiptWire === receiptWire);
-    if (absent || state !== undefined && journal.isTerminalRunOutcome(state.status) &&
-        !journal.hasUnresolvedModelCalls(held.receipt.runId)) {
-      inventories.delete(receiptWire);
-      changed();
-    }
-  }
-  const checkpoints = () => {
-    const value = getCheckpoints();
-    if (value === undefined) fail('InstalledModelJournalRequired');
-    if (checkpointInstallation !== undefined &&
-        (checkpointInstallation.checkpoints !== value || checkpointInstallation.journal !== value.journal)) {
-      fail('InstalledModelJournalChanged');
-    }
-    return value;
-  };
-  function installOriginalJournal() {
-    const value = checkpoints();
-    if (value.journal === undefined) fail('InstalledModelJournalRequired');
-    checkpointInstallation ??= {checkpoints: value, journal: value.journal};
-    return value;
-  }
-  function admittedInventory(originals, immediate, token) {
-    const retained = token ?? firstRetained(originals.fixedInputReceiptWire);
-    const prior = inventories.get(originals.fixedInputReceiptWire);
-    if (retained === undefined && prior === undefined || retained?.available === false) {
-      fail('ModelFixedInputCustodyUnavailable');
-    }
-    const admitted = retained === undefined ? prior : {
-      digest: originalDigest(retained.snapshot.originals), receipt: retained.receipt,
-      scopeCid: retained.snapshot.scopeCid, inputArtifactCid: retained.snapshot.inputArtifactCid};
-    if (originalDigest(originals) !== admitted.digest) fail('ModelFixedInputOriginalMismatch');
-    const facts = parseCore((immediate ? runtime.modelImmediateCallSetAdmit
-      : runtime.modelCallSetAdmit)(canonicalJson(originals)));
-    if (facts.scopeCid !== admitted.scopeCid ||
-        facts.inputArtifactCid !== admitted.inputArtifactCid) fail('ModelFixedInputOriginalMismatch');
-    if (retained !== undefined) inventories.set(originals.fixedInputReceiptWire, admitted);
-    return JSON.parse(canonicalJson({...facts, fixedInputCustody: {...admitted.receipt, inputArtifactCid: facts.inputArtifactCid},
-      retryBinding: {owner: 'single_attempt_model_execution', maxAttempts: 1},
-      slots: facts.slots.map(slot => ({...slot, maxAttempts: 1}))}));
-  }
-  async function readSettled({originals, entry, attemptWire, authorityWire}, retainRecord, beforeRead) {
-    const definition = control.admit('run_definition',
-      JSON.parse(originals.originalRunWire).runDefinitionWire, limits);
-    const bodies = {};
-    const evidence = {};
-    for (const name of roles) {
-      const holdingCid = control.modelScopedPrivateHoldingCid(definition, storeAuthorityCid, entry, name);
-      const holding = await store.inspectPhysicalHolding(holdingCid);
-      if (holding === undefined) break;
-      // Optional Evidence reserves its copy envelope before private decoding.
-      // Normal execution restoration keeps its existing Store-owned limits.
-      beforeRead?.(holding.objects.reduce((sum, object) => sum + object.byte_count, 0));
-      const wire = new TextDecoder('utf-8', {fatal: true}).decode(
-        await store.readPrivateEvidence(name, holding.manifest_cid, holdingCid));
-      if (await store.confirmPrivateEvidence({name, semanticCid: holding.manifest_cid, holdingCid, wire}) === undefined) {
-        fail('ModelSettlementCustodyLost');
-      }
-      bodies[name] = wire;
-      evidence[name] = {cid: holding.manifest_cid, holdingCid};
-    }
-    if (roles.slice(0, 4).some(role => bodies[role] === undefined)) return null;
-    if (bodies.model_call_attempt !== attemptWire || bodies.model_dispatch_authority !== authorityWire) {
-      fail('ModelSettlementAttemptMismatch');
-    }
-    if (bodies.model_slot_capture === undefined || bodies.model_capture_bundle === undefined) {
-      if (roles.slice(0, 4).some(role => bodies[role] === undefined)) return null;
-      const admitted = JSON.parse(runtime.modelStoppedCallAdmit(canonicalJson(originals), entry.ordinal,
-        attemptWire, authorityWire, bodies.model_attempt_accounting, bodies.model_attempt_outcome));
-      if (admitted.ok !== true) return null;
-      if (admitted.attemptCid !== entry.attemptCid || admitted.slotCid !== entry.slotCid ||
-          admitted.accountingCid !== evidence.model_attempt_accounting.cid ||
-          admitted.outcomeCid !== evidence.model_attempt_outcome.cid) fail('ModelStoppedProofMismatch');
-      const record = Object.freeze({bodies, evidence, state: 'SavedFailure', terminalFailure: true});
-      retainRecord?.(record);
-      return {entry: entryIdentity(entry), state: 'SavedFailure', durable: true,
-        evidence: {...evidence, terminalFailure: true}, retryAllowed: false};
-    }
-    const capture = control.admitRunEvidence('model_slot_capture', bodies.model_slot_capture, limits);
-    // The physical Model owner seals this inventory into its slot capture.
-    // Store schema admission alone cannot substitute another Ref or call.
-    checked(moon.clientProgramVerifyInferAttachmentAdmission(
-      checked(moon.strategyRunEvidenceAdmit('model_slot_capture', capture.wire, 16384, 1024, 20)),
-      checked(moon.strategyRunEvidenceAdmit('model_dispatch_authority', authorityWire, 16384, 1024, 20)),
-      bodies.model_attachment_admission === undefined ? undefined : checked(
-        moon.strategyRunEvidenceAdmit('model_attachment_admission', bodies.model_attachment_admission,
-          16384, 1024, 20))));
-    const outcome = JSON.parse(capture.wire).outcome;
-    const bundle = checked(moon.clientProgramReadInferCaptureBundle(bodies.model_capture_bundle,
-      evidence.model_capture_bundle.cid));
-    try {
-      const document = JSON.parse(bodies.model_capture_bundle);
-      if (document.captures.length !== (outcome === 'ok' ? 1 : 0)) fail('ModelSettlementResponseMismatch');
-      const observationWire = outcome === 'ok' ? canonicalJson(document.captures[0].evidence) : undefined;
-      const facts = parseCore(runtime.modelSavedCallAdmit(canonicalJson(originals), entry.ordinal,
-        attemptWire, authorityWire, bodies.model_attempt_accounting,
-        bodies.model_attempt_outcome, bodies.model_slot_capture, observationWire));
-      if (facts.attemptCid !== entry.attemptCid || facts.slotCid !== entry.slotCid ||
-          facts.captureCid !== evidence.model_slot_capture.cid) fail('ModelSettlementProofMismatch');
-      const record = Object.freeze({bodies, evidence, state: facts.state});
-      retainRecord?.(record);
-      return {entry: entryIdentity(entry), state: facts.state, durable: true, evidence, retryAllowed: false};
-    } finally { moon.clientProgramReleaseInferCaptureBundle(bundle); }
-  }
-  const verifier = Object.freeze({
-    admitOriginalRun: ({originalRunWire}) => parseCore(runtime.modelOriginalRunAdmit(originalRunWire)),
-    admitCallSet: originals => admittedInventory(originals, false),
-    admitImmediateCallSet: originals => admittedInventory(originals, true),
-    admitAttempt: ({originals, slot, attemptWire, authorityWire, attemptIndex}) =>
-      parseCore(runtime.modelImmediateCallAttemptAdmit(canonicalJson(originals), slot.ordinal,
-        attemptWire, authorityWire, attemptIndex)),
-    // JSON serialization preserves journal data strings verbatim. The bounded
-    // Common issuer supplies canonical data identities, not current grants.
-    projectOriginalJournalIdentity: ({originals, row}) =>
-      parseCore(runtime.modelOriginalJournalIdentity(JSON.stringify(originals), JSON.stringify(row))),
-    projectOriginalCurrentCut: ({facts}) =>
-      parseCore(runtime.modelOriginalJournalCutData(JSON.stringify(facts))).cut,
-    originalStateSaved: Object.freeze({
-      inspect: observation => checkpoints().originalModelStateSavedFacts(observation),
-      current: observation => checkpoints().originalModelStateSavedObservationCurrent(observation),
-    }),
-    originalResourceCut: Object.freeze({
-      inspect: park => originalResourceCut(park).facts,
-      current: park => {
-        const original = originalResourceCuts.get(park)?.deref();
-        return original?.facts !== undefined && original.current() ? park : undefined;
-      },
-      invalidationCurrent: (request, park) => originalResourceCut(park).invalidationCurrent(request),
-    }),
-    admitImmediateEntry({decision, preparedCallSet, inventory, originals, slot, attemptIndex,
-      attemptCid, attemptWire, authorityWire, at}) {
-      const owner = live.get(preparedCallSet);
-      const facts = authorizationDispatchFacts(decision);
-      const pending = owner?.pending;
-      if (!owner?.available || owner.decision !== decision || facts === undefined ||
-          facts.configurationCid !== originals.expectedBoundary.configuration_cid ||
-          facts.principal !== originals.expectedBoundary.principal ||
-          pending?.slot !== slot.ordinal || pending.callWire !== originals.slotWires[slot.ordinal] ||
-          pending.attemptWire !== attemptWire || pending.authorityWire !== authorityWire ||
-          !owner.operation.entryCurrent(pending.entry, preparedCallSet) ||
-          owner.currentProvider() !== true || Date.parse(at) >= Date.parse(inventory.runValidUntil)) {
-        fail('ModelImmediateOwnerRejected');
-      }
-      const attempted = parseCore(runtime.modelImmediateCallAttemptAdmit(canonicalJson(originals),
-        slot.ordinal, attemptWire, authorityWire, attemptIndex));
-      if (attempted.attemptCid !== attemptCid) fail('ModelImmediateOwnerRejected');
-      const authority = control.admitRunEvidence('model_dispatch_authority', authorityWire, limits);
-      return {...select(inventory, scopeKeys), ordinal: slot.ordinal, slotCid: slot.slotCid,
-        attemptIndex, attemptCid, authorityCid: authority.identity, current: true,
-        admittedAt: at, runValidUntil: inventory.runValidUntil, dispatchValidUntil: inventory.runValidUntil};
-    },
-    verifySettlement: readSettled,
-  });
-  async function prime(record) {
-    const receiptWire = record.originals.fixedInputReceiptWire;
-    const receipt = JSON.parse(receiptWire);
-    if (receipt.runId !== record.inventory.runId ||
-        receipt.runDefinitionCid !== record.inventory.runDefinitionCid) fail('ModelSnapshotBindingMismatch');
-    const bytes = await checkpoints().readModelInput(receipt);
-    const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-    const snapshot = JSON.parse(wire);
-    if (snapshot.version !== 'actql-installed-model-input/0.1' ||
-        snapshot.scopeCid !== record.scopeCid || receipt.runId !== record.inventory.runId ||
-        receipt.runDefinitionCid !== record.inventory.runDefinitionCid) fail('ModelSnapshotBindingMismatch');
-    checkCapturedInventory(snapshot.capturedContent, receipt.runDefinitionCid,
-      snapshot.capturedContentBinding, fail);
-    const token = retain(receiptWire, receipt, snapshot, bytes.byteLength);
-    try {
-      admittedInventory(record.originals, record.checkpointCid === null, token);
-      return token;
-    } catch (error) { release(token); throw error; }
-  }
-  async function observe(entry) {
-    const result = await (entry.provenance === 'immediate'
-      ? checkpoints().journal.observeImmediateModelCall(entry)
-      : checkpoints().journal.observeResumedCall(entry));
-    diagnostic('model_call_observed', {ref: {namespaceId, authorityScopeCid,
-      runDefinitionCid: entry.runDefinitionCid}, task: entry.taskIndex,
-      attempt: entry.attemptIndex, attemptCid: entry.attemptCid, slot: entry.ordinal,
-      outcome: {SavedSuccess: 'succeeded', SavedFailure: 'failed',
-        EnteredUnknown: 'unknown', Unsent: 'pending'}[result?.state]});
-    return result;
-  }
+  const custody = createInstalledModelContinuationCustody({moon, control, store, storeAuthorityCid, namespaceId,
+    authorityScopeCid, runtime, getCheckpoints, observeDiagnostic});
+  const {live, originalResourceCuts, diagnostic, retain, ownedInput, release, usage, leaseReceiptWire,
+    retireReceipt, checkpoints, installOriginalJournal, admittedInventory, readSettled, verifier, prime, observe} = custody;
+
   async function openOwned({operation, preparedCallSet, plan, selected, principalId,
     declaredResults, submission, signal, existing, inputToken, claim, parentResume, journalPort,
     sourceContinuation, retainEvidenceCopy, originalPreparation, preserveEvidenceInputs = true}, ownership) {
@@ -469,7 +241,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       if (originalPreparation === undefined ||
           live.get(preparedCallSet) !== owner ||
           operation.originalResourceScope?.() !== originalPreparation.scope ||
-          checkpoints() !== cp || cp.journal !== checkpointInstallation?.journal) {
+          checkpoints() !== cp || cp.journal !== custody.checkpointInstallation?.journal) {
         fail('ModelOriginalJournalInstallationUnavailable');
       }
       if (installedJournalPort === undefined) {

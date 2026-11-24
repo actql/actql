@@ -87269,20 +87269,13 @@
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "69b22b2d59b9e5dde351f2fa491639c58ead0cfe4892ea8ac5985d673d775329",
+      "sha256": "7b369c6bd9eefbb0b393bb186336d7dc0d6670f9028a16fa95c09252ecd5d053",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
         "installNodeModelContinuation"
       ],
       "operations": [
-        {
-          "name": "fail/fail",
-          "parameters": [
-            "code"
-          ],
-          "async": false
-        },
         {
           "name": "installNodeModelContinuation",
           "parameters": [
@@ -87301,18 +87294,6 @@
           "async": true
         },
         {
-          "name": "installNodeModelContinuation/admittedInventory/admittedInventory",
-          "parameters": [
-            "slot"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/checkpoints/checkpoints",
-          "parameters": [],
-          "async": false
-        },
-        {
           "name": "installNodeModelContinuation/init:savedScope/init:savedScope",
           "parameters": [
             "plan",
@@ -87329,7 +87310,10 @@
         },
         {
           "name": "installNodeModelContinuation/installNodeModelContinuation",
-          "parameters": [],
+          "parameters": [
+            "token",
+            "runDefinitionCid"
+          ],
           "async": false
         },
         {
@@ -87343,15 +87327,14 @@
         {
           "name": "installNodeModelContinuation/installNodeModelContinuation#3",
           "parameters": [
-            "token",
-            "runDefinitionCid"
+            "record"
           ],
           "async": false
         },
         {
           "name": "installNodeModelContinuation/installNodeModelContinuation#4",
           "parameters": [
-            "record"
+            "runId"
           ],
           "async": false
         },
@@ -87365,23 +87348,9 @@
         {
           "name": "installNodeModelContinuation/installNodeModelContinuation#6",
           "parameters": [
-            "runId"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/installNodeModelContinuation#7",
-          "parameters": [
             "identity"
           ],
           "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/observe",
-          "parameters": [
-            "entry"
-          ],
-          "async": true
         },
         {
           "name": "installNodeModelContinuation/open",
@@ -87667,404 +87636,12 @@
             "slot"
           ],
           "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/originalResourceCut",
-          "parameters": [
-            "park"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/prime",
-          "parameters": [
-            "record"
-          ],
-          "async": true
-        },
-        {
-          "name": "installNodeModelContinuation/readSettled",
-          "parameters": [
-            "originals",
-            "entry",
-            "attemptWire",
-            "authorityWire",
-            "retainRecord",
-            "beforeRead"
-          ],
-          "async": true
-        },
-        {
-          "name": "installNodeModelContinuation/readSettled/readSettled",
-          "parameters": [
-            "sum",
-            "object"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/readSettled/readSettled#2",
-          "parameters": [
-            "role"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/readSettled/readSettled#3",
-          "parameters": [
-            "role"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/retireReceipt",
-          "parameters": [
-            "receiptWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/retireReceipt/absent/absent",
-          "parameters": [
-            "record"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/init:admitImmediateEntry/init:admitImmediateEntry",
-          "parameters": [
-            "decision",
-            "preparedCallSet",
-            "inventory",
-            "originals",
-            "slot",
-            "attemptIndex",
-            "attemptCid",
-            "attemptWire",
-            "authorityWire",
-            "at"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier",
-          "parameters": [
-            "originalRunWire"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#10",
-          "parameters": [
-            "park"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#11",
-          "parameters": [
-            "request",
-            "park"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#2",
-          "parameters": [
-            "originals"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#3",
-          "parameters": [
-            "originals"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#4",
-          "parameters": [
-            "originals",
-            "slot",
-            "attemptWire",
-            "authorityWire",
-            "attemptIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#5",
-          "parameters": [
-            "originals",
-            "row"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#6",
-          "parameters": [
-            "facts"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#7",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#8",
-          "parameters": [
-            "observation"
-          ],
-          "async": false
-        },
-        {
-          "name": "installNodeModelContinuation/verifier/verifier#9",
-          "parameters": [
-            "park"
-          ],
-          "async": false
-        },
-        {
-          "name": "select/select/select",
-          "parameters": [
-            "key"
-          ],
-          "async": false
         }
       ],
       "contracts": [
         {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "entryIdentity"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "fail/fail"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "fail"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
           "operations": [
             "installNodeModelContinuation",
-            "installNodeModelContinuation/admittedInventory/admittedInventory",
-            "installNodeModelContinuation/checkpoints/checkpoints",
             "installNodeModelContinuation/init:savedScope/init:savedScope",
             "installNodeModelContinuation/init:savedScope/init:savedScope/available/available",
             "installNodeModelContinuation/installNodeModelContinuation",
@@ -88073,7 +87650,6 @@
             "installNodeModelContinuation/installNodeModelContinuation#4",
             "installNodeModelContinuation/installNodeModelContinuation#5",
             "installNodeModelContinuation/installNodeModelContinuation#6",
-            "installNodeModelContinuation/observe",
             "installNodeModelContinuation/open",
             "installNodeModelContinuation/openOwned/cleanup/cleanup",
             "installNodeModelContinuation/openOwned/cleanup/cleanup/cleanup",
@@ -88087,6 +87663,7 @@
             "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/dispatch/init:enterCall/init:enterCall",
             "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize",
             "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#2",
+            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3",
             "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:beginEntry/init:beginEntry",
             "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/persistence/init:retainHolding/init:retainHolding",
             "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/registration/registration",
@@ -88116,29 +87693,7 @@
             "installNodeModelContinuation/openOwned/owner/owner",
             "installNodeModelContinuation/openOwned/persistence/init:settled/init:settled",
             "installNodeModelContinuation/openOwned/receipt/init:consume/init:consume",
-            "installNodeModelContinuation/openOwned/review/review",
-            "installNodeModelContinuation/originalResourceCut",
-            "installNodeModelContinuation/prime",
-            "installNodeModelContinuation/readSettled",
-            "installNodeModelContinuation/readSettled/readSettled",
-            "installNodeModelContinuation/readSettled/readSettled#2",
-            "installNodeModelContinuation/readSettled/readSettled#3",
-            "installNodeModelContinuation/retireReceipt/absent/absent",
-            "installNodeModelContinuation/verifier/init:admitImmediateEntry/init:admitImmediateEntry",
-            "installNodeModelContinuation/verifier/verifier",
-            "installNodeModelContinuation/verifier/verifier#10",
-            "installNodeModelContinuation/verifier/verifier#11",
-            "installNodeModelContinuation/verifier/verifier#2",
-            "installNodeModelContinuation/verifier/verifier#3",
-            "installNodeModelContinuation/verifier/verifier#4",
-            "installNodeModelContinuation/verifier/verifier#5",
-            "installNodeModelContinuation/verifier/verifier#6",
-            "installNodeModelContinuation/verifier/verifier#7",
-            "installNodeModelContinuation/verifier/verifier#8",
-            "installNodeModelContinuation/verifier/verifier#9",
-            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3",
-            "installNodeModelContinuation/installNodeModelContinuation#7",
-            "installNodeModelContinuation/retireReceipt"
+            "installNodeModelContinuation/openOwned/review/review"
           ],
           "exports": [
             "installNodeModelContinuation"
@@ -88266,448 +87821,6 @@
               {
                 "path": "adapters/host-node/infer-restored-attachment.test.mjs",
                 "anchor": "test('saved attachment admission reaches the same private Core restore call without another issuer'"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "originalDigest"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "parseCore"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "same"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
-              }
-            ]
-          }
-        },
-        {
-          "operations": [
-            "select/select/select"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Responsibility"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Inputs and outputs"
-              }
-            ],
-            "identity": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Identity"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Ownership"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Synchronization"
-              }
-            ],
-            "failure": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Failure"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Cancellation"
-              }
-            ],
-            "resources": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Resources"
-              }
-            ],
-            "extension": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Extension"
-              }
-            ],
-            "verification": [
-              {
-                "path": "adapters/host-node/installed-model-continuation.mjs",
-                "anchor": "select"
-              },
-              {
-                "path": "docs/development/js-compiler-bindings.md",
-                "anchor": "## Verification"
-              },
-              {
-                "path": "scripts/js-compiler-binding-runtime.test.mts",
-                "anchor": "actual pinned MoonBit Result"
               }
             ]
           }
@@ -88907,7 +88020,6 @@
         "../../packages/sdk/host-port.mjs",
         "../host-common/authorization-gate.mjs",
         "../host-common/compiler-binding.generated.mjs",
-        "../host-common/diagnostic-observer.mjs",
         "../host-common/runtime-result.mjs",
         "./checkpoint-runtime.mjs",
         "./infer-entry-persistence.mjs",
@@ -88916,10 +88028,1090 @@
         "./infer-physical-observation.mjs",
         "./infer-raw-capture.mjs",
         "./infer-raw-selection.mjs",
+        "./installed-model-continuation-custody.mjs",
         "./installed-model-input-custody.mjs",
         "./installed-model-originals.mjs",
         "./local-account-config.mjs",
         "node:timers/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/installed-model-continuation-custody.mjs",
+      "responsibilityFacet": "supplemental",
+      "sha256": "d6aa509947accadf60e7004485309fe995cdd06fe43f70005dac148e74209cea",
+      "role": "physical-io",
+      "owner": "A \u2014 existing JS/Core projection boundary",
+      "exports": [
+        "createInstalledModelContinuationCustody",
+        "entryIdentity",
+        "fail",
+        "limits",
+        "same",
+        "scopeKeys",
+        "select"
+      ],
+      "operations": [
+        {
+          "name": "createInstalledModelContinuationCustody",
+          "parameters": [
+            "moon",
+            "control",
+            "store",
+            "storeAuthorityCid",
+            "namespaceId",
+            "authorityScopeCid",
+            "runtime",
+            "getCheckpoints",
+            "observeDiagnostic"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/admittedInventory",
+          "parameters": [
+            "originals",
+            "immediate",
+            "token"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/admittedInventory/admittedInventory",
+          "parameters": [
+            "slot"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/checkpoints/checkpoints",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/createInstalledModelContinuationCustody",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/createInstalledModelContinuationCustody#2",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/installOriginalJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/observe",
+          "parameters": [
+            "entry"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/originalResourceCut",
+          "parameters": [
+            "park"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/prime",
+          "parameters": [
+            "record"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/readSettled",
+          "parameters": [
+            "originals",
+            "entry",
+            "attemptWire",
+            "authorityWire",
+            "retainRecord",
+            "beforeRead"
+          ],
+          "async": true
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/readSettled/readSettled",
+          "parameters": [
+            "sum",
+            "object"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/readSettled/readSettled#2",
+          "parameters": [
+            "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/readSettled/readSettled#3",
+          "parameters": [
+            "role"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/retireReceipt",
+          "parameters": [
+            "receiptWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/retireReceipt/absent/absent",
+          "parameters": [
+            "record"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/init:admitImmediateEntry/init:admitImmediateEntry",
+          "parameters": [
+            "decision",
+            "preparedCallSet",
+            "inventory",
+            "originals",
+            "slot",
+            "attemptIndex",
+            "attemptCid",
+            "attemptWire",
+            "authorityWire",
+            "at"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier",
+          "parameters": [
+            "originalRunWire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#10",
+          "parameters": [
+            "park"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#11",
+          "parameters": [
+            "request",
+            "park"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#2",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#3",
+          "parameters": [
+            "originals"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#4",
+          "parameters": [
+            "originals",
+            "slot",
+            "attemptWire",
+            "authorityWire",
+            "attemptIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#5",
+          "parameters": [
+            "originals",
+            "row"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#6",
+          "parameters": [
+            "facts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#7",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#8",
+          "parameters": [
+            "observation"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledModelContinuationCustody/verifier/verifier#9",
+          "parameters": [
+            "park"
+          ],
+          "async": false
+        },
+        {
+          "name": "entryIdentity/entryIdentity",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code"
+          ],
+          "async": false
+        },
+        {
+          "name": "same/same",
+          "parameters": [
+            "a",
+            "b"
+          ],
+          "async": false
+        },
+        {
+          "name": "select/select",
+          "parameters": [
+            "value",
+            "keys"
+          ],
+          "async": false
+        },
+        {
+          "name": "select/select/select",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "entryIdentity/entryIdentity"
+          ],
+          "exports": [
+            "entryIdentity"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "entryIdentity"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "fail/fail"
+          ],
+          "exports": [
+            "fail"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "originalDigest"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "parseCore"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "same/same"
+          ],
+          "exports": [
+            "same"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "same"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "select/select",
+            "select/select/select"
+          ],
+          "exports": [
+            "select"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Responsibility"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Inputs and outputs"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Identity"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Ownership"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Synchronization"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Failure"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Cancellation"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Resources"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Extension"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "select"
+              },
+              {
+                "path": "docs/development/js-compiler-bindings.md",
+                "anchor": "## Verification"
+              },
+              {
+                "path": "scripts/js-compiler-binding-runtime.test.mts",
+                "anchor": "actual pinned MoonBit Result"
+              }
+            ]
+          }
+        },
+        {
+          "operations": [
+            "<module>",
+            "createInstalledModelContinuationCustody",
+            "createInstalledModelContinuationCustody/admittedInventory",
+            "createInstalledModelContinuationCustody/admittedInventory/admittedInventory",
+            "createInstalledModelContinuationCustody/checkpoints/checkpoints",
+            "createInstalledModelContinuationCustody/createInstalledModelContinuationCustody",
+            "createInstalledModelContinuationCustody/createInstalledModelContinuationCustody#2",
+            "createInstalledModelContinuationCustody/installOriginalJournal",
+            "createInstalledModelContinuationCustody/observe",
+            "createInstalledModelContinuationCustody/originalResourceCut",
+            "createInstalledModelContinuationCustody/prime",
+            "createInstalledModelContinuationCustody/readSettled",
+            "createInstalledModelContinuationCustody/readSettled/readSettled",
+            "createInstalledModelContinuationCustody/readSettled/readSettled#2",
+            "createInstalledModelContinuationCustody/readSettled/readSettled#3",
+            "createInstalledModelContinuationCustody/retireReceipt",
+            "createInstalledModelContinuationCustody/retireReceipt/absent/absent",
+            "createInstalledModelContinuationCustody/verifier/init:admitImmediateEntry/init:admitImmediateEntry",
+            "createInstalledModelContinuationCustody/verifier/verifier",
+            "createInstalledModelContinuationCustody/verifier/verifier#10",
+            "createInstalledModelContinuationCustody/verifier/verifier#11",
+            "createInstalledModelContinuationCustody/verifier/verifier#2",
+            "createInstalledModelContinuationCustody/verifier/verifier#3",
+            "createInstalledModelContinuationCustody/verifier/verifier#4",
+            "createInstalledModelContinuationCustody/verifier/verifier#5",
+            "createInstalledModelContinuationCustody/verifier/verifier#6",
+            "createInstalledModelContinuationCustody/verifier/verifier#7",
+            "createInstalledModelContinuationCustody/verifier/verifier#8",
+            "createInstalledModelContinuationCustody/verifier/verifier#9"
+          ],
+          "exports": [
+            "createInstalledModelContinuationCustody",
+            "limits",
+            "scopeKeys"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "export function createInstalledModelContinuationCustody("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "const verifier = Object.freeze<Required<Verifier>>({"
+              },
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "async function prime(record: SourceInventory)"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "checkpointInstallation.checkpoints !== value || checkpointInstallation.journal !== value.journal"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "const originalResourceCuts = new WeakMap<object, WeakRef<ResourceCut>>();"
+              },
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "const inventories = new Map<string, InputIdentity>();"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "async function readSettled("
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail('ModelFixedInputOriginalMismatch');"
+              },
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "fail('ModelSettlementCustodyLost');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "function retireReceipt(receiptWire: string)"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "beforeRead?.(holding.objects.reduce"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/installed-model-continuation-custody.mts",
+                "anchor": "get checkpointInstallation() { return checkpointInstallation; }"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/installed-model-retention.test.mjs",
+                "anchor": "Model input release is exact-token guarded and preserves another consumer"
+              },
+              {
+                "path": "adapters/host-node/installed-model-journal-installation.test.mjs",
+                "anchor": "original journal installation rejects replacement checkpoints and journal identity before preparation"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../../packages/sdk/host-port.mjs",
+        "../host-common/authorization-gate.mjs",
+        "../host-common/diagnostic-observer.mjs",
+        "../host-common/runtime-result.mjs",
+        "./installed-model-input-custody.mjs",
+        "./local-account-config.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
