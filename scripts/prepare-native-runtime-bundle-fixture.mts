@@ -157,7 +157,10 @@ export async function prepareNativeFixture(configuration: FixtureConfiguration, 
   });
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+let invoked = false;
+try { invoked = realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url)); }
+catch { /* Importing the preparation helpers does not require a CLI entry path. */ }
+if (invoked) {
   const options = parseNativePreparationOptions(process.argv.slice(2));
   const target = process.platform === 'darwin' && process.arch === 'arm64' ? 'darwin-arm64'
     : process.platform === 'linux' && process.arch === 'x64' ? 'linux-x64' : undefined;

@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import {existsSync,lstatSync,mkdirSync,mkdtempSync,readFileSync,realpathSync,rmSync,symlinkSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {prepareNativeRuntimeBundle, prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import * as selectedEntries from './native-runtime-bundle-fixture.mjs';
 import {prepareNativeResidentPortableRuntime, verifyNativeResidentPortablePreparation} from './native-resident-portable-preparation.mjs';
@@ -431,6 +432,11 @@ function fixture(t, platform, entry = 'native_runtime_bundle', preparation = fal
 test('the explicit Resident cold-build budget leaves the other preparation windows unchanged', async t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-serial-native-preparation-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));
+  const alias = join(root, 'prepare-native.mjs'), rejectedDestination = join(root, 'invalid');
+  symlinkSync(fileURLToPath(new URL('./prepare-native-runtime-bundle-fixture.mjs', import.meta.url)), alias);
+  assert.throws(() => executeChild(process.execPath, [alias, '--destination', rejectedDestination, '--lanes', '3'],
+    {stdio: 'pipe', timeout: 5000}), error => error.status === 1 && error.stderr.includes('ERR_ASSERTION'));
+  assert.equal(existsSync(rejectedDestination), false);
   const options = args => parseNativePreparationOptions(['--destination', root, '--entries', 'all', ...args]);
   const original = options([]);
   assert.equal(original.seconds, 900);
