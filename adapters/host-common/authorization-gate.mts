@@ -117,9 +117,14 @@ type CheckpointBody = Readonly<{
   required_artifact?: Readonly<{artifact_cid?: string; artifact_type?: string}>;
   requirements?: readonly string[];
 }>;
+export type ModelCheckpointCallSet = Readonly<{
+  originalRunWire: string; preparedInvocationWire: string; scopeWire: string;
+  providerBindingWire: string; fixedInputReceiptWire: string; slotWires: readonly string[];
+  checkpointWire?: string; reviewWire?: string;
+}>;
 type CheckpointDescription = Readonly<{
-  body: CheckpointBody; priorStatus?: string | null; declaredResults?: readonly unknown[];
-  modelCallSet?: Readonly<{slotWires: readonly string[]}> | null;
+  body: CheckpointBody; priorStatus?: string; declaredResults?: readonly unknown[];
+  modelCallSet?: ModelCheckpointCallSet;
   binding?: object;
 }>;
 type CheckpointReceipt = Readonly<{
@@ -129,8 +134,8 @@ type CheckpointReceipt = Readonly<{
 type Checkpoint = CheckpointReceipt & Readonly<{requiredArtifactCid: string; decisionSubjectCid: string}>;
 type Reviewer = Readonly<{reviewerId: string}>;
 type DurableJournal = ResumeJournal & Readonly<{
-  persistCheckpoint(input: Readonly<{body: CheckpointBody; priorStatus: string | null | undefined;
-    declaredResults?: readonly unknown[]; authorities: readonly Reviewer[]; binding: object;
+  persistCheckpoint(input: Readonly<{body: CheckpointBody; priorStatus: string | undefined;
+    declaredResults: readonly unknown[] | undefined; authorities: readonly Reviewer[]; binding: object;
     decisionSubjectCid: string; requestedClaims: readonly string[]; configurationCid?: string;
     modelCallSet?: CheckpointDescription['modelCallSet']}>): Awaitable<CheckpointReceipt>;
   submitResolution(...args: never[]): Awaitable<unknown>;

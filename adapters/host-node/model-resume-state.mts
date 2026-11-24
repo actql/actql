@@ -7,6 +7,7 @@ import {prepareModelResumeStatements, type AttemptRow, type ScopeRow, type SlotR
 
 import type {DatabaseSync, StatementSync, StatementResultingChanges} from 'node:sqlite';
 import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+import type {ModelCheckpointCallSet} from '../host-common/authorization-gate.mjs';
 
 type SqlRow = NonNullable<ReturnType<StatementSync['get']>>;
 type Statements = ReturnType<typeof prepareModelResumeStatements>;
@@ -21,11 +22,7 @@ type Inventory = ScopeReference & Readonly<{
   fixedInputCustody: Readonly<Record<string, unknown>>; retryBinding: Readonly<Record<string, unknown>>;
   slots: readonly Slot[]; runValidUntil?: string;
 }>;
-type Originals = Readonly<{
-  originalRunWire: string; preparedInvocationWire: string; scopeWire: string;
-  providerBindingWire: string; fixedInputReceiptWire: string; slotWires: readonly string[];
-  checkpointWire?: string; reviewWire?: string;
-}>;
+type Originals = ModelCheckpointCallSet;
 type Checkpoint = Readonly<{checkpoint_cid: string; checkpoint_wire: string; run_id: string | null}>;
 type Run = SqlRow & Readonly<{status: string; version: number}>;
 type Intent = Readonly<{checkpointCid: string; intentId: string; claimant: string; generation: number}>;
