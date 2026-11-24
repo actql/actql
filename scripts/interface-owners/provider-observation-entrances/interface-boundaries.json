@@ -149,7 +149,7 @@
     {
       "module": "packages/otel-node/configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4677b6c419bcdd20b2e302f408b06ad1ccec9a842ff95cd3a841294adfd90410",
+      "sha256": "49273c6d3119f9933e03fa506a7805ab05e9d3b0eb88ff405934c5d0c1fafaa4",
       "exports": [
         "managedLimits",
         "observationConfiguration"
@@ -251,13 +251,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "observationConfiguration"
               }
             ],
             "identity": [
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "configuration"
               },
               {
@@ -267,13 +267,13 @@
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "Object.freeze"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "before constructing"
               }
             ],
@@ -292,7 +292,7 @@
             },
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -331,7 +331,7 @@
     {
       "module": "packages/otel-node/environment.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "851f35b47afa445a0082dbeef7a39649caf1aef6f0c323148a4dcb709e2dfc98",
+      "sha256": "dd7ad961e04eec4bdd397ed2dca33d41a1fe5c6f6c72566486cc0ae402ada0a3",
       "exports": [
         "environmentOptions"
       ],
@@ -401,25 +401,25 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/environment.mjs",
-                "anchor": "environment = process.env"
+                "path": "packages/otel-node/environment.mts",
+                "anchor": "environment: NodeJS.ProcessEnv = process.env"
               }
             ],
             "identity": [
               {
-                "path": "packages/otel-node/environment.mjs",
+                "path": "packages/otel-node/environment.mts",
                 "anchor": "source: 'environment+explicit'"
               }
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/environment.mjs",
+                "path": "packages/otel-node/environment.mts",
                 "anchor": "never inherit an environment overlay"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/environment.mjs",
+                "path": "packages/otel-node/environment.mts",
                 "anchor": "options.environment !== true"
               }
             ],
@@ -434,7 +434,7 @@
             },
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -548,7 +548,7 @@
             ],
             "identity": [
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "configuration"
               },
               {
@@ -562,7 +562,7 @@
                 "anchor": "providers remain application-owned"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "Capacity is held until physical close"
               }
             ],
@@ -572,7 +572,7 @@
                 "anchor": "application provider callback is deferred"
               },
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "if (busy)"
               }
             ],
@@ -592,13 +592,13 @@
                 "anchor": "does not cancel a Run or revoke authority"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "await active.settled.catch"
               }
             ],
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -637,7 +637,7 @@
     {
       "module": "packages/otel-node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "798ebc98512e68b4e08d2253f8af4cbfe54ff26b97b111615e9dfbacb6e9bc79",
+      "sha256": "b0c9396b9dbb88fd169e8525fb9b16ed3fefaffc8a134c3e3e3441f6ab64580a",
       "exports": [
         "createNodeHostObservability"
       ],
@@ -878,7 +878,7 @@
             ],
             "identity": [
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "configuration"
               },
               {
@@ -892,7 +892,7 @@
                 "anchor": "providers remain application-owned"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "Capacity is held until physical close"
               }
             ],
@@ -902,7 +902,7 @@
                 "anchor": "application provider callback is deferred"
               },
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "if (busy)"
               }
             ],
@@ -922,13 +922,13 @@
                 "anchor": "does not cancel a Run or revoke authority"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "await active.settled.catch"
               }
             ],
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -967,7 +967,7 @@
     {
       "module": "packages/otel-node/transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3e0944455a538e6a4668db7cfe297d3d10731560cbaf64ff1359c89f4172c4d3",
+      "sha256": "7eacf0f0033c40479438751f9a3762b0aa0a9ba154e849446dfd9bde56619918",
       "exports": [
         "createBoundedOtlpSender"
       ],
@@ -1091,25 +1091,25 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/transport.mjs",
-                "anchor": "async send(payload, serializer)"
+                "path": "packages/otel-node/transport.mts",
+                "anchor": "async send(payload: unknown, serializer?: OtlpDecoder)"
               }
             ],
             "identity": [
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "endpoint"
               }
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "active = {req, settled}"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "req.on('close'"
               }
             ],
@@ -1129,13 +1129,13 @@
                 "anchor": "does not cancel a Run or revoke authority"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "await active.settled.catch"
               }
             ],
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {

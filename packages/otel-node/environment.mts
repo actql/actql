@@ -1,11 +1,18 @@
 // Explicit, bounded standalone configuration. Embedded application providers
 // never inherit an environment overlay, and this module registers no globals.
-const signalNames = ['traces', 'metrics', 'logs'];
+import type {NodeHostObservationOptions} from './index.js';
+import type {Signal} from './configuration.mjs';
+
+type Options = NodeHostObservationOptions;
+type MutableOptions = {-readonly [Key in keyof Options]: Options[Key]};
+type ResourceKey = keyof NonNullable<Options['resource']>;
+
+const signalNames: readonly Signal[] = ['traces', 'metrics', 'logs'];
 const resourceKeys = ['service.name', 'service.version', 'deployment.environment.name'];
-const fail = code => { throw new TypeError(code); };
-function headers(raw) {
+const fail: (code: string) => never = code => { throw new TypeError(code); };
+function headers(raw: string | undefined): Record<string, string> | undefined {
   if (raw === undefined) return undefined;
-  const result = Object.create(null);
+  const result: Record<string, string> = Object.create(null);
   const items = raw.split(',');
   if (items.length > 16) fail('InvalidActQLOTelHeaders');
   for (const item of items) {
@@ -19,13 +26,13 @@ function headers(raw) {
   }
   return result;
 }
-export function environmentOptions(options, environment = process.env) {
-  if (options.environment !== true) return {options, source: 'explicit', diagnostics: []};
-  if (['tracerProvider', 'meterProvider', 'loggerProvider'].some(key => options[key] !== undefined)) {
+export function environmentOptions(options: Options, environment: NodeJS.ProcessEnv = process.env) {
+  if (options.environment !== true) return {options, source: 'explicit' as const, diagnostics: []};
+  if ((['tracerProvider', 'meterProvider', 'loggerProvider'] as const).some(key => options[key] !== undefined)) {
     fail('ApplicationProviderEnvironmentOverlayUnsupported');
   }
-  const diagnostics = [];
-  const read = key => {
+  const diagnostics: string[] = [];
+  const read = (key: string) => {
     const value = environment[key];
     if (value === undefined) return undefined;
     if (typeof value !== 'string' || value.length > 4096) fail('InvalidActQLOTelEnvironment');
@@ -38,10 +45,10 @@ export function environmentOptions(options, environment = process.env) {
   if (disabled !== undefined && !['true', 'false'].includes(disabled)) {
     diagnostics.push('invalid_sdk_disabled_ignored');
   }
-  if (disabled === 'true') return {options: {...options, traces: false, metrics: false, logs: false},
-    source: 'environment+explicit', diagnostics};
+  if (disabled === 'true') return {options: {...options, traces: false, metrics: false, logs: false} as Options,
+    source: 'environment+explicit' as const, diagnostics};
   const generic = read('OTEL_EXPORTER_OTLP_ENDPOINT');
-  const defaults = {};
+  const defaults: MutableOptions = {};
   if (generic !== undefined) defaults.endpoint = generic;
   const sampler = read('OTEL_TRACES_SAMPLER')?.trim().toLowerCase();
   let sampleRate = 1;
@@ -75,7 +82,7 @@ export function environmentOptions(options, environment = process.env) {
     let destination = specific;
     if (destination === undefined) {
       let url;
-      try { url = new URL(generic); } catch { fail('InvalidActQLOTelConfiguration'); }
+      try { url = new URL(generic!); } catch { fail('InvalidActQLOTelConfiguration'); }
       const suffix = `/v1/${signal}`;
       if (!url.pathname.endsWith(suffix)) url.pathname = `${url.pathname.replace(/\/$/u, '')}${suffix}`;
       destination = url.href;
@@ -92,7 +99,7 @@ export function environmentOptions(options, environment = process.env) {
       else timeout = Math.min(timeout ?? 500, value, 500);
     }
   }
-  const resource = {};
+  const resource: Partial<Record<ResourceKey, string>> = {};
   const rawResource = read('OTEL_RESOURCE_ATTRIBUTES');
   if (rawResource !== undefined) {
     const pairs = rawResource.split(',');
@@ -103,7 +110,7 @@ export function environmentOptions(options, environment = process.env) {
       const key = item.slice(0, split).trim();
       // Do not decode/copy a forbidden Resource value merely to discard it.
       if (!resourceKeys.includes(key)) continue;
-      try { resource[key] = decodeURIComponent(item.slice(split + 1).trim()); }
+      try { resource[key as ResourceKey] = decodeURIComponent(item.slice(split + 1).trim()); }
       catch { fail('InvalidActQLOTelResource'); }
     }
   }
@@ -113,7 +120,7 @@ export function environmentOptions(options, environment = process.env) {
   if (propagators !== undefined && propagators.some(item => !['none', 'tracecontext'].includes(item))) {
     fail('UnsupportedActQLOTelPropagator');
   }
-  const resolved = {...defaults, ...options,
+  const resolved: MutableOptions = {...defaults, ...options,
     resource: {...resource, ...options.resource},
     limits: {...(timeout === undefined ? {} : {exportTimeoutMs: timeout}), ...options.limits}};
   if (options.endpoint !== undefined) {
@@ -131,5 +138,5 @@ export function environmentOptions(options, environment = process.env) {
   if (propagators?.includes('none') && options.correlation === undefined) {
     resolved.correlation = {include: ['run', 'task', 'attempt']};
   }
-  return {options: resolved, source: 'environment+explicit', diagnostics};
+  return {options: resolved, source: 'environment+explicit' as const, diagnostics};
 }

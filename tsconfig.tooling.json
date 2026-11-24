@@ -71,6 +71,7 @@
     "packages/native-cli/**/*.mts",
     "packages/provider-ai-sdk/**/*.mts",
     "packages/provider-http/**/*.mts",
+    "packages/otel-node/**/*.mts",
     "adapters/host-common/**/*.mts",
     "adapters/host-node/**/*.mts",
     "adapters/host-node/process-retained-runtime.d.ts",

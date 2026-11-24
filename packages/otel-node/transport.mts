@@ -1,13 +1,22 @@
 import {request as httpRequest} from 'node:http';
 import {request as httpsRequest} from 'node:https';
 
+import type {ClientRequest, IncomingMessage, OutgoingHttpHeaders} from 'node:http';
+import type {IExportLogsServiceResponse, IExportMetricsServiceResponse,
+  IExportTraceServiceResponse} from '@opentelemetry/otlp-transformer';
+import type {TransportLimits} from './configuration.mjs';
+
+type OtlpResponse = IExportLogsServiceResponse | IExportMetricsServiceResponse | IExportTraceServiceResponse;
+type OtlpDecoder = Readonly<{deserializeResponse(data: Uint8Array): OtlpResponse | undefined}>;
+type ActiveRequest = {req?: ClientRequest; settled: Promise<void>};
+
 // One sender per signal. Capacity is held until physical close, including
 // errors/timeout. There are no retries or response bodies retained beyond cap.
-export function createBoundedOtlpSender(endpoint, limits, headers = {}) {
-  let closed = false, active, records = 0, bytes = 0, window = performance.now();
+export function createBoundedOtlpSender(endpoint: string, limits: Readonly<TransportLimits>, headers: Readonly<OutgoingHttpHeaders> = {}) {
+  let closed = false, active: ActiveRequest | undefined, records = 0, bytes = 0, window = performance.now();
   const counters = {sent: 0, failed: 0, limited: 0};
   return Object.freeze({
-    async send(payload, serializer) {
+    async send(payload: unknown, serializer?: OtlpDecoder) {
       if (closed || active !== undefined) throw new Error('ObservationSenderUnavailable');
       if (performance.now() - window >= limits.windowMs) {
         window = performance.now(); records = 0; bytes = 0;
@@ -17,12 +26,12 @@ export function createBoundedOtlpSender(endpoint, limits, headers = {}) {
         counters.limited++; throw new Error('ObservationSenderLimited');
       }
       records++; bytes += payload.byteLength;
-      let req, timer;
-      const settled = new Promise((resolve, reject) => {
-        let failure, completed = false;
+      let req: ClientRequest | undefined, timer: ReturnType<typeof setTimeout> | undefined;
+      const settled = new Promise<void>((resolve, reject) => {
+        let failure: Error | undefined, completed = false;
         const fail = () => {
           failure ??= new Error('ObservationExportFailed');
-          req.destroy();
+          req!.destroy();
         };
         try {
           const url = new URL(endpoint);
@@ -32,23 +41,23 @@ export function createBoundedOtlpSender(endpoint, limits, headers = {}) {
               'content-type': 'application/x-protobuf',
               'content-length': payload.byteLength,
             },
-          }, response => {
+          }, (response: IncomingMessage) => {
             let received = 0;
-            const chunks = [];
-            response.on('data', data => {
+            const chunks: Buffer[] = [];
+            response.on('data', (data: Buffer) => {
               received += data.byteLength;
               if (received > limits.responseBytes) fail();
               else chunks.push(data);
             });
             response.on('error', fail);
             response.on('end', () => {
-              completed = response.statusCode >= 200 && response.statusCode < 300;
+              completed = response.statusCode! >= 200 && response.statusCode! < 300;
               if (completed && serializer !== undefined) {
                 try {
                   const answer = serializer.deserializeResponse(Buffer.concat(chunks));
                   const partial = answer?.partialSuccess;
                   if (partial && Object.entries(partial).some(([key, value]) =>
-                    key !== 'errorMessage' && value > 0)) completed = false;
+                    key !== 'errorMessage' && (value as number) > 0)) completed = false;
                 } catch { completed = false; }
               }
               if (!completed) fail();

@@ -1,19 +1,26 @@
 // Explicit application configuration; no OTel environment fallbacks, resource
 // detection, default localhost destination or transport inference.
 import {createHostObservationConnection} from '@actql/local-node/observation';
+import type {NodeHostObservationOptions, OtlpSignal} from './index.js';
+
+export type Signal = 'traces' | 'metrics' | 'logs';
+export type TransportLimits = Record<keyof typeof managedLimits, number>;
+type SelectedSignal = OtlpSignal & Readonly<{sampleRate: number}>;
+type ResourceKey = keyof NonNullable<NodeHostObservationOptions['resource']>;
+
 export const managedLimits = Object.freeze({payloadBytes: 65536,
   windowBytes: 262144, windowRecords: 256, windowMs: 60000,
   exportTimeoutMs: 500, shutdownMs: 1000, responseBytes: 4096});
-const signals = ['traces', 'metrics', 'logs'];
-const fail = () => { throw new TypeError('InvalidActQLOTelConfiguration'); };
-function endpoint(value) {
+const signals: readonly Signal[] = ['traces', 'metrics', 'logs'];
+const fail: () => never = () => { throw new TypeError('InvalidActQLOTelConfiguration'); };
+function endpoint(value: string) {
   let url;
   try { url = new URL(value); } catch { fail(); }
   if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password ||
       url.search || url.hash || url.href.length > 2048) fail();
   return url.href;
 }
-export function observationConfiguration(options = {}) {
+export function observationConfiguration(options: NodeHostObservationOptions = {}) {
   if (!options || typeof options !== 'object' || Array.isArray(options) ||
       Object.keys(options).some(key => !['endpoint', 'traces', 'metrics', 'logs',
         'transport', 'host', 'limits', 'scope', 'revision', 'include', 'exclude',
@@ -35,9 +42,9 @@ export function observationConfiguration(options = {}) {
     attributes: options.attributes, events: options.events,
     limits: options.projectionLimits});
   createHostObservationConnection({deliver() {}, ...projection});
-  const selected = {};
+  const selected: Partial<Record<Signal, SelectedSignal>> = {};
   for (const signal of signals) {
-    let setting = options[signal];
+    let setting: NodeHostObservationOptions['traces'] = options[signal];
     if (setting === undefined && signal === 'traces' && options.endpoint !== undefined) {
       const base = new URL(endpoint(options.endpoint));
       if (!base.pathname.endsWith('/v1/traces')) {
@@ -63,10 +70,10 @@ export function observationConfiguration(options = {}) {
     selected[signal] = Object.freeze({endpoint: endpoint(setting.endpoint), sampleRate,
       ...(headers === undefined ? {} : {headers: Object.freeze({...headers})})});
   }
-  const limits = {...managedLimits};
+  const limits: TransportLimits = {...managedLimits};
   if (options.limits !== undefined) {
     if (!options.limits || typeof options.limits !== 'object' || Array.isArray(options.limits)) fail();
-    for (const [key, value] of Object.entries(options.limits)) {
+    for (const [key, value] of Object.entries(options.limits) as [keyof TransportLimits, number][]) {
       if (!Object.hasOwn(limits, key) || key === 'windowMs' && value !== limits[key] ||
           !Number.isSafeInteger(value) ||
           value < 1 || value > limits[key]) fail();
@@ -78,20 +85,20 @@ export function observationConfiguration(options = {}) {
       Array.isArray(options.resource) || Object.keys(options.resource).length > 3 ||
       Object.keys(options.resource).some(key =>
         !['service.name', 'service.version', 'deployment.environment.name'].includes(key)))) fail();
-  const resource = {};
-  for (const key of ['service.name', 'service.version', 'deployment.environment.name']) {
+  const resource: Partial<Record<ResourceKey, string>> = {};
+  for (const key of ['service.name', 'service.version', 'deployment.environment.name'] as const) {
     if (options.attributes?.exclude?.includes(key)) continue;
     const value = options.resource?.[key] ?? (key === 'service.name' ? 'actql.node-host' : undefined);
     if (value === undefined) continue;
     if (typeof value !== 'string' || value.length === 0 || Buffer.byteLength(value) > 128) fail();
     resource[key] = value;
   }
-  const applicationOwned = ['tracerProvider', 'meterProvider', 'loggerProvider']
+  const applicationOwned = (['tracerProvider', 'meterProvider', 'loggerProvider'] as const)
     .some(key => options[key] !== undefined);
   if (applicationOwned && Object.keys(selected).length !== 0) fail();
   for (const [key, method] of [['tracerProvider', 'getTracer'],
-    ['meterProvider', 'getMeter'], ['loggerProvider', 'getLogger']]) {
-    if (options[key] !== undefined && typeof options[key]?.[method] !== 'function') fail();
+    ['meterProvider', 'getMeter'], ['loggerProvider', 'getLogger']] as const) {
+    if (options[key] !== undefined && typeof (options[key] as Partial<Record<typeof method, unknown>>)?.[method] !== 'function') fail();
   }
   return Object.freeze({signals: Object.freeze(selected), limits: Object.freeze(limits), projection,
     resource: Object.freeze(resource),

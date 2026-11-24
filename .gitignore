@@ -1897,6 +1897,14 @@ target/
 /adapters/connectors/duckdb/node/test/reader-policy.test.d.mts
 /adapters/connectors/duckdb/node/test/publication-plan-fixture.mjs
 /adapters/connectors/duckdb/node/test/publication-plan-fixture.d.mts
+/packages/otel-node/configuration.mjs
+/packages/otel-node/configuration.d.mts
+/packages/otel-node/environment.mjs
+/packages/otel-node/environment.d.mts
+/packages/otel-node/transport.mjs
+/packages/otel-node/transport.d.mts
+/packages/otel-node/index.mjs
+/packages/otel-node/index.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
 /adapters/host-node/result-transformation-control.test.mjs

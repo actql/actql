@@ -12,6 +12,14 @@ import {observationConfiguration} from './configuration.mjs';
 import {createBoundedOtlpSender} from './transport.mjs';
 import {environmentOptions} from './environment.mjs';
 
+import type {LogRecordProcessor} from '@opentelemetry/sdk-logs';
+import type {ReadableSpan, SpanProcessor} from '@opentelemetry/sdk-trace';
+import type {Signal} from './configuration.mjs';
+import type {NodeHostObservationOptions, createNodeHostObservability as PublicFactory} from './index.js';
+
+type Sender = ReturnType<typeof createBoundedOtlpSender>;
+type Observation = ReturnType<typeof PublicFactory>;
+
 const scope = 'actql.node-host', version = '0.0.0-development';
 const schemaUrl = 'https://opentelemetry.io/schemas/1.43.0';
 const metricKeys = ['actql.operation', 'actql.outcome'];
@@ -25,19 +33,19 @@ class OnDemandReader extends MetricReader {
 }
 
 /** Optional Node adapter. Never registers globals or detects a Resource. */
-export function createNodeHostObservability(options = {}) {
+export function createNodeHostObservability(options: NodeHostObservationOptions = {}): Observation {
   const initialized = environmentOptions(options);
   options = initialized.options;
   const config = observationConfiguration(options);
   const resource = resourceFromAttributes(config.resource);
   const senders = Object.fromEntries(Object.entries(config.signals)
-    .map(([signal, setting]) => [signal, createBoundedOtlpSender(setting.endpoint, config.limits, setting.headers)]));
-  let endedSpan, emittedLog, closed = false, busy = false;
+    .map(([signal, setting]) => [signal, createBoundedOtlpSender(setting.endpoint, config.limits, setting.headers)])) as Partial<Record<Signal, Sender>>;
+  let endedSpan: ReadableSpan | undefined, emittedLog: Parameters<LogRecordProcessor['onEmit']>[0] | undefined, closed = false, busy = false;
   let deliveryConflicts = 0;
   const empty = async () => {};
-  const traceProcessor = {onStart() {}, onEnd: span => { endedSpan = span; },
+  const traceProcessor: SpanProcessor = {onStart() {}, onEnd: span => { endedSpan = span; },
     forceFlush: empty, shutdown: empty};
-  const logProcessor = {onEmit: log => { emittedLog = log; }, forceFlush: empty, shutdown: empty};
+  const logProcessor: LogRecordProcessor = {onEmit: log => { emittedLog = log; }, forceFlush: empty, shutdown: empty};
   const ownedTrace = config.signals.traces === undefined ? undefined : new TracerProvider({
     resource, spanProcessors: [traceProcessor],
     sampler: new ParentBasedSampler({
@@ -74,7 +82,7 @@ export function createNodeHostObservability(options = {}) {
     sdk: '2.12.0/0.223.0', sampler: 'parentbased_traceidratio',
     resource: config.resource,
     revision: options.revision ?? 'otel-metadata/0.1',
-    disabled: ['traces', 'metrics', 'logs'].filter(key => options[key] === false)})).digest('hex');
+    disabled: (['traces', 'metrics', 'logs'] as const).filter(key => options[key] === false)})).digest('hex');
   const connection = createHostObservationConnection({
     ...config.projection,
     scope: options.scope ?? 'node', revision,
@@ -85,9 +93,9 @@ export function createNodeHostObservability(options = {}) {
       if (closed) throw new Error('ObservationPipelineDisabled');
       if (busy) { deliveryConflicts++; throw new Error('ObservationDeliveryBusy'); }
       busy = true;
-      const failures = [];
+      const failures: unknown[] = [];
       // Each signal remains independent when a different destination fails.
-      const attempt = async work => {
+      const attempt = async (work: () => Promise<void>) => {
         if (closed) return;
         try { await work(); } catch (cause) { failures.push(cause); }
       };
@@ -99,7 +107,7 @@ export function createNodeHostObservability(options = {}) {
         if (tracer !== undefined && record.durationMs !== undefined) {
           await attempt(async () => {
             endedSpan = undefined;
-            const method = record.attributes['http.request.method'];
+            const method = record.attributes['http.request.method'] as string | undefined;
             const route = record.attributes['http.route'];
             const clientAttempt = ['source', 'infer'].includes(record.operation) &&
               ['attempt_started', 'attempt_completed', 'attempt_observed',
@@ -113,12 +121,12 @@ export function createNodeHostObservability(options = {}) {
               links: record.link === undefined ? [] : [{context: {...record.link, isRemote: true}}],
             }, parent);
             if (method === undefined ? record.attributes['actql.outcome'] === 'failed' :
-                record.attributes['http.response.status_code'] >= 500) {
+                (record.attributes['http.response.status_code'] as number) >= 500) {
               span.setStatus({code: SpanStatusCode.ERROR});
             }
             span.end(record.observedAt);
             if (endedSpan !== undefined) {
-              await senders.traces.send(ProtobufTraceSerializer.serializeRequest([endedSpan]),
+              await senders.traces!.send(ProtobufTraceSerializer.serializeRequest([endedSpan]),
                 ProtobufTraceSerializer);
               endedSpan = undefined;
             }
@@ -142,7 +150,7 @@ export function createNodeHostObservability(options = {}) {
           await attempt(async () => {
             const metrics = await reader.collect({timeoutMillis: config.limits.exportTimeoutMs});
             if (metrics.errors.length !== 0) throw new Error('ObservationMetricCollectionFailed');
-            await senders.metrics.send(ProtobufMetricsSerializer.serializeRequest(metrics.resourceMetrics),
+            await senders.metrics!.send(ProtobufMetricsSerializer.serializeRequest(metrics.resourceMetrics),
               ProtobufMetricsSerializer);
           });
         }
@@ -154,7 +162,7 @@ export function createNodeHostObservability(options = {}) {
             logger.emit({body: record.event, attributes: record.attributes,
               timestamp: record.observedAt, context: parent, severityNumber: SeverityNumber.INFO});
             if (emittedLog !== undefined) {
-              await senders.logs.send(ProtobufLogsSerializer.serializeRequest([emittedLog]),
+              await senders.logs!.send(ProtobufLogsSerializer.serializeRequest([emittedLog]),
                 ProtobufLogsSerializer);
               emittedLog = undefined;
             }
@@ -172,7 +180,7 @@ export function createNodeHostObservability(options = {}) {
       unsupported: Object.freeze(['native-host', 'worker-host', 'grpc', 'http/json',
         'declarative-file', 'baggage', 'content-capture', 'hosted-multi-tenant']),
       schemaUrl, sdk: '2.12.0/0.223.0',
-      signals: Object.freeze(Object.fromEntries(['traces', 'metrics', 'logs'].map(signal =>
+      signals: Object.freeze(Object.fromEntries((['traces', 'metrics', 'logs'] as const).map(signal =>
         [signal, Object.freeze({enabled: ({traces: tracer, metrics: meter, logs: logger})[signal] !== undefined,
           destination: senders[signal] === undefined ? undefined : 'explicit',
           credentialsPresent: config.signals[signal]?.headers !== undefined,
