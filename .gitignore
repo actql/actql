@@ -3252,3 +3252,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/client-checkpoint-model-custody.d.mts
 /adapters/host-node/client-checkpoint-admission-inputs.mjs
 /adapters/host-node/client-checkpoint-admission-inputs.d.mts
+/adapters/host-node/client-checkpoint-held-deferral.mjs
+/adapters/host-node/client-checkpoint-held-deferral.d.mts

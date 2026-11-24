@@ -30,12 +30,12 @@ type CheckedSource = Readonly<{
   sourceRef: string; requirementCid?: string; selectionCid?: string; programCid?: string;
   parametersCid?: string; step?: number;
 }>;
-type CapturedOccurrence = Readonly<{
-  stage?: number; input?: number; task?: number; physicalBinding?: unknown;
+export type CapturedOccurrence = Readonly<{
+  stage?: number; input?: number; task?: number; physicalBinding?: unknown; installationBinding?: unknown;
   readTuple: Readonly<{operation: string; connection: string; resource: string}>;
   checkedSource: CheckedSource;
 }>;
-type SourceCapture = Readonly<{
+export type SourceCapture = Readonly<{
   version: string; acquisition?: CapturedOccurrence; acquisitions?: readonly CapturedOccurrence[];
 }>;
 

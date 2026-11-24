@@ -19408,7 +19408,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "318bf57367709c73a8e95843b08d45288dbb4e7651c71c7e7e5f9762aee9087e",
+      "sha256": "79c288c5b510d8dddd330573be7ace911a78009c51dcb43f5f58ff91e12d5358",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -19528,21 +19528,6 @@
           "name": "installRemoteCheckpoints/decideRead/answering/answering",
           "parameters": [
             "item"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/deferralFor/init:describe/init:describe",
-          "parameters": [
-            "view"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/deferralFor/init:describe/init:describe/continuation/continuation",
-          "parameters": [
-            "name",
-            "wire"
           ],
           "async": false
         },
@@ -20228,6 +20213,13 @@
           "async": false
         },
         {
+          "name": "installRemoteCheckpoints/installedSource",
+          "parameters": [
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
           "name": "installRemoteCheckpoints/installedSource/installed/installed",
           "parameters": [
             "item"
@@ -20294,26 +20286,12 @@
           "async": false
         },
         {
-          "name": "installRemoteCheckpoints/prepareAttemptIdOf/prepareAttemptIdOf",
+          "name": "installRemoteCheckpoints/recordHeld",
           "parameters": [
+            "prepareAttemptId",
             "requestId"
           ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/readDeferralFor/init:describe/init:describe",
-          "parameters": [
-            "view"
-          ],
           "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/readDeferralFor/init:describe/init:describe/continuation/continuation",
-          "parameters": [
-            "name",
-            "wire"
-          ],
-          "async": false
         },
         {
           "name": "installRemoteCheckpoints/resumeGate/init:describe/init:describe",
@@ -20424,8 +20402,6 @@
             "installRemoteCheckpoints/continuationOf/references/references",
             "installRemoteCheckpoints/continuedOccurrence/occurrence/occurrence",
             "installRemoteCheckpoints/decideRead/answering/answering",
-            "installRemoteCheckpoints/deferralFor/init:describe/init:describe",
-            "installRemoteCheckpoints/deferralFor/init:describe/init:describe/continuation/continuation",
             "installRemoteCheckpoints/drain",
             "installRemoteCheckpoints/effectTargetAuthorities/effectTargetAuthorities",
             "installRemoteCheckpoints/held",
@@ -20525,9 +20501,6 @@
             "installRemoteCheckpoints/installRemoteCheckpoints#7",
             "installRemoteCheckpoints/installRemoteCheckpoints#8",
             "installRemoteCheckpoints/installedSource/installed/installed",
-            "installRemoteCheckpoints/prepareAttemptIdOf/prepareAttemptIdOf",
-            "installRemoteCheckpoints/readDeferralFor/init:describe/init:describe",
-            "installRemoteCheckpoints/readDeferralFor/init:describe/init:describe/continuation/continuation",
             "installRemoteCheckpoints/resumeGate/init:describe/init:describe",
             "installRemoteCheckpoints/resumeOne/cancelRequested/cancelRequested",
             "installRemoteCheckpoints/resumeOne/outcome/init:beforePhysicalStart/init:beforePhysicalStart",
@@ -20543,7 +20516,9 @@
             "installRemoteCheckpoints/sweep",
             "installRemoteCheckpoints/sweep/sweep",
             "installRemoteCheckpoints/sweep/sweep/sweep",
-            "installRemoteCheckpoints/modelCustody/modelCustody"
+            "installRemoteCheckpoints/modelCustody/modelCustody",
+            "installRemoteCheckpoints/installedSource",
+            "installRemoteCheckpoints/recordHeld"
           ],
           "exports": [
             "installRemoteCheckpoints"
@@ -21603,17 +21578,220 @@
         "../host-common/installed-checkpoint-codec-limits.mjs",
         "./checkpoint-runtime.mjs",
         "./client-checkpoint-admission-inputs.mjs",
+        "./client-checkpoint-held-deferral.mjs",
         "./client-checkpoint-model-custody.mjs",
         "./effect-target-read-inventory.mjs",
         "./installed-host-cleanup.mjs",
         "./local-account-config.mjs",
         "./local-continuation-evidence.mjs",
         "./model-checkpoint-metadata.mjs",
-        "./ordinary-source-binding.mjs",
         "./sqlite-checkpoint-journal.mjs",
         "node:crypto",
         "node:fs/promises",
         "node:path"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/client-checkpoint-held-deferral.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "009ac8d39186e0f46fb0c1b0de12ffebf2dc12aa5a5a5c1c960a119035372203",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "createHeldCheckpointDeferrals"
+      ],
+      "operations": [
+        {
+          "name": "createHeldCheckpointDeferrals",
+          "parameters": [
+            "authorityScopeCid",
+            "namespaceId",
+            "siteKey",
+            "realizationKey",
+            "journal",
+            "authorities",
+            "binding",
+            "evidence",
+            "gate",
+            "now",
+            "checkpointTtlMs",
+            "maxReviewBytes",
+            "installedSource",
+            "recordHeld"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/acquisitionIntent/acquisitionIntent",
+          "parameters": [
+            "requestCid",
+            "captured",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/deferralFor",
+          "parameters": [
+            "prepareAttemptId",
+            "request",
+            "requestCid",
+            "captured",
+            "answering"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/deferralFor/init:describe/init:describe",
+          "parameters": [
+            "view"
+          ],
+          "async": true
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/deferralFor/init:describe/init:describe/continuation/continuation",
+          "parameters": [
+            "name",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/prepareAttemptIdOf/prepareAttemptIdOf",
+          "parameters": [
+            "requestId"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/readDeferralFor",
+          "parameters": [
+            "prepareAttemptId",
+            "request",
+            "requestCid",
+            "captured",
+            "occurrence",
+            "answering",
+            "port",
+            "earlier"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/readDeferralFor/init:describe/init:describe",
+          "parameters": [
+            "view"
+          ],
+          "async": true
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/readDeferralFor/init:describe/init:describe/continuation/continuation",
+          "parameters": [
+            "name",
+            "wire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createHeldCheckpointDeferrals/requestSubject/requestSubject",
+          "parameters": [
+            "requested"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createHeldCheckpointDeferrals",
+            "createHeldCheckpointDeferrals/acquisitionIntent/acquisitionIntent",
+            "createHeldCheckpointDeferrals/deferralFor",
+            "createHeldCheckpointDeferrals/deferralFor/init:describe/init:describe",
+            "createHeldCheckpointDeferrals/deferralFor/init:describe/init:describe/continuation/continuation",
+            "createHeldCheckpointDeferrals/prepareAttemptIdOf/prepareAttemptIdOf",
+            "createHeldCheckpointDeferrals/readDeferralFor",
+            "createHeldCheckpointDeferrals/readDeferralFor/init:describe/init:describe",
+            "createHeldCheckpointDeferrals/readDeferralFor/init:describe/init:describe/continuation/continuation",
+            "createHeldCheckpointDeferrals/requestSubject/requestSubject"
+          ],
+          "exports": [
+            "createHeldCheckpointDeferrals"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-deferral.mts",
+                "anchor": "export function createHeldCheckpointDeferrals({authorityScopeCid, namespaceId, siteKey,"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-deferral.mts",
+                "anchor": "type HeldSourceRequest<Port> = HeldRequest & Readonly<{"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-deferral.mts",
+                "anchor": "captured_submission_cid: capturedValueCid(captured),"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/client-checkpoints.mjs",
+                "anchor": "readDeferralFor} = createHeldCheckpointDeferrals({authorityScopeCid, namespaceId, siteKey,"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-deferral.mts",
+                "anchor": "await recordHeld(prepareAttemptId, captured.requestId);"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-deferral.mts",
+                "anchor": "fail('CheckpointReviewTooLarge');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/client-two-source-checkpoints.test.mjs",
+                "anchor": "cancelling after the first source approval starts neither source"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-deferral.mts",
+                "anchor": "Buffer.byteLength(reviewWire, 'utf8') > maxReviewBytes"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/client-checkpoint-held-deferral.mts",
+                "anchor": "const acquisitionIntent = (requestCid: string, captured: SourceCapture, occurrence: CapturedOccurrence) =>"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/remote-acquisition-checkpoint.test.mjs",
+                "anchor": "A3: Run acceptance and the read are held and answered in turn"
+              },
+              {
+                "path": "adapters/host-node/client-two-source-checkpoints.test.mjs",
+                "anchor": "ordinary bound approvals retain both original bindings through restart and physical admission"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./client-checkpoint-admission-inputs.mjs",
+        "./local-account-config.mjs",
+        "./ordinary-source-binding.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
