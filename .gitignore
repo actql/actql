@@ -1893,6 +1893,10 @@ target/
 /adapters/connectors/duckdb/node/examples/local-host.d.mts
 /adapters/connectors/duckdb/node/examples/local-host-cli.mjs
 /adapters/connectors/duckdb/node/examples/local-host-cli.d.mts
+/adapters/connectors/duckdb/node/test/reader-policy.test.mjs
+/adapters/connectors/duckdb/node/test/reader-policy.test.d.mts
+/adapters/connectors/duckdb/node/test/publication-plan-fixture.mjs
+/adapters/connectors/duckdb/node/test/publication-plan-fixture.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
 /adapters/host-node/result-transformation-control.test.mjs

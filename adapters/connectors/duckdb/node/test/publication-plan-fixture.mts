@@ -1,7 +1,9 @@
 // Shared independent publication fixture for real Host and Store acceptance.
 import {createHash} from 'node:crypto';
 
-const hash = value => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
+import type {runtimeCore} from '../../../../host-common/runtime-core.mjs';
+
+const hash = (value: unknown) => `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`;
 
 export const publicationResultExportLimits = Object.freeze({
   maxResultFields: 10,
@@ -29,10 +31,10 @@ export const publicationResultExportLimits = Object.freeze({
 });
 
 export function standardPublicationPlan(
-  runtime,
-  programDefinitionCid,
-  resultCount,
-  attemptId,
+  runtime: Pick<ReturnType<typeof runtimeCore>, 'publicationControl'>,
+  programDefinitionCid: string,
+  resultCount: number,
+  attemptId: string,
 ) {
   const control = runtime.publicationControl;
   const contractLimits = Object.freeze({

@@ -3,6 +3,27 @@ import assert from 'node:assert/strict';
 import {retainedReaderPolicy} from '../examples/reader-policy.mjs';
 import {readFileSync} from 'node:fs';
 
+import type {snapshotCompletionTask} from '../../../../host-node/completion-record.mjs';
+
+type Policy = ReturnType<typeof retainedReaderPolicy>;
+type FixtureTask = Pick<ReturnType<typeof snapshotCompletionTask>, 'task' | 'output_step' | 'inputs'>;
+type QuoteRuntime = Readonly<{retainedReadmissionFactsControlBytes?: () => unknown}>;
+type ReaderPorts = Readonly<{
+  checked<Value>(value: Value): Value;
+  budget: Readonly<{
+    processLedgerCreate(limits: Policy): object;
+    processReadReserve(ledger: object, bytes: bigint, scratch: bigint): object;
+    processStopped(ledger: object, reservation: object): void;
+  }>;
+  retainedReaderPolicy(): Policy;
+  prepareExampleText(): Promise<Readonly<{taskIdentities(): readonly FixtureTask[]; contentRead(): never}>>;
+  snapshotCompletionTask(task: FixtureTask): FixtureTask;
+  processReadmissionControlBytes(): bigint;
+}>;
+type FixtureReader = (input: Readonly<{application: object; task: number}>, signal: AbortSignal,
+  context: Readonly<{resourceLimits: Policy; callHost(): Promise<{descriptor: {bytes: number}}>}>,
+  progress: {stage?: string}) => Promise<unknown>;
+
 const profile = () => ({source_rows: 100, task_rows: 100, columns: 64, value_bytes: 2048,
   wire_bytes: 1000000, value_nodes: 100000, text_bytes: 1000000, work: 1000000,
   entries: 100000, batch_bytes: 1000});
@@ -38,7 +59,7 @@ test('reader rejects invalid profiles before reserving and keeps bounded default
 // Execute the actual installed quote port, without importing another compiled
 // runtime or constructing a fake completion. Runtime omission must fail before
 // any receiving constructor, rather than silently selecting another quota.
-function readmissionQuote(runtime) {
+function readmissionQuote(runtime: QuoteRuntime): () => bigint {
   const source = readFileSync(new URL('../../../../host-node/process-readmission.mjs', import.meta.url), 'utf8');
   const start = source.indexOf('const defaultLimits = ');
   const end = source.indexOf('export function prepareProcessReadmission(');
@@ -59,7 +80,7 @@ test('installed readmission requires its authoritative fixed quote port exactly 
   assert.equal(calls, 1);
 });
 
-function installedReader(ports) {
+function installedReader(ports: ReaderPorts): FixtureReader {
   const source = readFileSync(new URL('../examples/managed-reader.mjs', import.meta.url), 'utf8');
   const start = source.indexOf('let ledger, used = false;');
   const end = source.indexOf('\nserveManagedExecution(');
@@ -70,7 +91,7 @@ function installedReader(ports) {
 test('original process Read reserves the common metadata quote before constructing content', async () => {
   for (const refused of [false, true]) {
     const originalLedger = {}, originalReservation = {}, marker = Error('bounded-constructor-stop');
-    const events = [];
+    const events: string[] = [];
     const policy = retainedReaderPolicy(profile());
     const task = {task: 1, output_step: 0, inputs: []};
     const reader = installedReader({
