@@ -58,6 +58,12 @@ const unsupported = coverage.operations.filter(entry =>
 assert(unsupported.every(entry => entry.status === 'blocked'));
 const scratch = new URL(packed ? './state/' : '../_build/graph-public-host/', import.meta.url);
 await mkdir(scratch, {recursive:true});
+
+test('installed Node preserves both one-hop endpoint occurrences and path controls', {skip: !packed}, async () => {
+  const {checkGraphEndpointMatch} = await import('./fixtures/packed-graph-endpoint-match.mjs');
+  const state = await mkdtemp(new URL('./endpoint-match-', scratch));
+  await checkGraphEndpointMatch(state);
+});
 const cid = value => 'sha256:' + createHash('sha256').update(canonicalText(value)).digest('hex');
 
 // These authored Relation fixtures declare the following identity columns as

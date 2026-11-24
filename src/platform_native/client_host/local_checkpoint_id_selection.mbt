@@ -37,6 +37,105 @@ pub fn NativeLocalCheckpointSelection::checkpoint_cid(
 }
 
 ///|
+/// Join an original Run reference to its retained Checkpoint through the
+/// current scoped definition index and exact original Submission/Checkpoint.
+pub fn NativeLocalJournalCapture::lookup_effect_checkpoint_for_run_in_original_read(
+  self : Self,
+  principal : String,
+  connection : String,
+  scope : String,
+  definition_cid : String,
+  now : Double,
+) -> Result[NativeLocalCheckpointSelection, NativeLocalAdoptionIssue] {
+  self.with_current_adoption_material_in_original_read((
+    host,
+    _material,
+    operations,
+  ) => {
+    let current = () => {
+      saved_run_selection_current(
+        host,
+        self.crypto,
+        principal,
+        connection,
+        scope,
+        capture=Some(self),
+      )
+    }
+    if !current() {
+      return Err(Journal(AuthorizationDenied))
+    }
+    let reads = Some(operations.reads)
+    let (request, checkpoint_id, checkpoint_cid) = match
+      host.journal.transaction_with_reads(
+        () => {
+          if !current() {
+            return Err(AuthorizationDenied)
+          }
+          let key = match
+            client_journal_run_definition_key(
+              host.database,
+              definition_cid,
+              reads,
+            ) {
+            Ok(Some(value)) => value
+            Ok(None) => return Err(CustodyLost)
+            Err(issue) => return Err(Physical(issue))
+          }
+          let row = match
+            read_client_journal_value(host.database, "client_runs", key, reads) {
+            Ok(value) => value
+            Err(issue) => return Err(Physical(issue))
+          }
+          let original = match
+            host.journal.admit_retained_record(key, row, reads~) {
+            Ok(value) => value
+            Err(issue) => return Err(issue)
+          }
+          guard @host.client_request_scope_cid(original.request) == key &&
+            @host.client_request_authority_scope_cid(original.request) == scope &&
+            @publication.publication_contract_identity(original.definition) ==
+            definition_cid &&
+            original.checkpoint is Some(checkpoint) &&
+            checkpoint.artifact.checkpoint.kind == @checkpoint.EffectSet &&
+            checkpoint.state.status == @publication.Resuming &&
+            current() else {
+            return Err(ForeignRun)
+          }
+          Ok(
+            (
+              original.request,
+              checkpoint.artifact.checkpoint.checkpoint_id,
+              checkpoint.artifact.checkpoint_cid,
+            ),
+          )
+        },
+        reads~,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Journal(issue))
+    }
+    match
+      host.lookup_original_checkpoint_by_id_with_operations(
+        self.crypto,
+        principal,
+        connection,
+        checkpoint_id,
+        now,
+        operations=Some(operations),
+        capture=Some(self),
+      ) {
+      Ok(Some(selected)) if selected.checkpoint_cid == checkpoint_cid &&
+        @host.client_request_identity_relation(selected.request, request) ==
+        @host.SameRequest &&
+        current() => Ok(selected)
+      Ok(_) => Err(Journal(CustodyLost))
+      Err(issue) => Err(Journal(issue))
+    }
+  })
+}
+
+///|
 /// Exact ID is a selector only. The locator is rejoined to the authenticated
 /// original Submission, Run and Checkpoint under current RunRead. A missing
 /// legacy locator stays unavailable; this never scans, backfills or prepares.

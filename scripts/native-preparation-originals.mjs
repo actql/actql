@@ -194,27 +194,34 @@ function verifyModelHttpProducerInputs(producerSource, packageSource) {
     'src/platform_native/http_client/component_tls_lifetime.h']);
 }
 
-export function verifiedNativeModelHttpPackage(preparation, selected) {
-  const producerSource = preparation.source ?? selected.source;
-  verifyModelHttpProducerInputs(producerSource, selected.source);
-  const {component, tls} = readVerifiedNativeHttpPreparation(
-    preparation.path, {...selected, source: producerSource}, preparation, true);
-  const {path, bytes, sha256} = component.library;
+function verifiedNativeHttpNotices(component, tls) {
+  // The producer chooses the path. The signed upstream archive and its
+  // versioned COPYING entry are selected by exact identity for both roles.
   const {version, archive} = component.upstream;
   const curlArchives = component.inputs.filter(item => item.bytes === archive.bytes &&
-    item.sha256 === archive.sha256 && basename(item.path) === `curl-${version}.tar.xz`);
+    item.sha256 === archive.sha256);
   assert.equal(curlArchives.length, 1, 'One original curl source archive required');
   const curlArchive = curlArchives[0];
-  // Use the selected archive bytes themselves for the upstream notice.
   const curlNotice = execFileSync('tar', ['-xJOf', '-', `curl-${version}/COPYING`], {
     input: data(curlArchive.path, curlArchive), timeout: 15000, maxBuffer: 65536,
   });
   const tlsNotices = tls.files.filter(item => item.path === join(tls.stage, 'LICENSE.txt'));
   assert.equal(tlsNotices.length, 1, 'One original OpenSSL notice required');
   const tlsNotice = data(tlsNotices[0].path, tlsNotices[0]);
+  assert(curlNotice.length > 0 && tlsNotice.length > 0 && tlsNotice.length <= 65536);
+  return [curlNotice, tlsNotice];
+}
+
+export function verifiedNativeModelHttpPackage(preparation, selected) {
+  const producerSource = preparation.source ?? selected.source;
+  verifyModelHttpProducerInputs(producerSource, selected.source);
+  const {component, tls} = readVerifiedNativeHttpPreparation(
+    preparation.path, {...selected, source: producerSource}, preparation, true);
+  const {path, bytes, sha256} = component.library;
+  const [curlNotice, tlsNotice] = verifiedNativeHttpNotices(component, tls);
   const resolver = component.modelResolver.notice;
   const resolverNotice = data(resolver.path, resolver);
-  assert(curlNotice.length > 0 && tlsNotice.length <= 65536 && resolverNotice.length <= 65536);
+  assert(resolverNotice.length > 0 && resolverNotice.length <= 65536);
   const separator = Buffer.from('\n\n');
   return {
     library: {path, bytes, sha256},
@@ -259,18 +266,7 @@ export function verifiedNativeRemoteHttpPackage(preparation, selected) {
   const recipe = readFileSync(new URL('./native-http-component-source.json', import.meta.url));
   assert.equal(component.recipe_sha256, checksum(recipe));
   const {path, bytes, sha256} = component.library;
-  const {version, archive} = component.upstream;
-  const curlArchives = component.inputs.filter(item => item.bytes === archive.bytes &&
-    item.sha256 === archive.sha256);
-  assert.equal(curlArchives.length, 1, 'One original curl source archive required');
-  const curlArchive = curlArchives[0];
-  const curlNotice = execFileSync('tar', ['-xJOf', '-', `curl-${version}/COPYING`], {
-    input: data(curlArchive.path, curlArchive), timeout: 15000, maxBuffer: 65536,
-  });
-  const tlsNotices = tls.files.filter(item => item.path === join(tls.stage, 'LICENSE.txt'));
-  assert.equal(tlsNotices.length, 1, 'One original OpenSSL notice required');
-  const tlsNotice = data(tlsNotices[0].path, tlsNotices[0]);
-  assert(curlNotice.length > 0 && tlsNotice.length > 0 && tlsNotice.length <= 65536);
+  const [curlNotice, tlsNotice] = verifiedNativeHttpNotices(component, tls);
   return {
     library: {path, bytes, sha256},
     dependencies: component.systemDependencies,

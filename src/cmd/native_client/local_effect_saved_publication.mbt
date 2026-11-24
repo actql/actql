@@ -320,15 +320,16 @@ fn LocalCommandPreparationOriginal::publish_saved_effect_files(
     )
     .unwrap_or_else(() => stop("LocalRunStateNeedsReconciliation"))
   business.run_receipt_original = Some(FreshRunReceipt(observed))
-  let retained = continuation.retain_saved_publication_state_in_original_read(
+  let retained = continuation.settle_saved_publication_in_original_read(
     observed,
+    saved.members,
     @env.now().to_double(),
   )
   match retained {
     Ok(state) => state.wire()
     Err(issue) => {
       self.retain_primary(CommandSavedEffectPublication(issue))
-      stop("LocalCommandPreparationUnavailable")
+      stop("LocalPublicationNeedsReconciliation")
     }
   }
 }

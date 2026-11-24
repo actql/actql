@@ -329,3 +329,77 @@ pub fn read_declaration_construction_capacity(
     workspace_bytes: 0L,
   })
 }
+
+///|
+/// The first admitted ResultSet retains metadata and its checked values while
+/// later partitions decode. Keep both representations backed on the same
+/// installed reader, beside its bounded SQL and request construction.
+pub fn managed_read_construction_capacity(
+  response : @response.ResponseLimits,
+  description : DescriptionLimits,
+  request_bytes : Int,
+  contract_pairs : Int,
+) -> @execution.ExecutionCapacity? {
+  if request_bytes < 1 ||
+    contract_pairs < 1 ||
+    !valid_description_limits(description) {
+    return None
+  }
+  let columns = description.max_columns
+  guard read_response_construction(response.max_bytes, response) is Some(page) &&
+    read_initialization_writer_units(request_bytes, 16, 4) is Some(writer) &&
+    read_initialization_writer_units(
+      description.max_schema_bytes,
+      description.max_nodes,
+      description.max_depth,
+    )
+    is Some(schema_writer) &&
+    @contract.object_construction_inventory(columns, description.max_name_bytes)
+    is Some(schema) &&
+    columns < 2147483647 &&
+    @contract.checked_emission_construction_extent(columns + 1)
+    is Some(emission) else {
+    return None
+  }
+  let fields = columns.to_int64()
+  let text = description.max_schema_bytes.to_int64()
+  let request = request_bytes.to_int64()
+  let projection : @execution.PreparationRepresentationUnits = {
+    record_headers: 36L + 14L * fields,
+    reference_slots: 52L + 24L * fields,
+    scalar_words: 48L + 14L * fields,
+    owned_utf16_units: 4L * text + 4L * request + schema.scratch_utf16_units,
+    owned_wire_bytes: 2L * request,
+  }
+  guard @execution.compose_preparation_representation([
+      page,
+      {
+        record_headers: 16L,
+        reference_slots: 24L + fields,
+        scalar_words: 16L,
+        owned_utf16_units: 2L * text + 2L * request,
+        owned_wire_bytes: 0L,
+      },
+    ])
+    is Some(retained) &&
+    @execution.compose_preparation_representation([
+      page,
+      writer,
+      schema_writer,
+      projection,
+      read_initialization_collection_units(schema.retained),
+      read_initialization_collection_units(schema.scratch),
+      read_initialization_collection_units(emission),
+    ])
+    is Some(workspace) else {
+    return None
+  }
+  @execution.preparation_execution_capacity({
+    retained,
+    workspace,
+    retained_nodes: 0L,
+    workspace_nodes: 0L,
+    retained_bytes: 0L,
+    workspace_bytes: 0L,
+  })
+}

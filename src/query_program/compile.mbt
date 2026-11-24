@@ -835,6 +835,14 @@ fn columns(input : Input) -> Array[String] raise Abort {
 }
 
 ///|
+fn private_graph_property_slot(input : Input, slot : String) -> Bool {
+  input.graph_bindings.any(binding => {
+    !binding.prefix.is_empty() &&
+    binding.fields.any(field => binding.prefix + field == slot)
+  })
+}
+
+///|
 fn resolve_column(
   path : Array[@query.NamePart],
   query : @query.Query,
@@ -881,7 +889,8 @@ fn resolve_column(
   let mut found : String? = None
   let name = path[path.length() - 1]
   for field in fields {
-    if same_name(name, { value: field, quoted: false, }) {
+    if !private_graph_property_slot(input, field) &&
+      same_name(name, { value: field, quoted: false, }) {
       if found is Some(_) {
         return None
       }

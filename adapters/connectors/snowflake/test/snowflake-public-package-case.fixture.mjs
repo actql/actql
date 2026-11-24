@@ -11,3 +11,10 @@ for (const entrance of ['Local', 'HTTPS']) test(
     const f = await publicSnowflakePackageFixture(t, entrance, node, httpHost);
     await assertSnowflakePublicRead(t, f, entrance);
   });
+
+
+for (const filtered of [false, true]) test(
+  `installed public Local Snowflake key pair preserves the ${filtered ? 'Query' : 'Whole Input'} Named Result`, async t => {
+    const f = await publicSnowflakePackageFixture(t, 'Local', node, httpHost, {keyPair: true});
+    await assertSnowflakePublicRead(t, f, 'Local', {filtered});
+  });

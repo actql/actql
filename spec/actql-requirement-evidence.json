@@ -7220,7 +7220,7 @@
     },
     {
       "requirement_id": "actql.language/traverse.closed-modes-and-filters",
-      "statement_sha256": "44bb00209517ce1dc2f0dd98e536f603b15811f8c6e7763d16b0f68a6d63d9f3",
+      "statement_sha256": "da4ed87c3fed1f9b3bc9c7fd53bd3c0efe3907e63607ae2a78ef0418d2cc579d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -18363,7 +18363,7 @@
     },
     {
       "requirement_id": "actql.protocol.contracts/machine-contracts.exact-artifacts",
-      "statement_sha256": "c91ec28399c506b957948712113522851476fbd3f79feca0b6dec08eb6f22eb6",
+      "statement_sha256": "8e43911a5bb6d2ca47feca0bb584693ccdcf638e05aaad82cc3c65e126f6f58d",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

@@ -33,6 +33,8 @@ pub fn description_response_count(TableDescription) -> Int
 
 pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]
 
+pub fn managed_read_construction_capacity(@catalog.ResponseLimits, DescriptionLimits, Int, Int) -> @execution_relation.ExecutionCapacity?
+
 pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]
 
 pub fn prepare_update_candidate(TableDescription, String, @value_admission.CheckedValue, Array[(String, @value_admission.CheckedValue)], Array[(String, @value_admission.CheckedValue)], UpdateCandidateLimits) -> Result[UpdateCandidate, UpdateCandidateIssue]

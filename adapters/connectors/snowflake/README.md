@@ -1,24 +1,22 @@
 # Snowflake physical SQL API read
 
-This private driver adapts the existing credential HTTPS boundary to the
-Snowflake Read in the same Core runtime. It does not implement a Run, grant,
-Source validator, retry controller or publication owner.
+The installed Snowflake codec uses the shared funded Credential reader for
+Query and Whole Input. The Host keeps the original Run, current Account
+authority, response charge, physical binding and publication.
 
 ## Interface responsibilities
 
 - Responsibility: issue the original Common statement candidates through the
   existing credential Owner and admit its exact bounded response observations.
-- Inputs and outputs: an original PreparedRead and already-begun accounted
-  RowRun, explicit bounds, selected warehouse/role, current Host read callback
-  and credential supplier produce provider-prefix audit material or refusal.
-- Identity: preparation/acquisition/run stay opaque and same-runtime; the Host's
-  original request UUID, invocation/dispatch CIDs and all credential bindings
-  stay fixed across the one POST and subsequent status/partition GETs.
-- Ownership: Common owns original row contracts, charges and capture. One
-  existing HTTPS binding owns its retained credential/request/socket, bound
-  into that same RowRun's cleanup observer before I/O. Socket retirement alone
-  cannot retire workspace while the driver's original response use is active;
-  the same observer requires both to stop. The Host retains its root.
+- Inputs and outputs: the current bound response borrow supplies the same
+  Query or Whole Input acquisition. The original table description supplies
+  bounded statement spelling, and the codec admits typed responses on that Run.
+- Identity: the Host's original request UUID and credential grant stay fixed
+  across one POST and the status or partition GETs. The result decoder checks
+  the selected acquisition's original column contracts.
+- Ownership: the shared Credential reader retains each wire response before
+  charging it. That owner joins and closes the physical scope before dropping
+  its protocol aliases. Common keeps the RowRun and the captured evidence.
 - Synchronization: each original request is attempted once; every send fences
   current Host authority after secret resolution. Responses are charged before
   bounded identity/gzip decoding and checked again before Core admission.
@@ -35,12 +33,11 @@ Source validator, retry controller or publication owner.
 - Resources: explicit request/response/decode/count limits and the original
   RowRun transfer/retention/workspace apply. Wire bytes are charged exactly once;
   decoded bytes do not enlarge the original budget or create normal funding.
-- Extension: the generic installed Host supplies only its pure typed preparer,
-  same-runtime borrow and current callback. Provider spelling and gzip remain
-  here; no provider branch enters the shared Host or replaces its finish/capture.
-- Verification: genuine Common SQL, exact decimal38/NULL, Account and SQLite
-  credential Owners run against fresh loopback TLS. Status/partition/gzip,
-  foreign scope/schema, denial/revocation, accepted-then-refused status, lost reply, dot handles, abort and
-  pending cleanup are executed. Generic Host cleanup counters separately use
-  explicit stop-law doubles. This is not installed/live Snowflake, Python Local,
-  normal numeric funding, Engine, wheel, write or whole-product acceptance.
+- Extension: the same statement codec serves both acquisitions. Query keeps
+  its checked operator and output semantics. Whole Input uses its original
+  RowInputAcquisition and its complete-input capture.
+- Verification: loopback TLS tests cover typed decimal38 and NULL, one POST,
+  exact status and partition requests, gzip, denial and revocation, lost reply,
+  stale response recording, pending cleanup, and exact first close. The
+  public key-pair fixture checks attach and same-reference submission against
+  the original Named Result.
