@@ -72,6 +72,7 @@ async function fixture(t, {loseCurrent = false} = {}) {
   catalog: '{}', manifest_entry: '{"connector_id":"local"}'};
   const entry = {connection: 'local', connectorId: 'local', rootPath: '/not-opened', declaration,
     scopeCid: cid, wire: JSON.stringify(declared), queryAliases: [{name: 'local', resource: 'files'}],
+    tables: Object.freeze([]), csvTransports: Object.freeze({}),
     limits: {maxReadBytes: 4096, maxPages: 4, maxPageBytes: 1024,
       maxPageRows: 4, maxFiles: 8, maxFileBytes: 1024}};
   const bundle = {sources: [entry]};
