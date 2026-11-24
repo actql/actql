@@ -75,7 +75,7 @@ test('separate-process reread and original bounded recipes parse without startin
 // The audit consumes saved observations and the original independent fixture;
 // these synthetic mutations establish no product execution qualification.
 import {auditTimeSeriesTransport} from '../reviews/2026-10-14-time-series-release-matrix/public-audit.mjs';
-const counts = acceptedRuns => ({acceptedRuns, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
+const counts = (acceptedRuns: number) => ({acceptedRuns, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
 function auditControl() {
   const providerObservation = {forbiddenProcesses: 0, forbiddenFetches: 0, sourceSecrets: 0};
   const completed = successes.map((item, index) => ({name: item.name,
@@ -107,9 +107,9 @@ test('TimeSeries audit rejects changed values types Refusals source counters or 
     value => { value.completed[0].afterReplay.acceptedRuns = 10; },
     value => { value.completedRefusals[0].outcome.problem.code = 'DifferentRefusal'; },
     value => value.completedRefusals.pop(),
-    value => { value.freshProcessReread = undefined; },
+    value => { (value as Partial<ReturnType<typeof auditControl>>).freshProcessReread = undefined; },
     value => { value.freshProcessReread.completed[0].ref = {testRun: 999}; },
-  ]) {
+  ] satisfies readonly ((value: ReturnType<typeof auditControl>) => unknown)[]) {
     const report = auditControl(); mutate(report); assert.throws(() => auditTimeSeriesTransport(report));
   }
 });

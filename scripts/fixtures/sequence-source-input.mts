@@ -1,6 +1,8 @@
 import type {PublicQuerySuccess} from './public-query-input.mjs';
 
-type SequenceCase = PublicQuerySuccess & {results: NonNullable<PublicQuerySuccess['results']>};
+type SequenceCase = PublicQuerySuccess & {
+  results: Readonly<Record<string, {rows: readonly ReturnType<typeof first>[]; columns: typeof columns}>>;
+};
 
 // Independent finite sequence expectations from declared time/id and pattern laws.
 const number={type:'number',nullable:false};

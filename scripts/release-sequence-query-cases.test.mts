@@ -37,7 +37,7 @@ test('Sequence retains exact synthetic authorization for its second process', as
 test('Sequence audit refuses missing rereads and altered original references values schemas or counters', () => {
   // Synthetic reports check the audit, not installed product execution.
   const quiet = {forbiddenProcesses: 0, forbiddenFetches: 0, sourceSecrets: 0};
-  const count = acceptedRuns => ({acceptedRuns, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
+  const count = (acceptedRuns: number) => ({acceptedRuns, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
   const completed = sequenceSourceSuccesses.map((item, index) => ({name: item.name,
     ref: {run: index}, submissionRef: {submission: index}, observedResults: structuredClone(item.results),
     beforeSubmit: count(index), beforeRead: count(index + 1), afterReplay: count(index + 1)}));
@@ -56,17 +56,17 @@ test('Sequence audit refuses missing rereads and altered original references val
   assert.equal(audit.freshRereadNamedResults, 22);
   for (const change of [r => {r.actualNormal = 18;},
     r => {r.completedRefusals[7].name = 'sequence-implicit-overlap';},
-    r => {delete r.freshProcessReread;},
+    r => {delete (r as Partial<typeof report>).freshProcessReread;},
     r => {r.freshProcessReread.complete = false;},
     r => {r.freshProcessReread.completed.pop();},
-    r => {r.freshProcessReread.completed[0].ref = {run: 'new'};},
-    r => {r.freshProcessReread.completed[0].submissionRef = {submission: 'new'};},
+    r => {(r.freshProcessReread.completed[0] as {ref: {run: number | string}}).ref = {run: 'new'};},
+    r => {(r.freshProcessReread.completed[0] as {submissionRef: {submission: number | string}}).submissionRef = {submission: 'new'};},
     r => {r.freshProcessReread.completed[0].afterAcceptedRuns++;},
-    r => {r.freshProcessReread.completed[0].observedResults.answer.columns.reverse();},
-    r => {r.freshProcessReread.completed[0].observedResults.answer.rows.pop();},
+    r => {(r.freshProcessReread.completed[0].observedResults.answer.columns as unknown[]).reverse();},
+    r => {(r.freshProcessReread.completed[0].observedResults.answer.rows as unknown[]).pop();},
     r => {r.completed[0].afterReplay.acceptedRuns++;},
     r => {r.completedRefusals[0].outcome.problem.code = 'Other';},
-    r => {r.providerObservation.sourceSecrets++;}]) {
+    r => {r.providerObservation.sourceSecrets++;}] satisfies readonly ((value: typeof report) => unknown)[]) {
     const altered = structuredClone(report); change(altered);
     assert.throws(() => auditSequenceTransport(altered));
   }
@@ -79,19 +79,19 @@ test('release Sequence selects all original explicit and adopted default inputs 
   assert.deepEqual(selected.successes.map(value => value.name), releaseSequenceSuccessNames);
   assert.deepEqual(selected.refusals.map(value => value.name), releaseSequenceRefusalNames);
   for (const [kind, original] of [['successes', sequenceSourceSuccesses],
-    ['refusals', sequenceSourceRefusals]]) {
+    ['refusals', sequenceSourceRefusals]] as const) {
     assert.equal(Object.isFrozen(selected[kind]), true);
     for (let index = 0; index < original.length; index++) {
       assert.equal(selected[kind][index], original[index]);
     }
   }
   const nullable = selected.successes.find(value => value.name === 'sequence-json-nullable-case');
-  assert.deepEqual(JSON.parse(nullable.text).stages[0].steps[1].sequence.pattern[0].where,
+  assert.deepEqual(JSON.parse(nullable!.text).stages[0].steps[1].sequence.pattern[0].where,
     {case: {when: [{when: {eq: [{field: 'kind'}, {literal: 1}]}, then: {literal: true}}],
       else: {literal: null}}});
   const parameters = selected.successes.find(value => value.name === 'sequence-sql-parameters');
-  assert.deepEqual(parameters.parameters, {tag: 1, span: 20, cap: 2});
-  assert.deepEqual(parameters.parameterDeclarations, {
+  assert.deepEqual(parameters!.parameters, {tag: 1, span: 20, cap: 2});
+  assert.deepEqual(parameters!.parameterDeclarations, {
     tag: {type: 'number', nullable: false}, span: {type: 'number', nullable: false},
     cap: {type: 'number', nullable: false}});
 });
@@ -105,7 +105,7 @@ test('release Sequence refuses missing duplicate reordered or extra original cas
   }
   for (const refusals of [sequenceSourceRefusals.slice(1),
     [...sequenceSourceRefusals, {name: 'unrelated-case'}]]) {
-    assert.throws(() => selectReleaseSequenceQueryCases({refusals}), {code: 'ERR_ASSERTION'});
+    assert.throws(() => selectReleaseSequenceQueryCases({refusals: refusals as typeof sequenceSourceRefusals}), {code: 'ERR_ASSERTION'});
   }
 });
 

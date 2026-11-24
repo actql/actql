@@ -1,6 +1,11 @@
 import type {PublicQuerySuccess} from './public-query-input.mjs';
 
-type TemporalCase = PublicQuerySuccess & {results: NonNullable<PublicQuerySuccess['results']>};
+type TemporalCase = PublicQuerySuccess & {
+  results: Readonly<Record<string, {
+    rows: typeof variants[number]['rows'];
+    columns: NonNullable<PublicQuerySuccess['columns']>;
+  }>>;
+};
 
 // Authored from the common as-of/interval laws, without product evaluation.
 const number={type:'number',nullable:false};

@@ -5,7 +5,7 @@ import {copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync,
   rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
-import test from 'node:test';
+import test, {type TestContext} from 'node:test';
 import {checkInterfaceOwners} from './check-interface-owners.mjs';
 import {repositoryFiles} from './distribution-interface-roots.mjs';
 import {checkoutState, initializeNormalPackSourceIndex, normalPackSourceInputs} from './packed-client-packages.mjs';
@@ -16,12 +16,12 @@ const unselectedReview = 'reviews/2026-10-14-time-series-release-matrix/other.mt
 
 const attributes = ['responsibility', 'inputsOutputs', 'identity', 'ownership',
   'synchronization', 'failure', 'cancellation', 'resources', 'extension', 'verification'];
-function fixture(t) {
+function fixture(t: TestContext) {
   const root = mkdtempSync(join(tmpdir(), 'actql-normal-pack-source-'));
   t.after(() => rmSync(root, {recursive: true}));
   const source = join(root, 'source'), producer = join(root, 'producer');
   mkdirSync(source); mkdirSync(producer);
-  const put = (path, value) => {
+  const put = (path: string, value: string) => {
     mkdirSync(dirname(join(source, path)), {recursive: true});
     writeFileSync(join(source, path), value);
   };
@@ -50,7 +50,7 @@ function fixture(t) {
   put('.gitignore', '_build/\n');
   execFileSync('git', ['init', '-q'], {cwd: source});
   const listed = () => repositoryFiles(source);
-  const copy = paths => {
+  const copy = (paths: readonly string[]) => {
     for (const path of paths) {
       mkdirSync(dirname(join(producer, path)), {recursive: true});
       copyFileSync(join(source, path), join(producer, path));
@@ -76,8 +76,9 @@ test('normal pack copied sources satisfy the original required interface entranc
   // Parent Git discovery can return an empty listing instead of failing;
   // neither case may admit the copied interfaces before their own index exists.
   await assert.rejects(checkInterfaceOwners(f.producer), error =>
-    /git ls-files/u.test(error.message) ||
-    error.code === 'ERR_ASSERTION' && error.message === 'No normal product interfaces discovered');
+    /git ls-files/u.test((error as Error).message) ||
+    (error as NodeJS.ErrnoException).code === 'ERR_ASSERTION' &&
+    (error as Error).message === 'No normal product interfaces discovered');
   initializeNormalPackSourceIndex(f.producer, paths);
   assert.deepEqual(repositoryFiles(f.producer), [...paths].sort());
   assert.notEqual(spawnSync('git', ['rev-parse', '--verify', 'HEAD'], {cwd: f.producer}).status, 0);

@@ -22,7 +22,7 @@ test('temporal release preserves all original JSON SQL AQL controls, NULLs and o
   for (const [index, rows] of [[0, [{id: 1, value: 7}, {id: 2, value: 8}, {id: 3, value: null}]],
     [3, [{id: 1, value: 7}, {id: 2, value: 8}]],
     [6, [{id: 1, value: 7}, {id: 2, value: null}, {id: 3, value: null}]],
-    [9, [{id: 1, value: 7}]]]) {
+    [9, [{id: 1, value: 7}]]] as const) {
     for (const item of cases.successes.slice(index, index + 3)) {
       const resultName = item.format === 'json' ? 'answer' : 'main';
       assert.deepEqual(Object.keys(item.results), [resultName]);
@@ -66,7 +66,7 @@ test('temporal second process reopens only its exact retained synthetic authoriz
 test('independent temporal audit detects lost NULL, ceiling result, replay, schema and refusal evidence', () => {
   // Synthetic reports test the audit only; they are never product receipts.
   const quiet = {forbiddenProcesses: 0, forbiddenFetches: 0, sourceSecrets: 0};
-  const count = acceptedRuns => ({acceptedRuns, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
+  const count = (acceptedRuns: number) => ({acceptedRuns, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
   const completed = successes.map((item, index) => ({name: item.name, ref: {run: index},
     submissionRef: {submission: index}, observedResults: structuredClone(item.results),
     beforeSubmit: count(index), beforeRead: count(index + 1), afterReplay: count(index + 1)}));
@@ -82,13 +82,13 @@ test('independent temporal audit detects lost NULL, ceiling result, replay, sche
       complete: true, providerObservation: quiet, completed: completed.map(item => ({...item,
         beforeAcceptedRuns: 12, afterAcceptedRuns: 12}))}};
   assert.equal(auditTemporalJoinTransport(report).actualRows, 27);
-  for (const change of [r => {r.completed[0].observedResults.answer.rows.pop();},
-    r => {r.completed[0].observedResults.answer.rows[2].value = 0;},
-    r => {r.completed[0].observedResults.answer.columns.reverse();},
+  for (const change of [r => {(r.completed[0].observedResults.answer.rows as unknown[]).pop();},
+    r => {(r.completed[0].observedResults.answer.rows as {value: number | null}[])[2].value = 0;},
+    r => {(r.completed[0].observedResults.answer.columns as unknown[]).reverse();},
     r => {r.completed[0].afterReplay.acceptedRuns++;},
     r => {r.completedRefusals[0].outcome.problem.code = 'Other';},
-    r => {r.freshProcessReread.completed[0].ref = {run: 'different'};},
-    r => {r.freshProcessReread.complete = false;}]) {
+    r => {(r.freshProcessReread.completed[0] as {ref: {run: number | string}}).ref = {run: 'different'};},
+    r => {r.freshProcessReread.complete = false;}] satisfies readonly ((value: typeof report) => unknown)[]) {
     const altered = structuredClone(report); change(altered);
     assert.throws(() => auditTemporalJoinTransport(altered));
   }

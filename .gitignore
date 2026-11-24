@@ -1045,6 +1045,14 @@ target/
 /scripts/in-unnest-literal-array-source.test.d.mts
 /scripts/release-sourcefree-query-cases.test.mjs
 /scripts/release-sourcefree-query-cases.test.d.mts
+/scripts/release-time-series-query-cases.test.mjs
+/scripts/release-time-series-query-cases.test.d.mts
+/scripts/release-sequence-query-cases.test.mjs
+/scripts/release-sequence-query-cases.test.d.mts
+/scripts/release-temporal-join-query-cases.test.mjs
+/scripts/release-temporal-join-query-cases.test.d.mts
+/scripts/normal-pack-source-inputs.test.mjs
+/scripts/normal-pack-source-inputs.test.d.mts
 /reviews/2026-10-14-sequence-release-matrix/public-audit.mjs
 /reviews/2026-10-14-sequence-release-matrix/public-audit.d.mts
 /reviews/2026-10-14-temporal-join-release-matrix/public-audit.mjs
