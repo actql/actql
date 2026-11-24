@@ -4969,13 +4969,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/local/host/local-csv-table.mjs",
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
                 "anchor": "export function encodeLocalCsvPage"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/local/host/local-csv-table.mjs",
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
                 "anchor": "export function prepareLocalCsvTable"
               }
             ],
@@ -4993,7 +4993,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/local/host/local-csv-table.mjs",
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
                 "anchor": "InvalidLocalCsvEncoding"
               }
             ],
@@ -5005,13 +5005,13 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/local/host/local-csv-table.mjs",
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
                 "anchor": "const transport = Object.freeze"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/local/host/local-csv-table.mjs",
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
                 "anchor": "columns[name]"
               }
             ],
