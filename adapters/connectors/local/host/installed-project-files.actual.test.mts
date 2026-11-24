@@ -78,6 +78,41 @@ test('absent and unrelated connections create no Local declaration or default li
   }
 });
 
+test('actual Common restores distinct declared CSV views with their original schema and key',async()=>{
+  const tables={small:{path:'small.csv',columns:{id:'int64',name:'string'},key:['id']},
+    other:{path:'other.csv',columns:{id:'int64',name:'string'},key:['id']},
+    events:{path:'warehouse/events',format:'iceberg'}};
+  const f=await fixture(document(JSON.stringify({connector:'local',root:'../data',tables})));
+  let opens=0;
+  const preparation=await prepareInstalledProjectLocalFiles(moon,f.project,{limits,assertCurrent(){},
+    openFile:async(path: string,...args: [flags: string])=>{assert.equal(path,join(f.directory,'configuration/connectors.json'));
+      opens++;return open(path,...args);}});
+  assert(preparation);
+  const source=preparation.originalsForRuntime(moon).sources[0];
+  const declaration=JSON.parse(source.wire) as {
+    views: {resource: string; source_ref: string; carrier_schema_cid: string}[];
+    contracts: string[];
+  };
+  const contracts=declaration.contracts.map(wire=>JSON.parse(wire) as {
+    cid: string; body: {fields?: unknown; relation_keys?: {candidate_keys: string[][]}};
+  });
+  assert.equal(opens,1);
+  assert.deepEqual(source.queryAliases.map(alias=>alias.name),['local','local.files','local.contents','local.small','local.other']);
+  for(const resource of ['small','other']){
+    const view=declaration.views.find(view=>view.resource===resource);
+    assert(view);
+    const schema=contracts.find(contract=>contract.cid===view.carrier_schema_cid);
+    assert(schema);
+    assert.deepEqual(schema.body.fields,{id:{type:'int64',nullable:false},name:{type:'string',nullable:false}});
+    assert.ok(Object.hasOwn(source.csvTransports,view.source_ref));
+    assert.ok(contracts.some(contract=>contract.body.relation_keys?.candidate_keys[0][0]==='id'));
+  }
+  assert.notEqual(declaration.views.find(view=>view.resource==='small')?.source_ref,
+    declaration.views.find(view=>view.resource==='other')?.source_ref);
+  assert.equal(Object.keys(source.csvTransports).length,2);
+  preparation.retire(moon);
+});
+
 test('Local preparation refuses malformed roots and unsupported version selection without guessed semantics',async()=>{
   for(const value of [null,false,'','a\0b']){
     const f=await fixture(document(JSON.stringify({connector:'local',root:value,tables:{}})));
