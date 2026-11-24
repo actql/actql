@@ -1104,7 +1104,7 @@
                 "anchor": "### Local native read retirement"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "const childrenPending = () =>"
               },
               {
@@ -1413,7 +1413,7 @@
                 "anchor": "signal?.throwIfAborted()"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "const childrenPending = () =>"
               },
               {
@@ -1965,7 +1965,7 @@
                 "anchor": "### Local native read retirement"
               },
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "const childrenPending = () =>"
               },
               {

@@ -1,13 +1,15 @@
 // The same funded Request retains compilation and Explanation custody until
 // the original admission's children can return. This path never grants a Run.
 import {checked} from '../host-common/runtime-result.mjs';
-import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
+import {assertRequestPreparationControl, cleanupRequestInput, requestPreparationAvailable}
+  from '../local-node/request-preparation-adapter.mjs';
 import {checkedRequestProgramPreparation} from './client-program-preparation.mjs';
 import {assertOriginalClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
 
 import type {RequestPreparationState} from '../local-node/request-preparation-adapter.mjs';
 import type {SourceProducerCustody} from './ordinary-source-producer-custody.mjs';
+import type {OrdinarySourceRun} from './ordinary-source-run-custody.mjs';
 
 type Callback = (...args: never[]) => unknown;
 type CheckedRuntime = Parameters<typeof checkedRequestProgramPreparation>[0];
@@ -38,18 +40,34 @@ type Explanation = {
     returnCapture: (...args: unknown[]) => unknown}>;
 };
 export type OrdinarySourceRequestState = RequestPreparationState & {
-  context: Readonly<{runtime: Runtime; retainedRelationOutput: boolean}>;
+  context: Readonly<{runtime: Runtime; retainedRelationOutput: boolean}> &
+    Parameters<typeof assertRequestPreparationControl>[0];
   requiresQueryTime?: boolean; originalExplanation?: Explanation; staticExplanationDelivery?: unknown;
   staticPlanRead?: boolean; staticModelOccurrences?: unknown; staticModelExecutions?: unknown; staticModelGraphs?: unknown;
 };
 type State = OrdinarySourceRequestState;
 type Producer = Pick<SourceProducerCustody, 'finished' | 'preparation' | 'receipt'>;
+type RequestProducer = SourceProducerCustody & Readonly<{kind?: string; body?: object}> & {preparation?: State};
+type OpenParent = (state: State, receipt: object,
+  assertCurrent: () => void, childrenPending: () => boolean) => unknown;
+
 type Ports = Readonly<{
   originals: Readonly<{installation: Readonly<{sequenceContractOriginal?: Contracts}>}>;
-  current(): void; fail(code: string): never;
+  current(): void; fail(code: string): never; closed: boolean;
+  callbacks: Readonly<{
+    preparationContext?(originals: unknown): State['context'] | undefined;
+    validator(originals: unknown): void;
+  }>;
+  receipts: WeakMap<object, RequestProducer>; producers: Set<RequestProducer>;
+  runs: Pick<WeakMap<object, OrdinarySourceRun>, 'get'>; liveRuns: Set<OrdinarySourceRun>;
+  retainSourceInitializationMaterial(producer: RequestProducer): unknown;
+  retainedRunCurrent(run: OrdinarySourceRun): void;
+  releaseFinishedProducer(producer: RequestProducer): boolean;
 }>;
 
-export function createOrdinarySourceRequestCustody({originals, current, fail}: Ports) {
+export function createOrdinarySourceRequestCustody(ports: Ports) {
+  const {originals, current, fail, callbacks, receipts, producers, runs, liveRuns,
+    retainSourceInitializationMaterial, retainedRunCurrent, releaseFinishedProducer} = ports;
   function originalTimedInvocation<Value>(state: State, producer: Producer, prepared: unknown, construct: (artifact: unknown) => Value, contracts?: Contracts) {
     if (state.requiresQueryTime !== true) return undefined;
     const moon = state.context.runtime, compile = moon.clientProgramPrepareRequestProgramCompilation;
@@ -165,5 +183,83 @@ export function createOrdinarySourceRequestCustody({originals, current, fail}: P
     }
     return cleanupRequestInput(state, retire);
   }
-  return {originalTimedInvocation, prepareOriginalExplanation, disposeOriginalExplanation, cleanupOriginalRequestInput};
+  function beginProducer(kind: string | undefined, openParent: OpenParent, requiresParent = false) {
+    current();
+    // A selected funded context cannot fall back to an unfunded snapshot
+    // when its typed capability or installed output mode is unavailable.
+    // Resolve it before allocating a producer, including a throwing lookup.
+    const context = callbacks.preparationContext === undefined
+      ? undefined : callbacks.preparationContext(originals);
+    if (requiresParent && context === undefined) fail('NodeLocalPreparationAdmissionUnavailable');
+    if (context !== undefined && !requestPreparationAvailable(context)) {
+      fail('NodeLocalPreparationAdmissionUnavailable');
+    }
+    if (context !== undefined) assertRequestPreparationControl(context);
+    if (producers.size === 32) fail('InstalledSourceProducerLimit');
+    const receipt = Object.freeze({});
+    const producer: RequestProducer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
+    receipts.set(receipt, producer); producers.add(producer);
+    const sourceEnvironment = retainSourceInitializationMaterial(producer);
+    // The same Request precedes every SDK snapshot, independent of options.
+    // Original Program and Parameters continue to their checked compiler
+    // module; no shape scan selects a second preparation protocol.
+    if (context !== undefined) {
+      const state: State = {context, original: undefined, admission: undefined, parent: undefined,
+        prepared: undefined, holder: undefined, adopting: false,
+        authoringContextOriginal: undefined,
+        originalCheckResult: undefined,
+        projectOriginalCheck: Object.getOwnPropertyDescriptor(context.runtime,
+          'clientProgramProjectRequestCheckOutcome')?.value};
+      producer.preparation = state;
+      try {
+        if (sourceEnvironment !== undefined &&
+            Object.getOwnPropertyDescriptor(context, 'preparedEnvironment')?.value !== sourceEnvironment) {
+          fail('ForeignInstalledSourceProducer');
+        }
+        const assertOriginalCurrent = () => {
+          // Cleanup may continue while the manager is closing. Exact
+          // membership/current installation, not raw Prepared, is retained.
+          if (ports.closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
+            fail('ForeignInstalledSourceProducer');
+          }
+          const adopted = state.prepared === undefined ? undefined : runs.get(state.prepared as object);
+          if (adopted?.producer === producer && adopted.original === state.original &&
+              adopted.value !== undefined) retainedRunCurrent(adopted);
+          else callbacks.validator(originals);
+          // The original external current callback may retire this same
+          // input before opening returns. Cheap state fences, not another
+          // external current call, preserve the exact original after reentry.
+          if (ports.closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
+            fail('ForeignInstalledSourceProducer');
+          }
+        };
+        // The same initial Root survives Run adoption. Observe physical
+        // children on its existing producer/Run inventory, rather than
+        // freezing a no-children answer before those children can exist.
+        const childrenPending = () => {
+          if (state.staticExplanationDelivery !== undefined) return true;
+          for (const run of liveRuns) if (run.producer === producer &&
+              run.children.some(child => child.flight !== undefined || !child.closed)) return true;
+          return false;
+        };
+        const accepted = openParent(state, receipt, assertOriginalCurrent, childrenPending);
+        if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
+      } catch (cause) {
+        producer.finished = true;
+        try {
+          cleanupOriginalRequestInput(state);
+          producer.preparation = undefined;
+          releaseFinishedProducer(producer);
+        } catch (cleanupCause) {
+          throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
+            {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
+              cleanupCause});
+        }
+        throw cause;
+      }
+    }
+    return receipt;
+  }
+  return {originalTimedInvocation, prepareOriginalExplanation, disposeOriginalExplanation,
+    cleanupOriginalRequestInput, beginProducer};
 }

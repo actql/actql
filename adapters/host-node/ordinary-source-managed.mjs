@@ -1,5 +1,5 @@
 import {snapshotClientRequest} from '@actql/client-wire';
-import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,beginHttpRequestInput,openRequestPreparation,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
+import {requestPreparationAvailable,beginRequestInput,beginHttpRequestInput,openRequestPreparation,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {types} from 'node:util';
@@ -107,7 +107,9 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     originals, callbacks, runs, liveRuns, receipts, retiredRuns, pendingRunRegistrations,
     producerForRequest, current, fail, get closed() { return closed; }});
   const {originalTimedInvocation, prepareOriginalExplanation, disposeOriginalExplanation,
-    cleanupOriginalRequestInput} = createOrdinarySourceRequestCustody({originals, current, fail});
+    cleanupOriginalRequestInput, beginProducer} = createOrdinarySourceRequestCustody({originals, current, fail,
+      callbacks, receipts, producers, runs, liveRuns, retainSourceInitializationMaterial, retainedRunCurrent,
+      releaseFinishedProducer, get closed() { return closed; }});
   function constructRequestDomain(state, construct) {
     state.preparing = true;
     try {return construct();}
@@ -176,83 +178,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       runs.set(run.prepared, run); liveRuns.add(run);
       return run;
     } finally {pendingRunRegistrations.delete(run.prepared);}
-  }
-  function beginProducer(kind, openParent, requiresParent = false) {
-    current();
-    // A selected funded context cannot fall back to an unfunded snapshot
-    // when its typed capability or installed output mode is unavailable.
-    // Resolve it before allocating a producer, including a throwing lookup.
-    const context = callbacks.preparationContext === undefined
-      ? undefined : callbacks.preparationContext(originals);
-    if (requiresParent && context === undefined) fail('NodeLocalPreparationAdmissionUnavailable');
-    if (context !== undefined && !requestPreparationAvailable(context)) {
-      fail('NodeLocalPreparationAdmissionUnavailable');
-    }
-    if (context !== undefined) assertRequestPreparationControl(context);
-    if (producers.size === 32) fail('InstalledSourceProducerLimit');
-    const receipt = Object.freeze({});
-    const producer = {receipt, kind, body: undefined, request: undefined, finished: false, liveRuns: 0, snapshotPublication: undefined, preparation: undefined};
-    receipts.set(receipt, producer); producers.add(producer);
-    const sourceEnvironment = retainSourceInitializationMaterial(producer);
-    // The same Request precedes every SDK snapshot, independent of options.
-    // Original Program and Parameters continue to their checked compiler
-    // module; no shape scan selects a second preparation protocol.
-    if (context !== undefined) {
-      const state = {context, original: undefined, admission: undefined, parent: undefined,
-        prepared: undefined, holder: undefined, adopting: false,
-        authoringContextOriginal: undefined,
-        originalCheckResult: undefined,
-        projectOriginalCheck: Object.getOwnPropertyDescriptor(context.runtime,
-          'clientProgramProjectRequestCheckOutcome')?.value};
-      producer.preparation = state;
-      try {
-        if (sourceEnvironment !== undefined &&
-            Object.getOwnPropertyDescriptor(context, 'preparedEnvironment')?.value !== sourceEnvironment) {
-          fail('ForeignInstalledSourceProducer');
-        }
-        const assertOriginalCurrent = () => {
-          // Cleanup may continue while the manager is closing. Exact
-          // membership/current installation, not raw Prepared, is retained.
-          if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
-            fail('ForeignInstalledSourceProducer');
-          }
-          const adopted = state.prepared === undefined ? undefined : runs.get(state.prepared);
-          if (adopted?.producer === producer && adopted.original === state.original &&
-              adopted.value !== undefined) retainedRunCurrent(adopted);
-          else callbacks.validator(originals);
-          // The original external current callback may retire this same
-          // input before opening returns. Cheap state fences, not another
-          // external current call, preserve the exact original after reentry.
-          if (closed || receipts.get(receipt) !== producer || producer.preparation !== state) {
-            fail('ForeignInstalledSourceProducer');
-          }
-        };
-        // The same initial Root survives Run adoption. Observe physical
-        // children on its existing producer/Run inventory, rather than
-        // freezing a no-children answer before those children can exist.
-        const childrenPending = () => {
-          if (state.staticExplanationDelivery !== undefined) return true;
-          for (const run of liveRuns) if (run.producer === producer &&
-              run.children.some(child => child.flight !== undefined || !child.closed)) return true;
-          return false;
-        };
-        const accepted = openParent(state, receipt, assertOriginalCurrent, childrenPending);
-        if (!accepted) fail('NodeLocalPreparationAdmissionUnavailable');
-      } catch (cause) {
-        producer.finished = true;
-        try {
-          cleanupOriginalRequestInput(state);
-          producer.preparation = undefined;
-          releaseFinishedProducer(producer);
-        } catch (cleanupCause) {
-          throw Object.assign(new Error('NodeLocalPreparationCleanupPending', {cause}),
-            {code: 'NodeLocalPreparationCleanupPending', cleanupPending: true,
-              cleanupCause});
-        }
-        throw cause;
-      }
-    }
-    return receipt;
   }
   const view = Object.freeze({
     assertCurrent: current,

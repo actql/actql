@@ -119819,7 +119819,8 @@
             "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation",
             "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#2",
             "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#3",
-            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#4"
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#4",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#5"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -123728,9 +123729,6 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
-            "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending",
-            "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending/childrenPending",
             "prepareOrdinaryManagedInstallation/view/init:beforeSourceSnapshot/init:beforeSourceSnapshot/init:beforeSourceSnapshot",
             "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput",
             "prepareOrdinaryManagedInstallation/view/init:retainRequestInput/init:retainRequestInput/receipt/receipt"
@@ -125128,23 +125126,6 @@
           "async": false
         },
         {
-          "name": "prepareOrdinaryManagedInstallation/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/beginProducer/childrenPending/childrenPending/childrenPending",
-          "parameters": [
-            "child"
-          ],
-          "async": false
-        },
-        {
           "name": "prepareOrdinaryManagedInstallation/constructEffectMaterials/constructEffectMaterials",
           "parameters": [],
           "async": false
@@ -125171,6 +125152,11 @@
         },
         {
           "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#4",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation#5",
           "parameters": [],
           "async": false
         },
@@ -126518,7 +126504,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "31d405a6ac2d7566b356cd522ecddada778cefd27c42540c5be91d75b35d39dc"
+      "sha256": "350859f929e75dc19c065fc160172c2229cc889e0449e2f32092b896395eb693"
     },
     {
       "module": "adapters/host-node/ordinary-source-run-custody.mjs",
@@ -126679,7 +126665,7 @@
     {
       "module": "adapters/host-node/ordinary-source-request-custody.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "07fbf9e5d88f5fe9ef2065355fa0896e17634d945e467cb9b7dbefb386409af1",
+      "sha256": "aa5d66a994a229e01078599290d7b625f3885313c355be1a4f0b1478cb2316d4",
       "role": "physical-io",
       "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
       "exports": [
@@ -126689,9 +126675,33 @@
         {
           "name": "createOrdinarySourceRequestCustody",
           "parameters": [
-            "originals",
-            "current",
-            "fail"
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/beginProducer",
+          "parameters": [
+            "kind",
+            "openParent",
+            "requiresParent"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/beginProducer/childrenPending/childrenPending",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/beginProducer/childrenPending/childrenPending/childrenPending",
+          "parameters": [
+            "child"
           ],
           "async": false
         },
@@ -126742,7 +126752,11 @@
             "createOrdinarySourceRequestCustody/cleanupOriginalRequestInput",
             "createOrdinarySourceRequestCustody/disposeOriginalExplanation",
             "createOrdinarySourceRequestCustody/originalTimedInvocation",
-            "createOrdinarySourceRequestCustody/prepareOriginalExplanation"
+            "createOrdinarySourceRequestCustody/prepareOriginalExplanation",
+            "createOrdinarySourceRequestCustody/beginProducer",
+            "createOrdinarySourceRequestCustody/beginProducer/assertOriginalCurrent/assertOriginalCurrent",
+            "createOrdinarySourceRequestCustody/beginProducer/childrenPending/childrenPending",
+            "createOrdinarySourceRequestCustody/beginProducer/childrenPending/childrenPending/childrenPending"
           ],
           "exports": [
             "createOrdinarySourceRequestCustody"
@@ -126751,7 +126765,7 @@
             "responsibility": [
               {
                 "path": "adapters/host-node/ordinary-source-request-custody.mts",
-                "anchor": "export function createOrdinarySourceRequestCustody({originals, current, fail}: Ports)"
+                "anchor": "export function createOrdinarySourceRequestCustody(ports: Ports)"
               }
             ],
             "inputsOutputs": [
@@ -126769,7 +126783,7 @@
             "ownership": [
               {
                 "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "cleanupOriginalRequestInput} = createOrdinarySourceRequestCustody({originals, current, fail});"
+                "anchor": "cleanupOriginalRequestInput, beginProducer} = createOrdinarySourceRequestCustody({originals, current, fail,"
               }
             ],
             "synchronization": [
@@ -126810,6 +126824,10 @@
               {
                 "path": "adapters/host-node/request-preparation-parent.test.mjs",
                 "anchor": "failed Request Effect completion or adoption keeps typed input cleanup and cannot acquire another admission"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "normal default Request retains one parent before the original SDK snapshot growth"
               }
             ]
           }
