@@ -179,10 +179,14 @@ test('same managed service reader demand supplies original whole page bounds wit
       originalReader:{capacity:reader.capacity,prepare:reader.prepare,receiver:reader},
       captureCapacity(actual) {assert.strictEqual(actual,owner); return capacity;},
       currentRead:async()=>({action:'dispatch'}), site, moon, cid:()=> 'sha256:'+'c'.repeat(64),
-      maxTransferBytes:quote.transferBytes, limits, managedPageLimits:quotedBounds, referenceIssuer,
+      resourceTransport(resource) {
+        assert.equal(resource, 'records');
+        return {transferBytes:quote.transferBytes,executionBytes:quote.executionBytes};
+      }, limits, managedPageLimits:quotedBounds, referenceIssuer,
       startInstalledRowRun(options) {
         assert.strictEqual(options.ledger,ledger);
         assert.strictEqual(options.acquisition,acquisition);
+        assert.deepEqual(options.capacity,{transferBytes:768n,executionBytes:256n,provider:reader.capacity});
         assert.strictEqual(options.capacity.provider,reader.capacity);
         return {run, closeAfterFailure() {closed++;}};
       },

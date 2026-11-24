@@ -1193,6 +1193,10 @@ target/
 /adapters/connectors/local/host/iceberg-process.d.mts
 /adapters/connectors/local/host/installed-local-table.mjs
 /adapters/connectors/local/host/installed-local-table.d.mts
+/adapters/connectors/local/host/local-csv-table.mjs
+/adapters/connectors/local/host/local-csv-table.d.mts
+/adapters/connectors/local/host/local-csv-table.test.mjs
+/adapters/connectors/local/host/local-csv-table.test.d.mts
 /adapters/connectors/local/host/local-file-store-declaration.mjs
 /adapters/connectors/local/host/local-file-store-declaration.d.mts
 /adapters/connectors/local/host/local-file-store-target.mjs
