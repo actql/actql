@@ -3,7 +3,8 @@ import type {storeCompletedResultPublicationPayload} from '../host-common/durabl
 import {checked} from '../host-common/runtime-result.mjs';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 
-type StoreExport = NonNullable<Parameters<typeof storeCompletedResultPublicationPayload>[7]>;
+type Payload = Parameters<typeof storeCompletedResultPublicationPayload>;
+type StoreExport = (host: undefined, index: number, limits: Payload[4]) => ReturnType<NonNullable<Payload[7]>>;
 type ResultOriginal = Readonly<{selection: unknown; storeExport: StoreExport}>;
 type ResultRuntime = Readonly<{
   clientProgramInferPublicationBegin(binding: unknown, index: number): unknown;
@@ -34,7 +35,7 @@ export const pending = () => Object.assign(new Error('ClientDispatchCleanupPendi
 // another publisher or an adapter-authored publication inventory. The Store
 // callback receives the common selection and ordinary opaque output exporter.
 export async function withNodeInferResult<Result>({moon, binding, result, consume,
-  signal, quantum = 256}: ResultStep<Result>) {
+  signal, quantum = 256}: ResultStep<Result>): Promise<Awaited<Result>> {
   if (typeof consume !== 'function' || !Number.isSafeInteger(result) ||
       result < 0 || !Number.isSafeInteger(quantum) || quantum < 1 ||
       quantum > 2147483647) {

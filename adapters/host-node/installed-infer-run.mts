@@ -16,15 +16,216 @@ import {selectedInferOriginalCurrentStateCodec,
   selectedInferOriginalPublicationCapacity,
   inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 
+// Installed Infer caller contracts. Keep public-input wires and generated Core
+// handles opaque at the physical ports until their original producer checks them.
+import type {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {installNodeContentRun} from './installed-content-run.mjs';
+import type {createInferOriginalReadControls} from '../host-common/runtime-infer-original-read-control.mjs';
+
+type Composed = Parameters<typeof runInstalledComposedInfers>[0];
+type Compute = Parameters<typeof openNodeInferOperation>[0];
+type Operation = ReturnType<typeof openNodeInferOperation>;
+type MemberPorts = Parameters<typeof sourceFreeModelPreparation>;
+type GroupPorts = Parameters<typeof sourceFreeModelsPreparation>;
+type ModelMember = MemberPorts[5] & {
+  components?: never; serializationGraph?: unknown; contentPreparation?: {managed?: unknown};
+};
+type ModelGroup = GroupPorts[5] & {component?: never; readAttempted?: never};
+type OriginalInstallation = NonNullable<MemberPorts[4]['originalReadInstallation']>;
+type PublicationExecution = Parameters<typeof inferPublicationExecution>[0];
+type PublicationInputs = Parameters<typeof inferTaskPublicationPlan<Complete['results'][number]['retention'], Issued>>[0];
+type ContinuationInputs = Parameters<typeof acquiredEffectContinuation>[0];
+type Continuation = NonNullable<ReturnType<typeof acquiredEffectContinuation>>;
+type Source = Parameters<Continuation['beforeRead']>[0];
+type Evaluation = Parameters<typeof projectInferEvidence>[0];
+type EvidenceCopy = Parameters<Evaluation['retainCopy']>[0];
+type ContentRunner = ReturnType<typeof installNodeContentRun>;
+type ReadControl = ReturnType<typeof createInferOriginalReadControls>;
+type RestoredRead = NonNullable<Compute['restoredInput']>;
+type Generate = Parameters<ContentRunner['generate']>[0];
+type RestoreContent = Parameters<ContentRunner['recover']>[0];
+type RestoreKeyed = Parameters<ContentRunner['recoverKeyed']>[0];
+type Store = Composed['store'] & Generate['store'] & RestoreContent['store'] & RestoreKeyed['store'];
+type Plan = Composed['plan'] & Readonly<{
+  inferGraph: unknown; serializationGraph?: NonNullable<Generate['plan']['serializationGraph']>;
+}>;
+type OriginalRead = Omit<NonNullable<Compute['originalPreparation']>, 'read'> & {
+  read: unknown;
+  physicalCustody?: Readonly<{
+    close(): boolean | Promise<void | boolean>; cleanup(): boolean | Promise<void | boolean>;
+    cleanupPending(): boolean;
+  }>;
+};
+type ModelSelection = Composed['selected']['components'][number] & MemberPorts[4] &
+  Pick<Compute, 'step' | 'provider' | 'quantityCapacity' | 'physicalPreflight' | 'egressAdmission' | 'computeSuffix'> &
+  Readonly<{
+    components?: never; deferredRestoredSegments?: boolean; serializationGraph?: unknown; computePrefix?: unknown;
+    sourceCoordinates?: GroupPorts[4]['sourceCoordinates'];
+    originalReadInstallation?: OriginalInstallation;
+    physicalOriginal?: Readonly<{selectTaskOriginals?: (...args: never[]) => unknown}>;
+    restoredRun?: Readonly<{compiled: unknown; graph: unknown; runDefinition: unknown}>;
+    assertNewTrustedRuntime?(): void;
+    finishTrustedRuntimeScope?: ModelGroup['components'][number]['selection']['finishTrustedRuntimeScope'];
+  }>;
+type Selected = ModelSelection | GroupSelected;
+type GroupSelected = GroupPorts[4] & Partial<Omit<ModelSelection, 'graph' | 'components'>> & Readonly<{
+  components: readonly ModelSelection[]; graph: readonly unknown[];
+}>;
+type SourceCapacity = Readonly<{
+  managedRun?: unknown; wholeInput?: boolean; capacity: unknown;
+  transferBytes: bigint; executionBytes: bigint;
+}>;
+type KeyedCapacity = SourceCapacity & Readonly<{maxBytes: bigint; maxWork: number}>;
+type SourceLedgers = {sourceLedgerAttempted?: boolean; sourceLedgerFailure?: unknown};
+type InstalledModel = (ModelMember | ModelGroup) & SourceLedgers;
+type RunScope = Composed['control'] & PublicationExecution['core']['publicationControl'] & MemberPorts[1] &
+  Pick<ReadControl,'beginCheckedClientInferOriginalReadScope' | 'prepareCheckedClientInferNodeReadLayout' |
+    'stopCheckedClientInferOriginalReadPreparation' | 'settleCheckedClientInferOriginalReadPreparation' |
+    'finishCheckedClientInferOriginalReadScope'> & Readonly<{
+    checkRestoredClientInferRunOwner(original: unknown, prepared: unknown): unknown;
+  }>;
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type Complete = Parameters<typeof publishCompletedEffectFreeRun>[0];
+type Common = ReturnType<typeof runtimeCore>['publicationControl'];
+type Issued = ReturnType<Common['bindIssuedClientInferInvocation']> & Readonly<{
+  observation: Readonly<{name: 'observation_set'}>;
+  invocation: Readonly<{name: 'run_invocation'}>;
+}>;
+type Publication = ReturnType<typeof inferTaskPublicationPlan<Complete['results'][number]['retention'], Issued>>;
+type AdmittedPublication = Publication & Readonly<{
+  plan: Publication['plan'] & Omit<Complete, 'execution' | 'store' | 'control' | 'signal'>;
+}>;
+type Capture = ReturnType<typeof openNodeInferCaptureCustody<AdmittedPublication>>;
+type CaptureSetup = Parameters<typeof openNodeInferCaptureCustody<AdmittedPublication>>[0];
+type SourceEvidence = NonNullable<CaptureSetup['sourceEvidence']>[number];
+type Acquired = Omit<NonNullable<Composed['acquiredInfer']>, 'sourceEvidence'> & Readonly<{
+  sourceEvidence?: SourceEvidence | readonly SourceEvidence[];
+  managedRun?: unknown;
+  input?: unknown;
+  occurrence?: Source['occurrence'];
+  sourceAccess?: NonNullable<Composed['acquiredInfer']>['sourceAccess'] &
+    Readonly<{originalCheckpointApproval?(): Parameters<Continuation['captured']>[5]}>;
+}>;
+type Content = NonNullable<Parameters<ContentRunner['generate']>[0]['acquiredContent']> & Readonly<{
+  captured: NonNullable<Parameters<ContentRunner['generate']>[0]['acquiredContent']>['captured'] &
+    Readonly<{identity: unknown; requirement: unknown; logicalInput: unknown}>;
+  sourceEvidence?: SourceEvidence; keyedSourceEvidence?: SourceEvidence;
+  keyedObservation?: Readonly<{observation: unknown}>;
+  ledger?: unknown;
+  sourceEvidenceWire?: string;
+  authorityScopeCid?: string;
+  captureStartedAt?: string;
+  captureCompletedAt?: string;
+}>;
+type Original = NonNullable<Composed['originalPreparation']>;
+type PreparedModelView = ReturnType<typeof sourceFreeModelPreparation>;
+type OfferedOriginal = Partial<Omit<Original, 'control' | 'selection'>> & Partial<OriginalRead> & Readonly<{
+  control: OriginalRead['control']; selection?: Selected; publicationCapacity?(): unknown;
+  compiled: unknown; runDefinition: MemberPorts[3]['runDefinition'];
+  managedPublication?: PublicationInputs['managedPublication'];
+  prepareAcquiredLedger?(capacities: readonly (SourceCapacity | undefined)[], registry: unknown,
+    values: string, fragment: string, ordered: string): unknown;
+}>;
+type ModelRecovery = Original & Readonly<{
+  control: RunScope; compiled: Plan['compiled']; runDefinition: Plan['runDefinition'];
+  assertRuntimeCurrent(): void;
+  restoreRead(input: RestoredModelInput): OriginalRead;
+}>;
+type ModelBase = NonNullable<Composed['modelController']>;
+type ModelRecord = NonNullable<Composed['existingModel']>;
+type SourceSnapshot = NonNullable<NonNullable<ContinuationInputs['restore']>['continuation']>;
+type Token = Awaited<ReturnType<ModelBase['prime']>> & Readonly<{
+  snapshot: NonNullable<RestoreContent['restoredInput']>['snapshot'] &
+    Readonly<{callScopeSnapshotWire: string; sourceContinuation?: SourceSnapshot}>;
+}>;
+type RestoredModelInput = RestoredRead & Readonly<{
+  token: Token; snapshot: Token['snapshot']; capturedContent?: unknown;
+  capturedContentBinding?: NonNullable<RestoreContent['restoredInput']>['capturedContentBinding'];
+}>;
+type ModelSession = Awaited<ReturnType<ModelBase['open']>> & Readonly<{
+  prepareOriginalResourcesForDispatch(): Awaitable<void>;
+}>;
+type OpenModel = Omit<Parameters<ModelBase['open']>[0], 'originalPreparation' | 'retainEvidenceCopy'> &
+  Readonly<{originalPreparation?: OfferedOriginal}>;
+type ModelController = Omit<ModelBase, 'open' | 'prime' | 'release'> & RestoreKeyed['modelController'] & Readonly<{
+  open(input: OpenModel | Parameters<ModelBase['open']>[0]): Awaitable<ModelSession>;
+  prime(record: ModelRecord): Awaitable<Token>;
+  release(token: Awaited<ReturnType<ModelBase['prime']>> | undefined): void;
+  capturedContent(token: Token, definition: string): unknown;
+
+}>;
+type InstallMoon = Composed['moon'] & Compute['moon'] & PublicationExecution['moon'] &
+  MemberPorts[0] & Readonly<{
+    clientProgramTaskCount(prepared: unknown): number;
+    clientProgramResultCount(prepared: unknown): number;
+    clientProgramSelectSingleKeyedAcquisition(prepared: unknown): unknown;
+    clientProgramInstalledManagedRunModelInputPrefix(managed: unknown, prepared: unknown): unknown;
+    clientProgramAdmitComposedInferSources(occurrence: unknown, sources: readonly unknown[], identities: readonly unknown[],
+      requirements: readonly unknown[], logical: readonly unknown[], evidence: readonly unknown[], authorityScopeCid: unknown,
+      start: unknown, complete: unknown, observation: unknown): unknown;
+    strategyRunEvidenceJson(value: unknown): unknown;
+    clientProgramInstalledManagedRunPrepareLedger(managed: unknown, prepared: unknown, request: unknown,
+      capacities: readonly unknown[], transfer: readonly bigint[], execution: readonly bigint[],
+      registry: unknown, values: string, fragment: string, ordered: string): unknown;
+    clientProgramInstalledManagedWholeSourcesLedger?(managed: unknown, prepared: unknown, request: unknown,
+      capacities: readonly unknown[], transfer: readonly bigint[], execution: readonly bigint[]): unknown;
+    clientProgramPrepareKeyedInferCapturedLedger(prepared: unknown, occurrence: unknown, direct: unknown,
+      acquisition: unknown, capacity: unknown, transfer: readonly bigint[], execution: readonly bigint[],
+      maxBytes: bigint, maxWork: number, registry: unknown, values: string, fragment: string, ordered: string,
+      capturedContent: boolean): unknown;
+  }>;
+type PrepareModel = {
+  (prepared: unknown, plan: Plan, selection: GroupSelected): ModelGroup & SourceLedgers;
+  (prepared: unknown, plan: Plan, selection: ModelSelection): ModelMember & SourceLedgers;
+  (prepared: unknown, plan: Plan, selection: Selected): InstalledModel;
+};
+type KeyedRecovery = Pick<Parameters<ContentRunner['recoverKeyed']>[0], 'keyedSource' | 'ledger'>;
+type InstallOptions = Pick<Composed, 'registry' | 'values' | 'fragment' | 'ordered' | 'namespaceId' |
+  'authorityScopeCid' | 'storeAuthorityCid' | 'now' | 'faultInjection' | 'inferEvidence' | 'checkpoints' |
+  'prepareAcquisition' | 'prepareRetainedCaptureAcquisition' | 'sourceAccessFor' | 'sourceAdapterFor'> & Readonly<{
+  moon: InstallMoon; core: PublicationExecution['core'] & Readonly<{publicationControl: RunScope}>;
+  selections: Readonly<{get(prepared: unknown): Selected | undefined}>;
+  modelController?: ModelController;
+  prepareRetainedAcquisition?: Composed['prepareRetainedCaptureAcquisition'];
+  runContent?: ContentRunner;
+  prepareKeyedRecovery?(input: Pick<RunInput,'preparedProgram' | 'plan' | 'submission'>): Awaitable<KeyedRecovery>;
+  prepareOriginalMockRun?(prepared: unknown, plan: Plan): OfferedOriginal;
+  prepareOriginalModelRun?: PrepareModel;
+  prepareModelRecoveryPlan?(prepared: unknown, plan: Plan, selected: Selected): ModelRecovery;
+  computeConfigurations?: Composed['computeConfigurations'];
+}>;
+type RunInput = Pick<Composed, 'principalId' | 'signal' |
+  'replay' | 'submission' | 'existingModel' | 'modelClaim'> & Readonly<{
+  preparedProgram: Generate['preparedProgram']; store: Store;
+  retainExecution(owner: Releasable): void;
+  plan: Plan; acquiredInfer?: Acquired; acquiredContent?: Content; beginPhysicalWork?(): void;
+  assertCurrent?(site?: 'begin-model-journal-cut' | 'end-model-journal-cut'): void;
+  originalPreparation?: OfferedOriginal; preparationHolder?: unknown;
+}>;
+type RunResult = ReturnType<typeof runInstalledComposedInfers>;
+type InstalledInferRun = {
+  (input: RunInput): RunResult;
+  sourceOccurrence(prepared: unknown, index: number): Source['occurrence'] | undefined;
+  prepareAcquiredLedger(input: LedgerInput): unknown;
+  prepareKeyedLedger(input: KeyedLedgerInput): unknown;
+};
+type GeneratedContent = NonNullable<Awaited<ReturnType<ContentRunner['generate']>>>;
+type Cleanup = {cleanup(): Awaitable<void | boolean>; cleanupPending(): boolean};
+type Releasable = Cleanup & {close(): Awaitable<void | boolean>};
+type LedgerInput = Readonly<{preparedProgram: unknown; plan: Plan; sourceCapacity?: SourceCapacity;
+  sourceCapacities?: readonly SourceCapacity[]}>;
+type KeyedLedgerInput = Readonly<{preparedProgram: unknown; plan: Plan; direct: SourceCapacity;
+  acquisition: unknown; capacity: KeyedCapacity; capturedContent?: boolean}>;
+
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
   checkpoints, prepareAcquisition, prepareRetainedAcquisition, prepareRetainedCaptureAcquisition, sourceAccessFor, sourceAdapterFor, runContent, prepareKeyedRecovery,
   prepareOriginalMockRun, prepareOriginalModelRun, prepareModelRecoveryPlan,
-  computeConfigurations = {}}) {
+  computeConfigurations = {}}: InstallOptions): InstalledInferRun {
   const control = core.publicationControl;
   const run = async ({preparedProgram, plan, store, principalId, signal,
     retainExecution, acquiredInfer, acquiredContent, replay = false, beginPhysicalWork = () => {},
-    submission, existingModel, modelClaim, assertCurrent, originalPreparation, preparationHolder}) => {
+    submission, existingModel, modelClaim, assertCurrent, originalPreparation, preparationHolder}: RunInput): RunResult => {
     const selected = selections.get(preparedProgram);
     if (selected === undefined || selected.graph !== plan.inferGraph) {
       throw new Error('InstalledInferSelectionMissing');
@@ -47,7 +248,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         now, faultInjection, registry, values, fragment, ordered, computeConfigurations,
         originalPreparation: original, managedPublication: model.managed});
     }
-    let directRequestModel, restoredRequestModel, managedPublication;
+    let directRequestModel: PreparedModelView | undefined, restoredRequestModel: ModelRecovery | undefined,
+      managedPublication: PublicationInputs['managedPublication'];
     const configuredModel = selected.restoredRun === undefined && !selected.localMock && selected.originalReadInstallation === undefined &&
       selected.occurrence !== undefined && selected.components === undefined &&
       selected.serializationGraph === undefined && moon.clientProgramAcquisitionCount(preparedProgram) <= 1;
@@ -86,15 +288,16 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // checked Program has just that one task, its terminal Model still runs
       // through the original kernel/publication owner, not a captured Result.
       if (configuredModel && !sourceFree && moon.clientProgramTaskCount(preparedProgram) === 1) {
-        directRequestModel = originalPreparation;
+        // Only the configured branch can enter this original single-unit path.
+        directRequestModel = originalPreparation as PreparedModelView;
         originalPreparation = undefined;
       } else {
         return runInstalledComposedInfers({moon, control, preparedProgram, plan,
-          selected: {components: [selected]}, store, principalId, signal, retainExecution,
+          selected: {components: [selected as ModelSelection]}, store, principalId, signal, retainExecution,
           acquiredInfer, replay, beginPhysicalWork, submission, existingModel, modelClaim, assertCurrent,
           modelController, inferEvidence, checkpoints, prepareAcquisition, sourceAccessFor, sourceAdapterFor,
           namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
-          registry, values, fragment, ordered, computeConfigurations, originalPreparation, managedPublication});
+          registry, values, fragment, ordered, computeConfigurations, originalPreparation: originalPreparation as Original, managedPublication});
       }
     }
     if (selected.restoredRun !== undefined) {
@@ -111,7 +314,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       restoredRequestModel = prepareModelRecoveryPlan(preparedProgram, plan, selected);
       if (restoredRequestModel?.control !== control || restoredRequestModel.compiled !== plan.compiled ||
           restoredRequestModel.runDefinition !== plan.runDefinition || restoredRequestModel.selection !== selected ||
-          ['retain', 'retire', 'assertRuntimeCurrent'].some(name => typeof restoredRequestModel[name] !== 'function')) {
+          (['retain', 'retire', 'assertRuntimeCurrent'] as const).some(name => typeof restoredRequestModel![name] !== 'function')) {
         throw new TypeError('ForeignRestoredInferOriginalPreparation');
       }
       if (selected.components !== undefined || moon.clientProgramTaskCount(preparedProgram) !== 1) {
@@ -131,7 +334,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const requestComposed = originalInstallation !== undefined && acquiredInfer !== undefined &&
       selected.occurrence !== undefined && selected.serializationGraph === undefined &&
       selected.components === undefined && !replay && typeof prepareOriginalModelRun === 'function';
-    let runtimeBorrow, requestModel;
+    let runtimeBorrow: unknown, requestModel: ModelMember | undefined;
     const assertOriginalRuntime = () => {
       if (originalInstallation === undefined) return;
       if (originalScopeReleased) throw new TypeError('InstalledInferOriginalPreparationRetired');
@@ -152,7 +355,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           }
         }
       } else {
-        selected.assertTrustedRuntimeScope(originalPreparation.scope, runtimeBorrow,
+        selected.assertTrustedRuntimeScope!(originalPreparation!.scope, runtimeBorrow,
           plan.compiled, plan.runDefinition, selected.graph);
       }
     };
@@ -168,20 +371,20 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       throw new TypeError('InstalledInferOriginalReadInstallationUnavailable');
     }
     if (originalInstallation !== undefined &&
-        [...(prepareOriginalModelRun === undefined ? ['beginCheckedClientInferOriginalReadScope'] : []),
+        ([...(prepareOriginalModelRun === undefined ? ['beginCheckedClientInferOriginalReadScope'] : []),
           'prepareCheckedClientInferNodeReadLayout',
           'claimCheckedClientInferNodePreparationLayout', 'startCheckedClientInferOriginalPreparation',
           'stopCheckedClientInferOriginalReadPreparation', 'settleCheckedClientInferOriginalReadPreparation',
           'finishCheckedClientInferOriginalReadScope',
-          'checkedClientInferOriginalReadScopeLive'].some(name => typeof control[name] !== 'function') ||
-        originalInstallation !== undefined && ['bindTrustedRuntimeScope',
-          'assertTrustedRuntimeScope','finishTrustedRuntimeScope']
+          'checkedClientInferOriginalReadScopeLive'] as readonly (keyof RunScope)[]).some(name => typeof control[name] !== 'function') ||
+        originalInstallation !== undefined && (['bindTrustedRuntimeScope',
+          'assertTrustedRuntimeScope','finishTrustedRuntimeScope'] as const)
           .some(name=>typeof selected[name]!=='function')) {
       throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
     }
     if (originalInstallation !== undefined && prepareOriginalModelRun !== undefined) {
       if (typeof prepareOriginalModelRun !== 'function') throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
-      requestModel = prepareOriginalModelRun(preparedProgram, plan, selected);
+      requestModel = prepareOriginalModelRun(preparedProgram, plan, selected as ModelSelection);
       managedPublication = requestModel?.managed;
       if (requestModel === null || typeof requestModel !== 'object' ||
           requestModel.prepared !== preparedProgram || requestModel.control !== control ||
@@ -198,7 +401,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             requestModel.managed?.closed || requestModel.managed?.value === undefined ||
             requestModel.managed.runtime !== moon || requestModel.managed.prepared !== preparedProgram ||
             requestModel.managed.model !== requestModel ||
-            requestModel.managed.value !== acquiredInfer.managedRun ||
+            requestModel.managed.value !== acquiredInfer!.managedRun ||
             requestModel.sourceLedger !== acquiredInfer.ledger)) {
         throw new TypeError('InvalidInstalledRequestModelPreparation');
       }
@@ -214,11 +417,11 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           originalPreparation.runDefinition !== plan.runDefinition ||
           originalPreparation.scope === undefined || originalPreparation.read === undefined ||
           !Object.hasOwn(originalPreparation, 'nodeInstallation') ||
-          ['close', 'cleanup', 'cleanupPending'].some(name =>
-            typeof originalPreparation.physicalCustody?.[name] !== 'function') ||
-          ['stopCheckedClientInferOriginalReadPreparation',
+          (['close', 'cleanup', 'cleanupPending'] as const).some(name =>
+            typeof originalPreparation!.physicalCustody?.[name] !== 'function') ||
+          (['stopCheckedClientInferOriginalReadPreparation',
             'settleCheckedClientInferOriginalReadPreparation',
-            'finishCheckedClientInferOriginalReadScope'].some(name =>
+            'finishCheckedClientInferOriginalReadScope'] as const).some(name =>
             typeof control[name] !== 'function') ||
           acquiredInfer !== undefined || replay || selected.components !== undefined)) {
       throw new TypeError('InvalidInstalledInferOriginalPreparation');
@@ -250,7 +453,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       throw new TypeError('RestoredInferOriginalPreparationUnavailable');
     }
     const token = existingModel === undefined ? undefined : await modelController.prime(existingModel);
-    let restoredInput, sources;
+    let restoredInput: RestoredModelInput | undefined, sources: readonly SourceEvidence[];
     try {
       // A fresh original installation cannot have a restored token. Its
       // current check stays after custody transfer and before Scope issuance:
@@ -259,17 +462,21 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       restoredInput = token === undefined ? undefined : {token, snapshot: token.snapshot,
         capturedContent: modelController.capturedContent(token, plan.runDefinition.identity),
         capturedContentBinding: modelController.capturedContentBinding(token, plan.runDefinition.identity),
-        sendSlots: () => modelController.state(existingModel.inventory).slots,
-        savedScope: modelController.savedScope(plan, preparedProgram, selected, token)};
+        sendSlots: () => modelController.state(existingModel!.inventory).slots,
+        savedScope: modelController.savedScope(plan, preparedProgram, selected as ModelSelection, token)};
       sources = restoredInput === undefined
-        ? keyed ? [acquiredContent?.sourceEvidence, acquiredContent?.keyedSourceEvidence]
-          : acquiredInfer === undefined ? [] : [acquiredInfer.sourceEvidence]
-        : JSON.parse(token.snapshot.callScopeSnapshotWire).sources.map(source =>
+        ? keyed ? [acquiredContent?.sourceEvidence!, acquiredContent?.keyedSourceEvidence!]
+          : acquiredInfer === undefined ? [] : [acquiredInfer.sourceEvidence as SourceEvidence]
+        : (JSON.parse(token!.snapshot.callScopeSnapshotWire) as Readonly<{sources: readonly {source_evidence_wire: string}[]}>).sources.map(source =>
           control.admitRunEvidence('source_evidence', source.source_evidence_wire,
             {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}));
     } catch (error) { modelController.release(token); throw error; }
-    let operation, captureOwner, continuation, sourceContinuation, evidenceCopy, contentChild, keyedContentChild, composedExecution,
-      serializedInput, restoredReferenceIssuer, keyedInput, receivingKeyed, prepareDeferredOriginalRead, composedInput;
+    let operation: Operation | undefined, captureOwner: Capture | undefined, continuation: ModelSession | undefined,
+      sourceContinuation: Continuation | undefined, evidenceCopy: EvidenceCopy | undefined, contentChild: Cleanup | undefined,
+      keyedContentChild: Cleanup | undefined, composedExecution: Releasable | undefined,
+      serializedInput: Compute['serializedInput'], restoredReferenceIssuer: unknown, keyedInput: Compute['keyedInput'],
+      receivingKeyed: KeyedRecovery | undefined, prepareDeferredOriginalRead: (() => void) | undefined,
+      composedInput: Compute['composedInput'];
     let captureCloseAttempted = false, captureReleased = false;
     let continuationCloseAttempted = false, continuationReleased = false;
     // These are phases of the same existing retained custody, not another
@@ -279,7 +486,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       originalPreparation === undefined && originalInstallation === undefined;
     let originalReadSettled = originalReadPhysicalReleased;
     let originalScopeReleased = originalReadPhysicalReleased;
-    let originalCleanupFlight;
+    let originalCleanupFlight: Promise<boolean> | undefined;
     const cleanupPending = () => evidenceCopy?.cleanupPending() === true || !captureReleased ||
       continuation !== undefined && !continuationReleased ||
       sourceContinuation !== undefined ||
@@ -334,7 +541,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         originalReadStopped = true;
       }
       if (!originalReadPhysicalReleased) {
-        const child = originalPreparation.physicalCustody;
+        const child = originalPreparation.physicalCustody!;
         const recover = originalReadCloseAttempted;
         originalReadCloseAttempted = true;
         const result = await (recover ? child.cleanup() : child.close());
@@ -356,7 +563,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       if (!originalScopeReleased) originalScopeReleased = (runtimeBorrow === undefined
         ? control.finishCheckedClientInferOriginalReadScope(plan.compiled,
           plan.runDefinition, selected.graph, originalPreparation.scope, true)
-        : selected.finishTrustedRuntimeScope(originalPreparation.scope, runtimeBorrow,
+        : selected.finishTrustedRuntimeScope!(originalPreparation.scope, runtimeBorrow,
           plan.compiled, plan.runDefinition, selected.graph)) === true;
       sameOriginal();
       if (originalScopeReleased) {
@@ -386,7 +593,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             // Physical child/alias retirement is observed by its existing
             // custody. Release this operation's exact original byte borrow,
             // not a Bool-derived grant, before the pinned parent Model cleanup.
-            if (!await captureOwner.custody.retirePublication()) return false;
+            if (!await captureOwner!.custody.retirePublication()) return false;
             if (!operation.releaseOriginalPublicationCapacity()) return false;
           }
           const child = composedExecution ?? captureOwner?.custody ?? operation;
@@ -417,7 +624,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         keyedContentChild = undefined;
       }
       if (sourceContinuation !== undefined) {
-        if (await sourceContinuation.close() === false) return false;
+        if ((await sourceContinuation.close() as void | false) === false) return false;
         sourceContinuation = undefined;
       }
       if ((originalPreparation !== undefined || directRequestModel !== undefined || restoredRequestModel !== undefined) && captureReleased &&
@@ -468,7 +675,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         const occurrence = Object.freeze({stage, input, task});
         const current = () => {
           assertCurrent?.();
-          restoredRequestModel.assertRuntimeCurrent();
+          restoredRequestModel!.assertRuntimeCurrent();
           signal.throwIfAborted();
         };
         current();
@@ -483,7 +690,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
           currentRun: () => {try {current(); return true;} catch {return false;}},
           restore: {view: {kind: 'model_invocation', prepareAttemptId: null, runId,
-            runDefinitionCid: plan.runDefinition.identity}, continuation: saved}});
+            runDefinitionCid: plan.runDefinition.identity}, continuation: saved}})!;
         const preparedSource = restoredRequestModel.prepareSource(occurrence, selectedSource =>
           prepareRetainedAcquisition(preparedProgram, occurrence, selectedSource));
         current();
@@ -499,7 +706,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         // Authorization consumes retained custody only. Do not restore a
         // second Source capture, parse its rows or borrow another Ledger.
       }
-      originalPreparation = restoredRequestModel.restoreRead(restoredInput);
+      originalPreparation = restoredRequestModel.restoreRead(restoredInput!);
       let prefix = selected.computePrefix;
       if (selected.deferredRestoredSegments === true) {
         // The same recovery Scope already retains this fallible Read. Lower
@@ -517,15 +724,16 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // Retained cleanup precedes the original Source admission and read. A
       // refusal keeps this same Scope; there is no unowned/standalone fallback.
       directRequestModel.retain();
-      const occurrence = acquiredInfer.occurrence ?? acquiredInfer.preparedSource?.occurrence;
-      if (checkpoints === undefined || acquiredInfer.preparedSource === undefined || acquiredInfer.adapter === undefined ||
-          occurrence === undefined || ['stage', 'input', 'task'].some(name =>
+      // The configured original view is retained here only after selecting its capture.
+      const occurrence = acquiredInfer!.occurrence ?? acquiredInfer!.preparedSource?.occurrence;
+      if (checkpoints === undefined || acquiredInfer!.preparedSource === undefined || acquiredInfer!.adapter === undefined ||
+          occurrence === undefined || (['stage', 'input', 'task'] as const).some(name =>
             !Number.isSafeInteger(occurrence[name]) || occurrence[name] < 0)) {
         throw new Error('ModelSourceClosureCustodyUnavailable');
       }
       const current = () => {
         assertCurrent?.();
-        directRequestModel.assertRuntimeCurrent();
+        directRequestModel!.assertRuntimeCurrent();
         signal.throwIfAborted();
       };
       current();
@@ -536,29 +744,29 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       sourceContinuation = acquiredEffectContinuation({checkpoints, moon,
         acquired: {kind: 'infer', prepared: preparedProgram, requestIdentity: plan.requestIdentity, runDefinition: plan.runDefinition, control},
         submission, declaredResults, principalId, unitId: 'composed-source-input', signal,
-        currentRun: () => {try {current();return true;} catch {return false;}}});
-      const source = {occurrence, preparedSource: acquiredInfer.preparedSource, adapter: acquiredInfer.adapter};
-      sourceContinuation.accessFor(acquiredInfer.sourceAccess, occurrence);
+        currentRun: () => {try {current();return true;} catch {return false;}}})!;
+      const source = {occurrence, preparedSource: acquiredInfer!.preparedSource, adapter: acquiredInfer!.adapter};
+      sourceContinuation.accessFor(acquiredInfer!.sourceAccess!, occurrence);
       await sourceContinuation.prepared([source]);
       current();
-      const approvalOriginal = acquiredInfer.sourceAccess?.originalCheckpointApproval;
+      const approvalOriginal = acquiredInfer!.sourceAccess?.originalCheckpointApproval;
       if (approvalOriginal !== undefined && typeof approvalOriginal !== 'function') {
         throw new Error('ModelSourceClosureCustodyUnavailable');
       }
-      await sourceContinuation.captured(source, acquiredInfer.captured, acquiredInfer.sourceEvidenceWire,
-        acquiredInfer.captureStartedAt, acquiredInfer.captureCompletedAt,
-        approvalOriginal === undefined ? undefined : Reflect.apply(approvalOriginal, acquiredInfer.sourceAccess, []));
+      await sourceContinuation.captured(source, acquiredInfer!.captured!, acquiredInfer!.sourceEvidenceWire!,
+        acquiredInfer!.captureStartedAt!, acquiredInfer!.captureCompletedAt!,
+        approvalOriginal === undefined ? undefined : Reflect.apply(approvalOriginal, acquiredInfer!.sourceAccess, []));
       current();
       const admitted = control.admitComposedInferSources(selected.occurrence,
-        [acquiredInfer.captured], [acquiredInfer.sourceEvidence], authorityScopeCid,
-        acquiredInfer.captureStartedAt, acquiredInfer.captureCompletedAt);
+        [acquiredInfer!.captured!], [acquiredInfer!.sourceEvidence], authorityScopeCid,
+        acquiredInfer!.captureStartedAt, acquiredInfer!.captureCompletedAt);
       directRequestModel.assertRuntimeCurrent();
       // The module compiled this prefix once before adoption. Read its SAME
       // native Run/Request original; the early selection intentionally has no
       // independently prepared segments. No Plan alias is recreated in JS.
       composedInput = {occurrence: selected.occurrence,
         prefix: checked(moon.clientProgramInstalledManagedRunModelInputPrefix(
-          acquiredInfer.managedRun, preparedProgram)), inputs: [], sources: admitted};
+          acquiredInfer!.managedRun, preparedProgram)), inputs: [], sources: admitted};
       originalPreparation = directRequestModel.prepareRead();
     }
     if (originalInstallation !== undefined) {
@@ -593,8 +801,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         control, scope, read: undefined,
         nodeInstallation: originalInstallation.nodeInstallation,
         metadataInstallation: originalInstallation,
-        readRetainedBytes: originalInstallation.nodeInstallation.layout.retained_bytes,
-        readExecutionBytes: originalInstallation.nodeInstallation.layout.execution_bytes,
+        readRetainedBytes: originalInstallation.nodeInstallation.layout.retained_bytes as bigint,
+        readExecutionBytes: originalInstallation.nodeInstallation.layout.execution_bytes as bigint,
         modelRetainedBytes: startup.modelRetainedBytes,
         modelExecutionBytes: startup.modelExecutionBytes,
         // A projection of this SAME existing Execution, not another physical
@@ -612,7 +820,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           if (requestModel !== undefined) requestModel.readAttempted = true;
           originalPreparation.read = control.prepareCheckedClientInferNodeReadLayout(
             plan.compiled, plan.runDefinition, selected.graph, scope,
-            originalInstallation.nodeInstallation);
+            originalInstallation.nodeInstallation as Parameters<RunScope['prepareCheckedClientInferNodeReadLayout']>[4]);
           if (requestModel !== undefined) {
             requestModel.read = originalPreparation.read;
             assertOriginalRuntime();
@@ -631,7 +839,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         // Retain this SAME Scope before runtime binding. The read snapshot
         // must follow an overlapping Content prefix's Ledger changes.
         if (requestModel !== undefined) assertOriginalRuntime();
-        runtimeBorrow = selected.bindTrustedRuntimeScope(scope, plan.compiled,
+        runtimeBorrow = selected.bindTrustedRuntimeScope!(scope, plan.compiled,
           plan.runDefinition, selected.graph);
         assertOriginalRuntime();
         if (requestModel !== undefined && (selected.serializationGraph !== undefined || requestComposed)) {
@@ -644,12 +852,12 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       }
     }
     if (requestComposed) {
-      const model = requestModel, managed = model.managed;
+      const model = requestModel!, managed = model.managed;
       const liveModel = () => {
         assertOriginalRuntime();
         if (requestModel !== model || model.closed || model.scopeFinished ||
             model.managed !== managed || managed.closed ||
-            managed.value !== acquiredInfer.managedRun ||
+            managed.value !== acquiredInfer!.managedRun ||
             model.graph !== selected.graph || model.scope !== originalPreparation?.scope) {
           throw new TypeError('InvalidInstalledRequestModelPreparation');
         }
@@ -669,16 +877,16 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           const prepare = prepareDeferredOriginalRead;
           prepareDeferredOriginalRead = undefined;
           prepare();
-          return originalPreparation;
+          return originalPreparation as OriginalRead;
         },
-        retainOperation(value) {
+        retainOperation(value: Operation) {
           liveModel();
           if (operation !== undefined || model.component.operation() !== value) {
             throw new TypeError('ForeignComposedInferCompletion');
           }
           operation = value;
         },
-        openCapturedHost(captures) {
+        openCapturedHost(captures: Parameters<NonNullable<Original['openCapturedHost']>>[0]) {
           liveModel();
           if (!model.taken || model.hostAttempted || captures.length !== 1 ||
               typeof moon.clientProgramOpenInstalledManagedCaptureHost !== 'function') {
@@ -686,7 +894,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           }
           model.hostAttempted = true;
           return checked(moon.clientProgramOpenInstalledManagedCaptureHost(managed.value,
-            preparedProgram, managed.request, [captures[0].capture.source()]));
+            preparedProgram, managed.request, [captures[0].capture.source()])) as object | undefined;
         },
         retire: retireOriginalPreparation});
       return runInstalledComposedInfers({moon, control, preparedProgram, plan,
@@ -714,7 +922,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     }
     if (keyed) {
       if (restoredInput !== undefined) {
-        receivingKeyed ??= await prepareKeyedRecovery({preparedProgram, plan, submission});
+        receivingKeyed ??= await prepareKeyedRecovery!({preparedProgram, plan, submission});
         keyedInput = {occurrence: selected.occurrence, prefix: selected.computePrefix,
           ledger: receivingKeyed.ledger};
       } else {
@@ -744,12 +952,12 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           if (contentChild !== undefined) throw new TypeError('ContentChildAlreadyRetained');
           contentChild = child;
         }});
-      if (restoredInput === undefined) sources = generated.sourceEvidence;
+      if (restoredInput === undefined) sources = (generated as GeneratedContent).sourceEvidence as readonly SourceEvidence[];
       serializedInput = {control, compiled: plan.compiled, definition: plan.runDefinition,
-        generation: generated.generation,
-        capturedRecovery: generated.capturedContentRecovery,
-        capturedBinding: generated.capturedContentBinding,
-        recovery: generated.recovery};
+        generation: generated!.generation,
+        capturedRecovery: generated!.capturedContentRecovery,
+        capturedBinding: generated!.capturedContentBinding,
+        recovery: generated!.recovery};
     }
     if (originalInstallation !== undefined && (originalScopeReleased || originalReadStopped ||
         originalPreparation === undefined)) throw new TypeError('InstalledInferOriginalPreparationRetired');
@@ -760,12 +968,12 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     }
     if (requestSourceFree) {
       const original = originalPreparation;
-      requestModel.component.bindOriginal({selected, control, plan, principalId, now, signal,
+      requestModel!.component.bindOriginal!({selected: selected as ModelSelection, control, plan, principalId, now, signal,
         durableCalls: true, sources: undefined,
         assertRuntimeCurrent: assertOriginalRuntime,
-        originalPreparation: {prepareRead() {assertOriginalRuntime(); return original;}},
-        retainOperation(value) {operation = value;}});
-      operation = requestModel.component.startSourceFreeSingleUnit(preparedProgram);
+        originalPreparation: {prepareRead() {assertOriginalRuntime(); return original as OriginalRead;}},
+        retainOperation(value: Operation) {operation = value;}});
+      operation = requestModel!.component.startSourceFreeSingleUnit!(preparedProgram);
     } else operation = openNodeInferOperation({moon, preparedProgram,
       step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
       acquiredInput: restoredInput === undefined && directRequestModel === undefined ? acquiredInfer?.input : undefined,
@@ -777,47 +985,47 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       physicalPreflight: selected.physicalPreflight, egressAdmission: selected.egressAdmission,
       assertRuntimeCurrent: restoredRequestModel?.assertRuntimeCurrent ?? directRequestModel?.assertRuntimeCurrent ??
         (originalInstallation === undefined ? undefined : assertOriginalRuntime),
-      originalPreparation: restoredRequestModel === undefined ? originalPreparation : undefined,
-      restoredPreparation: restoredRequestModel === undefined ? undefined : originalPreparation,
+      originalPreparation: restoredRequestModel === undefined ? originalPreparation as OriginalRead | undefined : undefined,
+      restoredPreparation: restoredRequestModel === undefined ? undefined : originalPreparation as OriginalRead | undefined,
       ioNotification: (composedInput === undefined || directRequestModel !== undefined || restoredRequestModel !== undefined) &&
         selected.entryPersistence === 'async' ? createInferIoNotification() : undefined,
       retainOperation(value) { operation = value; }});
-    captureOwner = openNodeInferCaptureCustody({moon, control, operation,
+    captureOwner = openNodeInferCaptureCustody({moon, control, operation: operation!,
       plan, store, storeAuthorityCid, replay: false, durableCalls: true, faultInjection,
       sourceEvidence: sources,
       publicationFor: ({issuance, modelEvidence}) => inferTaskPublicationPlan({
-        moon, control, preparedProgram, admitted: plan, operation, issuance,
+        moon, control, preparedProgram, admitted: plan, operation: operation! as Operation & PublicationInputs['operation'], issuance,
         modelEvidence, namespaceId, sourceEvidence: sources,
         authorityScopeCid, storeAuthorityCid, now, managedPublication,
         assertCurrent() {
           assertCurrent?.(); assertOriginalRuntime();
           if (directRequestModel !== undefined) {
-            directRequestModel.assertRuntimeCurrent();
+            directRequestModel!.assertRuntimeCurrent();
             if (!control.checkedClientInferOriginalReadScopeLive(plan.compiled, plan.runDefinition,
                 selected.graph, directRequestModel.scope)) throw new TypeError('InferTrustedRuntimeScopeUnavailable');
           }
-        }})});
+        }}) as AdmittedPublication});
     beginPhysicalWork();
     // The deferred original component binds this SAME Run during its one-shot
     // open. Ordinary operations still bind here before their first advance.
-    if (!requestSourceFree) operation.bindRun(control, plan);
+    if (!requestSourceFree) operation!.bindRun(control, plan);
     const declaredResults = Array.from({length: moon.clientProgramResultCount(preparedProgram)},
       (_, index) => moon.clientProgramResultName(preparedProgram, index));
-    async function settle(settlement) {
-      const slot = operation.settlementSlot(settlement);
-      const entry = continuation?.entry(slot);
+    async function settle(settlement: unknown) {
+      const slot = operation!.settlementSlot(settlement);
+      const entry = continuation?.entry(slot!);
       if (entry === undefined) throw new Error('InferSettlementEntryMissing');
-      await captureOwner.persistSettlement(settlement, entry);
+      await captureOwner!.persistSettlement(settlement, entry);
     }
     try {
       for (;;) {
         assertOriginalRuntime();
-        const boundary = await operation.run();
+        const boundary = await operation!.run();
         assertOriginalRuntime();
         if (boundary?.status === 'waiting') {
           if (continuation === undefined) {
-            continuation = await modelController.open({operation, preparedCallSet: boundary.preparedCallSet,
-              plan, selected, principalId, declaredResults, submission, signal,
+            continuation = await modelController.open({operation: operation!, preparedCallSet: boundary.preparedCallSet,
+              plan, selected: selected as ModelSelection, principalId, declaredResults, submission, signal,
               existing: existingModel, inputToken: token, claim: modelClaim,
               originalPreparation,
               ...(sourceContinuation === undefined || restoredInput !== undefined ? {}
@@ -835,9 +1043,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             // origin and codec for its saved Resource cut. A common managed
             // Read retains its own same-parent consumer/current/Entry gates;
             // it cannot serialize a Node installation it never selected.
-            if (modelClaim !== undefined) assertCurrent('begin-model-journal-cut');
+            if (modelClaim !== undefined) assertCurrent!('begin-model-journal-cut');
             try { await continuation.prepareOriginalResourcesForDispatch(); }
-            finally { if (modelClaim !== undefined) assertCurrent('end-model-journal-cut'); }
+            finally { if (modelClaim !== undefined) assertCurrent!('end-model-journal-cut'); }
             assertOriginalRuntime();
           }
           continue;
@@ -846,9 +1054,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         break;
       }
     } catch (error) {
-      const settlement = operation.pendingSettlement();
+      const settlement = operation!.pendingSettlement();
       if (settlement !== undefined && continuation !== undefined) await settle(settlement);
-      if (operation.physicalStopped()) await captureOwner.persistStoppedAttempts();
+      if (operation!.physicalStopped()) await captureOwner.persistStoppedAttempts();
       if (modelController.unresolved(runId)) {
         return Object.freeze({status: 'needs_reconciliation'});
       }
@@ -858,23 +1066,23 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const publication = await captureOwner.persist();
     await faultInjection?.('infer_capture_committed', {});
     signal.throwIfAborted();
-    const execution = inferPublicationExecution({moon, core, operation,
-      binding: publication.binding, compiled: plan.compiled, preparedProgram});
-    await publishCompletedEffectFreeRun({...publication.plan, execution, store, control, signal});
+    const execution = inferPublicationExecution({moon, core, operation: operation!,
+      binding: publication!.binding, compiled: plan.compiled, preparedProgram});
+    await publishCompletedEffectFreeRun({...publication!.plan, execution: execution as typeof execution & Complete['execution'], store, control, signal});
     await projectInferEvidence({configuration: inferEvidence, moon, control, preparedProgram,
-      plan, selected, operation, captureOwner, continuation, authorityScopeCid,
+      plan, selected: selected as ModelSelection, operation: operation!, captureOwner, continuation, authorityScopeCid,
       usageCurrent: assertOriginalRuntime,
       retainCopy(copy) {
         if (evidenceCopy !== undefined) throw new TypeError('InferEvidenceCopyAlreadyRetained');
         evidenceCopy = copy;
       }});
   };
-  run.sourceOccurrence = (prepared, index) => {
+  run.sourceOccurrence = (prepared: unknown, index: number) => {
     const coordinates = selections.get(prepared)?.sourceCoordinates?.[index];
     return coordinates === undefined ? undefined
       : Object.freeze({stage: coordinates[0], input: coordinates[1], task: coordinates[2]});
   };
-  run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity, sourceCapacities}) => {
+  run.prepareAcquiredLedger = ({preparedProgram, plan, sourceCapacity, sourceCapacities}: LedgerInput) => {
     control.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     const selected = selections.get(preparedProgram);
     const complete = Array.isArray(selected?.components);
@@ -890,18 +1098,18 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       }
       return original.prepareAcquiredLedger(capacities, registry, values, fragment, ordered);
     }
-    if (selected?.graph !== plan.inferGraph || !complete && selected.occurrence === undefined || selected.serializationGraph !== undefined ||
+    if (selected?.graph !== plan.inferGraph || !complete && selected!.occurrence === undefined || selected!.serializationGraph !== undefined ||
         !Array.isArray(capacities) || capacities.length !== moon.clientProgramAcquisitionCount(preparedProgram) ||
         capacities.length < 1 || capacities.length > 2 ||
         typeof prepareOriginalModelRun !== 'function' ||
         typeof moon.clientProgramInstalledManagedRunPrepareLedger !== 'function') {
       throw new TypeError('InstalledModelSourcePreparationUnavailable');
     }
-    const model = prepareOriginalModelRun(preparedProgram, plan, selected), managed = model?.managed;
+    const model = prepareOriginalModelRun(preparedProgram, plan, selected!), managed = model?.managed;
     if (model?.closed || model?.scopeFinished || model?.taken || model?.readAttempted ||
         model?.selection !== selected || (complete ? model?.components?.some(member =>
           member.component === undefined || member.taken || member.readAttempted || member.read !== undefined) : model?.component === undefined) ||
-        model?.graph !== selected.graph || model?.compiled !== plan.compiled ||
+        model?.graph !== selected!.graph || model?.compiled !== plan.compiled ||
         model?.runDefinition !== plan.runDefinition ||
         managed?.closed || managed?.value === undefined || capacities.some(value => value?.managedRun !== managed.value)) {
       throw new TypeError('InvalidInstalledRequestModelPreparation');
@@ -913,17 +1121,17 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const original = managed.value, request = managed.request;
     model.sourceLedgerAttempted = true;
     try {
-      const whole = capacities.some(value => value.wholeInput === true);
-      if (whole && (capacities.some(value => value.wholeInput !== true) ||
+      const whole = capacities.some(value => value!.wholeInput === true);
+      if (whole && (capacities.some(value => value!.wholeInput !== true) ||
           typeof moon.clientProgramInstalledManagedWholeSourcesLedger !== 'function')) {
         throw new TypeError('InstalledModelSourcePreparationUnavailable');
       }
       const ledger = checked(whole
-        ? moon.clientProgramInstalledManagedWholeSourcesLedger(original, preparedProgram, request,
-          capacities.map(value => value.capacity), capacities.map(value => value.transferBytes), capacities.map(value => value.executionBytes))
+        ? moon.clientProgramInstalledManagedWholeSourcesLedger!(original, preparedProgram, request,
+          capacities.map(value => value!.capacity), capacities.map(value => value!.transferBytes), capacities.map(value => value!.executionBytes))
         : moon.clientProgramInstalledManagedRunPrepareLedger(original,
-          preparedProgram, request, capacities.map(value => value.capacity), capacities.map(value => value.transferBytes),
-          capacities.map(value => value.executionBytes), registry, values, fragment, ordered));
+          preparedProgram, request, capacities.map(value => value!.capacity), capacities.map(value => value!.transferBytes),
+          capacities.map(value => value!.executionBytes), registry, values, fragment, ordered));
       // This is the original parent's Ledger getter, with no new child. A
       // callback that retires/replaces its record cannot resurrect that alias.
       if (model.closed || model.scopeFinished || model.managed !== managed || managed.closed ||
@@ -938,15 +1146,15 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       throw cause;
     }
   };
-  run.prepareKeyedLedger = ({preparedProgram, plan, direct, acquisition, capacity, capturedContent = false}) => {
+  run.prepareKeyedLedger = ({preparedProgram, plan, direct, acquisition, capacity, capturedContent = false}: KeyedLedgerInput) => {
     control.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
     const selected = selections.get(preparedProgram);
-    if (selected?.graph !== plan.inferGraph || selected.occurrence === undefined ||
-        selected.serializationGraph !== undefined || selected.components !== undefined) {
+    if (selected?.graph !== plan.inferGraph || selected!.occurrence === undefined ||
+        selected!.serializationGraph !== undefined || selected!.components !== undefined) {
       throw new TypeError('InstalledKeyedInferSelectionMissing');
     }
     const ledger = moon.clientProgramPrepareKeyedInferCapturedLedger(preparedProgram,
-      selected.occurrence, direct.capacity, acquisition, capacity.capacity,
+      selected!.occurrence, direct.capacity, acquisition, capacity.capacity,
       [direct.transferBytes, capacity.transferBytes], [direct.executionBytes, capacity.executionBytes],
       capacity.maxBytes, capacity.maxWork, registry, values, fragment, ordered, capturedContent);
     if (ledger === undefined) throw new TypeError('InstalledKeyedInferCapacityUnavailable');

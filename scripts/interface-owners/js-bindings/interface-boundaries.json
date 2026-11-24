@@ -85633,7 +85633,7 @@
     {
       "module": "adapters/host-node/installed-infer-run.mjs",
       "responsibilityFacet": "supplemental",
-      "sha256": "cb765edac236ca8e5f1701e3ab5d8c1227d31d6eb525d93c78a348f205e84603",
+      "sha256": "5709b7c3f7da348df5df6d30768ff7283c23950faca7ac2350552876ef3ff418",
       "role": "physical-io",
       "owner": "A \u2014 existing JS/Core projection boundary",
       "exports": [
@@ -86129,7 +86129,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86155,7 +86155,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86177,7 +86177,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86207,7 +86207,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86233,7 +86233,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86255,7 +86255,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86285,7 +86285,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86307,7 +86307,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86341,7 +86341,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86363,7 +86363,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "installNodeInferRun"
               },
               {
@@ -86409,7 +86409,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86419,7 +86419,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86429,7 +86429,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86439,7 +86439,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86449,7 +86449,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86459,7 +86459,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86469,7 +86469,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86479,7 +86479,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86489,7 +86489,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {
@@ -86499,7 +86499,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/installed-infer-run.mjs",
+                "path": "adapters/host-node/installed-infer-run.mts",
                 "anchor": "// Installed physical composition of the checked Infer, original per-call"
               },
               {

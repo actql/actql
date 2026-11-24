@@ -5,10 +5,11 @@ import {storeCompletedResultPublicationPayload} from
   '../host-common/durable-result-payload.mjs';
 import {localContractLimits} from './local-publication-limits.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import type {runtimeCore} from '../host-common/runtime-core.mjs';
 
 type PayloadArguments = Parameters<typeof storeCompletedResultPublicationPayload>;
 type ContractLimits = PayloadArguments[5]['limits'];
-type Definition = Readonly<{wire: string; identity: string}>;
+type Definition = ReturnType<ReturnType<typeof runtimeCore>['publicationControl']['admit']>;
 type Control = PayloadArguments[5]['control'] & Readonly<{
   checkClientCompiledRunOwner(compiled: unknown, prepared: unknown): void;
   admit(kind: 'result_definition', wire: string, limits: ContractLimits): Definition;

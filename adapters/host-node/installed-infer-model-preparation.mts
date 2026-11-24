@@ -1,17 +1,21 @@
 import {checked} from '../host-common/runtime-result.mjs';
 import type {createInferOriginalReadControls} from '../host-common/runtime-infer-original-read-control.mjs';
+import type {projectInferEvidence} from './infer-evaluation-evidence.mjs';
+import type {openNodeComposedInferProvider, openNodeInferOperation} from './infer-operation.mjs';
 import {finishNodeInferOriginalReadScopes, retireNodeInferOriginalRead} from './infer-operation.mjs';
 import {inferOriginalReadStartupCapacity, selectedInferOriginalCurrentStateCodec,
   selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
 
 type ReadControls = ReturnType<typeof createInferOriginalReadControls>;
 type GroupRetirement = Parameters<typeof finishNodeInferOriginalReadScopes>[0];
-type Control = GroupRetirement['control'] & Pick<ReadControls, 'checkedClientInferOriginalReadScopeLive' |
+type OperationPreparation = NonNullable<Parameters<typeof openNodeInferOperation>[0]['originalPreparation']>;
+type Control = GroupRetirement['control'] & OperationPreparation['control'] & Pick<ReadControls, 'checkedClientInferOriginalReadScopeLive' |
   'prepareCheckedClientInferOriginalRead' | 'prepareCheckedClientInferNodeReadLayout'>;
 type Installation = Parameters<typeof selectedInferOriginalCurrentStateCodec>[0];
-type Plan = Readonly<{compiled: unknown; runDefinition: unknown}>;
+type Plan = Pick<OperationPreparation, 'compiled' | 'runDefinition'>;
 type Coordinate = readonly [stage: number, input: number, task: number];
-type Selection = Readonly<{
+type Selection = Parameters<typeof openNodeComposedInferProvider>[0]['selected'] &
+  Parameters<typeof projectInferEvidence>[0]['selected'] & Readonly<{
   graph: unknown;
   originalReadInstallation?: Installation;
   currentProvider?(): boolean;
@@ -34,12 +38,12 @@ type Runtime = Readonly<{
 type Capacity = Parameters<ReadControls['prepareCheckedClientInferOriginalRead']>[4] &
   Readonly<{modelRetainedBytes: bigint; modelExecutionBytes: bigint}>;
 type Managed = {
-  runtime: Runtime; prepared: unknown; request: unknown; value?: unknown;
+  runtime: Runtime; prepared: unknown; request: unknown; value: unknown;
   model: Member | Group; closed?: boolean;
 };
 type Member = Plan & {
   control: Control; graph: unknown; prepared: unknown; selection: Selection; managed: Managed;
-  scope: unknown; budget: Capacity; component: Readonly<{provider: unknown; bindOriginal(...args: never[]): unknown}>;
+  scope: unknown; budget: Capacity; component: ReturnType<typeof openNodeComposedInferProvider>;
   group?: Group; sourceLedger?: unknown; runtimeBorrow?: unknown; originalReadInstallation?: Installation;
   publicationCapacity(): unknown;
   closed?: boolean; scopeFinished?: boolean; taken?: boolean; hostAttempted?: boolean;
@@ -125,7 +129,7 @@ export function sourceFreeModelPreparation(moon: Runtime, control: Control, prep
       }
       model.hostAttempted = true;
       return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
-        original, prepared, request, registry, values, fragment, ordered, providers));
+        original, prepared, request, registry, values, fragment, ordered, providers)) as object | undefined;
     },
     ...(acquired === undefined ? {} : {openCapturedHost(captures: readonly Capture[]) {
       current();
@@ -136,7 +140,7 @@ export function sourceFreeModelPreparation(moon: Runtime, control: Control, prep
       }
       model.hostAttempted = true;
       return checked(moon.clientProgramOpenInstalledManagedCaptureHost(original,
-        prepared, request, captures.map((value: Capture) => value.capture.source())));
+        prepared, request, captures.map((value: Capture) => value.capture.source()))) as object | undefined;
     }}),
     prepareRead() {
       current();
@@ -192,11 +196,20 @@ export function sourceFreeModelPreparation(moon: Runtime, control: Control, prep
     }});
 }
 
+type GroupPreparation = Plan & Readonly<{
+  control: Control; selection: GroupSelection; components: readonly ReturnType<typeof sourceFreeModelPreparation>[];
+  preparationHolder: unknown; sourceCoordinates?: readonly Coordinate[];
+  retain(): void; retire(): Promise<boolean>;
+  openSourceFreeHost?(registry: unknown, values: string, fragment: string, ordered: string,
+    providers: readonly unknown[]): object | undefined;
+  openCapturedHost?(captures: readonly Capture[]): object | undefined;
+}>;
+
 // One original group view on the same installed Run. All component reads and
 // scopes retire before its existing Request/Host cleanup; the first pending
 // scope never prevents cleanup from reaching the remaining actual children.
 export function sourceFreeModelsPreparation(moon: Runtime, control: Control, prepared: unknown,
-  plan: Plan, selected: GroupSelection, model: Group, acquired: Acquired | undefined, preparationHolder: unknown) {
+  plan: Plan, selected: GroupSelection, model: Group, acquired: Acquired | undefined, preparationHolder: unknown): GroupPreparation {
   const members = model?.components, scopes = model?.scopes, managed = model?.managed;
   const current = () => {
     if (!Array.isArray(members) || !Object.isFrozen(members) || members.length < 2 ||
@@ -226,7 +239,7 @@ export function sourceFreeModelsPreparation(moon: Runtime, control: Control, pre
       }
       model.hostAttempted = true;
       return checked(moon.clientProgramOpenInstalledManagedSourceFreeComposedInferHost(
-        managed.value, prepared, managed.request, registry, values, fragment, ordered, providers));
+        managed.value, prepared, managed.request, registry, values, fragment, ordered, providers)) as object | undefined;
     },
     } : {openCapturedHost(captures: readonly Capture[]) {
       current();
@@ -237,7 +250,7 @@ export function sourceFreeModelsPreparation(moon: Runtime, control: Control, pre
       }
       model.hostAttempted = true;
       return checked(moon.clientProgramOpenInstalledManagedCaptureHost(managed.value,
-        prepared, managed.request, captures.map((value: Capture) => value.capture.source())));
+        prepared, managed.request, captures.map((value: Capture) => value.capture.source()))) as object | undefined;
     }}),
     async retire() {
       if (model.closed && model.scopeFinished) return true;
