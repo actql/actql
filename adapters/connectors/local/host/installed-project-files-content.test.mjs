@@ -80,8 +80,9 @@ async function fixture({changedAfterFactory=false,failBegin=false,denied=false,s
   const wire=JSON.stringify({views:[{resource:'files',source_ref:'local:files',view_cid:'view',carrier_schema_cid:'schema'},
     {resource:'contents',source_ref:'local:contents',view_cid:'view2',carrier_schema_cid:'schema2'}]});
   const entry={connection:'local',rootPath:directory,wire,declaration,scopeCid,versionMode:'metadata',limits,
+    tables:[],csvTransports:{},
     queryAliases:[{name:'local',resource:'files'},{name:'local.contents',resource:'contents'}]};
-  const bundle={sources:[entry]},prepared={},request={},keyed={},selected={},run={},original={},read={};
+  const bundle={sources:[entry],realizationKey:'installed-multi-acquired'},prepared={},request={},keyed={},selected={},run={},original={},read={};
   const sourceInput={},parent={},requestInput={};
   const serializationGraph=Object.freeze({task:0,step:1});
   let options,current=true,physical,rawClosed=false,closeAllowed=!pendingClose,nativeReads=0,runCheck;

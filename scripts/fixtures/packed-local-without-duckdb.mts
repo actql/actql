@@ -2,7 +2,7 @@
 // a substitute Host. Expected rows and columns are independent literals.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {readFile, stat, writeFile} from 'node:fs/promises';
+import {mkdir, readFile, stat, writeFile} from 'node:fs/promises';
 import {createRequire, registerHooks} from 'node:module';
 import {resolve} from 'node:path';
 import {canonicalJson} from '@actql/sdk/host-port';
@@ -213,3 +213,61 @@ await assert.rejects(import(contribution.href), {code: 'DuckDBDependencyUnavaila
 await assert.rejects(stat(resolve('not-opened.duckdb')), {code: 'ENOENT'});
 assert.equal(networkCalls, 0, 'missing DuckDB must not use the network');
 console.log('Packed dependency-free Local: Values, Result, close, attach, inert Source inventory and explicit refusal passed');
+
+if (mode === 'initial') {
+  const consumerRoot = process.cwd();
+  const data = {small: 'id,name\n1,A\n2,B\n3,C\n', other: 'id,name\n4,D\n5,E\n'};
+  const expected = {small: [{id: '1', name: 'A'}, {id: '2', name: 'B'}, {id: '3', name: 'C'}],
+    other: [{id: '4', name: 'D'}, {id: '5', name: 'E'}]};
+  for (const selection of [['small'], ['small', 'other']] as const) {
+    const directory = resolve(consumerRoot, 'csv-project-' + selection.length);
+    const originalIssueProject = selection.length === 1;
+    await mkdir(resolve(directory, 'data'), {recursive: true});
+    await writeFile(resolve(directory, 'actql.config.json'), JSON.stringify({
+      version: 'actql-config/0.1', connectors: './connectors.json',
+      ...(originalIssueProject ? {model_tasks: './model-tasks.json'} : {}),
+      state_dir: './.actql',
+    }) + '\n', {flag: 'wx'});
+    if (originalIssueProject) {
+      await writeFile(resolve(directory, 'model-tasks.json'), JSON.stringify({
+        version: 'actql-model-tasks/0.1', tasks: {}, providers: {},
+      }) + '\n', {flag: 'wx'});
+    }
+    await writeFile(resolve(directory, 'connectors.json'), JSON.stringify({
+      version: 'actql-connectors/0.1', connections: {local: {connector: 'local', root: './data',
+        tables: Object.fromEntries(selection.map(resource => [resource, {
+          path: resource + '.csv', key: ['id'], columns: {id: 'int64', name: 'string'},
+        }]))}},
+    }) + '\n', {flag: 'wx'});
+    for (const resource of selection) {
+      await writeFile(resolve(directory, 'data', resource + '.csv'), data[resource], {flag: 'wx'});
+    }
+    await assert.rejects(stat(resolve(directory, '.actql')), {code: 'ENOENT'});
+    process.chdir(directory);
+    try {
+      const project = await connect({mode: 'local', installation: {directory: '.actql'}});
+      try {
+        for (const resource of selection) {
+          const program = 'SELECT id, name FROM local.' + resource + ' ORDER BY id';
+          const outcome = await project.check(program, {format: 'sql', kind: 'text', scope: 'bound_input'});
+          assert.equal(outcome.outcome, 'completed');
+          assert.equal(outcome.report.verdict, 'verified');
+          const result = await project.sql(program);
+          assert.deepEqual(await result.all(), expected[resource]);
+          assert.deepEqual((await result.describe()).columns, [
+            {name: 'id', contract: {type: 'int64', nullable: false}},
+            {name: 'name', contract: {type: 'string', nullable: false}},
+          ]);
+        }
+        const listing = await project.aql('FROM LIST_FILES(local) |> SELECT path |> ORDER BY path');
+        assert.deepEqual(await listing.all(), [...selection].sort().map(resource => ({path: resource + '.csv'})));
+      } finally { await project.close(); }
+      await assert.rejects(stat(resolve('.actql/publication/owner/owner.json')), {code: 'ENOENT'});
+      for (const resource of selection) {
+        assert.equal(await readFile(resolve('data', resource + '.csv'), 'utf8'), data[resource]);
+      }
+    } finally { process.chdir(consumerRoot); }
+  }
+  assert.equal(networkCalls, 0);
+  console.log('Packed Local CSV: fresh one- and two-table Projects checked and returned exact typed rows and first close');
+}
