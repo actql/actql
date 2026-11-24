@@ -120626,8 +120626,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120636,8 +120636,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120646,8 +120646,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120656,8 +120656,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120666,8 +120666,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120676,8 +120676,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120686,8 +120686,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120696,8 +120696,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120706,8 +120706,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -120716,8 +120716,8 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "function originalTimedInvocation("
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "function originalTimedInvocation<Value>("
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -125058,7 +125058,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
                 "anchor": "if (state.staticExplanationDelivery !== undefined) fail('InstalledSourceRunCleanupPending');"
               }
             ],
@@ -126536,13 +126536,163 @@
         "./ordinary-node-resource-runtime.cjs",
         "./ordinary-source-producer-custody.mjs",
         "./ordinary-source-reader.mjs",
+        "./ordinary-source-request-custody.mjs",
         "./source-alias-construction.mjs",
         "@actql/client-wire",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "f7fc01c0d17c5fbb13f2b1963b417f2ed6a4444692da193428a084987db48b36"
+      "sha256": "fab0b5c31af9e42f90de5bcbcf286395dfe3924713839a457928dfe658d08eaf"
+    },
+    {
+      "module": "adapters/host-node/ordinary-source-request-custody.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "07fbf9e5d88f5fe9ef2065355fa0896e17634d945e467cb9b7dbefb386409af1",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
+      "exports": [
+        "createOrdinarySourceRequestCustody"
+      ],
+      "operations": [
+        {
+          "name": "createOrdinarySourceRequestCustody",
+          "parameters": [
+            "originals",
+            "current",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/cleanupOriginalRequestInput",
+          "parameters": [
+            "state",
+            "retire"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/disposeOriginalExplanation",
+          "parameters": [
+            "state",
+            "decline"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/originalTimedInvocation",
+          "parameters": [
+            "state",
+            "producer",
+            "prepared",
+            "construct",
+            "contracts"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceRequestCustody/prepareOriginalExplanation",
+          "parameters": [
+            "state",
+            "producer",
+            "contracts",
+            "journal",
+            "staticPlan"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createOrdinarySourceRequestCustody",
+            "createOrdinarySourceRequestCustody/cleanupOriginalRequestInput",
+            "createOrdinarySourceRequestCustody/disposeOriginalExplanation",
+            "createOrdinarySourceRequestCustody/originalTimedInvocation",
+            "createOrdinarySourceRequestCustody/prepareOriginalExplanation"
+          ],
+          "exports": [
+            "createOrdinarySourceRequestCustody"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "export function createOrdinarySourceRequestCustody({originals, current, fail}: Ports)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "export type OrdinarySourceRequestState = RequestPreparationState & {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "moon.clientProgramPreparationBorrowRead(state.holder) !== prepared"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "cleanupOriginalRequestInput} = createOrdinarySourceRequestCustody({originals, current, fail});"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "original.returning = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "fail('ForeignInstalledSourceProducer');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "if (state.staticExplanationDelivery !== undefined) fail('InstalledSourceRunCleanupPending');"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "return cleanupRequestInput(state, retire);"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-request-custody.mts",
+                "anchor": "if (staticPlan === undefined) {"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/client-effect-query-time.test.mjs",
+                "anchor": "Effect first admission forwards one original Explanation ticket before Plan adoption"
+              },
+              {
+                "path": "adapters/host-node/request-preparation-parent.test.mjs",
+                "anchor": "failed Request Effect completion or adoption keeps typed input cleanup and cannot acquire another admission"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "../host-common/runtime-result.mjs",
+        "../local-node/request-preparation-adapter.mjs",
+        "./client-program-preparation.mjs",
+        "./client-request-journal.mjs",
+        "./local-values-plan.mjs"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/ordinary-source-producer-custody.mjs",

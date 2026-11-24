@@ -1,5 +1,5 @@
 import {snapshotClientRequest} from '@actql/client-wire';
-import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,beginHttpRequestInput,openRequestPreparation,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
+import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,beginHttpRequestInput,openRequestPreparation,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {types} from 'node:util';
@@ -10,10 +10,11 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {runtimeIsError, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {createOrdinarySourceReaders} from './ordinary-source-reader.mjs';
 import {createOrdinarySourceProducerCustody} from './ordinary-source-producer-custody.mjs';
+import {createOrdinarySourceRequestCustody} from './ordinary-source-request-custody.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
-import {assertOriginalClientRequestJournal, observeOriginalClientRequestJournalCustody} from './client-request-journal.mjs';
+import {assertOriginalClientRequestJournal} from './client-request-journal.mjs';
 import {retireNodeInferOriginalRead, finishNodeInferOriginalReadScopes} from './infer-operation.mjs';
 import {inferOriginalReadStartupCapacity} from './infer-original-installation.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
@@ -165,121 +166,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       () => run.children.some(child => child.flight !== undefined || !child.closed), purpose);
     return run.original;
   }
-  function originalTimedInvocation(state, producer, prepared, construct, contracts) {
-    if (state.requiresQueryTime !== true) return undefined;
-    const moon = state.context.runtime, compile = moon.clientProgramPrepareRequestProgramCompilation;
-    const issue = moon.clientProgramRequestProgramModuleIssueCode;
-    const reserve = moon.clientProgramReserveRequestQueryTimeInvocation;
-    if (typeof construct !== 'function' || typeof compile !== 'function' ||
-        typeof reserve !== 'function' || typeof issue !== 'function' || contracts === undefined || contracts.moon !== moon) {
-      fail('NodeManagedRunRuntimeUnavailable');
-    }
-    const assertOriginal = () => {
-      current();
-      if (producer.finished || producer.preparation !== state || state.prepared !== prepared ||
-          originals.installation.sequenceContractOriginal !== contracts || state.parent === undefined || state.holder === undefined ||
-          moon.clientProgramPreparationBorrowRead(state.holder) !== prepared) {
-        fail('ForeignInstalledSourceProducer');
-      }
-    };
-    assertOriginal();
-    const readOriginal = moon.clientProgramRequestProgramCompilationOriginal;
-    const retained = typeof readOriginal === 'function'
-      ? Reflect.apply(readOriginal, moon, [state.parent, producer.receipt]) : undefined;
-    const artifact = retained ?? checkedRequestProgramPreparation(moon,
-      Reflect.apply(compile, moon, [state.parent, producer.receipt,
-        contracts.admission, state.context.retainedRelationOutput]), issue);
-    assertOriginal();
-    checkedRequestProgramPreparation(moon,
-      Reflect.apply(reserve, moon, [state.parent, producer.receipt, artifact]), issue);
-    assertOriginal();
-    // The typed bridge returns its original Option. Forward it unchanged;
-    // JavaScript does not construct or inspect a tuple representation.
-    const invocation = construct(artifact);
-    assertOriginal();
-    return invocation;
-  }
-  function prepareOriginalExplanation(state, producer, contracts, journal, staticPlan) {
-    const moon = state.context.runtime;
-    // Old/unsupported installed profiles keep the existing Plan path. This
-    // is selected facility support, not a public switch or capacity grant.
-    if (staticPlan === undefined) {
-      if (journal === undefined || typeof journal.supportsOriginalExplanation !== 'function' ||
-          !journal.supportsOriginalExplanation()) return;
-      assertOriginalClientRequestJournal(journal);
-    }
-    const prepare = moon.clientProgramPrepareRequestOriginalExplanation;
-    const adopt = moon.clientProgramAdoptRequestProgramWithExplanation;
-    const capture = moon.clientProgramCaptureRequestOriginalExplanation;
-    const plan = moon.clientProgramOriginalExplanationPlanWire;
-    const facts = moon.clientProgramOriginalExplanationFactsWire;
-    const returnPreparation = moon.clientProgramReturnRequestOriginalExplanation;
-    const returnCapture = moon.clientProgramReturnOriginalExplanationCapture;
-    const readOriginal = moon.clientProgramRequestProgramCompilationOriginal;
-    if (typeof prepare !== 'function' || typeof adopt !== 'function' ||
-        typeof capture !== 'function' || typeof plan !== 'function' ||
-        typeof facts !== 'function' || typeof returnPreparation !== 'function' ||
-        typeof returnCapture !== 'function' || typeof readOriginal !== 'function') return;
-    if (Reflect.apply(readOriginal, moon, [state.parent, producer.receipt]) === undefined) {
-      checkedRequestProgramPreparation(moon,
-        moon.clientProgramPrepareRequestProgramCompilation(state.parent, producer.receipt,
-          contracts.admission, state.context.retainedRelationOutput),
-        moon.clientProgramRequestProgramModuleIssueCode);
-    }
-    const limits = staticPlan ?? localContractLimits;
-    const original = checked(Reflect.apply(prepare, moon, [state.parent, producer.receipt,
-      limits.maxWireBytes, limits.maxNodes, limits.maxDepth]));
-    if (original === undefined) return;
-    // All additional retained wrappers follow the actual working admission.
-    // The same per-producer holding owns failure before a Plan/ticket returns.
-    state.originalExplanation = Object.seal({preparation: original, scope: undefined,
-      factsWire: undefined, offered: false, acknowledged: false, returning: false, databaseClosed: false, dispatchReady: false, journal,
-      methods: Object.freeze({adopt, returnPreparation, returnCapture})});
-  }
-  function disposeOriginalExplanation(state, decline = false) {
-    const original = state?.originalExplanation;
-    if (original === undefined) return true;
-    if (original.returning) return false;
-    if (original.scope !== undefined && original.offered && !original.acknowledged && !original.databaseClosed) {
-      // Consume only the actual native close observation before dropping the
-      // strong Journal alias. This scalar does not settle semantic uncertainty.
-      if (!observeOriginalClientRequestJournalCustody(original.journal).databaseClosed) return false;
-      original.databaseClosed = true;
-    }
-    original.factsWire = undefined;
-    if (original.definition !== undefined) {
-      original.contextWire = original.invocationTemplateWire = original.plan = undefined;
-    }
-    original.journal = undefined;
-    const moon = state.context.runtime;
-    original.returning = true;
-    try {
-      if (original.scope !== undefined) {
-        checked(original.definition === undefined
-          ? Reflect.apply(original.methods.returnCapture, moon, [original.scope])
-          : original.methods.returnCapture(original.scope, original.definition, decline));
-        original.scope = undefined;
-      }
-      if (original.preparation !== undefined) {
-        checked(Reflect.apply(original.methods.returnPreparation, moon, [original.preparation]));
-        original.preparation = undefined;
-      }
-      state.originalExplanation = undefined;
-      return true;
-    } finally {original.returning = false;}
-  }
-  function cleanupOriginalRequestInput(state, retire) {
-    if (state.staticExplanationDelivery !== undefined) fail('InstalledSourceRunCleanupPending');
-    if (!disposeOriginalExplanation(state)) fail('InstalledExplanationAdmissionCleanupPending');
-    if (state.staticPlanRead && state.compilationKind === 'effectful') {
-      // Static projection issued no submitted/preparation alias. Drop all of
-      // its local metadata while the SAME holder still backs them; only the
-      // existing abort/return below can acknowledge the original capacity.
-      state.staticModelOccurrences = state.staticModelExecutions = state.staticModelGraphs = undefined;
-      state.modelGraph = state.prepared = undefined;
-    }
-    return cleanupRequestInput(state, retire);
-  }
+  const {originalTimedInvocation, prepareOriginalExplanation, disposeOriginalExplanation,
+    cleanupOriginalRequestInput} = createOrdinarySourceRequestCustody({originals, current, fail});
   function constructRequestDomain(state, construct) {
     state.preparing = true;
     try {return construct();}
