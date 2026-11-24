@@ -125,15 +125,26 @@ fn local_result_file_deliveries(
         format: destination.format,
         attempt_id,
       }
-      let current = () => {
-        local_delivery_lookup_allowed(
-          host,
-          settings,
-          crypto,
-          actual.scope,
-          result_name,
-          capture=Some(actual.capture),
-        )
+      let current = if binding.installed_original_result_read_selected() {
+        () => {
+          binding.authorize_selected_result_lookup(
+            selected.request,
+            request,
+            local_utc_now(),
+          )
+          is Ok(_)
+        }
+      } else {
+        () => {
+          local_delivery_lookup_allowed(
+            host,
+            settings,
+            crypto,
+            actual.scope,
+            result_name,
+            capture=Some(actual.capture),
+          )
+        }
       }
       if !current() {
         stop("LocalReadAuthorizationDenied")

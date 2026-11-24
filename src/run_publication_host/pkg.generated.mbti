@@ -1141,6 +1141,8 @@ pub fn[Store, E] client_local_adopted_authority_scope_body(ClientLocalAdoptedHos
 
 pub fn[Store, E] client_local_adopted_current_account(ClientLocalAdoptedHostMaterial[Store, E], Store) -> Result[@execution_authorization.AdmittedAccountConfiguration, ClientLocalAdoptedCurrentIssue[E]]
 
+pub fn[Store, E] client_local_adopted_result_read_resource(ClientLocalAdoptedHostMaterial[Store, E], Store, @execution_authorization.AccessTuple, Bool) -> Result[String?, ClientLocalAdoptedCurrentIssue[E]]
+
 pub fn client_local_authority_scope_body(@execution_authorization.AdmittedAccountConfiguration, String, String, String) -> Result[Bytes, ClientLocalAuthorityScopeIssue]
 
 pub fn client_local_checkpoint_effect_subject(ClientEffectRunMaterials, String, String) -> Result[(String, String), ClientLocalCheckpointProofIssue]
@@ -4458,6 +4460,7 @@ pub(all) enum ClientLocalReadEvidenceValue {
   Quantity(Int)
   Texts(Array[String])
   AllowedReads(String)
+  AllowedReadResource(String)
 }
 
 pub(all) enum ClientLocalReadPreimageIssue {

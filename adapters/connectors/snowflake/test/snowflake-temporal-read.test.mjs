@@ -42,10 +42,9 @@ test('actual TLS selects original DATE and UTC LTZ formats and captures exact fr
     ['POST', `/api/v2/statements?requestId=${f.frame.requestId}`],
     ['GET', '/api/v2/statements/original-temporal'],
     ['GET', '/api/v2/statements/original-temporal?partition=1']]);
-  assert.equal(result.rows, 2n); assert.equal(result.pages, 2);
-  assert.equal(result.wireBytes, BigInt(wire.reduce((n, b) => n + b.length, 0)));
-  assert.equal(result.decodedBytes, BigInt(bodies.reduce((n, b) => n + b.length, 0)));
-  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes, result.wireBytes);
+  assert.deepEqual(result, {pages: 3, rowCount: 2});
+  assert.equal(ledgerUsageSnapshot(f.row.usage()).transferredBytes,
+    BigInt(wire.reduce((n, b) => n + b.length, 0)));
   assert.ok(ledgerUsageSnapshot(f.row.usage()).reservedRetentionBytes > 0n && ledgerUsageSnapshot(f.row.usage()).reservedExecutionBytes > 0n);
   assert.deepEqual(f.row.captureRows().map(JSON.parse), [
     {ACCOUNT_ID: 'a1', ACTIVE_USERS: '2024-02-29', TREND: '1969-12-31T23:59:59.999999999Z'},

@@ -1,4 +1,27 @@
 ///|
+/// Collect one admitted retention contract in the caller's funded evidence
+/// array. Each Result retains its own original and ordinal. The commit
+/// validator consumes the set and still validates every member and reference.
+pub fn append_unique_result_retention_evidence(
+  policies : Array[PublicationContract],
+  original : PublicationContract,
+) -> Bool {
+  if original.name != "result_retention_policy" {
+    return false
+  }
+  for admitted in policies {
+    if physical_equal(admitted, original) {
+      return true
+    }
+    if admitted.identity == original.identity {
+      return admitted.name == original.name && admitted.wire == original.wire
+    }
+  }
+  policies.push(original)
+  true
+}
+
+///|
 /// Two admitted retention envelopes may describe different effective data
 /// policies while retaining exactly the same custody contract and time bounds.
 /// This does not authorize changing either policy or extending a dependency.

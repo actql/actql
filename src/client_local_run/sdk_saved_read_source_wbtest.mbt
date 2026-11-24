@@ -105,6 +105,7 @@ fn sdk_saved_source(
     adoption,
     fixture.owner,
     fixture.view,
+    selection=fixture.selection,
   )
 }
 
@@ -112,7 +113,10 @@ fn sdk_saved_source(
 test "SDK read identity projection borrows the existing live and saved originals" {
   let fixture = sdk_read_fixture(bound_scope=true)
   defer (fixture.cleanup)()
-  let live = local_sdk_read_source(fixture.preflight)
+  let live = local_sdk_read_source(
+    fixture.preflight,
+    selection=fixture.selection,
+  )
   let saved = sdk_saved_source(fixture).unwrap()
   for source in [live, saved] {
     let (request, definition) = local_sdk_read_source_run_identity(source)
@@ -132,10 +136,55 @@ test "SDK read identity projection borrows the existing live and saved originals
 }
 
 ///|
+test "installed named SDK reads retain the exact Run member and actual Account tuple" {
+  let name = "before_change"
+  let fixture = sdk_read_fixture(bound_scope=true, result_name=name)
+  defer (fixture.cleanup)()
+  let live = local_sdk_read_source(
+    fixture.preflight,
+    selection=fixture.selection,
+  )
+  let keyed = sdk_saved_source(fixture).unwrap()
+  let prepare = (source, result_name) => {
+    prepare_local_sdk_read_originals_for_source(
+      source,
+      fixture.account,
+      fixture.original,
+      fixture.selection,
+      "sha256:" + "a".repeat(64),
+      fixture.owner,
+      fixture.view,
+      result_name,
+      "jsonl",
+      "named-read",
+      "2026-10-13T00:00:03.000Z",
+      16,
+    )
+  }
+  let live_authorization = local_sdk_read_original(
+    prepare(live, name).unwrap(),
+    0,
+  ).unwrap()
+  let saved_authorization = local_sdk_read_original(
+    prepare(keyed, name).unwrap(),
+    0,
+  ).unwrap()
+  assert_eq(live_authorization, saved_authorization)
+  assert_true(live_authorization.0.contains("\"resource\":\"result\""))
+  assert_true(
+    live_authorization.0.contains("\"result_name\":\"before_change\""),
+  )
+  assert_false(live_authorization.0.contains("result/before_change"))
+  assert_true(prepare(live, "after_change") is Err(Preflight(MissingResult)))
+  assert_true(prepare(keyed, "after_change") is Err(StoredChain(_)))
+}
+
+///|
 test "saved SDK read source preserves original evidence and delivery formulas without a new plan" {
   let fixture = sdk_read_fixture(bound_scope=true)
   let source = sdk_saved_source(fixture).unwrap()
-  let (_, _, _, name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let name = "answer"
+  let (_, _, _, _, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     fixture.selection,
   )
   let at = "2026-10-13T00:00:03.000Z"
@@ -273,7 +322,8 @@ test "saved SDK source refuses missing old originals foreign adoption and expire
     is Err(InvalidOriginal),
   )
   let source = sdk_saved_source(fixture).unwrap()
-  let (_, _, _, name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let name = "answer"
+  let (_, _, _, _, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     fixture.selection,
   )
   assert_true(
@@ -301,7 +351,8 @@ test "saved SDK source cannot replace or revive its nominal stored view" {
   let fixture = sdk_read_fixture(bound_scope=true)
   let other = sdk_read_fixture(bound_scope=true)
   let source = sdk_saved_source(fixture).unwrap()
-  let (_, _, _, name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let name = "answer"
+  let (_, _, _, _, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     fixture.selection,
   )
   assert_true(
@@ -366,7 +417,8 @@ test "saved SDK source rejects a later valid finite Policy with another adoption
     foreign_adoption,
     @publication.local_sdk_result_read_selection_cid(fixture.selection),
   ).unwrap()
-  let (_, _, _, name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let name = "answer"
+  let (_, _, _, _, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     fixture.selection,
   )
   assert_true(

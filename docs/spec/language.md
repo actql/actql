@@ -7275,7 +7275,7 @@ No implementation may widen the authored maximum.
 
 <!-- requirement-block: traverse.closed-modes-and-filters -->
 The closed body MUST admit only required `start`, `emit` and `path_mode`,
-optional `max_output_rows`, and exactly one traversal mode. `path_mode` is
+optional `max_output_rows` and `endpoint_properties`, and exactly one traversal mode. `path_mode` is
 explicitly `walk`, `trail` or `acyclic`; omission does not select a default.
 Homogeneous mode requires literal finite integer-valued
 `min_hops` and `max_hops` in the stated ranges and explicit `direction`, with
@@ -7299,6 +7299,16 @@ and predicate results do not narrow this static set. A missing property is a
 check-time error, not an implicit NULL or a runtime fallback. A declared
 nullable property whose value is NULL retains the ordinary expression NULL
 rules. A statically empty edge selection still checks any authored predicate.
+
+For an exact one-hop pattern with `emit: paths`, `endpoint_properties` can
+append selected properties to each path row. Its optional `start` and `end`
+members are nonempty lists of `{property, as}`; at least one member is required.
+The checker resolves each property in every static definition on its selected
+side of the hop and joins compatible nullability. Output names must be distinct
+and must not collide with the existing path columns. The value comes from the
+actual first or reached node of the admitted path, with no new lookup, row
+selection, or change to the path order. Missing declarations are refused at
+check time. The selected output retains the ordinary value and row budgets.
 
 <!-- requirement-block: traverse.minimum-eligible-node-depth-and-order -->
 `emit: nodes` returns the required, non-null `start_id`, `node_id`, and minimum

@@ -56,6 +56,39 @@ test('Native failed compilation, timeout and incomplete evidence never enter exe
   }), 1);
 });
 
+test('Native Remote Journal executes the three-process runner from the reported build', () => {
+  const args = ['--target', 'native', '--release', 'src/platform_native/remote_journal'];
+  const binary = '/compiler-owned/custom-target/remote_journal.whitebox_test.exe';
+  const env = {ACTQL_TEST_NATIVE_SQLITE_LIBRARY: 'libsqlite3.so.0'};
+  let clock = 0;
+  const calls = [];
+  const status = runMeasuredNativeTests(args, {env, timeout: 1000, evidenceScratch: '/owned'}, {
+    now: () => clock, report() {},
+    evidence: () => ({
+      capture: () => ({result: {status: 0, stdout: JSON.stringify({artifacts_path: [
+        '/compiler-owned/custom-target/remote_journal.internal_test.exe', binary,
+      ]})}}), finish() {},
+    }),
+    execute(kind, selected, options) {
+      calls.push(kind);
+      if (kind === 'moon') {
+        clock = 700;
+        return 0;
+      }
+      assert.deepEqual(selected, ['scripts/test-native-start-claim-process.test.mjs']);
+      assert.deepEqual(options.env, {...env,
+        ACTQL_TEST_NATIVE_START_CLAIM_EXECUTABLE: binary,
+        ACTQL_TEST_NATIVE_START_CLAIM_METADATA: '/compiler-owned/custom-target/__whitebox_test_info.json',
+      });
+      assert.equal(options.timeout, 300);
+      assert.equal(options.expectedTests, 1);
+      return 5;
+    },
+  });
+  assert.deepEqual(calls, ['moon', 'node']);
+  assert.equal(status, 5);
+});
+
 test('actual Native execution reuses every compiled original and executes one original case', t => {
   const root = mkdtempSync(join(tmpdir(), 'actql-native-ci-phase-'));
   t.after(() => rmSync(root, {recursive: true, force: true}));

@@ -121,6 +121,8 @@ pub fn admit_source_effect_dependency_body(String, String, Int, Int, Int) -> Res
 
 pub fn advance_content_bytes(ContentByteEncoder, Int) -> ContentBytePoll
 
+pub fn append_unique_result_retention_evidence(Array[PublicationContract], PublicationContract) -> Bool
+
 pub fn author_effect_preview_semantic_wire(String, String, String, Int, Int, Int) -> Result[(String, EffectPreviewIdentity), EffectPreviewIdentityIssue]
 
 pub fn authored_effect_preview_identity(AuthoredEffectPreview) -> EffectPreviewIdentity
@@ -525,6 +527,8 @@ pub fn effect_review_projection_construction_inventory(String, Int, Int, Int, In
 
 pub fn effect_row_outcome_receipt_dispatch_identity(PublicationContract) -> String?
 
+pub fn effect_row_outcome_receipt_member_identity(PublicationContract) -> String?
+
 pub fn effect_row_outcome_receipt_row_identity(PublicationContract) -> String?
 
 pub fn effect_row_outcome_receipt_terminal_state(PublicationContract) -> String?
@@ -534,6 +538,8 @@ pub fn effect_set_apply_receipt_all_unattempted(EffectSetApplyReceiptEvidence) -
 pub fn effect_set_apply_receipt_check_limits(EffectSetApplyReceiptEvidence, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
 
 pub fn effect_set_apply_receipt_disposition(EffectSetApplyReceiptEvidence) -> Int
+
+pub fn effect_set_apply_receipt_matches_members(EffectSetApplyReceiptEvidence, EffectPreviewIdentity, Array[PublicationContract]) -> Bool
 
 pub fn effect_set_apply_receipt_run_status(EffectSetApplyReceiptEvidence) -> String
 
@@ -685,7 +691,7 @@ pub fn issue_keyed_source_acquisition_scope(String, String, PublicationContract,
 
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
-pub fn issue_local_sdk_result_read_selection(String, String) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
+pub fn issue_local_sdk_result_read_selection(String, String, scope? : LocalSDKResultReadScope) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
 
 pub fn issue_lookup_request_key_set(String, String, Array[(String, @value_contract.Contract)], Array[Array[@value_admission.CheckedValue]], Int, Int, Int) -> Result[PublicationContract, AcquisitionRelationIssue]
 
@@ -743,11 +749,15 @@ pub fn local_model_observation_matches_input(CapturedEffectDependencyBody, Strin
 
 pub fn local_result_metadata_construction_geometry(String, String, String, String, String, Array[String], String, String, String, String, String, Int, Int, Int, Int) -> Result[Array[@encode_core.EncodingConstructionGeometry], ResultEvidenceIssuanceIssue]
 
+pub fn local_sdk_result_read_selection_accepts_name(LocalSDKResultReadSelection, String) -> Bool
+
 pub fn local_sdk_result_read_selection_cid(LocalSDKResultReadSelection) -> String
 
 pub fn local_sdk_result_read_selection_data_policy_cid(LocalSDKResultReadSelection) -> String
 
-pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -> (String, String, String, String, String, Int, Int)
+pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -> (String, String, String, String?, String, Int, Int)
+
+pub fn local_sdk_result_read_selection_uses_installed_result_authority(LocalSDKResultReadSelection) -> Bool
 
 pub fn local_sdk_result_read_selection_wire(LocalSDKResultReadSelection) -> String
 
@@ -1048,6 +1058,8 @@ pub fn publication_preflight_valid(RunPublicationAdmission, PublicationContract,
 pub fn publication_prepared_release_action_code(PublicationPreparedReleaseAction) -> Int
 
 pub fn publication_record_allows_commit(PublicationContract) -> Bool
+
+pub fn publication_request_requested_at(PublicationContract) -> String?
 
 pub fn publication_setup_action_code(PublicationSetupAction) -> Int
 
@@ -1354,6 +1366,8 @@ pub fn validate_retained_effectful_publication_materials(EffectfulFinalRunEviden
 pub fn validate_run_publication_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, Int, Int, Int) -> Result[Unit, RunPublicationChainIssue]
 
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
+
+pub fn verify_model_attempt_reported_raw(BoundModelAttemptEvidence, BoundModelInvocationScope, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapture]) -> Result[Unit, RunEvidenceValueIssue]
 
@@ -2063,6 +2077,11 @@ pub(all) enum LocalSDKReadSelectionIssue {
   InvalidBinding
   ForeignOriginal
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LocalSDKResultReadScope {
+  RequestedOriginal
+  WorkerAnswer
 } derive(Eq, @debug.Debug)
 
 type LocalSDKResultReadSelection derive(Eq, @debug.Debug)

@@ -217,12 +217,18 @@ pub fn check_shortest(
       }
     }
     let output = match
-      check_path_contract(ShortestPaths, source, input, {
-        ..b.limits,
-        max_work: b.work,
-        max_nodes: b.nodes,
-        max_text_bytes: b.text,
-      }) {
+      check_path_contract(
+        ShortestPaths,
+        source,
+        input,
+        {
+          ..b.limits,
+          max_work: b.work,
+          max_nodes: b.nodes,
+          max_text_bytes: b.text,
+        },
+        [],
+      ) {
       Ok(value) => value
       Err(issue) => raise Stop(issue)
     }

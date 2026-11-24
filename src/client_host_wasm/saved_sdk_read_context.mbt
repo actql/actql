@@ -45,10 +45,13 @@ fn saved_sdk_read_context(
     saved.view is Some(view) else {
     return Err(-2)
   }
-  let (principal, connection, _, result_name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+  let (principal, connection, _, _, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
     sdk.read,
   )
-  if result_name != saved.result_name ||
+  if !@publication.local_sdk_result_read_selection_accepts_name(
+      sdk.read,
+      saved.result_name,
+    ) ||
     principal != current.tuple.principal ||
     connection != current.tuple.connection {
     return Err(-32)
@@ -84,7 +87,7 @@ fn saved_sdk_read_context(
     current,
     owner,
     view,
-    result_name,
+    result_name: saved.result_name,
     format,
     same_reader_census,
     check_current: () => {

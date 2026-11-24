@@ -130,6 +130,17 @@ export function graphSchemas() {
   traversal.properties.edge_where = structuredClone(predicate);
   traversal.properties.node_where = structuredClone(predicate);
   traversal.oneOf[0].not.anyOf.push({required:['edge_where']},{required:['node_where']});
+  const endpointProperties = {type:'array',minItems:1,items:{
+    type:'object',additionalProperties:false,required:['property','as'],properties:{property:field,as:field},
+  }};
+  traversal.properties.endpoint_properties = {
+    type:'object',additionalProperties:false,minProperties:1,
+    properties:{start:endpointProperties,end:endpointProperties},
+  };
+  traversal.anyOf = [
+    {not:{required:['endpoint_properties']}},
+    {required:['hops'],properties:{emit:{const:'paths'},hops:{minItems:1,maxItems:1}}},
+  ];
   result.traverse = traversal;
   return result;
 }

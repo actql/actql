@@ -293,7 +293,7 @@
     {
       "module": "src/connectors/snowflake/description/pkg.generated.mbti",
       "responsibilityFacet": "primary",
-      "sha256": "c856c36b21474acad4c40e31b10081bfc94a6c709b0d5088b64efd56ef8ee467",
+      "sha256": "74629a03f2f65e7294aec9d09b0999ed0a1ed250f36e4e5c5224beb8b8969df6",
       "role": "connector-semantics",
       "owner": "Snowflake original metadata projection; Common owns contracts, encoding and relation declaration issuance",
       "exports": [
@@ -308,6 +308,7 @@
         "pub fn description_matches_target(TableDescription, TableTarget) -> Bool",
         "pub fn description_response_count(TableDescription) -> Int",
         "pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]",
+        "pub fn managed_read_construction_capacity(@catalog.ResponseLimits, DescriptionLimits, Int, Int) -> @execution_relation.ExecutionCapacity?",
         "pub fn prepare_read_projection(TableDescription, Array[String], DescriptionLimits) -> Result[ReadProjection, DescriptionIssue]",
         "pub fn prepare_update_candidate(TableDescription, String, @value_admission.CheckedValue, Array[(String, @value_admission.CheckedValue)], Array[(String, @value_admission.CheckedValue)], UpdateCandidateLimits) -> Result[UpdateCandidate, UpdateCandidateIssue]",
         "pub fn project_table_description(TableTarget, @catalog.ResultSet, Array[@catalog.Partition], DescriptionLimits) -> Result[TableDescription, DescriptionIssue]",
@@ -373,6 +374,10 @@
         {
           "name": "generate_read_declaration",
           "declaration": "pub fn generate_read_declaration(ReadProjection, String, String, String, @client_row_source_host.RowDeclarationLimits) -> Result[@client_row_source_host.RowDeclaration, @client_row_source_host.RowHostIssue]"
+        },
+        {
+          "name": "managed_read_construction_capacity",
+          "declaration": "pub fn managed_read_construction_capacity(@catalog.ResponseLimits, DescriptionLimits, Int, Int) -> @execution_relation.ExecutionCapacity?"
         },
         {
           "name": "prepare_read_projection",
@@ -564,10 +569,12 @@
         },
         {
           "operations": [
-            "read_declaration_construction_capacity"
+            "read_declaration_construction_capacity",
+            "managed_read_construction_capacity"
           ],
           "exports": [
-            "pub fn read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @catalog.ResponseLimits, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?"
+            "pub fn read_declaration_construction_capacity(Array[Int], Int, Int, Int, Int, Int, @catalog.ResponseLimits, DescriptionLimits, @client_row_source_host.RowDeclarationLimits) -> @execution_relation.ExecutionCapacity?",
+            "pub fn managed_read_construction_capacity(@catalog.ResponseLimits, DescriptionLimits, Int, Int) -> @execution_relation.ExecutionCapacity?"
           ],
           "attributes": {
             "responsibility": [
@@ -791,9 +798,13 @@
     },
     {
       "module": "src/connectors/snowflake/description/read_construction.mbt",
-      "sha256": "b6310d8ac836698311989a4b84fa9b8a8864562db6ccf2dc26ea880a7bd9d94d",
+      "sha256": "4c505252f49ed57437a26fd9468b284c8cb27e88dd35e6895355277bb04b3219",
       "exports": [],
       "operations": [
+        {
+          "name": "managed_read_construction_capacity",
+          "declaration": "managed_read_construction_capacity ( response : @ response . ResponseLimits , description : DescriptionLimits , request_bytes : Int , contract_pairs : Int , ) - > @ execution . ExecutionCapacity ?"
+        },
         {
           "name": "read_declaration_construction_capacity",
           "declaration": "read_declaration_construction_capacity ( body_lengths : Array [ Int ] , encoded_units : Int , target_units : Int , resource_units : Int , connector_units : Int , revision_units : Int , response : @ response . ResponseLimits , description : DescriptionLimits , declaration : @ rows . RowDeclarationLimits , ) - > @ execution . ExecutionCapacity ?"
@@ -826,7 +837,8 @@
             "read_initialization_collection_units",
             "read_initialization_decoded_construction",
             "read_initialization_writer_units",
-            "read_response_construction"
+            "read_response_construction",
+            "managed_read_construction_capacity"
           ],
           "exports": [],
           "attributes": {

@@ -29,7 +29,9 @@ fn local_read_preimage_fields_equal(
       return false
     }
     let same = match (left_value, right_value) {
-      (Text(a), Text(b)) | (AllowedReads(a), AllowedReads(b)) => a == b
+      (Text(a), Text(b))
+      | (AllowedReads(a), AllowedReads(b))
+      | (AllowedReadResource(a), AllowedReadResource(b)) => a == b
       (Quantity(a), Quantity(b)) => a == b
       (Texts(a), Texts(b)) => a == b
       _ => false
@@ -177,7 +179,7 @@ fn NativeLocalReadPolicyBinding::read_admission_originals(
   facts : @result_access.NativeResultReadFacts,
   actual_policy_cid : String,
 ) -> Result[NativeLocalReadAdmissionOriginals, NativeLocalReadBindingIssue] {
-  // Admit the distinct current Run-read and named-Result-read tuples at entry.
+  // Admit the distinct current Run read and selected Result read at entry.
   // Encoding and hashing immutable preimages invoke no application callback
   // or external dispatch, so they consume that same observation.
   match self.require_request(original, facts) {
@@ -230,7 +232,16 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
         ("attempt_id", Text(facts.request.attempt_id)),
         ("authority_scope_cid", Text(self.scope)),
         ("connection", Text(self.connection)),
-        ("decisions", AllowedReads(facts.request.result_name)),
+        (
+          "decisions",
+          match self.account_purpose {
+            NamedResultRead => AllowedReads(facts.request.result_name)
+            InstalledOriginalResultRead(_, _) | ArchivedOriginalResultRead =>
+              AllowedReadResource(
+                @authorization.local_original_result_read_resource,
+              )
+          },
+        ),
         ("domain", Text("native_local_read.authorization_context")),
         ("format", Text(facts.request.format)),
         (
