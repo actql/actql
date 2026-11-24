@@ -4,6 +4,7 @@ import {compileFunction} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
+import {IDENTIFIER} from './client-checkpoint-admission-inputs.mjs';
 import {contentCid} from './local-account-config.mjs';
 
 // Actual continuation caller and Checkpoint Source method, with explicit
@@ -31,10 +32,9 @@ const makeAuthorization = compileFunction(`
   const journal = {}, decisionOptions = {}, authorities = [], binding = {};
   const decide = undefined, answeringAuthorities = undefined;
   const evidence = {}, now = Date.now, maxReviewBytes = 65536, checkpointTtlMs = 60000;
-  ${select('VariableDeclarator', 'IDENTIFIER').replace(/^IDENTIFIER/, 'const IDENTIFIER')};
   ${select('FunctionDeclaration', 'installedSource')}
   return ({${select('Property', 'computationSourceAuthorization')}}).computationSourceAuthorization;
-`, ['ports', 'contentCid', 'fail']);
+`, ['ports', 'contentCid', 'fail', 'IDENTIFIER']);
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
 function fixture(coordinates = [0, 1, 2].map(task => ({stage: task, input: 0, task}))) {
@@ -63,7 +63,7 @@ function fixture(coordinates = [0, 1, 2].map(task => ({stage: task, input: 0, ta
         }, close() {events.push('gate-close');}};
       gates.push(gate);
       return gate;
-    }}, contentCid, fail);
+    }}, contentCid, fail, IDENTIFIER);
   const checkpoints = {journal: {}, computationSourceAuthorization: authorization,
     async retireComputationSources(runId) {assert.equal(runId, 'original-run');}};
   const continuation = acquiredEffectContinuation({moon: {}, checkpoints,
