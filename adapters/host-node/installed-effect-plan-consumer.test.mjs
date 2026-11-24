@@ -492,7 +492,7 @@ function namedFunction(ast, name) {
 const acquireNode = namedFunction(rowAst, 'acquire');
 const makeAcquire = new Function('ports', `
   const {preparations,originalReader,captureCapacity,currentRead,site,moon,
-    randomUUID,cid,maxTransferBytes,limits,startInstalledRowRun,operationBindings,
+    randomUUID,cid,resourceTransport,limits,startInstalledRowRun,operationBindings,
     readPages,grantBeforeBegin,fail,checked}=ports;
   const directReadIdentity=undefined,prepareRead=undefined,listingReportCapacity=undefined;
   const pageLimits=undefined,referenceIssuer=undefined,managedPageLimits=undefined;
@@ -509,8 +509,10 @@ test('an original planned Resource read never substitutes for the provider Crede
     const occurrence = {stage: 0, input: 0, task: 0}, state = {};
     const originalGrant = {}, scope = {}, decision = {action: 'dispatch'};
     const beforeRead = new Error('stop-before-any-page');
-    let grants = 0, closed = 0, reads = 0;
+    let grants = 0, closed = 0, reads = 0, transports = 0;
     const provider = mode !== 'local-original';
+    const providerCapacity = {};
+    const transport = Object.freeze({transferBytes: 3n, executionBytes: 2n});
     const owner = {checkedOwner: prepared, effectful: true, access, occurrence, acquisition,
       resource: 'records', originalRead: mode === 'ordinary-provider' ? undefined : originalRead,
       managedRun: mode === 'planned-provider' ? {} : undefined};
@@ -533,17 +535,27 @@ test('an original planned Resource read never substitutes for the provider Crede
       assert.equal(options.resource, 'records'); grants++;
       return {grant: originalGrant, scope};
     }};
-    const acquire = makeAcquire({preparations, originalReader: provider ? {capacity: {}, prepare() {}, receiver: {}} : undefined,
+    const acquire = makeAcquire({preparations,
+      originalReader: provider ? {capacity: providerCapacity, prepare() {}, receiver: {}} : undefined,
       captureCapacity: () => ({}), currentRead: async () => decision, site, moon,
-      randomUUID: () => 'nonce', cid: () => 'original-binding', maxTransferBytes: 1n,
+      randomUUID: () => 'nonce', cid: () => 'original-binding',
+      resourceTransport(resource) {
+        assert.equal(resource, owner.resource); transports++; return transport;
+      },
       limits: {maxPages: 1, maxPageBytes: 1, maxPageRows: 1, maxCaptureRows: 1},
-      startInstalledRowRun: () => ({run: {}, readProvider: ({options}) => read(options),
-        closeAfterFailure(actual) {assert.strictEqual(actual, state); closed++;}}),
+      startInstalledRowRun(original) {
+        assert.strictEqual(original.acquisition, acquisition);
+        assert.deepEqual(original.capacity, provider ? {...transport, provider: providerCapacity} : transport);
+        assert.strictEqual(original.capacity.provider, provider ? providerCapacity : undefined);
+        return {run: {}, readProvider: ({options}) => read(options),
+          closeAfterFailure(actual) {assert.strictEqual(actual, state); closed++;}};
+      },
       operationBindings: new Map([['records', 'original-read']]), readPages: read, grantBeforeBegin: false,
       fail: code => {throw Object.assign(new Error(code), {code});}, checked});
     await assert.rejects(acquire(state, {preparedEffect: prepared, preparedSource, sourceAccess: access,
       occurrence, ledger: {}}), error => error === beforeRead);
     assert.equal(grants, provider ? 1 : 0); assert.equal(reads, 1); assert.equal(closed, 1);
+    assert.equal(transports, 1);
   }
 });
 

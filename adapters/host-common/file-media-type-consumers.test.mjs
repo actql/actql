@@ -44,7 +44,8 @@ async function localConsumers(t, mime) {
   for (const name of names) await writeFile(join(directory, name), 'original bytes\n');
   t.diagnostic('Retained MIME filesystem fixture: ' + directory);
   const prepared = {}, run = {prepared}, reads = new Map(), listed = [], contents = [], captured = [];
-  const entry = {rootPath: directory, versionMode: 'content', limits: {maxEntries: 10,
+  const entry = {rootPath: directory, versionMode: 'content',
+    tables: Object.freeze([]), csvTransports: Object.freeze({}), limits: {maxEntries: 10,
     maxDepth: 2, maxPathBytes: 200, maxFiles: 10, maxFileBytes: 1000, maxReadBytes: 10000,
     maxPageBytes: 100000, maxPageRows: 10}};
   const resourceFor = path => Object.freeze({path});

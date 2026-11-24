@@ -762,18 +762,33 @@ test('normal Whole Effect selection borrows the exact prepared policy and keeps 
       return this.refuse ? {$tag: 0, _0: cause} : {$tag: 1, _0: normal};
     },
   };
+  const sourceRef = 'source:original-table';
+  const readTransports = Object.freeze({
+    [sourceRef]: Object.freeze({transferBytes: 23n, executionBytes: 19n}),
+  });
+  const defaultReadTransport = Object.freeze({transferBytes: 4194304n, executionBytes: 4194304n});
+  const transportRefs = [];
+  const readTransport = ref => {
+    transportRefs.push(ref);
+    return readTransports[ref] ?? defaultReadTransport;
+  };
   const select = new Function('moon', 'checked', 'prepareAcquisition', 'listingPolicy', 'prepareRead',
     'originalReader', 'prepareSourceRead', 'providerSiteCurrent', 'site', 'managedPageLimits',
-    'pageLimits', 'limits', 'declaration', 'maxTransferBytes', 'fail',
+    'pageLimits', 'limits', 'declaration', 'readTransport', 'fail',
     `return ({${text.slice(method.start, method.end)}}).managedEffectPlanSelection;`)(
     moon, checked, undefined, undefined, undefined, undefined, () => {}, undefined, {},
-    {maxNodes: 400000, maxDepth: 32}, undefined, limits, declaration, 4194304n,
+    {maxNodes: 400000, maxDepth: 32}, undefined, limits, declaration, readTransport,
     code => {throw Object.assign(new Error(code), {code});});
-  const selected = select(Object.freeze({preparedEffect: prepared}));
+  const selected = select(Object.freeze({preparedEffect: prepared}), sourceRef);
   assert.strictEqual(selected.inputLimits, normal);
   assert.strictEqual(selected.declaration, declaration);
-  assert.equal(selected.executionBytes, 4194304n);
-  assert.strictEqual(select().inputLimits, legacy);
+  assert.equal(selected.transferBytes, 23n);
+  assert.equal(selected.executionBytes, 19n);
+  const regular = select();
+  assert.strictEqual(regular.inputLimits, legacy);
+  assert.equal(regular.transferBytes, 4194304n);
+  assert.equal(regular.executionBytes, 4194304n);
+  assert.deepEqual(transportRefs, [sourceRef, undefined]);
   assert.deepEqual(calls, [
     ['normal', 3, 16, 4194304, 400000, 32, 16], ['legacy', 16, 4194304, 400000, 32, 16],
   ]);

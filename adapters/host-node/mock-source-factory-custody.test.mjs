@@ -375,17 +375,33 @@ test('Host-backed Row Source capture capacity retains its checked acquisition an
   assert.equal(found.length, 1);
   const requirement = {}, acquisition = {}, capacity = {}, calls = [];
   const create = compileFunction('return ' + row.slice(found[0].start, found[0].end),
-    ['originalReader', 'prepareSourceRead', 'prepareOriginalAcquisition', 'moon',
-      'maxTransferBytes', 'limits', 'fail']);
-  const invoke = create(undefined, () => assert.fail('Capacity is not a read'), actual => {
+    ['originalReader', 'prepareSourceRead', 'prepareOriginalAcquisition', 'moon', 'readTransports',
+      'defaultReadTransport', 'readTransport', 'fail']);
+  const prepare = actual => {
     assert.strictEqual(actual, requirement); calls.push('original-acquisition'); return acquisition;
-  }, {clientProgramInstalledRowCaptureCapacity(actual) {
-    assert.strictEqual(actual, acquisition); calls.push('original-capacity'); return capacity;
-  }}, 1048576n, {maxPageBytes: 1048576}, fail);
-  assert.deepEqual(invoke(requirement), {capacity, transferBytes: 1048576n, executionBytes: 1048576n});
-  assert.deepEqual(calls, ['original-acquisition', 'original-capacity']);
+  };
+  const moon = {
+    clientProgramInstalledRowCaptureCapacity(actual) {
+      assert.strictEqual(actual, acquisition); calls.push('original-capacity'); return capacity;
+    },
+    clientProgramQueryRequirementSourceRef(actual) {
+      assert.strictEqual(actual, requirement); calls.push('original-ref'); return 'source:table';
+    },
+  };
+  const noRead = () => assert.fail('Capacity is not a read');
+  const regular = Object.freeze({transferBytes: 1048576n, executionBytes: 1048576n});
+  const csv = Object.freeze({transferBytes: 47n, executionBytes: 33n});
+  const registry = new Map([['source:table', csv]]);
+  const invoke = create(undefined, noRead, prepare, moon, undefined, regular,
+    () => assert.fail('An unconfigured transport has no registry lookup'), fail);
+  assert.deepEqual(invoke(requirement), {capacity, ...regular});
+  const selected = create(undefined, noRead, prepare, moon, registry, regular,
+    sourceRef => {assert.equal(sourceRef, 'source:table'); return registry.get(sourceRef);}, fail);
+  assert.deepEqual(selected(requirement), {capacity, ...csv});
+  assert.deepEqual(calls, ['original-acquisition', 'original-capacity',
+    'original-acquisition', 'original-capacity', 'original-ref']);
   assert.throws(() => create(undefined, undefined, () => assert.fail('No unsupported constructor'),
-    {}, 0n, {}, fail)(requirement), {code: 'InstalledSourceCapacityUnavailable'});
+    {}, undefined, regular, undefined, fail)(requirement), {code: 'InstalledSourceCapacityUnavailable'});
 });
 
 

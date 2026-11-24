@@ -86,9 +86,12 @@ test('same managed service reader demand supplies original whole page bounds wit
       assert.deepEqual(args,[prepared,selection,declaration,contracts,f.capacity,4,256,64,6,2,3]);return ok(capacity);}};
     const ports={moon,checked,fail,declaration,originalReader:selected.originalReader,
       providerSiteCurrent(){return true;},site:{},limits:{maxPages:3,maxCaptureRows:4,maxPageBytes:256,maxPageRows:2},
-      pageLimits:selected.pageLimits,managedPageLimits:selected.managedPageLimits,maxTransferBytes:768n};
+      pageLimits:selected.pageLimits,managedPageLimits:selected.managedPageLimits,
+      readTransports:undefined,defaultReadTransport:Object.freeze({transferBytes:768n,executionBytes:256n})};
     const select=Function(...Object.keys(ports),source.slice(start,end)+'\nreturn managedWholeSourceCapacity;')(...Object.values(ports));
-    assert.equal(select({preparedProgram:prepared,sourceSelection:selection,installedContracts:contracts}).capacity,capacity);
+    const quote=select({preparedProgram:prepared,sourceSelection:selection,installedContracts:contracts});
+    assert.equal(quote.capacity,capacity);
+    assert.deepEqual(quote,{capacity,wholeInput:true,transferBytes:768n,executionBytes:256n});
     const begin=source.indexOf('      const beginPageLimits ='),stop=source.indexOf('      const isListing =',begin);
     assert(begin>0&&stop>begin);
     for(const wholeInput of [true,false]){
