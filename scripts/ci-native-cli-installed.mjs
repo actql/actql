@@ -12,7 +12,7 @@ import {checkoutState, CLIENT_PACKAGES, packedClientPackage} from './packed-clie
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {publicConsumerEnvironment, releaseConsumerDestination} from './release-public-install.mjs';
-import {runNativeInstallCommand} from './test-native-standalone-install.mjs';
+import {runNativeInstallCommand} from './release-install-child.mjs';
 import {sharedHostSourceScenarios} from './fixtures/shared-host-source-acceptance.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));

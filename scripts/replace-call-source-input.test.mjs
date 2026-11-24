@@ -21,7 +21,7 @@ test('REPLACE expectations independently distinguish overlap normalization NULL 
 
 test('REPLACE cases join the ordinary corpus and isolate the bounded packed selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...replaceCallSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...replaceCallRefusals)'));
   assert.ok(fixture.includes('scopeInputs.executionFailures.push(...replaceCallExecutionFailures)'));

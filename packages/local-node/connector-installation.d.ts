@@ -440,14 +440,18 @@ export interface RowEffectDriver<Request extends object, Current = unknown,
   recoveryEntry?(options: Readonly<{member: RowEffectMember<Kind>;
     current: Current | undefined}>): Readonly<{
       kind: string; observationCid: string; wire: string}>;
+  /** Rebuild requests in the order of the original frozen Preview members. */
   recoverRequests?(options: Readonly<{durable: unknown; recorded: unknown;
-    previewWire: string; body: ConnectorJsonObject}>): Readonly<{
+    previewWire: string; body: ConnectorJsonObject;
+    members: readonly RowEffectMember<Kind>[]}>): Readonly<{
       requests: readonly (readonly Request[])[];
       currents?: readonly (Current | undefined)[]}>;
-  /** Rebuild only these original global members from the unchanged whole Preview.
-   * Result arrays follow memberIndexes order; this does not restore authority. */
+  /** The frozen members array holds the whole original Preview in order.
+   * Rebuild only the selected global positions, returning arrays in memberIndexes order.
+   * Reconstruction does not restore authority. */
   recoverMemberRequests?(options: Readonly<{durable: unknown; recorded: unknown;
     previewWire: string; body: ConnectorJsonObject;
+    members: readonly RowEffectMember<RowEffectKind>[];
     memberIndexes: readonly number[]}>): Readonly<{
       requests: readonly (readonly Request[])[];
       currents?: readonly (Current | undefined)[]}>;

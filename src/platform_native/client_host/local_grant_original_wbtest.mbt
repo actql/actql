@@ -344,6 +344,7 @@ test "Native grant original append requires the actual retained resume fence ins
     checkpoint_cid: "sha256:" + "1".repeat(64),
     resolution_cid: "sha256:" + "2".repeat(64),
     intent_id: scope.fence_intent_cid,
+    original_lease_expires_ms: 0L,
     claim: {
       claimant: scope.fence_claimant,
       generation: scope.fence_generation,

@@ -8,10 +8,41 @@ With Node.js 22 or newer, Python 3.11 or newer, a C compiler and `make`:
 npm ci
 ```
 
+Converted tooling and SDK modules are authored in TypeScript. Root `npm ci` runs the `prepare`
+script, which performs strict checking and emits executable JavaScript at the
+existing command/import paths. After editing TypeScript, run
+`npm run build:typescript` before executing those commands. If dependency setup
+explicitly uses `--ignore-scripts`, run that build as a separate prerequisite.
+Fresh source-only package producers retain their original input/index checks,
+link their compiler dependencies, and run the same build in the copied root
+before any prepack entry. They do not copy a prior ignored emit or continue
+after a compiler failure.
+Installed public packages contain JavaScript and declarations; consumers do not
+need this repository's compiler or a runtime TypeScript loader.
+
 Node.js is used for documentation and toolchain setup. Product implementation
 is developed in MoonBit; see the [implementation guide](design/implementation-port.md).
 Specification checks also verify generated connector code using the pinned
 MoonBit formatter. Complete the MoonBit setup below before running `check:spec`.
+
+### Tracked JavaScript exceptions for the TypeScript cutover
+
+- The `focused-tests` job installs the pinned MoonBit toolchain before
+  `npm ci`. Its checkout bootstrap runs `scripts/setup-moonbit.mjs` and
+  imports `scripts/moonbit-installation.mjs` using Node built-ins.
+  [CI workflow](../.github/workflows/ci.yml)
+- The compiler binding generator emits the six
+  `compiler-binding.generated.mjs` copies in its target list. The copies let
+  independently installed packages use the same binding without resolving
+  another package's private files. Existing generation checks cover their
+  emitted JavaScript and declarations.
+  [Compiler binding generator](../scripts/generate-js-compiler-bindings.mts)
+- The connector generator defines the exact `strategy.generated.mjs` and
+  `installations.generated.mjs` destinations from the selected assembly.
+  These tables come from connector manifests and serve as runtime assembly
+  inputs. The generation freshness check runs the existing assembly checks.
+  [Connector generator](../scripts/connector-node-bundles.mts)
+  [Generation freshness](../scripts/interface-generation-freshness.mts)
 
 ### Checkpoint journal layout
 
@@ -825,7 +856,9 @@ A failed generation or test step stops the sequence. Missing dependencies,
 stale generated output and zero/skip-only test execution remain failures.
 Prepare the selected tests' ordinary dependencies first; this command does not
 build a runtime, pack a distribution, install dependencies or require a clean
-working tree. It supports editing an unfinished change.
+working tree. For a TypeScript test, run `npm run build:typescript` in the
+prepared checkout, then select its emitted `.test.mjs` file. The command
+supports editing an unfinished change.
 
 This first author entry implements `source` only. `installed` is refused rather
 than redirected to source checks. Standard-loader, authentication, capacity,
@@ -1225,6 +1258,16 @@ invalid selection, failed or cancelled required jobs, and unexpected skips
 cannot satisfy the final `check`. Inspect the jobs actually executed; a narrow
 PR run does not establish a full integration or release checkpoint.
 
+A Ready PR that changes no Core target input runs JS core only; main
+integration runs every target. The inputs are a short directory policy: `src`,
+`vendor`, `spec`, `portability`, `proofs`, `.github`, and the Python SDK and
+Local Runtime packages. Moon and package manifests, the toolchain pin, native
+sources and binaries, and `scripts/ci-targets.mjs` also keep every target, and
+the existing macOS workload and wheel selectors still decide those jobs.
+Ordinary `scripts/` changes, including fixtures and test drivers, do not keep
+the Wasm and Native Core legs on a PR, so a cross-target regression there can
+first fail on main. The other PR job families are unchanged.
+
 CI passes the complete selection and aggregate job results through quoted JSON
 files in the runner's temporary directory (`CI_PLAN_PATH` and `RESULTS_PATH`).
 Source inventories can exceed Linux's per-environment-string execution limit.
@@ -1369,9 +1412,11 @@ The original two-part local interface remains supported.
 The migration toward Linux for exhaustive common Native coverage starts with
 eight additional required Linux partitions in the same Core matrix. The pinned
 compiler's complete source, whitebox and blackbox import graph identifies Native
-command/platform packages and explicit C stubs, including all their importers.
-A package that only overrides the linker owns no platform code and is
-classified by its imports. Every remaining compiler-owned common case is assigned once,
+platform owners, including all their importers. A platform owner is a package
+with an explicit C stub, a command/platform package that declares a C
+function itself, or a package with a case that needs a physical fixture. A package that only overrides the linker, or a command/platform
+package that declares no C function, owns no platform code and is classified by
+its imports. Every remaining compiler-owned common case is assigned once,
 keeping whole package drivers and the existing release/strip, strict warnings,
 test-only generated-C optimization and serial test execution. Nested packages
 use original compiler-selected file inputs rather than admitting an unrelated

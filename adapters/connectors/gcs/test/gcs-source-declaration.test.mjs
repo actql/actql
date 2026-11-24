@@ -19,14 +19,17 @@ const profile = () => ({version: 'actql-installed-gcs-source/0.1', connectorId: 
     maxListingBytes: 32768, maxDurationMs: 10000, maxPathBytes: 1024,
     maxPageBytes: 8192, maxPageItems: 9, maxRequestBytes: 4096, maxContentBytes: 4096}});
 
-test('signed64 correction preserves the complete legacy declaration and refuses old objects Catalog substitution', () => {
-  // Historical complete declaration snapshots, taken before this correction.
-  // They are not expected identities recomputed from the new declaration.
-  const legacy = restoreGcsSourceDeclaration(moon, profile());
-  assert.equal(legacy.declared.catalog_cid,
+test('GCS two-view declaration binds current Query evidence and refuses old objects Catalog substitution', () => {
+  // The query-acquisition contract transition advanced the capability pin
+  // on both Views without changing their Catalog identity.
+  const declared = restoreGcsSourceDeclaration(moon, profile()).declared;
+  const queryEvidenceCid = 'sha256:89c0591d1701b7d3de74749e555d02f9ccf43fe8abfb69fc6d904654a54161cf';
+  assert.equal(declared.catalog_cid,
     'sha256:8f89f35c41829a021e74d721c0be3fb6b8512fb8fdc10e2647abc1c66eafc5cf');
-  assert.equal(createHash('sha256').update(JSON.stringify(legacy.declared)).digest('hex'),
-    'fe2014f60d585294551069e7b24dd076d78260230a50b9a37340ddd83deb3982');
+  assert.deepEqual(declared.evidence_capabilities.map(wire => JSON.parse(wire).capability_contract_cids),
+    [[queryEvidenceCid], [queryEvidenceCid]]);
+  assert.equal(createHash('sha256').update(JSON.stringify(declared)).digest('hex'),
+    'dc4a13e62afaa3f1f25fae96a203f16f54be63760ccc56dd80cbc38f12cbffdf');
   const oldObjectsCatalog = 'sha256:ac2a85c1b2979f61a3d71cec092eeb5d5735b9a18ef789b8faa686dcda2e205d';
   const current = restoreGcsSourceDeclaration(moon, profile(), undefined, {includeObjects: true});
   assert.notEqual(current.declared.catalog_cid, oldObjectsCatalog);

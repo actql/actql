@@ -24,6 +24,10 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   const nextIssue={kind:'NextModelAdvanceFixtureStop'};
   const preparedCallSet={};
   const moon = {
+    clientProgramAcquisitionCount(actual) {
+      assert.strictEqual(actual, preparedProgram);
+      return composed ? 1 : 0;
+    },
     clientProgramInferPlanBoundary: () => ({_0: 0}),
     clientProgramStartOriginalInferExecution() {
       calls.push('originalStart');
@@ -183,7 +187,6 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     }}}, sourceEvidence: {}, preparedSource: {}} : undefined;
   if (composed) {
     selected.occurrence = {};
-    moon.clientProgramAcquisitionCount = () => 1;
     moon.clientProgramComposedInferLocalProvider = (_occurrence, _open, _issue, _retain, _cleanup, _prefix) => {
       calls.push('component-construct'); return {};
     };
@@ -240,7 +243,8 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     };
   }
   if (composed) {
-    requestCarrier.managed = {value: nativeParent, request: originalRequest, closed: false};
+    requestCarrier.managed = {value: nativeParent, request: originalRequest, closed: false,
+      runtime: moon, prepared: preparedProgram, model: requestCarrier};
     requestCarrier.sourceLedger = sourceLedger;
     requestCarrier.component = openNodeComposedInferProvider({moon, selected, inputPrefix: {}, deferred: true});
   }
@@ -438,14 +442,15 @@ test('installed read supplier never treats consumer stop as its actual child cle
 });
 
 test('installed read supplier rejects restored, composed and competing original preparation', async () => {
-  for (const mutate of [
-    f => { f.input.replay = true; },
-    f => { f.input.acquiredInfer = {}; },
-    f => { f.selected.components = []; },
-    f => { f.input.originalPreparation = f.originalPreparation; },
+  const unavailable = /InstalledInferOriginalReadInstallationUnavailable/u;
+  for (const [mutate, error] of [
+    [f => { f.input.replay = true; }, unavailable],
+    [f => { f.input.acquiredInfer = {}; }, unavailable],
+    [f => { f.selected.components = []; }, /InvalidInstalledRequestModelPreparation/u],
+    [f => { f.input.originalPreparation = f.originalPreparation; }, unavailable],
   ]) {
     const f = fixture({installation: true}); mutate(f);
-    await assert.rejects(f.run(), /InstalledInferOriginalReadInstallationUnavailable/u);
+    await assert.rejects(f.run(), error);
     assert.deepEqual(f.calls, []);
   }
   const f = fixture({installation: true}); f.existing([{inventory: {taskIndex: 0}}]);

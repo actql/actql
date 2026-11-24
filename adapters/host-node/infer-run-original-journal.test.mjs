@@ -1,5 +1,5 @@
-// Actual Common codec and SQLite custody. No Provider, Model input, send,
-// startup reservation, physical cleanup ACK or numerical supplier is installed.
+// Actual Common codec, funded Request preparation and SQLite custody. This
+// fixture exercises saved materials without Provider dispatch.
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync, mkdtempSync} from 'node:fs';
@@ -10,7 +10,7 @@ import {spawnSync} from 'node:child_process';
 import {pathToFileURL} from 'node:url';
 import {checked} from '../host-common/runtime-result.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
+import {openFundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {readInstalledModelExecution} from './installed-model.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
@@ -31,14 +31,16 @@ const control = runtimeCore(moon).publicationControl;
 const cid = value => `sha256:${value.repeat(64)}`;
 const policyWire = '{"classification":"unknown","source_data_policy_cids":[],"source_response_policy_cids":[],"unknown_provenance":true,"version":"actql-effective-data-policy/0.1"}';
 
-function original(runId = 'saved-infer', authored = program, originalRequest) {
+async function original(t, runId = 'saved-infer', authored = program, originalRequest) {
   const installation = configuration(base);
   const body = JSON.parse(installation.environmentWire);
   const environment = moon.clientProgramCheckEnvironment(installation.environmentWire,
     body.evidence_bundle_cid, ...profiles);
   assert.ok(environment);
-  const prepared = installNodeClientProgramPreparation({moon, environment})({
-    kind: 'program', input: authored, parameters: null});
+  const funded = await openFundedClientPreparation({moon, environment});
+  t.after(funded.close);
+  const prepared = await funded.prepare({kind: 'program', input: authored, parameters: null});
+  const inputs = funded.prepare.originalInputs(prepared);
   const {execution} = readInstalledModelExecution(moon, prepared, installation);
   const graph = checked(moon.clientProgramInstalledInferPlanGraph(prepared, 2, execution));
   const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer', {
@@ -53,13 +55,15 @@ function original(runId = 'saved-infer', authored = program, originalRequest) {
   const evidence = Object.freeze({prepared: compiled.preparedEvidence.wire,
     authorization: compiled.authorization.wire,
     modelOriginalRunWire: originalModelRunWire(compiled, definition)});
-  const ticket = control.captureOriginalClientInferRun(compiled, prepared, definition, request, environment, undefined);
+  const ticket = control.captureOriginalClientInferRun(compiled, prepared, definition, request,
+    inputs.environment, inputs.parameters);
   const programCid = moon.clientRequestProgramCid(request);
   const materials = control.originalInferRunAdmissionEvidence(ticket, definition, request, evidence);
   return {environment, prepared, graph, compiled, definition, request, evidence, ticket, programCid, materials};
 }
 
-function journalFixture(t, value = original(), limits) {
+async function journalFixture(t, value, limits) {
+  value ??= await original(t);
   const path = mkdtempSync(join(tmpdir(), 'actql-original-infer-journal-'));
   t.diagnostic(`Fresh original journal custody retained at ${path}`);
   let journal = openClientRequestJournal(path, limits);
@@ -79,8 +83,8 @@ function restore(value, materials = value.materials, evidence = value.evidence) 
     value.request, evidence, profiles, bounds);
 }
 
-test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults', () => {
-  const value = original();
+test('original Infer codec restores one nominal preparation graph and same complete Run without current defaults', async t => {
+  const value = await original(t);
   const restored = restore(value);
   assert.notStrictEqual(restored.prepared, value.prepared);
   assert.equal(restored.runDefinition, value.definition);
@@ -96,8 +100,8 @@ test('original Infer codec restores one nominal preparation graph and same compl
   assert.equal(moon.clientProgramDefinitionCid(restored.prepared), value.programCid);
 });
 
-test('first Infer journal admission refuses copied or other-control tickets and raw evidence', t => {
-  const f = journalFixture(t);
+test('first Infer journal admission refuses copied or other-control tickets and raw evidence', async t => {
+  const f = await journalFixture(t);
   assert.throws(() => f.accept({...f.value.ticket}), {code: 'InvalidClientInferRunOriginal'});
   const foreign = runtimeCore({...moon}).publicationControl;
   assert.throws(() => foreign.originalInferRunAdmissionEvidence(f.value.ticket,
@@ -108,7 +112,7 @@ test('first Infer journal admission refuses copied or other-control tickets and 
   assert.equal(f.lookup(), undefined);
   // The legacy metadata-only API has no evidence argument: an excess caller
   // property is ignored, not promoted to an original or physical start.
-  const g = journalFixture(t);
+  const g = await journalFixture(t);
   const bare = g.journal.accept(g.value.request, {...g.options,
     runDefinitionCid: g.value.definition.identity,
     runAdmissionEvidence: {...g.value.evidence, inferRunOriginal: g.value.materials}}, moon);
@@ -119,8 +123,8 @@ test('first Infer journal admission refuses copied or other-control tickets and 
   } finally {database.close();}
 });
 
-test('saved Infer originals and Result policy commit with the same Run and reopen as immutable DATA only', t => {
-  const f = journalFixture(t);
+test('saved Infer originals and Result policy commit with the same Run and reopen as immutable DATA only', async t => {
+  const f = await journalFixture(t);
   const accepted = f.accept();
   assert.deepEqual(accepted.runAdmissionEvidence.inferRunOriginal, f.value.materials);
   f.reopen();
@@ -135,8 +139,8 @@ test('saved Infer originals and Result policy commit with the same Run and reope
   assert.equal(f.accept().inserted, false);
 });
 
-test('original Infer ticket refuses another original request even for identical Program and Parameters', t => {
-  const f = journalFixture(t);
+test('original Infer ticket refuses another original request even for identical Program and Parameters', async t => {
+  const f = await journalFixture(t);
   const foreign = moon.clientProgramRequestIdentity(f.value.prepared, cid('c'), 'another-original-request',
     moon.clientProgramSourceFreeInputIntentCid());
   assert.ok(foreign);
@@ -145,8 +149,8 @@ test('original Infer ticket refuses another original request even for identical 
   assert.equal(f.lookup(), undefined);
 });
 
-test('saved Infer reader refuses altered original Task materials Run program and admission correspondence', () => {
-  const value = original();
+test('saved Infer reader refuses altered original Task materials Run program and admission correspondence', async t => {
+  const value = await original(t);
   for (const field of ['materialsWire', 'resultPolicyOriginal']) {
     const changed = structuredClone(value.materials);
     if (field === 'materialsWire') {
@@ -158,17 +162,19 @@ test('saved Infer reader refuses altered original Task materials Run program and
   }
   const changedProgram = structuredClone(program);
   changedProgram.stages[0].steps[0].values.rows[0].text = 'another checked input';
-  const foreign = original('foreign-program', changedProgram);
+  const foreign = await original(t, 'foreign-program', changedProgram);
   assert.throws(() => control.admitStoredClientInferRunOriginal(value.materials, value.definition,
     foreign.request, value.evidence, profiles, bounds), /Foreign/u);
   assert.throws(() => restore(value, value.materials, {...value.evidence, authorization: '{}'}), /Foreign/u);
-  assert.throws(() => control.admitStoredClientInferRunOriginal(value.materials, original('different-run').definition,
+  const different = await original(t, 'different-run');
+  assert.throws(() => control.admitStoredClientInferRunOriginal(value.materials, different.definition,
     value.request, value.evidence, profiles, bounds));
 });
 
-test('Infer projection refuses a different preparation Environment or supplied Parameter Values', () => {
-  const value = original();
-  assert.throws(() => control.captureOriginalClientInferRun(value.compiled, original().prepared,
+test('Infer projection refuses a different preparation Environment or supplied Parameter Values', async t => {
+  const value = await original(t);
+  const foreign = await original(t);
+  assert.throws(() => control.captureOriginalClientInferRun(value.compiled, foreign.prepared,
     value.definition, value.request, value.environment, undefined), /Foreign/u);
   const other = moon.clientProgramCheckEnvironment(canonical(base), base.evidence_bundle_cid, ...profiles);
   assert.ok(other);
@@ -178,29 +184,29 @@ test('Infer projection refuses a different preparation Environment or supplied P
     value.definition, value.request, value.environment, '{"unexpected":1}'));
 });
 
-test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run', t => {
-  const f = journalFixture(t);
+test('legacy Infer material absence is not backfilled and changed originals do not replace a saved Run', async t => {
+  const f = await journalFixture(t);
   f.journal.acceptDefinition(f.value.request, f.options, moon, control);
   assert.throws(() => f.accept(), {code: 'ClientRequestInferEvidenceMissing'});
   f.reopen();
   assert.equal(f.lookup().runAdmissionEvidence.inferRunOriginal, undefined);
-  const g = journalFixture(t);
+  const g = await journalFixture(t);
   g.accept();
-  const different = original('different-original', program, g.value.request);
+  const different = await original(t, 'different-original', program, g.value.request);
   assert.throws(() => g.journal.acceptDefinition(g.value.request, {...g.options,
     runDefinition: different.definition, runAdmissionEvidence: different.evidence,
     originalInferRun: different.ticket}, moon, control), {code: 'ClientRequestInferEvidenceMismatch'});
   assert.deepEqual(g.lookup().runAdmissionEvidence.inferRunOriginal, g.value.materials);
 });
 
-test('Infer original copies use the existing aggregate evidence bound before durable acceptance', t => {
-  const f = journalFixture(t, original(), {maxRunDefinitionWireBytes: 1024});
+test('Infer original copies use the existing aggregate evidence bound before durable acceptance', async t => {
+  const f = await journalFixture(t, undefined, {maxRunDefinitionWireBytes: 1024});
   assert.throws(() => f.accept(), {code: 'InvalidClientRunAdmissionEvidence'});
   assert.equal(f.lookup(), undefined);
 });
 
-test('Infer material and Run roll back together when original journal custody COMMIT fails', t => {
-  const f = journalFixture(t);
+test('Infer material and Run roll back together when original journal custody COMMIT fails', async t => {
+  const f = await journalFixture(t);
   const database = new DatabaseSync(join(f.path, 'client-requests.sqlite3'));
   t.after(() => database.close());
   database.exec(`CREATE TRIGGER reject_infer_custody BEFORE UPDATE ON client_submission_custody
@@ -211,8 +217,8 @@ test('Infer material and Run roll back together when original journal custody CO
   // The failed attempt stays failed. No retry or replacement claim is issued.
 });
 
-test('another process reads the same Journal original pair after an acceptance reply is discarded', t => {
-  const f = journalFixture(t);
+test('another process reads the same Journal original pair after an acceptance reply is discarded', async t => {
+  const f = await journalFixture(t);
   f.accept();
   f.journal.close();
   const module = relative => new URL(relative, import.meta.url).href;

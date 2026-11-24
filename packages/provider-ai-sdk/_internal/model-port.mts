@@ -1,0 +1,563 @@
+import type {LanguageModelV4CallOptions} from '@ai-sdk/provider';
+import {runtimeField, runtimePair, runtimeTupleFromFields} from './compiler-binding.generated.mjs';
+import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
+  startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
+  cancelSdkPreparation, cleanupSdkPreparation, progressSdkOriginalIoCleanup,
+  retireSdkDecodedResult, sdkOriginalIoObservationAvailable, bindSdkTransportCredential,
+  confirmSavedSdkTransportResponse, pollSdkDecode, takeSavedSdkDecodedResult,
+  prepareRegisteredSdkLanguageModel} from './intercepted-request.mjs';
+
+type TransportOptions = Parameters<typeof prepareSdkTransport>[1];
+type RawObservation = NonNullable<ReturnType<typeof sdkTransportRawObservation>>;
+type CheckedOriginal = (value: unknown) => unknown;
+type StartOriginal = (entry: unknown) => unknown;
+type ReadDecoded = (original: unknown, receipt: unknown, bytes: Uint8Array) => unknown;
+type ReportedUsage = (body: unknown) => Readonly<{inputTokens?: bigint; outputTokens?: bigint}> | undefined;
+type ReportedResponse = (body: unknown) => Readonly<{
+  model?: unknown; requestId?: unknown; finishReason?: unknown; outcome?: unknown;
+  metadataName?: unknown; metadataValue?: unknown;
+}> | undefined;
+type ProjectionBounds = Readonly<{maxBytes: number; maxDepth: number; maxFrames: number; maxNodes: number; maxWork: number}>;
+type SdkPreparation = Parameters<typeof prepareRegisteredSdkLanguageModel>[0];
+type SdkOptions = LanguageModelV4CallOptions;
+export type RegisteredRequestOptions = Readonly<{
+  prompt: readonly [{role: 'system'; content: string},
+    {role: 'user'; content: readonly [{type: 'text'; text: string}]}];
+  responseFormat: Readonly<{name?: string; schema?: unknown}>;
+  temperature?: number; topP?: number; maxOutputTokens?: number; seed?: number;
+}>;
+export type RegisteredRequestRoute = Readonly<{modelId: string; apiMode: string; endpoint: string}>;
+export type RegisteredSdk = Readonly<{
+  route: Readonly<{providerId: string; selector: string; modelId: string; apiMode: string; endpoint: string}>;
+  sdkPackage: string; sdkVersion: string; lockArtifactCid: string; adapterArtifactCid: string; sdkArtifactCid: string;
+  sdkProvider: string; providerOptions: SdkOptions['providerOptions'];
+  createLanguageModel: SdkPreparation['createLanguageModel'];
+  verifyRequest(body: string, options: SdkOptions): unknown;
+  readReportedUsage?: ReportedUsage;
+  readReportedResponse?: ReportedResponse;
+  credential?: Readonly<{transport: Readonly<Record<string, unknown>>; profile: Readonly<{reference: string}>}>;
+}>;
+type StructuredRuntime = ModelRuntime & SdkPreparation['moon'] & Readonly<{
+  clientProgramStartAdmittedStructuredSdkProjection(...args: unknown[]): unknown;
+  clientProgramAdvanceOpenAIChatProjection(cursor: unknown): unknown;
+  clientProgramRetireOpenAIChatProjection(cursor: unknown): unknown;
+  clientProgramModelRequestGeneration(request: unknown): unknown;
+  clientProgramModelStructuredRequestPlan(admission: unknown, request: unknown, bytes: bigint,
+    tokens: bigint, costUnits: bigint, durationMs: bigint, profile: unknown, installation: unknown,
+    start: StartOriginal, readDecoded: ReadDecoded | undefined): unknown;
+  clientProgramModelPhysicalSavedStructured(call: unknown, receipt: unknown, bytes: unknown): unknown;
+}>;
+type StructuredInput = Omit<PhysicalOptions, 'moon'> & {moon: StructuredRuntime};
+type RegisteredPreflight = Omit<StructuredInput, 'installation' | 'checked' | 'notify'> & Pick<SdkPreparation,
+  'maxRequestBytes' | 'maxHeaderBytes' | 'maxHeaders' | 'signal' | 'notify'> & Readonly<{
+  admission: unknown; registeredSdk: RegisteredSdk; taskCid: string; promptCid: string; outputSchemaCid: string;
+  projectionLimits: ProjectionBounds; checked: CheckedOriginal;
+  installation: Readonly<{sdk: {package_name: unknown; version: unknown; interface: unknown; lock_artifact_cid: unknown};
+    endpoint: unknown; build_artifact_cid: unknown}>;
+}>;
+// Unchecked views of the existing consumed Common calls. These signatures do
+// not admit an original, validate a result, or replace any runtime guard.
+interface ModelRuntime {
+  clientProgramModelAsyncPhysicalRequestPlan(request: unknown, bytes: bigint,
+    tokens: bigint, costUnits: bigint, durationMs: bigint, profile: unknown,
+    installation: unknown, start: StartOriginal): unknown;
+  clientProgramModelAsyncNativeDecisionRequestPlan?(request: unknown, original: unknown,
+    provider: unknown, bytes: bigint, tokens: bigint, costUnits: bigint, durationMs: bigint,
+    profile: unknown, installation: unknown, probability: unknown, start: StartOriginal): unknown;
+  clientProgramModelPhysicalSavedChat(response: unknown): unknown;
+  clientProgramModelPhysicalSavedNativeDecision?(response: unknown, original: unknown,
+    provider: unknown, probability: unknown): unknown;
+  clientProgramModelPhysicalUnknown(): unknown;
+  clientProgramModelPhysicalPending(): unknown;
+  clientProgramModelPhysicalIoObservation?(call: unknown, retired: boolean, observed: unknown): unknown;
+  clientProgramModelPhysicalCallForRequest(entry: unknown, request: unknown,
+    poll: () => unknown, cancel: () => void, cleanup: () => boolean): unknown;
+  clientProgramModelRequestPreflight(advance: () => {_0: boolean; _1: unknown},
+    cleanup: () => boolean): unknown;
+  clientProgramReadReconciledInferRawUsage(original: unknown, response: unknown, quantum: number): unknown;
+}
+interface SavedRaw {response?: unknown; receipt?: unknown; bytes?: Uint8Array}
+type PersistRaw = (call: unknown, raw: RawObservation, structured?: true) => SavedRaw | PromiseLike<SavedRaw>;
+type BoundPersistence = PersistRaw & {cleanup(call: unknown): unknown};
+interface PreparationProgress {
+  advance(): {kind: string; preparation?: unknown};
+  cleanup(): unknown;
+}
+interface PhysicalOptions {
+  moon: ModelRuntime; request: unknown; preparation?: unknown;
+  profile: unknown; installation: unknown;
+  quantities: {tokens: bigint; costUnits: bigint; durationMs: bigint} | undefined;
+  fetch: TransportOptions['fetch'] | undefined;
+  responseLimits: TransportOptions['responseLimits'] | undefined;
+  persistRaw?: PersistRaw; notify: (() => unknown) | undefined;
+  checked: CheckedOriginal | undefined; observeAt: (() => unknown) | undefined;
+  cleanupRaw?: (call: unknown) => unknown; preparationProgress?: PreparationProgress;
+  rawCaptureBinder?: (bind: (registration: unknown, persistence: BoundPersistence) => void,
+    bindCredential?: () => void) => unknown;
+  needsCredential?: boolean;
+}
+type PreparePlan = (moon: ModelRuntime, request: unknown, bytes: bigint,
+  quantities: NonNullable<PhysicalOptions['quantities']>, profile: unknown,
+  installation: unknown, start: StartOriginal, readDecoded?: ReadDecoded) => unknown;
+type SelectSaved = (moon: ModelRuntime, response: unknown, checked: CheckedOriginal) => unknown;
+
+// Private source integration only: not an exported package installation API.
+// All records, SDK/request/response buffers and Promise overlaps must be funded
+// by the original Run Ledger before this port is installed. No budget, grant,
+// execution state or scheduler is inferred here. Common owns every transition.
+export function createSdkModelPreflight(options: PhysicalOptions) {
+  return createSdkPhysicalPreflight(options, generationPlan,
+    (moon, response) => moon.clientProgramModelPhysicalSavedChat(response), 'raw-only');
+}
+
+// The admitted selection belongs to the existing installed Provider. The
+// runtime still binds this exact Request, Profile, Call, Store and one send.
+export function createSdkStructuredModelPreflight(options: StructuredInput, admission: unknown, readReportedUsage?: ReportedUsage,
+  readReportedResponse?: ReportedResponse) {
+  const moon = options?.moon;
+  if (admission === undefined ||
+      (readReportedUsage !== undefined && typeof readReportedUsage !== 'function') ||
+      (readReportedResponse !== undefined && typeof readReportedResponse !== 'function') ||
+      typeof moon?.clientProgramModelStructuredRequestPlan !== 'function' ||
+      typeof moon?.clientProgramModelPhysicalSavedStructured !== 'function') {
+    throw new TypeError('StructuredSdkPhysicalRuntimeUnavailable');
+  }
+  return createSdkPhysicalPreflight(options, (runtime, request, bytes, amounts,
+    profile, installation, start, readDecoded) =>
+    (runtime as StructuredRuntime).clientProgramModelStructuredRequestPlan(admission, request, bytes,
+      amounts.tokens, amounts.costUnits, amounts.durationMs,
+      profile, installation, start, readDecoded), undefined, 'saved-sdk', readReportedUsage, readReportedResponse);
+}
+
+export function originalSdkCallOptions(generation: unknown, prompt: SdkOptions['prompt'], responseFormat: SdkOptions['responseFormat'],
+  unsupported: string, providerOptions?: SdkOptions['providerOptions']) {
+  const exactInteger = (value: unknown, minimum: bigint): value is bigint => typeof value === 'bigint' &&
+    value >= minimum && value <= BigInt(Number.MAX_SAFE_INTEGER);
+  // MoonBit's JS Int64 representation can carry a negative seed as unsigned.
+  const raw = runtimeField(generation, 4);
+  const seed = typeof raw === 'bigint' && raw >= -9_223_372_036_854_775_808n &&
+    raw <= 18_446_744_073_709_551_615n ? BigInt.asIntN(64, raw) : raw;
+  const temperature = runtimeField(generation, 1) as number, topP = runtimeField(generation, 2) as number;
+  const tokens = runtimeField(generation, 3);
+  if (!Number.isFinite(temperature) || !Number.isFinite(topP) || !exactInteger(tokens, 1n) ||
+      seed !== undefined && !exactInteger(seed, -BigInt(Number.MAX_SAFE_INTEGER))) {
+    throw new TypeError(unsupported);
+  }
+  const options: SdkOptions = {prompt, responseFormat, temperature, topP, maxOutputTokens: Number(tokens),
+    ...(seed === undefined ? {} : {seed: Number(seed)})};
+  if (providerOptions !== undefined) options.providerOptions = providerOptions;
+  return options;
+}
+
+export function sdkProjectionBounds(limits: ProjectionBounds, invalid: string) {
+  const fields = ['maxBytes', 'maxDepth', 'maxFrames', 'maxNodes', 'maxWork'] as const;
+  if (limits === null || typeof limits !== 'object' || Array.isArray(limits) ||
+      Object.keys(limits).sort().join(',') !== fields.join(',') ||
+      fields.some(name => !Number.isSafeInteger(limits[name]) ||
+        limits[name] < (name === 'maxWork' ? 0 : 1) || limits[name] > 2_147_483_647)) {
+    throw new TypeError(invalid);
+  }
+  return Object.freeze({...limits});
+}
+
+// The verified Host supplies one registration. Common projects the prompt
+// from the same admitted capability it uses to create the physical Plan.
+export function createAdmittedRegisteredSdkPreflight({moon, request, admission,
+  registeredSdk, taskCid, promptCid, outputSchemaCid, projectionLimits,
+  maxRequestBytes, maxHeaderBytes, maxHeaders, checked, notify, signal, ...port}: RegisteredPreflight) {
+  const route = registeredSdk?.route, sdk = port.installation?.sdk;
+  if (route === undefined || sdk === undefined ||
+      sdk.package_name !== registeredSdk.sdkPackage || sdk.version !== registeredSdk.sdkVersion ||
+      sdk.interface !== 'v4' || sdk.lock_artifact_cid !== registeredSdk.lockArtifactCid ||
+      port.installation.build_artifact_cid !== registeredSdk.adapterArtifactCid ||
+      port.installation.endpoint !== route.endpoint ||
+      typeof moon?.clientProgramStartAdmittedStructuredSdkProjection !== 'function' ||
+      typeof moon.clientProgramAdvanceOpenAIChatProjection !== 'function' ||
+      typeof moon.clientProgramRetireOpenAIChatProjection !== 'function' ||
+      typeof moon.clientProgramAdmittedStructuredSdkRouteMatches !== 'function' ||
+      moon.clientProgramAdmittedStructuredSdkRouteMatches(admission,
+        route.selector, route.modelId, route.apiMode, route.endpoint) !== true) {
+    throw new TypeError('RegisteredSdkPhysicalInstallationUnavailable');
+  }
+  const bounds = sdkProjectionBounds(projectionLimits, 'InvalidRegisteredSdkProjectionLimits');
+  let cursor: unknown, terminal = false;
+  const preparationProgress = {
+    advance() {
+      if (terminal || signal?.aborted) return {kind: 'rejected'};
+      if (cursor === undefined) {
+        cursor = checked(moon.clientProgramStartAdmittedStructuredSdkProjection(
+          admission, request, port.profile, port.installation, bounds.maxBytes, bounds.maxNodes,
+          bounds.maxDepth, bounds.maxFrames, bounds.maxWork));
+        return {kind: 'pending'};
+      }
+      const projected = checked(moon.clientProgramAdvanceOpenAIChatProjection(cursor));
+      if (projected === undefined) return {kind: 'pending'};
+      preparationProgress.cleanup();
+      const generation = moon.clientProgramModelRequestGeneration(request);
+      if (generation === undefined || runtimeField(generation, 0) !== route.selector ||
+          runtimeField(projected, 3) !== taskCid || runtimeField(projected, 4) !== promptCid ||
+          runtimeField(projected, 5) !== outputSchemaCid || runtimeField(projected, 6) !== route.selector) {
+        throw new TypeError('RegisteredSdkOriginalSelectionUnavailable');
+      }
+      // The verifier and SDK borrow one immutable request projection. The
+      // SDK cannot revise its own expected prompt or schema before fetch.
+      const prompt = Object.freeze([Object.freeze({role: 'system', content: runtimeField(projected, 0)}),
+        Object.freeze({role: 'user', content: Object.freeze([
+          Object.freeze({type: 'text', text: runtimeField(projected, 1)})])})]);
+      const schema = JSON.parse(runtimeField(projected, 2) as string, (_key, value) =>
+        value !== null && typeof value === 'object' ? Object.freeze(value) : value);
+      const responseFormat = Object.freeze({type: 'json', name: 'actql_output', schema});
+      const options = Object.freeze(originalSdkCallOptions(generation, prompt as unknown as SdkOptions['prompt'], responseFormat,
+        'RegisteredSdkGenerationUnsupported', registeredSdk.providerOptions));
+      return {kind: 'ready', preparation: prepareRegisteredSdkLanguageModel({moon, admission,
+        selector: route.selector, modelId: route.modelId, apiMode: route.apiMode, endpoint: route.endpoint,
+        sdkProvider: registeredSdk.sdkProvider, createLanguageModel: registeredSdk.createLanguageModel,
+        options, verifyRequest: body => registeredSdk.verifyRequest(body, options),
+        maxRequestBytes, maxHeaderBytes, maxHeaders, signal, notify})};
+    },
+    cleanup() {
+      if (cursor !== undefined) {
+        moon.clientProgramRetireOpenAIChatProjection(cursor);
+        cursor = undefined;
+      }
+      terminal = true;
+      return true;
+    },
+  };
+  return createSdkStructuredModelPreflight({...port, moon, request, checked, notify,
+    preparationProgress}, admission, registeredSdk.readReportedUsage, registeredSdk.readReportedResponse);
+}
+
+function generationPlan(moon: ModelRuntime, request: unknown, bytes: bigint, quantities: NonNullable<PhysicalOptions['quantities']>, profile: unknown, installation: unknown, start: StartOriginal) {
+  return moon.clientProgramModelAsyncPhysicalRequestPlan(request, bytes,
+    quantities.tokens, quantities.costUnits, quantities.durationMs, profile, installation, start);
+}
+
+// Native membership/profile checking belongs to Common's dedicated builder.
+// No generation settings, decoded SDK facts, startup funding or new Entry
+// issuer are introduced. This callback runs during preflight, never between
+// the existing final one-shot gate and its fixed physical transport.
+export function createSdkNativeDecisionPreflight(options: PhysicalOptions, original: unknown, provider: unknown, probability: unknown) {
+  if (typeof options?.moon?.clientProgramModelAsyncNativeDecisionRequestPlan !== 'function' ||
+      typeof options?.moon?.clientProgramModelPhysicalSavedNativeDecision !== 'function' ||
+      original === undefined || provider === undefined || probability === undefined) {
+    throw new TypeError('NativeDecisionPhysicalRuntimeUnavailable');
+  }
+  return createSdkPhysicalPreflight(options, (moon, request, bytes, quantities, profile, installation, start) =>
+    moon.clientProgramModelAsyncNativeDecisionRequestPlan!(request, original, provider,
+      bytes, quantities.tokens, quantities.costUnits, quantities.durationMs, profile,
+      installation, probability, start), (moon, response, checked) =>
+      checked(moon.clientProgramModelPhysicalSavedNativeDecision!(response,
+        original, provider, probability)), 'sdk');
+}
+
+function createSdkPhysicalPreflight({moon, request, preparation, profile,
+  installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
+  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder, needsCredential = false}: PhysicalOptions,
+  preparePlan: PreparePlan | undefined, selectSaved: SelectSaved | undefined,
+  responseMode: 'sdk' | 'raw-only' | 'saved-sdk', readReportedUsage?: ReportedUsage,
+  readReportedResponse?: ReportedResponse) {
+  const deferredRaw = rawCaptureBinder !== undefined;
+  const structured = responseMode === 'saved-sdk';
+  if (typeof fetch !== 'function' || needsCredential && !deferredRaw ||
+      (deferredRaw ? typeof rawCaptureBinder !== 'function' ||
+        persistRaw !== undefined || cleanupRaw !== undefined ||
+        preparation !== undefined || preparationProgress === undefined
+        : typeof persistRaw !== 'function' || typeof cleanupRaw !== 'function') ||
+      typeof notify !== 'function' || typeof checked !== 'function' ||
+      typeof observeAt !== 'function' ||
+      preparationProgress !== undefined && (preparation !== undefined ||
+        typeof preparationProgress?.advance !== 'function' ||
+        typeof preparationProgress?.cleanup !== 'function')) {
+    throw new TypeError('InvalidSdkModelPort');
+  }
+  let plan: unknown;
+  let call: unknown;
+  let response: unknown;
+  let selectedResponse: unknown;
+  let saving: Promise<void> | undefined;
+  let reconciling: Promise<SavedRaw> | undefined;
+  let reconciliationPending = false;
+  let reconciled: unknown;
+  let saveStarted = false;
+  let failure: unknown;
+  let startUnknown = false;
+  let preparationTerminal = false;
+  let retired = false;
+  let rawBound = !deferredRaw;
+  const wake = () => {
+    try { notify!(); } catch { /* Wake is not execution or persistence evidence. */ }
+  };
+  const readDecoded: ReadDecoded | undefined = structured ? (original, receipt, bytes) => {
+    if (retired || original !== call || pollSdkDecode(preparation).kind !== 'ready') {
+      return undefined;
+    }
+    const decoded = takeSavedSdkDecodedResult(preparation, receipt, bytes) as {
+      content: unknown; finishReason?: {unified: unknown}; response?: {body?: unknown};
+    };
+    const content = decoded.content;
+    // Only the same SDK invocation's confirmed Raw supplies observations.
+    // The SDK's normalized usage/model/request defaults are not evidence.
+    const raw = decoded.response?.body;
+    const usage = readReportedUsage?.(raw);
+    const report = readReportedResponse?.(raw);
+    const finish = report?.outcome ?? decoded.finishReason?.unified ?? 'unknown';
+    const text = finish === 'stop' && Array.isArray(content) && content.length === 1 &&
+      content[0]?.type === 'text' && typeof content[0].text === 'string' ? content[0].text : undefined;
+    const reportedText = (value: unknown) => typeof value === 'string' && value.length > 0 && value.length <= 256
+      ? value : undefined;
+    return runtimeTupleFromFields({
+      0: text, 1: finish, 2: usage?.inputTokens, 3: usage?.outputTokens,
+      4: reportedText(report?.model), 5: reportedText(report?.requestId),
+      6: reportedText(report?.finishReason), 7: text !== undefined,
+      8: reportedText(report?.metadataName), 9: reportedText(report?.metadataValue),
+    });
+  } : undefined;
+  const pollResponse = () => {
+    // Only the unused SDK projection is dropped. Saved/raw observations and
+    // the same Store/Entry cleanup obligation remain owned independently.
+    if (!structured && !retired && preparation !== undefined) retireSdkDecodedResult(preparation);
+    if (response !== undefined && failure === undefined && !startUnknown) {
+      try {
+        if (selectedResponse !== undefined) return selectedResponse;
+        if (structured) {
+          const decoded = pollSdkDecode(preparation);
+          if (decoded.kind === 'pending') return moon.clientProgramModelPhysicalPending();
+          selectedResponse = checked!((moon as StructuredRuntime).clientProgramModelPhysicalSavedStructured(
+            call, (response as SavedRaw).receipt, (response as SavedRaw).bytes));
+        } else {
+          selectedResponse = selectSaved!(moon, response, checked!);
+        }
+        return selectedResponse;
+      }
+      catch (error) {
+        // Late binding loss does not erase saved raw custody or recreate Entry.
+        // Retain the primary failure and let the original Model hold Unknown.
+        failure = error;
+      }
+    }
+    if (failure !== undefined || startUnknown) return moon.clientProgramModelPhysicalUnknown();
+    if (retired) {
+      throw Object.assign(new TypeError('ForeignSdkPreparation'), {code: 'ForeignSdkPreparation'});
+    }
+    const observed = pollSdkTransport(preparation);
+    const raw = sdkTransportRawObservation(preparation);
+    if (raw !== undefined && !saveStarted) {
+      saveStarted = true;
+      // The installed persistence port must use this exact original call and
+      // raw backing, reconfirm Store bytes, and return its nominal saved view.
+      // No SDK decoded defaults supply Common's answer or usage observations.
+      saving = Promise.resolve().then(() => structured
+        ? persistRaw!(call, raw, true) : persistRaw!(call, raw)).then(saved => {
+        if (structured) {
+          confirmSavedSdkTransportResponse(preparation, raw, saved);
+          response = saved;
+        } else {
+          response = saved.response;
+          if (response === undefined) throw new TypeError('MissingSavedRawChat');
+        }
+      }).catch(error => {
+        failure = error;
+      }).finally(() => { saving = undefined; wake(); });
+    }
+    if (saveStarted) return moon.clientProgramModelPhysicalPending();
+    return observed.kind === 'unknown'
+      ? moon.clientProgramModelPhysicalUnknown()
+      : moon.clientProgramModelPhysicalPending();
+  };
+  const poll = () => {
+    let io;
+    if (!retired && preparation !== undefined) {
+      try { io = progressSdkOriginalIoCleanup(preparation); }
+      catch { /* Neither failure nor cancellation is a quiescence ACK. */ }
+    }
+    const observed = pollResponse();
+    // Only a selected original transport with an actual cleanup port reports
+    // the separate fact. Legacy decoded/native transports stay unchanged.
+    // SDK true is DATA: the same Common callback still checks Call/Entry/Plan/
+    // attempt/reservation before admitting its own internal nominal observation.
+    if ((responseMode === 'raw-only' || structured) && io !== undefined &&
+        typeof moon.clientProgramModelPhysicalIoObservation === 'function') {
+      return moon.clientProgramModelPhysicalIoObservation(call, io === true, observed);
+    }
+    return observed;
+  };
+  const cancel = () => {
+    if (retired) {
+      throw Object.assign(new TypeError('ForeignSdkPreparation'), {code: 'ForeignSdkPreparation'});
+    }
+    if (preparation !== undefined) cancelSdkPreparation(preparation);
+  };
+  const cleanup = () => {
+    if (retired) return true;
+    if (preparation !== undefined) retireSdkDecodedResult(preparation);
+    if (preparation !== undefined) {
+      try { progressSdkOriginalIoCleanup(preparation); }
+      catch { /* Full original cleanup must still settle this duty. */ }
+    }
+    if (saving !== undefined || reconciliationPending) return false;
+    // Every attempted raw save retains its original port until cleanup,
+    // including a successful save's local aliases. This does not erase the
+    // parent's durable receipt/custody. Failed commit/cleanup stays pending.
+    if (saveStarted || failure !== undefined || deferredRaw && rawBound) {
+      try {
+        if (cleanupRaw!(call) !== true) return false;
+      } catch { return false; }
+    }
+    if (preparation !== undefined && !cleanupSdkPreparation(preparation)) return false;
+    if (preparationProgress !== undefined) {
+      try { if (preparationProgress.cleanup() !== true) return false; }
+      catch { return false; }
+    }
+    response = undefined;
+    selectedResponse = undefined;
+    reconciled = undefined;
+    reconciling = undefined;
+    call = undefined;
+    plan = undefined;
+    // Escaped preflight/call closures must not keep the factory's original
+    // input or installed callbacks after both original owners acknowledge
+    // cleanup. Pending/failed cleanup retains them unchanged for retry.
+    // Escaped immutable views and the primary failure retain their own
+    // responsibility; clearing these aliases does not mutate those originals.
+    request = undefined;
+    preparation = undefined;
+    preparationProgress = undefined;
+    profile = undefined;
+    installation = undefined;
+    quantities = undefined;
+    fetch = undefined;
+    responseLimits = undefined;
+    persistRaw = undefined;
+    notify = undefined;
+    checked = undefined;
+    observeAt = undefined;
+    cleanupRaw = undefined;
+    preparePlan = undefined;
+    selectSaved = undefined;
+    readReportedUsage = undefined;
+    readReportedResponse = undefined;
+    retired = true;
+    return true;
+  };
+  const start = (entry: unknown) => {
+    // Missing installation custody is not send permission. Core keeps an
+    // already entered attempt's unknown responsibility when no call starts.
+    // This is a local data check, with no callback or await at the final gate.
+    if (retired || call !== undefined || startUnknown) return undefined;
+    if (!rawBound) { startUnknown = true; return undefined; }
+    call = moon.clientProgramModelPhysicalCallForRequest(entry, request, poll, cancel, cleanup);
+    if (call === undefined) { startUnknown = true; return undefined; }
+    // Exact fixed transport only, immediately after Common's final gate. No
+    // await, notification, user callback or request rebuilding occurs here.
+    try { startSdkTransport(preparation); }
+    catch { startUnknown = true; }
+    return call;
+  };
+  const advance = (): [boolean, unknown] => {
+    if (retired) return [true, undefined];
+    if (plan !== undefined) return [true, plan];
+    if (preparationTerminal) return [true, undefined];
+    if (preparation===undefined && preparationProgress!==undefined) {
+      try {
+        const projected=preparationProgress.advance();
+        if (projected.kind==='pending') return [false,undefined];
+        if (projected.kind!=='ready' || projected.preparation===undefined) {
+          preparationTerminal=true;
+          return [true,undefined];
+        }
+        preparation=projected.preparation;
+      } catch {
+        preparationTerminal=true;
+        return [true,undefined];
+      }
+      // SDK async readiness is a later advance, never another Common poll in
+      // this same bounded physical-preflight transition.
+      return [false,undefined];
+    }
+    const preparationState = pollSdkPreparation(preparation);
+    if (preparationState.kind === 'pending') return [false, undefined];
+    if (preparationState.kind !== 'ready') return [true, undefined];
+    const original = sdkPreparedRequest(preparation);
+    // Freeze fetch/init/bounds before Common consumes its one-shot Entry.
+    preparationTerminal = true;
+    try {
+      prepareSdkTransport(preparation, {fetch, responseLimits, observeAt, responseMode} as TransportOptions);
+      if ((responseMode === 'raw-only' || structured) && sdkOriginalIoObservationAvailable(preparation) &&
+          typeof moon.clientProgramModelPhysicalIoObservation !== 'function') {
+        throw new TypeError('OriginalSdkPhysicalIoObservationUnavailable');
+      }
+      plan = checked!(preparePlan!(moon, request, BigInt(original!.requestBytes),
+        quantities!, profile, installation, start, readDecoded));
+    } catch { return [true, undefined]; }
+    return [true, plan];
+  };
+  if (deferredRaw) {
+    // The same original operation retains this private binder before its
+    // Common preflight cursor is issued. Only its installed continuation
+    // supplies the actual Store port after nominal raw registration.
+    const bindRaw = (registration: unknown, persistence: BoundPersistence) => {
+      if (retired || rawBound || registration === undefined ||
+          typeof persistence !== 'function' || typeof persistence.cleanup !== 'function') {
+        throw new TypeError('OriginalSdkRawBindingUnavailable');
+      }
+      persistRaw = persistence;
+      cleanupRaw = persistence.cleanup;
+      rawBound = true;
+    };
+    const bound = needsCredential ? rawCaptureBinder!(bindRaw, () => {
+      if (retired || plan === undefined || preparation === undefined) {
+        throw new TypeError('OpenAIProjectCredentialPreparationUnavailable');
+      }
+      bindSdkTransportCredential(preparation);
+    }) : rawCaptureBinder!(bindRaw);
+    if (bound !== undefined) throw new TypeError('OriginalSdkRawBinderUnavailable');
+    rawCaptureBinder = undefined;
+  }
+  // The pinned MoonBit JS tuple ABI is a field record, not a JS Array.
+  const preflight = moon.clientProgramModelRequestPreflight(() => {
+    const [terminal, physicalPlan] = advance();
+    return runtimePair(terminal, physicalPlan);
+  }, cleanup);
+  return Object.freeze({preflight,
+    reconcileRaw(original: unknown) {
+      // An explicit parent request only. Reuse the same observed transport
+      // backing and persistence port, never re-enter the physical operation.
+      // The saved view is returned for Common's reconciliation/usage reader;
+      // it does not replace a terminal Unknown or issue answer/send authority.
+      if (retired || call === undefined || original !== call ||
+          !saveStarted || failure === undefined || saving !== undefined) {
+        return Promise.reject(new TypeError('OriginalRawReconciliationUnavailable'));
+      }
+      if (reconciling !== undefined) return reconciling;
+      const raw = sdkTransportRawObservation(preparation);
+      if (raw === undefined) {
+        return Promise.reject(new TypeError('MissingOriginalRawObservation'));
+      }
+      // This private initial physical shape owns one stable reconfirmation
+      // Promise/view, including failure. Further recovery requires an explicit
+      // owner-funded token/lifetime; it is not a language-level retry ban.
+      reconciliationPending = true;
+      reconciling = Promise.resolve().then(() => structured
+        ? persistRaw!(call, raw, true) : persistRaw!(call, raw))
+        .then(saved => {
+          if (structured) return saved;
+          if (saved?.response === undefined) throw new TypeError('MissingSavedRawChat');
+          reconciled = saved.response;
+          return saved;
+        }).finally(() => { reconciliationPending = false; wake(); });
+      return reconciling;
+    },
+    readReconciledUsage(original: unknown, quantum: number) {
+      if (retired || original !== call || reconciled === undefined ||
+          !Number.isInteger(quantum) || quantum < 1 || quantum > 2_147_483_647) {
+        throw new TypeError('OriginalRawUsageUnavailable');
+      }
+      return checked!(moon.clientProgramReadReconciledInferRawUsage(
+        original, reconciled, quantum));
+    },
+    // Private retained responsibility for the parent owner, never a public
+    // success/result or authority. A failed save is not automatically retried.
+    rawFailure: () => failure,
+  });
+}

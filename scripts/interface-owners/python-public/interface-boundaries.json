@@ -6732,15 +6732,12 @@
         "ClientError",
         "Observation",
         "asyncio",
-        "decode_json",
         "inspect",
-        "retained_value_bytes",
         "snapshot",
         "thaw",
         "tighter",
         "uuid",
-        "wire",
-        "wire_bytes"
+        "wire"
       ],
       "imports": [
         ".",
@@ -6923,20 +6920,6 @@
         },
         {
           "async": false,
-          "name": "retained_value_bytes",
-          "parameters": [
-            "value"
-          ]
-        },
-        {
-          "async": false,
-          "name": "retained_value_bytes/visit",
-          "parameters": [
-            "item"
-          ]
-        },
-        {
-          "async": false,
           "name": "tighter",
           "parameters": [
             "value",
@@ -6944,7 +6927,7 @@
           ]
         }
       ],
-      "sha256": "0cfd765463224b61d37f3a1bc6aaf56e8b3ca3e06aa8f7d7f22b214cd1d40699",
+      "sha256": "acc9115dc61dea9b3c6a4b52c689e9276a4b9a01722212bc1b45b887aabbd11d",
       "role": "physical-io",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -6971,8 +6954,6 @@
             "AsyncResult/delivery_attempt",
             "AsyncResult/rows",
             "_row_validator",
-            "retained_value_bytes",
-            "retained_value_bytes/visit",
             "tighter"
           ],
           "exports": [
@@ -6981,15 +6962,12 @@
             "ClientError",
             "Observation",
             "asyncio",
-            "decode_json",
             "inspect",
-            "retained_value_bytes",
             "snapshot",
             "thaw",
             "tighter",
             "uuid",
-            "wire",
-            "wire_bytes"
+            "wire"
           ],
           "attributes": {
             "responsibility": [
@@ -9342,8 +9320,8 @@
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -9360,7 +9338,7 @@
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -9396,7 +9374,7 @@
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -9588,8 +9566,8 @@
                 "anchor": "The physical index belongs to this same Journal and transaction owner."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
               }
             ],
             "synchronization": [
@@ -9598,7 +9576,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
@@ -9628,7 +9606,7 @@
                 "anchor": "Names have finite admission capacity under the existing Journal limit."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               }
             ],
@@ -9688,6 +9666,7 @@
         "._errors",
         "collections.abc",
         "hashlib",
+        "itertools",
         "json",
         "math",
         "rfc8785",
@@ -9750,6 +9729,60 @@
         },
         {
           "async": false,
+          "name": "_admit_value",
+          "parameters": [
+            "value",
+            "max_nodes",
+            "max_depth",
+            "measure_fresh"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_admit_value/visit",
+          "parameters": [
+            "item",
+            "depth"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_decode_json",
+          "parameters": [
+            "raw",
+            "measure_fresh"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_decode_json/bad_constant",
+          "parameters": [
+            "_"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_decode_json/integer",
+          "parameters": [
+            "text"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_decode_json/object_pairs",
+          "parameters": [
+            "pairs"
+          ]
+        },
+        {
+          "async": false,
+          "name": "_decode_result_value",
+          "parameters": [
+            "raw"
+          ]
+        },
+        {
+          "async": false,
           "name": "bytes_cid",
           "parameters": [
             "value"
@@ -9787,27 +9820,6 @@
         },
         {
           "async": false,
-          "name": "decode_json/bad_constant",
-          "parameters": [
-            "_"
-          ]
-        },
-        {
-          "async": false,
-          "name": "decode_json/integer",
-          "parameters": [
-            "text"
-          ]
-        },
-        {
-          "async": false,
-          "name": "decode_json/object_pairs",
-          "parameters": [
-            "pairs"
-          ]
-        },
-        {
-          "async": false,
           "name": "freeze",
           "parameters": [
             "value"
@@ -9820,14 +9832,6 @@
             "value",
             "max_nodes",
             "max_depth"
-          ]
-        },
-        {
-          "async": false,
-          "name": "snapshot/visit",
-          "parameters": [
-            "item",
-            "depth"
           ]
         },
         {
@@ -9852,7 +9856,7 @@
           ]
         }
       ],
-      "sha256": "5227615025c4bb048dd186f45934f1772db151cee28dca89216db66bb497c061",
+      "sha256": "ccea7500892ea29a5e2b619d6275c500011e59684c502825b26d04709a623e6c",
       "role": "public-wire-codec",
       "owner": "existing public Python Client / wire / reader boundary",
       "rationale": "Existing same Client, immutable original values or wire DTO facade; local lifetime and Unknown remain separate from Host execution, permission and durable cleanup.",
@@ -9860,6 +9864,13 @@
         {
           "operations": [
             "<module>",
+            "_admit_value",
+            "_admit_value/visit",
+            "_decode_json",
+            "_decode_json/bad_constant",
+            "_decode_json/integer",
+            "_decode_json/object_pairs",
+            "_decode_result_value",
             "Observation",
             "Observation/__getitem__",
             "Observation/__init__",
@@ -9871,12 +9882,8 @@
             "canonical_bytes/keys",
             "content_cid",
             "decode_json",
-            "decode_json/bad_constant",
-            "decode_json/integer",
-            "decode_json/object_pairs",
             "freeze",
             "snapshot",
-            "snapshot/visit",
             "thaw",
             "wire_bytes",
             "wire_bytes/encode"
@@ -9998,6 +10005,10 @@
               {
                 "path": "packages/python-sdk/tests/test_boundaries.py",
                 "anchor": "test_long_digit_object_key_survives_original_row_reader"
+              },
+              {
+                "path": "packages/python-sdk/tests/test_result_schema.py",
+                "anchor": "test_fresh_row_retention_uses_canonical_extent_and_original_members"
               }
             ]
           }

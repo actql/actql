@@ -29,7 +29,7 @@ process.exitCode=await runLocalCheck({root,heavy:false,timeoutSeconds:180,graceS
   {name:'actual compiled conversion and action counterexamples',command:process.execPath,args:[
     '--input-type=module','-e',
     "import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('node',"+
-    "['scripts/js-compiler-binding-runtime.test.mjs','scripts/js-action-binding-runtime.test.mjs',"+
+    "['scripts/js-compiler-binding-generation.test.mjs','scripts/js-compiler-binding-runtime.test.mjs','scripts/js-action-binding-runtime.test.mjs',"+
     "'packages/run-host-core/reference-options.test.mjs',"+
     "'adapters/host-common/publication-action.test.mjs','adapters/host-common/strategy-actions.test.mjs'],"+
     "{cwd:process.cwd(),timeout:30000,killSignal:'SIGTERM'});",

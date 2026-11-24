@@ -40,7 +40,7 @@ test('supplemental OutputName controls are registered in the existing Graph MATC
 
 test('standalone acceptance installs every directly imported root fixture', () => {
   const acceptance = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const installer = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const installer = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   const installed = new Set([...installer.matchAll(
     /\['scripts\/fixtures\/[^']+',\s*'([^']+)'\]/gu,
   )].map(match => match[1]));
@@ -54,7 +54,7 @@ test('standalone acceptance installs every directly imported root fixture', () =
 });
 
 test('standalone copied acceptance has a closed relative module graph', async () => {
-  const installer = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const installer = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   const copies = [...installer.matchAll(
     /\['(scripts\/fixtures\/[^']+)',\s*'([^']+)'\]/gu,
   )].map(match => [match[1], match[2]]);

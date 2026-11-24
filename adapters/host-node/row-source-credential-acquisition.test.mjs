@@ -243,6 +243,14 @@ test('run acquisition custody has no implicit capacity or current certificate', 
       openCredentialJournal() { opens++; assert.fail('No Journal before capacity validation'); }}),
     {code: 'InvalidRowSourceCredentialAcquisitionLimits'});
   }
+  for (const presentation of [{secretPresentation: 'Bearer'}, {secretPresentation: null},
+    {get secretPresentation() {assert.fail('Presentation getter');}}]) {
+    const options = {...f.args,
+      openCredentialJournal() {opens++; assert.fail('No Journal before presentation validation');}};
+    Object.defineProperty(options, 'secretPresentation',
+      Object.getOwnPropertyDescriptor(presentation, 'secretPresentation'));
+    assert.throws(() => openRowSourceCredentialCustody(options), {code: 'InvalidRowSourceSecretPresentation'});
+  }
   assert.equal(opens, 0); assert.equal(f.counts().accepts, 0);
 });
 

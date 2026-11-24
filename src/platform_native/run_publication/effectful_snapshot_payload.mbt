@@ -102,18 +102,13 @@ pub fn persist_effectful_result_snapshot_native(
     Err(issue) => return Err(cancel_writer_after_store_failure(writer, issue))
   }
   let binding = match
-    @publication.issue_durable_result_binding_from_snapshot(
+    bind_sealed_effectful_result_snapshot_native(
       snapshot,
-      context.run_definition,
-      context.invocation,
+      context,
       ordering,
-      context.retention,
-      codec_contract_cid,
       result_schema_wire,
-      payload.material_generation_cid,
-      context.store_authority_cid,
-      payload.generation.size.to_int(),
-      payload.physical_digest[7:].to_owned(),
+      codec_contract_cid,
+      payload,
       max_wire_bytes,
       max_nodes,
       max_depth,
@@ -130,4 +125,58 @@ pub fn persist_effectful_result_snapshot_native(
       )
   }
   Ok({ binding, binding_schema_wire: result_schema_wire, payload, })
+}
+
+///|
+/// Bind the same sealed output from either the writer's return or a retained
+/// Store observation. This never opens a writer or serializes the snapshot.
+pub fn bind_sealed_effectful_result_snapshot_native(
+  snapshot : @publication.CapturedResultSnapshot,
+  context : NativeEffectfulSnapshotOutputContext,
+  ordering : @publication.PublicationContract,
+  result_schema_wire : String,
+  codec_contract_cid : String,
+  payload : @store.NativePublicationPayloadInfo,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  schema_original? : @publication.CapturedEffectDependencyBody? = None,
+) -> Result[
+  @publication.PublicationContract,
+  @publication.DurableResultBindingIssue,
+] {
+  let (definition, logical, schema, rows, bytes) = @publication.captured_result_snapshot_payload_identity(
+    snapshot,
+  )
+  if payload.material_generation_cid != context.material_generation_cid ||
+    payload.publication_attempt_cid !=
+    @publication.publication_contract_identity(context.publication_attempt) ||
+    payload.result_definition_cid != definition ||
+    payload.logical_relation_cid != logical ||
+    payload.result_schema_cid != schema ||
+    payload.ordering_evidence_cid !=
+    @publication.publication_contract_identity(ordering) ||
+    payload.durable_codec_cid != codec_contract_cid ||
+    payload.row_count != rows.to_int64() ||
+    payload.generation.size != bytes.to_int64() ||
+    !payload.physical_digest.has_prefix("sha256:") {
+    return Err(@publication.DurableBindingInvalidPhysicalIdentity)
+  }
+  @publication.issue_durable_result_binding_from_snapshot(
+    snapshot,
+    context.run_definition,
+    context.invocation,
+    ordering,
+    context.retention,
+    codec_contract_cid,
+    result_schema_wire,
+    payload.material_generation_cid,
+    context.store_authority_cid,
+    bytes,
+    payload.physical_digest[7:].to_owned(),
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    schema_original~,
+  )
 }

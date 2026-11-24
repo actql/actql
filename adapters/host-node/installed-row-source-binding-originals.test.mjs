@@ -2,14 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
-import {types as nodeTypes} from 'node:util';
 import {parse} from 'acorn';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
-import {checked} from '../host-common/runtime-result.mjs';
-import {checkpointApprovalFacts} from '../host-common/checkpoint-approval.mjs';
-import {validInstallationBinding} from './ordinary-source-binding.mjs';
+import {prepareImmutablePhysicalTargets} from './installed-row-source-targets.mjs';
+import {createInstalledRowSourceReadAuthority} from './installed-row-source-read-authority.mjs';
 
-// Exact original binding/current/close statements with explicit Core/Account
+// The original read authority and enclosing setup/close use explicit Core/Account
 // ports. These counts are completed calls and real canonical SHA work at this
 // boundary, not Common admission, provider I/O or public latency evidence.
 const source = await readFile(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
@@ -29,33 +27,33 @@ function nodes(root, matches) {
   visit(root);return found;
 }
 function one(root, matches) {const found = nodes(root, matches);assert.equal(found.length, 1);return found[0];}
-const functionBody = name => slice(one(ast, node => node.type === 'FunctionDeclaration' && node.id?.name === name));
-const variable = name => 'const ' + slice(one(create, node => node.type === 'VariableDeclarator' && node.id?.name === name)) + ';';
 const setupIndex = create.body.body.findIndex(node => node.declarations?.some(value => value.id.name === 'immutableTargets'));
 assert(setupIndex >= 0);
 const setup = create.body.body.slice(setupIndex, setupIndex + 3).map(slice).join('\n');
 assert.match(setup, /physicalTarget = immutableTargets.prepare/u);
 assert.match(setup, /let physicalTargetGeneration/u);
-const ownerInsertion = slice(one(create, node => node.type === 'CallExpression' &&
+const preparation = await readFile(new URL('./installed-row-source-preparation.mjs', import.meta.url), 'utf8');
+const preparationAst = parse(preparation, {ecmaVersion: 'latest', sourceType: 'module'});
+const ownerRecord = one(preparationAst, node => node.type === 'CallExpression' &&
   node.callee.type === 'MemberExpression' && node.callee.object.name === 'preparations' && node.callee.property.name === 'set' &&
   node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'checkedOwner') &&
-  !node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'retainedOnly'))) + ';';
+  !node.arguments[1]?.arguments?.[0]?.properties?.some(property => property.key?.name === 'retainedOnly'));
+const ownerInsertion = preparation.slice(ownerRecord.start, ownerRecord.end) + ';';
 const sourceBody = one(create, node => node.type === 'VariableDeclarator' && node.id?.name === 'sourceBody');
 assert.equal(sourceBody.init.type, 'ObjectExpression');
 const close = sourceBody.init.properties.find(node => node.key?.name === 'close');assert(close);
-const compile = new Function('physicalTarget', 'ports', 'nodeTypes', 'checked', 'validInstallationBinding',
-  'checkpointApprovalFacts', 'canonicalJson', 'createHash', `
+const compile = new Function('physicalTarget', 'ports', 'prepareImmutablePhysicalTargets', 'createInstalledRowSourceReadAuthority',
+  'canonicalJson', 'createHash', `
 const counts={bindingGenerations:0,bindingHashes:0,subjectHashes:0,targetReads:0,authorizations:0,completedChecks:0,
  readerRetirements:0,siteCloses:0,constructionCloses:0};
 const fail=code=>{throw Object.assign(new Error(code),{code});};
-const text=value=>typeof value==='string'&&value.length>0;
 const cidPattern=/^sha256:[0-9a-f]{64}$/u;
 const valueCid=value=>{counts.bindingHashes++;return 'sha256:'+createHash('sha256').update(canonicalJson(value,{dataKeys:true})).digest('hex');};
 const cid=value=>{counts.subjectHashes++;return 'sha256:'+createHash('sha256').update(canonicalJson(value)).digest('hex');};
-${functionBody('prepareImmutablePhysicalTargets')}
 ${setup}
 const originalTarget=physicalTarget;
 physicalTarget=(resource,fields)=>{counts.bindingGenerations++;return originalTarget(resource,fields);};
+const currentPhysicalTargetGeneration=()=>physicalTargetGeneration;
 const declaration={},requirement={},acquisition={},preparations=new WeakMap();
 const installationBinding=Object.freeze({connectorId:'original',connectorRegistration:'fixture',
  connectorRevision:'fixture/0.1',bindingCid:'sha256:'+'a'.repeat(64)});
@@ -70,10 +68,9 @@ const directReadIdentity=undefined;
 const moon={clientProgramRowSourceTarget(actual,selected){assert.equal(actual,declaration);assert.equal(selected,requirement);
  counts.targetReads++;return {$tag:1,_0:[state.resource,...state.fields]};},
  clientProgramWholeSourceTarget(actual){assert.equal(actual,acquisition);counts.targetReads++;return [state.resource,...state.fields];}};
-${functionBody('ordinaryRecoveryBinding')}
-${variable('ordinarySubject')}
-${variable('decideRead')}
-${variable('currentRead')}
+const {ordinaryRecoveryBinding,currentRead}=createInstalledRowSourceReadAuthority({
+ preparations,installationBinding,immutableTargets,currentPhysicalTargetGeneration:()=>physicalTargetGeneration,
+ moon,declaration,site,physicalTarget,directReadIdentity,valueCid,cid,cidPattern});
 function initial(){
  const resource=state.resource,fields=[...state.fields],access=sourceAccess,wholeInput=state.wholeInput;
  const checkedOwner={},effectful=false,occurrence=Object.freeze({stage:0,input:0,task:0});
@@ -90,7 +87,7 @@ const sourceInitialization=ports.sourceInitialization?{}:undefined;
 let constructionClosed=false,acquisitionContracts={};
 function closeInstalledSourceConstruction(actual,owner){assert.equal(actual,sourceInitialization);assert.equal(owner,installedSource);counts.constructionCloses++;}
 const installedSource=Object.freeze({${slice(close)}});
-return {inventoryOriginal:immutableTargets?.inventory,initial,state,site,counts,ordinaryRecoveryBinding,close:()=>installedSource.close(),
+return {initial,state,site,counts,ordinaryRecoveryBinding,close:()=>installedSource.close(),
  async verify(prepared,signal){const result=await currentRead(prepared,sourceAccess,signal);counts.completedChecks++;return result;}};
 `.replaceAll('assert.', 'ports.assert.'));
 
@@ -102,8 +99,8 @@ const targetData = Object.freeze({connectorRegistration: 'fixture', connectorRev
 const inventory = () => Object.freeze([targetData]);
 const legacyTarget = (resource, fields) => Object.freeze({...targetData, resource, fields: Object.freeze([...fields])});
 function fixture(input = inventory(), ports = {}) {
-  return compile(input, {...ports, assert}, nodeTypes, checked, validInstallationBinding,
-    checkpointApprovalFacts, canonicalJson, createHash);
+  return compile(input, {...ports, assert}, prepareImmutablePhysicalTargets,
+    createInstalledRowSourceReadAuthority, canonicalJson, createHash);
 }
 
 test('standard target snapshot retains complete original wire/CID and ordered fields', async () => {
@@ -203,14 +200,16 @@ test('immutable target constructor refuses mutable/accessor/proxy and malformed 
     Object.freeze([Object.freeze({...targetData, fields: Object.freeze(['id', 'id'])})]),
     Object.freeze([targetData, targetData]), Object.freeze([Object.freeze({...targetData, extra: {}})]),
     new Proxy(inventory(), {ownKeys() {accesses++;throw new Error('must not enumerate');}})];
-  for (const input of bad) assert.throws(() => fixture(input), {code: 'InstalledSourcePreparationMismatch'});
+  for (const input of bad) assert.throws(() => prepareImmutablePhysicalTargets(input),
+    {code: 'InstalledSourcePreparationMismatch'});
   assert.equal(accesses, 0);
 });
 
 
 test('immutable target selection borrows the same Source inventory without a second retained snapshot',()=>{
-  const input=inventory(),f=fixture(input);
-  assert.equal(f.inventoryOriginal,input);assert.equal(f.inventoryOriginal[0],targetData);
-  assert.equal(f.inventoryOriginal[0].fields,targetData.fields);
-  const prepared=f.initial();assert.deepEqual(prepared.physicalBinding.fields,['id','score']);
+  const input = inventory(), selection = prepareImmutablePhysicalTargets(input);
+  assert.equal(selection.inventory, input);
+  assert.equal(selection.inventory[0], targetData);
+  assert.equal(selection.inventory[0].fields, targetData.fields);
+  assert.deepEqual(selection.prepare('records', ['id', 'score']).fields, ['id', 'score']);
 });

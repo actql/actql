@@ -428,7 +428,9 @@ jobs:
               selected = [('sqlite.zip', sqlite), ('libssl-dev.deb', target['package']), ('libssl3t64.deb', target['license']['package'])]
               assert (selected[1][1]['bytes'], selected[1][1]['sha256']) == (2408684, '2b4734df0475e305ac03abb0a2cc5659651ed37ef02d967a1c4033a154cf714b')
               assert (selected[2][1]['bytes'], selected[2][1]['sha256']) == (1945300, '219f43b1cd836a4da550938db5fda93160d269d39a4edcf1f1ce698a470db797')
-              assert all(item['url'].startswith('https://security.ubuntu.com/ubuntu/pool/main/o/openssl/') for _, item in selected[1:])
+              snapshot = 'https://snapshot.ubuntu.com/ubuntu/20261101T000000Z/pool/main/o/openssl/'
+              for _, item in selected[1:]:
+                  assert item['url'] == snapshot + f"{item['name']}_{item['version']}_{item['architecture']}.deb"
           else:
               assert platform == 'darwin-arm64'
               openssl = crypto['upstream']

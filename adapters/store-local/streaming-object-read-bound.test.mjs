@@ -1,18 +1,24 @@
 import assert from 'node:assert/strict';
-import {createHash} from 'node:crypto';
+import crypto, {createHash} from 'node:crypto';
 import {constants} from 'node:fs';
-import {lstat, mkdtemp, open, readFile, rm, unlink, writeFile} from 'node:fs/promises';
+import fs, {lstat, mkdtemp, open, readFile, rm, unlink, writeFile} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {execFileSync} from 'node:child_process';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 
-// Run the real private verifier with controlled FileHandle timing. The
-// separate physical Store fixtures execute its actual filesystem callers.
-const current = await readFile(new URL('./publication-store.mjs', import.meta.url),
-  'utf8');
-function functionBody(source) {
+import {physicalContentReadWindowBytes} from './publication-store.mjs';
+import {createPublicationObjectVerifier} from './publication-object-verifier.mjs';
+
+const verifierModule = new URL('./publication-object-verifier.mjs', import.meta.url).href;
+const originalCreateHash = createHash;
+const originalOpen = open;
+
+// Only the frozen baseline is evaluated from Source. Current tests use the
+// emitted verifier and intercept its actual Node built-in calls.
+function historicalBody(source) {
   const start = source.indexOf('  const verifyObject = async cid => {');
   const end = source.indexOf('\n  // One bounded metadata snapshot.', start);
   assert(start >= 0 && end > start);
@@ -23,7 +29,26 @@ const quantity = value => Number.isSafeInteger(value) && value >= 0;
 const state = changes => ({
   isFile: () => true, size: 4, dev: 1, ino: 2, mtimeMs: 3, ...changes,
 });
-function fixture(source = current, options = {}) {
+function verifierWithNodeHooks(path, configuration, readerDuties, hooks) {
+  const verify = createPublicationObjectVerifier(configuration, () => path, hooks.cidHex,
+    () => {}, readerDuties, physicalContentReadWindowBytes);
+  return async cid => {
+    const original = {lstat: fs.lstat, open: fs.open, createHash: crypto.createHash};
+    fs.lstat = (name, ...args) => name === path ? hooks.lstat(name, ...args) : original.lstat(name, ...args);
+    fs.open = (name, ...args) => name === path ? hooks.open(name, ...args) : original.open(name, ...args);
+    crypto.createHash = hooks.createHash;
+    syncBuiltinESMExports();
+    try { return await verify(cid); }
+    finally {
+      fs.lstat = original.lstat;
+      fs.open = original.open;
+      crypto.createHash = original.createHash;
+      syncBuiltinESMExports();
+    }
+  };
+}
+
+function fixture(source, options = {}) {
   let reads = 0, hashed = 0, closes = 0, retiredStreams = 0, createdStreams = 0;
   const chunks = (options.chunks ?? ['ab', 'cd']).map(chunk => Buffer.from(chunk));
   const destinations = [];
@@ -60,22 +85,26 @@ function fixture(source = current, options = {}) {
       if (options.closeFailure) throw options.closeFailure;
     },
   };
-  const verify = runInNewContext(`(() => {${functionBody(source)} return verifyObject;})()`, {
-    Buffer, constants, quantity, fail,
-    active() {}, activeSemanticReaders: new Set(),
-    configuration: {maxObjectBytes: options.maximum ?? 4},
-    objectPath: () => 'original-object',
+  const configuration = {maxObjectBytes: options.maximum ?? 4};
+  const readerDuties = new Set();
+  const hooks = {
     async lstat() { return state(options.path); },
     async open() { return handle; },
     createHash() {
-      const hash = createHash('sha256');
+      const hash = originalCreateHash('sha256');
       return {
         update(chunk) { hashed += chunk.byteLength; hash.update(chunk); },
         digest: encoding => hash.digest(encoding),
       };
     },
-    cidHex: () => createHash('sha256').update(options.expected ?? 'abcd').digest('hex'),
-  });
+    cidHex: () => originalCreateHash('sha256').update(options.expected ?? 'abcd').digest('hex'),
+  };
+  const verify = source === undefined ? verifierWithNodeHooks('original-object', configuration, readerDuties, hooks)
+    : runInNewContext(`(() => {${historicalBody(source)} return verifyObject;})()`, {
+      ...hooks, Buffer, constants, quantity, fail, configuration,
+      active() {}, activeSemanticReaders: readerDuties,
+      objectPath: () => 'original-object',
+    });
   return {verify, destinations, counts: () => ({
     reads, hashed, closes, retiredStreams, createdStreams,
   })};
@@ -162,9 +191,7 @@ test('original close failure propagates and is not verifier completion',
 async function physicalVerifier(t, change, {original = 'abcd', maxRead = Infinity,
   closeOutcomes = []} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-bounded-object-race-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
   const path = join(directory, 'original-object');
-  await writeFile(path, original);
   const maximum = Buffer.byteLength(original);
   let handle, hashed = 0, reads = 0, streams = 0, closes = 0;
   const destinations = [], readerDuties = new Set();
@@ -172,17 +199,17 @@ async function physicalVerifier(t, change, {original = 'abcd', maxRead = Infinit
   t.after(async () => {
     closeOutcomes.length = 0;
     if (handle !== undefined && handle.fd !== -1) await handle.close();
+    await rm(directory, {recursive: true, force: true});
   });
-  const verify = runInNewContext(`(() => {${functionBody(current)} return verifyObject;})()`, {
-    Buffer, constants, quantity, fail, configuration: {maxObjectBytes: maximum},
-    active() {}, activeSemanticReaders: readerDuties,
-    objectPath: () => path, lstat,
+  await writeFile(path, original);
+  const verify = verifierWithNodeHooks(path, {maxObjectBytes: maximum}, readerDuties, {
+    lstat,
     async open(value, flags) {
       if (change === 'fifo') {
         await unlink(path);
         execFileSync('mkfifo', [path]);
       }
-      handle = await open(value, flags);
+      handle = await originalOpen(value, flags);
       const read = handle.read, stream = handle.createReadStream, close = handle.close;
       handle.read = function(buffer, start, length, position) {
         reads++;
@@ -214,13 +241,13 @@ async function physicalVerifier(t, change, {original = 'abcd', maxRead = Infinit
       return handle;
     },
     createHash() {
-      const hash = createHash('sha256');
+      const hash = originalCreateHash('sha256');
       return {
         update(chunk) { hashed += chunk.byteLength; hash.update(chunk); },
         digest: encoding => hash.digest(encoding),
       };
     },
-    cidHex: () => createHash('sha256').update(original).digest('hex'),
+    cidHex: () => originalCreateHash('sha256').update(original).digest('hex'),
   });
   return {verify, closeFailure, destinations, readerDuties,
     hashed: () => hashed, fd: () => handle?.fd,
@@ -250,7 +277,7 @@ async function originalReadAllocations(action) {
   const sizes = [];
   Buffer.allocUnsafeSlow = function(length) {
     const result = Reflect.apply(original, Buffer, [length]);
-    if (new Error().stack.includes('verifyObject')) sizes.push(length);
+    if (new Error().stack.includes(verifierModule + ':')) sizes.push(length);
     return result;
   };
   try { await action(); }

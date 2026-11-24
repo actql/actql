@@ -13,9 +13,13 @@ import {
 // Values
 pub fn assemble_native_effect_free_publication(NativeEffectFreeRunContext, Array[NativePublishedOutput], Int, Int, Int, publication? : @client_local_host.ClientProgramPublication?) -> Result[NativeEffectFreePublicationEvidence, NativeRunPublicationAssemblyIssue]
 
+pub fn bind_sealed_effectful_result_snapshot_native(@actql/actql/run_publication.CapturedResultSnapshot, NativeEffectfulSnapshotOutputContext, @actql/actql/run_publication.PublicationContract, String, String, @publication_store.NativePublicationPayloadInfo, Int, Int, Int, schema_original? : @actql/actql/run_publication.CapturedEffectDependencyBody?) -> Result[@actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.DurableResultBindingIssue]
+
 pub fn commit_prepared_effect_free_run_publication_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation, capture? : @client_local_host.ClientProgramCapture?) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
-pub fn commit_prepared_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
+pub fn commit_prepared_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeEffectfulRunPublicationPreparation) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
+
+pub fn commit_recovered_effectful_index_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, @actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.PublicationContract, () -> Bool) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
 pub fn install_native_run_publication_authority((NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
 
@@ -31,13 +35,13 @@ pub fn prepare_captured_effect_free_run_publication_native(NativeRunPublicationS
 
 pub fn prepare_effect_free_run_publication_native(NativeRunPublicationService, @actql/actql/run_publication.PublicationContract, Array[@actql/actql/run_publication.PublicationContract], NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue]
 
-pub fn prepare_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue]
+pub fn prepare_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, Array[String]) -> Result[NativeEffectfulRunPublicationPreparation, NativeRunPublicationIssue]
 
 pub fn prepare_exported_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy_host.CapturedDAG, NativeEffectFreeRunContext, Array[@run_publication_host.PublicationOutputExport], Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence, publication? : @client_local_host.ClientProgramPublication?) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
 
 pub fn prepare_recovered_effectful_run_state_candidate(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, @actql/actql/run_publication.PublicationContract, String, Int, Int, Int) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue]
 
-pub fn prepare_retained_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeRunPublicationPreparation) -> Result[NativePreparedEffectfulRunPublication, NativeRunPublicationIssue]
+pub fn prepare_retained_effectful_run_publication_native(NativeRunPublicationService, NativeEffectfulPublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence, NativeEffectfulRunPublicationPreparation) -> Result[NativePreparedEffectfulRunPublication, NativeRunPublicationIssue]
 
 pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
@@ -131,6 +135,9 @@ pub(all) struct NativeEffectfulPublicationEvidence {
   receipt : @actql/actql/run_publication.PublicationContract
   captured_run : @actql/actql/run_publication.PublicationContract
 }
+
+type NativeEffectfulRunPublicationPreparation
+pub fn NativeEffectfulRunPublicationPreparation::publication_attempt(Self) -> @actql/actql/run_publication.PublicationContract
 
 pub(all) struct NativeEffectfulSnapshotOutputContext {
   run_definition : @actql/actql/run_publication.PublicationContract

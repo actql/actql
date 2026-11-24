@@ -145,7 +145,7 @@ pub fn prepare_client_keyed_native_activation(
     3L,
     max_nodes,
     max_depth,
-    fn() {
+    fn(_) {
       let policy = match keyed_lookup_observation(request, now_ms) {
         Ok(value) => value
         Err(issue) => return Err(issue)

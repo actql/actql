@@ -26,7 +26,7 @@ test('GROUP BY ALL fixtures discriminate key inference and preserve multiplicity
 
 test('GROUP BY ALL is included in ordinary and focused public acceptance', () => {
   const fixture = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...groupByAllSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...groupByAllRefusals)'));
   assert.ok(fixture.includes('groupByAllOnly ? {successes: [...groupByAllSuccesses, ...groupPropertyReceiverSuccesses]'));

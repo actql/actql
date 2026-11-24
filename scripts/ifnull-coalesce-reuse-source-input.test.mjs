@@ -42,7 +42,7 @@ test('output alias and qualified input have independent reverse order expectatio
 
 test('normal packed corpus and narrow selection both include coalesce reuse', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'ifnullCoalesceReuseSuccesses'], ['refusals', 'ifnullCoalesceReuseRefusals'],
     ['executionFailures', 'ifnullCoalesceReuseExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));

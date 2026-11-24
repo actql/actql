@@ -75,6 +75,6 @@ test('new positive and refusal obligations participate in normal and selected pu
   assert.equal(cross.expected.length, 8);
   assert.equal(cross.sourceReadCount, 1);
   assert.match(cross.text, /MAX_OUTPUT_ROWS 10/u);
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/unnest-join-source-input.mjs', 'unnest-join-source-input.mjs']"));
 });

@@ -1,12 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {parse} from 'acorn';
-import {readFile,mkdtemp} from 'node:fs/promises';
+import {mkdtemp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {generateKeyPairSync,randomUUID} from 'node:crypto';
+import {generateKeyPairSync} from 'node:crypto';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {signRemoteCredentialGrant} from '../site-node/remote-credential-signature.mjs';
+import {openRowSourceCredentialCustody} from './installed-row-source.mjs';
 import {openSqliteCredentialJournal} from '../site-node/sqlite-credential-journal.mjs';
 
 const runtimeUrl = process.env.ACTQL_SOURCE_CREDENTIAL_RUNTIME_URL ??
@@ -16,41 +15,31 @@ const control = runtimeCore(moon).remoteCredentialControl;
 const cid = digit => 'sha256:' + digit.repeat(64);
 
 async function originalSourceSigner(t) {
-  const source = await readFile(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
-  const checkStart = source.indexOf('  function checkGrantRequest(runInvocationCid, dispatchRequestCid, maxUses,');
-  const signStart = source.indexOf('  function sign({operation, runInvocationCid, taskAttempt = 1,');
-  const signEnd = source.indexOf('  function authorizationPurpose(authorization)', signStart);
-  assert(checkStart > 0 && signStart > checkStart && signEnd > signStart);
-  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const custody = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
-    node.declaration?.id?.name === 'openRowSourceCredentialCustody').declaration;
-  const scopeFields = custody.body.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value => value.id.name === 'originalScopeFields'));
-  assert(scopeFields);
   const root = await mkdtemp(join(process.env.ACTQL_SOURCE_CREDENTIAL_SCRATCH ?? tmpdir(), 'source-original-grant-'));
   const keys = generateKeyPairSync('ed25519');
   const profile = Object.freeze({credentialAuthorityId: 'source-authority', credentialKeyId: 'source-key',
-    namespaceId: 'source-constructor-test', environment: 'test', siteKey: 'source-site',
+    journalRoot: root, namespaceId: 'source-constructor-test', environment: 'test', siteKey: 'source-site',
     siteGeneration: 1, resourceOrigin: 'https://resource.example'});
-  const journal = openSqliteCredentialJournal(root, {credentialAuthorities:
-    new Map([[profile.credentialAuthorityId, new Map([[profile.credentialKeyId, keys.publicKey]])]])});
-  t.after(() => {journal.close();t.diagnostic('Fresh original Credential journal KEEP: ' + root);});
-  const issued = new WeakMap();
-  const bindings = {control, profile, principalId: 'source-principal', runtimeBundleCid: cid('a'),
-    connectorRegistration: 'rest-acme', connectorRevision: 'acme/0.1', privateKey: keys.privateKey,
-    now: () => 1_999_999_999_000, grantLifetimeMs: 1000, journal, randomUUID,
-    signRemoteCredentialGrant, issuedRunAuthorizations: issued, grantCode: 'InvalidRowSourceGrantRequest',
-    cidPattern: /^sha256:[0-9a-f]{64}$/u,
-    ensureOpen() {}, fail(code) {throw Object.assign(new Error(code), {code});}};
-  // This original signer fixture selects the unchanged legacy purpose. Its
-  // scope fields still come from the SAME actual issuer declaration above.
-  const sign = new Function(...Object.keys(bindings), source.slice(scopeFields.start, scopeFields.end) +
-    ';const scopeDefinition=undefined,construction=undefined;' + source.slice(checkStart, signEnd) +
-    ';return sign;')(...Object.values(bindings));
+  const custody = openRowSourceCredentialCustody({profile, principalId: 'source-principal',
+    runtimeBundleCid: cid('a'), connectorRegistration: 'rest-acme', connectorRevision: 'acme/0.1',
+    commonMoon: moon, privateKey: keys.privateKey, now: () => 1_999_999_999_000, grantLifetimeMs: 1000,
+    runAcquisitionLimits: {maxBindings: 1, maxSecretBytes: 64},
+    resolveSecret() {assert.fail('Signing cannot resolve a provider secret');},
+    openCredentialJournal(path, options) {
+      assert.equal(path, root);
+      assert.deepEqual(options.credentialAuthorities.get(profile.credentialAuthorityId).get(profile.credentialKeyId),
+        keys.publicKey);
+      return openSqliteCredentialJournal(path, options);
+    }});
+  t.after(() => {
+    custody.closeOnce();
+    assert.equal(custody.cleanupPending(), false);
+    t.diagnostic('Fresh original Credential journal KEEP: ' + root);
+  });
   const purpose = Object.freeze({kind: 'read', resource: 'customers', decision: Object.freeze({})});
   const input = Object.freeze({operation: 'read', runInvocationCid: cid('b'),
     dispatchRequestCid: cid('c'), maxUses: 2, issuerPurpose: purpose});
-  return {sign, input, journal, issued, purpose, profile};
+  return {sign: custody.sign, input, journal: custody.credential.journal, custody, purpose};
 }
 
 test('Source signer uses the original existing native grant constructor and signed scope', async t => {
@@ -58,7 +47,8 @@ test('Source signer uses the original existing native grant constructor and sign
   assert.equal(control.issue, undefined, 'The selected original control has no second issue API');
   const authorization = f.sign(f.input);
   assert(Object.isFrozen(authorization));assert(Object.isFrozen(authorization.scope));
-  assert.equal(f.issued.get(authorization).issuerPurpose, f.purpose);
+  assert.strictEqual(f.custody.authorizationPurpose(authorization), f.purpose);
+  assert.throws(() => f.custody.authorizationPurpose({...authorization}), {code: 'RowSourceAuthorizationPurposeUnavailable'});
   const grantCid = control.identity(authorization.grant);
   const body = JSON.parse(control.json(authorization.grant));
   assert.deepEqual(body, {version: 'actql-remote-credential-grant/0.1',

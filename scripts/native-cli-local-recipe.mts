@@ -1,0 +1,282 @@
+// Reviewed input assembly only. This does not compile, load, install, admit
+// state, or establish runtime acceptance for either process-bound component.
+import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
+import {constants, closeSync, fstatSync, lstatSync, openSync, readSync, mkdirSync, writeFileSync} from 'node:fs';
+import {basename, dirname, join, resolve, parse} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {nativeLocalDefaultAssets} from './native-cli-default-assets.mjs';
+import {inspectLocalLibrary} from './native-cli-local-runtime.mjs';
+import {verifiedNativeRemoteHttpPackage, verifiedNativeModelHttpPackage} from './native-preparation-originals.mjs';
+import {LOCAL_RUNTIME_MAX_BYTES, localRuntimeHash, admitLocalLibraryBytes, validateLocalRuntimeManifest} from '../packages/native-cli/lib/local-runtime.mjs';
+
+type Identity = {bytes: number; sha256: string};
+type RecipeOptions = {sourceSha: string; platform: string; sqliteDirectory: string;
+  cryptoDirectory: string; outputDirectory: string; sourceRoot?: string;
+  remoteHttpPreparation?: string; modelHttpPreparation?: string};
+type HttpPreparation = Parameters<typeof verifiedNativeRemoteHttpPackage>[0];
+type Library = {role: string; name: string; original: Identity & {path: string}; license: string; dependencies: string[]};
+type Inspect = NonNullable<Parameters<typeof inspectLocalLibrary>[3]>;
+type Execute = (file: string, args: readonly string[], options: Parameters<Inspect>[2] & {cwd?: string}) => string;
+
+// Producer receipt and recipe views describe unchecked JSON. The original
+// source, descriptor, hashes and physical observations remain mandatory.
+type ComponentReceipt = {target: string; compiler_target: string; loaded: unknown; initialized: unknown;
+  library: Identity; inputs: Record<string, unknown>; links: string; minimum_macos: unknown;
+  compiled_inputs?: Record<string, unknown>; recipe: unknown; recipe_sha256: unknown;
+  stage?: {outputs?: Record<string, unknown>; provider_inputs: unknown; selected_process_recipe: unknown;
+    original_recipe_sha256: unknown; recipe_sha256: unknown; target: unknown};
+  static_source?: {source: unknown; target: unknown; loaded: unknown; providers: unknown; profile: unknown}};
+type SqliteReceipt = ComponentReceipt & {source_sha: unknown; compile: unknown; link: unknown; elf_machine: unknown;
+  automatic_initializers: unknown; component_tls: unknown; notice: Identity;
+  system_dependencies: string[]};
+type CryptoReceipt = ComponentReceipt & {source: unknown; providers: unknown; license: Identity;
+  dependencies: string[]};
+type ComponentRecipe = {local: Record<string, Identity>; provider_inputs?: Record<string, Identity>;
+  source_builds: Record<string, unknown>; source_targets: Record<string, {license: Identity}>; license_sha256: unknown};
+
+const root = fileURLToPath(new URL('../', import.meta.url));
+const componentRoot = 'packages/python-local-runtime/native';
+const identity = (bytes: Buffer) => ({bytes: bytes.length, sha256: localRuntimeHash(bytes)});
+function directories(path: string) {
+  const absolute = resolve(path);
+  let current = parse(absolute).root;
+  for (const part of absolute.slice(current.length).split('/').filter(Boolean)) {
+    current = join(current, part);
+    const stat = lstatSync(current);
+    assert(stat.isDirectory() && !stat.isSymbolicLink(), `Non-original directory: ${current}`);
+  }
+}
+function read(path: string, maximum: number, expected?: Identity) {
+  path = resolve(path); directories(dirname(path));
+  const before = lstatSync(path);
+  assert(before.isFile() && !before.isSymbolicLink() && before.size > 0 && before.size <= maximum, `Invalid original: ${path}`);
+  const fd = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK);
+  try {
+    const opened = fstatSync(fd);
+    assert(opened.isFile() && opened.dev === before.dev && opened.ino === before.ino && opened.size === before.size);
+    const buffer = Buffer.alloc(opened.size + 1);
+    let size = 0, count;
+    while ((count = readSync(fd, buffer, size, buffer.length - size, null)) > 0) size += count;
+    assert.equal(size, opened.size);
+    const after = fstatSync(fd), named = lstatSync(path);
+    for (const field of ['dev', 'ino', 'size', 'mtimeMs', 'ctimeMs'] as const) assert.equal(after[field], opened[field]);
+    assert(named.isFile() && !named.isSymbolicLink() && named.dev === opened.dev && named.ino === opened.ino);
+    const bytes = buffer.subarray(0, size);
+    if (expected) assert.deepEqual(identity(bytes), {bytes: expected.bytes, sha256: expected.sha256}, `Changed original: ${path}`);
+    return bytes;
+  } finally { closeSync(fd); }
+}
+const json = <T,>(bytes: Buffer): T => JSON.parse(new TextDecoder('utf-8', {fatal: true}).decode(bytes)) as T;
+const sorted = (value: unknown): unknown => Array.isArray(value) ? value.map(sorted) : value && typeof value === 'object'
+  ? Object.fromEntries(Object.keys(value).sort().map(key => [key, sorted((value as Record<string, unknown>)[key])])) : value;
+const pythonWire = (value: unknown) => Buffer.from(JSON.stringify(sorted(value)).replace(/[\u0080-\uffff]/gu,
+  char => `\\u${char.charCodeAt(0).toString(16).padStart(4, '0')}`) + '\n');
+
+export function assembleNativeLocalRecipe({sourceSha, platform, sqliteDirectory, cryptoDirectory, outputDirectory,
+  remoteHttpPreparation, modelHttpPreparation, sourceRoot = root}: RecipeOptions, execute: Execute = execFileSync) {
+  assert(['linux-x64-gnu', 'darwin-arm64'].includes(platform), 'Select an existing Local platform');
+  const linux = platform === 'linux-x64-gnu';
+  const target = linux ? 'x86_64-unknown-linux-gnu' : 'aarch64-apple-darwin';
+  assert.match(sourceSha, /^[a-f0-9]{40}$/u);
+  sourceRoot = resolve(sourceRoot); sqliteDirectory = resolve(sqliteDirectory);
+  cryptoDirectory = resolve(cryptoDirectory); outputDirectory = resolve(outputDirectory);
+  const clean = () => {
+    const git = (args: readonly string[]) => execute('git', args, {cwd: sourceRoot, encoding: 'utf8', timeout: 15000, maxBuffer: 1024 * 1024}).trim();
+    assert.equal(git(['rev-parse', 'HEAD']), sourceSha, 'Exact current source required');
+    assert.equal(git(['status', '--porcelain', '--untracked-files=all']), '', 'Clean committed source required');
+  };
+  clean();
+  // Reject the output inside the checkout: writing recipe data must not dirty
+  // the source whose exact identity the completed components claim.
+  assert(outputDirectory !== sourceRoot && !outputDirectory.startsWith(sourceRoot + '/'));
+  directories(dirname(outputDirectory));
+  const originals: (Identity & {path: string; maximum: number})[] = [];
+  const capture = (path: string, maximum: number, expected?: Identity) => {
+    const bytes = read(path, maximum, expected);
+    originals.push({path: resolve(path), maximum, ...identity(bytes)});
+    return bytes;
+  };
+  const sqliteReceipt = capture(join(sqliteDirectory, 'process-producer.json'), 8 * 1024 * 1024);
+  const cryptoReceipt = capture(join(cryptoDirectory, 'producer.json'), 8 * 1024 * 1024);
+  const sqlite = json<SqliteReceipt>(sqliteReceipt), crypto = json<CryptoReceipt>(cryptoReceipt);
+  assert.equal(sqlite.source_sha, sourceSha); assert.equal(crypto.source, sourceSha);
+  for (const receipt of [sqlite, crypto]) {
+    assert.equal(receipt.target, target);
+    if (linux) {
+      assert.match(receipt.compiler_target, /^x86_64-(?:[A-Za-z0-9_.]+-)?linux-gnu$/u);
+      assert.equal(receipt.loaded, false); assert.equal(receipt.initialized, false);
+    }
+    assert(receipt.library && receipt.inputs);
+  }
+  assert.equal(sqlite.compile, 1); assert.equal(sqlite.link, 1);
+  if (linux) {
+    assert.equal(sqlite.elf_machine, 62); assert.equal(sqlite.automatic_initializers, false); assert.equal(sqlite.component_tls, false);
+    assert.equal(crypto.providers, 0);
+  } else {
+    assert.equal(sqlite.loaded, false); assert.equal(sqlite.initialized, false);
+    assert.equal(sqlite.minimum_macos, '11.0');
+    assert.equal(crypto.minimum_macos, '11.0');
+    assert.equal(crypto.static_source?.source, sourceSha, 'Require the original source-built Darwin Crypto');
+    assert.equal(crypto.static_source?.target, target);
+    assert.equal(crypto.static_source?.loaded, false); assert.equal(crypto.static_source?.providers, 0);
+  }
+  const sourcePath = (relative: string) => {
+    assert(typeof relative === 'string' && !relative.startsWith('/') &&
+      !relative.split('/').some(part => !part || part === '..' || part === '.'));
+    return join(sourceRoot, relative);
+  };
+  const recordedInput = (receipt: ComponentReceipt, relative: string, expected: Identity) => {
+    const recorded = Object.entries(receipt.inputs).filter(([path]) =>
+      path.startsWith('/') && path.endsWith('/' + relative));
+    assert.equal(recorded.length, 1, `One original source input required: ${relative}`);
+    assert.deepEqual(recorded[0][1], expected, `Contradictory source input: ${relative}`);
+  };
+  const recipes = {} as Record<'sqlite' | 'crypto', ComponentRecipe>;
+  for (const [role, receipt] of [['sqlite', sqlite], ['crypto', crypto]] as const) {
+    const relative = `${componentRoot}/${role}-component/source.json`;
+    const raw = capture(join(sourceRoot, relative), 65536);
+    const recipe = recipes[role] = json<ComponentRecipe>(raw);
+    recordedInput(receipt, relative, identity(raw));
+    const producerInputs = role === 'sqlite' ? [
+      'scripts/produce-python-sqlite-component.py', `${componentRoot}/sqlite-component/prepare.py`,
+    ] : ['scripts/produce-native-crypto-component.py'];
+    for (const input of [...producerInputs, ...(linux ? ['scripts/linux_component_headers.py'] : []), `${componentRoot}/pre-root/owned_capacity.h`]) {
+      const expected = identity(capture(sourcePath(input), 1024 * 1024));
+      // Darwin's original component producer records transitive headers in its
+      // compiler census, while its stage binds prepare.py through the source.
+      if (!linux && role === 'sqlite' && input.endsWith('/prepare.py')) continue;
+      if (!linux && input.endsWith('/owned_capacity.h') && role === 'crypto') {
+        assert.deepEqual(receipt.compiled_inputs?.[sourcePath(input)], expected);
+      } else recordedInput(receipt, input, expected);
+    }
+    for (const [name, expected] of Object.entries(recipe.local)) {
+      assert(!name.split('/').some(part => part === '..' || !part) && !name.startsWith('/'));
+      const input = `${componentRoot}/${role}-component/${name}`;
+      const bytes = capture(sourcePath(input), 16 * 1024 * 1024, expected);
+      if (role === 'crypto') recordedInput(receipt, input, identity(bytes));
+      else assert.deepEqual(receipt.stage?.outputs?.[name], identity(bytes), `Contradictory staged SQLite input: ${name}`);
+    }
+    if (role === 'sqlite') {
+      assert(recipe.provider_inputs && typeof recipe.provider_inputs === 'object');
+      assert.deepEqual(receipt.stage?.provider_inputs, recipe.provider_inputs);
+      // These pins are recorded by SQLite's source stage, not generally by
+      // the outer producer inputs map. Do not invent extra receipt fields.
+      for (const [input, expected] of Object.entries(recipe.provider_inputs)) {
+        capture(sourcePath(input), 16 * 1024 * 1024, expected);
+      }
+      if (linux) {
+        const selected = {...recipe, target, deployment_target: null, original_recipe_sha256: localRuntimeHash(raw),
+          process_format: 'ELF64-little-x86-64-shared', provider_binding: 'same original process namespace',
+          automatic_initializers: false, component_tls: false};
+        assert.deepEqual(receipt.stage?.selected_process_recipe, selected);
+        assert.equal(receipt.stage!.original_recipe_sha256, localRuntimeHash(raw));
+        assert.equal(receipt.recipe_sha256, localRuntimeHash(pythonWire(selected)));
+      } else {
+        assert.equal(receipt.recipe_sha256, localRuntimeHash(raw));
+      }
+      assert.equal(receipt.stage!.recipe_sha256, receipt.recipe_sha256);
+      assert.equal(receipt.stage!.target, target);
+    } else {
+      assert.deepEqual(receipt.recipe, identity(raw));
+      if (!linux) assert.deepEqual(receipt.static_source!.profile, recipe.source_builds['darwin-arm64-macos11']);
+    }
+  }
+  assert(sqlite.notice && typeof sqlite.notice === 'object', 'Original SQLite notice identity required');
+  const sqliteNotice = capture(join(sqliteDirectory, 'SQLITE-NOTICE'), 1024 * 1024, sqlite.notice);
+  assert.deepEqual(identity(sqliteNotice), recipes.sqlite.local.NOTICE);
+  const cryptoNotice = capture(join(cryptoDirectory, 'CRYPTO-NOTICE'), 1024 * 1024, recipes.crypto.local.NOTICE);
+  const copyright = capture(join(cryptoDirectory, linux ? 'OPENSSL-COPYRIGHT' : 'OPENSSL-LICENSE.txt'), 1024 * 1024,
+    linux ? recipes.crypto.source_targets[target].license : crypto.license);
+  if (!linux) assert.equal(identity(copyright).sha256, recipes.crypto.license_sha256, 'Original OpenSSL license pin mismatch');
+  const combined = Buffer.concat([copyright, Buffer.from('\n\n'), cryptoNotice]);
+  assert(combined.length <= 1024 * 1024);
+  const extension = linux ? 'so' : 'dylib';
+  const names = new Set([`libactql_sqlite_component.${extension}`, `libactql_crypto_component.${extension}`]);
+  const observations: ReturnType<typeof inspectLocalLibrary>[] = [];
+  const libraries: Library[] = ([['sqlite', sqlite, sqliteDirectory], ['crypto', crypto, cryptoDirectory]] as const).map(([role, receipt, directory]) => {
+    const name = `libactql_${role}_component.${extension}`, path = join(directory, name);
+    const bytes = capture(path, LOCAL_RUNTIME_MAX_BYTES, receipt.library);
+    admitLocalLibraryBytes(bytes, platform);
+    const observed = inspectLocalLibrary(path, platform, names, execute); observations.push(observed);
+    const dependencies = linux ? (role === 'sqlite' ? receipt.system_dependencies : receipt.dependencies)
+      : receipt.links.split('\n').slice(1).filter(line => line.trim()).map(line => line.trim().split(' (')[0])
+        .filter(path => path !== '@rpath/' + name);
+    assert.deepEqual([...observed.dependencies].sort(), [...dependencies].sort());
+    return {role, name, original: {path, ...identity(bytes)}, license: `${role}.txt`, dependencies: observed.dependencies};
+  });
+  // Default generation reads only these checked source inputs. Capture them
+  // before invoking it, and recheck every original after all observations.
+  const aoa = json<{pipeline_registry_file: unknown}>(capture(join(sourceRoot, 'spec/contracts/actql-aoa.json'), 1024 * 1024));
+  assert(typeof aoa.pipeline_registry_file === 'string' && !aoa.pipeline_registry_file.startsWith('/') &&
+    !aoa.pipeline_registry_file.split('/').includes('..'));
+  capture(join(sourceRoot, aoa.pipeline_registry_file), 1024 * 1024);
+  capture(join(sourceRoot, 'spec/local-check-environment.json'), 65536);
+  capture(join(sourceRoot, 'spec/contracts/actql-query-acquisition.json'), 65536);
+  capture(join(sourceRoot, 'spec/contracts/actql-query-process-evidence.json'), 65536);
+  const defaults = nativeLocalDefaultAssets(sourceRoot);
+  const contents = new Map<string, Buffer>([...defaults].map(([role, bytes]) => [`${role}.json`, bytes]));
+  contents.set('sqlite.txt', sqliteNotice); contents.set('crypto.txt', combined);
+  contents.set('sqlite-process-producer.json', sqliteReceipt); contents.set('crypto-producer.json', cryptoReceipt);
+  const httpMembers: Partial<Record<'remoteHttpPreparation' | 'modelHttpPreparation', HttpPreparation>> = {};
+  const licenseNames = ['sqlite.txt', 'crypto.txt'];
+  for (const [role, key, supplied, verify] of [
+    ['remote-http', 'remoteHttpPreparation', remoteHttpPreparation, verifiedNativeRemoteHttpPackage],
+    ['model-http', 'modelHttpPreparation', modelHttpPreparation, verifiedNativeModelHttpPackage],
+  ] as const) {
+    if (supplied === undefined) continue;
+    const path = resolve(supplied);
+    const wire = capture(path, 32 * 1024 * 1024);
+    const selected = {path, ...identity(wire), source: json<{source?: string}>(wire).source};
+    const {library, dependencies, notice} = verify(selected,
+      {source: sourceSha, target: linux ? 'linux-x64' : platform});
+    const bytes = capture(library.path, LOCAL_RUNTIME_MAX_BYTES, library);
+    admitLocalLibraryBytes(bytes, platform);
+    const observed = inspectLocalLibrary(library.path, platform, names, execute, role);
+    assert.deepEqual([...observed.dependencies].sort(), [...dependencies].sort());
+    const license = `${role}.txt`;
+    const name = basename(library.path);
+    libraries.push({role, name, original: library, license, dependencies: observed.dependencies});
+    observations.push(observed);
+    licenseNames.push(license);
+    contents.set(license, notice);
+    httpMembers[key] = selected;
+  }
+  const assets = [...defaults].map(([role, bytes]) => ({role,
+    original: {path: join(outputDirectory, `${role}.json`), ...identity(bytes)}}));
+  const licenses = licenseNames.map(name => ({name,
+    original: {path: join(outputDirectory, name), ...identity(contents.get(name)!)}}));
+  const recipe = {sourceSha, platform, libraries, assets, licenses, ...httpMembers};
+  validateLocalRuntimeManifest({sourceSha, platform,
+    libraries: libraries.map((item, index) => ({role: item.role, path: `lib/${item.name}`, ...identity(read(item.original.path, LOCAL_RUNTIME_MAX_BYTES, item.original)),
+      license: `licenses/${item.license}`, dependencies: item.dependencies, abi: observations[index].abi})),
+    assets: assets.map(item => ({role: item.role, path: `data/${item.role}.json`, bytes: item.original.bytes, sha256: item.original.sha256})),
+    licenses: licenses.map(item => ({path: `licenses/${item.name}`, bytes: item.original.bytes, sha256: item.original.sha256})),
+  }, {sourceSha, platform});
+  for (const item of originals) read(item.path, item.maximum, item);
+  clean();
+  contents.set('originals.json', Buffer.from(JSON.stringify({sourceSha, platform, originals, observations}, null, 2) + '\n'));
+  contents.set('local-runtime-recipe.json', Buffer.from(JSON.stringify(recipe, null, 2) + '\n'));
+  mkdirSync(outputDirectory); // Exclusive creation; never overwrite reviewed data.
+  for (const [name, bytes] of contents) {
+    const path = join(outputDirectory, name);
+    writeFileSync(path, bytes, {flag: 'wx', mode: 0o644}); read(path, Math.max(bytes.length, 1), identity(bytes));
+  }
+  return {path: join(outputDirectory, 'local-runtime-recipe.json'), recipe};
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  try {
+    const args = process.argv.slice(2), options: Partial<RecipeOptions> = {};
+    const flags = {'--source': 'sourceSha', '--platform': 'platform', '--sqlite-component': 'sqliteDirectory',
+      '--crypto-component': 'cryptoDirectory', '--output': 'outputDirectory',
+      '--remote-http-preparation': 'remoteHttpPreparation', '--model-http-preparation': 'modelHttpPreparation'} as const;
+    assert([10, 12, 14].includes(args.length), 'Select source, platform, both original components and fresh output');
+    for (let index = 0; index < args.length; index += 2) {
+      const key = flags[args[index] as keyof typeof flags];
+      assert(key && args[index + 1] && options[key] === undefined, 'Unknown, duplicate or incomplete recipe selection');
+      options[key] = args[index + 1];
+    }
+    console.log(JSON.stringify(assembleNativeLocalRecipe(options as RecipeOptions), null, 2));
+  } catch (error) {console.error((error as Error).message); process.exitCode = 1;}
+}

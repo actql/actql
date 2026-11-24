@@ -38,13 +38,13 @@ export const maintenanceFiles = Object.freeze([
   'docs/reviews/2026-10-03-graph-host-acquired-input-handoff.md',
   'docs/reviews/2026-10-03-graph-host-owner-fixtures.md',
   'scripts/ci-evidence.mjs', 'scripts/ci-evidence.test.mjs', 'scripts/ci-review.mjs',
-  'scripts/ci-timing.mjs', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
+  'scripts/ci-timing.mts', 'scripts/ci-artifacts.mjs', 'scripts/ci-artifacts.test.mjs',
   // Offline cost display is consumed only by the existing artifact reporter;
   // proof producers and final acceptance do not import this projection.
   'scripts/ci-session-costs.mjs', 'scripts/ci-session-costs.test.mjs',
   // The parser implementation also selects original Native compiler commands
   // and scoped profiles, so only its reporting tests remain maintenance-only.
-  'scripts/verification-actions.test.mjs',
+  'scripts/verification-actions.test.mts',
   'scripts/worktree-inventory.mjs', 'scripts/worktree-inventory.test.mjs',
   // Reviewed callback-only units. Their implementation helpers are also used
   // by packed/public consumers and deliberately remain full-coverage inputs.
@@ -52,7 +52,8 @@ export const maintenanceFiles = Object.freeze([
   'examples/infer-evaluation/compare-source-instructions.test.mjs',
   // Pure report assessment and synthetic oracle tests, all owned by lint.
   // No runtime, compiler, normal producer or proof imports this implementation.
-  'scripts/operation-performance.mjs', 'scripts/operation-performance.test.mjs',
+  'scripts/operation-performance.mjs', 'scripts/operation-performance-sample-summary.mts',
+  'scripts/operation-performance.test.mjs',
   'scripts/operation-performance-policy.test.mjs',
 ]);
 const maintenance = new Set(maintenanceFiles);
@@ -74,6 +75,19 @@ const reviewedPortableFiles = new Set([
   'src/source_span/span.mbt',
   'scripts/worktree-inventory.mjs',
 ]);
+// A Ready PR that changes none of these runs JS core only; main integration
+// runs every target and catches a remaining cross-target regression there.
+// The policy is a short directory list: Core source, vendored code, specs,
+// portability and proof inputs, workflows, and the Python SDK and Local
+// Runtime. Manifests, the toolchain pin, native sources and binaries, and this
+// selector also keep every target. Ordinary scripts, including fixtures and
+// test drivers, do not: a regression there can first fail on main.
+function coreTargetInput(path) {
+  return /^(?:src|vendor|spec|portability|proofs|\.github|packages\/python-sdk|packages\/python-local-runtime)\//u.test(path)
+    || /(?:^|\/)(?:moon\.mod|moon\.pkg|toolchain\.json|package(?:-lock)?\.json)$/u.test(path)
+    || /\.(?:c|h|cc|cpp|inc|s|a|so|dylib|wasm)$/iu.test(path)
+    || path === 'scripts/ci-targets.mjs';
+}
 // Deep campaigns use their real source snapshot plus orchestration and safety
 // boundaries. The snapshot currently includes ALL Core source and vendor code;
 // narrowing that closure requires a separate proof-input review. Unknown roots
@@ -107,8 +121,8 @@ export function gateJobRequired(selection, name) {
 // Shared core changes still receive full applicable verification when Ready/main.
 const pythonWheelInputs = new Set([
   '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
-  'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mjs',
-  'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mjs',
+  'scripts/ci-targets.mjs', 'scripts/ci-targets.test.mjs', 'scripts/ci-preflight.mts',
+  'scripts/ci-preflight.test.mjs', 'scripts/ci-focused-tests.mts',
   'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
   'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',
   'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
@@ -161,7 +175,7 @@ function darwinWorkloadInput(path) {
     || /^src\/.+\/moon\.pkg$/u.test(path)
     || /^adapters\/(?:host-node\/native\/|connectors\/duckdb\/node\/)/u.test(path)
     || /^packages\/python-local-runtime\/native\/(?:crypto|sqlite)-component\//u.test(path)
-    || /^scripts\/(?:ci-native-background-groups\.|local-checks(?:-guard|-policy|-hook)?\.|verification-actions\.mjs$|(?:prepare-|produce-|test-)?native-)/u.test(path);
+    || /^scripts\/(?:ci-native-background-groups\.|local-checks(?:-guard|-policy|-hook)?\.|verification-actions\.m[jt]s$|(?:prepare-|produce-|test-)?native-)/u.test(path);
 }
 
 // The shared workflow also changes when unrelated job routing is edited. Check
@@ -264,6 +278,12 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
     catch { return full('Invalid focused test family inventory'); }
     return {...full('Reviewed fixed-request tests: execute changed files and owning JS family; unrelated runtime/proof families not applicable'),
       profile: 'focused-tests', targets: ['js'], macos: false, darwinWheels: false, maintenanceChanges, focusedChanges, focusedTests};
+  }
+  // The existing macOS workload and wheel selectors still decide those jobs;
+  // a change that selects either keeps the complete selection.
+  if (!paths.some(coreTargetInput)) {
+    const result = full('No Core target input directory changed: PR core uses JS; full targets run on main integration');
+    if (!result.macos && !result.darwinWheels) return {...result, targets: ['js']};
   }
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
   if (moonTests && moonGraphCandidate(paths)) {

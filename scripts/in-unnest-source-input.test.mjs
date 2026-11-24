@@ -58,7 +58,7 @@ test('membership public text Results use main and authored JSON retains answer',
 
 test('normal packed acceptance registers the array predicate and its bounded narrow selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const membership = await readFile(new URL('./fixtures/in-unnest-literal-array-source-input.mjs', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'inUnnestSuccesses'], ['refusals', 'inUnnestRefusals'],
     ['executionFailures', 'inUnnestExecutionFailures']]) {

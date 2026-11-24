@@ -167,7 +167,12 @@ fn unnest_provider(
             }
           },
         ),
-      )
+      ).map(owner => {
+        owner.cleanup_continuation = Some(() => {
+          @execution.bounded_unnest_cleanup_continuation(active)
+        })
+        owner
+      })
     },
   )
 }

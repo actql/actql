@@ -119,6 +119,7 @@ fn NativeLocalEffectResumeOriginal::saved_publication_service(
   publisher : NativeLocalPublisherBinding,
   store : @publication_store.Store,
   namespace_id : String,
+  recover_prepared? : Bool = false,
 ) -> Result[
   @native_publication.NativeRunPublicationService,
   NativeLocalSavedEffectPublicationIssue,
@@ -198,7 +199,8 @@ fn NativeLocalEffectResumeOriginal::saved_publication_service(
       .map_err(issue => NativeLocalSavedEffectPublicationIssue::Publisher(issue))
     }),
     fence_original=Some((binding, commit) => {
-      guard !self.settlement_only && self.action is Some(Claimed(claim)) else {
+      guard (!self.settlement_only || recover_prepared) &&
+        self.action is Some(Claimed(claim)) else {
         return Err(@native_publication.CommitFenceUnavailable)
       }
       // Retain a real committed/lost reply before the original Read return.
@@ -364,6 +366,24 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
     return Err(Construction)
   }
   let bound = bytes.to_int64()
+  // The Store keeps a compact preparation record with three CIDs, the
+  // original timestamp and one selected generation per Result. Include
+  // decoding and re-emitting that record while the evidence stays live.
+  guard @execution.checked_preparation_add_product(
+      1024L,
+      results.to_int64(),
+      74L,
+    )
+    is Some(preparation_bytes) &&
+    preparation_bytes <= 2147483647L &&
+    @local.installed_effect_contract_response_construction_capacity(
+      preparation_bytes.to_int(),
+      results + 6,
+      2,
+    )
+    is Some(preparation) else {
+    return Err(Construction)
+  }
   let semantic = match
     @local.installed_effect_contract_response_construction_capacity(
       bytes, nodes, depth,
@@ -435,6 +455,18 @@ pub fn NativeLocalEffectResumeOriginal::prepare_saved_publication_construction_i
     @execution.checked_preparation_add_product(
       @execution.execution_capacity_execution_bytes(semantic),
       controls,
+      1L,
+    )
+    is Some(execution) &&
+    @execution.checked_preparation_add_product(
+      retained,
+      @execution.execution_capacity_retained_bytes(preparation),
+      1L,
+    )
+    is Some(retained) &&
+    @execution.checked_preparation_add_product(
+      execution,
+      @execution.execution_capacity_execution_bytes(preparation),
       1L,
     )
     is Some(execution) else {

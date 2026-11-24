@@ -8,8 +8,7 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import './package-release-shared-cohort.test.mjs';
 import {admitCohort, releasePackageMetadata, stagePackage, publishedVersion,
-  publicationPlan, verifyPackageRelease} from './package-release.mjs';
-import {publishPackageRelease} from './publish-package-release.mjs';
+  publicationPlan, verifyPackageRelease, publishPackageRelease} from './package-release.mjs';
 
 const cohort = admitCohort(JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url))));
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');

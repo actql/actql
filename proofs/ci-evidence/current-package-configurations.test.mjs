@@ -15,6 +15,8 @@ const toolchainDigest = packageConfigurationReview.toolchainDigest;
 const report = JSON.parse(readFileSync(new URL('../../docs/reviews/2026-10-25-session-current-configuration-review.json', import.meta.url)));
 const nativePublicationReview = JSON.parse(readFileSync(new URL(
   '../../docs/reviews/2026-11-17-session-native-publication-constructor-selector-review.json', import.meta.url)));
+const nativeEffectfulPublicationReview = JSON.parse(readFileSync(new URL(
+  '../../docs/reviews/2026-11-24-session-native-effectful-publication-selector-review.json', import.meta.url)));
 const sqliteCapacityReview = JSON.parse(readFileSync(new URL(
   '../../docs/reviews/2026-11-19-session-sqlite-key-capacity-selector-review.json', import.meta.url)));
 const request = (path, digest) => ({path, digest, target: 'js', toolchainDigest});
@@ -78,11 +80,16 @@ for (const [path, entry] of Object.entries(currentPackageConfigurations)) {
       }
     }
     if (path === 'src/platform_native/publication_store/moon.pkg') {
-      assert.equal(entry.revision, nativePublicationReview.source);
+      assert.equal(entry.revision, nativeEffectfulPublicationReview.source);
       const current = selectedTree.read(path).toString();
+      const preparationSelector = '    "effectful_preparation_native.mbt": [ "native" ],\n';
+      assert.equal(current.split(preparationSelector).length, 2);
+      const publication = current.replace(preparationSelector, '');
+      assert.equal(publication, gitTree(root, nativePublicationReview.source).read(path).toString());
+      assert.equal(currentPackageConfigurationReviewFor(request(path, hash(publication))), null);
       const publicationSelector = '    "publication_construction_native.mbt": [ "native" ],\n';
-      assert.equal(current.split(publicationSelector).length, 2);
-      const successor = current.replace(publicationSelector, '');
+      assert.equal(publication.split(publicationSelector).length, 2);
+      const successor = publication.replace(publicationSelector, '');
       assert.equal(successor,
         gitTree(root, nativePublicationReview.previousRevision).read(path).toString(),
         'only the literal Native publication constructor selector extends the scalar configuration');
@@ -695,16 +702,26 @@ test('historical Store scalar successor preserves the exact delivery selector an
     packageConfigurationReview.revision, 'The historical configuration keeps its own unchanged review');
 });
 
-test('current Store publication constructor selector keeps mutation inputs closed and every source bound', () => {
-  const review = nativePublicationReview;
+test('current Store publication preparation selector keeps mutation inputs closed and every source bound', () => {
+  const review = nativeEffectfulPublicationReview;
   const directory = 'src/platform_native/publication_store', path = review.path;
-  const body = gitTree(root, review.source).read(path).toString();
+  const authored = gitTree(root, review.source);
+  const body = authored.read(path).toString();
   const previous = gitTree(root, review.previousRevision).read(path).toString();
-  const selector = '    "publication_construction_native.mbt": [ "native" ],\n';
+  const selector = '    "effectful_preparation_native.mbt": [ "native" ],\n';
   assert.equal(path, directory + '/moon.pkg');
-  assert.deepEqual(review.addedSelectors, [{file: 'publication_construction_native.mbt', targets: ['native']}]);
+  assert.equal(review.addedSelector.file, 'effectful_preparation_native.mbt');
+  assert.deepEqual(review.addedSelector.targets, ['native']);
+  const priorReview = JSON.parse(readFileSync(new URL('../../' + review.previousReview, import.meta.url)));
+  assert.deepEqual([review.previousRevision, review.previousSha256, review.previousBytes],
+    [priorReview.source, priorReview.sha256, priorReview.bytes]);
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', review.source],
+    {cwd: root, encoding: 'utf8'}).trim(), review.parent);
+  assert.equal(gitTree(root, review.parent).read(path).toString(), previous);
   assert.deepEqual(currentPackageConfigurations[path], {revision: review.source, digest: review.sha256,
     rule: review.rule});
+  assert.equal(authored.entries.get(path)?.mode, review.mode);
+  assert.equal(currentTree.entries.get(path)?.mode, review.mode);
   assert.equal(Buffer.byteLength(body), review.bytes);
   assert.equal(Buffer.byteLength(previous), review.previousBytes);
   assert.equal(hash(body), review.sha256);
@@ -724,6 +741,12 @@ test('current Store publication constructor selector keeps mutation inputs close
   assert.equal(selected.packageConfigurations.find(entry => entry.path === path)?.review.revision, review.source);
   const members = [...currentTree.entries.keys()].filter(member => member.startsWith(directory + '/') &&
     !member.slice(directory.length + 1).includes('/')).sort();
+  const implementation = directory + '/' + review.addedSelector.file;
+  assert.equal(authored.entries.get(implementation)?.mode, review.addedSelector.mode);
+  assert.equal(authored.entries.get(implementation)?.kind, 'blob');
+  assert.equal(authored.read(implementation).length, review.addedSelector.bytes);
+  assert.equal(hash(authored.read(implementation)), review.addedSelector.sha256);
+  assert(members.includes(implementation));
   assert(members.includes(directory + '/publication_construction_native.mbt'));
   assert(members.includes(directory + '/delivery_chunk_native_wbtest.mbt'));
   assert(members.includes(directory + '/private_evidence_construction.mbt'));
@@ -753,9 +776,12 @@ test('current Store publication constructor selector keeps mutation inputs close
   for (const member of members) assert(mutation.paths.includes(member));
 
   const scalarImport = '  "actql/actql/decode_scalar" @scalar,\n';
+  const constructorSelector = '    "publication_construction_native.mbt": [ "native" ],\n';
   for (const changed of [previous,
     body.replace(selector, selector.replace('"native"', '"js"')),
     body.replace(selector, selector.replace('"native"', '"wasm"')),
+    body.replace(constructorSelector, constructorSelector.replace('"native"', '"js"')),
+    body.replace(constructorSelector, constructorSelector.replace('"native"', '"wasm"')),
     body.replace(selector, selector + '    "unreviewed_chunk_native_wbtest.mbt": [ "native" ],\n'),
     body.replace(scalarImport, scalarImport.replace('@scalar', '@permission')),
     body.replace(scalarImport, scalarImport.replace('decode_scalar', 'unreviewed_scalar')),

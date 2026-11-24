@@ -24,7 +24,7 @@ test('selected aggregate inputs join the normal packed corpus and narrow selecti
     ...selectAggregateExpressionExecutionFailures];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'selectAggregateExpressionSuccesses'],
     ['refusals', 'selectAggregateExpressionRefusals'], ['executionFailures', 'selectAggregateExpressionExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));

@@ -170,6 +170,81 @@ test('installed static Explanation retains the original deal-review Source, Mode
 });
 
 
+test('installed static SDK explains effect-free SQL, Source JOIN and Source INFER without starting a Run', async t => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-static-pure-',
+    label: 'effect-free static Explanation'});
+  const project = scaffoldProject(join(scratch.path, 'project'), 'deal-review-mock');
+  const cwd = process.cwd();
+  let client, primary, phase = 'open';
+  process.chdir(project.directory);
+  try {
+    const target = await readFile('mock/data.json');
+    const records = [];
+    const authorization = {accountConfiguration: JSON.stringify({
+      version: 'actql-execution-account-config/0.1', account_id: 'effect-free-static',
+      entries: [{entry_id: 'describe', outcome: 'allow', principal: {all: true}, connection: {all: true},
+        resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []}],
+    })};
+    const observation = createHostObservationConnection({include: ['source', 'infer', 'compute', 'effect', 'run'],
+      deliver: record => records.push(record)});
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
+      installation: {directory: '.actql-node', authorization, observation}});
+    const original = await readFile('deal-review.aql', 'utf8');
+    const readOnly = original.split('|> EFFECT')[0].trim();
+    assert.notEqual(readOnly, original);
+    for (const [label, source, format, expected] of [
+      ['SELECT', 'SELECT 1 AS answer', 'sql', ['result']],
+      ['JOIN', 'SELECT o.id AS id FROM salesforce.opportunities AS o\n' +
+        'JOIN drive.files AS f ON f.name = o.name\n|> RESULT joined', 'aql',
+        ['source', 'source', 'result']],
+      ['INFER', readOnly, 'aql', ['source', 'source', 'source', 'model_task', 'result']],
+    ]) {
+      phase = label;
+      const {plan, facts, context, version} = await client.explain(source, {format});
+      assert.equal(version, 'actql-static-explanation/0.1');
+      assert.equal(plan.version, 'actql-plan-view/0.1');
+      assert.equal(plan.provider_io, 0);
+      assert.equal(context.binding.compiled_plan_cid, plan.compiled_plan_cid);
+      assert.equal(context.binding.program_definition_cid, plan.logical_map.program_definition_cid);
+      assert.equal(facts.parameter_values_cid, context.binding.parameter_values_cid);
+      assert.equal(context.binding.logical_map_cid, plan.logical_map.self_cid);
+      assert.equal(facts.logical_map_cid, plan.logical_map.self_cid);
+      assert.deepEqual(context.items.map(item => item.kind), expected);
+      assert.deepEqual(facts.steps.map(step => step.step_id), plan.logical_map.steps.map(step => step.step_id));
+      if (label === 'JOIN') assert(facts.steps.some(step => step.meaning.kind === 'join'));
+      if (label === 'INFER') {
+        const model = context.items.find(item => item.kind === 'model_task');
+        assert.equal(model.task_id, 'model-task:deal-review.v1');
+        assert.deepEqual(model.input_bindings.map(input => input.role).sort(), ['NextStep', 'StageName', 'notes']);
+      }
+    }
+    phase = 'first close';
+    await client.close();
+    client = undefined;
+    assert.deepEqual(await readFile('mock/data.json'), target);
+    const status = observation.status();
+    assert.deepEqual(status.loss, {});
+    assert.equal(status.closed, true);
+    assert.equal(status.dropped, 0);
+    assert(!records.some(record => record.attributes['actql.run.definition_cid'] !== undefined ||
+      ['attempt_started', 'task_started', 'application_observed', 'write_observed'].includes(record.event)));
+    const journal = new DatabaseSync(join('.actql-node', 'requests', 'client-requests.sqlite3'), {readOnly: true});
+    try {assert.equal(journal.prepare('SELECT COUNT(*) AS total FROM client_requests').get().total, 0);}
+    finally {journal.close();}
+  } catch (error) {
+    primary = error;
+    t.diagnostic(JSON.stringify({phase, retainedScratch: scratch.path, code: error?.code}));
+  } finally {
+    try {await client?.close();}
+    catch (error) {primary = primary === undefined ? error :
+      new AggregateError([primary, error], 'Effect-free explanation and cleanup failed');}
+    finally {process.chdir(cwd);}
+  }
+  if (primary !== undefined) throw primary;
+  scratch.passed();
+  scratch.close();
+});
+
 // One real ordinary Run and a fresh embedded Host generation. Its cold read
 // only uses the original committed Journal and never supplies the AQL again.
 test('installed Saved Context uses the retained original after Host close and reopen', async t => {

@@ -656,7 +656,7 @@ test('upstream Source Unit preparation retains original bodies before Models and
 });
 
 function originalRuntimeControlMethod(name, ports) {
-  const text = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  const text = readFileSync(new URL('../host-common/runtime-effect-unit-result-control.mjs', import.meta.url), 'utf8');
   const root = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
   let selected;
   const visit = value => {

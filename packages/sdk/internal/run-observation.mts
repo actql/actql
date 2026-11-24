@@ -1,0 +1,425 @@
+// Run observation admission and this handle's control revision observation.
+// Weak associations retain explanations, never a second Run or Effect ledger.
+import {projectCancellationAttemptExplanation, projectCancellationExplanation,
+  projectEffectUncertainty, projectOwnerObservations, projectRejectedRunObservation,
+  projectUnavailableRunObservation, localizeOperation} from '../operation-presentation.mjs';
+import {bytesCid, canonicalJson, contentCid} from '../checkpoints.mjs';
+import {captureResponse, freezeInput, structuralKey} from './data.mjs';
+import {ClientError, fail, requestCancellationCause} from './errors.mjs';
+import {createResultFactory} from './result-read.mjs';
+import {ownerObservationLimits, runStateProtocol, snapshotClientRequest, validCancellationAttempt,
+  validCancellationLookup, validCancellationRef, validClientBody,
+  validOperationAttemptRef, validOwnerObservations, validRunState, validRunWaitContract, validWireRunPlanViewShape,
+  validWireRunViewShape, validWireRunExplanationViewShape, validWireRunExplanationContextViewShape,
+  withinResultDescriptionLimits} from '@actql/client-wire';
+
+async function validateExplanationFacts(facts: WireExplanationFacts) {
+  const {self_cid: observed, ...body} = facts;
+  if (await contentCid(body) !== observed) fail('InvalidClientHostRunExplanationView');
+  for (const step of facts.steps) {
+    const {self_cid: keyCid, ...key} = step.key;
+    if (step.step_id !== keyCid || key.compiled_plan_cid !== facts.compiled_plan_cid ||
+        await contentCid(key) !== keyCid) fail('InvalidClientHostRunExplanationView');
+  }
+}
+
+import type {ClientHostOperation, WireClientAdmission, WireExplanationFacts,
+  WireOwnerObservations, WireOwnerCursor, WireRunState} from '@actql/client-wire';
+import type {CancellationExplanation, ConfirmedProfile, EffectUncertaintyExplanation,
+  Execution, OperationExplanationOptions, OwnerObservationsExplanation, RunObservationFailureExplanation,
+  CancellationReference, RunReference, RunState} from '../index.d.ts';
+import type {SelectedConnection} from './connection-options.mjs';
+import type {createClientLifecycle} from './client-lifecycle.mjs';
+
+type CancellationContext = Parameters<typeof projectCancellationExplanation>[1];
+type CancellationInvocation = Parameters<typeof projectCancellationAttemptExplanation>[1];
+type RunOperation = RunObservationFailureExplanation['operation'];
+type RunProblem = Parameters<typeof projectRejectedRunObservation>[2];
+type RunBody = {until?: string | null; since?: number | null};
+type ResultContext = Parameters<typeof createResultFactory>[0];
+interface RunTransport {
+  exchange(operation: ClientHostOperation, body: Record<string, unknown>, signal?: AbortSignal,
+    submitContext?: object, cancellationContext?: CancellationContext): Promise<unknown>;
+  responseValue(response: unknown, maxWireBytes?: number): unknown | Promise<unknown>;
+  wasCancellationDispatched(context: CancellationContext): boolean;
+  typedRows?: boolean;
+  sourcePreparation?: Pick<ResultContext, 'beforeResultRead' | 'assertResultReadCurrent'>;
+}
+type OwnerInput = {ref: RunReference; cursors: readonly WireOwnerCursor[]; maxEntries: number; maxWireBytes: number};
+
+const runObservationFailures = new WeakMap<object, ReturnType<typeof projectRejectedRunObservation> | ReturnType<typeof projectUnavailableRunObservation>>();
+
+const ownerObservationExplanations = new WeakMap<object, ReturnType<typeof projectOwnerObservations>>();
+
+// Only a rejected observation of this SDK's attached Run retains its lookup
+// candidate. No rejected state, effect, revision or write permission is kept.
+const effectUncertainties = new WeakMap<object, NonNullable<ReturnType<typeof projectEffectUncertainty>>>();
+// Presentation retains validated Run-control observations, not another owner.
+const cancellationExplanations = new WeakMap<object, ReturnType<typeof projectCancellationExplanation> | ReturnType<typeof projectCancellationAttemptExplanation>>();
+
+export function explainRunObservationFailure(error: unknown, options?: OperationExplanationOptions): RunObservationFailureExplanation | undefined {
+  return localizeOperation(runObservationFailures.get(error as object), 'observation', options) as RunObservationFailureExplanation | undefined;
+}
+
+// Only an admitted original SDK result carries this call's observation custody.
+export function explainOwnerObservations(result: unknown, options?: OperationExplanationOptions): OwnerObservationsExplanation | undefined {
+  return localizeOperation(ownerObservationExplanations.get(result as object), 'ownerObservations', options) as OwnerObservationsExplanation | undefined;
+}
+
+const retainOwnerObservations = <T extends WireOwnerObservations,>(answer: T, input: OwnerInput,
+  lookupContext: Parameters<typeof projectOwnerObservations>[2]): T => {
+  ownerObservationExplanations.set(answer, projectOwnerObservations(answer, input, lookupContext));
+  return answer;
+};
+
+const rejectedRunObservation = (ref: RunReference, operation: RunOperation, problem: RunProblem, code = 'InvalidHostRunState') => {
+  const error = new ClientError(code);
+  runObservationFailures.set(error, projectRejectedRunObservation(ref, operation, problem));
+  return error;
+};
+
+const unavailableRunObservation = (failure: unknown, ref: RunReference, operation: RunOperation) => {
+  let error;
+  try { error = requestCancellationCause(failure); }
+  catch { error = new ClientError('ClientTransportUnknown'); }
+  runObservationFailures.set(error, projectUnavailableRunObservation(ref, operation));
+  return error;
+};
+
+const rejectedRunProblem = (value: unknown): RunProblem => {
+  try {
+    if (value === null || typeof value !== 'object' || Array.isArray(value)) return 'malformed_response';
+    const version = Object.getOwnPropertyDescriptor(value, 'version')?.value;
+    const status = Object.getOwnPropertyDescriptor(value, 'status')?.value;
+    if (typeof version !== 'string' || !version || typeof status !== 'string' || !status) return 'malformed_response';
+    if (version !== runStateProtocol.version) return 'contract_mismatch';
+    return runStateProtocol.statuses.includes(status as WireRunState['status']) ? 'malformed_response' : 'unknown_state';
+  } catch { return 'malformed_response'; }
+};
+
+export function explainEffectUncertainty(state: unknown, options?: OperationExplanationOptions): EffectUncertaintyExplanation | undefined {
+  return localizeOperation(effectUncertainties.get(state as object), 'effect', options);
+}
+
+const retainEffectUncertainty = <T extends RunState,>(state: T, ref: RunReference): T => {
+  const explanation = projectEffectUncertainty(state, ref);
+  if (explanation !== undefined) effectUncertainties.set(state, explanation);
+  return state;
+};
+
+export function explainCancellation(result: unknown, options?: OperationExplanationOptions): CancellationExplanation | undefined {
+  return localizeOperation(cancellationExplanations.get(result as object), 'cancellation', options) as CancellationExplanation | undefined;
+}
+
+const retainCancellationAttemptExplanation = <T extends Parameters<typeof projectCancellationAttemptExplanation>[0],>(result: T, context: CancellationInvocation): T => {
+  cancellationExplanations.set(result, projectCancellationAttemptExplanation(result, context));
+  return result;
+};
+
+export const retainCancellationExplanation = <T,>(result: T, context: CancellationContext | undefined,
+  observation: Parameters<typeof projectCancellationExplanation>[2], revision?: number): T => {
+  if (!context) return result;
+  cancellationExplanations.set(result as object, projectCancellationExplanation(result, context, observation, revision));
+  return result;
+};
+
+export function createExecutionFactory(selected: SelectedConnection & {redactCredentialErrors?: boolean},
+  confirmed: ConfirmedProfile, transport: RunTransport, lifecycle: ReturnType<typeof createClientLifecycle>) {
+  const {exchange, responseValue, wasCancellationDispatched} = transport;
+  return (admission: WireClientAdmission): Execution => {
+    // Both callers supply their captured, validated admission: the submit
+    // envelope or the attach boundary. Handle construction adds no boundary.
+    const ref = Object.freeze({...admission.ref});
+    const runProfile = Object.freeze({...confirmed,
+      durability: admission.durability});
+    const runRequest = (operation: ClientHostOperation, body: Record<string, unknown> = {}, signal?: AbortSignal,
+      cancellationContext?: CancellationContext) =>
+      exchange(operation, {ref, ...body}, signal, undefined, cancellationContext);
+    const readControl = async (operation: ClientHostOperation, body: Record<string, unknown>, signal?: AbortSignal,
+      cancellationContext?: CancellationContext) => {
+      const response = await runRequest(operation, body, signal, cancellationContext);
+      try { return await responseValue(response); }
+      catch (cause) {
+        throw retainCancellationExplanation(new ClientError('InvalidHostResponse', {cause}),
+          cancellationContext, 'outcome_unknown');
+      }
+    };
+
+    // Compare only this Owner's control component. Its revision is not an
+    // Effect, publication or whole-Run revision, and carries no retry authority.
+    let latestControl: WireRunState['control'];
+    let latestState: {runId: string; revision: number} | undefined;
+    const readRunObservation = async (operation: RunOperation, body: RunBody, signal?: AbortSignal): Promise<RunState> => {
+      // Failure to obtain an observation admits no Run facts, including when
+      // credentials or a closed connection prevent dispatch entirely.
+      let response;
+      try { response = await runRequest(operation, body, signal); }
+      catch (failure) { throw unavailableRunObservation(failure, ref, operation); }
+      let state;
+      try { state = await responseValue(response); }
+      catch { throw rejectedRunObservation(ref, operation, 'malformed_response', 'InvalidHostResponse'); }
+      try { state = captureResponse(state); }
+      catch { throw rejectedRunObservation(ref, operation, 'malformed_response'); }
+      const problem = rejectedRunProblem(state);
+      try {
+        // The wait contract includes the Run shape. Admit the captured reply
+        // once; every later operation still obtains its own Host observation.
+        if (!(operation === 'wait' ? validRunWaitContract(state, body.since as number | null)
+          : validRunState(state))) throw rejectedRunObservation(ref, operation, problem);
+        if (latestState !== undefined && ((state as WireRunState).run_id !== latestState.runId ||
+            (state as WireRunState).revision < latestState.revision)) {
+          throw rejectedRunObservation(ref, operation, 'stale_observation');
+        }
+        // Each observation already owns its data even if a Local port reuses
+        // a reply. No application callback runs between capture and admission.
+        const observation = state as RunState;
+        if (observation.control !== undefined) {
+          const control = observation.control;
+          if (latestControl !== undefined && (control.revision < latestControl.revision ||
+              control.revision === latestControl.revision &&
+              structuralKey(control) !== structuralKey(latestControl))) {
+            throw rejectedRunObservation(ref, operation, 'stale_observation');
+          }
+          latestControl = freezeInput({...control});
+        }
+        latestState = Object.freeze({runId:observation.run_id, revision:observation.revision});
+        if (observation.checkpoint !== undefined) {
+          // SDK presentation only: preserve the exact closed wire and JSON
+          // bytes. No checkpoint is manufactured for a nonwaiting state.
+          Object.defineProperty(observation.checkpoint, 'id', {
+            value: observation.checkpoint.checkpoint_id,
+            enumerable: false, writable: false, configurable: false,
+          });
+          Object.freeze(observation.checkpoint);
+        }
+        return retainEffectUncertainty(observation, ref);
+      } catch (cause) {
+        if (runObservationFailures.has(cause as object)) throw cause;
+        throw rejectedRunObservation(ref, operation, 'malformed_response');
+      }
+    };
+
+    const result = createResultFactory({ref, limits: confirmed.limits,
+      lookupContext: {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef},
+      redactErrors: selected.redactCredentialErrors === true, typedRows: transport.typedRows,
+      beforeResultRead: transport.sourcePreparation?.beforeResultRead,
+      assertResultReadCurrent: transport.sourcePreparation?.assertResultReadCurrent},
+    {runRequest, responseValue}, lifecycle, () => handle);
+    const handle = Object.freeze<Execution>({
+      ref, profile: runProfile, result,
+      observeOwners: async ({signal,cursors=[],maxEntries=100,maxWireBytes=ownerObservationLimits.maxWireBytes} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref,cursors,maxEntries,maxWireBytes}) as OwnerInput);
+        if (!validClientBody('owner-observations',{connection:selected.wire,...input})) {
+          fail('InvalidOwnerObservationRequest');
+        }
+        const response = await runRequest('owner-observations',input,signal);
+        let answer;
+        try {answer=captureResponse(await responseValue(response));}
+        catch {fail('InvalidHostOwnerObservations');}
+        if (!validOwnerObservations(answer,ref,input)) fail('InvalidHostOwnerObservations');
+        for (const vector of answer.revisionVector) {
+          if (vector.snapshotCid === undefined) continue;
+          const view=answer.owners.find(value=>value.kind==='observed' &&
+            value.ownerRef.kind===vector.owner.kind && value.ownerRef.scopeCid===vector.owner.scopeCid &&
+            value.ownerRef.streamCid===vector.owner.streamCid);
+          if (await bytesCid(new TextEncoder().encode(canonicalJson({version:'actql-owner-snapshot/0.1',ref,
+            owner:vector.owner,snapshot:(view as Extract<WireOwnerObservations['owners'][number], {snapshot: unknown}>).snapshot},{dataKeys:true}))) !== vector.snapshotCid) {
+            fail('InvalidHostOwnerObservations');
+          }
+        }
+        freezeInput(answer);
+        retainOwnerObservations(answer, input,
+          {endpoint: selected.endpoint, scopeRef: confirmed.scopeRef});
+        return answer;
+      },
+      // Read the immutable compiler map of this admitted Run. Never compile
+      // today's input or allocate a replacement Run for missing old evidence.
+      plan: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}) as {ref: RunReference; maxWireBytes: number; maxNodes: number; maxDepth: number});
+        if (!validClientBody('run-plan', {connection: selected.wire, ...input})) {
+          fail('InvalidRunPlanRequest');
+        }
+        const response = await runRequest('run-plan', input, signal);
+        const view = captureResponse(await responseValue(response, maxWireBytes));
+        if (new TextEncoder().encode(JSON.stringify(view)).byteLength > maxWireBytes ||
+            !validWireRunPlanViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref)) {
+          fail('InvalidClientHostRunPlanView');
+        }
+        const plan = view.plan_view, map = plan.logical_map;
+        const {self_cid: observed, ...preimage} = map;
+        if (map.compiled_plan_cid !== plan.compiled_plan_cid ||
+            await contentCid(preimage) !== observed) fail('InvalidClientHostRunPlanView');
+        return freezeInput(view);
+      },
+      explain: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}) as {ref: RunReference; maxWireBytes: number; maxNodes: number; maxDepth: number});
+        if (!validClientBody('run-explanation', {connection: selected.wire, ...input})) {
+          fail('InvalidRunExplanationRequest');
+        }
+        const response = await runRequest('run-explanation', input, signal);
+        const view = captureResponse(await responseValue(response, maxWireBytes));
+        // The shared structural bounds count keys, nested nodes and UTF-8 bytes;
+        // they do not infer provenance, permission, execution or Sample access.
+        if (!withinResultDescriptionLimits(view, input) ||
+            !validWireRunExplanationViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref)) {
+          fail('InvalidClientHostRunExplanationView');
+        }
+        if (view.explanation.state === 'projected') await validateExplanationFacts(view.explanation.facts);
+        signal?.throwIfAborted();
+        return freezeInput(view);
+      },
+      async explainContext({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) {
+        const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}) as {ref: RunReference; maxWireBytes: number; maxNodes: number; maxDepth: number});
+        if (!validClientBody('run-explanation-context', {connection: selected.wire, ...input})) {
+          fail('InvalidRunExplanationRequest');
+        }
+        const response = await runRequest('run-explanation-context', input, signal);
+        const view = captureResponse(await responseValue(response, maxWireBytes));
+        if (!withinResultDescriptionLimits(view, input) ||
+            !validWireRunExplanationContextViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref)) {
+          fail('InvalidClientHostRunExplanationView');
+        }
+        if (view.explanation.state === 'projected') {
+          const {plan, facts, context: {binding}} = view.explanation.view;
+          const {self_cid: mapCid, ...map} = plan.logical_map;
+          if (plan.compiled_plan_cid !== map.compiled_plan_cid ||
+              facts.compiled_plan_cid !== map.compiled_plan_cid ||
+              binding.compiled_plan_cid !== map.compiled_plan_cid ||
+              facts.logical_map_cid !== mapCid || binding.logical_map_cid !== mapCid ||
+              facts.program_definition_cid !== map.program_definition_cid ||
+              binding.program_definition_cid !== map.program_definition_cid ||
+              binding.parameter_values_cid !== facts.parameter_values_cid ||
+              await contentCid(map) !== mapCid) fail('InvalidClientHostRunExplanationView');
+          await validateExplanationFacts(facts);
+        }
+        signal?.throwIfAborted();
+        return freezeInput(view);
+      },
+      inspect: async ({signal, maxWireBytes = 65536, maxNodes = 10000, maxDepth = 64} = {}) => {
+        const input = freezeInput(snapshotClientRequest({ref, maxWireBytes, maxNodes, maxDepth}) as {ref: RunReference; maxWireBytes: number; maxNodes: number; maxDepth: number});
+        if (!validClientBody('inspect-run', {connection: selected.wire, ...input})) {
+          fail('InvalidRunInspectRequest');
+        }
+        const response = await runRequest('inspect-run', input, signal);
+        const view = captureResponse(await responseValue(response));
+        if (!validWireRunViewShape(view) || structuralKey(view.run_ref) !== structuralKey(ref) ||
+            view.run_state.legacy_state !== undefined &&
+            (view.run_state.legacy_state.run_id !== view.run_state.run_id ||
+             view.run_state.legacy_state.status !== view.run_state.status ||
+             view.run_state.legacy_state.updated_at !== view.run_state.updated_at ||
+             view.run_state.legacy_state.control?.revision !== view.run_state.control_revision)) {
+          fail('InvalidClientHostRunView');
+        }
+        return freezeInput(view);
+      },
+      status: async ({signal} = {}) => {
+        return readRunObservation('status', {}, signal);
+      },
+      wait: async ({until, since, signal} = {}) => {
+        const body = {until:until ?? null, since:since ?? null};
+        if (!validClientBody('wait', {connection:selected.wire, ref, ...body})) {
+          fail('InvalidWaitRevision');
+        }
+        if (signal?.aborted) fail(signal.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted');
+        try { return await readRunObservation('wait', body, signal); }
+        catch (failure) {
+          if (signal?.aborted && ((failure as {code?: unknown} | null | undefined)?.code === 'ClientTransportUnknown' ||
+              (failure as {code?: unknown} | null | undefined)?.code === 'WaitAborted')) {
+            fail(signal.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted');
+          }
+          throw failure;
+        }
+      },
+      cancel: async ({signal, cancelId = crypto.randomUUID(), expectedRevision,
+        attemptId = crypto.randomUUID()} = {}) => {
+        const attemptRef = freezeInput({operation: 'cancel', attemptId});
+        if (!validOperationAttemptRef(attemptRef)) fail('InvalidOperationAttemptReference');
+        if (!validCancellationRef({...ref, cancelId,
+          expectedRevision: expectedRevision === undefined ? 0 : expectedRevision})) {
+          fail('InvalidCancellationReference');
+        }
+        // A fresh operation may first observe the current control revision.
+        // Replay/lookup must use the revision retained in the original ref.
+        if (expectedRevision === undefined) {
+          const state = await readRunObservation('status', {}, signal);
+          if (state.control === undefined) fail('CancellationRevisionUnavailable');
+          expectedRevision = state.control.revision;
+        }
+        const cancelRef = freezeInput({...ref, cancelId, expectedRevision});
+        if (!validCancellationRef(cancelRef)) fail('InvalidCancellationReference');
+        const context = freezeInput({ref: {...ref}, cancelRef, attemptRef});
+        let response;
+        try { response = await readControl('cancel', {cancelId, expectedRevision, attemptRef}, signal, context); }
+        catch (cause) {
+          // Local validation, Client closure and credential failure before
+          // dispatch cannot have admitted this cancellation operation.
+          if (!wasCancellationDispatched(context)) throw cause;
+          // A transported code or HTTP status is not an Owner certificate for
+          // this invocation. It can follow a committed original operation or
+          // describe another attempt. Only a validated typed outcome can
+          // establish Refused or Conflict; lost error replies stay unknown.
+          const error = new ClientError('CancellationUnknown', {
+            cancelRef, attemptRef, cause: requestCancellationCause(cause),
+          });
+          throw retainCancellationExplanation(error, context, 'outcome_unknown');
+        }
+        let received;
+        try {
+          received = captureResponse(response);
+          if (!validCancellationAttempt(received, cancelRef, attemptRef)) fail('InvalidHostCancellation');
+        } catch {
+          throw retainCancellationExplanation(new ClientError('CancellationUnknown', {
+            cancelRef, attemptRef, cause: new ClientError('InvalidHostCancellation'),
+          }), context, 'outcome_unknown');
+        }
+        received = freezeInput(received);
+        return retainCancellationAttemptExplanation(received, context);
+      },
+      lookupCancellation: async (reference, {signal} = {}) => {
+        let cancelRef: CancellationReference;
+        try {
+          const capturedReference = captureResponse(reference);
+          if (!validCancellationRef(capturedReference)) fail('InvalidCancellationReference');
+          cancelRef = freezeInput(capturedReference);
+          if (['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(key => cancelRef[key as keyof RunReference] !== ref[key as keyof RunReference])) {
+            fail('InvalidCancellationReference');
+          }
+        } catch { fail('InvalidCancellationReference'); }
+        const context = freezeInput({ref: {...ref}, cancelRef});
+        let response;
+        try {
+          response = await readControl('lookup-cancellation', {
+            cancelId: cancelRef.cancelId, expectedRevision: cancelRef.expectedRevision,
+          }, signal);
+        } catch (cause) {
+          const safe = requestCancellationCause(cause);
+          throw retainCancellationExplanation(new ClientError(safe.code, {cancelRef,
+            ...(safe.status === undefined ? {} : {status: safe.status})}), context, 'outcome_unknown');
+        }
+        try {
+          const captured = captureResponse(response);
+          if (!validCancellationLookup(captured, cancelRef)) fail('InvalidHostCancellationLookup');
+          return retainCancellationExplanation(freezeInput(captured), context,
+            captured.kind === 'found' ? captured.cancellation.kind : 'outcome_unknown',
+            captured.kind === 'found' ? captured.cancellation.revision : undefined);
+        } catch {
+          throw retainCancellationExplanation(new ClientError('InvalidHostCancellationLookup', {cancelRef}),
+            context, 'outcome_unknown');
+        }
+      },
+      // The Run's current state after the Host's reconciliation attempt. An
+      // unknown Effect outcome stays `needs_reconciliation` until the Host
+      // has provider evidence; nothing is resent to find out.
+      reconcile: async ({signal} = {}) => {
+        return readRunObservation('reconcile', {}, signal);
+      },
+    });
+    return handle;
+  };
+
+}
+
+export function copyRunObservationFailure(cause: unknown, error: object) {
+  const failure = runObservationFailures.get(cause as object);
+  if (failure) runObservationFailures.set(error, failure);
+}

@@ -715,7 +715,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
               }
             ]
@@ -1072,7 +1072,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
               }
             ]
@@ -1168,7 +1168,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
               }
             ]
@@ -1239,7 +1239,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
               }
             ]
@@ -1335,7 +1335,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
               }
             ]
@@ -1406,7 +1406,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/local-node/declared-project-catalog.actual.test.mjs",
+                "path": "adapters/local-node/declared-project-catalog.actual.test.mts",
                 "anchor": "test('declared catalogue Common projection binds the SAME retained entry and exposes no physical read'"
               }
             ]

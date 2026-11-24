@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/calendar/site/calendar-list-read.mjs",
-      "sha256": "31b3cb74bd8a504032f0a0efd0db62675e48c4a112a50108ae771f57fff35690",
+      "sha256": "949b781f0b2f76a413f5672e9d182b1fe13ab29170447c24550655927393281e",
       "exports": [
         "CALENDAR_LIST_OPERATION",
         "CalendarListReadFailure",
@@ -160,15 +160,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs",
+                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mts",
                 "anchor": "Calendar calendars constructs through original Host Source services without external capacity"
               },
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs",
+                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mts",
                 "anchor": "Calendar retains original implementation failure and original failed reader children"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mts",
                 "anchor": "Calendar actual shared Host reader retires only after original stop and keeps typed rows"
               }
             ]
@@ -705,7 +705,7 @@
                 "anchor": "test \"Calendar free busy keeps original calendar order"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mts",
                 "anchor": "test('actual Calendar projection binds original query"
               }
             ]
@@ -962,7 +962,7 @@
                 "anchor": "Calendar Events Source request schema is one closed required object"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-events-request-pages.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-events-request-pages.test.mts",
                 "anchor": "Calendar request page entry consumes one exact original request"
               }
             ]
@@ -1031,7 +1031,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]
@@ -1435,7 +1435,7 @@
                 "anchor": "test \"Calendar free busy keeps original calendar order"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mts",
                 "anchor": "test('actual Calendar projection binds original query"
               }
             ]
@@ -1644,7 +1644,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]
@@ -1805,7 +1805,7 @@
                 "anchor": "test \"Calendar free busy keeps original calendar order"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mts",
                 "anchor": "test('actual Calendar projection binds original query"
               },
               {
@@ -1967,7 +1967,7 @@
                 "anchor": "test \"Calendar free busy keeps original calendar order"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-projection.test.mts",
                 "anchor": "test('actual Calendar projection binds original query"
               }
             ]
@@ -2033,7 +2033,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]
@@ -2043,7 +2043,7 @@
     },
     {
       "module": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-      "sha256": "f0cb7c4141f93985c8c24b515b506ae4db44c7ec8275b9d1f8ce34dedcf08294",
+      "sha256": "785f4a0b48fcf48d3f56cb7956c8461ecb7f7c4595e8178184264d214b863334",
       "exports": [
         "CALENDAR_FREE_BUSY_OPERATION",
         "CalendarFreeBusyReadFailure",
@@ -2177,28 +2177,28 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "function prepare({moon, query, names"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "async function execute(original, received)"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "async function execute(original: Prepared, received?"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2207,17 +2207,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
               },
               {
@@ -2227,17 +2227,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "requestStop(reason: unknown) {originalReader(this).stop.abort(reason);}"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "const limitFields = ["
               },
               {
@@ -2257,11 +2257,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy actual TLS POST"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
@@ -2285,28 +2285,28 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "function prepare({moon, query, names"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "async function execute(original, received)"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "async function execute(original: Prepared, received?"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2315,17 +2315,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
               },
               {
@@ -2335,17 +2335,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "requestStop(reason: unknown) {originalReader(this).stop.abort(reason);}"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "const limitFields = ["
               },
               {
@@ -2365,11 +2365,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy actual TLS POST"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
@@ -2395,28 +2395,28 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "function prepare({moon, query, names"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "async function execute(original, received)"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "async function execute(original: Prepared, received?"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2425,17 +2425,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
               },
               {
@@ -2445,17 +2445,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "requestStop(reason: unknown) {originalReader(this).stop.abort(reason);}"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "const limitFields = ["
               },
               {
@@ -2475,11 +2475,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy actual TLS POST"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
@@ -2501,28 +2501,28 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "function prepare({moon, query, names"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "async function execute(original, received)"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "async function execute(original: Prepared, received?"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope, context.scope)"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "provider.calendarFreeBusyMatchesQuery(page, query)"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/calendar-list-reader-custody.md",
@@ -2531,17 +2531,17 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "currentBeforeSend: verify"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows, Object.freeze({charge}));"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "throw new CalendarFreeBusyReadFailure(cause, observations);"
               },
               {
@@ -2551,17 +2551,17 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
-                "anchor": "requestStop(reason) {originalReader(this).stop.abort(reason);}"
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
+                "anchor": "requestStop(reason: unknown) {originalReader(this).stop.abort(reason);}"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-read.mts",
                 "anchor": "const limitFields = ["
               },
               {
@@ -2581,11 +2581,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy actual TLS POST"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-read.test.mts",
                 "anchor": "test('Calendar free busy lost POST reply"
               }
             ]
@@ -2595,7 +2595,7 @@
     },
     {
       "module": "adapters/connectors/calendar/host/installed-calendar-source.mjs",
-      "sha256": "2625c292a6fedb112ae9040db7ce8f6e524781c41c4c4e204038397f41ccc037",
+      "sha256": "bdbeca80382386fd4629b6694675e123e50e78e0a5b4b2a6735f7bc9a49093a5",
       "exports": [
         "INSTALLED_CALENDAR_SITE_VERSION",
         "INSTALLED_CALENDAR_SOURCE_VERSION",
@@ -2725,7 +2725,7 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-cleanup.mts",
         "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
@@ -2823,15 +2823,15 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs",
+                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mts",
                 "anchor": "Calendar calendars constructs through original Host Source services without external capacity"
               },
               {
-                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs",
+                "path": "adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mts",
                 "anchor": "Calendar retains original implementation failure and original failed reader children"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-list-read.test.mts",
                 "anchor": "Calendar actual shared Host reader retires only after original stop and keeps typed rows"
               }
             ]
@@ -3499,7 +3499,7 @@
     },
     {
       "module": "adapters/connectors/calendar/site/calendar-events-pages.mjs",
-      "sha256": "dff3e92803fcd32abb739249b70e08cedd459cad4c175f72d0bdd8c96d715796",
+      "sha256": "4aaa95c51354d222708b3ae661511f270c8cae2a3092b65ed5df6fb5d3054292",
       "exports": [
         "CALENDAR_EVENTS_OPERATION",
         "CalendarEventsReadFailure",
@@ -3656,7 +3656,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-events-pages.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-events-pages.mts",
                 "anchor": "export function prepareCalendarEventsPages"
               }
             ],
@@ -3677,7 +3677,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mts",
                 "anchor": "Calendar Events pure hooks retain original"
               }
             ],
@@ -3701,7 +3701,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-events-pages.test.mts",
                 "anchor": "Calendar Events pure hooks retain original"
               }
             ]
@@ -3724,7 +3724,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-events-pages.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-events-pages.mts",
                 "anchor": "export function prepareCalendarEventsRequestPages"
               }
             ],
@@ -3745,7 +3745,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
               }
             ],
@@ -3769,7 +3769,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar provider retains the Common environment original Profile through request and complete typed page"
               }
             ]
@@ -3860,7 +3860,7 @@
                 "anchor": "Calendar Events Source request schema is one closed required object"
               },
               {
-                "path": "adapters/connectors/calendar/test/calendar-events-request-pages.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-events-request-pages.test.mts",
                 "anchor": "Calendar request page entry consumes one exact original request"
               }
             ]
@@ -3968,7 +3968,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
               }
             ],
@@ -3992,7 +3992,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar provider retains the Common environment original Profile through request and complete typed page"
               }
             ]
@@ -4100,7 +4100,7 @@
             },
             "failure": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar environment getter does not default absent disabled changed or query-foreign profile data"
               }
             ],
@@ -4124,7 +4124,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-original-profile.test.mts",
                 "anchor": "actual Calendar provider retains the Common environment original Profile through request and complete typed page"
               }
             ]
@@ -4211,7 +4211,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]
@@ -4221,7 +4221,7 @@
     },
     {
       "module": "adapters/connectors/calendar/site/calendar-free-busy-pages.mjs",
-      "sha256": "e9c4a7e9b43494bbdce365ea392dfe19eece7307e4687f5cd06ffcab78969f74",
+      "sha256": "e0993383274c21e75c1bf85f52818e9a4293084f3636f5c1934edd14d9c0554d",
       "exports": [
         "CALENDAR_FREE_BUSY_PAGES_OPERATION",
         "CalendarFreeBusyPagesFailure",
@@ -4341,7 +4341,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/calendar/site/calendar-free-busy-pages.mjs",
+                "path": "adapters/connectors/calendar/site/calendar-free-busy-pages.mts",
                 "anchor": "export function prepareCalendarFreeBusyRequestPages"
               }
             ],
@@ -4386,7 +4386,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mjs",
+                "path": "adapters/connectors/calendar/test/calendar-free-busy-request.actual.test.mts",
                 "anchor": "actual Calendar free busy original Request ABI preserves exact Timestamp DATA through pure pages"
               }
             ]

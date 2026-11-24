@@ -1,0 +1,85 @@
+// Connector-private transport batching, not value admission or completion.
+import {DuckDBTransportError} from './configuration.mjs';
+import {setImmediate as yieldToHost} from 'node:timers/promises';
+import type {PhysicalParameter, PhysicalType} from './physical-values.mjs';
+import type {ValidatedLimits} from './session.mjs';
+
+type BatchLimits = Pick<ValidatedLimits, 'maxParameters' | 'maxSqlBytes'> &
+  Required<Pick<ValidatedLimits, 'maxChunkRows' | 'maxChunkBytes'>>;
+type CompileBatch = (rows: number) => Readonly<{rows: number; sql: string}>;
+type WriteBatch = (sql: string, parameters: readonly PhysicalParameter[]) => unknown;
+
+const emptyFrameBytes = Buffer.byteLength('{"parameters":[]}\n', 'utf8');
+
+export function createImportBatch(columns: number, rows: number, limits: BatchLimits,
+  sqlForRows: CompileBatch, write: WriteBatch, signal?: AbortSignal) {
+  if (!Number.isSafeInteger(columns) || columns < 1 ||
+      !Number.isSafeInteger(rows) || rows < 1 || rows > limits.maxChunkRows ||
+      rows > Math.floor(limits.maxParameters / columns)) throw new DuckDBTransportError('InvalidImportBatch');
+  let parameters: PhysicalParameter[] = [], count = 0, bytes = emptyFrameBytes, live = true;
+  const flush = async () => {
+    signal?.throwIfAborted();
+    if (!count) return;
+    // Awaiting row callbacks alone can keep execution in the microtask queue.
+    // Give timers/IPC a bounded opportunity to deliver cancellation before the
+    // next native write. This is per batch, never per row, and does not claim to
+    // preempt an already-started native operation or confirm its cleanup.
+    await yieldToHost();
+    signal?.throwIfAborted();
+    // The trusted MoonBit compiler owns identifiers and tuple construction.
+    const compiled = sqlForRows(count);
+    if (compiled.rows !== count || typeof compiled.sql !== 'string' ||
+        Buffer.byteLength(compiled.sql, 'utf8') > limits.maxSqlBytes) {
+      throw new DuckDBTransportError('InvalidImportBatch');
+    }
+    await write(compiled.sql, parameters);
+    parameters = []; count = 0; bytes = emptyFrameBytes;
+    signal?.throwIfAborted();
+  };
+  return Object.freeze({
+    async append(row: readonly PhysicalParameter[]) {
+      if (!live) throw new DuckDBTransportError('ImportBatchUnavailable');
+      try {
+        signal?.throwIfAborted();
+        if (!Array.isArray(row) || row.length !== columns) throw new DuckDBTransportError('InvalidImportStream');
+        const copied: PhysicalParameter[] = [];
+        let rowBytes = 0;
+        for (const parameter of row) {
+          const {type, value} = (parameter as Partial<PhysicalParameter> | null | undefined) ?? {};
+          if ((value !== null && typeof value !== 'string' && typeof value !== 'boolean') ||
+              !type || typeof type.id !== 'string' || type.id.length > 32 ||
+              Object.keys(type).some(key => !['id', 'precision', 'scale'].includes(key)) ||
+              ['precision', 'scale'].some(key => type[key as keyof PhysicalType] !== undefined && !Number.isSafeInteger(type[key as keyof PhysicalType]))) {
+            throw new DuckDBTransportError('Parameters');
+          }
+          if (typeof value === 'string' && Buffer.byteLength(value, 'utf8') > limits.maxChunkBytes) {
+            throw new DuckDBTransportError('ChunkBytes');
+          }
+          const item = {type: {...type}, value};
+          const size = Buffer.byteLength(JSON.stringify(item), 'utf8') + (copied.length ? 1 : 0);
+          if (size > limits.maxChunkBytes - emptyFrameBytes - rowBytes) {
+            throw new DuckDBTransportError('ChunkBytes');
+          }
+          rowBytes += size;
+          copied.push(item);
+        }
+        // A variable-width row may end the batch early. It is snapshotted before
+        // awaiting native I/O, with both the pending batch and this row bounded.
+        if (count && rowBytes + 1 > limits.maxChunkBytes - bytes) await flush();
+        bytes += rowBytes + (count ? 1 : 0);
+        parameters.push(...copied);
+        count++;
+        if (count === rows) await flush();
+      } catch (error) {
+        live = false; parameters = [];
+        throw error;
+      }
+    },
+    async finish() {
+      if (!live) throw new DuckDBTransportError('ImportBatchUnavailable');
+      live = false;
+      try { await flush(); }
+      finally { parameters = []; }
+    },
+  });
+}

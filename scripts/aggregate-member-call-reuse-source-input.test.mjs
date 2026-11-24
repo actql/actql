@@ -43,7 +43,7 @@ test('aggregate member obligations are copied and registered in the existing nor
   const all = [...havingObjectPropertySuccesses, ...havingObjectPropertyRefusals];
   assert.equal(new Set(all.map(item => item.name)).size, all.length);
   const app = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(app.includes('scopeInputs.successes.push(...havingObjectPropertySuccesses)'));
   assert.ok(app.includes('havingObjectPropertyOnly ? {successes: havingObjectPropertySuccesses'));
   assert.ok(driver.includes("['scripts/fixtures/aggregate-member-call-reuse-source-input.mjs', 'aggregate-member-call-reuse-source-input.mjs']"));

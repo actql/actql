@@ -17,6 +17,7 @@ const context = {candidateRevision: current, repository: 'actql/actql', reposito
 // runtime observations keep their residuals and cannot adopt this test seam.
 const runtime = {profile: 'controlled-unit-test-runtime', unresolved: []};
 const files = new Map([...sharedFiles.map(path => [path, path]), [catalogPath, encode(catalog)],
+  ['scripts/ci-core-partitions.mjs', 'legacy CI partitions'],
   ['src/bounded_execution/moon.pkg', ''], ['src/bounded_execution/session.mbt', 'production'],
   ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs'].map(path => [`proofs/bounded-session/${path}`, path])]);
 for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])

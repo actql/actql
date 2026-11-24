@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import test from 'node:test';
+import {createInstalledRowSourceAcquisition} from '../../../host-node/installed-row-source-acquisition.mjs';
 import {readFile} from 'node:fs/promises';
 import {readSalesforceQuery, readSalesforceManagedQuery} from
   '../site/salesforce-query-read.mjs';
@@ -182,7 +183,7 @@ for (const refused of [true, false]) {
   test(`actual native read facts ${refused ? 'never precede refused Run backing' : 'keep failed preparation in the same admitted Run cleanup'}`, async () => {
     const prepared = Object.freeze({checkedSource: Object.freeze({requirementCid: 'original-requirement'})});
     const program = Object.freeze({}), access = Object.freeze({});
-    const acquisition = Object.freeze({}), ledger = Object.freeze({}), run = Object.freeze({}), state = {};
+    const acquisition = Object.freeze({}), ledger = Object.freeze({}), run = Object.freeze({});
     const originalRead = Object.freeze({}), provider = Object.freeze({});
     const transport = Object.freeze({transferBytes: 12n, executionBytes: 4n});
     const preparingSourceReads = new Set([originalRead]);
@@ -193,10 +194,10 @@ for (const refused of [true, false]) {
       sourceAccess: access, captureCapacity(actual) {assert.equal(actual, owner);events.push('quote');},
       currentRead: async () => ({basis: 'policy'}), directReadIdentity: undefined,
       moon: {clientProgramRowSourceColumns(actual) {assert.equal(actual, acquisition);return ['Id'];}},
-      randomUUID: () => 'original-nonce', cid: () => 'original-cid',
+      cid: () => 'original-cid',
       resourceTransport(resource) {assert.equal(resource, 'Account');events.push('transport');return transport;},
-      readerDemand: undefined, listingReportCapacity: undefined, preparingSourceReads,
-      closeSourceRead: undefined, fail,
+      limits: {maxPageBytes: 4}, readerDemand: undefined, listingReportCapacity: undefined, preparingSourceReads,
+      closeSourceRead: undefined,
       async prepareRead(input) {
         assert.equal(input.prepared, prepared);assert.equal(input.acquisition, acquisition);
         assert.equal(input.resource, 'Account');
@@ -204,18 +205,17 @@ for (const refused of [true, false]) {
       },
       startInstalledRowRun(input) {
         assert.equal(input.ledger, ledger);assert.equal(input.acquisition, acquisition);
-        assert.equal(input.originalRead, originalRead);
+        assert.strictEqual(input.originalRead, originalRead);
         assert.deepEqual(input.capacity, {...transport, provider});
-        assert.equal(input.capacity.provider, provider);
+        assert.strictEqual(input.capacity.provider, provider);
         events.push('reserve');if (refused) throw failure;
-        return {run, closeAfterFailure(actual) {assert.equal(actual, state);events.push('original-cleanup');}};
+        return {run, closeAfterFailure(actual) {assert.equal(actual.started, false);events.push('original-cleanup');}};
       },
     };
-    const acquire = await originalFunction('../../../host-node/installed-row-source.mjs', 'acquire', ports);
-    await assert.rejects(acquire(state, {preparedProgram: program, sourceAccess: access,
-      preparedSource: prepared, ledger}), cause => cause === failure);
-    assert.deepEqual(events, refused
-      ? ['quote', 'transport', 'reserve']
+    const {open} = createInstalledRowSourceAcquisition(ports);
+    await assert.rejects(open({preparedProgram: program, sourceAccess: access,
+      preparedSource: prepared, ledger}), error => error.cause === failure && error.outcome === 'not_started');
+    assert.deepEqual(events, refused ? ['quote', 'transport', 'reserve']
       : ['quote', 'transport', 'reserve', 'facts', 'original-cleanup']);
     assert.equal(preparingSourceReads.has(originalRead), refused);
   });
