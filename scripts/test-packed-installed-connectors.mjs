@@ -8,10 +8,10 @@ import {existsSync} from 'node:fs';
 import {join, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createOwnedScratch} from './owned-scratch.mjs';
+import {prepareCopiedTypeScript} from './copied-typescript-preparation.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {packedNpmCache, normalNpmPackJsonArgs, parseNpmPackJson, normalPackSourceInputs, initializeNormalPackSourceIndex} from './packed-client-packages.mjs';
 import {localNodePackageInputs} from './local-node-package-inputs.mjs';
-import {symlink} from 'node:fs/promises';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const names = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
@@ -53,7 +53,8 @@ for (const name of names) {
   assert.equal(existsSync(join(producer, 'packages', name, '_build')), false);
   assert.equal(existsSync(join(producer, 'packages', name, 'dist')), false);
 }
-await symlink(join(repository, 'node_modules'), join(producer, 'node_modules'), 'dir');
+await prepareCopiedTypeScript({source: repository, root: producer, environment,
+  run: (command, args, cwd, _environment, timeout) => run(command, args, cwd, timeout)});
 const inputs = localNodePackageInputs(producer);
 const packs = [];
 for (const name of names) {

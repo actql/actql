@@ -2,6 +2,11 @@
 export declare const checkOutcomeProtocol: Readonly<{version: "actql-check-outcome/0.1"; reasonSchemaCid: string; outcomeSchemaCid: string; outcomes: readonly ("completed" | "failed" | "unavailable")[]}>;
 export declare const runStateProtocol: Readonly<{version: "actql-run-state/0.1"; statuses: readonly ("preparing" | "running" | "waiting_checkpoint" | "resuming" | "needs_reconciliation" | "succeeded" | "failed" | "cancelled")[]}>;
 export type ClientHostOperation = "connect" | "submit" | "submit-intent" | "submit-named-intent" | "restart-intent" | "lookup-submission" | "check" | "plan" | "static-explanation" | "inspect-run" | "attach" | "lookup-request" | "status" | "wait" | "cancel" | "lookup-cancellation" | "reconcile" | "read" | "result-describe" | "delivery-attempt" | "checkpoints" | "checkpoint-review" | "resolve" | "cancel-request" | "resources" | "resource-inspect" | "resource-peek" | "owner-observations" | "run-plan" | "run-explanation" | "run-explanation-context";
+export declare const checkReasonSchemaCid: string;
+export declare const checkOutcomeSchemaCid: string;
+export declare const clientHostOperations: readonly ClientHostOperation[];
+export declare function clientHostRequestKeys(operation: unknown, body?: unknown): string[] | undefined;
+export declare function validClientRequestOptionalFields(operation: unknown, body: unknown): boolean;
 export type WireValueContractShape = Readonly<{
   type: "decimal";
   nullable: boolean;
@@ -55,6 +60,7 @@ export type WireSubmissionEpochShape = Readonly<{
   expiresAt: number;
   authenticator: string;
 }>;
+export declare function validSubmissionEpochShape(value: unknown): value is WireSubmissionEpochShape;
 
 export type WireSubmissionRefShape = Readonly<{
   epoch: Readonly<{
@@ -67,6 +73,7 @@ export type WireSubmissionRefShape = Readonly<{
 }>;
   nonce: string;
 }>;
+export declare function validSubmissionRefShape(value: unknown): value is WireSubmissionRefShape;
 
 export type WireSubmissionOutcomeShape = Readonly<{
   kind: "ready";
@@ -266,6 +273,7 @@ export type WireSubmissionOutcomeShape = Readonly<{
   acknowledgement: "possible_prior_execution_and_effects";
 }>;
 }>;
+export declare function validSubmissionOutcomeShape(value: unknown): value is WireSubmissionOutcomeShape;
 
 export type WireSubmissionLookupShape = Readonly<{
   kind: "ready";
@@ -471,6 +479,7 @@ export type WireSubmissionLookupShape = Readonly<{
   acknowledgement: "possible_prior_execution_and_effects";
 }>;
 }>;
+export declare function validSubmissionLookupShape(value: unknown): value is WireSubmissionLookupShape;
 
 export type WireSubmissionRestartShape = Readonly<{
   submissionRef: Readonly<{
@@ -486,6 +495,7 @@ export type WireSubmissionRestartShape = Readonly<{
 }>;
   acknowledgement: "possible_prior_execution_and_effects";
 }>;
+export declare function validSubmissionRestartShape(value: unknown): value is WireSubmissionRestartShape;
 
 export type WireSubmissionAttemptShape = Readonly<{
   kind: "recorded" | "already_satisfied";
@@ -739,8 +749,10 @@ export type WireSubmissionAttemptShape = Readonly<{
   intentCid: string;
   reason: "intent" | "restart_decision";
 }>;
+export declare function validSubmissionAttemptShape(value: unknown): value is WireSubmissionAttemptShape;
 
 export type WireSubmissionNameShape = string;
+export declare function validSubmissionNameShape(value: unknown): value is WireSubmissionNameShape;
 
 export type WireNamedSubmissionAttemptShape = Readonly<{
   kind: "observed";
@@ -998,12 +1010,14 @@ export type WireNamedSubmissionAttemptShape = Readonly<{
 }>;
   reason: "intent";
 }>;
+export declare function validNamedSubmissionAttemptShape(value: unknown): value is WireNamedSubmissionAttemptShape;
 
 export type WireRunRefShape = Readonly<{
   namespaceId: string;
   authorityScopeCid: string;
   runDefinitionCid: string;
 }>;
+export declare function validRunRefShape(value: unknown): value is WireRunRefShape;
 
 export type WireConnectionShape = Readonly<{
   mode: "local" | "remote" | "hybrid";
@@ -1015,6 +1029,7 @@ export type WireConnectionShape = Readonly<{
   movementPolicyRef?: string;
   cloudConnectionRef?: string;
 }>;
+export declare function validConnectionShape(value: unknown): value is WireConnectionShape;
 
 export type WireProfileShape = Readonly<{
   version: "actql-client-host/0.1";
@@ -1042,6 +1057,7 @@ export type WireProfileShape = Readonly<{
   maxBatchRetainedValueBytes: number;
 }>;
 }>;
+export declare function validProfileShape(value: unknown): value is WireProfileShape;
 
 export type WireAdmissionShape = Readonly<{
   ref: Readonly<{
@@ -1052,6 +1068,7 @@ export type WireAdmissionShape = Readonly<{
   durability: "volatile" | "durable";
   revision: number;
 }>;
+export declare function validAdmissionShape(value: unknown): value is WireAdmissionShape;
 
 export type WireLookupFoundShape = Readonly<{
   kind: "found";
@@ -1064,15 +1081,18 @@ export type WireLookupFoundShape = Readonly<{
   durability: "volatile" | "durable";
   lookupExpiresAt: string;
 }>;
+export declare function validLookupFoundShape(value: unknown): value is WireLookupFoundShape;
 
 export type WireLookupNotFoundShape = Readonly<{
   kind: "not_found";
 }>;
+export declare function validLookupNotFoundShape(value: unknown): value is WireLookupNotFoundShape;
 
 export type WireLookupUnknownShape = Readonly<{
   kind: "unknown";
   reason: string;
 }>;
+export declare function validLookupUnknownShape(value: unknown): value is WireLookupUnknownShape;
 
 export type WireHeldShape = Readonly<{
   kind: "held";
@@ -1090,6 +1110,7 @@ export type WireHeldShape = Readonly<{
   endReason?: string;
   terminalErrorCode?: string;
 }>;
+export declare function validHeldShape(value: unknown): value is WireHeldShape;
 
 export type WireCheckpointSummaryShape = Readonly<{
   checkpointId: string;
@@ -1135,6 +1156,7 @@ export type WireCheckpointSummaryShape = Readonly<{
   humanSummary: string;
   preparedInvocationCid: string;
 }>;
+export declare function validCheckpointSummaryShape(value: unknown): value is WireCheckpointSummaryShape;
 
 export type WireCheckpointReviewShape = Readonly<{
   kind: "review";
@@ -1143,12 +1165,14 @@ export type WireCheckpointReviewShape = Readonly<{
   byteLength: number;
   contentBase64: string;
 }>;
+export declare function validCheckpointReviewShape(value: unknown): value is WireCheckpointReviewShape;
 
 export type WireResolveItemShape = Readonly<{
   checkpointCid: string;
   resolutionWire: string;
   approvalEvidenceWire: string;
 }>;
+export declare function validResolveItemShape(value: unknown): value is WireResolveItemShape;
 
 export type WireResolveResultShape = Readonly<{
   checkpointCid: string;
@@ -1157,10 +1181,12 @@ export type WireResolveResultShape = Readonly<{
   resolutionCid?: string;
   reason?: string;
 }>;
+export declare function validResolveResultShape(value: unknown): value is WireResolveResultShape;
 
 export type WireSubmitPreparationErrorShape = Readonly<{
   code: "ClientProgramInvalidInput" | "ClientParametersInvalid" | "ClientParametersTooLarge" | "ClientProgramUnsupported" | "ClientProgramAnalysisLimit" | "ClientProgramImplementationLimit" | "ClientProgramNeedsInputs" | "ClientProgramRejected";
 }>;
+export declare function validSubmitPreparationErrorShape(value: unknown): value is WireSubmitPreparationErrorShape;
 
 export type WireCancellationShape = Readonly<{
   ref: Readonly<{
@@ -1178,6 +1204,7 @@ export type WireCancellationShape = Readonly<{
   expectedRevision: number;
 }>;
 }>;
+export declare function validCancellationShape(value: unknown): value is WireCancellationShape;
 
 export type WireCancellationRefShape = Readonly<{
   namespaceId: string;
@@ -1186,6 +1213,7 @@ export type WireCancellationRefShape = Readonly<{
   cancelId: string;
   expectedRevision: number;
 }>;
+export declare function validCancellationRefShape(value: unknown): value is WireCancellationRefShape;
 
 export type WireCancellationLookupShape = Readonly<{
   kind: "found";
@@ -1215,11 +1243,13 @@ export type WireCancellationLookupShape = Readonly<{
   expectedRevision: number;
 }>;
 }>;
+export declare function validCancellationLookupShape(value: unknown): value is WireCancellationLookupShape;
 
 export type WireOperationAttemptRefShape = Readonly<{
   operation: "submit" | "cancel";
   attemptId: string;
 }>;
+export declare function validOperationAttemptRefShape(value: unknown): value is WireOperationAttemptRefShape;
 
 export type WireCancellationAttemptShape = Readonly<{
   kind: "accepted";
@@ -1295,6 +1325,7 @@ export type WireCancellationAttemptShape = Readonly<{
   expectedRevision: number;
 }>;
 }>;
+export declare function validCancellationAttemptShape(value: unknown): value is WireCancellationAttemptShape;
 
 export type WireRequestCancellationShape = Readonly<{
   requestId: string;
@@ -1306,6 +1337,7 @@ export type WireRequestCancellationShape = Readonly<{
 }>;
   revision?: number;
 }>;
+export declare function validRequestCancellationShape(value: unknown): value is WireRequestCancellationShape;
 
 export type WireResourceListingShape = Readonly<{
   resourceConnection: string;
@@ -1318,6 +1350,7 @@ export type WireResourceListingShape = Readonly<{
   snapshotTruncated: boolean;
   resultTruncated: boolean;
 }>;
+export declare function validResourceListingShape(value: unknown): value is WireResourceListingShape;
 
 export type WireResourceInspectionShape = Readonly<{
   resourceConnection: string;
@@ -1327,6 +1360,7 @@ export type WireResourceInspectionShape = Readonly<{
   reason?: "listing_truncated" | "not_visible" | "not_observed" | "not_found" | "describe_unavailable";
   summaryJson?: string;
 }>;
+export declare function validResourceInspectionShape(value: unknown): value is WireResourceInspectionShape;
 
 export type WireResourcePeekShape = Readonly<{
   resourceConnection: string;
@@ -1336,6 +1370,7 @@ export type WireResourcePeekShape = Readonly<{
   rowsJson: string;
   limited: boolean;
 }>;
+export declare function validResourcePeekShape(value: unknown): value is WireResourcePeekShape;
 
 export type WireResultDescriptionShape = Readonly<{
   ref: Readonly<{
@@ -1358,12 +1393,14 @@ export type WireResultDescriptionShape = Readonly<{
   contractCid: string;
 }>;
 }>;
+export declare function validResultDescriptionShape(value: unknown): value is WireResultDescriptionShape;
 
 export type WireOwnerRefShape = Readonly<{
   kind: "run" | "effect" | "publication" | "delivery" | "site";
   scopeCid: string;
   streamCid: string;
 }>;
+export declare function validOwnerRefShape(value: unknown): value is WireOwnerRefShape;
 
 export type WireOwnerCursorShape = Readonly<{
   owner: Readonly<{
@@ -1373,6 +1410,7 @@ export type WireOwnerCursorShape = Readonly<{
 }>;
   value: string;
 }>;
+export declare function validOwnerCursorShape(value: unknown): value is WireOwnerCursorShape;
 
 export type WireOwnerObservationsShape = Readonly<{
   ref: Readonly<{
@@ -1575,6 +1613,7 @@ export type WireOwnerObservationsShape = Readonly<{
   kind: "unavailable";
 }>[];
 }>;
+export declare function validOwnerObservationsShape(value: unknown): value is WireOwnerObservationsShape;
 
 export type WireRunStateShape = Readonly<{
   version: "actql-run-state/0.1";
@@ -2309,3 +2348,11 @@ export type WireCheckFixShape = Readonly<{
   replacement: "*/";
 }>[];
 }>;
+export declare function validRunStateShape(value: unknown): value is WireRunStateShape;
+export declare function validCheckOutcomeShape(value: unknown): value is WireCheckOutcomeShape;
+export declare function validProfileContract(value: unknown, selected: WireConnectionShape): value is WireProfileShape;
+export declare function validAdmissionContract(value: unknown, selected: WireConnectionShape): value is WireAdmissionShape;
+export declare function validRunWaitContract(value: unknown, since: number | null): value is WireRunStateShape;
+export declare function validHeldContract(value: unknown, expected: string): value is WireHeldShape;
+export declare function validRequestLookupContract(value: unknown, expected: string): value is WireLookupFoundShape | WireLookupNotFoundShape | WireLookupUnknownShape | WireHeldShape;
+export declare function validCheckOutcomeContract(value: unknown): value is WireCheckOutcomeShape;

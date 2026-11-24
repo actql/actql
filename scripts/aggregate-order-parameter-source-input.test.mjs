@@ -55,7 +55,7 @@ test('ordinary packed registration includes parameter cases without raising inst
   for (const name of ['aggregatePropertyOrderSuccesses', 'aggregatePropertyOrderRefusals']) {
     assert.ok(app.includes('push(...' + name + ')'));
   }
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/aggregate-order-parameter-source-input.mjs', 'aggregate-order-parameter-source-input.mjs']"));
   const profiles = publicQueryProfiles({successes, refusals});
   assert.equal(profiles.length, 1);

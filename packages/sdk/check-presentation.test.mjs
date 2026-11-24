@@ -20,7 +20,7 @@ function assertBrowserClosure(bundle, checkInput) {
   }
 }
 
-test('packed SDK public exports and browser bundle include their presentation modules', t => {
+test('packed SDK public exports and browser bundle include their presentation modules', async t => {
   const cache = mkdtempSync(join(tmpdir(), 'actql-sdk-presentation-'));
   t.after(() => rmSync(cache, {recursive: true}));
   const environment = {...process.env};
@@ -30,15 +30,11 @@ test('packed SDK public exports and browser bundle include their presentation mo
   });
   // Real tarballs and an external install expose missing transitive modules
   // that source imports and a dry-run inventory cannot exercise.
-  const packages = ['client-wire', 'sdk'].map(name => {
-    const result = [packSdkFixture({name, destination: cache, run,
-      directory: fileURLToPath(new URL(`../${name}/`, import.meta.url))})];
-    // The actual tarball supplies the package report, independently of stdout.
-    const entries = Array.isArray(result) ? result : Object.values(result);
-    assert.equal(entries.length, 1);
-    assert.equal(entries[0].name, `@actql/${name}`);
-    return entries[0];
-  });
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  const packages = [];
+  for (const name of ['client-wire', 'sdk']) {
+    packages.push(await packSdkFixture({name, repository, destination: cache, run}));
+  }
   t.diagnostic(JSON.stringify(packages.map(({name, shasum, integrity}) => ({name, shasum, integrity}))));
   writeFileSync(join(cache, 'package.json'), '{"private":true,"type":"module"}\n');
   run('npm', ['install', '--offline', '--ignore-scripts', '--no-save',

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {createClientDispatchCleanup} from './client-dispatch-cleanup.mjs';
 import {readFileSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
 import test from 'node:test';
@@ -10,6 +11,7 @@ import {duckDBPhysicalTarget} from './duckdb-physical-target.mjs';
 import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {captureSourceAliasConstruction} from './source-alias-construction.mjs';
+import {createInstalledRowSourcePreparation} from './installed-row-source-preparation.mjs';
 
 test('managed Source Plan selection captures the original declaration method and receiver', () => {
   const selection = Object.freeze({declaration: {}, provider: {}, transferBytes: 1n, executionBytes: 2n});
@@ -183,12 +185,6 @@ test('unmigrated and already managed Sources retain their selected preparation p
 });
 
 test('Source reauthorization preserves its original read and refuses foreign, concurrent and retired preparations', async () => {
-  const text = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
-  let node;
-  visit(parse(text, {ecmaVersion: 'latest', sourceType: 'module'}), candidate => {
-    if (candidate.type === 'FunctionDeclaration' && candidate.id?.name === 'prepare') node = candidate;
-  });
-  assert(node);
   // Execute the actual authority-transition boundary with explicit nominal
   // ports. Public recovery separately exercises the real Core and Site.
   const prepared = {}, program = {}, request = {}, run = {}, read = {}, access = {};
@@ -197,13 +193,12 @@ test('Source reauthorization preserves its original read and refuses foreign, co
     managedRun: run, originalRead: read, occurrence, effectful: false, access: {}});
   const preparations = new WeakMap([[prepared, original]]), pending = new Set([read]);
   let current = async () => {}, checks = 0;
-  const ports = {immutableTargets: undefined, physicalTargetGeneration: undefined, directReadIdentity: undefined,
+  const {prepare} = createInstalledRowSourcePreparation({
     preparations, preparingSourceReads: pending, reauthorizingPreparations: new WeakSet(),
-    checked: value => value, fail: code => {throw new Error(code);},
     ordinaryRecoveryBinding(value) {assert.equal(value, prepared);},
-    moon: {clientProgramInstalledSourceReadCheckCurrent(value) {assert.equal(value, read); checks++;}},
-    currentRead(value, selected) {assert.equal(value, prepared); assert.equal(selected, access); return current();}};
-  const prepare = new Function(...Object.keys(ports), `return ${text.slice(node.start, node.end)};`)(...Object.values(ports));
+    moon: {clientProgramInstalledSourceReadCheckCurrent(value) {assert.equal(value, read); checks++; return {$tag: 1};}},
+    currentRead(value, selected) {assert.equal(value, prepared); assert.equal(selected, access); return current();},
+  });
   const facts = {preparedProgram: program, requestIdentity: request, managedRun: run,
     preparedSource: prepared, sourceAccess: access, occurrence};
   assert.equal(await prepare(facts), prepared);
@@ -574,22 +569,12 @@ test('explicit Effect Host selects the same installed Site for its existing mana
 });
 
 test('dispatch retains an unreturned original Source preparation after physical cleanup', () => {
-  const text = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
-  const syntax = parse(text, {ecmaVersion: 'latest', sourceType: 'module'});
-  const functions = [];
-  visit(syntax, node => {
-    if (node.type === 'FunctionDeclaration' && ['retirementReady', 'retire'].includes(node.id.name)) functions.push(node);
-  });
-  assert.deepEqual(functions.map(node => node.id.name).sort(), ['retire', 'retirementReady']);
-  // Keep the actual readiness predicate in the same scope as its caller.
-  const declarations = functions.map(node => text.slice(node.start, node.end)).join('\n');
   let returns = 0;
-  const entry = {settled: true, physicalStarted: false,
+  const entry = {ref: 'original', settled: true, physicalStarted: false,
     sourcePreparations: [{original: 'same unreturned preparation'}],
     retirePreparation() {returns++;}};
   const entries = new Map([['original', entry]]);
-  const retire = new Function('entries', 'keyOf',
-    declarations + ';return retire;')(entries, () => 'original');
+  const {retire} = createClientDispatchCleanup({entries, keyOf: ref => ref});
   retire(entry);
   assert.equal(returns, 0);
   assert.equal(entries.get('original'), entry);

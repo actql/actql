@@ -30,7 +30,7 @@ test('SELECT ALL expectations distinguish multiplicity, NULL, filtering and LIMI
 
 test('ordinary packed corpus includes SELECT ALL and narrow selection keeps the real boundary', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...selectAllSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...selectAllRefusals)'));
   assert.ok(fixture.includes('selectAllOnly ? {successes: selectAllSuccesses'));

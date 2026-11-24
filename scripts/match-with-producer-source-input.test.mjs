@@ -57,7 +57,7 @@ test('MATCH WITH refusals pin scope and supported-surface classifications', () =
 
 test('MATCH WITH is copied and registered in ordinary packed acceptance', async () => {
   const packed = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(packed.includes('scopeInputs.successes.push(...matchWithProducerSuccesses)'));
   assert.ok(packed.includes('scopeInputs.refusals.push(...matchWithProducerRefusals)'));
   assert.ok(driver.includes("['scripts/fixtures/match-with-producer-source-input.mjs', 'match-with-producer-source-input.mjs']"));

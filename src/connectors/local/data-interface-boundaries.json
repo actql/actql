@@ -187,7 +187,7 @@
               "anchor": "schema_cid"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "ForeignTablePhysicalPreparation"
             },
             {
@@ -205,7 +205,7 @@
               "anchor": "original captured"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "const preparations = new WeakMap"
             }
           ],
@@ -215,7 +215,7 @@
               "anchor": "sequence != 0"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "owned.attempted"
             }
           ],
@@ -235,7 +235,7 @@
           ],
           "cancellation": [
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "else if (error?.cleanupHandle)"
             },
             {
@@ -249,7 +249,7 @@
               "anchor": "MAX_BYTES ="
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "const frames ="
             },
             {
@@ -488,7 +488,7 @@
               "anchor": "schema_cid"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "ForeignTablePhysicalPreparation"
             },
             {
@@ -506,7 +506,7 @@
               "anchor": "original captured"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "const preparations = new WeakMap"
             }
           ],
@@ -516,7 +516,7 @@
               "anchor": "sequence != 0"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "owned.attempted"
             }
           ],
@@ -536,7 +536,7 @@
           ],
           "cancellation": [
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "else if (error?.cleanupHandle)"
             },
             {
@@ -550,7 +550,7 @@
               "anchor": "MAX_BYTES ="
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "const frames ="
             },
             {
@@ -916,7 +916,7 @@
           ],
           "inputsOutputs": [
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "export function createIcebergPhysicalBridge"
             },
             {
@@ -930,7 +930,7 @@
               "anchor": "schema_cid"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "ForeignTablePhysicalPreparation"
             },
             {
@@ -948,7 +948,7 @@
               "anchor": "original captured"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "const preparations = new WeakMap"
             }
           ],
@@ -958,7 +958,7 @@
               "anchor": "sequence != 0"
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "owned.attempted"
             }
           ],
@@ -978,7 +978,7 @@
           ],
           "cancellation": [
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "else if (error?.cleanupHandle)"
             },
             {
@@ -992,7 +992,7 @@
               "anchor": "MAX_BYTES ="
             },
             {
-              "path": "adapters/connectors/local/host/iceberg-process.mjs",
+              "path": "adapters/connectors/local/host/iceberg-process.mts",
               "anchor": "const frames ="
             },
             {

@@ -17,7 +17,7 @@ test('INNER matching has independent row, type, scope and multiplicity controls'
 });
 
 test('INNER matching participates in both normal and narrow packed acceptance', () => {
-  const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = readFileSync(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const corpus = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/set-inner-by-name-source-input.mjs', 'set-inner-by-name-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_SET_INNER_BY_NAME_ONLY = '1'"));

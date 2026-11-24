@@ -78,9 +78,11 @@ export async function currentResourceFixture(moon, control, runId = 'current-res
   const originalPreparation = {scope, read, control, compiled, runDefinition, nodeInstallation: selected,
     ...(metadataInstallation === undefined ? {} : {metadataInstallation}),
     readRetainedBytes: 7000n, readExecutionBytes: 3000n, modelRetainedBytes: 100000n, modelExecutionBytes: 3000n};
+  const values = input('infer_fixture_values');
+  const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    input('infer_fixture_registry'), values, undefined, undefined));
   const operation = openNodeInferOperation({moon, preparedProgram: prepared, step, graph,
-    registry: input('infer_fixture_registry'), values: input('infer_fixture_values'),
-    provider, originalPreparation, durableCalls: true, signal: metadataOptions.signal});
+    registry, values, provider, originalPreparation, durableCalls: true, signal: metadataOptions.signal});
   operation.bindRun(control, {compiled, runDefinition});
   await operation.run();
   const preparedCallSet = operation.preparedCallSet();

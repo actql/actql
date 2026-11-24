@@ -1,0 +1,131 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { parse, type AnyNode, type FunctionExpression, type Identifier } from 'acorn';
+type Method = Omit<FunctionExpression, 'params'> & {
+    params: Identifier[];
+};
+type FixtureResult = Readonly<{
+    $tag: number;
+    _0: unknown;
+}>;
+type BoxedFields = Readonly<{
+    $tag?: number;
+} & Record<`_${number}`, unknown>>;
+type Capture = (original: object, signal?: AbortSignal, retain?: boolean) => Promise<unknown>;
+const source = readFileSync(process.env.CAPTURE_RELAY_SOURCE_ROOT ? `${process.env.CAPTURE_RELAY_SOURCE_ROOT}/adapters/host-common/runtime-captured-publication-control.mjs` : new URL('../host-common/runtime-captured-publication-control.mjs', import.meta.url), 'utf8');
+const ast = parse(source, { ecmaVersion: 'latest', sourceType: 'module' });
+let selected!: AnyNode, projectionNode: AnyNode | undefined;
+function walk(n: AnyNode) { if (!n || typeof n !== 'object')
+    return; if (n.type === 'VariableDeclarator' && (n.id as Identifier)?.name === 'finishCapturedPreparation')
+    selected = n.init!; if (n.type === 'VariableDeclarator' && (n.id as Identifier)?.name === 'capturedPreparationLimits')
+    projectionNode = n.init!; for (const x of Object.values(n)) {
+    if (Array.isArray(x))
+        x.forEach(walk);
+    else if (x && typeof x === 'object')
+        walk(x);
+} }
+walk(ast);
+assert(selected);
+function harness(vector: readonly number[] = [2000003, 300007, 73]) {
+    const original = {}, contract = {}, captured = {}, calls: string[] = [], retained = new WeakMap<object, object>();
+    const moon = { strategyCapturedRunPreparationLimits(value: unknown): unknown { assert.equal(value, original); calls.push('limits'); return { $tag: 1, _0: vector }; }, strategyCapturedRunAdvance(value: unknown, q: number): FixtureResult { assert.equal(value, original); assert.equal(q, 256); calls.push('advance'); return { $tag: 1, _0: true }; }, strategyCapturedRunFinish(value: unknown) { assert.equal(value, original); calls.push('finish'); return { $tag: 1, _0: contract }; }, strategyCapturedRunFinishRetained(value: unknown) { assert.equal(value, original); calls.push('finishRetained'); return { $tag: 1, _0: contract }; }, strategyCapturedRunCancel(value: unknown) { assert.equal(value, original); calls.push('cancel'); } };
+    const projection = projectionNode === undefined ? undefined : new Function('moon', 'runtimeIsBoxedSome', 'runtimeField', `return ${source.slice(projectionNode.start, projectionNode.end)}`)(moon, (value: BoxedFields | undefined) => value?.$tag === 1, (value: BoxedFields, index: number) => value[`_${index}`]);
+    const run = new Function('moon', 'checked', 'inspect', 'capturedComputationPreparations', 'runtimeIsBoxedSome', 'runtimeField', 'capturedPreparationLimits', `return ${source.slice(selected.start, selected.end)}`)(moon, (r: FixtureResult) => { if (r.$tag === 0)
+        throw r._0; return r._0; }, (value: unknown, limits: unknown) => { assert.equal(value, contract); assert.deepEqual(limits, { maxWireBytes: 2000003, maxNodes: 300007, maxDepth: 73 }); assert(Object.isFrozen(limits)); calls.push('inspect'); return captured; }, retained, (value: BoxedFields | undefined) => value?.$tag === 1, (value: BoxedFields, index: number) => value[`_${index}`], projection) as Capture;
+    return { run, original, captured, calls, retained, moon };
+}
+test('captured finish consumes required original preparation envelope, retaining the same nominal owner', async () => {
+    const h = harness();
+    assert.equal(await h.run(h.original, undefined, true), h.captured);
+    assert.deepEqual(h.calls, ['limits', 'advance', 'finishRetained', 'inspect']);
+    assert.equal(h.retained.get(h.captured), h.original);
+});
+test('non-retained captured finish uses the same required projection without a second executor', async () => {
+    const h = harness();
+    assert.equal(await h.run(h.original), h.captured);
+    assert.deepEqual(h.calls, ['limits', 'advance', 'finish', 'inspect']);
+    assert.equal(h.retained.has(h.captured), false);
+});
+test('missing, malformed and unrepresentable original envelope cancels exactly the existing preparation', async () => {
+    for (const vector of [undefined, [], [1, 2], [1, 2, 3, 4], [1, -1, 2], [1, 2, 2147483648], [1, 2, NaN]]) {
+        const h = harness(vector);
+        if (vector === undefined)
+            h.moon.strategyCapturedRunPreparationLimits = () => undefined;
+        await assert.rejects(h.run(h.original), TypeError);
+        assert.equal(h.calls.filter(x => x === 'cancel').length, 1);
+        assert.equal(h.calls.includes('advance'), false);
+    }
+});
+test('captured advance failure and abort preserve cancellation and do not retain a false completed original', async () => {
+    const h = harness(), failure = new Error('original failure');
+    h.moon.strategyCapturedRunAdvance = () => ({ $tag: 0, _0: failure });
+    await assert.rejects(h.run(h.original), error => error === failure);
+    assert.equal(h.calls.at(-1), 'cancel');
+    assert.equal(h.retained.has(h.captured), false);
+    const aborted = harness(), controller = new AbortController();
+    controller.abort();
+    await assert.rejects(aborted.run(aborted.original, controller.signal));
+    assert.equal(aborted.calls.at(-1), 'cancel');
+    assert.equal(aborted.calls.includes('advance'), false);
+});
+test('captured projection requires the actual boxed Option array ABI and rejects unboxed lookalikes', async () => {
+    for (const value of [{ $tag: 0 }, [2000003, 300007, 73], { _0: [2000003, 300007, 73] }]) {
+        const h = harness();
+        h.moon.strategyCapturedRunPreparationLimits = () => value;
+        await assert.rejects(h.run(h.original), TypeError);
+        assert.equal(h.calls.includes('advance'), false);
+        assert.equal(h.calls.at(-1), 'cancel');
+    }
+});
+test('ordinary captured issuance requires the Node original-owned entry, never the explicit low-level budget entry', () => {
+    let method!: Method;
+    function select(n: AnyNode) { if (!n || typeof n !== 'object')
+        return; if (n.type === 'Property' && (n.key as Identifier)?.name === 'issueEffectFreeCapturedRun')
+        method = n.value as Method; for (const x of Object.values(n)) {
+        if (Array.isArray(x))
+            x.forEach(select);
+        else if (x && typeof x === 'object')
+            select(x);
+    } }
+    select(ast);
+    assert(method);
+    const calls: string[] = [];
+    function visit(n: AnyNode) { if (!n || typeof n !== 'object')
+        return; if (n.type === 'CallExpression' && n.callee.type === 'MemberExpression' && (n.callee.object as Identifier).name === 'moon')
+        calls.push((n.callee.property as Identifier).name); for (const x of Object.values(n)) {
+        if (Array.isArray(x))
+            x.forEach(visit);
+        else if (x && typeof x === 'object')
+            visit(x);
+    } }
+    visit(method);
+    assert.equal(calls.filter(x => x === 'strategyBeginOriginalEffectFreeCapturedRun').length, 1);
+    assert.equal(calls.includes('strategyBeginEffectFreeCapturedRun'), false);
+});
+test('retained chain and commit verification project the same completed original extent, not metadata limits', async () => {
+    const name = 'runtime-publication-validation-control.mjs';
+    const validationSource = readFileSync(process.env.CAPTURE_RELAY_SOURCE_ROOT ? `${process.env.CAPTURE_RELAY_SOURCE_ROOT}/adapters/host-common/${name}` : new URL('../host-common/' + name, import.meta.url), 'utf8');
+    const validationAst = parse(validationSource, { ecmaVersion: 'latest', sourceType: 'module' });
+    for (const methodName of ['effectFreeChainValid', 'effectFreeCommitValid']) {
+        let method!: Method;
+        function find(n: AnyNode) { if (!n || typeof n !== 'object')
+            return; if (n.type === 'Property' && (n.key as Identifier)?.name === methodName)
+            method = n.value as Method; for (const x of Object.values(n)) {
+            if (Array.isArray(x))
+                x.forEach(find);
+            else if (x && typeof x === 'object')
+                find(x);
+        } }
+        find(validationAst);
+        assert(method);
+        const captured = {}, original = {}, next = {}, metadata = { maxWireBytes: 11, maxNodes: 13, maxDepth: 17 }, derived = { maxWireBytes: 2000003, maxNodes: 300007, maxDepth: 73 }, seen: unknown[][] = [];
+        const originals = new WeakMap([[captured, original]]);
+        const moon = { strategyPublicationEvidenceWorkspace(n: number) { seen.push(['workspace', n]); return n + 1; }, strategyBeginEffectFreeChainCheckRetained(owner: unknown, ...args: unknown[]) { assert.equal(owner, original); assert.deepEqual(args.slice(-4), [2000003, 300007, 73, 300008]); return next; }, strategyBeginEffectFreeCommitCheckRetained(owner: unknown, ...args: unknown[]) { assert.equal(owner, original); assert.deepEqual(args.slice(-4), [2000003, 300007, 73, 300008]); return next; } };
+        const fn = new Function('issuanceLimits', 'capturedComputationPreparations', 'capturedPreparationLimits', 'token', 'moon', 'finishPublicationValidation', `return async function(${method.params.map(p => p.name).join(',')})${validationSource.slice(method.body.start, method.body.end)}`)(() => { }, originals, (owner: unknown) => { assert.equal(owner, original); seen.push(['original']); return derived; }, (x: unknown) => x, moon, async (p: unknown) => { assert.equal(p, next); return true; });
+        const args = methodName === 'effectFreeChainValid' ? [{}, {}, [], [], {}, {}, captured, metadata] : [{}, {}, [], [], [], [], [], [], {}, {}, captured, {}, {}, {}, metadata];
+        assert.equal(await fn(...args), true);
+        assert.deepEqual(seen, [['original'], ['workspace', 300007]]);
+        assert.deepEqual(metadata, { maxWireBytes: 11, maxNodes: 13, maxDepth: 17 });
+    }
+});

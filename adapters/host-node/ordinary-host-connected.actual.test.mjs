@@ -8,6 +8,9 @@ import * as moon from '../../_build/js/release/build/connectors_builtin_node/con
 import {connectEmbeddedLocal} from './embedded-local.mjs';
 import {prepareOrdinaryHostJournal} from './ordinary-host-journal.mjs';
 import {initializeOrdinaryMockAccount} from './ordinary-mock-account.mjs';
+import {createAccountConstruction} from './account-construction.mjs';
+import {openHostInitializationPreparation, closeHostInitializationPreparation}
+  from '../local-node/request-preparation-adapter.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -36,7 +39,13 @@ async function accountFixture() {
   const originals = {host: {}, installation: {root}, generation: {}, supplier() {}, moduleLifetime: import.meta};
   const journal = prepareOrdinaryHostJournal(originals);
   await journal.admitRootFormat(root);
-  let store;
+  const state = {};
+  const current = () => journal.assertInitializationCurrent();
+  let accountConstruction, store;
+  const parent = openHostInitializationPreparation(state, moon, originals.installation,
+    current, () => accountConstruction?.pending() ?? false);
+  accountConstruction = createAccountConstruction({moon, current,
+    prepareRead: () => moon.clientProgramPrepareHostAccountRead(parent)});
   return {root, journal, async adopt(binding) {
     await journal.openRequestJournal(join(root, 'requests'), {});
     store = await openLocalPublicationStore({directory: join(root, 'publication'),
@@ -47,9 +56,11 @@ async function accountFixture() {
     await binding.adoptStore(store);
     return store;
   }, async close() {
+    assert.equal(await accountConstruction.close(), true);
+    closeHostInitializationPreparation(state);
     await journal.close(); await store?.close();
     assert.equal((await journal.close()).pending, false);
-  }, options: {moon, root, principal: 'local-test',
+  }, options: {moon, root, principal: 'local-test', accountConstruction,
     subject: {projectDirectory: root, backend: 'original-mock-test'},
     sources: [['salesforce', 'Account'], ['snowflake', 'usage_30d']], modelTasks: [],
     requestTarget: ['local-mock', 'installed-multi-acquired'], updateTarget: ['salesforce', 'Account'],

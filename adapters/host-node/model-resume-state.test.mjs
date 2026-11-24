@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {Worker} from 'node:worker_threads';
-import {loadCheckpointRuntime} from './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 import {C, input, open, identity, immediateIdentity, immediateReference, seedApproval, replaceClaim, reference, saved, runtime as fixtureRuntime} from './model-resume-state.fixture.mjs';
 
 // Public claim regressions use the retained compiled Core decision ports.

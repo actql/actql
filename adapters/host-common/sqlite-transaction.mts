@@ -1,0 +1,134 @@
+// A failed operation and the usability of its connection are independent.
+// Only DatabaseSync's transaction state, never a probe query or error text,
+// can establish that a connection has left a transaction.
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+
+type TransactionDatabase = Readonly<{isTransaction: unknown; exec(sql: string): SynchronousRuntimeData}>;
+type TransactionFailureDetails = Readonly<{
+  operation?: 'begin' | 'body' | 'commit'; outcome?: 'failed' | 'unknown';
+  rollbackCause?: unknown; stateCause?: unknown; connectionUsable?: boolean;
+}>;
+type Close = () => unknown;
+type CleanupIssue = Readonly<{owner: string; error: unknown}>;
+type CleanupStatus = Readonly<{pending: boolean; owners: readonly string[]; errors: readonly CleanupIssue[]}>;
+type InitializationFailure = Error & {
+  code: string; primaryFailure: unknown; cleanupPending: boolean;
+  cleanupErrors?: readonly CleanupIssue[];
+  cleanupHandle?: Readonly<{status(): CleanupStatus; retry(): CleanupStatus}>;
+};
+
+export function createSqliteTransaction(database: TransactionDatabase, prefix: string) {
+  let unusable = false;
+  const failure = (code: string, cause?: unknown, details: TransactionFailureDetails = {}) => Object.assign(
+    new Error(code, {cause}), {code, ...details});
+  const assertUsable = () => {
+    if (unusable) throw failure(`${prefix}ConnectionUnusable`);
+  };
+  const inspect = () => {
+    try {
+      const active = database.isTransaction;
+      if (typeof active !== 'boolean') {
+        throw new TypeError('DatabaseSync transaction state is unavailable');
+      }
+      return {active};
+    } catch (stateCause) {
+      unusable = true;
+      return {active: undefined, stateCause};
+    }
+  };
+  const run = <Result extends SynchronousRuntimeData>(body: () => Result): Result => {
+    assertUsable();
+    try { database.exec('BEGIN IMMEDIATE'); }
+    catch (cause) {
+      const state = inspect();
+      if (state.active === false) throw cause;
+      unusable = true;
+      throw failure(`${prefix}ConnectionUnusable`, cause, {
+        operation: 'begin', outcome: 'unknown',
+        stateCause: state.stateCause, connectionUsable: false,
+      });
+    }
+    let phase: 'body' | 'commit' = 'body';
+    try {
+      const value = body();
+      phase = 'commit';
+      database.exec('COMMIT');
+      return value;
+    } catch (cause) {
+      let rollbackCause: unknown;
+      let state = inspect();
+      if (state.active === true) {
+        try { database.exec('ROLLBACK'); }
+        catch (error) { rollbackCause = error; }
+        state = inspect();
+      }
+      if (state.active !== false) unusable = true;
+      const outcome = phase === 'commit' || state.active !== false ?
+        'unknown' : 'failed';
+      if (outcome === 'failed' && rollbackCause === undefined &&
+          state.stateCause === undefined) throw cause;
+      throw failure(phase === 'commit' ? `${prefix}CommitOutcomeUnknown` :
+        `${prefix}RollbackFailed`, cause, {
+        operation: phase, outcome, rollbackCause,
+        stateCause: state.stateCause, connectionUsable: !unusable,
+      });
+    }
+  };
+  return Object.freeze({run, assertUsable,
+    get connectionUsable() { return !unusable; }});
+}
+
+// A constructor cannot return its database owner after a failed close.
+// Keep the transaction failure and expose a retryable cleanup owner instead.
+export function throwSqliteInitializationFailure(database: Readonly<{close: unknown}>, primaryFailure: unknown,
+  owner: string): never {
+  let originalClose: Close | undefined;
+  const close = () => {
+    if (originalClose === undefined) {
+      const selected = database.close;
+      if (typeof selected !== 'function') {
+        throw new TypeError('SqliteInitializationCloseUnavailable');
+      }
+      originalClose = selected as Close;
+    }
+    const observation = Reflect.apply(originalClose, database, []);
+    if (observation !== undefined) {
+      throw new TypeError('SqliteInitializationClosePending', {cause: observation});
+    }
+  };
+  try { close(); }
+  catch (closeFailure) {
+    const first = Object.freeze({owner, error: closeFailure});
+    let latest = first;
+    let pending = true, closing = false;
+    const failure: InitializationFailure = Object.assign(new Error(
+      'SqliteJournalInitializationCleanupPending',
+      {cause: primaryFailure}), {
+      code: 'SqliteJournalInitializationCleanupPending',
+      primaryFailure, cleanupPending: true,
+    });
+    const status = () => Object.freeze({pending,
+      owners: Object.freeze(pending ? [owner] : []),
+      errors: Object.freeze(first === latest ? [first] : [first, latest])});
+    const retry = () => {
+      // Reentry can observe this original close flight, not start another.
+      if (closing) return status();
+      if (pending) {
+        closing = true;
+        try {
+          close();
+          pending = false;
+        } catch (error) {
+          latest = Object.freeze({owner, error});
+        } finally { closing = false; }
+      }
+      failure.cleanupPending = pending;
+      failure.cleanupErrors = status().errors;
+      return status();
+    };
+    failure.cleanupErrors = status().errors;
+    failure.cleanupHandle = Object.freeze({status, retry});
+    throw failure;
+  }
+  throw primaryFailure;
+}

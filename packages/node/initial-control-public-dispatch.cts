@@ -1,0 +1,74 @@
+'use strict';
+
+// Preserve CommonJS publication during preload reentry.
+{
+  // Private Client-only delivery, never an application-time admission factory.
+  // The actual public wrapper retains this delivery once. Ordinary Local is
+  // selected before acquiring its bootstrap; an unselected import owns no loader.
+  type StartupDelivery = (kind: unknown, rawInput: unknown) => unknown;
+
+  const NodeModule = require('node:module') as typeof import('node:module');
+  const {join} = require('node:path') as typeof import('node:path');
+  const originalProcess = require('node:process') as typeof process;
+  const apply = Reflect.apply, descriptor = Object.getOwnPropertyDescriptor;
+  const isProxy = (require('node:util') as typeof import('node:util')).types.isProxy, own = Object.hasOwn;
+  const preloading = descriptor(NodeModule.prototype, 'isPreloading')?.get;
+  const args = originalProcess.execArgv;
+  const offset = args.length === 3 && args[0] === '--no-lazy' ? 1 : 0;
+  let selectedInitialControlHostPreparation: StartupDelivery | undefined, ordinaryReceiver: unknown,
+    ordinaryConnect: StartupDelivery | undefined, ordinaryFailure: Readonly<{cause: unknown}> | undefined;
+  const ordinary = args.length === 0 && originalProcess.env.NODE_OPTIONS === undefined;
+  function forwardOrdinary(kind: unknown, raw: unknown) {
+    // Selection is the same fixed own-DATA entrance as the Local prefix. No
+    // packet copy, getters, provider discovery or operational issuance occurs.
+    if (kind === 'connect') {
+      if (raw === null || typeof raw !== 'object' || isProxy(raw)) return undefined;
+      const mode = descriptor(raw,'mode'), endpoint = descriptor(raw,'endpoint');
+      if (mode === undefined || !own(mode,'value') || mode.value !== 'local' ||
+          endpoint !== undefined && own(endpoint,'value') && endpoint.value !== undefined) return undefined;
+    } else if (kind !== 'open') return undefined;
+    if (ordinaryFailure !== undefined) throw ordinaryFailure.cause;
+    if (ordinaryConnect === undefined) {
+      // Resolve only the actual installed Local package after Local selection.
+      let receiver: object | undefined;
+      try { receiver = require('@actql/local-node/_internal/initial-control-public-dispatch'); }
+      catch(cause) {
+        if ((cause as {code?: unknown}).code !== 'MODULE_NOT_FOUND') {
+          ordinaryFailure = Object.freeze({cause});
+          throw cause;
+        }
+      }
+      const connect = receiver === undefined ? undefined : descriptor(receiver,'selectedInitialControlHostPreparation');
+      if (connect === undefined || !own(connect,'value') || typeof connect.value !== 'function') return undefined;
+      ordinaryReceiver = receiver;
+      ordinaryConnect = connect.value as StartupDelivery;
+    }
+    return apply(ordinaryConnect,ordinaryReceiver,[kind,raw]);
+  }
+  if (typeof preloading === 'function' && apply(preloading, module, []) === true &&
+      originalProcess.env.NODE_OPTIONS === undefined && args.length === offset + 2 &&
+      args[offset] === '--require' && args[offset + 1] === '@actql/node/selected-infer-startup') {
+    const parent = module.parent;
+    const filename = join(__dirname, 'selected-infer-startup.cjs');
+    // Module/cache shape alone is not an original. Keep the actual fixed entry,
+    // native preload ancestor and same consumer resolution together.
+    const entry = parent;
+    if (parent?.filename === filename && require.cache[filename] === parent &&
+        entry!.parent?.id === 'internal/preload' &&
+        NodeModule.createRequire(originalProcess.argv[1]).resolve(args[offset + 1]) === entry!.filename) {
+      const receiver = parent.exports;
+      const property = descriptor(receiver, 'selectedInitialControlHostPreparation');
+      if (property !== undefined && Object.hasOwn(property, 'value') &&
+          typeof property.value === 'function') {
+        const connect = property.value;
+        selectedInitialControlHostPreparation = function(kind: unknown, rawInput: unknown) {
+          return apply(connect, receiver, [kind, rawInput]);
+        };
+      }
+    }
+  }
+  module.exports = {selectedInitialControlHostPreparation:
+    ordinary ? forwardOrdinary : selectedInitialControlHostPreparation};
+  Object.setPrototypeOf(module.exports, null);
+  Object.freeze(module.exports);
+}

@@ -45,6 +45,6 @@ test('member fixtures reach the existing selected and normal packed entrances', 
   assert.ok(app.includes('scopeInputs.successes.push(...distinctOrderMemberSuccesses)'));
   assert.ok(app.includes('scopeInputs.refusals.push(...distinctOrderMemberRefusals)'));
   assert.ok(app.includes('successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses]'));
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/distinct-order-member-source-input.mjs', 'distinct-order-member-source-input.mjs']"));
 });

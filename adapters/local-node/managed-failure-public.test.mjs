@@ -17,13 +17,15 @@ const probe = String.raw`import {registerHooks} from 'node:module';
 globalThis.__cleanupAudit={failures:0,retries:0,slices:[],beforeContinuation:[],
  disabled:process.env.CLEANUP_CONTROL==='disabled',closeCalls:0};
 function replaceOnce(source, before, after) {
- if(source.split(before).length!==2)throw new Error('CleanupObservationPointMissing');
- return source.replace(before,after);
+ const count = typeof before === 'string' ? source.split(before).length - 1
+   : [...source.matchAll(before)].length;
+ assert.equal(count, 1, 'Original cleanup observation point ' + before);
+ return source.replace(before, after);
 }
 registerHooks({load(url, context, next) {
  const result=next(url,context);
  if(url.endsWith('/adapters/local-node/strategy-bundle.mjs')) {
-  let source=replaceOnce(String(result.source),"if (observation.complete) break;", "if (!observation.complete && observation.progress >= 512n) { globalThis.__cleanupAudit.failures++; const failure=Object.assign(new Error('InjectedFinalizationFailure'), {code:'InjectedFinalizationFailure'}); globalThis.__cleanupAudit.originalFailure=failure; throw failure; } if (observation.complete) break;");
+  let source=replaceOnce(String(result.source),/if \(observation\.complete\)\s*break;/gu, "if (!observation.complete && observation.progress >= 512n) { globalThis.__cleanupAudit.failures++; const failure=Object.assign(new Error('InjectedFinalizationFailure'), {code:'InjectedFinalizationFailure'}); globalThis.__cleanupAudit.originalFailure=failure; throw failure; } if (observation.complete) break;");
   source=replaceOnce(source,'export function localStrategyContribution(moon, setup, checked, configuration) {', 'export function localStrategyContribution(moon, setup, checked, configuration) { globalThis.__cleanupAudit.readUsage = () => moon.strategyHostUsage(setup).map(String); globalThis.__cleanupAudit.initialUsage ??= globalThis.__cleanupAudit.readUsage();');
   const continuation='await continueLocalManagedFailureCleanup(stopped, operations);';
   if(!source.includes(continuation))throw new Error('CleanupContinuationPointMissing');
@@ -34,7 +36,7 @@ registerHooks({load(url, context, next) {
  if(url.endsWith('/adapters/host-common/managed-failure.mjs')) {
   let source=replaceOnce(String(result.source),'const value = operations.cleanup_local_continuation();','const value = operations.cleanup_local_continuation(); if (globalThis.__cleanupAudit.disabled) return undefined;');
   source=replaceOnce(source,'const retryOnce = async () => {','const retryOnce = async () => { const slice={before:globalThis.__cleanupAudit.readUsage()}; globalThis.__cleanupAudit.slices.push(slice); await globalThis.__cleanupAudit.onSlice?.();');
-  source=replaceOnce(source,'drive();\n    return status();','drive();\n    const observed=status(); Object.assign(slice,{after:globalThis.__cleanupAudit.readUsage(),pending:observed.pending,errors:observed.errors.length}); return observed;');
+  source=replaceOnce(source,/drive\(\);\s*return status\(\);/gu,'drive();\n    const observed=status(); Object.assign(slice,{after:globalThis.__cleanupAudit.readUsage(),pending:observed.pending,errors:observed.errors.length}); return observed;');
   return {...result,source};
  }
  return result;

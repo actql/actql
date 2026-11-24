@@ -35,7 +35,7 @@ test('uppercase public fixtures distinguish NULL, empty rows, duplicates and dem
 
 test('uppercase cases use normal packed acceptance and a bounded source selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'upperSuccesses'], ['refusals', 'upperRefusals'],
     ['executionFailures', 'upperExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

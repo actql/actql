@@ -4,24 +4,22 @@ import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {runtimeField, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {fundedEffectModelGroupCount} from './installed-effect-managed-run.mjs';
-import {fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding} from './infer-operation.mjs';
+import {loadAcquiredEffectModelGroup} from './fixtures/acquired-effect-model-group.fixture.mjs';
 import {withOriginalInferModelObservation} from './infer-effect-observation.mjs';
 import {preparePrivatePublicationHolding as originalPrivateHolding} from '../host-common/private-publication-holding.mjs';
 
 // Actual publication functions with explicit typed Core/Store-plan ports.
 // No runtime source overlay, installed package, real Model or authority claim.
-const text=readFileSync(new URL('./local-values-plan.mjs',import.meta.url),'utf8');
-const declarations=parse(text,{ecmaVersion:'latest',sourceType:'module'}).body;
-const body=name=>{
-  const node=declarations.find(node=>node.declaration?.id?.name===name)?.declaration;
-  assert.ok(node);return text.slice(node.start,node.end);
+const publicationBodies = readFileSync(new URL('./local-values-plan.mjs', import.meta.url), 'utf8');
+const sourceFreeBodies = readFileSync(new URL('./local-source-free-effect-publication.mjs', import.meta.url), 'utf8');
+const body = (name, source = publicationBodies) => {
+  const node = parse(source, {ecmaVersion:'latest', sourceType:'module'}).body
+    .find(node => node.declaration?.id?.name === name)?.declaration;
+  assert.ok(node);
+  return source.slice(node.start, node.end);
 };
 const limits={maxWireBytes:16384,maxNodes:1024,maxDepth:20};
 
-const groupText = readFileSync(new URL('./acquired-effect-computation.mjs', import.meta.url), 'utf8');
-const groupNode = parse(groupText, {ecmaVersion: 'latest', sourceType: 'module'}).body
-  .find(node => node.id?.name === 'acquiredEffectModelGroup');
 const deferred = () => {
   let resolve, reject;
   const promise = new Promise((yes, no) => {resolve = yes; reject = no;});
@@ -31,7 +29,7 @@ const turn = () => new Promise(resolve => setImmediate(resolve));
 
 // Actual group custody with explicit nominal publication/Store ports. The
 // deferred preparation is not an installed Model, Core ABI or physical ACK.
-function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding, retireCapture,
+async function publicationGroupFixture({prepare, commit, faultInjection, releaseBinding, retireCapture,
   store, holdingFactory, originalNames = false, inferEvidence, project, unitPreparation} = {}) {
   const events = [], contexts = [], preparedOptions = [], funding = [], controller = new AbortController();
   const sourcePlan = {}, preparedProgram = {}, plan = {compiled: {}, runDefinition: {}}, issuance = {};
@@ -94,8 +92,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
     return {$tag: 1, _0: {_0: shape.request.index === 0 ? 100n : 50n,
       _1: shape.request.index === 0 ? 200n : 80n}};
   };
-  const ports = {runtimeField, checked, localContractLimits: limits,
-    fundedInferCaptureInventoryCount, originalInferEvidenceCopyFunding, fundedEffectModelGroupCount,
+  const ports = {localContractLimits: limits,
     prepareAcquiredEffectSourceUnits: () => sourceUnits,
     async projectInferEvidence(facts) {
       events.push('evidence-' + facts.operation.index);
@@ -125,7 +122,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
       options.retainBinding(publication.binding);
       return prepare === undefined ? publication : prepare(publication);
     }};
-  const create = new Function(...Object.keys(ports), `return (${groupText.slice(groupNode.start, groupNode.end)});`)(...Object.values(ports));
+  const create = await loadAcquiredEffectModelGroup(ports);
   const group = create({moon, acquired, infer: {components: selections}, originalModelComponents: components,
     preparedProgram, inferEvidence,
     originalModelSelection: {components: selections}, originalPreparation, plan, sourcePlan,
@@ -139,7 +136,7 @@ function publicationGroupFixture({prepare, commit, faultInjection, releaseBindin
 }
 
 test('plural publication shares the pending preparation and commits only resolved original values', async () => {
-  const gate = deferred(), f = publicationGroupFixture({prepare: () => gate.promise});
+  const gate = deferred(), f = await publicationGroupFixture({prepare: () => gate.promise});
   const first = f.group.persist(), second = f.group.persist();
   const outcomes = Promise.all([first, second]);
   outcomes.catch(() => {});
@@ -160,7 +157,7 @@ test('plural publication shares the pending preparation and commits only resolve
 
 test('plural configured Evidence projects each original child once before publication under the shared phase', async () => {
   const gate = deferred(), entered = deferred(), originals = [];
-  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+  const f = await publicationGroupFixture({inferEvidence: {}, async project(facts) {
     originals.push(facts);
     if (facts.operation.index === 0) {entered.resolve(); await gate.promise;}
   }});
@@ -183,7 +180,7 @@ test('plural configured Evidence projects each original child once before public
 });
 
 test('plural copy demands reuse one original publication window from actual bundle and input observations', async () => {
-  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+  const f = await publicationGroupFixture({inferEvidence: {}, async project(facts) {
     facts.copyFunding({wire: '{"captures":[]}', count: 1, calls: [{callWire: '{}'}],
       usage: {_0: 15, _1: 2, _2: 1}});
   }});
@@ -198,7 +195,7 @@ test('plural copy demands reuse one original publication window from actual bund
 test('plural pending Evidence copy reports Pending without awaiting itself and keeps its original child', async () => {
   const gate = deferred(), entered = deferred();
   let copying = true, copies = 0;
-  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+  const f = await publicationGroupFixture({inferEvidence: {}, async project(facts) {
     copies++;
     facts.retainCopy({cleanupPending: () => copying,
       async close() {assert.equal(copying, false); return true;}, async cleanup() {assert.equal(copying, false); return true;}});
@@ -219,7 +216,7 @@ test('plural pending Evidence copy reports Pending without awaiting itself and k
 
 test('plural sink can reenter first close without circularly awaiting its own projection', async () => {
   const close = deferred(); let f, projects = 0;
-  f = publicationGroupFixture({inferEvidence: {}, async project() {
+  f = await publicationGroupFixture({inferEvidence: {}, async project() {
     projects++;
     const retired = await f.group.retirePublication();
     close.resolve(retired);
@@ -237,7 +234,7 @@ test('plural failed Evidence copy cleanup retains the original phase and primary
   for (const mode of ['false', 'throw']) {
     const primary = new Error('OriginalProjectionFailure'), cleanupFailure = new Error('OriginalCopyCleanupFailure');
     let pending = true, allow = false, closes = 0, retries = 0, projections = 0;
-    const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+    const f = await publicationGroupFixture({inferEvidence: {}, async project(facts) {
       projections++;
       facts.retainCopy({cleanupPending: () => pending, async close() {
         closes++; if (mode === 'throw') throw cleanupFailure; return false;
@@ -258,7 +255,7 @@ test('plural failed Evidence copy cleanup retains the original phase and primary
 });
 
 test('plural cleanup waits for pending preparation and prevents publication after retirement', async () => {
-  const gate = deferred(), f = publicationGroupFixture({prepare: () => gate.promise});
+  const gate = deferred(), f = await publicationGroupFixture({prepare: () => gate.promise});
   const outcome = f.group.persist().then(value => ({value}), error => ({error}));
   await turn();
   let retired = false;
@@ -274,7 +271,7 @@ test('plural cleanup waits for pending preparation and prevents publication afte
 
 test('plural pending cancel and lost current prevent private publication and retain binding custody', async () => {
   for (const change of ['cancel', 'revoke']) {
-    const gate = deferred(), f = publicationGroupFixture({prepare: () => gate.promise});
+    const gate = deferred(), f = await publicationGroupFixture({prepare: () => gate.promise});
     const outcome = f.group.persist().then(value => ({value}), error => ({error}));
     await turn(); f[change](); gate.resolve(f.publication);
     assert.match((await outcome).error.message, /OriginalCancelled|OriginalCurrentLost/);
@@ -297,7 +294,7 @@ test('plural cancellation before private commit never starts Store preparation d
     },
     async commitPhysicalHolding(record) {calls.commit++; stored = record;},
   };
-  f = publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding,
+  f = await publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding,
     faultInjection() {f.cancel();}});
   await assert.rejects(f.group.persist(), error => error === f.signal.reason);
   assert.deepEqual(calls, {prepare: 0, commit: 0});
@@ -321,7 +318,7 @@ test('plural failed private write keeps original holding and primary through unk
     async preparePrivateEvidence() {calls.prepare++; return {physicalCid: 'original-object', bytes: 2, prepared};},
     async commitPhysicalHolding() {calls.commit++; throw primary;},
   };
-  const f = publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding});
+  const f = await publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding});
   await assert.rejects(f.group.persist(), error => error === primary);
   mode = 'unknown';
   await assert.rejects(f.group.retirePublication(), error => error === unknown);
@@ -350,7 +347,7 @@ test('plural cancellation waits for the same actual private holding commit witho
     async preparePrivateEvidence() {calls.prepare++; return {physicalCid: 'original-object', bytes: 2, prepared};},
     async commitPhysicalHolding(record) {calls.commit++; await gate.promise; stored = record;},
   };
-  const f = publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding});
+  const f = await publicationGroupFixture({store, originalNames: true, holdingFactory: originalPrivateHolding});
   const outcome = f.group.persist().then(value => ({value}), error => ({error}));
   await turn();
   assert.deepEqual(calls, {prepare: 1, commit: 1});
@@ -370,7 +367,7 @@ test('plural cancellation waits for the same actual private holding commit witho
 
 test('plural publication retains the first preparation failure including thrown undefined', async () => {
   for (const primary of [undefined, new Error('OriginalPreparationFailed')]) {
-    const f = publicationGroupFixture({prepare() {throw primary;}});
+    const f = await publicationGroupFixture({prepare() {throw primary;}});
     for (let attempt = 0; attempt < 2; attempt++) {
       let rejected = false;
       try {await f.group.persist();} catch (error) {rejected = true; assert.strictEqual(error, primary);}
@@ -479,7 +476,7 @@ function fixture({inline=true,projectionFailure,sourceCount=2,upstreamWhole=fals
   };
   const create=new Function('runtimeField','runtimeOptionalField','checked','limits',
     'withOriginalInferModelObservation','buildLocalPublicationPlan',
-    body('sourceFreeInferEffectPublicationPlan')+'\n'+body('acquiredMultiEffectPublicationPlan')+'\n'+body('acquiredInferEffectPublicationPlan')+
+    body('sourceFreeInferEffectPublicationPlan', sourceFreeBodies)+'\n'+body('acquiredMultiEffectPublicationPlan')+'\n'+body('acquiredInferEffectPublicationPlan')+
       '\nreturn {acquiredMultiEffectPublicationPlan,acquiredInferEffectPublicationPlan};');
   const functions=create(runtimeField,runtimeOptionalField,checked,limits,
     withOriginalInferModelObservation,buildLocalPublicationPlan);
@@ -574,7 +571,7 @@ test('Model projection refusal keeps original cause and releases same binding af
 });
 
 test('Whole Source Unit runtime facade forwards the original typed tuple and registers only the issued dependency',()=>{
-  const text=readFileSync(new URL('../host-common/runtime-core.mjs',import.meta.url),'utf8');
+  const text=readFileSync(new URL('../host-common/runtime-effect-preparation-control.mjs',import.meta.url),'utf8');
   let method;
   (function walk(node){
     if(!node||typeof node!=='object')return;
@@ -649,7 +646,7 @@ test('lost current after an observation await prevents the next Model binding an
 
 test('plural private holding failure preserves its primary and retires the same partial publication once',async()=>{
   const primary=new Error('OriginalPrivateHoldingFailed');
-  const f=publicationGroupFixture({faultInjection(){throw primary;}});
+  const f=await publicationGroupFixture({faultInjection(){throw primary;}});
   await assert.rejects(f.group.persist(),error=>error===primary);
   await assert.rejects(f.group.persist(),error=>error===primary);
   assert.equal(f.events.filter(value=>value==='prepare').length,1);
@@ -674,7 +671,7 @@ test('source-free plural Model publication retains every original Unit under the
 });
 
 test('plural cancellation during private commit waits for that original write without starting the next holding',async()=>{
-  const gate=deferred(),f=publicationGroupFixture({commit:()=>gate.promise});
+  const gate=deferred(),f=await publicationGroupFixture({commit:()=>gate.promise});
   const outcome=f.group.persist().then(value=>({value}),error=>({error}));
   await turn();
   assert.deepEqual(f.events.filter(value=>value.startsWith('commit-')),['commit-observation']);
@@ -693,7 +690,7 @@ test('plural binding retirement retains false and throwing releases for the same
   for(const mode of ['false','throw']) {
     let ready=false;
     const primary=new Error('OriginalPublicationFailed'),cleanupFailure=new Error('OriginalBindingReleaseFailed');
-    const f=publicationGroupFixture({prepare(){throw primary;},releaseBinding(){
+    const f=await publicationGroupFixture({prepare(){throw primary;},releaseBinding(){
       if(ready)return true;
       if(mode==='throw')throw cleanupFailure;
       return false;
@@ -718,7 +715,7 @@ test('plural binding retirement retains false and throwing releases for the same
 test('plural retirement installs retry phase before reentrant original child cleanup',async()=>{
   const gate=deferred();
   let initial=true,reentered=false,nested,entries=0;
-  const f=publicationGroupFixture({async retireCapture(index){
+  const f=await publicationGroupFixture({async retireCapture(index){
     if(index!==0)return true;
     entries++;
     if(initial){initial=false;return false;}
@@ -740,8 +737,8 @@ test('plural retirement installs retry phase before reentrant original child cle
 });
 
 
-test('plural existing input path requires no replacement Result API without an original Unit cache', () => {
-  const f = publicationGroupFixture();
+test('plural existing input path requires no replacement Result API without an original Unit cache', async () => {
+  const f = await publicationGroupFixture();
   for (const context of f.contexts) {
     assert.equal(context.prepareOriginalResults(), undefined);
   }
@@ -786,7 +783,7 @@ test('final plural publication reuses an earlier Model original scan and body un
 
 
 test('plural preconsumer boundary preserves the existing no-Unit path and original selected Model task', async () => {
-  const f = publicationGroupFixture();
+  const f = await publicationGroupFixture();
   // The actual fixture has one captured input and no replacement Unit cache.
   // Its original Model graph task still selects the existing beforeNext path.
   for (const context of f.contexts) assert.equal(context.prepareOriginalResults(), undefined);
@@ -799,7 +796,7 @@ test('plural preconsumer boundary preserves the existing no-Unit path and origin
 
 test('plural preconsumer pending phase is shared and reentrant retirement cannot release its original bridge', async () => {
   const entered = deferred(), finish = deferred();
-  const f = publicationGroupFixture({async unitPreparation() {entered.resolve(); await finish.promise;}});
+  const f = await publicationGroupFixture({async unitPreparation() {entered.resolve(); await finish.promise;}});
   const first = f.group.prepareNext(0, () => {}), second = f.group.prepareNext(0, () => {});
   const outcome = Promise.allSettled([first, second]);
   await Promise.race([entered.promise, first.then(() => {throw new Error('OriginalUnitPreparationDidNotEnter');})]);
@@ -815,7 +812,7 @@ test('plural preconsumer pending phase is shared and reentrant retirement cannot
 });
 
 test('plural preconsumer first undefined failure is sticky without issuing another original preparation', async () => {
-  const f = publicationGroupFixture({async unitPreparation() {throw undefined;}});
+  const f = await publicationGroupFixture({async unitPreparation() {throw undefined;}});
   for (let index = 0; index < 2; index++) {
     let failed = false, primary;
     try {await f.group.prepareNext(0, () => {});} catch (cause) {failed = true; primary = cause;}
@@ -831,14 +828,14 @@ test('plural preconsumer first undefined failure is sticky without issuing anoth
 
 
 test('plural Source artifact preparation forwards the original Model Plan definition across Journal admission', async () => {
-  const f = publicationGroupFixture({async unitPreparation() {}});
+  const f = await publicationGroupFixture({async unitPreparation() {}});
   await f.group.prepareNext(0, () => {});
   assert.equal(f.events.filter(value => value === 'prepare-unit').length, 1);
   assert.equal(f.contexts[0].prepareOriginalResults().length, 1);
 });
 
 test('plural typed-input funding measures same logical originals without physical prompt or new Ledger', async () => {
-  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+  const f = await publicationGroupFixture({inferEvidence: {}, async project(facts) {
     facts.copyFunding({wire: '{"captures":[]}', count: 1, calls: [{callWire: '{}'}],
       usage: {_0: 15, _1: 2, _2: 1}}, 'typed-input');
   }});
@@ -861,7 +858,7 @@ test('plural typed-input funding measures same logical originals without physica
 
 test('plural typed-input funding preserves exact missing-original error codes', async () => {
   for (const mode of ['missing-usage', 'missing-original']) {
-    const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+    const f = await publicationGroupFixture({inferEvidence: {}, async project(facts) {
       assert.throws(() => facts.copyFunding({wire: '{"captures":[]}', count: 1,
         calls: [{callWire: '{}'}], ...(mode === 'missing-usage' ? {} : {usage: {_0: 15, _1: 2, _2: 1}})},
       'typed-input'), {code: 'RequiredEvidenceUnavailable'});
@@ -876,7 +873,7 @@ test('plural typed-input funding preserves exact missing-original error codes', 
 
 test('plural Evidence metadata uses the same original Effect computation definition', async () => {
   const definitions = [];
-  const f = publicationGroupFixture({inferEvidence: {}, async project(facts) {
+  const f = await publicationGroupFixture({inferEvidence: {}, async project(facts) {
     definitions.push(facts.programDefinitionCid);
   }});
   await f.group.persist();

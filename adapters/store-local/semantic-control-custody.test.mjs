@@ -12,6 +12,7 @@ import {installResultAccessAuthority, installResultAccessService} from '../host-
 import {createNodeInProcessClientHost} from '../host-node/in-process-client.mjs';
 import {createClientHttpHandler} from '../host-node/client-http.mjs';
 import {createInstalledHostShutdown} from '../host-node/installed-host-cleanup.mjs';
+import {fundedClientPreparation} from '../host-node/funded-client-preparation.fixture.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {openLocalPublicationStore} from './publication-store.mjs';
 
@@ -81,7 +82,12 @@ async function fixture(t, {failures = 1, primary, holdClose = false} = {}) {
   // replacing the Store's durable clock or manufacturing an observation.
   control.trustedClockNotBefore = () => assert.fail('Clock reached before failed metadata read');
   const serviceStore = {...store,
-    async confirmCommittedIndex() { return {public_index_entry_cid: cid('2'), result_manifest_cid: cid('3')}; },
+    async readCommittedPublication(indexKey) {
+      assert.deepEqual(indexKey, ref);
+      const entry = {public_index_entry_cid: cid('2'), result_manifest_cid: cid('3')};
+      const index = await this.readPublicationContract(entry.public_index_entry_cid, 'public_index_entry');
+      return {entry, index};
+    },
     async readPublicationContract() {
       reads++;
       try { return await store.readPublicationContract(stored.semanticCid, 'run_invocation'); }
@@ -187,7 +193,13 @@ test('HTTP code redaction leaves the original semantic close duty on the same St
     headers: {'content-type': 'application/json'}});
   const response = Object.assign(new EventEmitter(), {headersSent: false,
     writeHead(code) {status = code;}, end(value) {body = value;}});
-  await createClientHttpHandler(f.operations)(requestStream, response);
+  const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+  const wire = await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const environment = moon.clientProgramCheckEnvironment(wire.trimEnd(),
+    JSON.parse(wire).evidence_bundle_cid, false, false, true, true, false, false, false);
+  assert.ok(environment);
+  const {prepareRequest} = await fundedClientPreparation(t, {moon, environment, http: true});
+  await createClientHttpHandler({...f.operations, prepareRequest})(requestStream, response);
   assert.equal(status, 500); assert.deepEqual(JSON.parse(body), {code: 'ClientHostFailure'});
   assert.doesNotMatch(body, new RegExp(f.secret));
   await f.shutdown.close();

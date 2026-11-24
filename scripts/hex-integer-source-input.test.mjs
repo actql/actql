@@ -28,7 +28,7 @@ test('hex integer public expectations distinguish value positions limits and dup
 
 test('hex integer fixtures enter the ordinary and existing narrow packed paths', () => {
   const consumer = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(consumer.includes('scopeInputs.successes.push(...hexIntegerSuccesses)'));
   assert.ok(consumer.includes('scopeInputs.refusals.push(...hexIntegerRefusals)'));
   assert.ok(consumer.includes('hexIntegerOnly ? {successes: hexIntegerSuccesses, refusals: hexIntegerRefusals}'));

@@ -50,7 +50,7 @@ const mutations = [
     name: `${entrance}: unexposed preparation write misroutes to ordinary admission`,
     path: entrance === 'local' ? 'adapters/host-node/in-process-client.mjs' : 'adapters/host-node/client-http.mjs',
     file: 'adapters/host-node/client-unsupported-preparation-write.test.mjs',
-    from: entrance === 'local' ? '  return Object.freeze({async perform(operation, body, signal) {'
+    from: entrance === 'local' ? '    return Object.freeze({ async perform(operation, body, signal) {'
       : "      const operation = request.url.slice('/actql/client/0.1/'.length);",
     to: entrance === 'local'
       ? '  return Object.freeze({async perform(operation, body, signal) {\n' +

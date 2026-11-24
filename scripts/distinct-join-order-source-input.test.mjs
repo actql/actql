@@ -99,7 +99,7 @@ test('selected transport gate requires the exact original eleven identities on b
 });
 
 test('ordinary packed driver selects the original corpus before unrelated work', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const coordinator = await readFile(new URL('./fixtures/packed-query-transports.mjs', import.meta.url), 'utf8');
   const validate = driver.indexOf('validatePackedPublicQueryArguments(process.argv.slice(2));');

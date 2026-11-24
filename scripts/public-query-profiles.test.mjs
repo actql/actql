@@ -67,7 +67,7 @@ test('Source Graph member refinement preserves the original Source inventory and
 });
 
 test('Source Graph member selection is narrow while the normal corpus retains its cases', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const start = driver.indexOf('const narrowPublicQuery =');
   const end = driver.indexOf('.includes(flag));', start);
   assert.ok(start >= 0 && end > start);
@@ -126,7 +126,7 @@ test('unknown profile fails rather than silently using a different envelope', ()
 });
 
 test('packed driver retains analytic order, analytic property, aggregate and Subgraph routes', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   for (const stem of ['analytic-order', 'analytic-property', 'aggregate-property', 'subgraph', 'join-property']) {
     assert.ok(driver.includes(`['scripts/fixtures/${stem}-source-input.mjs', '${stem}-source-input.mjs']`));
@@ -193,7 +193,7 @@ test('ORDER OFFSET and property corpora stay independent in one mixed run', () =
 });
 
 test('combined packed selection registers every analytic corpus and isolates mutable state', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   const start = fixture.indexOf('analyticProfilesOnly ? {');
   const end = fixture.indexOf(': analyticOrderOnly', start);

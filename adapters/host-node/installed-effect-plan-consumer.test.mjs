@@ -1,7 +1,12 @@
 import assert from 'node:assert/strict';
+import {createInstalledRowEffectRecoveryBacking} from './installed-row-effect-recovery-backing.mjs';
+import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
+import {createInstalledRowEffectRecovery} from './installed-row-effect-recovery.mjs';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {createInstalledRowEffectRunLimits} from './installed-row-effect-run-controls.mjs';
+import {createInstalledRowSourceAcquisition} from './installed-row-source-acquisition.mjs';
 import {snapshotClientRequest} from '@actql/client-wire';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
@@ -9,9 +14,11 @@ import {prepareInstalledEffectManagedPlanRun, readInstalledEffectManagedPlanRun}
 import {bindInstalledManagedSources} from './installed-managed-source.mjs';
 import {selectAcquiredEffectSources, selectAcquiredEffectPlanInputs} from './acquired-effect-sources.mjs';
 import {openAcquiredEffectComputation} from './acquired-effect-computation.mjs';
+import {openSourceFreeEffectComputation as openSourceFree} from './local-values-plan.mjs';
 import {prepareInstalledRowCaptureChild} from './installed-row-capture-cleanup.mjs';
 import {prepareInstalledEffectRequestChild} from './installed-effect-plan.mjs';
 import {runtimeField, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
+import {createEffectPreviewControls} from '../host-common/runtime-effect-preview-control.mjs';
 import {checkedRequestSnapshotPreparation, requestProgramCapacityRefusal}
   from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
@@ -440,13 +447,6 @@ test('Source selection and preparation borrow the same retained Effect plan and 
   assert.deepEqual(calls, ['plan-source', 'prepare']);
 });
 
-const valuesSource = readFileSync(new URL('./local-values-plan.mjs', import.meta.url), 'utf8');
-const valuesAst = parse(valuesSource, {ecmaVersion: 'latest', sourceType: 'module'});
-const openNode = valuesAst.body.find(node => node.type === 'ExportNamedDeclaration' &&
-  node.declaration?.id?.name === 'openSourceFreeEffectComputation').declaration;
-const openSourceFree = new Function('checked', valuesSource.slice(openNode.start, openNode.end) +
-  ';return openSourceFreeEffectComputation;')(checked);
-
 test('source-free Effect open consumes its original planned parent without old Host constructors', () => {
   const managedRun = {}, prepared = {}, identity = {}, owner = {}, host = {}, calls = [];
   const moon = {clientProgramInstalledEffectManagedRunCheck(parent, p, request) {
@@ -473,40 +473,11 @@ test('an unadmitted acquired Effect refuses before Source selection, preparation
   await custody.close(); assert.equal(await custody.cleanup(), true);
 });
 
-const rowSource = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
-const rowAst = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
-function namedFunction(ast, name) {
-  let selected;
-  const visit = node => {
-    if (node === null || typeof node !== 'object') return;
-    if (node.type === 'FunctionDeclaration' && node.id.name === name) {
-      assert.equal(selected, undefined); selected = node;
-    }
-    for (const child of Object.values(node)) {
-      if (Array.isArray(child)) child.forEach(visit);
-      else if (child && typeof child === 'object') visit(child);
-    }
-  };
-  visit(ast); assert(selected); return selected;
-}
-const acquireNode = namedFunction(rowAst, 'acquire');
-const makeAcquire = new Function('ports', `
-  const {preparations,originalReader,captureCapacity,currentRead,site,moon,
-    randomUUID,cid,maxTransferBytes,limits,startInstalledRowRun,operationBindings,
-    readPages,grantBeforeBegin,fail,checked}=ports;
-  const directReadIdentity=undefined,prepareRead=undefined,listingReportCapacity=undefined;
-  const pageLimits=undefined,referenceIssuer=undefined,managedPageLimits=undefined;
-  const preparingSourceReads=new Set(),closeSourceRead=undefined,readerDemand=undefined,originalOperationScope=undefined;
-  const text=value=>typeof value==='string'&&value.length>0;
-  ${rowSource.slice(acquireNode.start, acquireNode.end)}
-  return acquire;
-`);
-
 test('an original planned Resource read never substitutes for the provider Credential grant', async () => {
   for (const mode of ['planned-provider', 'ordinary-provider', 'local-original']) {
     const prepared = {}, preparedSource = {checkedSource: {requirementCid: 'original-requirement'}},
       acquisition = {}, access = {}, originalRead = {};
-    const occurrence = {stage: 0, input: 0, task: 0}, state = {};
+    const occurrence = {stage: 0, input: 0, task: 0};
     const originalGrant = {}, scope = {}, decision = {action: 'dispatch'};
     const beforeRead = new Error('stop-before-any-page');
     let grants = 0, closed = 0, reads = 0;
@@ -521,7 +492,7 @@ test('an original planned Resource read never substitutes for the provider Crede
         assert.equal(typeof options.authorizationFor, 'function');
         const authorized = await options.authorizationFor(0);
         assert.strictEqual(authorized.grant, originalGrant); assert.strictEqual(authorized.scope, scope);
-        assert.equal(authorized.useId, 'nonce-read-0');
+        assert.equal(authorized.useId, options.rowRun.requestId + '-read-0');
       } else assert.equal(options.authorizationFor, undefined);
       throw beforeRead;
     };
@@ -533,16 +504,16 @@ test('an original planned Resource read never substitutes for the provider Crede
       assert.equal(options.resource, 'records'); grants++;
       return {grant: originalGrant, scope};
     }};
-    const acquire = makeAcquire({preparations, originalReader: provider ? {capacity: {}, prepare() {}, receiver: {}} : undefined,
+    const {open} = createInstalledRowSourceAcquisition({preparations, originalReader: provider ? {capacity: {}, prepare() {}, receiver: {}} : undefined,
       captureCapacity: () => ({}), currentRead: async () => decision, site, moon,
-      randomUUID: () => 'nonce', cid: () => 'original-binding', maxTransferBytes: 1n,
+      cid: () => 'original-binding', preparingSourceReads: new Set(), maxTransferBytes: 1n,
       limits: {maxPages: 1, maxPageBytes: 1, maxPageRows: 1, maxCaptureRows: 1},
       startInstalledRowRun: () => ({run: {}, readProvider: ({options}) => read(options),
-        closeAfterFailure(actual) {assert.strictEqual(actual, state); closed++;}}),
+        closeAfterFailure(actual) {assert.equal(actual.started, true); closed++;}}),
       operationBindings: new Map([['records', 'original-read']]), readPages: read, grantBeforeBegin: false,
-      fail: code => {throw Object.assign(new Error(code), {code});}, checked});
-    await assert.rejects(acquire(state, {preparedEffect: prepared, preparedSource, sourceAccess: access,
-      occurrence, ledger: {}}), error => error === beforeRead);
+      text: value => typeof value === 'string' && value.length > 0});
+    await assert.rejects(open({preparedEffect: prepared, preparedSource, sourceAccess: access,
+      occurrence, ledger: {}}), error => error.cause === beforeRead && error.outcome === 'stopped');
     assert.equal(grants, provider ? 1 : 0); assert.equal(reads, 1); assert.equal(closed, 1);
   }
 });
@@ -551,20 +522,6 @@ test('an original planned Resource read never substitutes for the provider Crede
 // Execute the original recovered Row Effect and its actual physical-route
 // guard/retirement. Credential/Core/provider ports are explicit, never a new
 // Common Plan, Resource grant or ordinary Saved acceptance.
-const recoveryRowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-const recoveryRowNodes = [];
-(function walk(node) {
-  if (!node || typeof node !== 'object') return;
-  if (node.type === 'FunctionDeclaration' && node.id.name === 'prepareRecovered' ||
-      node.type === 'VariableDeclarator' && ['physicalRoute', 'prepareRecoveredEntries', 'runLimits'].includes(node.id.name)) recoveryRowNodes.push(node);
-  for (const child of Object.values(node)) if (Array.isArray(child)) child.forEach(walk);
-  else if (child && typeof child === 'object') walk(child);
-})(parse(recoveryRowSource, {ecmaVersion: 'latest', sourceType: 'module'}));
-const recoveryNode = recoveryRowNodes.find(node => node.type === 'FunctionDeclaration');
-const recoveryRouteNode = recoveryRowNodes.find(node => node.id.name === 'physicalRoute').init;
-const recoveryEntriesNode = recoveryRowNodes.find(node => node.id.name === 'prepareRecoveredEntries').init;
-const recoveryRunLimitsNode = recoveryRowNodes.find(node => node.id.name === 'runLimits').init;
-const recoveryKeysSource = retainedRequestSourceMember('../host-common/runtime-core.mjs', 'recoverInstalledEffectPreviewKeys');
 
 function recoveredPhysicalFixture({managed = true, pending = false, failPrepare = false, prepareFailure, reenter, closeDuringRetain = false, storedResponse} = {}) {
   const prepared = {}, request = {}, value = {}, operationPlan = {}, preview = {}, computation = {}, storedResults = {},
@@ -640,23 +597,23 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const ownerOf = original => {assert.strictEqual(original, member); return owner;};
   const recipeOf = original => ownerOf(original).managedPlanRecipe;
-  const realRoute = new Function('ownerOf', 'recipeOf', 'fail', 'return (' +
-    recoveryRowSource.slice(recoveryRouteNode.start, recoveryRouteNode.end) + ');')(ownerOf, recipeOf, fail);
+  const realRoute = createInstalledRowEffectPhysicalRoute({ownerOf, recipeOf, fail});
   const control = {effectComputationPreviewWire: () => previewWire,
     effectComputationPreviewLedgerIdentity: () => originalCurrent,
     effectComputationPreviewSemanticCid: () => 'original-preview'};
   // Execute the real Common wrapper with explicit native ports. The fixture's
   // key DATA tests forwarding, not Common admission or physical authority.
-  control.recoverInstalledEffectPreviewKeys = new Function('moon', 'checked', 'computationPreviewTokens', 'token',
-    'return ({' + recoveryKeysSource + '}).recoverInstalledEffectPreviewKeys;')(
-    moon, checked, new WeakMap([[preview, originalCurrent]]), original => {
-      assert.strictEqual(original, invocation); return invocationOriginal;
-    });
+  const unavailable = () => assert.fail('No independent Preview issuance or evidence lookup');
+  const {effectPreviewControls} = createEffectPreviewControls(moon, {
+    computationPreviewTokens: new WeakMap([[preview, originalCurrent]]),
+    computationPreviewWires: new WeakMap(), issuanceLimits: unavailable,
+    evidenceToken: unavailable, inspectEvidence: unavailable, inspectSourceAdvance: unavailable,
+    token(original) {assert.strictEqual(original, invocation); return invocationOriginal;},
+  });
+  control.recoverInstalledEffectPreviewKeys = effectPreviewControls.recoverInstalledEffectPreviewKeys;
   const limits = {preview: {}, key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}, maxRows: 1, maxWork: 1, maxFrontierWork: 1};
-  const limitPorts = {limits, moon, readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape,
-    owners: [owner], fail, runtimeField};
-  const runLimits = new Function(...Object.keys(limitPorts), 'return (' +
-    recoveryRowSource.slice(recoveryRunLimitsNode.start, recoveryRunLimitsNode.end) + ');')(...Object.values(limitPorts));
+  const runLimits = createInstalledRowEffectRunLimits({limits, moon,
+    readManagedShape: moon.clientProgramInstalledEffectManagedPlanShape, owners: [owner], fail});
   const ports = {moon, localContractLimits: {}, singular: undefined, ROUTING_VERSION: 'original-version',
     text: value => typeof value === 'string' && value.length > 0, selectionChanged: () => assert.fail('No target selection'),
     recoveredMembers: () => [member], ownerOf, bindRunResources() {}, selectionFence: () => () => {},
@@ -672,7 +629,7 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     openLedger() {events.push('ledger-open'); return ledger;},
     admitCapability: () => ({identity: 'original-capability'}), orderedSourceIndexes: () => [0],
     physicalRoute(options) {routeOptions = options; return realRoute(options);},
-    owners: [owner], scopes: () => [{}], canonicalJson: JSON.stringify, fail,
+    owners: [owner], scopes: () => [{}], fail,
     admitRow: () => ({}), settle() {events.push('settle');},
     async recoverProjectedEffectResponse() {events.push('stored-await'); await storedResponse; return {recovered: {}};},
     prepareCredentialOperation(options) {
@@ -704,10 +661,8 @@ function recoveredPhysicalFixture({managed = true, pending = false, failPrepare 
     validateRecoveredEntries(facts, entries) {
       assert.strictEqual(facts.body, body); assert.strictEqual(entries, originalEntries.entries);
     }};
-  ports.prepareRecoveredEntries = new Function(...Object.keys(entryPorts), 'return (' +
-    recoveryRowSource.slice(recoveryEntriesNode.start, recoveryEntriesNode.end) + ');')(...Object.values(entryPorts));
-  const prepare = new Function(...Object.keys(ports), 'return ' +
-    recoveryRowSource.slice(recoveryNode.start, recoveryNode.end))(...Object.values(ports));
+  ports.prepareRecoveredEntries = createInstalledRowEffectRecoveryBacking(entryPorts);
+  const prepare = createInstalledRowEffectRecovery(ports);
   const facts = {moon, control, store: {}, recovered: {prepared, runDefinition: definition, requestIdentity: request, requestScope,
     computation: {computation, preview, storedResults, invocation}}, continuation: {version: 'original-version',
     program_id: 'original-program', stage_id: 'original-stage', members: [{dispatch_request_cid: 'original-dispatch'}]},
@@ -1090,9 +1045,11 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
     freezeInput(value) {return Object.freeze(value);}};
   const code = 'const ' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'reportCapacityRefusal', 'VariableDeclarator') + ';const ' +
     retainedRequestSourceMember('./ordinary-source-managed.mjs', 'producerFor', 'VariableDeclarator') + ';' +
-    retainedRequestSourceMember('./ordinary-source-managed.mjs', 'beginProducer', 'FunctionDeclaration') +
-    ';const view = ({' + ['retainRequestInput','captureSourceSnapshot','bindSourceSnapshot','bindSourceRequest']
-      .map(name => retainedRequestSourceMember('./ordinary-source-managed.mjs',name)).join(',') + '});return view;';
+    retainedRequestSourceMember('./ordinary-source-request-custody.mjs', 'beginProducer', 'FunctionDeclaration') +
+    ';const ports = {get closing(){return closing;},get closed(){return closed;}};' +
+    'const view = ({' + [retainedRequestSourceMember('./ordinary-source-managed.mjs', 'retainRequestInput'),
+      ...['captureSourceSnapshot','bindSourceSnapshot','bindSourceRequest']
+        .map(name => retainedRequestSourceMember('./ordinary-source-request-custody.mjs', name))].join(',') + '});return view;';
   const view = new Function(...Object.keys(ports), code)(...Object.values(ports));
   return {view, parent, intent, request, calls, receipts, producers, requestProducers, wire, counts, diagnostics};
 }

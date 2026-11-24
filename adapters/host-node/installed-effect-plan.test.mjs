@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import './effect-control-refusal.test.mjs';
 import './installed-effect-read-slots.test.mjs';
-import {types as nodeTypes} from 'node:util';
+import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {readFileSync} from 'node:fs';
 import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, selectInstalledEffectWriteBranch, prepareInstalledEffectManagedPlan,
@@ -12,6 +12,7 @@ import {captureInstalledEffectPlanRecipe, selectInstalledEffectWriteBranch, prep
   installedEffectSavedControlResponseLimit, installedEffectRecipeForControlEntryLimit}
   from './installed-effect-plan.mjs';
 import {effectLedgerImplementationBounds} from './effect-ledger-implementation-bounds.mjs';
+import {bindEffectLedgerCodecs, bindEffectLedgerConstruction} from './effect-ledger-frames.mjs';
 import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
 import {httpsCredentialAuthorizationPrefix, httpsCredentialResponseHeaderByteLimit}
   from '../site-node/https-credential-resource.mjs';
@@ -1322,11 +1323,7 @@ test('control construction retires its same failed-prefix aliases before parent 
 
 
 function originalLedgerControlView(ledger, construction) {
-  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
-  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerConstruction');
-  assert(declaration);
-  return Function('nodeTypes',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerConstruction;')(nodeTypes)(ledger,construction,Object.freeze({}));
+  return bindEffectLedgerConstruction(ledger, construction, Object.freeze({}));
 }
 
 test('original Ledger control view preserves original nested receivers and permits close after the same failure', () => {
@@ -1588,13 +1585,10 @@ test('keyed UPSERT selects only the physical write named by its admitted Preview
 });
 
 test('same installed driver keeps create update and upsert recipes tied to their original checked kind', () => {
-  const source = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const declaration = tree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'captureManagedPlanRecipes');
-  assert(declaration);
-  const capture = Function('nodeTypes', 'captureInstalledEffectPlanRecipe', 'fail',
-    `return (${source.slice(declaration.start, declaration.end)});`)(nodeTypes, captureInstalledEffectPlanRecipe,
-      code => {throw Object.assign(new Error(code), {code});});
+  const {captureManagedPlanRecipes: capture} = createInstalledRowEffectPlanCapture({
+    fail(code) {throw Object.assign(new Error(code), {code});},
+    text: value => typeof value === 'string' && value.length > 0,
+  });
   const kinds = Object.freeze(['create', 'update', 'upsert']);
   const extents = kinds.map(() => ({}));
   const recipes = Object.freeze(Object.fromEntries(kinds.map((kind, index) => [kind, Object.freeze({
@@ -1675,12 +1669,6 @@ test('saved Ledger codec preserves failed undefined, current and asynchronous pr
 
 
 test('saved Ledger codec binds all original normalizing entries while retaining Receipt controls and same arguments', () => {
-  const source=readFileSync(new URL('./effect-ledger.mjs',import.meta.url),'utf8');
-  const tree=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-  const declaration=tree.body.find(node=>node.type==='FunctionDeclaration'&&node.id?.name==='bindEffectLedgerCodecs');
-  assert(declaration);
-  const bind=Function('fail',source.slice(declaration.start,declaration.end)+';return bindEffectLedgerCodecs;')(
-    code=>{throw Object.assign(new Error(code),{code});});
   const calls=[],wire='original Ledger wire',arg={},result={};
   const names=['admitLedgerEntry','issuePreparedLedgerEntry','issueNextLedgerEntry',
     'issueRowReceiptTerminalEntry','issueRowReceiptTerminalEntryFromResponse'];
@@ -1691,12 +1679,12 @@ test('saved Ledger codec binds all original normalizing entries while retaining 
     assert.equal(receiver,original);assert.equal(method,original[names[calls.length]]);
     assert.equal(input,calls.length===0?wire:undefined);assert.equal(nodes,512);assert.equal(depth,16);return Reflect.apply(method,receiver,args);
   }});
-  const selected=bind(original,construction);
+  const selected=bindEffectLedgerCodecs(original,construction);
   for(const name of names)assert.equal(selected[name](wire,arg,512,16),result);
   assert.equal(selected.issueRowOutcomeReceipt,original.issueRowOutcomeReceipt);
   assert.equal(selected.issueMemberReceiptFromRowPartition,original.issueMemberReceiptFromRowPartition);
   assert(calls.every(([,args])=>args[0]===wire&&args[1]===arg));
-  assert.equal(bind(original,undefined),original);
+  assert.equal(bindEffectLedgerCodecs(original,undefined),original);
 });
 
 test('capture and recovery constructors keep distinct original member slots and the same retained extent', () => {

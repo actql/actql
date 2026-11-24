@@ -43,7 +43,7 @@ test('FROM UNPIVOT independently fixes NULL duplicate ordering and bounded JOIN 
 
 test('FROM UNPIVOT joins ordinary public acceptance and retains actual completion observations', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'fromUnpivotSuccesses'], ['refusals', 'fromUnpivotRefusals']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   }

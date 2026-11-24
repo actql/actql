@@ -1,0 +1,441 @@
+// Fixed adapter to the existing Request preparation or SAME adopted Run.
+// No standalone Ledger, semantic Request/Run issuer or IO grant lives here.
+import {openRequestPreparation, cleanupRequestInput, assertRequestPreparationControl}
+  from '../local-node/request-preparation-adapter.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+import {CompletedRunPublicationError} from '../host-common/completed-run-publication.mjs';
+import type {RequestPreparationState} from '../local-node/request-preparation-adapter.mjs';
+import type {createEffectCaptureControls} from '../host-common/runtime-effect-capture-control.mjs';
+
+type Limits = Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>;
+type DirectCaptureControl = ReturnType<typeof createEffectCaptureControls>['captureControls'];
+type CapturedRun = ReturnType<DirectCaptureControl['admitRecoveredEffectCapturedRun']>;
+type CaptureControl = Pick<DirectCaptureControl, 'reserveEffectCaptureRecovery' |
+  'reserveEffectCaptureEncrypted' | 'reserveEffectCaptureEnvelope' | 'reserveEffectCaptureDecoded' |
+  'admitRecoveredEffectCapturedRun' | 'admitLiveEffectCapturedRun' | 'retireRecoveredEffectCapturedRun'> & Readonly<{
+  admit(name: 'captured_run', wire: string, limits: Limits): CapturedRun;
+}>;
+type CaptureRuntime = RequestPreparationState['context']['runtime'] &
+  Parameters<typeof assertRequestPreparationControl>[0]['runtime'] & Readonly<{
+    clientProgramPrepareInstalledEffectCaptureRecovery?(run: unknown, prepared: unknown,
+      request: unknown, definition: unknown, bytes: number, nodes: number, depth: number): unknown;
+    clientProgramReserveInstalledEffectCaptureRecovery(run: unknown, encryptedBytes: number): unknown;
+    clientProgramReserveInstalledEffectCaptureEncrypted?(run: unknown, encryptedBytes: number): unknown;
+    clientProgramReserveInstalledEffectCaptureEnvelope?(run: unknown, wire: string): unknown;
+    clientProgramReserveInstalledEffectCaptureDecoded(run: unknown, wire: string): unknown;
+    clientProgramRetireInstalledEffectCaptureRecovery(run: unknown): unknown;
+    clientProgramInstalledEffectCapturePreparedAvailable?(run: unknown): boolean;
+  }>;
+type ManagedCapture = Readonly<{value: unknown; prepared: unknown;
+  request: unknown; definitionOriginal: Readonly<{definition: unknown}>}>;
+type CaptureStep = (value: unknown) => unknown;
+type PublicationOriginal = (...args: never[]) => unknown;
+type CaptureContext = Readonly<{runtime: CaptureRuntime}>;
+type PublicationConstructor = <Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+  captured: unknown, receiver: unknown, method: (...args: Args) => Value, args: Args,
+  additionalContracts?: readonly unknown[]) => Value;
+type CaptureRead = {
+  <Receiver, Output>(captured: unknown, receiver: Receiver, method: (this: Receiver) => Output): Output;
+  <Receiver, Input, Output>(captured: unknown, receiver: Receiver,
+    method: (this: Receiver, argument: Input) => Output, argument: Input): Output;
+};
+type CaptureCleanup = () => unknown;
+// The original error descriptor can carry a foreign value. Project its two
+// members only at the existing retry fence, where the function checks apply.
+type ChildCarrierView = Readonly<{status?: unknown; retry?: unknown}>;
+type CaptureRecovery = Readonly<{
+  reserve(encryptedBytes: number): undefined;
+  reserveEnvelope(wire: string): undefined;
+  reserveDecoded(wire: string): undefined;
+  admitCapturedRun(wire: string): CapturedRun;
+  constructCaptured: CaptureRead;
+  constructCapturedValidation: CaptureRead;
+  constructCapturedForPublication: PublicationConstructor;
+  retainCleanup(operation: CaptureCleanup): undefined;
+  begin(): undefined;
+  finish(failed: boolean, cause?: unknown): undefined;
+  close(): Promise<boolean>;
+  status(): Readonly<{pending: boolean; busy: boolean}>;
+}>;
+type RecoveryState = Omit<RequestPreparationState, 'context'> & {
+  context: CaptureContext | undefined;
+  live: boolean; closing: boolean; closed: boolean; busy: boolean; preparing: boolean;
+  unknownChild: boolean; assertCurrent: (() => undefined) | undefined; failure?: unknown;
+  control: CaptureControl | undefined; request: unknown; runDefinition: unknown; limits: Limits | undefined;
+  reserve: CaptureControl['reserveEffectCaptureRecovery'] | undefined;
+  reserveEncrypted: CaptureControl['reserveEffectCaptureEncrypted'] | undefined;
+  reserveEnvelope: CaptureControl['reserveEffectCaptureEnvelope'] | undefined;
+  reserveDecoded: CaptureControl['reserveEffectCaptureDecoded'] | undefined;
+  admitCaptured: CaptureControl['admitRecoveredEffectCapturedRun'] | undefined;
+  retireCaptured: CaptureControl['retireRecoveredEffectCapturedRun'] | undefined;
+  retired?: (view: CaptureRecovery) => void;
+  input?: Readonly<{request: unknown; runDefinition: unknown}>;
+  value?: unknown; closeFlight?: Promise<boolean>;
+  capturedRun?: CapturedRun; capturedPrepared?: boolean;
+  child?: unknown; childStatus?: unknown; childRetry?: unknown;
+  resultCleanup?: CaptureCleanup;
+  begin?: CaptureStep; beginValidation?: CaptureStep; complete?: CaptureStep;
+  beginPublication?: (value: unknown, issue: boolean, args: readonly unknown[], additionalContracts: unknown) => unknown;
+  issueFinal?: PublicationOriginal; commitPublication?: PublicationOriginal;
+};
+type RecoveryOptions = Readonly<{
+  moon: CaptureRuntime; control: CaptureControl; request: unknown; runDefinition: unknown;
+  contractLimits: Limits; managed?: ManagedCapture; assertCurrent: () => undefined;
+  retain(view: CaptureRecovery): void; retired?: (view: CaptureRecovery) => void;
+}>;
+
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const pending = (value: unknown) => {
+  const property = value !== null && typeof value === 'object'
+    ? Object.getOwnPropertyDescriptor(value, 'pending') : undefined;
+  return property === undefined || !Object.hasOwn(property, 'value') || property.value !== false;
+};
+function invokePublication(this: unknown, {method, args}: Readonly<{method: PublicationOriginal; args: readonly unknown[]}>) {
+  return Reflect.apply(method, this, args);
+}
+function captureFailure(state: RecoveryState, error: unknown) {
+  state.failure ??= error;
+  // Capture the existing original carrier, including the one capture-read
+  // wrapper. Do not classify a code string or replace an unavailable child.
+  try {
+    const source = error instanceof CompletedRunPublicationError && error.cause !== undefined
+      ? error.cause : error;
+    if (source === null || typeof source !== 'object') return;
+    const handle = Object.getOwnPropertyDescriptor(source, 'cleanupHandle');
+    const required = Object.getOwnPropertyDescriptor(source, 'cleanupPending');
+    if (handle !== undefined && Object.hasOwn(handle, 'value') && handle.value !== undefined) {
+      if (state.child !== undefined && state.child !== handle.value) state.unknownChild = true;
+      else state.child = handle.value;
+    } else if (handle !== undefined || required !== undefined &&
+        (!Object.hasOwn(required, 'value') || required.value === true)) {
+      state.unknownChild = true;
+    }
+  } catch {
+    // A foreign carrier cannot replace the original failure or prove that
+    // an unavailable physical child has stopped.
+    state.unknownChild = true;
+  }
+}
+
+function recoveryView(state: RecoveryState) {
+  let view: CaptureRecovery;
+  const reserve = (encryptedBytes: number): undefined => {
+    if (!Number.isSafeInteger(encryptedBytes) || encryptedBytes < 0 || encryptedBytes > 2147483647) {
+      fail('EffectCaptureResourceExtentInvalid');
+    }
+    if (state.closing || state.closed || state.preparing) fail('EffectCaptureResourceUnavailable');
+    state.preparing = true;
+    try {
+      if (state.live) {
+        const reserve = state.context!.runtime.clientProgramReserveInstalledEffectCaptureEncrypted
+          ?? state.context!.runtime.clientProgramReserveInstalledEffectCaptureRecovery;
+        checked(Reflect.apply(reserve, state.context!.runtime, [state.value, encryptedBytes]));
+      } else {
+        Reflect.apply(state.reserveEncrypted!, state.control, [state.parent, state.input,
+          state.request, state.runDefinition, encryptedBytes, state.limits!]);
+      }
+      if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+    } catch (cause) {captureFailure(state, cause); throw cause;}
+    finally {state.preparing = false;}
+  };
+  const close = () => {
+    if (state.closed) return Promise.resolve(true);
+    if (state.closeFlight !== undefined) return state.closeFlight;
+    state.closing = true;
+    const flight = Promise.resolve().then(async () => {
+      if (state.busy || state.preparing || state.unknownChild) return false;
+      if (state.child !== undefined) {
+        state.childStatus ??= (state.child as ChildCarrierView).status;
+        state.childRetry ??= (state.child as ChildCarrierView).retry;
+        if (typeof state.childStatus !== 'function' || typeof state.childRetry !== 'function') return false;
+        if (pending(Reflect.apply(state.childStatus, state.child, []))) {
+          await Reflect.apply(state.childRetry, state.child, []);
+        }
+        if (pending(Reflect.apply(state.childStatus, state.child, []))) return false;
+        state.child = state.childStatus = state.childRetry = undefined;
+      }
+      if (state.resultCleanup !== undefined) {
+        // The same completed owner closes its original schemas/payloads and
+        // cuts its private decoded aliases. A failed callback remains here;
+        // it owns its own original child retry, not a replacement ACK.
+        await Reflect.apply(state.resultCleanup, undefined, []);
+        state.resultCleanup = undefined;
+      }
+      if (state.capturedRun !== undefined) {
+        if (state.capturedPrepared) {
+          Reflect.apply(state.retireCaptured!, state.control, [state.capturedRun]);
+        }
+        state.capturedRun = state.capturedPrepared = state.retireCaptured = undefined;
+      }
+      // Only after actual original child cleanup. Clear the variable aliases
+      // before returning capacity: the original return may consume then fail.
+      state.request = state.runDefinition = state.control = state.reserve = state.limits = state.input = undefined;
+      state.reserveEncrypted = state.reserveEnvelope = state.reserveDecoded = state.admitCaptured = state.retireCaptured = undefined;
+      state.failure = undefined;
+      // The original Request settlement still enters its existing Resource
+      // current callback. Keep that same light control until settlement ACK;
+      // clearing it here would turn a missing method into sticky stopping.
+      if (state.live) {
+        if (state.value !== undefined) {
+          checked(state.context!.runtime.clientProgramRetireInstalledEffectCaptureRecovery(state.value));
+          state.value = undefined;
+        }
+      } else {
+        cleanupRequestInput(state as RequestPreparationState);
+      }
+      state.closed = true;
+      state.assertCurrent = undefined;
+      state.begin = undefined;
+      state.beginValidation = undefined;
+      state.beginPublication = state.issueFinal = state.commitPublication = undefined;
+      state.complete = undefined;
+      state.context = undefined;
+      const retired = state.retired;
+      state.retired = undefined;
+      retired?.(view);
+      return true;
+    }).finally(() => {if (state.closeFlight === flight) state.closeFlight = undefined;});
+    state.closeFlight = flight;
+    return flight;
+  };
+  view = Object.freeze({reserve,
+    reserveEnvelope(wire: string): undefined {
+      if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      state.preparing = true;
+      try {
+        if (state.live) {
+          const envelope = state.context!.runtime.clientProgramReserveInstalledEffectCaptureEnvelope;
+          if (envelope !== undefined) checked(Reflect.apply(envelope, state.context!.runtime, [state.value, wire]));
+        } else Reflect.apply(state.reserveEnvelope!, state.control,
+          [state.parent, state.input, state.request, state.runDefinition, wire, state.limits!]);
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+      } catch (cause) {captureFailure(state,cause); throw cause;}
+      finally {state.preparing=false;}
+    },
+    reserveDecoded(wire: string): undefined {
+      if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      state.preparing = true;
+      try {
+        if (state.live) checked(state.context!.runtime.clientProgramReserveInstalledEffectCaptureDecoded(state.value, wire));
+        else Reflect.apply(state.reserveDecoded!, state.control,
+          [state.parent, state.input, state.request, state.runDefinition, wire, state.limits!]);
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+      }
+      catch (cause) {captureFailure(state, cause); throw cause;}
+      finally {state.preparing = false;}
+    },
+    admitCapturedRun(wire: string) {
+      if (typeof wire !== 'string' || !state.busy || state.closing || state.closed || state.preparing) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      state.preparing = true;
+      try {
+        const prepared = !state.live ||
+          typeof state.context!.runtime.clientProgramInstalledEffectCapturePreparedAvailable === 'function' &&
+          state.context!.runtime.clientProgramInstalledEffectCapturePreparedAvailable(state.value);
+        // When this process has no fresh prepared inventory, Common already
+        // selects this ordinary admission. Perform that SAME one admission
+        // here so its returned original stays bound to the funded Read too.
+        const captured = !prepared ? state.control!.admit('captured_run', wire, state.limits!)
+          : state.live ? state.control!.admitLiveEffectCapturedRun(state.value, wire)
+            : Reflect.apply(state.admitCaptured!, state.control,
+              [state.parent, state.input, state.request, state.runDefinition, wire, state.limits!]);
+        if (state.capturedRun !== undefined && state.capturedRun !== captured) fail('EffectCaptureResourceUnavailable');
+        state.capturedRun = captured;
+        state.capturedPrepared = prepared;
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+        return captured;
+      } catch (cause) {captureFailure(state, cause); throw cause;}
+      finally {state.preparing = false;}
+    },
+    constructCaptured<Receiver, Input, Output>(captured: unknown, receiver: Receiver,
+      method: (this: Receiver, argument: Input) => Output, argument?: Input): Output {
+      if (captured !== state.capturedRun || captured === undefined ||
+          typeof method !== 'function') fail('EffectCaptureResourceUnavailable');
+      view.begin();
+      let failed = true, cause;
+      try {
+        const value = Reflect.apply(method, receiver, [argument as Input]);
+        if (captured !== state.capturedRun || state.closing || state.closed) {
+          fail('EffectCaptureResourceUnavailable');
+        }
+        failed = false;
+        return value;
+      } catch (error) {cause = error; throw error;}
+      finally {view.finish(failed, cause);}
+    },
+    constructCapturedForPublication<Args extends readonly unknown[], Value extends SynchronousRuntimeData>(
+      captured: unknown, receiver: unknown, method: (...args: Args) => Value, args: Args,
+      additionalContracts?: readonly unknown[]): Value {
+      // Only synchronous publication construction uses the completed Read.
+      // A live validation refusal is final; it never retries physical Read.
+      if (typeof method !== 'function' || !Array.isArray(args)) fail('EffectCaptureResourceUnavailable');
+      const issue = receiver === state.control && method === state.issueFinal && args.length === 4;
+      const commit = receiver === state.control && method === state.commitPublication && args.length === 7;
+      if (state.live && typeof state.beginPublication === 'function' && (issue || commit)) {
+        if (captured !== state.capturedRun || captured === undefined ||
+            state.busy || state.preparing || state.closing || state.closed ||
+            (args[0] as {capturedRun?: unknown} | null | undefined)?.capturedRun !== captured) {
+          fail('EffectCaptureResourceUnavailable');
+        }
+        state.busy = true;
+        let failed = true, cause;
+        try {
+          // Only the original installing control's two closed constructors
+          // enter this class. The control bounds metadata before flattening
+          // and Core retains every escaped publication output on this Read.
+          Reflect.apply(state.beginPublication, state.control,
+            [state.value, issue, args, additionalContracts]);
+          if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+          const value = Reflect.apply(method, receiver, args);
+          if (captured !== state.capturedRun || state.closing || state.closed) {
+            fail('EffectCaptureResourceUnavailable');
+          }
+          failed = false;
+          return value;
+        } catch (error) {cause = error; throw error;}
+        finally {view.finish(failed, cause);}
+      }
+      const construct = state.live && typeof state.beginValidation === 'function'
+        ? view.constructCapturedValidation : view.constructCaptured;
+      return Reflect.apply(construct, view, [captured, receiver, invokePublication, {method, args}]) as Value;
+    },
+    constructCapturedValidation<Receiver, Input, Output>(captured: unknown, receiver: Receiver,
+      method: (this: Receiver, argument: Input) => Output, argument?: Input): Output {
+      if (captured !== state.capturedRun || captured === undefined ||
+          typeof method !== 'function' || !state.live ||
+          typeof state.beginValidation !== 'function' ||
+          state.busy || state.preparing || state.closing || state.closed) {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      state.busy = true;
+      let failed = true, cause;
+      try {
+        checked(Reflect.apply(state.beginValidation, state.context!.runtime, [state.value]));
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+        const value = Reflect.apply(method, receiver, [argument as Input]);
+        if (captured !== state.capturedRun || state.closing || state.closed) {
+          fail('EffectCaptureResourceUnavailable');
+        }
+        failed = false;
+        return value;
+      } catch (error) {cause = error; throw error;}
+      finally {view.finish(failed, cause);}
+    },
+    retainCleanup(operation: CaptureCleanup): undefined {
+      if (state.closed || state.resultCleanup !== undefined || typeof operation !== 'function') {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      // Store/schema construction may finish after close was requested while
+      // busy. Retain the actual child before that pending close can continue.
+      state.resultCleanup = operation;
+    },
+    begin(): undefined {
+      if (state.busy || state.preparing || state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+      state.busy = true;
+      try {
+        if (state.live) checked(Reflect.apply(state.begin!, state.context!.runtime, [state.value]));
+        if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+      } catch (cause) {
+        captureFailure(state, cause);
+        state.busy = false;
+        throw cause;
+      }
+    },
+    finish(failed: boolean, cause?: unknown): undefined {
+      if (!state.busy) fail('EffectCaptureResourceUnavailable');
+      try {
+        if (failed) captureFailure(state, cause);
+        else {
+          if (state.closing || state.child !== undefined || state.unknownChild) fail('EffectCaptureResourceUnavailable');
+          if (state.live) {
+            // The initial trusted Store return has closed/cut its FD and
+            // decode aliases. A later retained validation returns only its
+            // own synchronous scratch; SAME-token outputs stay retained.
+            state.preparing = true;
+            try {checked(Reflect.apply(state.complete!, state.context!.runtime, [state.value]));}
+            finally {state.preparing = false;}
+          }
+        }
+      } catch (error) {captureFailure(state, error);throw error;}
+      finally {state.busy = false;}
+    },
+    close,
+    status: () => Object.freeze({pending: !state.closed, busy: state.busy || state.preparing}),
+  });
+  return view;
+}
+
+// The caller is the existing Host bag, after its actual journal selection and
+// evidence-read authorization. Retain receives this SAME view before either
+// existing resource constructor can fail; failed opening stays closeable.
+export function prepareEffectCaptureResources({moon, control, request, runDefinition,
+  contractLimits, managed, assertCurrent, retain, retired}: RecoveryOptions) {
+  if (typeof assertCurrent !== 'function' || typeof retain !== 'function' ||
+      typeof control?.reserveEffectCaptureRecovery !== 'function') fail('EffectCaptureResourceUnavailable');
+  const limits = Object.freeze({maxWireBytes: contractLimits.maxWireBytes,
+    maxNodes: contractLimits.maxNodes, maxDepth: contractLimits.maxDepth});
+  const state: RecoveryState = {context: {runtime: moon}, control, request, runDefinition, limits,
+    reserve: control.reserveEffectCaptureRecovery, assertCurrent, retired,
+    reserveEncrypted: control.reserveEffectCaptureEncrypted,
+    reserveEnvelope: control.reserveEffectCaptureEnvelope,
+    reserveDecoded: control.reserveEffectCaptureDecoded,
+    admitCaptured: control.admitRecoveredEffectCapturedRun,
+    retireCaptured: control.retireRecoveredEffectCapturedRun,
+    live: managed !== undefined, busy: false, preparing: false, closing: false, closed: false,
+    unknownChild: false};
+  const view = recoveryView(state);
+  retain(view);
+  try {
+    assertCurrent();
+    if (state.closing || state.closed) fail('EffectCaptureResourceUnavailable');
+    if (managed !== undefined) {
+      state.begin = Object.getOwnPropertyDescriptor(moon,
+        'clientProgramBeginInstalledEffectCaptureRecovery')?.value;
+      state.beginValidation = Object.getOwnPropertyDescriptor(moon,
+        'clientProgramBeginInstalledEffectCaptureValidation')?.value;
+      if (typeof Object.getOwnPropertyDescriptor(moon,
+        'clientProgramBeginInstalledEffectCapturePublication')?.value === 'function' &&
+          typeof Object.getOwnPropertyDescriptor(moon,
+            'clientProgramInstalledEffectCapturePublicationInputLimit')?.value === 'function') {
+        state.beginPublication = Object.getOwnPropertyDescriptor(control,
+          'beginEffectfulPublicationConstruction')?.value;
+        state.issueFinal = Object.getOwnPropertyDescriptor(control,
+          'issueEffectfulFinalRunReceipt')?.value;
+        state.commitPublication = Object.getOwnPropertyDescriptor(control,
+          'effectfulCommitValid')?.value;
+      }
+      state.complete = Object.getOwnPropertyDescriptor(moon,
+        'clientProgramCompleteInstalledEffectCaptureRecovery')?.value;
+      if (typeof moon.clientProgramPrepareInstalledEffectCaptureRecovery !== 'function' ||
+          typeof moon.clientProgramReserveInstalledEffectCaptureDecoded !== 'function' ||
+          typeof state.begin !== 'function' ||
+          typeof state.complete !== 'function') {
+        fail('EffectCaptureResourceUnavailable');
+      }
+      // The live Host already owns this exact compiled Definition. Do not
+      // replace it with a newly admitted, equal-CID journal contract copy.
+      state.value = checked(moon.clientProgramPrepareInstalledEffectCaptureRecovery(
+        managed.value, managed.prepared, managed.request, managed.definitionOriginal.definition,
+        limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    } else {
+      if (typeof state.reserveEncrypted !== 'function' || typeof state.reserveEnvelope !== 'function' ||
+          typeof state.reserveDecoded !== 'function' || typeof state.admitCaptured !== 'function' ||
+          typeof state.retireCaptured !== 'function') fail('EffectCaptureResourceUnavailable');
+      assertRequestPreparationControl(state.context!);
+      // New physical-process custody of this already selected saved Request,
+      // not another semantic Request/Run or the old compiler/Source route.
+      state.input = Object.freeze({request, runDefinition});
+      openRequestPreparation(state as RequestPreparationState, state.input, () => state.assertCurrent!(),
+        () => state.busy || state.child !== undefined || state.unknownChild);
+      view.reserve(0);
+    }
+    assertCurrent();
+    return view;
+  } catch (cause) {captureFailure(state, cause); throw cause;}
+}

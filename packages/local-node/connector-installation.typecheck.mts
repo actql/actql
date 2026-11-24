@@ -9,7 +9,7 @@ import type {
   ConnectorJsonObject, ConnectorRuntimeHandle, ConnectorRuntimeOwner,
   CredentialResponse, RowSourceCredentialProfile, RowSourceDeclarationFacts,
   InstalledRowProviderReader, RowProviderReaderRequest,
-  RowEffectDriver, RowEffectRequestChild, RowEffectCreateWrite, RowEffectUpdateWrite, RowEffectUpdateConstructionProvider, InstalledRowEffectOptions,
+  RowEffectDriver, RowEffectMember, RowEffectRequestChild, RowEffectCreateWrite, RowEffectUpdateWrite, RowEffectUpdateConstructionProvider, InstalledRowEffectOptions,
   RestSourceInstallationDefinition, RestSourceTransform, InstallationCloseOwner,
 } from '@actql/local-node/connector-installation';
 import type {HostRequestValuePolicyVerifier} from '@actql/local-node';
@@ -188,7 +188,15 @@ const standardUpdateWrite: RowEffectUpdateWrite<DeclaredUpdateRequest> = {
   project: () => ({kind: 'unclassified-response'}),
   footprint: () => ({providerNamespace: 'records', resourceKind: 'record', boundaryCid: 'original'}),
   recoveryEntry: ({entries}) => ({kind: 'record_update', observationCid: 'original', wire: JSON.stringify(entries)}),
-  recoverRequests: () => ({requests: []}),
+  recoverRequests({members}) {
+    return {requests: members.map(member => {
+      const kind: 'update' = member.kind;
+      // @ts-expect-error A singular UPDATE owner cannot receive a Command member.
+      const command: RowEffectMember<'command'> = member;
+      void [kind, command];
+      return [];
+    })};
+  },
 };
 const standardUpdate = createInstalledRowEffect<DeclaredUpdateRequest, unknown, 'update'>({...standardUpdateHost,
   write: Object.freeze(standardUpdateWrite), providerMoon: compiledUpdateProvider});
@@ -431,19 +439,32 @@ void [originalAbsence, originalPresence, explicitPresence, missingPresence, null
 // its request arrays remain typed exactly as the original driver requests.
 declare const originalRebuiltRequests: readonly (readonly Request[])[];
 const scopedRecoveryDriver: RowEffectDriver<Request> = {...originalDriver,
-  recoverMemberRequests({memberIndexes, previewWire, body}) {
+  recoverMemberRequests({members, memberIndexes, previewWire, body}) {
     const originalIndex: number | undefined = memberIndexes[0];
     const originalWire: string = previewWire;
     const originalBody: ConnectorJsonObject = body;
     void [originalIndex, originalWire, originalBody];
-    return {requests: originalRebuiltRequests};
+    const preceding = members[0];
+    if (preceding.kind === 'command') {
+      const commandCid: string = preceding.command.commandCid;
+      void commandCid;
+    }
+    return {requests: memberIndexes.map(index => {
+      const member = members[index];
+      if (member.kind !== 'update') throw new Error('UnexpectedOriginalMemberKind');
+      return originalRebuiltRequests[index];
+    })};
   },
 };
 const invalidScopedRecoveryDriver: RowEffectDriver<Request> = {...originalDriver,
   // @ts-expect-error Recovery cannot replace original typed requests with strings.
   recoverMemberRequests: () => ({requests: [['request-cid']]}),
 };
-void [scopedRecoveryDriver, invalidScopedRecoveryDriver];
+declare const originalUpdateMember: RowEffectMember<'update'>;
+const wholeRecoveryPreview = Object.freeze([originalCommandMember, originalUpdateMember]);
+const recoveredUpdate = scopedRecoveryDriver.recoverMemberRequests?.({members: wholeRecoveryPreview,
+  memberIndexes: Object.freeze([1]), previewWire: 'original', body: {}, durable: undefined, recorded: undefined});
+void [scopedRecoveryDriver, invalidScopedRecoveryDriver, recoveredUpdate];
 
 declare const originalRestDefinition: RestSourceInstallationDefinition;
 const originalReadWire: string = validateRestReadDeclaration('{"method":"GET","path":"/records"}');

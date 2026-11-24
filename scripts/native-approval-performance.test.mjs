@@ -9,8 +9,8 @@ import {parse} from 'yaml';
 import * as performance from './native-approval-performance.mjs';
 import {parseCommands} from './verification-actions.mjs';
 import {openNativeMockCampaign} from './native-mock-campaign.mjs';
-import {nativeApprovalTarget} from './operation-performance.mjs';
-import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalResources, approvalPhases} from './native-approval-performance.mjs';
+import {approvalCallCounts, assertApprovalCallCounts, assessNativeApproval, approvalResources, approvalPhases,
+  nativeApprovalTarget} from './native-approval-performance.mjs';
 
 const sourceSha = 'a'.repeat(40), fixtureSha256 = 'b'.repeat(64), runnerSha256 = 'c'.repeat(64);
 const series = () => ({mode: 'final', sourceSha, fixtureSha256, runnerSha256,

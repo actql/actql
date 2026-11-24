@@ -2,23 +2,16 @@
 // Requires the admitted original ref before the held second-page response.
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
-import {readFile, writeFile, link, unlink} from 'node:fs/promises';
+import {readFile, writeFile} from 'node:fs/promises';
 import {setTimeout as delay} from 'node:timers/promises';
 import {join} from 'node:path';
 import {withInstalledFamilyFirstClose} from './fixture-source/adapters/host-node/fixtures/installed-family-read.fixture.mjs';
 import {observeOwnScopedStateFds} from './conformance.mjs';
+import {publishStandardRestBarrier} from './publish-barrier.mjs';
 
 const save = (root, name, value) => writeFile(join(root, name),
   JSON.stringify(value, null, 2) + '\n', {flag: 'wx'});
 
-// Complete fixture bytes before publishing the polled name. Exclusive linking
-// retains the original wx refusal; this is not a durable product receipt.
-export async function publishStandardRestBarrier(path, body) {
-  const pending = path + '.pending';
-  await writeFile(pending, body, {flag: 'wx'});
-  await link(pending, path);
-  await unlink(pending);
-}
 const ownFailure = error => {
   const fields = error && typeof error === 'object' ? Object.getOwnPropertyDescriptors(error) : {};
   return Object.fromEntries(['name', 'message', 'code', 'cleanupPending'].flatMap(name => {

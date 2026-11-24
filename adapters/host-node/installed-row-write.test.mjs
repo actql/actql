@@ -5,20 +5,24 @@ import {mkdtemp, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {parse} from 'acorn';
-import {createHash, generateKeyPairSync} from 'node:crypto';
+import {generateKeyPairSync} from 'node:crypto';
 import {types as nodeTypes} from 'node:util';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
-import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
-import {invokeScopedCredentialOperation} from '../host-common/owned-invocation-context.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
+import {deriveInstalledRowWrite as deriveInstalledRowWriteOriginal} from './installed-row-effect-standard-write.mjs';
+import {createInstalledRowEffectRequests} from './installed-row-effect-members.mjs';
+import {createInstalledRowEffectClaims, createInstalledRowEffectRecoveryEntries} from './installed-row-effect-claims.mjs';
+import {createInstalledRowEffectCaptureValues} from './installed-row-effect-capture-values.mjs';
+import {prepareInstalledRowEffectCaptureInputs} from './installed-row-effect-capture-inputs.mjs';
+import {registerInstalledEffectDependencyOriginal, retireInstalledEffectDependencyOriginal} from '../host-common/installed-effect-dependency-original.mjs';
+import {createInstalledRowEffectPlanCapture} from './installed-row-effect-plan-capture.mjs';
 import {openRowSourceCredentialSite} from './installed-row-source.mjs';
 import {prepareGitHubCommentRequest, sendGitHubIssueComment,
   GITHUB_COMMENT_CREATE_OPERATION} from '../connectors/github/site/github-comment-create.mjs';
 import * as githubComment from '../connectors/github/site/github-comment-create.mjs';
 import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
 import {prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {GITHUB_GRAPHQL_PATH, GITHUB_GRAPHQL_READ_OPERATION} from
   '../connectors/github/site/github-issue-graphql-read.mjs';
@@ -28,25 +32,21 @@ import {prepareSheetsAppend, sendSheetsAppend, SHEETS_APPEND_OPERATION,
 
 // Execute the complete internal adapter with its actual transport callees.
 // The constructor test below separately imports and exercises its real caller.
-const rowSource = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-const rowTree = parse(rowSource, {ecmaVersion: 'latest', sourceType: 'module'});
-const derivedNode = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'deriveInstalledRowWrite');
-assert.ok(derivedNode);
-const deriveInstalledRowWriteOriginal = Function('createHash', 'nodeTypes', 'canonicalJson', 'ownHttpRequest', 'ownRequestHeaders',
-  'ownResponseHeaderNames', 'invokeScopedCredentialOperation', 'localContractLimits', `return (${rowSource.slice(derivedNode.start, derivedNode.end)});`)(
-  createHash, nodeTypes, canonicalJson, ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames, invokeScopedCredentialOperation, localContractLimits);
+const captureSource = readFileSync(new URL('./installed-row-effect-capture-stage.mjs', import.meta.url), 'utf8');
+const captureTree = parse(captureSource, {ecmaVersion: 'latest', sourceType: 'module'});
 const deriveInstalledRowWrite = (...args) => deriveInstalledRowWriteOriginal(...args).driver;
 
 // Actual private member constructor and existing exact-JSON decoder. The
 // explicit Core port counts work/ordering; no admission or identity is issued.
-function createRowsFixture(parse) {
-  const named = name => rowTree.body.find(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value => value.id.name === name));
-  const fn = rowTree.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'prepareInstalledCreateRows');
-  assert(fn);
-  return new Function('runtimeField', 'checked', 'JSON',
-    [named('fail'), named('parseExactJson')].map(node => rowSource.slice(node.start, node.end)).join('\n') +
-    '\nreturn (' + rowSource.slice(fn.start, fn.end) + ');')(runtimeField, checked, {parse, stringify: JSON.stringify});
+function createRowsFixture(t, observe) {
+  const fail = (code, cause) => {throw Object.assign(new Error(code, {cause}), {code});};
+  const {prepareInstalledCreateRows} = createInstalledRowEffectCaptureValues(fail);
+  const parse = JSON.parse;
+  return (...args) => {
+    const monitored = t.mock.method(JSON, 'parse', wire => {observe(wire); return parse(wire);});
+    try {return prepareInstalledCreateRows(...args);}
+    finally {monitored.mock.restore();}
+  };
 }
 
 const boundaryCid = `sha256:${'b'.repeat(64)}`;
@@ -620,19 +620,6 @@ for (const connector of ['github', 'sheets']) {
 // authenticated-capture DATA port. This is not capture authentication, a real
 // Run/Ledger/Store, or physical provider qualification.
 test('standard cold recovery uses saved original requests without calling the provider mapping again', () => {
-  const selected = name => {
-    const matches = [];
-    const visit = node => {
-      if (!node || typeof node !== 'object') return;
-      if (node.type === 'VariableDeclarator' && node.id.name === name) matches.push(node.init);
-      for (const value of Object.values(node)) {
-        if (Array.isArray(value)) value.forEach(visit);
-        else if (value && typeof value === 'object') visit(value);
-      }
-    };
-    visit(rowTree); assert.equal(matches.length, 1, name);
-    return rowSource.slice(matches[0].start, matches[0].end);
-  };
   let mappings = 0;
   const write = declaration({request() {mappings++; return {path: '/records', body: '{"name":"original"}'};}});
   const driver = deriveInstalledRowWrite(write, 'fixture');
@@ -644,15 +631,16 @@ test('standard cold recovery uses saved original requests without calling the pr
   const fail = code => {throw Object.assign(new Error(code), {code});};
   const sameValue = (left, right) => canonicalJson(left) === canonicalJson(right);
   const targeted = kind => ['update', 'upsert', 'delete'].includes(kind);
-  const ports = {singular: owner, ownerOf, resourceFields: () => ({}), fail,
-    sameValue, targeted, cidPattern: /^sha256:[0-9a-f]{64}$/u};
-  const recoveredEntries = Function(...Object.keys(ports), `
-    const approvedValue = ${selected('approvedValue')};
-    const sameEffectValue = ${selected('sameEffectValue')};
-    const entryOf = ${selected('entryOf')};
-    const orderedSourceIndexes = ${selected('orderedSourceIndexes')};
-    const validateRecoveredEntries = ${selected('validateRecoveredEntries')};
-    return ${selected('recoveredEntries')};`)(...Object.values(ports));
+  const {entryOf} = createInstalledRowEffectRequests({
+    ownerOf, cidPattern: /^sha256:[0-9a-f]{64}$/u, targeted, sameValue,
+    sameEffectValue: (_kind,left,right) => sameValue(left,right), resourceFields: () => ({}),
+    commandContentRow: () => assert.fail('No Content lookup in the recovered CREATE fixture'), fail,
+  });
+  const {orderedSourceIndexes} = createInstalledRowEffectClaims({fail});
+  const {recoveredEntries} = createInstalledRowEffectRecoveryEntries({
+    singular: owner, ownerOf, entryOf, orderedSourceIndexes, resourceFields: () => ({}),
+    sameEffectValue: (_kind, left, right) => sameValue(left, right), sameValue, targeted, fail,
+  });
   // If the standard driver supplies the existing capture codec, retain its
   // original output; a legacy driver has no such saved request material.
   const recovery = driver.recoveryEntry?.({member: originalMember,
@@ -679,13 +667,16 @@ test('standard saved request preserves provider CID, full DATA and composed glob
   const prepared = fresh.prepareRequest({member: selectedMember, value});
   const saved = fresh.recoveryEntry({member: selectedMember, entries: [{...prepared, value}]});
   const cold = deriveInstalledRowWrite({...write, request() {assert.fail('cold must not map or create a tag');}}, 'fixture');
-  const restored = cold.recoverMemberRequests({members: [{kind: 'create', resource: 'unrelated'}, selectedMember],
-    memberIndexes: [1], durable: {connectorRecovery: [{memberIndex: 1, ...saved}]}}).requests[0][0];
+  const members = Object.freeze([Object.freeze({kind: 'command', resource: 'records'}), selectedMember]);
+  const durable = {connectorRecovery: [{memberIndex: 1, ...saved}]};
+  const restored = cold.recoverMemberRequests({members, memberIndexes: [1], durable}).requests[0][0];
   assert.equal(cold.requestCid(restored), providerCid);
   assert.equal(restored.body, prepared.request.body);
   assert.deepEqual(restored.metadata, prepared.request.metadata);
   assert.deepEqual(cold.requestFacts(restored).value, value);
   assert.ok(Object.isFrozen(restored.metadata.ordering));
+  assert.throws(() => cold.recoverMemberRequests({members, memberIndexes: [0], durable}),
+    {code: 'InvalidInstalledRowWrite'});
   assert.throws(() => cold.requestCid({...restored}), {code: 'InvalidInstalledRowWrite'});
   assert.throws(() => prepared.request.metadata.ordering.push('changed'), TypeError);
 });
@@ -792,9 +783,9 @@ test('standard construction facts distinguish no check from an original legacy c
   assert.equal(typeof legacy.driver.checkRequest, 'function');
 });
 
-test('same Common CREATE inventory refuses before Host JSON materialization without another check', () => {
+test('same Common CREATE inventory refuses before Host JSON materialization without another check', t => {
   const calls = [], primary = new Error('original Common inventory refusal');
-  const construct = createRowsFixture(wire => {calls.push('host-parse'); return JSON.parse(wire);});
+  const construct = createRowsFixture(t, () => calls.push('host-parse'));
   const wire = '{not a Host JSON document';
   const moon = {clientProgramEffectCreateRowInventory(wires, rows, bytes, nodes, depth) {
     assert.deepEqual(wires, [wire]); assert.deepEqual([rows, bytes, nodes, depth], [1, 101, 17, 5]);
@@ -805,7 +796,7 @@ test('same Common CREATE inventory refuses before Host JSON materialization with
   assert.deepEqual(calls, ['same-common-inventory']);
 });
 
-test('CREATE materialization consumes the same admitted wires once in original Common order', () => {
+test('CREATE materialization consumes the same admitted wires once in original Common order', t => {
   const a = '{"state":"present","value":{"name":"first"}}';
   const b = '{"state":"present","value":{"name":"second"}}';
   const aIdentity = '{"content_cid":"first","occurrence":0}';
@@ -814,7 +805,7 @@ test('CREATE materialization consumes the same admitted wires once in original C
   const first = {get changesWire() {reads++; return a;}};
   const second = {get changesWire() {reads++; return b;}};
   const parsed = [];
-  const construct = createRowsFixture(wire => {parsed.push(wire); return JSON.parse(wire);});
+  const construct = createRowsFixture(t, wire => parsed.push(wire));
   const moon = {clientProgramEffectCreateRowInventory(wires, rows, bytes, nodes, depth) {
     checks++; assert.equal(parsed.length, 0); assert.deepEqual(wires, [a, b]);
     assert.deepEqual([rows, bytes, nodes, depth], [2, 101, 17, 5]);
@@ -832,8 +823,8 @@ test('CREATE materialization consumes the same admitted wires once in original C
   });
 });
 
-test('CREATE original Common failures and empty inventory do not start Host JSON construction', () => {
-  const construct = createRowsFixture(() => assert.fail('No Host parse after a Common failure or for zero rows'));
+test('CREATE original Common failures and empty inventory do not start Host JSON construction', t => {
+  const construct = createRowsFixture(t, () => assert.fail('No Host parse after a Common failure or for zero rows'));
   const primary = new Error('same original typed issue');
   assert.throws(() => construct({clientProgramEffectCreateRowInventory: () => ({$tag: 0, _0: primary})},
     [{changesWire: 'original'}], {maxWireBytes: 101, maxNodes: 17, maxDepth: 5}),
@@ -1364,10 +1355,12 @@ for(const rangeCommand of [true,'clear']){
 
 
 test('Command construction requires SAME driver definition provider and immutable metadata before Plan construction',()=>{
-  const names=new Set(['captureManagedPlanDefinition','captureManagedDriverConstruction']);
-  const bodies=rowTree.body.filter(node=>node.type==='FunctionDeclaration'&&names.has(node.id.name)).map(node=>rowSource.slice(node.start,node.end)).join('\n');
-  const capture=Function('nodeTypes','text','fail',bodies+'\nreturn (definition,driver,provider,construction)=>captureManagedDriverConstruction(construction,captureManagedPlanDefinition(definition,driver),driver,provider);')(
-    nodeTypes,value=>typeof value==='string'&&value.length>0,code=>{throw Object.assign(new Error(code),{code});});
+  const {captureManagedPlanDefinition,captureManagedDriverConstruction}=createInstalledRowEffectPlanCapture({
+    fail(code){throw Object.assign(new Error(code),{code});},
+    text:value=>typeof value==='string'&&value.length>0,
+  });
+  const capture=(definition,driver,provider,construction)=>captureManagedDriverConstruction(
+    construction,captureManagedPlanDefinition(definition,driver),driver,provider);
   const definition=Object.freeze({kind:'command',memberOperations:Object.freeze([]),rowOperations:Object.freeze([Object.freeze({role:'write',operation:'sheets:update'})])});
   const construction=Object.freeze({write:Object.freeze({operation:'sheets:update',maxRequestBytes:300000,maxResponseBytes:1000000}),check:undefined,metadataTextUnits:117});
   const provider=Object.freeze({}),driver=Object.freeze({kinds:Object.freeze(['command']),managedPlanDefinition:definition,managedPlanConstruction:construction,managedPlanProvider:provider});
@@ -1381,38 +1374,19 @@ test('Command construction requires SAME driver definition provider and immutabl
 
 
 test('actual member capture caller defers SAME original recovery until Preview and retains failing siblings', async () => {
-  const {prepareInstalledEffectRequestChild} = await import('./installed-effect-plan.mjs');
-  const {retainInstalledRowCaptureChild} = await import('./installed-row-capture-cleanup.mjs');
-  const matches = [];
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'FunctionDeclaration' && node.id.name === 'captureStage') matches.push(node);
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value === 'object') visit(value);
-    }
-  };
-  visit(rowTree); assert.equal(matches.length, 1);
-  const statements = matches[0].body.body;
-  const slice = node => rowSource.slice(node.start, node.end);
-  const initialize = statements.filter(node => node.type === 'ForOfStatement' &&
-    slice(node).includes('retainInstalledRowCaptureChild('));
-  const recovery = statements.filter(node => node.type === 'ForOfStatement' &&
-    slice(node).includes('await retained.prepare()'));
-  assert.equal(initialize.length, 1); assert.equal(recovery.length, 1);
-  const vector = statements.filter(node => node.type === 'VariableDeclaration' &&
-    node.declarations.some(value=>value.id.name==='memberCaptures'));
-  assert.equal(vector.length,1);
-  const source = 'const requestChildren=[],proposals=[],currents=[]; let entries;' + slice(vector[0]) +
-    slice(initialize[0]) + '\nreturn {requestChildren,proposals,currents,finish:async originalEntries=>{' +
-    'entries=originalEntries; const connectorRecovery=[];' + slice(recovery[0]) + ';return connectorRecovery;}};';
-  const open = Function('members','ownerOf','managedEffect','moon','prepared','identity',
-    'retainInstalledRowCaptureChild','prepareInstalledEffectRequestChild','retireRequestAliases',
-    'assertCurrent','signal','fail','recipeOf',source);
+  const stage = captureTree.body.find(node => node.declaration?.id?.name === 'createInstalledRowEffectCaptureStage').declaration;
+  const capture = stage.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'captureStage');
+  const recovery = capture.body.body.filter(node => node.type === 'ForOfStatement' &&
+    captureSource.slice(node.start, node.end).includes('await retained.prepare()'));
+  assert.equal(recovery.length, 1);
+  const finishRecovery = Function('members','ownerOf','recipeOf','currents','entries','memberCaptures','observations',
+    `return (async()=>{const connectorRecovery=[];${captureSource.slice(recovery[0].start,recovery[0].end)};return connectorRecovery;})();`);
   for (const failing of [false,true]) {
     const events=[],members=[{memberIndex:0},{memberIndex:1}],parent={},prepared={},identity={},plan={};
-    const tokens=members.map(()=>({})); let retired=false;
-    const moon={clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
+    const tokens=members.map(()=>({})); let retired=false,markCaptureFinished;
+    const moon={clientProgramInstalledEffectDependencySourcesPin(p,original,intent,selected) {
+        assert.deepEqual([p,original,intent,selected],[parent,prepared,identity,plan]);return {$tag:1,_0:{}};
+      },clientProgramEffectInputExportLimits:()=>({}),clientProgramInstalledEffectManagedOperationPlan:()=>({$tag:1,_0:plan}),
       clientProgramInstalledEffectOperationConstructionRetain(p,original,intent,selected,index,perRow) {
         assert.strictEqual(p,parent);assert.strictEqual(original,prepared);assert.strictEqual(intent,identity);
         assert.strictEqual(selected,plan);assert.equal(perRow,false);events.push('borrow'+index);
@@ -1425,25 +1399,40 @@ test('actual member capture caller defers SAME original recovery until Preview a
     const managedEffect={controlConstruction:(receiver,method,args)=>Reflect.apply(method,receiver,args),runtime:moon,value:parent,prepared,request:identity,operationPlan:plan,
       readPlan:moon.clientProgramInstalledEffectManagedOperationPlan};
     const descriptions=[{},{}],entries=[[{}],[{}]];
-    const owners=members.map((member,index)=>({managedPlanRecipe:{captureConstruction:{operationIndex:0},
+    const owners=members.map((member,index)=>({profile:{source:'fixture'},managedPlanRecipe:{captureConstruction:{operationIndex:0},
       memberOperations:[{operation:'capture'}]},owned:{recoveryEntry(context) {
         assert.strictEqual(this,owners[index].owned);assert.strictEqual(context.member,member);
         assert.strictEqual(context.current,descriptions[index]);assert.strictEqual(context.entries,entries[index]);
         events.push('recovery'+index);if(failing&&index===1)throw undefined;
         return {kind:'original',wire:'wire'+index,observationCid:'cid'+index};
       }}}));
-    const capture=open(members,member=>owners[member.memberIndex],managedEffect,moon,prepared,identity,
-      retainInstalledRowCaptureChild,prepareInstalledEffectRequestChild,()=>retired,undefined,undefined,
-      code=>{throw Object.assign(new Error(code),{code});},member=>owners[member.memberIndex].managedPlanRecipe);
+    const ownerOf=member=>owners[member.memberIndex], recipeOf=member=>ownerOf(member).managedPlanRecipe;
+    Object.assign(managedEffect.controlConstruction,{retainInputs(){}});
+    registerInstalledEffectDependencyOriginal(managedEffect.controlConstruction,
+      {runtime:moon,parent,prepared,request:identity,plan,current(){}});
+    let originalEntries;
+    const capture=prepareInstalledRowEffectCaptureInputs({
+      moon,prepared,identity,managedEffect,members,ownerOf,recipeOf,plan:{outputLimits:{}},
+      runLimits:()=>({body:{}}),store:{},exportLimits:()=>[],preparePinnedEffectSourceSet:async()=>({payloads:[]}),
+      cid:()=>providerCid,ownChildren(){},ownInputs(_release,finish){markCaptureFinished=finish;},
+      readEntries:()=>originalEntries,retireRoute:()=>retired,
+      fail:code=>{throw Object.assign(new Error(code),{code});},
+    });
+    await capture.sourceExport;
+    const finish = () => {
+      originalEntries=entries;
+      return finishRecovery(members,ownerOf,recipeOf,capture.currents,entries,capture.memberCaptures,capture.observations);
+    };
     assert.deepEqual(events,['borrow0','borrow1']);assert.equal(capture.requestChildren.length,2);
     assert.deepEqual(capture.proposals,[[],[]]);capture.currents.push(...descriptions);events.push('Preview');
-    if(failing){let caught=false;try{await capture.finish(entries);}catch(error){caught=true;assert.strictEqual(error,undefined);}
+    if(failing){let caught=false;try{await finish();}catch(error){caught=true;assert.strictEqual(error,undefined);}
       assert(caught);assert.deepEqual(events,['borrow0','borrow1','Preview','recovery0','complete0','recovery1']);}
-    else assert.deepEqual(await capture.finish(entries),[
+    else assert.deepEqual(await finish(),[
       {memberIndex:0,kind:'original',wire:'wire0',observationCid:'cid0'},
       {memberIndex:1,kind:'original',wire:'wire1',observationCid:'cid1'}]);
     assert(capture.requestChildren.every(value=>value.prepared.status().pending));
-    retired=true;for(const child of capture.requestChildren)await child.prepared.release();
+    markCaptureFinished();retired=true;for(const child of capture.requestChildren)await child.prepared.release();
     assert(capture.requestChildren.every(value=>value.prepared.status().pending===false));
+    retireInstalledEffectDependencyOriginal(managedEffect.controlConstruction);
   }
 });

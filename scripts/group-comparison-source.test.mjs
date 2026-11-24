@@ -27,7 +27,7 @@ test('normal public corpus and focused consumer retain operator identity cases',
   assert.ok(refusals.every(value => groupOrdinalRefusals.includes(value)));
   assert.ok(cases.every(value => value.sourceReadSessionCount === 1));
   assert.ok(refusals.every(value => value.expectedCode === 'ClientProgramInvalidInput'));
-  assert.ok(readFileSync('scripts/test-packed-public-query.mjs', 'utf8')
+  assert.ok(readFileSync('scripts/test-packed-public-query.mts', 'utf8')
     .includes("['scripts/fixtures/group-comparison-source-input.mjs', 'group-comparison-source-input.mjs']"));
   const consumer = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
   assert.ok(consumer.includes('...groupStarSuccesses, ...groupOrdinalSuccesses]'));

@@ -13,7 +13,8 @@ import {createGeneratedContentFixture, generatedContentFixtureControl}
   from './fixtures/generated-content.fixture.mjs';
 import {openContentCommandHost} from './fixtures/content-command-host.fixture.mjs';
 import {installEffectContentFamily} from './installed-content-family.mjs';
-import {issueStoredGeneratedContent, retainGeneratedContentEvidence} from './generated-content-holding.mjs';
+import {closeStoredContentReaders, consumeStoredContentOriginal, issueStoredGeneratedContent,
+  retainGeneratedContentEvidence} from './generated-content-holding.mjs';
 
 const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
@@ -134,17 +135,19 @@ async function fixture(t, {restored = false, omitRestoredOriginal = false, after
 function cleanupAliasSourceProbe(observe) {
   const source = readFileSync(new URL('./installed-content-family.mjs', import.meta.url), 'utf8');
   const first = source.indexOf('export function installEffectContentFamily(');
-  const start = source.indexOf('  const cleanup = async () => {', first);
-  const end = source.indexOf('  return Object.freeze({provider,', start);
+  const start = source.indexOf('const cleanup = async () => {', first);
+  const end = source.indexOf('const cleanupOwner =', start);
   assert.ok(first >= 0 && start > first && end > start);
   const cleanup = source.slice(start, end);
   assert.equal(cleanup.match(/\breturn true;/gu)?.length, 3);
-  assert.ok(cleanup.includes('await flight.catch(() => {})'));
+  assert.match(cleanup, /await flight\.catch\(\(\) => \{\s*\}\)/u);
   const instrumented = source.slice(first, start).replace(/^export /u, '') +
     cleanup.replace(/\breturn true;/gu,
       'return (cleanupAliasObserved(storedOriginal === undefined), true);') + source.slice(end);
-  return new Function('issueStoredGeneratedContent', 'retainGeneratedContentEvidence',
+  return new Function('closeStoredContentReaders', 'consumeStoredContentOriginal',
+    'issueStoredGeneratedContent', 'retainGeneratedContentEvidence',
     'cleanupAliasObserved', `'use strict';\n${instrumented}\nreturn installEffectContentFamily;`)(
+    closeStoredContentReaders, consumeStoredContentOriginal,
     issueStoredGeneratedContent, retainGeneratedContentEvidence, observe);
 }
 

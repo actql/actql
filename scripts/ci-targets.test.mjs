@@ -10,6 +10,7 @@ import {spawnSync} from 'node:child_process';
 import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
+import {parse as parseModule} from 'acorn';
 import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, documentationFiles, gateJobs, pythonWheelAcceptanceRequired, pythonWheelMatrix, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
@@ -87,6 +88,13 @@ test('preflight checks Native counter assignments before the build toolchain', (
 test('early Source admission runs original recipes once and refuses plan publication on failure', t => {
   const steps = jobs['select-targets'].steps, select = steps.find(step => step.id === 'select');
   const recipes = ['check:contract-versions', 'check:client-types'];
+  const preparation = steps.filter(step => step.run?.trim() === 'npm ci');
+  assert.equal(preparation.length, 1, 'One canonical prepare emits typed command entrances');
+  assert.equal(preparation[0].if, undefined);
+  assert.equal(preparation[0]['continue-on-error'], undefined);
+  const tools = steps.filter(step => step.uses?.startsWith('actions/setup-node@'));
+  assert.equal(tools.length, 1);
+  assert(steps.indexOf(tools[0]) < steps.indexOf(preparation[0]));
   for (const recipe of recipes) {
     const selected = Object.entries(jobs).flatMap(([job, value]) => (value.steps ?? [])
       .filter(step => step.run?.trim().split(/\s+/u).join(' ') === `npm run ${recipe}`)
@@ -99,6 +107,8 @@ test('early Source admission runs original recipes once and refuses plan publica
       assert.equal(enabled, recipe !== 'check:client-types' || !docs);
     }
     assert.notEqual(selected[0].step['continue-on-error'], true);
+    assert(steps.indexOf(preparation[0]) < steps.indexOf(selected[0].step),
+      `${recipe}: ignored runtime emit cannot be an unprepared entrance`);
     assert(steps.indexOf(selected[0].step) < steps.indexOf(select));
   }
   const graph = steps.find(step => step.id === 'moon-candidate');
@@ -115,6 +125,9 @@ test('early Source admission runs original recipes once and refuses plan publica
     if(command==='npm') {
       const recipe=args[0]==='run'?args[1]:args[0];
       if(recipe===process.env.FAIL_RECIPE)process.exit(71);
+      // This is a recording port for the successful canonical prepare, not an emit proof.
+      if(args[0]==='ci')fs.writeFileSync(process.env.PREPARED,'canonical prepare returned');
+      if(args[0]==='run'&&!fs.existsSync(process.env.PREPARED))process.exit(72);
     } else if(args.length===1 && args[0]==='scripts/ci-targets.mjs') {
       fs.appendFileSync(process.env.GITHUB_OUTPUT,'plan=recording-port\\n');
     }\n`;
@@ -124,15 +137,16 @@ test('early Source admission runs original recipes once and refuses plan publica
     writeFileSync(output, '');
     const child = spawnSync('/bin/bash', ['-eo', 'pipefail', '-c', prefix.map(step => step.run).join('\n')], {
       cwd: directory, encoding: 'utf8', timeout: 5000,
-      env: {...process.env, PATH: bin + ':/usr/bin:/bin', CALLS: calls, FAIL_RECIPE: failure, GITHUB_OUTPUT: output},
+      env: {...process.env, PATH: bin + ':/usr/bin:/bin', CALLS: calls, FAIL_RECIPE: failure,
+        PREPARED: join(directory, `prepared-${failure || 'success'}`), GITHUB_OUTPUT: output},
     });
     assert.equal(child.error, undefined);assert.equal(child.signal, null);
     assert.equal(child.status, failure ? 71 : 0, child.stderr);
     const observed = readFileSync(calls, 'utf8').trim().split('\n').map(line => JSON.parse(line));
     const npmCalls = observed.filter(row => row.command === 'npm');
     for (const recipe of recipes) assert.equal(npmCalls.filter(row => row.args[1] === recipe).length,
-      recipe === recipes[1] && [recipes[0], 'ci'].includes(failure) ? 0 : 1);
-    assert.equal(npmCalls.filter(row => row.args[0] === 'ci').length, failure === recipes[0] ? 0 : 1);
+      failure === 'ci' || recipe === recipes[1] && failure === recipes[0] ? 0 : 1);
+    assert.equal(npmCalls.filter(row => row.args[0] === 'ci').length, 1);
     assert.equal(readFileSync(output, 'utf8').includes('plan='), failure === '');
     // A refused Source cannot start even the optional Moon discovery entrance.
     assert.equal(observed.some(row => row.args.includes('moon-graph-candidate')), failure === '');
@@ -604,7 +618,7 @@ test('Host independent failures are collected while failed prerequisites and can
     assert.equal(admitted('success', true), false, 'workflow cancellation remains authoritative');
     assert(steps.findIndex(item => item.id === preparation) < steps.indexOf(row), row.name);
   }
-  assert.equal(jobs.host['timeout-minutes'], 30);
+  assert.equal(jobs.host['timeout-minutes'], 60);
   assert.equal(jobs.host.strategy, undefined, 'collect serially without new shared-state concurrency');
   assert.equal(jobs.host['continue-on-error'], undefined);
 });
@@ -819,7 +833,7 @@ test('whole-family scheduling retains the core matrix and complete selected proo
   assert.match(capacity, /node proofs\/relation-pipeline\/run\.mjs all/u);
   const check = jobs.check;
   assert(check.needs.includes('select-targets'));
-  assert.equal(check.steps.find(step => step.run).env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
+  assert.equal(check.steps.find(step => step.run?.includes('node scripts/ci-targets.mjs gate')).env.CI_PLAN_PATH, '${{ runner.temp }}/actql-ci-plan.json');
   assert.match(check.if, /always\(\)/u);
 });
 const head = 'b'.repeat(40);
@@ -1160,10 +1174,14 @@ test('actual evaluation Source Git changes reject additions deletions renames an
 });
 
 test('Native command parsing remains a full execution input when its implementation changes alone', () => {
-  const path = 'scripts/verification-actions.mjs';
+  const path = 'scripts/verification-actions.mts';
   for (const caller of ['native-core-test-selection.mjs', 'native-core-scoped-profile.mjs']) {
     const source = readFileSync(new URL(caller, import.meta.url), 'utf8');
-    assert(source.includes("import {parseCommands} from './verification-actions.mjs'"), caller);
+    const module = parseModule(source, {ecmaVersion: 'latest', sourceType: 'module'});
+    assert(module.body.some(statement => statement.type === 'ImportDeclaration'
+      && statement.source.value === './verification-actions.mjs'
+      && statement.specifiers.some(binding => binding.type === 'ImportSpecifier'
+        && binding.imported.name === 'parseCommands' && binding.local.name === 'parseCommands')), caller);
   }
   const selection = maintenanceSelection([path]);
   assert.equal(selection.profile, 'full');
@@ -1174,7 +1192,7 @@ test('Native command parsing remains a full execution input when its implementat
   for (const job of ['core', 'native', 'native-macos', 'host', 'client', 'pipeline-evidence', 'pipeline-validation'])
     assert.equal(gateJobRequired(selection, job), true, job);
   assert.throws(() => verifyGate(plan(selection), {...results(selection), core: {result: 'skipped'}}, context));
-  assert.equal(maintenanceSelection(['scripts/verification-actions.test.mjs']).profile, 'maintenance');
+  assert.equal(maintenanceSelection(['scripts/verification-actions.test.mts']).profile, 'maintenance');
 });
 
 test('maintenance inventory is nonempty unique and every existing reviewed modification qualifies', () => {
@@ -1194,7 +1212,7 @@ test('maintenance inventory is nonempty unique and every existing reviewed modif
     'scripts/local-checks.mjs', 'proofs/relation-pipeline/ci-artifacts.mjs',
     'scripts/ci-review.config.json', 'scripts/new-reporter.mjs',
     'scripts/ci-artifact-reader.mjs', 'scripts/ci-artifact-reader.test.mjs',
-    'scripts/verification-actions.mjs']) {
+    'scripts/verification-actions.mjs', 'scripts/verification-actions.mts']) {
     assert.equal(maintenanceSelection([path]).profile, 'full', path);
     assert.equal(maintenanceSelection([maintenanceFiles[0], path]).profile, 'full', path);
   }
@@ -1496,7 +1514,20 @@ test('actual final gate command fails closed for missing or corrupted plans', t 
   const eventPath = join(dir, 'event.json');
   writeFileSync(eventPath, JSON.stringify({action: 'synchronize', pull_request: {draft: false}}));
   const selection = maintenanceSelection(['docs/development.md']);
-  const script = jobs.check.steps.find(step => step.run).run;
+  const finalGate = jobs.check.steps.find(step => step.run?.includes('node scripts/ci-targets.mjs gate'));
+  const prepare = jobs.check.steps.find(step => step.run === 'npm ci');
+  const tools = jobs.check.steps.filter(step => step.uses?.startsWith('actions/setup-node@'));
+  assert(finalGate && prepare);
+  assert.equal(tools.length, 1, 'The same pinned Node prepares and runs the final gate');
+  assert.equal(tools[0].with['node-version'], jobs['select-targets'].steps
+    .find(step => step.uses?.startsWith('actions/setup-node@')).with['node-version']);
+  assert.equal(tools[0].if, undefined);
+  assert.equal(prepare.if, undefined, 'Failed selection still reaches the required gate');
+  assert.equal(prepare['continue-on-error'], undefined);
+  assert.equal(finalGate.if, undefined, 'Failed preparation cannot execute a stale gate');
+  assert(jobs.check.steps.indexOf(tools[0]) < jobs.check.steps.indexOf(prepare));
+  assert(jobs.check.steps.indexOf(prepare) < jobs.check.steps.indexOf(finalGate));
+  const script = finalGate.run;
   const run = (value, needs = results(selection)) => spawnSync('bash', ['-eo', 'pipefail', '-c', script
     .replaceAll('${{ needs.select-targets.outputs.plan }}', value)
     .replaceAll('${{ toJSON(needs) }}', JSON.stringify(needs))], {cwd: new URL('../', import.meta.url),
@@ -2287,7 +2318,7 @@ test('Python original observation fixture selects its same-source wheel consumer
 
 test('Draft normal Python and CI changes automatically select real wheel acceptance without Ready', () => {
   for (const path of ['.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
-    'scripts/ci-targets.mjs', 'scripts/ci-preflight.mjs', 'scripts/ci-focused-tests.mjs',
+    'scripts/ci-targets.mjs', 'scripts/ci-preflight.mts', 'scripts/ci-focused-tests.mts',
     'scripts/ci-python-wheels.py', 'scripts/test_ci_python_wheels.py',
     'scripts/ci-supported-python.py', 'scripts/test_ci_supported_python.py',
     'scripts/fixtures/ci-python-installed-audit.py', 'scripts/fixtures/ci-python-installed-health.py',
@@ -2360,7 +2391,7 @@ test('unclassified adapter and package safety inputs retain deep campaigns', () 
   const nest = JSON.parse(readFileSync(new URL('../proofs/bounded-session/nest-obligations.json', import.meta.url), 'utf8'));
   assert(nest.retainedSuites.includes(duckdbWitness), 'Use the actual retained Nest proof input');
   for (const path of [
-    'adapters/host-node/infer-original-installation.mjs',
+    'adapters/host-node/infer-original-installation.mts',
     'packages/python-sdk/src/actql_sdk/_local_core.py',
     'adapters/workers/wrangler.toml',
     'packages/sdk/tsconfig.json',
@@ -2380,7 +2411,7 @@ test('unclassified adapter and package safety inputs retain deep campaigns', () 
 
 test('unclassified safety changes require proof success while reviewed shallow changes require skips', () => {
   for (const event of ['pull_request', 'push']) for (const [path, deep] of [
-    ['adapters/host-node/infer-original-installation.mjs', true],
+    ['adapters/host-node/infer-original-installation.mts', true],
     ['README.md', false],
   ]) {
     const selection = selectTargets([path], {event});
@@ -2551,6 +2582,7 @@ test('mandatory packed query CI selects its finite full-corpus envelope inside t
 
 test('a Ready PR that changes no Core target input directory uses JS core and main keeps every target', () => {
   for (const paths of [['scripts/check-canonical-json.mjs'], ['scripts/ci-core-partitions.mjs', 'scripts/fixtures/read.json'],
+    ['adapters/host-node/completion-custody.test.mts'],
     ['scripts/interface-owners/host-functional/interface-boundaries.json', 'adapters/host-node/session.mjs'],
     ['packages/sdk/index.mjs', 'docs/guides/sdk.md'], ['docs/spec/language.md'], ['new-tool/config.json']]) {
     const ready = validateSelection(selectTargets(paths, {draft: false}));

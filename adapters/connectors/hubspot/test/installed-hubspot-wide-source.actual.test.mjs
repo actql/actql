@@ -36,7 +36,8 @@ test('wide Source initialization preserves its complete declared schema without 
 
 test('wide Source reads the complete declared schema through its original funded RowRun', async t => {
   try {
-  const f = await installedHubSpotFixture(t, options()), source = await f.load(), preparation = await f.prepare(source);
+  const f = await installedHubSpotFixture(t, options()), source = await f.load();
+  const preparation = await f.prepare(source, 'SELECT * FROM hubspot.companies WHERE TRUE');
   // Independent fixture inventory, not counts obtained from provider output.
   const nodeCount = value => value === null || typeof value !== 'object' ? 1
     : 1 + Object.values(value).reduce((total, child) => total + nodeCount(child), 0);

@@ -16,7 +16,7 @@ test('BY NAME ON expectations distinguish names, order, NULL and duplicates', ()
 });
 
 test('BY NAME ON is copied and selected in narrow and normal public acceptance', () => {
-  const driver=readFileSync(new URL('./test-packed-public-query.mjs',import.meta.url),'utf8');
+  const driver=readFileSync(new URL('./test-packed-public-query.mts',import.meta.url),'utf8');
   const corpus=readFileSync(new URL('./fixtures/packed-public-query.mjs',import.meta.url),'utf8');
   assert.ok(driver.includes("['scripts/fixtures/set-by-name-list-source-input.mjs', 'set-by-name-list-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_SET_BY_NAME_LIST_ONLY = '1'"));

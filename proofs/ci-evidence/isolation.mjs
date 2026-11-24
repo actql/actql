@@ -4,11 +4,12 @@
 import assert from 'node:assert/strict';
 import {constants, openSync, closeSync, readSync, fstatSync, lstatSync, mkdirSync,
   writeFileSync, chmodSync, utimesSync, opendirSync, readlinkSync, symlinkSync, realpathSync} from 'node:fs';
-import {join, dirname, resolve, relative, isAbsolute} from 'node:path';
+import {join, dirname, relative, isAbsolute} from 'node:path';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {hash, mutationSnapshotExtras, mutationSourceInputs, pipelineInventoryBoundary} from './inputs.mjs';
-import {snapshotDirectories as pipelineDirectories, snapshotFiles as pipelineFiles} from '../relation-pipeline/inventory.mjs';
+import {hash, mutationSnapshotPaths, mutationSourceInputs, pipelineInventoryBoundary} from './inputs.mjs';
+import {snapshotDirectories as pipelineDirectories, snapshotFilePaths, runtimeEmit,
+  scratchOriginal, scratchRuntime, resourceOriginal, resourceRuntime} from '../relation-pipeline/inventory.mjs';
 export {mutationSnapshotExtras} from './inputs.mjs';
 
 export const isolatedEnvironment = Object.freeze({HOME: '/tmp/home', TMPDIR: '/tmp',
@@ -45,9 +46,10 @@ const safe = path => typeof path === 'string' && /^[A-Za-z0-9_.\/-]+$/u.test(pat
 const stable = (a, b) => ['dev', 'ino', 'mode', 'size', 'mtimeNs', 'ctimeNs'].every(key => a[key] === b[key]);
 
 export function mutationSourcePaths(tree) {
+  assert(!(tree.entries.has(resourceOriginal) && tree.entries.has(resourceRuntime)), 'Ambiguous authored Node Resource bridge');
   const paths = [...new Set(mutationSourceInputs(tree).paths.concat(
     [...tree.entries.keys()].filter(path => path.startsWith('proofs/bounded-session/')),
-    mutationSnapshotExtras, isolatedSourceFiles))].sort();
+    mutationSnapshotPaths(tree), isolatedSourceFiles))].sort();
   assert(paths.includes('proofs/bounded-session/mutations.mjs'), 'Missing original mutation executor');
   for (const path of paths) {
     const entry = tree.entries.get(path);
@@ -57,7 +59,7 @@ export function mutationSourcePaths(tree) {
 }
 
 export function stageMutationSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
-  return stageSource({tree, destination, maxBytes, paths: mutationSourcePaths(tree)});
+  return stageSource({tree, destination, maxBytes, paths: mutationSourcePaths(tree), emitted: proofRuntimeEmits(tree, 'session')});
 }
 
 // This first pipeline profile retains its entire current snapshot. It does not
@@ -65,10 +67,12 @@ export function stageMutationSource({tree, destination, maxBytes = 128 * 1024 * 
 export function pipelinePristineSourcePaths(tree) { return pipelineSourcePaths(tree, 'pipeline-pristine'); }
 export function pipelineFixedJsSourcePaths(tree) { return pipelineSourcePaths(tree, 'pipeline-fixed-js'); }
 function pipelineSourcePaths(tree, profile) {
+  assert(!(tree.entries.has(resourceOriginal) && tree.entries.has(resourceRuntime)), 'Ambiguous authored Node Resource bridge');
   const generated = 'src/query_integration/relation_pipeline_batch_wbtest.mbt';
+  assert(!(tree.entries.has(scratchOriginal) && tree.entries.has(scratchRuntime)), 'Ambiguous authored pipeline scratch input');
   const paths = [...new Set([...tree.entries.keys()].filter(path =>
     pipelineDirectories.some(directory => path.startsWith(`${directory}/`)) && path !== generated)
-    .concat(pipelineFiles, isolatedSourceFiles, isolatedChild(profile)))].sort();
+    .concat(snapshotFilePaths(path => tree.entries.has(path)), isolatedSourceFiles, isolatedChild(profile)))].sort();
   assert(paths.includes('proofs/relation-pipeline/pristine-replay.mjs'), 'Missing registered pristine executor');
   for (const directory of pipelineDirectories)
     assert(paths.some(path => path.startsWith(`${directory}/`)), 'Missing pipeline snapshot root');
@@ -80,19 +84,35 @@ function pipelineSourcePaths(tree, profile) {
 }
 
 export function stagePipelinePristineSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
-  return stageSource({tree, destination, maxBytes, paths: pipelinePristineSourcePaths(tree)});
+  const paths = pipelinePristineSourcePaths(tree);
+  return stageSource({tree, destination, maxBytes, paths, emitted: proofRuntimeEmits(tree, 'pipeline-pristine')});
 }
 export function stagePipelineFixedJsSource({tree, destination, maxBytes = 128 * 1024 * 1024}) {
-  return stageSource({tree, destination, maxBytes, paths: pipelineFixedJsSourcePaths(tree)});
+  const paths = pipelineFixedJsSourcePaths(tree);
+  return stageSource({tree, destination, maxBytes, paths, emitted: proofRuntimeEmits(tree, 'pipeline-fixed-js')});
 }
 
-function stageSource({tree, destination, maxBytes, paths}) {
+// The runtime members are derived from exact authored Git inputs before
+// constructing either image. No build output is read from the checkout.
+export function proofRuntimeEmits(tree, profile) {
+  const entries = [];
+  if (profile !== 'session' && tree.entries.has(scratchOriginal))
+    entries.push(runtimeEmit(tree, scratchOriginal, scratchRuntime));
+  if (tree.entries.has(resourceOriginal))
+    entries.push(runtimeEmit(tree, resourceOriginal, resourceRuntime));
+  return entries;
+}
+
+function stageSource({tree, destination, maxBytes, paths, emitted = []}) {
   assert(Number.isSafeInteger(maxBytes) && maxBytes > 0, 'Invalid source byte bound');
   const files = [];
   tree.prefetch?.(paths);
   let bytes = 0;
-  for (const path of paths) {
-    const data = tree.read(path), mode = Number.parseInt(tree.entries.get(path).mode.slice(-3), 8);
+  const derivedByPath = new Map(emitted.map(entry => [entry.path, entry]));
+  for (const path of [...paths, ...derivedByPath.keys()].sort()) {
+    const derived = derivedByPath.get(path);
+    const data = derived ? derived.bytes : tree.read(path);
+    const mode = derived ? derived.mode : Number.parseInt(tree.entries.get(path).mode.slice(-3), 8);
     bytes += data.length; assert(bytes <= maxBytes, 'Isolated source exceeds bounded size');
     const target = join(destination, 'source', path);
     mkdirSync(dirname(target), {recursive: true}); writeFileSync(target, data, {flag: 'wx', mode});

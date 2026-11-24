@@ -1,12 +1,23 @@
 // Physical opening clamps only, not a normal original Run envelope, StoreACK,
 // restored Ledger or Model permission. Expectations are independent constants.
 import assert from 'node:assert/strict';
-import {lstat, mkdir, mkdtemp, opendir, readFile, rm, writeFile} from 'node:fs/promises';
+import {lstat, mkdir, mkdtemp, opendir, readdir, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
+
+// Fixed current format, with an optional stable lease only on supported native runtimes.
+const rootEntries = Object.freeze([
+  'attempts', 'clocks', 'contracts', 'deletions', 'deliveries',
+  'delivery-attempts-index.json', 'delivery-attempts.sqlite3', 'effect-capture-custody',
+  'indexes', 'manifest-reads', 'metadata-deletions', 'metadata-inventories', 'objects',
+  'physical-holding-deletions', 'physical-holdings', 'prepared-custody', 'prepared-schemas',
+  'retention-extensions', 'staging', 'store.json',
+]);
+const nativeLease = 'owner-lease';
+const migrationFiles = ['delivery-attempts-index.json', 'delivery-attempts.sqlite3'];
 
 async function fixture(t) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-store-bootstrap-'));
@@ -17,20 +28,27 @@ async function fixture(t) {
   const control = createPublicationContractControlFixture();
   const store = await openLocalPublicationStore(configuration, control);
   await store.close();
-  return {directory, configuration, control,
+  const actualNames = await readdir(directory);
+  const expectedNames = actualNames.includes(nativeLease) ? [...rootEntries, nativeLease] : [...rootEntries];
+  assert.deepEqual(actualNames.sort(), expectedNames.sort());
+  const independentContract = JSON.stringify({version: 'actql-local-publication-store/0.1',
+    isolation: 'execution-namespace', store_authority_cid: configuration.storeAuthorityCid});
+  assert.equal(await readFile(join(directory, 'store.json'), 'utf8'), independentContract);
+  const bounds = {maxDirectoryEntries: expectedNames.length,
+    maxWireBytes: expectedNames.reduce((total, name) => total + Buffer.byteLength(name), 0) +
+      2 * Buffer.byteLength(independentContract)};
+  return {directory, configuration, control, bounds,
     open: limits => openLocalPublicationStore(configuration, control, undefined, limits)};
 }
 
 test('Store bootstrap exact raw footprint and one-short are independent of maxObjects', async t => {
   const f = await fixture(t);
-  // Independently declared layout: seventeen subdirectories + store.json,
-  // 242 ASCII name bytes and two 177-byte contract reads = 596 raw bytes.
-  const store = await f.open({maxDirectoryEntries: 18, maxWireBytes: 596});
+  const store = await f.open(f.bounds);
   assert.equal(store.status().objectCount, 0);
   await store.close();
-  await assert.rejects(f.open({maxDirectoryEntries: 17, maxWireBytes: 596}),
+  await assert.rejects(f.open({...f.bounds, maxDirectoryEntries: f.bounds.maxDirectoryEntries - 1}),
     {code: 'PublicationStoreBootstrapEntriesLimit'});
-  await assert.rejects(f.open({maxDirectoryEntries: 18, maxWireBytes: 595}),
+  await assert.rejects(f.open({...f.bounds, maxWireBytes: f.bounds.maxWireBytes - 1}),
     error => error.code === 'InvalidPublicationStoreObject' ||
       error.code === 'UnknownPublicationStoreFormat');
   await assert.rejects(lstat(join(f.directory, 'owner')), {code: 'ENOENT'});
@@ -41,31 +59,46 @@ test('Store bootstrap exact raw footprint and one-short are independent of maxOb
 
 test('Store bootstrap nested scans share the cumulative ceiling instead of one limit per directory', async t => {
   const f = await fixture(t);
-  const key = 'b'.repeat(64), result = 'c'.repeat(64);
-  const path = join(f.directory, 'retention-extensions', key, result);
-  await mkdir(path, {recursive: true});
-  await writeFile(join(path, '0.json'), '');
-  // Same eighteen root entries, then one entry at each of three nested scans.
-  const store = await f.open({maxDirectoryEntries: 21, maxWireBytes: 730});
-  await store.close();
-  await assert.rejects(f.open({maxDirectoryEntries: 20, maxWireBytes: 730}),
+  const staging = join(f.directory, 'staging', 'object-00000000-0000-0000-0000-000000000001');
+  const clock = join(f.directory, 'clocks', '.staging-independent');
+  await writeFile(staging, '');
+  await writeFile(clock, '');
+  const bounds = {maxDirectoryEntries: f.bounds.maxDirectoryEntries + 2,
+    maxWireBytes: f.bounds.maxWireBytes + 128};
+  await assert.rejects(f.open({...bounds, maxDirectoryEntries: bounds.maxDirectoryEntries - 1}),
     {code: 'PublicationStoreBootstrapEntriesLimit'});
+  // The first nested scan consumed one entry. The next cannot acquire its own
+  // independent ceiling, and must refuse before removing the clock staging file.
+  await assert.rejects(lstat(staging), {code: 'ENOENT'});
+  assert.equal((await lstat(clock)).isFile(), true);
   await assert.rejects(lstat(join(f.directory, 'owner')), {code: 'ENOENT'});
-  assert.equal((await lstat(join(path, '0.json'))).isFile(), true);
+  await writeFile(staging, '');
+  const store = await f.open(bounds);
+  await store.close();
+  await assert.rejects(lstat(staging), {code: 'ENOENT'});
+  await assert.rejects(lstat(clock), {code: 'ENOENT'});
 });
 
 test('Store bootstrap recursive temporary cleanup counts descendants without hidden native scans', async t => {
-  const f = await fixture(t);
-  const path = join(f.directory, 'deliveries', '.staging-test', 'child');
-  await mkdir(path, {recursive: true});
-  await writeFile(join(path, 'record'), '');
-  // Eighteen root entries + temporary directory + child directory + record.
-  await assert.rejects(f.open({maxDirectoryEntries: 20, maxWireBytes: 800}),
+  async function legacyFixture() {
+    const f = await fixture(t);
+    // Project the empty legacy layout in this disposable fixture. The
+    // actual initial adoption owns recursive staging cleanup.
+    for (const name of migrationFiles) await rm(join(f.directory, name));
+    const path = join(f.directory, 'deliveries', '.staging-test', 'child');
+    await mkdir(path, {recursive: true});
+    await writeFile(join(path, 'record'), '');
+    return {f, path, bounds: {...f.bounds, maxWireBytes: f.bounds.maxWireBytes + 128,
+      maxDirectoryEntries: f.bounds.maxDirectoryEntries - migrationFiles.length + 2}};
+  }
+  const short = await legacyFixture();
+  await assert.rejects(short.f.open({...short.bounds, maxDirectoryEntries: short.bounds.maxDirectoryEntries - 1}),
     {code: 'PublicationStoreBootstrapEntriesLimit'});
-  assert.equal((await lstat(join(path, 'record'))).isFile(), true);
-  const store = await f.open({maxDirectoryEntries: 21, maxWireBytes: 800});
+  assert.equal((await lstat(join(short.path, 'record'))).isFile(), true);
+  const exact = await legacyFixture();
+  const store = await exact.f.open(exact.bounds);
   await store.close();
-  await assert.rejects(lstat(join(f.directory, 'deliveries', '.staging-test')), {code: 'ENOENT'});
+  await assert.rejects(lstat(join(exact.f.directory, 'deliveries', '.staging-test')), {code: 'ENOENT'});
 });
 
 test('Store bootstrap validates the closed bounds before any filesystem acquisition', async t => {
@@ -101,7 +134,7 @@ test('Store bootstrap false Dir close is pending rather than confirmed physical 
     if (rejectClose) return Promise.resolve(false);
     return Reflect.apply(close, this, args);
   };
-  await assert.rejects(f.open({maxDirectoryEntries: 18, maxWireBytes: 596}), error => {
+  await assert.rejects(f.open(f.bounds), error => {
     failure = error;
     return error.code === 'PublicationStoreBootstrapCleanupPending';
   });
@@ -114,7 +147,7 @@ test('Store bootstrap false Dir close is pending rather than confirmed physical 
 
 test('Store bootstrap post-owner failed Dir close retains the same Dir and original ownership', async t => {
   const f = await fixture(t);
-  const path = join(f.directory, 'physical-holdings');
+  const path = join(f.directory, 'physical-holding-deletions');
   const probe = await opendir(path);
   const prototype = Object.getPrototypeOf(probe), close = prototype.close, read = prototype.read;
   await probe.close();
@@ -138,7 +171,7 @@ test('Store bootstrap post-owner failed Dir close retains the same Dir and origi
     if (rejectClose) return Promise.reject(blocked);
     return Reflect.apply(close, this, args);
   };
-  await assert.rejects(f.open({maxDirectoryEntries: 18, maxWireBytes: 596}), error => {
+  await assert.rejects(f.open(f.bounds), error => {
     failure = error;
     return error.cause === blocked;
   });
