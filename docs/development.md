@@ -1369,9 +1369,11 @@ The original two-part local interface remains supported.
 The migration toward Linux for exhaustive common Native coverage starts with
 eight additional required Linux partitions in the same Core matrix. The pinned
 compiler's complete source, whitebox and blackbox import graph identifies Native
-command/platform packages and explicit C stubs, including all their importers.
-A package that only overrides the linker owns no platform code and is
-classified by its imports. Every remaining compiler-owned common case is assigned once,
+platform owners, including all their importers. A platform owner is a package
+with an explicit C stub, a command/platform package that declares a C
+function itself, or a package with a case that needs a physical fixture. A package that only overrides the linker, or a command/platform
+package that declares no C function, owns no platform code and is classified by
+its imports. Every remaining compiler-owned common case is assigned once,
 keeping whole package drivers and the existing release/strip, strict warnings,
 test-only generated-C optimization and serial test execution. Nested packages
 use original compiler-selected file inputs rather than admitting an unrelated

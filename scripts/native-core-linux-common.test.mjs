@@ -227,24 +227,46 @@ test('reviewed Native entry uses the existing finite supervisor and preserves ca
 });
 
 test('Native platform classes separate original FFI owners from every source and test importer', () => {
-  const names = ['scalar', 'canonical', 'platform_native/sqlite', 'native_fixture', 'caller', 'transitive', 'cmd/native_client', 'linker', 'linking_caller'];
+  const names = ['scalar', 'canonical', 'platform_native/sqlite', 'native_fixture', 'caller', 'transitive', 'cmd/native_client', 'linker', 'linking_caller',
+    'platform_native/composition', 'cmd/portable_tool', 'platform_native/direct_call',
+    'platform_native/fixture_cases'];
   const packages = names.map(name => ({name: 'actql/actql/' + name, path: 'src/' + name}));
   const edge = (from, to, kinds) => ({from: packages[from].name, to: packages[to].name, kinds});
   const graph = {packages, digest: 'd'.repeat(64), edges: [
     edge(1, 0, ['source']), edge(4, 3, ['whitebox-test']),
     edge(5, 4, ['blackbox-test']), edge(3, 2, ['source']), edge(8, 2, ['source']),
+    edge(9, 2, ['source']), edge(10, 0, ['source']),
   ]};
   const original = JSON.stringify(graph);
-  const selected = partitionNativeCorePlatformPackages(graph, path => path.endsWith('/native_fixture')
+  const manifest = path => /\/(?:native_fixture|sqlite)$/u.test(path)
     ? 'options("native-stub": ["actual.c"])' : /\/link(?:er|ing_caller)$/u.test(path)
-      ? 'options(link: {"native": {"cc": "./original-driver"}})' : 'supported_targets = "+js+wasm+native"');
-  // A linker override alone owns no platform code; its imports classify it.
-  assert.deepEqual(selected.common, ['src/scalar', 'src/canonical', 'src/linker']);
-  assert.deepEqual(selected.importers, ['src/caller', 'src/transitive', 'src/linking_caller']);
+      ? 'options(link: {"native": {"cc": "./original-driver"}})' : 'supported_targets = "+js+wasm+native"';
+  const read = [];
+  const sources = path => {
+    read.push(path);
+    return path.endsWith('/native_client') ? ['fn portable() -> Unit {}', 'pub extern "C" fn call() -> Int = "call"']
+      : path.endsWith('/direct_call') ? ['extern  "c" fn now() -> Int = "time"']
+        : ['extern "js" fn browser() -> Unit = "() => {}"', 'fn portable() -> Unit {}'];
+  };
+  const physical = ['src/platform_native/fixture_cases'];
+  const selected = partitionNativeCorePlatformPackages(graph, manifest, sources, physical);
+  // Neither a linker override nor a command/platform path alone owns platform
+  // code; the package's imports classify it.
+  assert.deepEqual(selected.common, ['src/scalar', 'src/canonical', 'src/linker', 'src/cmd/portable_tool']);
+  assert.deepEqual(selected.importers, ['src/caller', 'src/transitive', 'src/linking_caller',
+    'src/platform_native/composition']);
   assert.deepEqual(selected.darwin, ['src/platform_native/sqlite', 'src/native_fixture',
-    'src/cmd/native_client']);
+    'src/cmd/native_client', 'src/platform_native/direct_call',
+    // A case that needs a physical fixture keeps its package on Darwin.
+    'src/platform_native/fixture_cases']);
+  // Only command/platform packages without a C stub have their sources read.
+  assert.deepEqual(read, ['src/cmd/native_client', 'src/platform_native/composition',
+    'src/cmd/portable_tool', 'src/platform_native/direct_call']);
   assert.equal(selected.graphSha256, graph.digest);
   assert.equal(JSON.stringify(graph), original);
+  assert.throws(() => partitionNativeCorePlatformPackages(graph, manifest,
+    path => path.endsWith('/composition') ? ['extern "zig" fn other() -> Unit = "other"'] : sources(path), physical),
+  /Unknown foreign function ABI/u);
 });
 
 test('the platform classifier preserves the original manifest failure and the entry owns all selection', () => {
