@@ -27,7 +27,7 @@ test('BETWEEN expectations preserve false AND unknown, NULL typing, bounds and d
 
 test('BETWEEN joins the normal packed corpus and a bounded selection with the same fixtures', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'betweenSuccesses'], ['refusals', 'betweenRefusals'],
     ['executionFailures', 'betweenExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

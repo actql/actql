@@ -26,7 +26,7 @@ test('RIGHT JOIN oracles retain preserved-side rows types and multiplicity', () 
 
 test('RIGHT JOIN remains in normal and focused packed acceptance', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...rightJoinSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...rightJoinRefusals)'));
   assert.match(fixture, /const scopeOnly = [^;]*rightJoinOnly/u);

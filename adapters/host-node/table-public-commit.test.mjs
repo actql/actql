@@ -1249,6 +1249,27 @@ test('Table installed HTTP Host retires capture custody before completing close'
   assert.equal(commits(f.catalog).length, 0, 'Closing an installed writer sends no operation');
 });
 
+async function reviewTableOperation(client, checkpoint) {
+  assert.equal(checkpoint.kind, 'effect_set');
+  const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
+  const projection = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
+  assert.equal(projection.version, 'actql-review-projection/0.1');
+  assert.equal(projection.effect_preview_cid, checkpoint.requiredArtifact.cid);
+  assert.equal(projection.review_projection_cid, review.artifactCid);
+  assert.deepEqual(projection.approval_claims, ['effect_scope_approved']);
+  assert.equal(projection.displayed_scope.effects.length, 1);
+  const [effect] = projection.displayed_scope.effects;
+  assert.equal(effect.count, 1, 'One operation, not one write per input row');
+  assert.equal(effect.target, targetRef);
+  assert.equal(projection.displayed_rows.length, 1);
+  const [row] = projection.displayed_rows;
+  assert.equal(row.effect_id, effect.effect_id);
+  assert.equal(row.intended_changes.state, 'present');
+  const operation = row.intended_changes.value;
+  assert.equal(row.target_row_identity, operation.request_cid);
+  return operation;
+}
+
 for (const rows of [expectedRows, []]) {
 test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create'} resume approval and survive Host close`, async t => {
   const f = await tablePhysicalFixture(t), declared = declaration();
@@ -1292,14 +1313,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
     const page = await client.checkpoints();
     assert.equal(page.items.length, 1);
     const checkpoint = page.items[0];
-    assert.equal(checkpoint.kind, 'effect_set');
-    const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
-    const preview = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
-    assert.equal(preview.version, 'actql-effect-preview/0.1');
-    assert.equal(preview.effects.length, 1);
-    assert.equal(preview.effects[0].count, 1, 'One operation, not one write per input row');
-    assert.equal(preview.effects[0].approval, 'required');
-    const operation = preview.effects[0].changes[0].intended_changes.value;
+    const operation = await reviewTableOperation(client, checkpoint);
     assert.equal(operation.action, 'create');
     assert.equal(operation.table_name, 'rows');
     assert.deepEqual(operation.namespace, ['test']);
@@ -1379,12 +1393,7 @@ test(`Table public ${rows.length ? 'nonempty create and replace' : 'empty create
         await waiting(run, observations, t);
         assert.equal(commits(f.catalog).length, before, 'No replacement before approval');
         const checkpoint = (await replacing.checkpoints()).items[0];
-        const review = await replacing.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
-        const preview = JSON.parse(Buffer.from(review.bytes).toString('utf8'));
-        assert.equal(preview.effects.length, 1);
-        assert.equal(preview.effects[0].count, 1);
-        assert.equal(preview.effects[0].approval, 'required');
-        operation = preview.effects[0].changes[0].intended_changes.value;
+        operation = await reviewTableOperation(replacing, checkpoint);
         assert.equal(operation.action, 'replace');
         assert.deepEqual(operation.expected_table, expectedTable);
         assert.equal(operation.schema_cid, committed.receipt.schema_cid);

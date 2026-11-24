@@ -8,10 +8,41 @@ With Node.js 22 or newer, Python 3.11 or newer, a C compiler and `make`:
 npm ci
 ```
 
+Converted tooling and SDK modules are authored in TypeScript. Root `npm ci` runs the `prepare`
+script, which performs strict checking and emits executable JavaScript at the
+existing command/import paths. After editing TypeScript, run
+`npm run build:typescript` before executing those commands. If dependency setup
+explicitly uses `--ignore-scripts`, run that build as a separate prerequisite.
+Fresh source-only package producers retain their original input/index checks,
+link their compiler dependencies, and run the same build in the copied root
+before any prepack entry. They do not copy a prior ignored emit or continue
+after a compiler failure.
+Installed public packages contain JavaScript and declarations; consumers do not
+need this repository's compiler or a runtime TypeScript loader.
+
 Node.js is used for documentation and toolchain setup. Product implementation
 is developed in MoonBit; see the [implementation guide](design/implementation-port.md).
 Specification checks also verify generated connector code using the pinned
 MoonBit formatter. Complete the MoonBit setup below before running `check:spec`.
+
+### Tracked JavaScript exceptions for the TypeScript cutover
+
+- The `focused-tests` job installs the pinned MoonBit toolchain before
+  `npm ci`. Its checkout bootstrap runs `scripts/setup-moonbit.mjs` and
+  imports `scripts/moonbit-installation.mjs` using Node built-ins.
+  [CI workflow](../.github/workflows/ci.yml)
+- The compiler binding generator emits the six
+  `compiler-binding.generated.mjs` copies in its target list. The copies let
+  independently installed packages use the same binding without resolving
+  another package's private files. Existing generation checks cover their
+  emitted JavaScript and declarations.
+  [Compiler binding generator](../scripts/generate-js-compiler-bindings.mts)
+- The connector generator defines the exact `strategy.generated.mjs` and
+  `installations.generated.mjs` destinations from the selected assembly.
+  These tables come from connector manifests and serve as runtime assembly
+  inputs. The generation freshness check runs the existing assembly checks.
+  [Connector generator](../scripts/connector-node-bundles.mts)
+  [Generation freshness](../scripts/interface-generation-freshness.mts)
 
 ### Checkpoint journal layout
 
@@ -825,7 +856,9 @@ A failed generation or test step stops the sequence. Missing dependencies,
 stale generated output and zero/skip-only test execution remain failures.
 Prepare the selected tests' ordinary dependencies first; this command does not
 build a runtime, pack a distribution, install dependencies or require a clean
-working tree. It supports editing an unfinished change.
+working tree. For a TypeScript test, run `npm run build:typescript` in the
+prepared checkout, then select its emitted `.test.mjs` file. The command
+supports editing an unfinished change.
 
 This first author entry implements `source` only. `installed` is refused rather
 than redirected to source checks. Standard-loader, authentication, capacity,

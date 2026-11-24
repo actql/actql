@@ -37,7 +37,7 @@ test('normal and focused consumers retain scalar alias source and refusal cases'
   assert.ok(refusals.every(value => groupOrdinalRefusals.includes(value)));
   assert.ok(cases.every(value => value.sourceReadSessionCount === 1));
   assert.ok(refusals.every(value => value.expectedCode === 'ClientProgramInvalidInput'));
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/scalar-alias-group-source-input.mjs', 'scalar-alias-group-source-input.mjs']"));
   const consumer = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
   assert.ok(consumer.includes('...groupStarSuccesses, ...groupOrdinalSuccesses]'));

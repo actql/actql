@@ -1,6 +1,7 @@
 // These are acceptance-harness unit tests with explicit doubles. A green result
 // here does not establish that the Native mock workflow is implemented.
 import assert from 'node:assert/strict';
+import {parse} from 'acorn';
 import {test} from 'node:test';
 import {mkdtemp, readFile, rm, stat, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:http';
@@ -800,9 +801,44 @@ test('the required Node caller cannot silently become a direct Native caller', a
   const options = await fixture(t,'deal-review-mock'); options.launcherTimings='required';
   await assert.rejects(runNativeCliMockScenario(options),/Required Node launcher timing trailer missing/u);
   const installed = await readFile(new URL('./test-native-cli-mock-install.mjs',import.meta.url),'utf8');
-  assert.match(installed, /const runScenarioCommand = \(args, cwd\) => run\(process\.execPath, \[launcher, \.\.\.args\], cwd\);/u);
-  assert.match(installed, /runNativeCliMockScenario\(\{\s*root, template, launcherTimings: 'required', run: runScenarioCommand\}/u);
-  assert.match(installed, /runNativeSharedFileMockScenario\(\{\s*root,\s*launcherTimings: 'required', run: runScenarioCommand\}/u);
+  const declarations = [], invocations = new Map();
+  function collect(node) {
+    if (node === null || typeof node !== 'object') return;
+    if (node.type === 'VariableDeclarator' && node.id.name === 'runScenarioCommand') declarations.push(node.init);
+    if (node.type === 'CallExpression' && ['runNativeCliMockScenario', 'runNativeSharedFileMockScenario',
+      'runNativeNullableMockScenarios', 'runNativeMixedFileMockScenarios'].includes(node.callee.name)) {
+      assert.equal(invocations.has(node.callee.name), false);
+      invocations.set(node.callee.name, node.arguments[0]);
+    }
+    for (const child of Object.values(node)) {
+      if (Array.isArray(child)) child.forEach(collect);
+      else if (child !== null && typeof child === 'object') collect(child);
+    }
+  }
+  collect(parse(installed, {ecmaVersion: 'latest', sourceType: 'module'}));
+  assert.equal(declarations.length, 1);
+  const [launcherBinding] = declarations;
+  assert.equal(launcherBinding.type, 'ArrowFunctionExpression');
+  assert.deepEqual(launcherBinding.params.map(param => param.name), ['args', 'cwd']);
+  const launch = launcherBinding.body;
+  assert.equal(launch.type, 'CallExpression');
+  assert.equal(launch.callee.name, 'run');
+  const [nodeExecutable, launchArguments, directory] = launch.arguments;
+  assert.equal(nodeExecutable.object.name, 'process');
+  assert.equal(nodeExecutable.property.name, 'execPath');
+  assert.equal(launchArguments.elements[0].name, 'launcher');
+  assert.equal(launchArguments.elements[1].type, 'SpreadElement');
+  assert.equal(launchArguments.elements[1].argument.name, 'args');
+  assert.equal(directory.name, 'cwd');
+  assert.equal(invocations.size, 4);
+  for (const [name, options] of invocations) {
+    assert.equal(options.type, 'ObjectExpression');
+    const byName = new Map(options.properties.map(property => [property.key.name, property.value]));
+    assert.equal(byName.get('root').name, 'root', name);
+    assert.equal(byName.get('run').name, 'runScenarioCommand', name);
+    assert.equal(byName.get('launcherTimings').value, 'required', name);
+    if (name === 'runNativeCliMockScenario') assert.equal(byName.get('template').name, 'template');
+  }
 });
 
 for (const [name, envelope] of [

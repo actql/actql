@@ -1,0 +1,278 @@
+// Projections of the existing prepared/Run and installed row owners. These
+// bytes live in their existing request and Checkpoint custody; they never
+// resolve aliases, issue permissions or establish another recovery authority.
+import {checked} from '../host-common/runtime-result.mjs';
+import {collectInstalledRowEffectUpdateObservations,
+  installedRowEffectDescriptors} from
+  './installed-row-effect.mjs';
+import {refusedEffectPreparation} from '../host-common/effect-preparation-result.mjs';
+
+import {installationsShape, updateTargetPreparedOriginalShape, updateTargetRunOriginalShape,
+  runUpdateSelectionCid, originalUpdateTargetSelectionsCid as updateTargetSelectionsCid, retainUpdateTargetSelection,
+  assertUpdateTargetSelectionCurrent, assertUpdateTargetSelectionCurrentData,
+  assertUpdateTargetSelectionMembersCurrent, updateTargetSelectionMatchesRun,
+  updateTargetOriginalDataEqual}
+  from './update-target-original-shape.mjs';
+import type {UpdateTargetRuntime} from './update-target-original-shape.mjs';
+import type {recoverCompletedEffectfulComputation} from '../host-common/completed-run-publication.mjs';
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+
+type Features = readonly [textTime: boolean, veca: boolean, rela: boolean, sga: boolean, tea: boolean,
+  calendar: boolean, textRank: boolean];
+type MaterialsRuntime = UpdateTargetRuntime & Parameters<typeof installedRowEffectDescriptors>[0] & Readonly<{
+  clientProgramEffectTargetInstallationsDataEqual(observed: readonly string[], saved: readonly string[]): boolean;
+  clientProgramEffectCompilationCompiledPlanWire(compilation: unknown): string;
+  clientProgramIssueEffectPreparedOriginal(compilation: unknown): unknown;
+  clientProgramAdmitEffectPreparedOriginal(wire: string, compiledPlanCid: string, ...features: Features): unknown;
+  clientProgramEffectPreparedOriginalPrepared(original: unknown): object;
+  clientProgramEffectPreparedOriginalCompilation(original: unknown): unknown;
+  clientProgramAdmitEffectRunMaterials(wire: string, runDefinitionCid: string,
+    ...args: [...features: Features, request: unknown]): unknown;
+  clientProgramAdmitEffectRunMaterialsWithCompilation?(wire: string, runDefinitionCid: string,
+    compilation: unknown, request: unknown, ...features: Features): unknown;
+  clientProgramEffectRunMaterialsPrepared(materials: unknown): object;
+  clientProgramEffectRunMaterialsCompilation(materials: unknown): unknown;
+  clientProgramEffectRunMaterialsAllowed(materials: unknown): unknown;
+  clientProgramEffectRunMaterialsDefinition(materials: unknown): unknown;
+  clientProgramEffectRunMaterialsTargetSelections(materials: unknown): unknown;
+  clientProgramIssuePreparedEffectRunMaterials(allowed: unknown, definition: unknown, request: unknown): unknown;
+}>;
+type Selections = NonNullable<ReturnType<typeof retainUpdateTargetSelection>>;
+type Installation = Readonly<{cid: string; wire: string}>;
+type PreparedOriginal = Readonly<{
+  preparedWire: string; compiledPlanCid: string; installations: readonly Installation[];
+}>;
+type RunOriginal = Readonly<{materialsWire: string; installations: readonly Installation[]}>;
+type RunDefinition = Readonly<{identity: string; wire: string}>;
+type RunEvidence = NonNullable<Parameters<typeof updateTargetRunOriginalShape>[1]> &
+  Readonly<{updateTargetRunOriginal?: RunOriginal}>;
+type AdmitMaterials = (facts: Readonly<{wire: string; runDefinitionCid: string; compilation: unknown;
+  identity: unknown; prepared: unknown; features: Features}>) => SynchronousRuntimeData;
+type IssueMaterials = (facts: Readonly<{prepared: unknown; compilation?: unknown; allowed?: unknown;
+  definition?: unknown; identity?: unknown}>) => string;
+type ReserveOriginal = (prepared: unknown, wire: string, installations: readonly Installation[]) => SynchronousRuntimeData;
+type ContractLimits = Parameters<typeof recoverCompletedEffectfulComputation>[0]['contractLimits'];
+type InstallationOptions = Readonly<{
+  moon: MaterialsRuntime; control: Readonly<{
+    admit(name: 'compiled_plan', wire: string, limits: ContractLimits): Readonly<{identity: string}>;
+  }>;
+  installedEffect?: object; limits: ContractLimits; features?: Features;
+  issueMaterials?: IssueMaterials; admitMaterials?: AdmitMaterials;
+}>;
+type SavedEffect = Readonly<{
+  effect_kind: string; effect_id: string; target: string; mapping?: string;
+  resolved_mapping_contract_cid?: string; contract?: string; resolved_command_contract_cid?: string;
+}>;
+type EffectDescriptor = Readonly<{effectId: unknown; kind: unknown; target: unknown;
+  commandRef?: unknown; commandCid?: unknown}>;
+type CaptureInputs = Readonly<{prepared: unknown; allowed: unknown; definition: unknown; identity?: unknown}>;
+const fail: () => never = () => { throw refusedEffectPreparation(Object.assign(
+  new Error('InstalledEffectOriginalSelectionChanged'), {code: 'InstalledEffectOriginalSelectionChanged'})); };
+
+export function installUpdateTargetOriginals({moon, control, installedEffect, limits,
+  features = [false, true, true, true, true, false, false], issueMaterials, admitMaterials}: InstallationOptions) {
+  if (issueMaterials !== undefined && typeof issueMaterials !== 'function' ||
+      admitMaterials !== undefined && typeof admitMaterials !== 'function') {
+    throw new TypeError('InvalidEffectOriginalMaterialsInstallation');
+  }
+  const compilations = new WeakMap<object, unknown>();
+  const admitWithCompilation: unknown = Object.getOwnPropertyDescriptor(moon,
+    'clientProgramAdmitEffectRunMaterialsWithCompilation')?.value;
+  const same = (left: unknown, right: unknown) => updateTargetOriginalDataEqual(moon, left, right);
+  const selectionsOf = (prepared: unknown) => retainUpdateTargetSelection(moon, prepared);
+  const current = (selections: Selections | undefined) => {
+    if (selections === undefined) return undefined;
+    const originals = new Map<string, Installation>();
+    const observations = new Map<string, unknown>();
+    const installationData = new Map<string, unknown>();
+    // Every opaque selection keeps its original UPDATE/DELETE/STORE purpose
+    // and Mapping. Share only this call's physical owner DATA projection;
+    // Common below still checks the complete original selection each time.
+    if (!collectInstalledRowEffectUpdateObservations(
+      (installedEffect as Readonly<{effects?: readonly unknown[]}> | undefined)?.effects ?? [installedEffect], selections,
+      originals, observations, installationData)) fail();
+    if (installationData.size === observations.size) {
+      assertUpdateTargetSelectionCurrentData(selections, [...observations.values()], [...installationData.values()]);
+    } else {
+      if (installationData.size !== 0) fail();
+      assertUpdateTargetSelectionCurrent(selections, [...observations.values()]);
+    }
+    // Only the original cid/wire DATA escapes this synchronous observation.
+    // Its temporary typed validation view never enters retained Run materials.
+    return [...originals.values()].sort((a, b) => a.cid.localeCompare(b.cid));
+  };
+  const bind = (selections: Selections | undefined, installations: readonly Installation[]) => {
+    if (selections === undefined || !installationsShape(installations, moon)) fail();
+    installations = Object.freeze(installations.map(value => Object.freeze({...value})));
+    // Full admission above fixes the closed canonical cid/wire DATA. Borrow
+    // its immutable strings; live selection observations still run each time.
+    const installationData = Object.freeze(installations.flatMap(value => [value.cid, value.wire]));
+    const assertUpdateSelectionCurrent = () => {
+      const observed = current(selections)!;
+      let equal = false;
+      try {
+        equal = moon.clientProgramEffectTargetInstallationsDataEqual(
+          observed.flatMap(value => [value.cid, value.wire]), installationData);
+      } catch { /* A missing or failed physical bridge cannot establish equality. */ }
+      if (equal !== true) fail();
+    };
+    assertUpdateSelectionCurrent();
+    return Object.freeze({updateTargetSelections: selections,
+      assertUpdateSelectionCurrent});
+  };
+  const projectPrepared = (prepared: unknown, compilation: unknown, reserveOriginal?: ReserveOriginal) => {
+    const selections = selectionsOf(prepared);
+    if (selections === undefined) return undefined;
+    const installations = current(selections)!;
+    const compiled = control.admit('compiled_plan',
+      moon.clientProgramEffectCompilationCompiledPlanWire(compilation), limits);
+    const original = {preparedWire: issueMaterials === undefined || reserveOriginal === undefined
+      ? checked(moon.clientProgramIssueEffectPreparedOriginal(compilation)) as string
+      : issueMaterials({prepared, compilation}),
+      compiledPlanCid: compiled.identity, installations: Object.freeze(installations)};
+    reserveOriginal?.(prepared, original.preparedWire, original.installations);
+    if (!updateTargetPreparedOriginalShape(original, moon)) fail();
+    return Object.freeze(original);
+  };
+  const restorePrepared = (original: PreparedOriginal) => {
+    if (!updateTargetPreparedOriginalShape(original, moon)) fail();
+    const restored = checked(moon.clientProgramAdmitEffectPreparedOriginal(
+      original.preparedWire, original.compiledPlanCid, ...features));
+    const prepared = moon.clientProgramEffectPreparedOriginalPrepared(restored);
+    const compilation = moon.clientProgramEffectPreparedOriginalCompilation(restored);
+    const bound = bind(selectionsOf(prepared), original.installations);
+    if (!same(projectPrepared(prepared, compilation), original)) fail();
+    compilations.set(prepared, compilation);
+    return Object.freeze({prepared, compilation, ...bound});
+  };
+  const restoreEffectMaterials = (wire: string, runDefinition: RunDefinition, identity?: unknown,
+    originalCompilation?: unknown, originalPrepared?: unknown) => {
+    if (originalCompilation !== undefined &&
+        (typeof admitWithCompilation !== 'function' || identity === undefined)) fail();
+    // The caller already retains/funds this nominal compiler. Bind saved full
+    // materials to it instead of parsing/checking/compiling the Program again.
+    // A wire-only cold caller keeps the existing restoration route until its
+    // SAME Request owner supplies the actual compiler, never a data flag.
+    if (originalCompilation !== undefined && admitMaterials !== undefined && originalPrepared === undefined) fail();
+    const restored = originalCompilation !== undefined && admitMaterials !== undefined
+      ? admitMaterials({wire, runDefinitionCid: runDefinition.identity, compilation: originalCompilation,
+        identity, prepared: originalPrepared, features})
+      : checked(originalCompilation === undefined
+        ? moon.clientProgramAdmitEffectRunMaterials(wire, runDefinition.identity, ...features, identity ?? null)
+        : Reflect.apply(admitWithCompilation as NonNullable<MaterialsRuntime['clientProgramAdmitEffectRunMaterialsWithCompilation']>, moon,
+          [wire, runDefinition.identity, originalCompilation, identity, ...features]));
+    const prepared = moon.clientProgramEffectRunMaterialsPrepared(restored);
+    const compilation = moon.clientProgramEffectRunMaterialsCompilation(restored);
+    const allowed = moon.clientProgramEffectRunMaterialsAllowed(restored);
+    const definition = moon.clientProgramEffectRunMaterialsDefinition(restored);
+    return Object.freeze({materials: restored, prepared, compilation, allowed, definition});
+  };
+  const restoreRun = (original: RunOriginal, runDefinition: RunDefinition, identity?: unknown,
+    originalCompilation?: unknown, originalPrepared?: unknown) => {
+    if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
+    const expectedSelectionCid = runUpdateSelectionCid(runDefinition, moon);
+    if (expectedSelectionCid === undefined) fail();
+    const restored = restoreEffectMaterials(original.materialsWire, runDefinition, identity, originalCompilation, originalPrepared);
+    const {prepared, compilation, definition} = restored;
+    // Retain the existing whole Run/material binding admission as well as the
+    // nominal selection/preparation projection. No replacement Run is issued.
+    checked(moon.clientProgramEffectRunMaterialsTargetSelections(restored.materials));
+    const selections = selectionsOf(prepared);
+    if (selections === undefined || updateTargetSelectionsCid(selections, moon) !== expectedSelectionCid ||
+        !updateTargetSelectionMatchesRun(selections, prepared, definition)) fail();
+    const bound = bind(selections, original.installations);
+    compilations.set(prepared, compilation);
+    return Object.freeze({...restored, ...bound});
+  };
+  return Object.freeze({selectionsOf, capturePrepared: projectPrepared, restorePrepared, restoreRun,
+    restoreEffectMaterials,
+    validateRecoveredSelectionMembers({prepared, compilation, selections, preview, stageIndex}: Readonly<{
+      prepared: unknown; compilation: unknown; selections?: Selections;
+      preview: Readonly<{effects: readonly SavedEffect[]}>; stageIndex: number;
+    }>) {
+      current(selections);
+      const descriptors: readonly EffectDescriptor[] = installedRowEffectDescriptors(moon, prepared, compilation);
+      const members = preview.effects.flatMap(member => {
+        if (member.effect_kind === 'update' || member.effect_kind === 'delete') {
+          return [{stage_index: stageIndex, effect_id: member.effect_id,
+            target_ref: member.target, mapping_ref: member.mapping,
+            mapping_cid: member.resolved_mapping_contract_cid}];
+        }
+        const selected = selections?.filter(value => value.effect_id === member.effect_id) ?? [];
+        if (selected.length === 0) return [];
+        const actual = descriptors.filter(value => value.effectId === member.effect_id);
+        if (selected.length !== 1 || actual.length !== 1 || member.effect_kind !== 'command' ||
+            actual[0].kind !== 'command' || member.target !== actual[0].target ||
+            member.contract !== actual[0].commandRef ||
+            member.resolved_command_contract_cid !== actual[0].commandCid) fail();
+        // Common's same-prepared selection has already established STORE,
+        // not a generic Command. Bind the saved Command member to that exact
+        // Mapping selection without relabeling either one as UPDATE.
+        const selection = selected[0];
+        return [{stage_index: stageIndex, effect_id: member.effect_id,
+          target_ref: selection.target_ref, mapping_ref: selection.mapping_ref,
+          mapping_cid: selection.mapping_cid}];
+      });
+      assertUpdateTargetSelectionMembersCurrent(selections, members, prepared);
+    },
+    captureEffectMaterials({prepared, allowed, definition, identity}: CaptureInputs) {
+      return issueMaterials === undefined
+        ? checked(moon.clientProgramIssuePreparedEffectRunMaterials(allowed, definition, identity ?? null)) as string
+        : issueMaterials({prepared, allowed, definition, identity});
+    },
+    compilationFor: (prepared: unknown) => compilations.get(prepared as object),
+    // A captured target-read continuation already has this admitted pair on
+    // its SAME managed Run. Compare its original capture without restoring a
+    // second Prepared/compiler or replacing the live selection association.
+    validatePreparedOriginal(prepared: unknown, compilation: unknown, original: PreparedOriginal) {
+      if (compilations.get(prepared as object) !== compilation ||
+          !updateTargetPreparedOriginalShape(original, moon) ||
+          !same(projectPrepared(prepared, compilation), original)) fail();
+    },
+    validatePrepared(prepared: unknown) {
+      const selections = selectionsOf(prepared);
+      current(selections);
+      return selections;
+    },
+    captureRun({prepared, allowed, definition, identity, compilation, runDefinition}: CaptureInputs & Readonly<{
+      compilation?: unknown; runDefinition?: RunDefinition;
+    }>, reserveOriginal?: ReserveOriginal) {
+      const selections = selectionsOf(prepared);
+      if (selections === undefined) return undefined;
+      if (!updateTargetSelectionMatchesRun(selections, prepared, definition)) fail();
+      const materialsWire = issueMaterials === undefined
+        ? checked(moon.clientProgramIssuePreparedEffectRunMaterials(allowed, definition, identity ?? null)) as string
+        : issueMaterials({prepared, allowed, definition, identity});
+      const original = {materialsWire, installations: Object.freeze(current(selections)!)};
+      reserveOriginal?.(prepared, original.materialsWire, original.installations);
+      if (!updateTargetRunOriginalShape(original, undefined, moon)) fail();
+      if (admitMaterials !== undefined) {
+        // Move the one required wire-to-typed admission before adoption.
+        // The live Run later reuses this exact result and retains all of its
+        // independent current selection and installation checks.
+        if (compilation === undefined || runDefinition === undefined) fail();
+        const restored = restoreEffectMaterials(materialsWire, runDefinition, identity, compilation, prepared);
+        if (restored.prepared !== prepared || restored.compilation !== compilation) fail();
+      }
+      return Object.freeze(original);
+    },
+    validateRun({prepared, compilation, evidence, runDefinition, identity}: Readonly<{
+      prepared: unknown; compilation: unknown; evidence: RunEvidence; runDefinition: RunDefinition; identity?: unknown;
+    }>) {
+      const selections = selectionsOf(prepared);
+      const original = evidence.updateTargetRunOriginal;
+      const expectedSelectionCid = runUpdateSelectionCid(runDefinition, moon);
+      if (selections === undefined && original === undefined && expectedSelectionCid === undefined) return {};
+      if (selections === undefined || original === undefined ||
+          expectedSelectionCid !== updateTargetSelectionsCid(selections, moon) ||
+          !updateTargetRunOriginalShape(original, evidence, moon)) fail();
+      const restored = restoreRun(original, runDefinition, identity, compilation, prepared);
+      // Core bound the complete saved material to this exact compiler. Keep
+      // that SAME returned pair; encoding both preparations and checking the
+      // same installation again would repeat this boundary's existing work.
+      if (restored.prepared !== prepared || restored.compilation !== compilation) fail();
+      return Object.freeze({updateTargetSelections: restored.updateTargetSelections,
+        assertUpdateSelectionCurrent: restored.assertUpdateSelectionCurrent});
+    },
+  });
+}

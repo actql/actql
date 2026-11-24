@@ -277,14 +277,9 @@ extern "js" fn standard_create_declaration(
   matches : (@catalog.RecordCreateEffectOutcome, @catalog.RecordCreateRequest) -> Bool,
 ) -> Bool =
   #|(loader,mapping,declaration,mapping_declaration,mapping_request,legacy_execution,write_limits,mutation_limits,resource,prepare,restore,body,app,count,form_limits,recheck,response,outcome,wire,digest,matches) => {
-  #| const assert=loader('node:assert/strict'),fs=loader('node:fs'),crypto=loader('node:crypto'),types=loader('node:util').types;
+  #| const assert=loader('node:assert/strict');
   #| const site=loader('../../../../../../../adapters/connectors/kintone/site/kintone-create-execution.mjs');
-  #| const own=loader('../../../../../../../adapters/host-common/http-exchange.mjs'),invocation=loader('../../../../../../../adapters/host-common/owned-invocation-context.mjs');
-  #| const local=loader('../../../../../../../adapters/host-node/local-values-plan.mjs');
-  #| const source=fs.readFileSync(loader.resolve('../../../../../../../adapters/host-node/installed-row-effect.mjs'),'utf8');
-  #| const start=source.indexOf('function deriveInstalledRowWrite('),end=source.indexOf('\nfunction prepareInstalledCreateRows(',start);
-  #| assert(start>=0&&end>start);
-  #| const derive=Function('createHash','nodeTypes','ownHttpRequest','ownRequestHeaders','ownResponseHeaderNames','invokeScopedCredentialOperation','localContractLimits','return ('+source.slice(start,end)+'\n);')(crypto.createHash,types,own.ownHttpRequest,own.ownRequestHeaders,own.ownResponseHeaderNames,invocation.invokeScopedCredentialOperation,local.localContractLimits);
+  #| const {deriveInstalledRowWrite:derive}=loader('../../../../../../../adapters/host-node/installed-row-effect-standard-write.mjs');
   #| let prepares=0,restores=0;
   #| const moon={clientProgramKintoneCreateMappingMatchesDeclaration:mapping_declaration,clientProgramKintoneCreateMappingMatchesRequest:mapping_request,
   #| clientProgramKintoneCreateExecutionRequest:legacy_execution,clientProgramKintoneWriteLimits:write_limits,clientProgramKintoneMutationLimits:mutation_limits,

@@ -81,7 +81,7 @@ test('qualified input and output alias sorting have independently different orde
 
 test('normal packed corpus and focused invocation execute the same authored cases', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'unaryPlusSuccesses'], ['refusals', 'unaryPlusRefusals'],
     ['executionFailures', 'unaryPlusExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

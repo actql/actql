@@ -16,7 +16,10 @@ const reply = text => {
   return {version: 'actql-check-outcome/0.1', reason_schema_cid: checkReasonSchemaCid,
     outcome_schema_cid: checkOutcomeSchemaCid, outcome: 'completed', report: {
       context_ref: edited ? 'ctx:edited' : 'ctx:original', scope: {kind: 'bound_input'},
-      verdict: edited ? 'verified' : 'invalid', inputs: [{document_id: 'source',
+      verdict: edited ? 'verified' : 'invalid',
+      runnable: edited ? {verdict: 'yes', reasons: []} :
+        {verdict: 'no', reasons: [{code: 'query_lexical_invalid'}]},
+      inputs: [{document_id: 'source',
         kind: 'text', revision: rev, byte_length: edited ? 31 : 29}],
       reasons: edited ? [] : [{code: 'query_lexical_invalid', facts: {issue: 'unterminated_comment'},
         location: {kind: 'text', document_id: 'source', revision,

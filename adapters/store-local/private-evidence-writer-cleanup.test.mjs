@@ -112,6 +112,7 @@ test('raw descriptor writer and earlier content cleanup retain both original dut
   const contentCleanupFailure = new Error('OriginalContentDirectoryAckFailed');
   let armContentCleanup = false, descriptorHandle, error, passed = false;
   const state = {writers: 0, writes: 0, descriptorCloses: 0};
+  const envelopePrefix = Buffer.from('{"version":"actql-private-publication-evidence/0.1","nonce":"');
   const store = await openLocalPublicationStore({directory,
     storeAuthorityCid: cid('original dual writer authority'), privateEvidenceKey: Buffer.alloc(32, 7),
     capacityBytes: 1048576, maxObjectBytes: 16384, maxObjects: 40,
@@ -129,11 +130,18 @@ test('raw descriptor writer and earlier content cleanup retain both original dut
   fs.open = async (...args) => {
     const handle = await Reflect.apply(originalOpen, fs, args);
     if (!String(args[0]).startsWith(join(directory, 'staging', 'object-'))) return handle;
-    const writerIndex = ++state.writers;
-    if (writerIndex === 2) descriptorHandle = handle;
+    let writerIndex;
     return new Proxy(handle, {get(target, key) {
       if (key === 'write') return async (...writeArgs) => {
-        state.writes++;
+        const [bytes, offset, length, position] = writeArgs;
+        // Prepared-custody metadata also uses staging/object-*.
+        // Select the encrypted content and descriptor, not the intervening metadata.
+        if (writerIndex === undefined && position === 0 && length >= envelopePrefix.length &&
+            bytes.subarray(offset, offset + envelopePrefix.length).equals(envelopePrefix)) {
+          writerIndex = ++state.writers;
+          if (writerIndex === 2) descriptorHandle = handle;
+        }
+        if (writerIndex !== undefined) state.writes++;
         if (writerIndex === 2) {
           armContentCleanup = true;
           throw primary;

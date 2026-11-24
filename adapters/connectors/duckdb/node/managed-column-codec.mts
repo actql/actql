@@ -1,0 +1,181 @@
+// Finite installed physical representation for managed DuckDB values. This is
+// not an ActQL logical content identity. It preserves column/row occurrence
+// order in bounded frames and supports only the explicitly listed types.
+import type {PhysicalField, PhysicalScalar, PhysicalType} from './physical-values.mjs';
+import {createHash} from 'node:crypto';
+import {createReadStream} from 'node:fs';
+import {createInterface} from 'node:readline';
+import {DuckDBTransportError} from './configuration.mjs';
+
+const codecContract = 'actql-duckdb-managed-column-frames/0.2\n' +
+  'newline-delimited-object:c0..cN=typed-column-lists;o=logical-row-ordinals\n' +
+  'supported=DOUBLE,VARCHAR;ordered;duplicates-preserved;store-integrity-required';
+
+export const managedColumnCodecContractCid =
+  `sha256:${createHash('sha256').update(codecContract).digest('hex')}`;
+
+type ColumnField = readonly [string, 'DOUBLE' | 'VARCHAR', unknown, unknown];
+
+// Safe upper bounds for the initial bounded row-wire Site Transfer. The
+// physical frame already contains every encoded value. A row object adds its
+// field names and separators, while a decoded DOUBLE can need at most eight
+// more UTF-8 bytes than its 16-digit physical hex string. Source file reads
+// and emitted row wire are cumulative transfer; destination UTF-16 strings,
+// chunk administration and the construction batch are retention/execution.
+export function managedColumnTransferEstimate(
+  bodyBytes: number, rowCount: number, fields: readonly PhysicalField[], maxBatchBytes = 1024 * 1024,
+) {
+  if (!Number.isSafeInteger(bodyBytes) || bodyBytes < 0 ||
+      !Number.isSafeInteger(rowCount) || rowCount < 0 ||
+      !Array.isArray(fields) || fields.length === 0 ||
+      !Number.isSafeInteger(maxBatchBytes) || maxBatchBytes < 1 ||
+      fields.some(field => typeof field?.name !== 'string' ||
+        !['DOUBLE', 'VARCHAR'].includes(field?.type?.id))) {
+    throw new DuckDBTransportError('InvalidManagedTransferEstimate');
+  }
+  const rowObjectBytes = fields.reduce((sum, field) =>
+    sum + Buffer.byteLength(JSON.stringify(field.name)) + 1 +
+      (field.type.id === 'DOUBLE' ? 8 : 0),
+  2 + Math.max(0, fields.length - 1));
+  const sourceBytes = BigInt(bodyBytes);
+  const rowWireBytes = sourceBytes + BigInt(rowCount) * BigInt(rowObjectBytes);
+  const transferBytes = sourceBytes + rowWireBytes;
+  return Object.freeze({
+    transferBytes,
+    retainedBytes: rowWireBytes * 2n + BigInt(rowCount) * 96n + 128n,
+    executionBytes: BigInt(maxBatchBytes),
+  });
+}
+
+function physicalDouble(value: unknown) {
+  if (value === null) return null;
+  if (typeof value !== 'string' || !/^[0-9a-f]{16}$/.test(value)) {
+    throw new DuckDBTransportError('UnsupportedManagedColumnValue');
+  }
+  return Buffer.from(value, 'hex').readDoubleBE();
+}
+
+function physicalValue(value: unknown, type: PhysicalType) {
+  if (value === null) return null;
+  if (type.id === 'DOUBLE') return physicalDouble(value);
+  if (type.id === 'VARCHAR' && typeof value === 'string') return value;
+  throw new DuckDBTransportError('UnsupportedManagedColumnValue');
+}
+
+export function encodeManagedColumnFrame(
+  fields: readonly PhysicalField[], columns: readonly (readonly PhysicalScalar[])[],
+  rowCount: number, firstRow: number,
+) {
+  if (!Array.isArray(fields) || !fields.length || !Array.isArray(columns) ||
+      fields.length !== columns.length || !Number.isSafeInteger(rowCount) || rowCount < 0 ||
+      !Number.isSafeInteger(firstRow) || firstRow < 0 ||
+      firstRow > Number.MAX_SAFE_INTEGER - rowCount) {
+    throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
+  }
+  const frame: Record<string, unknown> = Object.create(null);
+  for (let column = 0; column < fields.length; column++) {
+    if (!fields[column]?.type || !['DOUBLE', 'VARCHAR'].includes(fields[column].type.id) ||
+        !Array.isArray(columns[column]) || columns[column].length !== rowCount) {
+      throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
+    }
+    frame[`c${column}`] = columns[column].map((value: PhysicalScalar) => physicalValue(value, fields[column].type));
+  }
+  frame.o = Array.from({length: rowCount}, (_, index) => firstRow + index);
+  return Buffer.from(`${JSON.stringify(frame)}\n`);
+}
+
+// Registered representation provider for Local managed execution. It emits
+// canonical JSON objects in logical occurrence order and cannot approve a
+// completion or content identity. File access and lifetime remain owned by the
+// Store borrow surrounding this provider.
+export function managedColumnRowProvider(fieldsFrame: string) {
+  let fields: readonly ColumnField[];
+  try {
+    const decoded = JSON.parse(fieldsFrame);
+    fields = Array.isArray(decoded) ? decoded : decoded?.fields;
+  }
+  catch { throw new DuckDBTransportError('UnsupportedManagedColumnFrame'); }
+  if (!Array.isArray(fields) || fields.length === 0 || fields.some(field =>
+    !Array.isArray(field) || field.length !== 4 ||
+    typeof field[0] !== 'string' || !['DOUBLE', 'VARCHAR'].includes(field[1]))) {
+    throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
+  }
+  const active = new Set<ReturnType<typeof createReadStream>>();
+  let completedReads = 0;
+  const provider = {
+    async read(file: Readonly<{path: string}>, emit: (row: string) => unknown,
+      signal?: AbortSignal) {
+      if (!file || typeof file.path !== 'string' || typeof emit !== 'function') {
+        throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
+      }
+      let expectedOrdinal = 0;
+      const input = createReadStream(file.path, {encoding: 'utf8'});
+      active.add(input);
+      const closed = input.closed ? Promise.resolve() : new Promise<void>(resolve => {
+        input.once('close', resolve);
+      });
+      const lines = createInterface({
+        input,
+        crlfDelay: Infinity,
+      });
+      try {
+        for await (const line of lines) {
+          signal?.throwIfAborted();
+          if (line.length === 0) continue;
+          let frame: Readonly<Record<string, unknown>>;
+          try { frame = JSON.parse(line); }
+          catch { throw new DuckDBTransportError('UnsupportedManagedColumnFrame'); }
+          const keys = Object.keys(frame);
+          const expectedKeys = [
+            ...fields.map((_, index) => `c${index}`),
+            'o',
+          ];
+          if (keys.length !== expectedKeys.length ||
+              expectedKeys.some(key => !Object.hasOwn(frame, key)) ||
+              !Array.isArray(frame.o)) {
+            throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
+          }
+          const rows = frame.o.length;
+          if (fields.some((_, index) => !Array.isArray(frame[`c${index}`]) ||
+            (frame[`c${index}`] as readonly unknown[]).length !== rows)) {
+            throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
+          }
+          for (let row = 0; row < rows; row++) {
+            signal?.throwIfAborted();
+            if (frame.o[row] !== expectedOrdinal) {
+              throw new DuckDBTransportError('UnsupportedManagedColumnFrame');
+            }
+            const object: Record<string, unknown> = Object.create(null);
+            for (let column = 0; column < fields.length; column++) {
+              const value = (frame[`c${column}`] as readonly unknown[])[row];
+              if (value !== null &&
+                  (fields[column][1] === 'DOUBLE'
+                    ? typeof value !== 'number' || !Number.isFinite(value)
+                    : typeof value !== 'string')) {
+                throw new DuckDBTransportError('UnsupportedManagedColumnValue');
+              }
+              object[fields[column][0]] = value;
+            }
+            await emit(JSON.stringify(object));
+            expectedOrdinal++;
+          }
+        }
+      } finally {
+        lines.close();
+        // readline.close() only releases the interface. The provider owns the
+        // underlying file access and must not return until that access has
+        // actually stopped, because its caller releases the Store pin next.
+        if (!input.closed) input.destroy();
+        await closed;
+        active.delete(input);
+        completedReads++;
+      }
+    },
+    // Diagnostics for conformance tests and Host observability only. This is
+    // not a completion proof or authority to release the Store generation.
+    status() {
+      return Object.freeze({activeReads: active.size, completedReads});
+    },
+  };
+  return Object.freeze(provider);
+}

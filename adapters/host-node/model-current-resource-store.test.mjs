@@ -46,14 +46,17 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   // diagnostic custody, instead of deleting it or claiming successful cleanup.
   t.after(() => port.close());
   t.diagnostic(`Original fixture Store retained at ${root}`);
-  // Explicit synthetic Store opening selection: eighteen fixed root entries,
-  // one original-state object and one holding. It is not numerical funding.
-  const f = await currentResourceFixture(moon, control, 'current-store', {
-    storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 20},
+  // The clean Store opening counts 21 root entries. The original-state
+  // object and physical holding are looked up by identity after the open.
+  const maxDirectoryEntries = 21;
+  const resourceOptions = {
+    storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries},
     currentStateCodec: {quantum: 1, comparisonWork: 5, decode: decoderLimits}, metadataAcquisition: {
-    metadata: {maxWireBytes: 2048, maxLedgerEntries: 3},
-    directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
-    retainedBytes: 7000n, workspaceBytes: 3000n}});
+      metadata: {maxWireBytes: 2048, maxLedgerEntries: 3},
+      directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
+      retainedBytes: 7000n, workspaceBytes: 3000n},
+  };
+  const f = await currentResourceFixture(moon, control, 'current-store', resourceOptions);
   const binding = await port.observeModelOriginalStorageBinding();
   const selectedStorage = await port.modelOriginalStorageBindingEvidence(binding);
   const origin = Object.fromEntries(originFields.map(field => [field,
@@ -85,6 +88,20 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
       {code: 'InferOriginalMetadataAcquisitionUnavailable'});
   }
   assert.equal(inspected, 0);
+  const short = await currentResourceFixture(moon, control, 'current-store', {
+    ...resourceOptions, storeBootstrap: {...resourceOptions.storeBootstrap,
+      maxDirectoryEntries: maxDirectoryEntries - 1},
+  });
+  t.after(async () => {
+    await assert.rejects(short.operation.close(), {code: 'MoonBitHostFailure'});
+    assert.equal(short.operation.cleanupPending(), true);
+    assert.equal(short.sends(), 0);
+  });
+  assert.equal(short.runDefinition.identity, f.runDefinition.identity);
+  const shortPark = short.operation.parkOriginalResourcesForStateWrite();
+  const shortAcquisition = short.operation.originalMetadataAcquisition(shortPark);
+  await assert.rejects(port.readOriginalModelStateSelected({runDefinition: short.runDefinition,
+    storageBinding: binding, receipt}, shortAcquisition), {code: 'PublicationStoreBootstrapEntriesLimit'});
   const acquisition = f.operation.originalMetadataAcquisition(park);
   const selectedLoaded = await port.readOriginalModelStateSelected({runDefinition: f.runDefinition,
     storageBinding: binding, receipt}, acquisition);

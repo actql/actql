@@ -1,40 +1,12 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
-import {compileFunction} from 'node:vm';
 import test from 'node:test';
-import {parse} from 'acorn';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
-import {contentCid} from './local-account-config.mjs';
+import {createCheckpointComputationSource, createCheckpointSourceSelection}
+  from './client-checkpoint-computation-source.mjs';
 
 // Actual continuation caller and Checkpoint Source method, with explicit
 // installed-reader/current/Account ports. This does not issue a Core original,
 // open a provider, persist a Checkpoint or acknowledge physical cleanup.
-const source = readFileSync(new URL('./client-checkpoints.mjs', import.meta.url), 'utf8');
-const nodes = [];
-function collect(node) {
-  if (!node || typeof node !== 'object') return;
-  if (typeof node.type === 'string') nodes.push(node);
-  for (const value of Object.values(node)) {
-    if (Array.isArray(value)) value.forEach(collect);
-    else if (value && typeof value === 'object') collect(value);
-  }
-}
-collect(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-const select = (type, name) => {
-  const found = nodes.filter(node => node.type === type && (node.id?.name ?? node.key?.name) === name);
-  assert.equal(found.length, 1);
-  return source.slice(found[0].start, found[0].end);
-};
-const makeAuthorization = compileFunction(`
-  const {installedSources, sources, accountConstruction, createLocalAuthorizationGate} = ports;
-  const authorityScopeCid = 'original-authority', ownerPrincipal = 'original-principal';
-  const journal = {}, decisionOptions = {}, authorities = [], binding = {};
-  const decide = undefined, answeringAuthorities = undefined;
-  const evidence = {}, now = Date.now, maxReviewBytes = 65536, checkpointTtlMs = 60000;
-  ${select('VariableDeclarator', 'IDENTIFIER').replace(/^IDENTIFIER/, 'const IDENTIFIER')};
-  ${select('FunctionDeclaration', 'installedSource')}
-  return ({${select('Property', 'computationSourceAuthorization')}}).computationSourceAuthorization;
-`, ['ports', 'contentCid', 'fail']);
 const fail = code => {throw Object.assign(new Error(code), {code});};
 
 function fixture(coordinates = [0, 1, 2].map(task => ({stage: task, input: 0, task}))) {
@@ -46,9 +18,13 @@ function fixture(coordinates = [0, 1, 2].map(task => ({stage: task, input: 0, ta
     context: {contextCid: 'original-context'}};
   const events = [], gates = [];
   let current = true;
-  const authorization = makeAuthorization({sources: [configuration], accountConstruction,
+  const installedSource = createCheckpointSourceSelection({sources: [configuration],
     installedSources: [{configuration, gate: {configurationCid: 'original-config',
-      contextCid: 'original-context'}}],
+      contextCid: 'original-context'}}]});
+  const {computationSourceAuthorization} = createCheckpointComputationSource({installedSource,
+    accountConstruction, authorityScopeCid: 'original-authority', ownerPrincipal: 'original-principal',
+    journal: {}, decisionOptions: {}, authorities: [], binding: {}, evidence: {},
+    now: Date.now, maxReviewBytes: 65536, checkpointTtlMs: 60000,
     async createLocalAuthorizationGate(options) {
       assert.equal(options.accountConstruction, accountConstruction);
       assert.equal(options.accountConfiguration, configuration.accountConfiguration);
@@ -63,8 +39,8 @@ function fixture(coordinates = [0, 1, 2].map(task => ({stage: task, input: 0, ta
         }, close() {events.push('gate-close');}};
       gates.push(gate);
       return gate;
-    }}, contentCid, fail);
-  const checkpoints = {journal: {}, computationSourceAuthorization: authorization,
+    }});
+  const checkpoints = {journal: {}, computationSourceAuthorization,
     async retireComputationSources(runId) {assert.equal(runId, 'original-run');}};
   const continuation = acquiredEffectContinuation({moon: {}, checkpoints,
     acquired: {prepared, runDefinition: definition,

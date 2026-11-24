@@ -281,14 +281,14 @@ test('namespace observations require immutable original document revision bindin
 // Independently computed with Python hashlib over the declared compact JSON
 // preimages and the committed environment fixture CID, never product output.
 const emptyNamespaceRevisions = [
-  ['queries', 'sha256:847e95c5dea85193b7cff769bd868a74b8263a6ac8920338c9321c4d643c53a1'],
-  ['other', 'sha256:afe08a6651bbc069aac537e03971b8835e321b46a94258558f683dd1e47ed19d'],
-  ['queries:v2', 'sha256:d52f2751f250e2117c80a3a6d1e6043377ef70b39af1b14d7abde3061f6f023b'],
-  ['queries/nested', 'sha256:4e96a829b13a607c0c67b30ae279deda07b1c68e91302ceebca9cc67531b06c1'],
+  ['queries', 'sha256:221c23ba7bcd10b5ab756337273cfb3cd86507417769eba34f5b5be36205f34c'],
+  ['other', 'sha256:885d61838ebc779846f4d32e7abc50f46c8aa0423362c14f0fd78112bb8d9b89'],
+  ['queries:v2', 'sha256:228ba5da4621f397cb0d5efbba4d5b5455f3472c397b68f5280fd784665704c3'],
+  ['queries/nested', 'sha256:0ee98db914b8192f690ff8764502dcb5378fb5aabb31bc7bf73752f01045e882'],
 ];
 test('empty namespace revisions match independent fixed preimages', async t => {
   assert.equal(wire.evidence_bundle_cid,
-    'sha256:535c4c9bbefc918c4e1c67afcc8a7fae402d37b9113d039b3a03c758ae59a58e');
+    'sha256:19b12bb2e1a64301bca6709ba8b2336d04fca3293983f9aae7ff653619a6e9cf');
   for (const [name, expected] of emptyNamespaceRevisions) {
     const gate = await authorization(t, {name}), selected = publication([], [], {name}), original = binding();
     const observation = await observeSourceAliasNamespace(selected, gate, original);

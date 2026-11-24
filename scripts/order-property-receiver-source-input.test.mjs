@@ -41,7 +41,7 @@ test('authored receiver obligations preserve duplicates, NULL, LIMIT and distinc
 
 test('receiver obligations retain the existing normal and selected packed routes', () => {
   const app = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(app.includes('scopeInputs.successes.push(...distinctOrderSuccesses)'));
   assert.ok(app.includes('scopeInputs.refusals.push(...distinctOrderRefusals)'));
   assert.ok(app.includes('distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}'));

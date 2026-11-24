@@ -67,7 +67,7 @@ test('explicit FULL fixtures preserve the JSON control and distinguish ORDER sco
 
 test('FULL acceptance is included in normal packed execution', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...fullJoinScopeSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...fullJoinScopeRefusals)'));
   assert.ok(fixture.includes('fullJoinScopeOnly ? {successes: fullJoinScopeSuccesses'));

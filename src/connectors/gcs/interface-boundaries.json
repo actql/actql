@@ -49,7 +49,7 @@
                 "anchor": "pub fn command_target_input_contract"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "installationCid: bindingCid"
               },
               {
@@ -135,7 +135,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               },
               {
@@ -147,7 +147,7 @@
                 "anchor": "member_environment(mapping.item)"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "closing = true"
               },
               {
@@ -159,8 +159,8 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               }
             ],
             "cancellation": [
@@ -169,11 +169,11 @@
                 "anchor": "Closing"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "False means closing, not physical cleanup ACK"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -199,7 +199,7 @@
                 "anchor": "pub fn gcs_upload_declaration_failure_code"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "GcsCollectionProviderUnavailable"
               },
               {
@@ -211,7 +211,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               }
             ],
@@ -233,7 +233,7 @@
                 "anchor": "Declaration construction retains input wire"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "const declarationLimits"
               },
               {
@@ -275,7 +275,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               },
               {
@@ -325,8 +325,8 @@
                 "anchor": "pub fn gcs_collection_issue_reference"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
-                "anchor": "issueOriginalCollectionReference(pair, maxWork)"
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
+                "anchor": "issueOriginalCollectionReference(pair: unknown, maxWork: number)"
               },
               {
                 "path": "src/connectors/gcs/catalog/pkg.generated.mbti",
@@ -343,23 +343,23 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               },
               {
                 "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "site.referenceCurrent()"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-metadata-site.mts",
                 "anchor": "referenceCurrent: () => !closing"
               },
               {
@@ -371,8 +371,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               }
             ]
           }
@@ -482,7 +482,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "d7139f6ce4f468792ac933a0b50d349d4f060a1c52263d990a1931e4b1bf856a"
+      "sha256": "e1adb54f38bd5b24102d891543e150b602c7d23622b95575f1b899ffd8f8a123"
     },
     {
       "module": "adapters/connectors/gcs/host/gcs-upload-declaration.mjs",
@@ -579,7 +579,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               }
             ],
@@ -599,8 +599,8 @@
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               }
             ]
           }
@@ -643,7 +643,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "baef75746000fe59b629bd1eb7f269248b40c6a3d37c54adf13110ab5767f4f6"
+      "sha256": "665ba4c42de5e63f53b806169bc2465c746658ac8d115ac6c9e7164eb7617ab4"
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-credential-site.mjs",
@@ -702,19 +702,19 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "binding.scope_cid === scopeCid"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
-                "anchor": "const approvals = new WeakMap()"
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
+                "anchor": "const approvals = new WeakMap<object, string | EffectReadApproval>()"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source-credential-site.mts",
                 "anchor": "synchronous(approved.enter())"
               }
             ],
@@ -754,7 +754,7 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
-      "sha256": "2bca5ddca6810638848a727cd757610ec49bf24c0f89992d8fe74a7e61db7883",
+      "sha256": "3fc341931145d39b6c9d3b8c3f4fb1d472c3bbd90794237fc2f0f6c857bec042",
       "exports": [
         "readGcsObjects"
       ],
@@ -845,13 +845,13 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               }
             ],
             "extension": [
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -865,23 +865,23 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "signal.throwIfAborted()"
               },
               {
@@ -891,7 +891,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -905,7 +905,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -923,7 +923,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               }
             ],
@@ -933,7 +933,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               }
             ],
@@ -943,7 +943,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               }
             ]
@@ -1081,15 +1081,15 @@
                 "anchor": "export async function sendOwnedGcsObjectRequest"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invokeScopedCredentialOperation"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -1892,7 +1892,7 @@
     },
     {
       "module": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-      "sha256": "30af23982f73dc05ca826fb30bd2934c9c76ed3a66935d2a8b149792a7ad8ec8",
+      "sha256": "a5da11c38919bb6af8558f8f6543f1b4d553cfde9d2b7ac6643cb46b36d08de6",
       "exports": [
         "admitGcsUploadObservation",
         "admitGcsUploadTargetObservation",
@@ -2095,7 +2095,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               }
             ],
@@ -2135,7 +2135,7 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               },
               {
@@ -2149,25 +2149,25 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -2189,7 +2189,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -2317,8 +2317,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -2329,7 +2329,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               }
             ]
@@ -2392,7 +2392,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               }
             ],
@@ -2445,8 +2445,8 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               }
             ]
           }
@@ -2815,11 +2815,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -3001,7 +3001,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               }
             ],
@@ -3015,7 +3015,7 @@
                 "anchor": "pub fn object_metadata_page_at"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -3037,7 +3037,7 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               },
               {
@@ -3055,11 +3055,11 @@
                 "anchor": "not object GET"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               }
             ],
@@ -3076,7 +3076,7 @@
                 "anchor": "if count > max_items"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -3106,7 +3106,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -3132,7 +3132,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               },
               {
@@ -3154,7 +3154,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               }
             ],
@@ -3172,7 +3172,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               }
             ]
@@ -3275,7 +3275,7 @@
                 "anchor": "export async function sendOwnedGcsObjectRequest"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invokeScopedCredentialOperation"
               }
             ],
@@ -4047,17 +4047,17 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -4075,7 +4075,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -4151,8 +4151,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -4195,7 +4195,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               }
             ],
@@ -4211,17 +4211,17 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -4281,7 +4281,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               }
             ]
@@ -4899,7 +4899,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               },
               {
@@ -4907,7 +4907,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               },
               {
@@ -4973,7 +4973,7 @@
                 "anchor": "A later metadata GET uses original metadata matching"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -5051,7 +5051,7 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               },
               {
@@ -5059,7 +5059,7 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               },
               {
@@ -5093,7 +5093,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               },
               {
@@ -5117,27 +5117,27 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               },
               {
@@ -5186,7 +5186,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -5202,7 +5202,7 @@
                 "anchor": "Other statuses or malformed"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -5296,7 +5296,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -5358,7 +5358,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               },
               {
@@ -5410,7 +5410,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               },
               {
@@ -5520,7 +5520,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               },
               {
@@ -5574,16 +5574,16 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               },
               {
                 "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               },
               {
                 "path": "src/connectors/gcs/catalog/object_page.mbt",
@@ -5602,8 +5602,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -5614,7 +5614,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               },
               {
@@ -5622,7 +5622,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -6306,7 +6306,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               }
             ],
@@ -6326,8 +6326,8 @@
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               }
             ]
           }
@@ -6432,7 +6432,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               }
             ],
@@ -6485,8 +6485,8 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               }
             ]
           }
@@ -6571,7 +6571,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               },
               {
@@ -6589,7 +6589,7 @@
                 "anchor": "Typed ABI projection only"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -6619,7 +6619,7 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               },
               {
@@ -6637,23 +6637,23 @@
                 "anchor": "export async function sendOwnedGcsObjectRequest"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invokeScopedCredentialOperation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
@@ -6667,7 +6667,7 @@
                 "anchor": "physical cleanup ACK"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "signal.throwIfAborted()"
               },
               {
@@ -6685,7 +6685,7 @@
                 "anchor": "pub fn gcs_object_failure_code"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -6715,7 +6715,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -6757,7 +6757,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               },
               {
@@ -6803,7 +6803,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               },
               {
@@ -6837,7 +6837,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -7580,7 +7580,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               },
               {
@@ -7588,7 +7588,7 @@
                 "anchor": "prefix.has_prefix(installed_prefix)"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "identity_cid: cid({"
               },
               {
@@ -7654,7 +7654,7 @@
                 "anchor": "A later metadata GET uses original metadata matching"
               },
               {
-                "path": "adapters/connectors/gcs/host/installed-gcs-source.mjs",
+                "path": "adapters/connectors/gcs/host/installed-gcs-source.mts",
                 "anchor": "options.resource === 'objects'"
               },
               {
@@ -7728,7 +7728,7 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               },
               {
@@ -7736,7 +7736,7 @@
                 "anchor": "Detached Source DATA"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "Ordinary object rows share"
               },
               {
@@ -7762,7 +7762,7 @@
                 "anchor": "export async function sendOwnedGcsObjectRequest"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invokeScopedCredentialOperation"
               },
               {
@@ -7770,7 +7770,7 @@
                 "anchor": "physical_equal(original, selected)"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
                 "anchor": "export function checkGcsCollectionTarget"
               },
               {
@@ -7794,27 +7794,27 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await verifyRead()"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await consumePage(rows, {charge})"
               },
               {
@@ -7836,7 +7836,7 @@
                 "anchor": "physical cleanup ACK"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -7852,7 +7852,7 @@
                 "anchor": "classification, Promise completion or a weak reference is not cleanup ACK"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "signal.throwIfAborted()"
               },
               {
@@ -7906,7 +7906,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -7922,7 +7922,7 @@
                 "anchor": "Other statuses or malformed"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "GcsObjectListingLimit"
               },
               {
@@ -8012,7 +8012,7 @@
                 "anchor": "start_accounted_row_acquisition"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-object-listing.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-object-listing.mts",
                 "anchor": "await chargePage(response.body)"
               },
               {
@@ -8074,7 +8074,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               },
               {
@@ -8130,7 +8130,7 @@
                 "anchor": "actual installed object contracts consume"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-object-listing.test.mts",
                 "anchor": "original cancellation and physical failure"
               },
               {
@@ -8248,7 +8248,7 @@
                 "anchor": "pub fn object_metadata_page_row_json"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mjs",
+                "path": "adapters/connectors/gcs/host/gcs-source-declaration.mts",
                 "anchor": "type: 'int64'"
               },
               {
@@ -8298,16 +8298,16 @@
                 "anchor": "pub struct ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const originals = new WeakMap<CollectionTarget"
               },
               {
                 "path": "src/connectors/gcs/catalog/upload_declaration.mbt",
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               },
               {
                 "path": "src/connectors/gcs/original_reference/collection.mbt",
@@ -8330,8 +8330,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -8342,7 +8342,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               },
               {
@@ -8350,7 +8350,7 @@
                 "anchor": "## Exact ordinary object rows"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "startInstalledRowRun"
               },
               {
@@ -9141,7 +9141,7 @@
                 "anchor": "GCS complete upload role is admitted by original Common"
               },
               {
-                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mjs",
+                "path": "adapters/connectors/gcs/test/gcs-upload-declaration.test.mts",
                 "anchor": "real GCS upload declares the independent complete presence role"
               }
             ],
@@ -9161,8 +9161,8 @@
                 "anchor": "binding : ObjectCollectionBinding"
               },
               {
-                "path": "adapters/connectors/gcs/host/gcs-collection-target.mjs",
-                "anchor": "const owner = originals.get(original)"
+                "path": "adapters/connectors/gcs/host/gcs-collection-target.mts",
+                "anchor": "const owner = originals.get(original as CollectionTarget)"
               }
             ]
           }
@@ -9283,7 +9283,7 @@
                 "anchor": "physical_equal(binding, request.binding)"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "claim.canonicalRequestCid !== expectedRequestCid"
               }
             ],
@@ -9323,7 +9323,7 @@
                 "anchor": "Provider response interpretation only"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "Provider interpretation follows durable custody"
               }
             ],
@@ -9333,25 +9333,25 @@
                 "anchor": "pub fn recheck_object_upload"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "function original(request, binding)"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "function original(request: unknown, binding?: unknown)"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "export async function readGcsUploadTarget"
               },
               {
-                "path": "adapters/host-node/effect-physical-dispatch.mjs",
+                "path": "adapters/host-node/effect-physical-dispatch.mts",
                 "anchor": "ledger.recordResponse"
               },
               {
-                "path": "adapters/host-node/effect-response-recovery.mjs",
+                "path": "adapters/host-node/effect-response-recovery.mts",
                 "anchor": "readAuthorizedEffectResponse"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "signal?.throwIfAborted()"
               },
               {
@@ -9373,7 +9373,7 @@
                 "anchor": "pub(all) enum ObjectUploadIssue"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
                 "anchor": "there is no catch/retry or re-read"
               },
               {
@@ -9485,8 +9485,8 @@
                 "anchor": "pub struct ObjectUploadObservation"
               },
               {
-                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mjs",
-                "anchor": "const originals = new WeakMap()"
+                "path": "adapters/connectors/gcs/site/gcs-owned-upload-request.mts",
+                "anchor": "const originals = new WeakMap<UploadRequest, UploadOriginal>()"
               },
               {
                 "path": "adapters/connectors/gcs/README.md",
@@ -9497,7 +9497,7 @@
                 "anchor": "introduces no second"
               },
               {
-                "path": "adapters/host-node/installed-row-effect.mjs",
+                "path": "adapters/host-node/installed-row-effect-recovery.mts",
                 "anchor": "projectStored: stored =>"
               }
             ]

@@ -34,7 +34,7 @@ test('subtraction expectations distinguish binary removal, property retention an
 
 test('normal corpus and narrow subtraction run retain the same installed public driver', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'graphSubtractionSourceSuccesses'],
     ['refusals', 'graphSubtractionSourceRefusals'], ['executionFailures', 'graphSubtractionSourceExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));

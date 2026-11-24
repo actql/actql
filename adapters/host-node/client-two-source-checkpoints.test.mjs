@@ -731,17 +731,17 @@ for (const [observed, terminal] of [
 }
 
 test('acquisition access retains only the same actual original approved decision for Source metadata', async () => {
-  const {readFileSync}=await import('node:fs');
-  const {recordCheckpointApproval}=await import('../host-common/checkpoint-approval.mjs');
-  const source=readFileSync(new URL('./client-checkpoints.mjs',import.meta.url),'utf8');
-  const start=source.indexOf('    acquisitionAccess(requestId, base, occurrence) {');
-  const end=source.indexOf('    // The dispatch of a held read ended',start);assert(start>=0&&end>start);
+  const {createCheckpointAcquisitionAccess}=await import('./client-checkpoint-computation-source.mjs');
   const tuple={connection:'original',resource:'records',operation:'read'},checkedSource={sourceRef:'source'},binding={original:'binding'};
   const admitted={prepareAttemptId:'original-preparation',readTuple:tuple,checkpointCid:'original-checkpoint',earlier:['earlier-checkpoint'],principalId:'original-principal',acquisition:{checkedSource,physicalBinding:binding}};
   const reads=new Map([['original-request',new Map([['singular',admitted]])]]);let calls=0,deny=false,earlierCurrent=true,cancelled=false;
-  const access=Function('admittedReads','journal','recordCheckpointApproval','fail','return ({'+source.slice(start,end)+'}).acquisitionAccess;')(
-    reads,{getPreparation:()=>({cancelRequested:cancelled}),committedApprovalAt:cid=>({current:cid!=='earlier-checkpoint'||earlierCurrent})},recordCheckpointApproval,code=>{throw Object.assign(new Error(code),{code});})('original-request',{
-      authorization:{authorize:async()=>{calls++;return {action:deny?'deny':'waiting'};}}});
+  const {acquisitionAccess} = createCheckpointAcquisitionAccess({admittedReads: reads, journal: {
+    getPreparation: () => ({cancelRequested: cancelled}),
+    committedApprovalAt: cid => ({current: cid !== 'earlier-checkpoint' || earlierCurrent}),
+  }});
+  const access = acquisitionAccess('original-request', {
+    authorization: {authorize: async () => {calls++; return {action: deny ? 'deny' : 'waiting'};}},
+  });
   assert.equal(access.originalCheckpointApproval(),undefined);
   const decision=await access.authorization.authorize('acquisition',tuple);
   assert.equal(decision.action,'dispatch');assert.equal(access.originalCheckpointApproval(),decision);

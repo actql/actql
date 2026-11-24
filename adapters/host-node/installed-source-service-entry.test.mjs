@@ -4,6 +4,7 @@ import {mkdtemp, rm, writeFile, readFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {pathToFileURL} from 'node:url';
+import {parse} from 'acorn';
 import {createInstalledHostServices, retainInstalledHostServiceInstallation} from './installed-host-services.mjs';
 import {installedJsonSourceReaderProfileLimitNames} from './installed-credential-source-reader.mjs';
 import {createInstalledConnectorTable} from './installed-connectors.mjs';
@@ -266,9 +267,20 @@ test('Host service current check preserves optional Project original and closing
 // Resource, grant, Credential or physical cleanup acknowledgement.
 async function effectCredentialSelectionFixture({policy = [65536, 100000, 100]} = {}) {
   const source = await readFile(new URL('./installed-host-services.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('    openRowSite(options) {');
-  const end = source.indexOf('\n  });\n  const restoreDeclaration', start);
-  assert(start > 0 && end > start);
+  const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
+  const owner = tree.body.find(node => node.type === 'ExportNamedDeclaration' &&
+    node.declaration?.id?.name === 'createInstalledHostServices');
+  assert.ok(owner);
+  const servicesDeclaration = owner.declaration.body.body
+    .filter(node => node.type === 'VariableDeclaration')
+    .flatMap(node => node.declarations)
+    .find(node => node.id.name === 'services');
+  const object = servicesDeclaration?.init?.arguments?.[0];
+  assert.equal(object?.type, 'ObjectExpression');
+  const methods = object.properties.filter(node =>
+    node.type === 'Property' && node.method && !node.computed && node.key.name === 'openRowSite');
+  assert.equal(methods.length, 1);
+  const [{start, end}] = methods;
   const installation = Object.freeze({}), context = Object.freeze({});
   const scope = {installation, role: 'effect', active: true, prepared: {mappings: []}};
   const material = {phase: 'working'};
@@ -276,6 +288,7 @@ async function effectCredentialSelectionFixture({policy = [65536, 100000, 100]} 
   const sourceContexts = new WeakMap([[context, {scope, material}]]);
   const implementations = new WeakMap(), sites = new WeakMap(), siteInstallations = new WeakMap();
   const moon = Object.freeze({}), events = [], opened = {site: {}}, reader = Object.freeze({});
+  const accountConstruction = Object.freeze({});
   let current = true, calls = 0, onPolicy;
   const bindings = {selected, sourceContexts, implementations, sites, siteInstallations, moon,
     sourcePolicy() {assert.equal(this, moon);events.push('policy');onPolicy?.();return policy;},
@@ -290,14 +303,14 @@ async function effectCredentialSelectionFixture({policy = [65536, 100000, 100]} 
       }
       return value;
     },
-    installedSourceConfigurationReader: () => reader,
+    installedAccountConstruction(owner) {assert.equal(owner, services);return accountConstruction;},
+    installedSourceConfigurationReader(owner) {assert.equal(owner, services);return reader;},
     async openInstalledRowSite(options) {calls++;events.push('open');return {...opened, options};},
     fail(code) {throw Object.assign(new TypeError(code), {code});},
   };
-  const nodeTypes = (await import('node:util')).types;
-  const services = new Function(...Object.keys(bindings), 'nodeTypes',
-    'const services = {' + source.slice(start, end) + '};return services;')(...Object.values(bindings), nodeTypes);
-  return {services, installation, context, scope, material, events, reader, opened,
+  const services = new Function(...Object.keys(bindings),
+    'const services = {' + source.slice(start, end) + '};return services;')(...Object.values(bindings));
+  return {services, installation, context, scope, material, events, reader, opened, accountConstruction,
     input: {installation, sourceInitialization: context}, calls: () => calls,
     duringPolicy(callback) {onPolicy = callback;}, stop() {current = false;}};
 }
@@ -310,6 +323,7 @@ test('Effect Site selects original Core credential implementation bounds before 
   assert.equal(opened.options.sourceInitialization, f.context);
   assert.equal(opened.options.installation, f.installation);
   assert.equal(opened.options.configurationReader, f.reader);
+  assert.equal(opened.options.accountConstruction, f.accountConstruction);
   assert.deepEqual(f.events, ['current', 'policy', 'open']);
   const again = await f.services.openRowSite(f.input);
   assert.equal(again.options.runAcquisitionLimits, opened.options.runAcquisitionLimits);

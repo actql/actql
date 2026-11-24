@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
-      "sha256": "41f3417e825acc015367ac41de3bbf39e02a60447187947fea109a4e0214f3b5",
+      "sha256": "ee387dc40079387cc8a60c389098da6070bbd94fb1a169a43064e91b35a80a42",
       "exports": [
         "INSTALLED_KINTONE_SITE_VERSION",
         "INSTALLED_KINTONE_SOURCE_VERSION",
@@ -236,7 +236,7 @@
                 "anchor": "## Installed Credential Site"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "export async function createInstalledRowSource"
               }
             ],
@@ -246,17 +246,17 @@
                 "anchor": "client_program_kintone_prepare_read"
               },
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "export function checkInstalledKintoneSourceProfile"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invocationBindingsMatch"
               }
             ],
@@ -266,43 +266,43 @@
                 "anchor": "pub fn bind_record_read_cleanup"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "processing = false;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a changed final Form refuses capture after real record bytes without a replacement lookup"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "currentBeforeSend: () => current(operation)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
-                "anchor": "a kintone reply loss remains Unknown with one physical request and no automatic retry"
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
+                "anchor": "a kintone reply loss stops the transport and retains the one original Unknown use"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a rejected kintone response is charged on the original RowRun without another request"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "canceling an awaited kintone page retains its original reservation until transport retirement"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
               },
               {
@@ -320,21 +320,21 @@
                 "anchor": "actql-installed-kintone-source/0.1"
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "export function checkHostBundle"
               }
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a changed kintone resolver cannot replace the original token between Form and records"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "kintone repeated cross-page IDs abort instead of treating totalCount as completion"
               }
             ]
@@ -353,37 +353,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "prepareReadSequence(input) {"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "return createKintoneManagedSequence({moon, original,"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
-                "anchor": "const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control);"
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
+                "anchor": "const scope = invocationScopeFields(input.originalAuthorization.scope, site.credential.control) as Scope;"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "binding retains this SAME callback and surrounds it with root current."
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "const decision = await verifyCurrent();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "fail('KintoneFormReadUseLimit');"
               }
             ],
@@ -395,7 +395,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "maxTotalResponseBytes: Number(totalBytes)"
               }
             ],
@@ -407,7 +407,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-managed-loader.test.mts",
                 "anchor": "managed Kintone loader keeps one original Form grant and current callback through final recheck"
               }
             ]
@@ -493,7 +493,7 @@
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-record-read.mjs",
-      "sha256": "46c49f762008b2c617686af1312ee69b961aa1c204e5166157a969fe495faa5c",
+      "sha256": "d84448e5d0c4dbf04791209128158c5ed8d45c57ab1576a3f2be1c52920c2d3b",
       "exports": [
         "KINTONE_FORM_READ_OPERATION",
         "KINTONE_RECORD_READ_OPERATION",
@@ -574,7 +574,7 @@
                 "anchor": "## Installed Credential Site"
               },
               {
-                "path": "adapters/host-node/installed-row-source.mjs",
+                "path": "adapters/host-node/installed-row-source.mts",
                 "anchor": "export async function createInstalledRowSource"
               }
             ],
@@ -584,17 +584,17 @@
                 "anchor": "client_program_kintone_prepare_read"
               },
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "export function checkInstalledKintoneSourceProfile"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "foreign App metadata and missing typed runtime refuse before key entry or provider lookup"
               },
               {
-                "path": "adapters/host-common/owned-invocation-context.mjs",
+                "path": "adapters/host-common/owned-invocation-context.mts",
                 "anchor": "export function invocationBindingsMatch"
               }
             ],
@@ -604,43 +604,43 @@
                 "anchor": "pub fn bind_record_read_cleanup"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "processing = false;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a changed final Form refuses capture after real record bytes without a replacement lookup"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "currentBeforeSend: () => current(operation)"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
-                "anchor": "a kintone reply loss remains Unknown with one physical request and no automatic retry"
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
+                "anchor": "a kintone reply loss stops the transport and retains the one original Unknown use"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a rejected kintone response is charged on the original RowRun without another request"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "canceling an awaited kintone page retains its original reservation until transport retirement"
               },
               {
-                "path": "adapters/connectors/kintone/site/kintone-record-read.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-record-read.mts",
                 "anchor": "signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
               },
               {
@@ -658,21 +658,21 @@
                 "anchor": "actql-installed-kintone-source/0.1"
               },
               {
-                "path": "scripts/connector-host-bundle-contract.mjs",
+                "path": "scripts/connector-host-bundle-contract.mts",
                 "anchor": "export function checkHostBundle"
               }
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "installed kintone pages the same accounted RowRun with original wide ID and separate App record number"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "a changed kintone resolver cannot replace the original token between Form and records"
               },
               {
-                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mjs",
+                "path": "adapters/connectors/kintone/test/installed-kintone-source.test.mts",
                 "anchor": "kintone repeated cross-page IDs abort instead of treating totalCount as completion"
               }
             ]
@@ -682,7 +682,7 @@
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-record-delete.mjs",
-      "sha256": "7b7d3560de2f4789f58593148bb41b9f06f2a3f7740bcbeb10c552cb3fe56838",
+      "sha256": "644c3e32b1be8ae3e07590b00535a880bd08dde1f55942b44aea4163122c44af",
       "exports": [
         "KINTONE_RECORD_DELETE_OPERATION",
         "KINTONE_TARGET_READ_OPERATION",
@@ -1653,7 +1653,7 @@
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-record-write.mjs",
-      "sha256": "1aca4d5c544fb4ddfddabc9d11775bdb0d71f80b8757c139a12f05f9154b2db7",
+      "sha256": "526c32d1e2266e5185b5643a93cdb52c917e71068a4bffb08700fed53cb06fc0",
       "exports": [
         "KINTONE_RECORD_CREATE_OPERATION",
         "KINTONE_RECORD_UPDATE_OPERATION",
@@ -7762,13 +7762,13 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "await observeForm();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "fail('KintoneReadPageLimit');"
               }
             ],
@@ -7792,7 +7792,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs",
+                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mts",
                 "anchor": "managed Kintone uses original borrow and generic charge/quote/consume sequence with final Form"
               }
             ]
@@ -7922,7 +7922,7 @@
     },
     {
       "module": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
-      "sha256": "2394008efd862b458d41bf6e2910204a4fbb43d7481a4b177da801cbf7d6b3f8",
+      "sha256": "9414457a157befa8087e3cb65461aef350da32935a7057a5291f0d0b0fac4916",
       "exports": [
         "createKintoneManagedSequence"
       ],
@@ -8048,37 +8048,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "No credential, physical transport, RowRun, charge or cleanup ACK is created here."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
-                "anchor": "return function prepare(input){"
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
+                "anchor": "return function prepare(input: KintoneManagedInput){"
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "input.responseBorrow"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "retired=true;read=columns=capacity=kind=undefined;"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "await observeForm();"
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "fail('KintoneReadPageLimit');"
               }
             ],
@@ -8090,7 +8090,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "capacity=Reflect.apply(capacityForResponse,undefined,[read,kind,bytes,capacity]);"
               }
             ],
@@ -8102,7 +8102,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mjs",
+                "path": "adapters/connectors/kintone/test/kintone-managed-sequence.test.mts",
                 "anchor": "managed Kintone uses original borrow and generic charge/quote/consume sequence with final Form"
               }
             ]
@@ -8162,7 +8162,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "The generic owner has retained and charged the original body before"
               }
             ],
@@ -8287,7 +8287,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "The generic owner has retained and charged the original body before"
               }
             ],
@@ -8578,331 +8578,12 @@
       ]
     },
     {
-      "module": "adapters/connectors/kintone/host/kintone-delete-request.mjs",
-      "responsibilityFacet": "primary",
-      "role": "connector-semantics",
-      "owner": "Existing kintone Catalog and installed Row Effect",
-      "sha256": "87376f0ca4a3be15df819584193a9dc89f4207164e88e3161004ffc1f75a99f5",
-      "exports": [
-        "createKintoneDeleteRequestAdapter"
-      ],
-      "operations": [
-        {
-          "name": "createKintoneDeleteRequestAdapter",
-          "parameters": [
-            "moon",
-            "mapping",
-            "declaration",
-            "origin",
-            "appId",
-            "connectorId",
-            "resource",
-            "siteBindingCid",
-            "generationCid",
-            "guestSpaceId",
-            "limits"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/createKintoneDeleteRequestAdapter",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/get/get",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:assertFinalized/init:assertFinalized",
-          "parameters": [
-            "request",
-            "requestTag"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:finalize/init:finalize",
-          "parameters": [
-            "request",
-            "requestTag"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:nativeRequest/init:nativeRequest",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:prepare/init:prepare",
-          "parameters": [
-            "selector",
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse",
-          "parameters": [
-            "request",
-            "observation",
-            "preview",
-            "memberIndex",
-            "rowIndex"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse/init:projectResponse",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:projectTarget/init:projectTarget",
-          "parameters": [
-            "request",
-            "response"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:recheckForm/init:recheckForm",
-          "parameters": [
-            "response"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:requestBody/init:requestBody",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:requestCid/init:requestCid",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:requestFacts/init:requestFacts",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:restore/init:restore",
-          "parameters": [
-            "wire",
-            "requestTag"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:restore/init:restore/init:restore",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:restore/init:restore/init:restore#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:savedWire/init:savedWire",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/init:targetReadBody/init:targetReadBody",
-          "parameters": [
-            "request"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/native/native",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "createKintoneDeleteRequestAdapter/native/native/native",
-          "parameters": [
-            "args"
-          ],
-          "async": false
-        },
-        {
-          "name": "digest/digest",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownData/ownData",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "ownData/ownData#2",
-          "parameters": [
-            "name"
-          ],
-          "async": false
-        },
-        {
-          "name": "positive/positive",
-          "parameters": [
-            "value"
-          ],
-          "async": false
-        }
-      ],
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "createKintoneDeleteRequestAdapter",
-            "createKintoneDeleteRequestAdapter/createKintoneDeleteRequestAdapter",
-            "createKintoneDeleteRequestAdapter/get/get",
-            "createKintoneDeleteRequestAdapter/init:assertFinalized/init:assertFinalized",
-            "createKintoneDeleteRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
-            "createKintoneDeleteRequestAdapter/init:finalize/init:finalize",
-            "createKintoneDeleteRequestAdapter/init:nativeRequest/init:nativeRequest",
-            "createKintoneDeleteRequestAdapter/init:prepare/init:prepare",
-            "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse",
-            "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse/init:projectResponse",
-            "createKintoneDeleteRequestAdapter/init:projectTarget/init:projectTarget",
-            "createKintoneDeleteRequestAdapter/init:recheckForm/init:recheckForm",
-            "createKintoneDeleteRequestAdapter/init:requestBody/init:requestBody",
-            "createKintoneDeleteRequestAdapter/init:requestCid/init:requestCid",
-            "createKintoneDeleteRequestAdapter/init:requestFacts/init:requestFacts",
-            "createKintoneDeleteRequestAdapter/init:restore/init:restore",
-            "createKintoneDeleteRequestAdapter/init:restore/init:restore/init:restore",
-            "createKintoneDeleteRequestAdapter/init:restore/init:restore/init:restore#2",
-            "createKintoneDeleteRequestAdapter/init:savedWire/init:savedWire",
-            "createKintoneDeleteRequestAdapter/init:targetReadBody/init:targetReadBody",
-            "createKintoneDeleteRequestAdapter/native/native",
-            "createKintoneDeleteRequestAdapter/native/native/native",
-            "digest/digest",
-            "ownData/ownData",
-            "ownData/ownData#2",
-            "positive/positive"
-          ],
-          "exports": [
-            "createKintoneDeleteRequestAdapter"
-          ],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- The request adapter gives the existing row Effect"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Before finalization, it accepts the exact API ID"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- A logical identity binds the installation"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- The original adapter retains the request"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Form recheck and target projection are synchronous."
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Recovery reprojects the stored response"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- Restoring request data issues no retry"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- The read, response, identity and recovery limits apply independently."
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- The Node and RelA bridges forward the same typed Mapping"
-              }
-            ],
-            "verification": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "- The compiled-runtime controls verify exact selector"
-              },
-              {
-                "path": "adapters/connectors/kintone/test/kintone-delete-request.test.mjs",
-                "anchor": "DELETE recovery reprojects only the original bounded target bytes and conditional request"
-              },
-              {
-                "path": "adapters/connectors/kintone/test/kintone-delete-outcome.test.mjs",
-                "anchor": "row Effect DELETE response uses the retained target and exact approved Preview after restore"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
       "module": "adapters/connectors/kintone/host/kintone-update-request.mjs",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "c788f4794c929646137ae37cf9f6f988343e66f74807e038c81a30a80194cdd9",
+      "sha256": "f0ffc2d039871ed1631c059e220936810d8768f54be7371d29ed411462d547e4",
       "exports": [
         "createKintoneUpdateRequestAdapter"
       ],
@@ -9264,7 +8945,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "f8aadb27a3de8c60ff8951c8649458d116605c11cf62cf55f121719da63c68f4",
+      "sha256": "5f403f589fdc421bf9621505200810dac5c94d4cde8c8789c289765041d829b0",
       "exports": [
         "KINTONE_UPDATE_TARGET_VERSION",
         "KintoneUpdateObservationFailure",
@@ -9583,21 +9264,21 @@
             "kintoneRecordMutationDriver/readScope/readScope/readScope/input/input",
             "kintoneRecordMutationDriver/readScope/readScope/readScope/prepareOperations/prepareOperations",
             "kintoneRecordMutationDriver/readScope/readScope/readScope/value/value",
+            "kintoneRecordMutationDriver/recheckForm/recheckForm",
+            "kintoneRecordMutationDriver/recheckForm/recheckForm/recheckForm",
+            "kintoneRecordMutationDriver/recheckForm/recheckForm#2",
             "kintoneRecordMutationDriver/restore/restore",
             "kintoneRecordMutationDriver/restore/restore/restore",
             "kintoneRecordMutationDriver/restore/restore/restore/restore",
             "kintoneRecordMutationDriver/write/init:prepareUpdateWrite/init:prepareUpdateWrite",
             "kintoneRecordMutationDriver/write/init:project/init:project",
-            "kintoneRecordMutationDriver/write/init:send/init:send",
-            "kintoneRecordMutationDriver/write/init:writeOperation/init:writeOperation",
-            "kintoneUpdateDriver",
-            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor",
-            "kintoneRecordMutationDriver/recheckForm/recheckForm",
-            "kintoneRecordMutationDriver/recheckForm/recheckForm/recheckForm",
-            "kintoneRecordMutationDriver/recheckForm/recheckForm#2",
             "kintoneRecordMutationDriver/write/init:project/init:project#2",
+            "kintoneRecordMutationDriver/write/init:send/init:send",
             "kintoneRecordMutationDriver/write/init:send/init:send#2",
-            "kintoneRecordMutationDriver/write/init:writeOperation/init:writeOperation#2"
+            "kintoneRecordMutationDriver/write/init:writeOperation/init:writeOperation",
+            "kintoneRecordMutationDriver/write/init:writeOperation/init:writeOperation#2",
+            "kintoneUpdateDriver",
+            "KintoneUpdateObservationFailure/constructor:constructor/constructor:constructor"
           ],
           "exports": [
             "KINTONE_UPDATE_TARGET_VERSION",
@@ -9746,110 +9427,6 @@
               {
                 "path": "docs/design/kintone-execution-boundary.md",
                 "anchor": "Installation verification:"
-              }
-            ]
-          }
-        }
-      ]
-    },
-    {
-      "module": "src/connectors/kintone/host/record_delete_construction.mbt",
-      "sha256": "5d637cf9099f2ea1d395cecb2503b5dc8e36de991694fb1f4869941bd84a5c2d",
-      "exports": [],
-      "operations": [
-        {
-          "name": "record_delete_form_construction_capacity",
-          "declaration": "record_delete_form_construction_capacity ( mapping : RecordDeleteMapping , body_bytes : Int , limits : @ catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
-        },
-        {
-          "name": "record_delete_response_construction_capacity",
-          "declaration": "record_delete_response_construction_capacity ( mapping : RecordDeleteMapping , body_bytes : Int , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
-        },
-        {
-          "name": "record_delete_target_construction_capacity",
-          "declaration": "record_delete_target_construction_capacity ( mapping : RecordDeleteMapping , body_bytes : Int , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
-        },
-        {
-          "name": "record_delete_target_read_construction_capacity",
-          "declaration": "record_delete_target_read_construction_capacity ( mapping : RecordDeleteMapping , max_fields : Int , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
-        }
-      ],
-      "responsibilityFacet": "primary",
-      "role": "connector-semantics",
-      "owner": "Existing kintone Catalog and installed Row Effect",
-      "contracts": [
-        {
-          "operations": [
-            "<module>",
-            "record_delete_form_construction_capacity",
-            "record_delete_response_construction_capacity",
-            "record_delete_target_construction_capacity",
-            "record_delete_target_read_construction_capacity"
-          ],
-          "exports": [],
-          "attributes": {
-            "responsibility": [
-              {
-                "path": "docs/design/kintone-execution-boundary.md",
-                "anchor": "Quantities responsibility:"
-              }
-            ],
-            "inputsOutputs": [
-              {
-                "path": "docs/design/kintone-execution-boundary.md",
-                "anchor": "Quantities inputs and outputs:"
-              }
-            ],
-            "identity": [
-              {
-                "path": "docs/design/kintone-execution-boundary.md",
-                "anchor": "Quantities identity:"
-              }
-            ],
-            "ownership": [
-              {
-                "path": "docs/design/kintone-execution-boundary.md",
-                "anchor": "Quantities ownership:"
-              }
-            ],
-            "synchronization": [
-              {
-                "path": "docs/design/kintone-execution-boundary.md",
-                "anchor": "Quantities synchronization:"
-              }
-            ],
-            "failure": [
-              {
-                "path": "docs/design/kintone-execution-boundary.md",
-                "anchor": "Quantities failure:"
-              }
-            ],
-            "cancellation": [
-              {
-                "path": "docs/design/kintone-execution-boundary.md",
-                "anchor": "Quantities cancellation:"
-              }
-            ],
-            "resources": [
-              {
-                "path": "docs/design/kintone-record-mutations.md",
-                "anchor": "The native comparison quote retains the encoded query"
-              }
-            ],
-            "extension": [
-              {
-                "path": "docs/design/kintone-execution-boundary.md",
-                "anchor": "Quantities extension:"
-              }
-            ],
-            "verification": [
-              {
-                "path": "src/connectors/kintone/host/record_delete_preview_wbtest.mbt",
-                "anchor": "kintone DELETE construction charges the original target once and keeps form scratch temporary"
-              },
-              {
-                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
-                "anchor": "kintone DELETE recipe binds all reads, finalization and the distinct DELETE child"
               }
             ]
           }
@@ -10027,7 +9604,7 @@
       "role": "physical-io",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "5a29330af0d002ef263b1b800b28a500fa10b5c705b18a50ea3213fe024cad5b",
+      "sha256": "00d5b41eb154e4f9911890eeec4ee261b8ee44b93583254cf1ff55b4bc7bb31c",
       "exports": [
         "INSTALLED_KINTONE_EFFECT_VERSION",
         "checkInstalledKintoneEffectProfile",
@@ -10304,6 +9881,7 @@
             "loadInstalledKintoneEffect/mapped/init:capacity/init:capacity",
             "loadInstalledKintoneEffect/mapped/init:project/init:project",
             "loadInstalledKintoneEffect/mapped/init:project/init:project/init:project",
+            "loadInstalledKintoneEffect/mapped/init:project/init:project/sources/sources",
             "loadInstalledKintoneEffect/native/native",
             "loadInstalledKintoneEffect/targetReadInventory/targetReadInventory",
             "loadInstalledKintoneEffect/targetReadInventory/targetReadInventory/targetReadInventory",
@@ -10315,8 +9893,7 @@
             "membersOf/members/members",
             "membersOf/members/members#2",
             "membersOf/membersOf",
-            "method/method/method",
-            "loadInstalledKintoneEffect/mapped/init:project/init:project/sources/sources"
+            "method/method/method"
           ],
           "exports": [
             "INSTALLED_KINTONE_EFFECT_VERSION",
@@ -10399,7 +9976,7 @@
       "role": "connector-semantics",
       "owner": "E — kintone original UPDATE provider DATA and existing row Effect connection",
       "referenceQualification": "Source and actual compiled component boundary only; no normal installed provider or physical cleanup acceptance",
-      "sha256": "cda41724c48288f825c13996fd806702b8e2c4c8aa48dac97c1a97c8ffce50dc",
+      "sha256": "3923a80884621fe4c4d91a78abe5040f2c4fa7679946534af118d0630353c49d",
       "exports": [
         "captureKintoneEffectPlanRecipeBuilder"
       ],
@@ -10700,6 +10277,429 @@
       ]
     },
     {
+      "module": "adapters/connectors/kintone/host/kintone-delete-request.mjs",
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing kintone Catalog and installed Row Effect",
+      "sha256": "4fb477d98dc7eeb21fe2f3ce8b6811f52feb330258d97911682d7c9bbdd38349",
+      "exports": [
+        "createKintoneDeleteRequestAdapter"
+      ],
+      "operations": [
+        {
+          "name": "createKintoneDeleteRequestAdapter",
+          "parameters": [
+            "moon",
+            "mapping",
+            "declaration",
+            "origin",
+            "appId",
+            "connectorId",
+            "resource",
+            "siteBindingCid",
+            "generationCid",
+            "guestSpaceId",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/createKintoneDeleteRequestAdapter",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/get/get",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:assertFinalized/init:assertFinalized",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:finalize/init:finalize",
+          "parameters": [
+            "request",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:nativeRequest/init:nativeRequest",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:prepare/init:prepare",
+          "parameters": [
+            "selector",
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse",
+          "parameters": [
+            "request",
+            "observation",
+            "preview",
+            "memberIndex",
+            "rowIndex"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse/init:projectResponse",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:projectTarget/init:projectTarget",
+          "parameters": [
+            "request",
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:recheckForm/init:recheckForm",
+          "parameters": [
+            "response"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:requestBody/init:requestBody",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:requestCid/init:requestCid",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:requestFacts/init:requestFacts",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:restore/init:restore",
+          "parameters": [
+            "wire",
+            "requestTag"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:restore/init:restore/init:restore",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:restore/init:restore/init:restore#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:savedWire/init:savedWire",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/init:targetReadBody/init:targetReadBody",
+          "parameters": [
+            "request"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/native/native",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "createKintoneDeleteRequestAdapter/native/native/native",
+          "parameters": [
+            "args"
+          ],
+          "async": false
+        },
+        {
+          "name": "digest/digest",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData/ownData",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "ownData/ownData#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "positive/positive",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createKintoneDeleteRequestAdapter",
+            "createKintoneDeleteRequestAdapter/createKintoneDeleteRequestAdapter",
+            "createKintoneDeleteRequestAdapter/get/get",
+            "createKintoneDeleteRequestAdapter/init:assertFinalized/init:assertFinalized",
+            "createKintoneDeleteRequestAdapter/init:capabilityRequestCid/init:capabilityRequestCid",
+            "createKintoneDeleteRequestAdapter/init:finalize/init:finalize",
+            "createKintoneDeleteRequestAdapter/init:nativeRequest/init:nativeRequest",
+            "createKintoneDeleteRequestAdapter/init:prepare/init:prepare",
+            "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse",
+            "createKintoneDeleteRequestAdapter/init:projectResponse/init:projectResponse/init:projectResponse",
+            "createKintoneDeleteRequestAdapter/init:projectTarget/init:projectTarget",
+            "createKintoneDeleteRequestAdapter/init:recheckForm/init:recheckForm",
+            "createKintoneDeleteRequestAdapter/init:requestBody/init:requestBody",
+            "createKintoneDeleteRequestAdapter/init:requestCid/init:requestCid",
+            "createKintoneDeleteRequestAdapter/init:requestFacts/init:requestFacts",
+            "createKintoneDeleteRequestAdapter/init:restore/init:restore",
+            "createKintoneDeleteRequestAdapter/init:restore/init:restore/init:restore",
+            "createKintoneDeleteRequestAdapter/init:restore/init:restore/init:restore#2",
+            "createKintoneDeleteRequestAdapter/init:savedWire/init:savedWire",
+            "createKintoneDeleteRequestAdapter/init:targetReadBody/init:targetReadBody",
+            "createKintoneDeleteRequestAdapter/native/native",
+            "createKintoneDeleteRequestAdapter/native/native/native",
+            "digest/digest",
+            "ownData/ownData",
+            "ownData/ownData#2",
+            "positive/positive"
+          ],
+          "exports": [
+            "createKintoneDeleteRequestAdapter"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- The request adapter gives the existing row Effect"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Before finalization, it accepts the exact API ID"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- A logical identity binds the installation"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- The original adapter retains the request"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Form recheck and target projection are synchronous."
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Recovery reprojects the stored response"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- Restoring request data issues no retry"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- The read, response, identity and recovery limits apply independently."
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- The Node and RelA bridges forward the same typed Mapping"
+              }
+            ],
+            "verification": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "- The compiled-runtime controls verify exact selector"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-delete-request.test.mjs",
+                "anchor": "DELETE recovery reprojects only the original bounded target bytes and conditional request"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-delete-outcome.test.mjs",
+                "anchor": "row Effect DELETE response uses the retained target and exact approved Preview after restore"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "module": "src/connectors/kintone/host/record_delete_construction.mbt",
+      "sha256": "5d637cf9099f2ea1d395cecb2503b5dc8e36de991694fb1f4869941bd84a5c2d",
+      "exports": [],
+      "operations": [
+        {
+          "name": "record_delete_form_construction_capacity",
+          "declaration": "record_delete_form_construction_capacity ( mapping : RecordDeleteMapping , body_bytes : Int , limits : @ catalog . FormFieldLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_delete_response_construction_capacity",
+          "declaration": "record_delete_response_construction_capacity ( mapping : RecordDeleteMapping , body_bytes : Int , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_delete_target_construction_capacity",
+          "declaration": "record_delete_target_construction_capacity ( mapping : RecordDeleteMapping , body_bytes : Int , pages : @ catalog . RecordPageLimits , values : @ catalog . RecordValueLimits , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        },
+        {
+          "name": "record_delete_target_read_construction_capacity",
+          "declaration": "record_delete_target_read_construction_capacity ( mapping : RecordDeleteMapping , max_fields : Int , limits : @ catalog . RecordMutationLimits , ) - > @ execution . ExecutionCapacity ?"
+        }
+      ],
+      "responsibilityFacet": "primary",
+      "role": "connector-semantics",
+      "owner": "Existing kintone Catalog and installed Row Effect",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "record_delete_form_construction_capacity",
+            "record_delete_response_construction_capacity",
+            "record_delete_target_construction_capacity",
+            "record_delete_target_read_construction_capacity"
+          ],
+          "exports": [],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities responsibility:"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities inputs and outputs:"
+              }
+            ],
+            "identity": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities identity:"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities ownership:"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities synchronization:"
+              }
+            ],
+            "failure": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities failure:"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities cancellation:"
+              }
+            ],
+            "resources": [
+              {
+                "path": "docs/design/kintone-record-mutations.md",
+                "anchor": "The native comparison quote retains the encoded query"
+              }
+            ],
+            "extension": [
+              {
+                "path": "docs/design/kintone-execution-boundary.md",
+                "anchor": "Quantities extension:"
+              }
+            ],
+            "verification": [
+              {
+                "path": "src/connectors/kintone/host/record_delete_preview_wbtest.mbt",
+                "anchor": "kintone DELETE construction charges the original target once and keeps form scratch temporary"
+              },
+              {
+                "path": "adapters/connectors/kintone/test/kintone-effect-plan.test.mjs",
+                "anchor": "kintone DELETE recipe binds all reads, finalization and the distinct DELETE child"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
       "module": "src/connectors/kintone/host/record_key_upsert_mapping.mbt",
       "sha256": "462e080add2f00edee3c00b8989dce2ad14a8c496c94a53de7145975f7cf7145",
       "responsibilityFacet": "primary",
@@ -10930,7 +10930,7 @@
     },
     {
       "module": "adapters/connectors/kintone/host/kintone-key-upsert-request.mjs",
-      "sha256": "0ab3d6fc6156b98d8f2689c41849bd099b654ee198029287c185f6542f154fb3",
+      "sha256": "73c85eb309e50f0f6829cc28ddeb829fad74ec2c62d1b8add4e2f7efa3e74456",
       "responsibilityFacet": "primary",
       "role": "connector-semantics",
       "owner": "Original Kintone keyed UPSERT request and saved material projection",

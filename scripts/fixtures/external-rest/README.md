@@ -3,7 +3,7 @@
 `connector.json` is the entire handwritten connector implementation. It has
 no MoonBit package, Host callback, credential value, reader state machine or
 handwritten installation manifest. The optional transform is unnecessary for
-this API. `provider.fixture.mjs` contains independent test response DATA and
+this API. `provider.fixture.mts` contains independent test response DATA and
 row expectations; it is not installed author code.
 
 The author projection is generated with the existing script entrance:

@@ -25,7 +25,7 @@ test('optional AS fixtures distinguish output aliases from qualified inputs', ()
 
 test('optional AS cases remain in normal packed acceptance and its narrow selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'optionalOutputAsSuccesses'], ['refusals', 'optionalOutputAsRefusals'],
     ['executionFailures', 'optionalOutputAsExecutionFailures']]) assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
   assert.ok(fixture.includes('optionalOutputAsOnly ? {successes: optionalOutputAsSuccesses'));

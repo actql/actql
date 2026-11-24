@@ -73,11 +73,13 @@ export async function originalCommandKeyFixture({rows = [{id:'one',value:'origin
     'key-fixture',cid('c'),'2026-09-24T00:00:00.000Z','2027-01-01T00:00:00.000Z',100000,10000,64));
   const bound = moon.clientProgramBindEffectRun(prepared,admission,definition);
   assert(bound);
-  const [registry,contracts] = await Promise.all([
+  const [registryWire,contracts] = await Promise.all([
     readFile(new URL('../../../spec/dependencies/aoa-pipeline-registry.json',import.meta.url),'utf8'),
     readFile(new URL('../../../spec/contracts/actql-aoa.json',import.meta.url),'utf8'),
   ]);
   const values = JSON.stringify(JSON.parse(contracts).execution_contracts['REL.values']);
+  const registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    registryWire,values,undefined,undefined));
   const owned = moon.clientProgramOpenSourceFreeLocalEffectHost(bound,registry,values,1n,0n,0n,0n);
   assert(owned);
   const execution = await runCapturedEffectComputation(owned);

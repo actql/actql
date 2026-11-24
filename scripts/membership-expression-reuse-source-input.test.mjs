@@ -57,7 +57,7 @@ test('membership reuse enters ordinary and selected packed acceptance with the s
   }
   assert.match(app, /const scopeOnly = [^;]*\bmembershipReuseOnly\b/u);
   assert.ok(app.includes('membershipReuseOnly ? {successes: membershipReuseSuccesses, refusals: membershipReuseRefusals}'));
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/membership-expression-reuse-source-input.mjs', 'membership-expression-reuse-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_MEMBERSHIP_REUSE_ONLY = '1'"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--membership-expression-reuse-only'/u);

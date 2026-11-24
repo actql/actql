@@ -25,13 +25,14 @@ async function fixture(t) {
     contractControl: control, preparation: () => undefined,
     isTerminalRunOutcome: () => false, store: {storeAuthorityCid: authority}});
   const owners = [];
-  const evidence = () => { const owner = open(); owners.push(owner); return owner; };
+  const retain = owner => { owners.push(owner); return owner; };
+  const evidence = () => retain(open());
   t.after(async () => {
     for (const owner of owners) await owner.close();
     await rm(state, {recursive: true, force: true});
     key.fill(0);
   });
-  return {state, key, keyId, evidence};
+  return {state, key, keyId, evidence, retain};
 }
 
 test('original storage binding observes the actual Store and keeps one nominal installation view', async t => {
@@ -92,8 +93,7 @@ test('original storage binding physical handle is valid only for the same live S
   const configuration = {directory: join(f.state, 'direct'), storeAuthorityCid: authority,
     capacityBytes: 4096, maxObjectBytes: 2048, maxObjects: 8,
     maxContractNodes: 32, maxContractDepth: 4, privateEvidenceKey: f.key};
-  let store = await openLocalPublicationStore(configuration, control);
-  t.after(async () => { if (!store.status().closed) await store.close(); });
+  let store = f.retain(await openLocalPublicationStore(configuration, control));
   assert.throws(() => store.originalModelStorageBindingEvidence(undefined),
     {code: 'ForeignOriginalModelStorageBinding'});
   const handle = await store.observeOriginalModelStorageBinding();
@@ -101,7 +101,7 @@ test('original storage binding physical handle is valid only for the same live S
   await store.close();
   assert.throws(() => store.originalModelStorageBindingEvidence(handle),
     {code: 'PublicationStoreClosed'});
-  store = await openLocalPublicationStore(configuration, control);
+  store = f.retain(await openLocalPublicationStore(configuration, control));
   assert.throws(() => store.originalModelStorageBindingEvidence(handle),
     {code: 'ForeignOriginalModelStorageBinding'});
   const current = await store.observeOriginalModelStorageBinding();

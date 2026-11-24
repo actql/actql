@@ -3578,11 +3578,11 @@ const mutations = Object.freeze({
     "    if (visible.length === 0) return JSON.parse(moon.clientProgramCheckUnavailable('corr:mutant'));"],
   // An unusable read owner reveals the installed publication.
   'failed read owner reveals names': [
-    'if (signal?.aborted) throw cause;\n      return undefined;',
+    'if (signal?.aborted)\n                throw cause;\n            return undefined;',
     'if (signal?.aborted) throw cause;\n      return aliases;'],
   // A hidden name is checked as if it were visible.
   'hidden source is checked as visible': [
-    'const wire = projectOriginal === undefined\n      ? moon.clientProgramCheckSource(input.text, input.format, environment,\n        visiblePublication, declarations, supplied,',
+    'const wire = projectOriginal === undefined\n            ? moon.clientProgramCheckSource(input.text, input.format, environment, visiblePublication, declarations, supplied,',
     'const wire = projectOriginal === undefined\n      ? moon.clientProgramCheckSource(input.text, input.format, environment,\n        JSON.stringify({environmentCid, aliases}), declarations, supplied,'],
   // The context reference names the private source set.
   'context binds the private source set': [
@@ -3593,7 +3593,7 @@ const mutations = Object.freeze({
     'version: contextVersion,'],
   // A reference is reused across sources.
   'context omits the source': [
-    'source: {format: input.format, text: input.text},', ''],
+    'source: { format: input.format, text: input.text },', ''],
   // A reference normalizes distinct String values together.
   'context normalizes String values': [
     "from '../../packages/sdk/host-port.mjs';",
