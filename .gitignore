@@ -3302,3 +3302,9 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/native-runtime-bundle-fixture.d.mts
 /scripts/native-preparation-originals.test.mjs
 /scripts/native-preparation-originals.test.d.mts
+/scripts/verify-local-source-runtime.mjs
+/scripts/verify-local-source-runtime.d.mts
+/scripts/verify-local-source-runtime.test.mjs
+/scripts/verify-local-source-runtime.test.d.mts
+/scripts/native-resident-portable-preparation.mjs
+/scripts/native-resident-portable-preparation.d.mts

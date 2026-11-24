@@ -10,12 +10,25 @@ import {runtimePackageInputs} from './runtime-package-inputs.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 import {verifyWorkspacePackageLinks} from './verify-local-source-runtime.mjs';
 
+import type {SpawnSyncOptions} from 'node:child_process';
+
+type FileIdentity = ReturnType<typeof originalDescriptor>;
+type PortableFile = Omit<FileIdentity, 'sha256'> & {selectedPath: string; sha256?: string};
+type PortableSelection = ReturnType<typeof selection>;
+type PortableReceipt = {
+  identity: ReturnType<typeof identity>; inputs: PortableFile[]; artifacts: PortableFile[];
+};
+type PortableOptions = {
+  env?: NodeJS.ProcessEnv; jobs?: number;
+  execute?: (file: string, args: readonly string[], options: SpawnSyncOptions) => unknown;
+};
+
 // Effect computation uses the retained transfer owner on both Native platforms.
-const names = ['coordinator-core', 'run-host-core', 'transfer-core'];
+const names = ['coordinator-core', 'run-host-core', 'transfer-core'] as const;
 const coreArgs = ['build', '--target', 'js', '--release', 'src/connectors_builtin_node'];
 const ownerArgs = ['scripts/build-runtime-packages.mjs', ...names];
 
-function files(directory, excluded = new Set()) {
+function files(directory: string, excluded: ReadonlySet<string> = new Set()): string[] {
   return readdirSync(directory, {withFileTypes: true}).sort((a, b) => a.name.localeCompare(b.name))
     .flatMap(item => {
       if (excluded.has(item.name)) return [];
@@ -23,15 +36,15 @@ function files(directory, excluded = new Set()) {
       return statSync(path).isDirectory() ? files(path, excluded) : [path];
     });
 }
-function selection(repository, env, jobs) {
+function selection(repository: string, env: NodeJS.ProcessEnv, jobs?: number) {
   assert(jobs === undefined || jobs === 1, 'Portable construction requires its one selected build slot');
   const buildJobs = jobs === undefined ? [] : ['-j', String(jobs)];
   const ownerJobs = jobs === undefined ? [] : ['--moon-jobs', String(jobs)];
   repository = verifyWorkspacePackageLinks(repository);
-  const git = args => execFileSync('git', args, {cwd: repository, encoding: 'utf8'}).trim();
+  const git = (args: readonly string[]) => execFileSync('git', args, {cwd: repository, encoding: 'utf8'}).trim();
   assert.equal(git(['status', '--porcelain']), '', 'Portable preparation requires unchanged clean source');
   const source = git(['rev-parse', 'HEAD']);
-  const moonHome = realpathSync(env.MOON_HOME);
+  const moonHome = realpathSync(env.MOON_HOME!);
   const tracked = execFileSync('git', ['ls-files', '-z', '--', 'src', 'adapters', 'packages', 'scripts',
     'spec', 'vendor', 'toolchain.json', 'package.json', 'package-lock.json', 'moon.mod', 'moon.mod.json',
     'moon.work', 'moon.work.json', 'moon.lock', '.npmrc'],
@@ -54,37 +67,38 @@ function selection(repository, env, jobs) {
     environment: Object.fromEntries(Object.entries(env).filter(([key]) =>
       /^MOON_/u.test(key) || ['NODE_OPTIONS', 'NODE_PATH', 'CC', 'CXX'].includes(key)).sort()),
     commands: [[join(moonHome, 'bin/moon'), [...coreArgs, ...buildJobs]],
-      [process.execPath, [ownerArgs[0], ...ownerJobs, ...ownerArgs.slice(1)]]],
+      [process.execPath, [ownerArgs[0], ...ownerJobs, ...ownerArgs.slice(1)]]] as [string, string[]][],
     inputs: [...new Set(inputs)].sort(), artifacts: [...new Set(artifacts)].sort()};
 }
-function describe(paths) {
+function describe(paths: readonly string[]): PortableFile[] {
   return paths.map(path => {
     const original = realpathSync(path);
     return {selectedPath: path, ...(statSync(original).size === 0
       ? {path: original, bytes: 0} : originalDescriptor(original))};
   });
 }
-function verify(paths, records) {
+function verify(paths: readonly string[], records: readonly PortableFile[]) {
   assert.deepEqual(records.map(item => item.selectedPath), paths, 'Portable input inventory changed');
   for (const item of records) {
     assert.equal(realpathSync(item.selectedPath), item.path, 'Portable input target changed');
     if (item.bytes === 0) assert.equal(statSync(item.path).size, 0, 'Empty input changed');
-    else verifyOriginal(item);
+    else verifyOriginal(item as PortableFile & FileIdentity);
   }
 }
-function identity(selected) {
+function identity(selected: PortableSelection) {
   const {inputs, artifacts, ...value} = selected;
   return value;
 }
 
-function verifySelectedPreparation(selected, receiptPath) {
-  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
+function verifySelectedPreparation(selected: PortableSelection, receiptPath: string) {
+  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as PortableReceipt;
   assert.deepEqual(receipt.identity, identity(selected), 'Foreign portable preparation');
   verify(selected.inputs, receipt.inputs);
   verify(selected.artifacts, receipt.artifacts);
 }
 
-export function verifyNativeResidentPortablePreparation(repository, receiptPath, {env = process.env} = {}) {
+export function verifyNativeResidentPortablePreparation(repository: string, receiptPath: string,
+  {env = process.env}: Pick<PortableOptions, 'env'> = {}) {
   const mode = env.ACTQL_TEST_NATIVE_PORTABLE_PREPARATION_JOBS;
   assert(mode === undefined || mode === '1', 'Invalid portable preparation construction mode');
   verifySelectedPreparation(selection(repository, env, mode === undefined ? undefined : 1), receiptPath);
@@ -92,23 +106,23 @@ export function verifyNativeResidentPortablePreparation(repository, receiptPath,
 
 // Reuse the original immutable same-job module before importing its URL. A
 // refusal keeps the original error; only an absent preparation builds locally.
-export function prepareNativeResidentPortableCore(repository, {
+export function prepareNativeResidentPortableCore(repository: string, {
   env = process.env, preparation = env.ACTQL_TEST_NATIVE_PORTABLE_RUNTIME_PREPARATION,
   prepare,
-} = {}) {
+}: {env?: NodeJS.ProcessEnv; preparation?: string | null; prepare?: () => unknown} = {}) {
   repository = realpathSync(repository);
   if (preparation !== undefined && preparation !== null) {
     assert(typeof preparation === 'string' && preparation.length > 0);
     verifyNativeResidentPortablePreparation(repository, preparation, {env});
   } else {
     assert.equal(typeof prepare, 'function');
-    prepare();
+    prepare!();
   }
   return join(repository, '_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
 }
 
-export function prepareNativeResidentPortableRuntime(repository, receiptPath,
-  {env = process.env, execute = execFileSync, jobs} = {}) {
+export function prepareNativeResidentPortableRuntime(repository: string, receiptPath: string,
+  {env = process.env, execute = execFileSync, jobs}: PortableOptions = {}) {
   const selected = selection(repository, env, jobs);
   if (existsSync(receiptPath)) {
     verifySelectedPreparation(selected, receiptPath);

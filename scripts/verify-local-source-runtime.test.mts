@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,mkdirSync,symlinkSync,rmSync,writeFileSync} from 'node:fs';
+import {mkdtempSync,mkdirSync,realpathSync,symlinkSync,rmSync,writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createHash} from 'node:crypto';
@@ -13,14 +13,14 @@ test('source harness rejects an old workspace dependency, not just entry path',(
   symlinkSync(join(root,'old/packages/sdk'),link);
   assert.throws(()=>verifyWorkspacePackageLinks(join(root,'current')),/ForeignActqlWorkspacePackage:sdk/);
   rmSync(link);symlinkSync(join(root,'current/packages/sdk'),link);
-  assert.equal(verifyWorkspacePackageLinks(join(root,'current')),join(root,'current'));
+  assert.equal(verifyWorkspacePackageLinks(join(root,'current')),realpathSync(join(root,'current')));
  }finally{rmSync(root,{recursive:true,force:true});}
 });
 
 test('a separately current calculator with a different cost model cannot explain a runtime debit',()=>{
  const root=mkdtempSync(join(tmpdir(),'actql-model-coherence-'));
  try{
-  const receipt=(name,model)=>{
+  const receipt=(name: string,model: string)=>{
    const directory=join(root,name);
    mkdirSync(join(directory,'node_modules/@actql'),{recursive:true});
    writeFileSync(join(directory,'model.js'),model);

@@ -4,7 +4,10 @@ import {pathToFileURL,fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 
-export function verifyWorkspacePackageLinks(root) {
+type RuntimeFiles = {root: string; files: readonly {path: string; sha256: string}[]};
+type RuntimeModel = RuntimeFiles & {nodeVersion: string; moonVersion: string; selectedRuntimes: number};
+
+export function verifyWorkspacePackageLinks(root: string) {
  root=realpathSync(root);
  for(const name of readdirSync(join(root,'node_modules/@actql'))){
   const expected=realpathSync(join(root,'packages',name));
@@ -14,7 +17,7 @@ export function verifyWorkspacePackageLinks(root) {
  return root;
 }
 
-export function assertSourceRuntimeReceiptCurrent(receipt) {
+export function assertSourceRuntimeReceiptCurrent(receipt: RuntimeFiles) {
  verifyWorkspacePackageLinks(receipt.root);
  for(const item of receipt.files){
   const actual=createHash('sha256').update(readFileSync(join(receipt.root,item.path))).digest('hex');
@@ -25,10 +28,10 @@ export function assertSourceRuntimeReceiptCurrent(receipt) {
 // A separate calculator is not evidence for a runtime merely because its
 // formula has the same name. Require the complete guarded model cohort,
 // including adapters and compiled artifacts, before comparing its numbers.
-export function assertSameSourceRuntimeModel(runtimeReceipt, calculatorReceipt) {
+export function assertSameSourceRuntimeModel(runtimeReceipt: RuntimeModel, calculatorReceipt: RuntimeModel) {
  assertSourceRuntimeReceiptCurrent(runtimeReceipt);
  assertSourceRuntimeReceiptCurrent(calculatorReceipt);
- for(const key of ['nodeVersion','moonVersion','selectedRuntimes']){
+ for(const key of ['nodeVersion','moonVersion','selectedRuntimes'] as const){
   if(runtimeReceipt[key]!==calculatorReceipt[key])throw new Error(`SourceRuntimeModelMismatch:${key}`);
  }
  if(JSON.stringify(runtimeReceipt.files)!==JSON.stringify(calculatorReceipt.files)){
@@ -39,9 +42,10 @@ export function assertSameSourceRuntimeModel(runtimeReceipt, calculatorReceipt) 
 // Source-only diagnostic harness: rebuild every selected runtime from this
 // tree, then require canonical generated assets AND adapter graphs to match.
 // A matching entry-module path alone cannot establish dependency coherence.
-export async function verifyLocalSourceRuntime(root, receiptPath) {
+export async function verifyLocalSourceRuntime(root: string, receiptPath?: string) {
  root=verifyWorkspacePackageLinks(root);
- const {localNodePackageInputs}=await import(pathToFileURL(join(root,'scripts/local-node-package-inputs.mjs')));
+ const {localNodePackageInputs}=await import(pathToFileURL(join(root,'scripts/local-node-package-inputs.mjs')) as unknown as string) as
+   typeof import('./local-node-package-inputs.mjs');
  const inputs=localNodePackageInputs(root);
  const moon=process.env.ACTQL_MOON??(process.env.MOON_HOME?join(process.env.MOON_HOME,'bin/moon'):'moon');
  for(const runtime of inputs.runtimeFiles){
@@ -52,9 +56,9 @@ export async function verifyLocalSourceRuntime(root, receiptPath) {
   execFileSync(process.execPath,[join(root,'scripts',script),'--check'],{cwd:root,stdio:['ignore','ignore','pipe']});
  }
  verifyWorkspacePackageLinks(root);
- const records=[];
- const digest=file=>createHash('sha256').update(readFileSync(file)).digest('hex');
- function inventory(directory){
+ const records: RuntimeFiles['files'][number][]=[];
+ const digest=(file: string)=>createHash('sha256').update(readFileSync(file)).digest('hex');
+ function inventory(directory: string){
   for(const item of readdirSync(directory,{withFileTypes:true})){
    if(['node_modules','.git','_build'].includes(item.name))continue;
    const file=join(directory,item.name);
