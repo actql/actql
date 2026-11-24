@@ -483,7 +483,10 @@ pub fn NativeLocalEffectResumeOriginal::claim(
   if self.settlement_only {
     return Err(HostAttestationUnavailable)
   }
-  self.claim_original_resume(lease_ms, expected_revision=Some(self.record.revision))
+  self.claim_original_resume(
+    lease_ms,
+    expected_revision=Some(self.record.revision),
+  )
 }
 
 ///|
