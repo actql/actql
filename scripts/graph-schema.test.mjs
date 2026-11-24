@@ -142,7 +142,7 @@ test('embedded graph schemas and pins reject drift', () => {
 function accepts(schema, value) {
   const known = new Set(['type', 'const', 'enum', 'oneOf', 'anyOf', 'not',
     'properties', 'required', 'additionalProperties', 'items', 'uniqueItems',
-    'minItems', 'minimum', 'maximum', 'minLength', 'minProperties', 'maxProperties']);
+    'minItems', 'maxItems', 'minimum', 'maximum', 'minLength', 'minProperties', 'maxProperties']);
   for (const key of Object.keys(schema)) assert.ok(known.has(key), key);
   if ('const' in schema && !Object.is(value, schema.const)) return false;
   if (schema.enum && !schema.enum.includes(value)) return false;
@@ -156,7 +156,7 @@ function accepts(schema, value) {
   if (typeof value === 'number' &&
       (value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) return false;
   if (Array.isArray(value)) {
-    if (value.length < (schema.minItems ?? 0)) return false;
+    if (value.length < (schema.minItems ?? 0) || value.length > (schema.maxItems ?? Infinity)) return false;
     if (schema.uniqueItems && new Set(value.map(JSON.stringify)).size !== value.length) return false;
     if (schema.items && !value.every(item => accepts(schema.items, item))) return false;
   }
@@ -204,6 +204,21 @@ for (const [index, program] of parameterPrograms(registry).entries()) {
     assert.equal(accepts(schemas.match_nodes, {definition: 'N', fields: ['name']}), false);
     assert.equal(accepts(schemas.match_nodes,
       {definition: 'N', fields: ['name'], ids: [id], where: 'true'}), false);
+  });
+
+  test(`${programNames[index]} projects properties only for a fixed one-hop path`, () => {
+    const body = {start: {from: 'starts', id: 'node_id'}, emit: 'paths', path_mode: 'walk'};
+    const endpoint_properties = {start: [{property: 'p', as: 'source'}],
+      end: [{property: 'p', as: 'reached'}]};
+    const hop = {direction: 'out'};
+    assert.equal(accepts(schemas.traverse, {...body, hops: [hop], endpoint_properties}), true);
+    for (const candidate of [
+      {...body, emit: 'nodes', hops: [hop], endpoint_properties},
+      {...body, hops: [hop, hop], endpoint_properties},
+      {...body, direction: 'out', min_hops: 1, max_hops: 1, endpoint_properties},
+      {...body, hops: [hop], endpoint_properties: {start: []}},
+      {...body, hops: [hop], endpoint_properties: {foreign: endpoint_properties.start}},
+    ]) assert.equal(accepts(schemas.traverse, candidate), false);
   });
 
   test(`${programNames[index]} requires path_mode for every traversal mode and emission`, () => {

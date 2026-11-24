@@ -1,0 +1,1461 @@
+// Host-installed execution-authorization gate for protected boundaries.
+//
+// Account interpretation, delegated-request binding and Host-answer admission
+// are owned by MoonBit `execution_authorization` and reached through the
+// runtime's `executionAuthorization*` exports. This adapter owns only trusted
+// Host context, the optional embedded decision function, the optional durable
+// Checkpoint journal, an exact-scope decision cache and cheap counters. It
+// performs no network I/O and never reads Program input: the principal and
+// authorization context come from the Host that installs it. The only digest
+// it computes is the decision-subject binding of a deferred decision (below),
+// over the ten-field decision subject projection, never over data.
+
+export const AUTHORIZATION_BOUNDARIES = Object.freeze([
+  'preparation', 'acquisition', 'activation', 'transfer', 'effect_commit',
+] as const);
+
+// Default Checkpoint kind per boundary. A Host `describe` may choose another
+// kind allowed by the Checkpoint subject/phase table.
+const CHECKPOINT_KIND = Object.freeze({
+  preparation: 'run_scope',
+  acquisition: 'read_access',
+  activation: 'cost_scope',
+  transfer: 'data_egress',
+  effect_commit: 'effect_set',
+});
+const ARTIFACT_TYPE = Object.freeze({
+  run_scope: 'prepared_invocation',
+  read_access: 'read_scope',
+  data_egress: 'egress_scope',
+  cost_scope: 'budget_scope',
+  model_invocation: 'model_invocation_scope',
+  effect_set: 'effect_set_preview',
+});
+const SUBJECT_FIELDS = Object.freeze([
+  'account_id', 'configuration_cid', 'entry_id', 'principal', 'connection',
+  'resource', 'operation', 'boundary', 'subject_cid', 'context_cid',
+] as const);
+const FAILURE_REASONS = new Set(['timeout', 'unavailable', 'malformed_answer']);
+const COUNTERS = Object.freeze([
+  'evaluations', 'hostDecisionCalls', 'checkpointsPersisted',
+  'protectedDispatches', 'deniedBeforeDispatch', 'decisionFailures',
+  'unsupportedDefers', 'hostRejections', 'reusedDecisions',
+  'coveredOperations', 'resumedDecisions',
+] as const);
+import type {SynchronousRuntimeData} from './runtime-result.mjs';
+
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type Boundary = typeof AUTHORIZATION_BOUNDARIES[number];
+type CheckpointKind = keyof typeof ARTIFACT_TYPE;
+type Subject = Readonly<Record<typeof SUBJECT_FIELDS[number], string>>;
+type Counter = typeof COUNTERS[number];
+type Context = Readonly<{principal: string; contextCid: string}>;
+type Scope = Readonly<{connection: string; resource: string; operation: string}>;
+type Tuple = Scope & Readonly<Pick<Context, 'principal'>>;
+type RuntimeOriginal = object & Readonly<{then?: never}>;
+type Runtime = Readonly<{
+  executionAuthorizationAdmit(wire: string): RuntimeOriginal;
+  executionAuthorizationMissing(): RuntimeOriginal;
+  executionAuthorizationAccountJson(account: RuntimeOriginal): string;
+  executionAuthorizationEvaluate(account: RuntimeOriginal, principal: string, connection: string,
+    resource: string, operation: string): RuntimeOriginal;
+  executionAuthorizationEvaluationJson(evaluation: RuntimeOriginal): string;
+  executionAuthorizationEvaluationAction(evaluation: RuntimeOriginal): RuntimeOriginal;
+  executionAuthorizationPrepare(evaluation: RuntimeOriginal, configurationCid: string,
+    boundary: Boundary, subjectCid: string, contextCid: string, authorities: string[], claims: string[]): RuntimeOriginal;
+  executionAuthorizationRequestJson(request: RuntimeOriginal): string;
+  executionAuthorizationAnswer(request: RuntimeOriginal, answer: Answer['kind'], subject: readonly string[],
+    authority: string, claims: readonly string[], failure: string): RuntimeOriginal;
+  executionAuthorizationDecisionJson(decision: RuntimeOriginal): string;
+}>;
+// The bridge supplies the JSON projection of its original typed values.
+type AccountState = Readonly<{state: 'missing'} | {state: 'rejected'; issue: unknown} |
+  {state: 'admitted'; account_id: string; configuration_cid: string}>;
+type Evaluation = Readonly<{outcome: 'allow' | 'deny' | 'delegate'; entry_id?: string}>;
+type BoundRequest = Readonly<{ok: false; issue: unknown} | {ok: true; subject: Subject;
+  answering_authorities: readonly string[]; required_claims: readonly string[]}>;
+type RuntimeOutcome = Readonly<
+  {action: 'dispatch'; basis: string; authority?: string; claims?: readonly string[]; reason?: undefined} |
+  {action: 'deny' | 'failure' | 'checkpoint' | 'invalid'; basis?: string; reason?: string; authority?: string;
+    detail?: unknown; issue?: unknown}
+>;
+type Answer = Readonly<{
+  kind: 'permit' | 'reject' | 'defer' | 'failure';
+  subject?: readonly string[]; authority?: string; claims?: readonly string[];
+  subjectArtifactCid?: unknown; decisionSubjectCid?: unknown; failure?: string; error?: unknown;
+}>;
+type HostView = Readonly<{
+  boundary: Boundary; tuple: Tuple; subject: Subject; subjectArtifactCid: string | null;
+  decisionSubjectCid: string; answeringAuthorities: readonly string[]; requiredClaims: readonly string[];
+}>;
+type SealSubject = (view: HostView) => Awaitable<string>;
+type Decide = (view: HostView, options: Readonly<{signal: AbortSignal}>) => Awaitable<unknown>;
+type Claim = Readonly<{intentId: string; claimant: string; generation: number}>;
+type HeldClaim = Claim | Readonly<{claim: Claim; checkpointCid?: string}>;
+type Resumption = Readonly<{claim?: HeldClaim}>;
+type JournalAdmission = Claim & Readonly<{
+  kind: CheckpointKind; checkpointCid: string; resolutionCid: string;
+  decisionSubjectCid: string | null; requiredArtifactCid: string; configurationCid: string | null;
+  authority: string; requestedClaims: readonly string[]; observedClaims: readonly string[];
+}>;
+type JournalEntry = JournalAdmission & Readonly<{mode: 'start' | 'reconcile'; dispatchIdentity: string | null}>;
+type EntryOptions = Readonly<{checkpointCid: string; resolutionCid: string; dispatchIdentity?: string}>;
+type ResumeJournal = Readonly<{
+  admitResume?(claim: Claim, options: Readonly<{checkpointCid?: string}>): JournalAdmission;
+  enterResumedDispatch?(claim: Claim, options: EntryOptions): JournalEntry;
+  enterResumedReconciliation?(claim: Claim, options: EntryOptions): JournalEntry;
+}>;
+type ResumeAdmission = JournalAdmission & Readonly<{
+  configurationCid: string;
+  enter(dispatchIdentity?: string): JournalEntry;
+  reconcile(dispatchIdentity: string): JournalEntry;
+}>;
+type ResumeResult = Readonly<{admission: ResumeAdmission; claims: readonly string[]; detail?: undefined} |
+  {detail: string; error?: unknown}>;
+type CheckpointBody = Readonly<{
+  kind?: string; phase?: string; subject?: Readonly<{kind?: string}>;
+  required_artifact?: Readonly<{artifact_cid?: string; artifact_type?: string}>;
+  requirements?: readonly string[];
+}>;
+export type ModelCheckpointCallSet = Readonly<{
+  originalRunWire: string; preparedInvocationWire: string; scopeWire: string;
+  providerBindingWire: string; fixedInputReceiptWire: string; slotWires: readonly string[];
+  checkpointWire?: string; reviewWire?: string;
+}>;
+type CheckpointDescription = Readonly<{
+  body: CheckpointBody; priorStatus?: string; declaredResults?: readonly unknown[];
+  modelCallSet?: ModelCheckpointCallSet;
+  binding?: object;
+}>;
+type CheckpointReceipt = Readonly<{
+  checkpointCid: string; checkpointId: string; runId: string | null;
+  prepareAttemptId?: string | null; runState?: unknown; preparation?: unknown;
+}>;
+type Checkpoint = CheckpointReceipt & Readonly<{requiredArtifactCid: string; decisionSubjectCid: string}>;
+type Reviewer = Readonly<{reviewerId: string}>;
+type DurableJournal = ResumeJournal & Readonly<{
+  persistCheckpoint(input: Readonly<{body: CheckpointBody; priorStatus: string | undefined;
+    declaredResults: readonly unknown[] | undefined; authorities: readonly Reviewer[]; binding: object;
+    decisionSubjectCid: string; requestedClaims: readonly string[]; configurationCid?: string;
+    modelCallSet?: CheckpointDescription['modelCallSet']}>): Awaitable<CheckpointReceipt>;
+  submitResolution(...args: never[]): Awaitable<unknown>;
+}>;
+type Deferral = Readonly<{
+  describe(view: HostView & Readonly<{requiredArtifactCid: string}>): Awaitable<CheckpointDescription>;
+  journal: DurableJournal; authorities: readonly Reviewer[]; binding: object;
+}>;
+type FailureView = Readonly<{action?: string; basis?: string; reason?: string}>;
+type DecisionBase = Readonly<{
+  boundary: Boundary; tuple: Tuple; subjectCid?: string; contextCid?: string; entryId?: string; basis?: string;
+}>;
+type Decision = DecisionBase & Readonly<{
+  action: 'dispatch' | 'deny' | 'failure' | 'waiting' | 'unsupported' | 'invalid' | 'checkpoint';
+  reason?: string; authority?: string; claims?: readonly string[]; runtimeDecision?: RuntimeOriginal;
+  checkpoint?: Checkpoint; checkpointCid?: string; resolutionCid?: string; admission?: ResumeAdmission;
+  detail?: unknown; error?: unknown;
+}>;
+type ActiveCallback = {abort(reason?: string): void; operation?: Promise<Answer>};
+type BudgetState = {
+  pending: Set<ActiveCallback>; retention: {entries: number}; scopes: Set<() => boolean>;
+  maxInFlightDecisions: number; maxRetainedDecisions: number; closed: boolean;
+};
+type Budget = Readonly<{
+  usage(): Readonly<{inFlightDecisions: number; retainedDecisions: number; scopes: number; closed: boolean}>;
+  close(): boolean; cleanupPending(): boolean;
+}>;
+type AccountPorts = Readonly<{
+  readConfiguration?: () => string | null | undefined;
+  admitConfiguration?: (runtime: Runtime, wire: string) => RuntimeOriginal;
+  withAccountObservation?: <Value extends SynchronousRuntimeData>(operation: () => Value) => Value;
+}>;
+type GateOptions = AccountPorts & Readonly<{
+  runtime?: Runtime; configuration?: string | null; configurationCid?: string;
+  context?: Context; decide?: Decide; answeringAuthorities?: readonly string[]; requiredClaims?: readonly string[];
+  decisionTimeoutMs?: number; maxInFlightDecisions?: number; maxRetainedDecisions?: number;
+  decisionBudget?: Budget; deferral?: Deferral; protectedSites?: readonly string[];
+}>;
+type Core = AccountPorts & Readonly<{
+  moon: Runtime | undefined; account: RuntimeOriginal | undefined; configuration?: string | null;
+  accountState: AccountState; accountId?: string; configurationCid?: string; decide?: Decide;
+  answeringAuthorities: readonly string[]; requiredClaims: readonly string[]; decisionTimeoutMs: number;
+  maxInFlightDecisions: number; maxRetainedDecisions: number; deferral?: Deferral; protectedSites: ReadonlySet<string>;
+  counts: Record<Counter, number>; pending: BudgetState['pending']; retention: BudgetState['retention']; capacity: BudgetState;
+}>;
+type AuthorizeOptions = Readonly<{subjectCid?: string; signal?: AbortSignal; sealDeferredSubject?: SealSubject; allowDeferral?: boolean}>;
+type ResumeOptions = Readonly<{subjectCid?: string; signal?: AbortSignal; resumption?: Resumption;
+  sealedSubjectCid?: string; setApproval?: Decision}>;
+type Gate = Readonly<{
+  accountId: string | undefined; configurationCid: string | undefined; principal: string; contextCid: string;
+  authorize(boundary: Boundary, scope: Scope, options?: AuthorizeOptions): Promise<Decision>;
+  resume(boundary: Boundary, scope: Scope, options?: ResumeOptions): Promise<Decision>;
+  cover(boundary: Boundary, scope: Scope): Decision; isProtectedSite(key: string): boolean;
+  assertAccountCurrent(decision: Decision): undefined; assertConfigurationCurrent(): undefined; withContext(next: Context): Gate;
+  counters(): Readonly<Record<Counter, number>>;
+  resourceUsage(): Readonly<{retainedDecisions: number; scopeDecisions: number;
+    inFlightDecisions: number; scopeInFlightDecisions: number}>;
+  close(): boolean; cleanupPending(): boolean; cleanup(): boolean;
+}>;
+type PendingDecision = {operation?: Promise<Decision>; settled?: boolean};
+
+const decisionBudgets = new WeakMap<Budget, BudgetState>();
+
+// A Host installation shares physical callback capacity across its short-lived
+// decision scopes. Judgments remain private to each scope, never global.
+export function createAuthorizationDecisionBudget({maxInFlightDecisions = 16,
+  maxRetainedDecisions = 1024}: Readonly<{maxInFlightDecisions?: number; maxRetainedDecisions?: number}> = {}) {
+  if (![maxInFlightDecisions, maxRetainedDecisions].every(value =>
+    Number.isSafeInteger(value) && value > 0)) {
+    fail('InvalidAuthorizationCapacity');
+  }
+  const state: BudgetState = {pending: new Set(), retention: {entries: 0},
+    scopes: new Set(), maxInFlightDecisions, maxRetainedDecisions,
+    closed: false};
+  const budget = Object.freeze({
+    usage: () => Object.freeze({inFlightDecisions: state.pending.size,
+      retainedDecisions: state.retention.entries,
+      scopes: state.scopes.size, closed: state.closed}),
+    close() {
+      state.closed = true;
+      for (const close of [...state.scopes]) close();
+      return state.pending.size === 0 && state.retention.entries === 0;
+    },
+    cleanupPending: () => state.pending.size !== 0 ||
+      state.retention.entries !== 0,
+  });
+  decisionBudgets.set(budget, state);
+  return budget;
+}
+
+const ERROR_CODES = Object.freeze({
+  deny: 'ExecutionAuthorizationDenied',
+  failure: 'ExecutionAuthorizationDecisionFailed',
+  waiting: 'ExecutionAuthorizationWaiting',
+  unsupported: 'ExecutionAuthorizationDeferralUnsupported',
+});
+
+// Runtime error codes (phase `admission`) pinned by Execution, Account
+// authorization routing. A persisted wait has none: it is not an error end.
+const ACCOUNT_DENY_CODES = Object.freeze({
+  explicit: 'ACTQL_E_ACCOUNT_DENIED',
+  no_match: 'ACTQL_E_ACCOUNT_NO_MATCH',
+  configuration_missing: 'ACTQL_E_ACCOUNT_CONFIG_INVALID',
+});
+
+export function authorizationRuntimeCode(decision: FailureView | null | undefined) {
+  switch (decision?.action) {
+    case 'deny':
+      return decision.basis === 'rejected_by_host'
+        ? 'ACTQL_E_DELEGATION_REJECTED'
+        : ACCOUNT_DENY_CODES[decision.reason as keyof typeof ACCOUNT_DENY_CODES] ?? 'ACTQL_E_ACCOUNT_DENIED';
+    case 'failure':
+    case 'unsupported':
+      return 'ACTQL_E_DELEGATION_UNAVAILABLE';
+    default:
+      return undefined;
+  }
+}
+
+export class ExecutionAuthorizationError extends Error {
+  declare code: string;
+  declare runtimeCode: ReturnType<typeof authorizationRuntimeCode>;
+  declare authorization: FailureView | null | undefined;
+
+  constructor(decision: FailureView | null | undefined) {
+    const code = ERROR_CODES[decision?.action as keyof typeof ERROR_CODES] ??
+      'ExecutionAuthorizationInvalidDecision';
+    super(code);
+    this.code = code;
+    this.runtimeCode = authorizationRuntimeCode(decision);
+    this.authorization = decision;
+  }
+}
+
+const fail: (code: string) => never = code => {
+  throw Object.assign(new TypeError(code), {code});
+};
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0 &&
+  value.length <= 512;
+const cid = (value: unknown): value is string => typeof value === 'string' &&
+  /^sha256:[0-9a-f]{64}$/.test(value);
+const names = (value: unknown): value is readonly string[] => Array.isArray(value) && value.every(text);
+
+function checkedScope(scope: Scope) {
+  if (scope === null || typeof scope !== 'object' || !text(scope.connection) ||
+      !text(scope.resource) || !text(scope.operation)) {
+    fail('InvalidAuthorizationScope');
+  }
+  return scope;
+}
+
+function frozenDecision<const Fields extends Decision>(fields: Fields) {
+  return Object.freeze(fields);
+}
+
+// Dispatch decisions a gate returned from `authorize` or `resume`, mapped to
+// the account configuration and principal of the gate that decided them.
+// A holder of the decision object can learn which admitted account
+// configuration decided it; a copied or constructed decision has no facts.
+// This is process-local custody of a decision the gate just returned, never
+// a durable approval: after a restart only the gate's own `resume` against
+// its journal decides again.
+const issuedDispatches = new WeakMap<object, Readonly<{configurationCid: string; principal: string}>>();
+const issuedDecisionScopes = new WeakMap<object, Readonly<{assertAccountCurrent(decision: Decision): undefined}>>();
+
+export function authorizationDispatchFacts(decision: unknown) {
+  return decision !== null && typeof decision === 'object'
+    ? issuedDispatches.get(decision) : undefined;
+}
+
+// Resolve the original issuer, never a lookalike gate with matching facts.
+// The existing provenance projection remains historical after scope closure;
+// this synchronous fence additionally requires that issuer and account now.
+export function assertAuthorizationAccountCurrent(decision: Decision): undefined {
+  const issuer = issuedDecisionScopes.get(decision);
+  if (issuer === undefined) fail('ForeignAuthorizationDecision');
+  issuer.assertAccountCurrent(decision);
+}
+
+// Decision-subject binding of a deferred decision: SHA-256 over the canonical
+// JSON of the ten-field decision subject projection (all members are strings;
+// keys sorted; ECMAScript string serialization is the canonical string form).
+// It is not the Checkpoint's required artifact: the required artifact is the
+// sealed review subject itself (the `subjectCid` of the boundary, for example
+// the Effect Set Preview, or the prepared invocation a two-phase preparation
+// seals only on its defer path), so approval evidence binds the real artifact.
+// The journal stores this binding next to the
+// Checkpoint, and resume admits the approval only for the exact account
+// entry, principal, connection, resource, operation, boundary, subject and
+// context it names. An Effect Set additionally permits later member tuples
+// of the same sealed Preview after this gate admitted its first tuple; each
+// later tuple is still evaluated against the current account configuration.
+export async function decisionSubjectCid(subject: Subject) {
+  const body = `{${[...SUBJECT_FIELDS].sort().map(name =>
+    `${JSON.stringify(name)}:${JSON.stringify(subject[name])}`).join(',')}}`;
+  const digest = await globalThis.crypto.subtle.digest('SHA-256',
+    new TextEncoder().encode(body));
+  return `sha256:${Array.from(new Uint8Array(digest),
+    byte => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function subjectFields(subject: unknown) {
+  if (subject === null || typeof subject !== 'object') return undefined;
+  const fields = SUBJECT_FIELDS.map(name => (subject as Partial<Subject>)[name]);
+  return fields.every(value => typeof value === 'string') ? fields : undefined;
+}
+
+// Map one decision-function result to the adapter vocabulary. Anything that
+// is not exactly permit/reject/defer/unavailable is a malformed answer.
+function answerOf(value: unknown): Answer {
+  if (value === null || typeof value !== 'object') {
+    return {kind: 'failure', failure: 'malformed_answer'};
+  }
+  const decision = (value as Readonly<{decision?: unknown}>).decision;
+  if (decision === 'unavailable') return {kind: 'failure', failure: 'unavailable'};
+  if (decision !== 'permit' && decision !== 'reject' && decision !== 'defer') {
+    return {kind: 'failure', failure: 'malformed_answer'};
+  }
+  const subject = subjectFields((value as Readonly<{subject?: unknown}>).subject);
+  if (subject === undefined) return {kind: 'failure', failure: 'malformed_answer'};
+  if (decision === 'defer') return {kind: 'defer', subject};
+  if (!text((value as Readonly<{authority?: unknown}>).authority)) return {kind: 'failure', failure: 'malformed_answer'};
+  const claims = (value as Readonly<{claims?: unknown}>).claims ?? [];
+  if (decision === 'permit' && !names(claims)) {
+    return {kind: 'failure', failure: 'malformed_answer'};
+  }
+  return {
+    kind: decision,
+    subject,
+    authority: (value as Readonly<{authority: string}>).authority,
+    claims: decision === 'permit' ? [...claims as readonly string[]] : [],
+    // Optional bindings an immediate answer states (for example from its
+    // verified immediate Resolution); checked against the bound request.
+    subjectArtifactCid: (value as Readonly<{subjectArtifactCid?: unknown}>).subjectArtifactCid,
+    decisionSubjectCid: (value as Readonly<{decisionSubjectCid?: unknown}>).decisionSubjectCid,
+  };
+}
+
+// Immediate path: a permit or reject that states the artifact or decision
+// subject it answers must state exactly the bound ones; another artifact or
+// subject is a malformed answer, never a permit or a rejection.
+function immediateBinding(answer: Answer, view: HostView): Answer {
+  if (answer.kind !== 'permit' && answer.kind !== 'reject') return answer;
+  if ((answer.subjectArtifactCid !== undefined &&
+       answer.subjectArtifactCid !== view.subjectArtifactCid) ||
+      (answer.decisionSubjectCid !== undefined &&
+       answer.decisionSubjectCid !== view.decisionSubjectCid)) {
+    return {kind: 'failure', failure: 'malformed_answer'};
+  }
+  return answer;
+}
+
+function requireRuntime(runtime: Runtime | undefined): Runtime {
+  for (const name of [
+    'executionAuthorizationAdmit', 'executionAuthorizationMissing',
+    'executionAuthorizationAccountJson', 'executionAuthorizationEvaluate',
+    'executionAuthorizationEvaluationJson',
+    'executionAuthorizationEvaluationAction', 'executionAuthorizationPrepare',
+    'executionAuthorizationRequestJson', 'executionAuthorizationAnswer',
+    'executionAuthorizationDecisionJson',
+  ]) {
+    if (typeof runtime?.[name as keyof Runtime] !== 'function') {
+      fail('InvalidExecutionAuthorizationRuntime');
+    }
+  }
+  return runtime!;
+}
+
+function checkedDeferral(deferral: Deferral | undefined): Deferral | undefined {
+  if (deferral === undefined) return undefined;
+  if (deferral === null || typeof deferral !== 'object' ||
+      typeof deferral.describe !== 'function') {
+    fail('InvalidAuthorizationDeferral');
+  }
+  const journal = deferral.journal;
+  // A deferred decision needs both durable persistence and a later answer
+  // path (Resolution submission to reviewer authorities). Without either,
+  // defer stops before the protected operation as unsupported.
+  const durable = journal !== null && typeof journal === 'object' &&
+    typeof journal.persistCheckpoint === 'function' &&
+    typeof journal.submitResolution === 'function' &&
+    Array.isArray(deferral.authorities) && deferral.authorities.length > 0 &&
+    deferral.binding !== null && typeof deferral.binding === 'object';
+  return durable ? Object.freeze({...deferral}) : undefined;
+}
+
+// Create one gate from Host installation. `configuration` is the account
+// configuration wire text; `undefined`/`null` is an explicit Missing state
+// (every protected boundary denies with configuration_missing). A rejected
+// configuration fails installation: it grants nothing and is not Missing.
+export function createAuthorizationGate({
+  runtime,
+  configuration,
+  configurationCid,
+  readConfiguration,
+  admitConfiguration,
+  withAccountObservation,
+  context,
+  decide,
+  answeringAuthorities = [],
+  requiredClaims = [],
+  decisionTimeoutMs = 30_000,
+  maxInFlightDecisions = 16,
+  maxRetainedDecisions = 1024,
+  decisionBudget,
+  deferral,
+  protectedSites = [],
+}: GateOptions = {}): Gate {
+  if (context === null || typeof context !== 'object' ||
+      !text(context.principal) || !cid(context.contextCid)) {
+    fail('InvalidAuthorizationContext');
+  }
+  if (decide !== undefined && typeof decide !== 'function') {
+    fail('InvalidAuthorizationDecisionFunction');
+  }
+  if (readConfiguration !== undefined && typeof readConfiguration !== 'function') {
+    fail('InvalidAuthorizationConfigurationReader');
+  }
+  if (!names(answeringAuthorities) || !names(requiredClaims) ||
+      (decide !== undefined && answeringAuthorities.length === 0)) {
+    fail('InvalidAuthorizationAuthorities');
+  }
+  if (!Number.isSafeInteger(decisionTimeoutMs) || decisionTimeoutMs < 1) {
+    fail('InvalidAuthorizationTimeout');
+  }
+  if (![maxInFlightDecisions, maxRetainedDecisions].every(value =>
+    Number.isSafeInteger(value) && value > 0)) {
+    fail('InvalidAuthorizationCapacity');
+  }
+  const capacity = decisionBudget === undefined
+    ? decisionBudgets.get(createAuthorizationDecisionBudget({
+      maxInFlightDecisions, maxRetainedDecisions}))
+    : decisionBudgets.get(decisionBudget);
+  if (capacity === undefined || capacity.closed) {
+    fail('InvalidAuthorizationDecisionBudget');
+  }
+  if (!Array.isArray(protectedSites) || !protectedSites.every(text)) {
+    fail('InvalidProtectedSites');
+  }
+  const missing = configuration === undefined || configuration === null;
+  if (!missing && (typeof configuration !== 'string' ||
+      (configurationCid !== undefined && !cid(configurationCid)))) {
+    fail('InvalidAuthorizationConfiguration');
+  }
+  const moon = missing && runtime === undefined ? undefined
+    : requireRuntime(runtime);
+  const account = moon === undefined ? undefined
+    : missing ? moon.executionAuthorizationMissing()
+      : admitConfiguration === undefined ? moon.executionAuthorizationAdmit(configuration)
+        : admitConfiguration(moon, configuration);
+  const state: AccountState = account === undefined ? {state: 'missing'}
+    : JSON.parse(moon!.executionAuthorizationAccountJson(account)) as AccountState;
+  if (state.state === 'rejected') {
+    throw Object.assign(new Error('ExecutionAuthorizationConfigurationRejected'), {
+      code: 'ExecutionAuthorizationConfigurationRejected',
+      issue: state.issue,
+    });
+  }
+  // The configuration CID is the admitted configuration's own identity;
+  // a Host-supplied CID is only a cross-check. Decision subjects,
+  // Checkpoints and resume admission bind this CID, so a stale one could
+  // let a continuation outlive a configuration change.
+  if (state.state === 'admitted' && configurationCid !== undefined &&
+      configurationCid !== state.configuration_cid) {
+    fail('AuthorizationConfigurationCidMismatch');
+  }
+  const durable = checkedDeferral(deferral);
+  // Without a decision function the durable journal's reviewer authorities
+  // are the only answering authorities of a deferred subject.
+  const answering = decide === undefined && answeringAuthorities.length === 0 &&
+    durable !== undefined
+    ? durable.authorities.map(authority => authority.reviewerId)
+    : answeringAuthorities;
+  const core: Core = Object.freeze({
+    moon,
+    account,
+    configuration,
+    accountState: Object.freeze(state),
+    readConfiguration,
+    admitConfiguration,
+    withAccountObservation,
+    accountId: state.state === 'admitted' ? state.account_id : undefined,
+    configurationCid: state.state === 'admitted' ? state.configuration_cid
+      : undefined,
+    decide,
+    answeringAuthorities: Object.freeze([...answering]),
+    requiredClaims: Object.freeze([...requiredClaims]),
+    decisionTimeoutMs,
+    maxInFlightDecisions: capacity.maxInFlightDecisions,
+    maxRetainedDecisions: capacity.maxRetainedDecisions,
+    deferral: durable,
+    protectedSites: new Set(protectedSites),
+    counts: Object.fromEntries(COUNTERS.map(name => [name, 0])) as Record<Counter, number>,
+    // Shared capacity, not shared judgments. Pending callbacks keep their
+    // physical slot until settlement, including after deadline or close.
+    pending: capacity.pending,
+    retention: capacity.retention,
+    capacity,
+  });
+  return gateFor(core, Object.freeze({
+    principal: context.principal,
+    contextCid: context.contextCid,
+  }));
+}
+
+function gateFor(core: Core, context: Context): Gate {
+  const gateScope = Object.freeze({
+    assertAccountCurrent: (decision: Decision) => assertCurrentAccount(decision),
+  });
+  const cache = new Map<string, PendingDecision>();
+  const pending = new Set<ActiveCallback>();
+  let closed = false;
+  const ensureOpen = () => {
+    if (closed) fail('AuthorizationDecisionScopeClosed');
+  };
+  const release = (key: string, entry: PendingDecision) => {
+    if (cache.get(key) !== entry) return;
+    cache.delete(key);
+    core.retention.entries--;
+  };
+  const closeScope = () => {
+    closed = true;
+    core.capacity.scopes.delete(closeScope);
+    for (const [key, entry] of cache) {
+      if (entry.settled) release(key, entry);
+    }
+    for (const entry of pending) entry.abort();
+    return cache.size === 0 && pending.size === 0;
+  };
+  core.capacity.scopes.add(closeScope);
+  const count = (name: Counter, delta = 1) => { core.counts[name] += delta; };
+  // Account currency only. The installed file reader observes the original
+  // configuration source; without one this live gate owns its immutable wire
+  // configuration. Neither branch asks for a replacement Host answer or
+  // enters a resumed approval/claim. The result stays private to this scope.
+  const unavailable: (code: string) => never = code => {
+    throw Object.assign(new Error(code), {code,
+      runtimeCode: 'ACTQL_E_ACCOUNT_CONFIG_INVALID'});
+  };
+  const assertScopeAccountCurrent = () => {
+    ensureOpen();
+    let account = core.account;
+    let state = core.accountState;
+    try {
+      if (core.readConfiguration !== undefined) {
+        const wire = core.readConfiguration();
+        // The original immutable wire was admitted at installation. Observe
+        // the file at this boundary, but do not parse/admit/project unchanged
+        // bytes again. Changed observations still take the full Core path.
+        if (typeof wire !== 'string' || wire !== core.configuration) {
+          account = typeof wire === 'string'
+            ? core.admitConfiguration === undefined ? core.moon!.executionAuthorizationAdmit(wire)
+              : core.admitConfiguration(core.moon!, wire)
+            : core.moon!.executionAuthorizationMissing();
+          state = JSON.parse(core.moon!.executionAuthorizationAccountJson(account)) as AccountState;
+        }
+      }
+    } catch { unavailable('AuthorizationCurrentAccountUnavailable'); }
+    ensureOpen();
+    if (state.state !== 'admitted') {
+      unavailable('AuthorizationCurrentAccountUnavailable');
+    }
+    if (state.account_id !== core.accountId ||
+        state.configuration_cid !== core.configurationCid) {
+      unavailable('AuthorizationCurrentAccountChanged');
+    }
+    return account;
+  };
+  const accountObservation = <Value extends SynchronousRuntimeData>(operation: () => Value): Value => core.withAccountObservation === undefined
+    ? operation() : core.withAccountObservation(operation);
+  const assertCurrentAccount = (decision: Decision): undefined => accountObservation((): undefined => {
+    const account = assertScopeAccountCurrent();
+    // Only an internal dispatch or an exact issued decision reaches here.
+    // With the same admitted immutable Account its pure tuple outcome cannot
+    // change. Host answers/claims are not renewed by this reuse; dispatch and
+    // resume retain their separate current/claim boundaries. A changed wire
+    // with the same admitted identity is evaluated through Core below.
+    if (account === core.account) return;
+    let outcome: Evaluation;
+    try {
+      outcome = JSON.parse(core.moon!.executionAuthorizationEvaluationJson(
+        core.moon!.executionAuthorizationEvaluate(account!,
+          decision.tuple.principal, decision.tuple.connection,
+          decision.tuple.resource, decision.tuple.operation))) as Evaluation;
+    } catch { unavailable('AuthorizationCurrentAccountUnavailable'); }
+    ensureOpen();
+    if (!['allow', 'delegate'].includes(outcome.outcome) ||
+        outcome.entry_id !== decision.entryId) {
+      unavailable('AuthorizationCurrentAccountChanged');
+    }
+  });
+  const record = (decision: Decision) => {
+    // This is also the post-await fence for cached and resumed dispatches.
+    // Refusing a changed original account never requests a replacement answer.
+    if (decision.action === 'dispatch') assertCurrentAccount(decision);
+    if (decision.action === 'dispatch' && core.configurationCid !== undefined &&
+        Object.isFrozen(decision) && !issuedDispatches.has(decision)) {
+      issuedDispatches.set(decision, Object.freeze({
+        configurationCid: core.configurationCid,
+        principal: context.principal}));
+      issuedDecisionScopes.set(decision, gateScope);
+    }
+    if (decision.action === 'dispatch') count('protectedDispatches');
+    else if (decision.action === 'deny') count('deniedBeforeDispatch');
+    else if (decision.action === 'failure') count('decisionFailures');
+    else if (decision.action === 'unsupported') count('unsupportedDefers');
+    return decision;
+  };
+
+  // A joined caller owns only its wait. The first caller still owns the
+  // shared decision's physical lifetime; a later caller's abort must not
+  // cancel that decision or release its in-flight capacity slot.
+  const awaitJoined = <Value,>(operation: Promise<Value>, signal: AbortSignal | undefined): Promise<Value> => {
+    if (signal === undefined) return operation;
+    signal.throwIfAborted();
+    return new Promise((resolve, reject) => {
+      let done = false;
+      const finish = (accept: boolean, value: unknown) => {
+        if (done) return;
+        done = true;
+        signal.removeEventListener('abort', abort);
+        (accept ? resolve : reject)(value as Value);
+      };
+      const abort = () => {
+        try { signal.throwIfAborted(); }
+        catch (error) { finish(false, error); }
+      };
+      signal.addEventListener('abort', abort, {once: true});
+      operation.then(value => finish(true, value),
+        error => finish(false, error));
+      if (signal.aborted) abort();
+    });
+  };
+
+  async function askHost(view: HostView, signal: AbortSignal | undefined): Promise<Answer> {
+    if (closed || signal?.aborted) {
+      return {kind: 'failure', failure: 'unavailable'};
+    }
+    if (core.pending.size >= core.maxInFlightDecisions) {
+      return {kind: 'failure', failure: 'adapter_error',
+        error: new Error('AuthorizationDecisionCapacity')};
+    }
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout>;
+    let onAbort: (() => void) | undefined;
+    let stop!: (answer: Answer) => void;
+    const stopped = new Promise<Answer>(resolve => { stop = resolve; });
+    const entry: ActiveCallback = {abort(reason = 'unavailable') {
+      stop({kind: 'failure', failure: reason});
+      controller.abort(reason);
+    }};
+    core.pending.add(entry);
+    pending.add(entry);
+    const operation = Promise.resolve().then(() => {
+      if (controller.signal.aborted) return {decision: 'unavailable'};
+      count('hostDecisionCalls');
+      return core.decide!(view, {signal: controller.signal});
+    }).then(
+        answerOf,
+        (error): Answer => ({kind: 'failure', failure: 'adapter_error', error}),
+    ).finally(() => {
+      core.pending.delete(entry);
+      pending.delete(entry);
+    });
+    entry.operation = operation;
+    timer = setTimeout(() => entry.abort('timeout'), core.decisionTimeoutMs);
+    if (signal !== undefined) {
+      onAbort = () => entry.abort();
+      if (signal.aborted) onAbort();
+      else signal.addEventListener('abort', onAbort, {once: true});
+    }
+    try {
+      return await Promise.race([operation, stopped]);
+    } finally {
+      clearTimeout(timer);
+      if (onAbort !== undefined) signal!.removeEventListener('abort', onAbort);
+    }
+  }
+
+  async function defer(base: DecisionBase, view: HostView, sealDeferredSubject: SealSubject | undefined): Promise<Decision> {
+    const deferral = core.deferral;
+    if (deferral === undefined) {
+      return frozenDecision({...base, action: 'unsupported',
+        reason: 'checkpoint_journal_not_configured'});
+    }
+    // The sealed review subject is the artifact the Checkpoint requires. A
+    // boundary without a valid sealed subject artifact cannot be deferred.
+    if (!cid(base.subjectCid)) {
+      return frozenDecision({...base, action: 'failure',
+        reason: 'adapter_error', detail: 'InvalidSubjectArtifact'});
+    }
+    // A Host-required claim no deferred approval evidence profile can
+    // establish can never be admitted at resume: refuse before capture,
+    // before any Checkpoint is persisted and before any reviewer is asked.
+    if (!representableClaims(view.requiredClaims)) {
+      return frozenDecision({...base, action: 'failure',
+        reason: 'adapter_error', detail: 'RequiredClaimUnrepresentable'});
+    }
+    // Two-phase boundary (preparation): the decision was made on the request
+    // subject before any capture; only now, on the defer path, the Host
+    // captures its inputs and seals the reviewed artifact (the prepared
+    // invocation). The decision-subject binding still names the request.
+    let artifactCid = base.subjectCid;
+    if (sealDeferredSubject !== undefined) {
+      try { artifactCid = await sealDeferredSubject(view); }
+      catch (error) {
+        return frozenDecision({...base, action: 'failure',
+          reason: 'adapter_error', detail: 'SubjectArtifactNotSealed', error});
+      }
+      if (!cid(artifactCid)) {
+        return frozenDecision({...base, action: 'failure',
+          reason: 'adapter_error', detail: 'InvalidSubjectArtifact'});
+      }
+    }
+    const sealedView = Object.freeze({...view, requiredArtifactCid: artifactCid});
+    let persisted: CheckpointReceipt;
+    let bindingCid: string;
+    try {
+      bindingCid = await decisionSubjectCid(view.subject);
+      const described = await deferral.describe(sealedView);
+      ensureOpen();
+      const supplied = described?.body?.required_artifact?.artifact_cid;
+      // `describe` may not substitute another artifact for the subject.
+      if (supplied !== undefined && supplied !== artifactCid) {
+        return frozenDecision({...base, action: 'failure',
+          reason: 'adapter_error', detail: 'SubjectArtifactMismatch'});
+      }
+      const kind = described?.body?.kind ?? CHECKPOINT_KIND[base.boundary];
+      // Model invocation is an explicit, retained-call-set profile. An
+      // activation's ordinary budget default does not become Model approval,
+      // and a Source read never acquires infer permission by spelling a kind.
+      const modelProfile = kind === 'model_invocation';
+      const modelArtifact = described?.body?.required_artifact?.artifact_type ===
+        'model_invocation_scope';
+      const modelCallSet = described?.modelCallSet;
+      if (modelProfile || modelArtifact || modelCallSet !== undefined) {
+        if (!modelProfile || base.boundary !== 'activation' ||
+            base.tuple.operation !== 'infer' ||
+            described.body.subject?.kind !== 'run_unit' ||
+            described.body.phase !== undefined &&
+              described.body.phase !== 'preflight' ||
+            described.body.required_artifact?.artifact_type !== undefined &&
+              !modelArtifact ||
+            described.body.requirements !== undefined &&
+              JSON.stringify(described.body.requirements) !==
+                JSON.stringify(['invocation_scope_approved'])) {
+          return frozenDecision({...base, action: 'failure',
+            reason: 'adapter_error', detail: 'ModelCheckpointProfileMismatch'});
+        }
+        // A finalized Model scope is already the activation subject. Unlike
+        // preparation, a deferred Model cannot substitute a later artifact.
+        if (artifactCid !== base.subjectCid) {
+          return frozenDecision({...base, action: 'failure',
+            reason: 'adapter_error', detail: 'SubjectArtifactMismatch'});
+        }
+        if (modelCallSet === null || typeof modelCallSet !== 'object' ||
+            Array.isArray(modelCallSet) ||
+            !Array.isArray(modelCallSet.slotWires)) {
+          return frozenDecision({...base, action: 'failure',
+            reason: 'adapter_error', detail: 'ModelCallInventoryRequired'});
+        }
+      }
+      // ... and exactly for the evidence profile of this Checkpoint kind.
+      if (!representableClaims(view.requiredClaims, kind)) {
+        return frozenDecision({...base, action: 'failure',
+          reason: 'adapter_error', detail: 'RequiredClaimUnrepresentable'});
+      }
+      const phase = base.boundary === 'effect_commit' ? 'commit' : 'preflight';
+      const body = {
+        version: 'actql-execution-checkpoint/0.1',
+        phase,
+        kind,
+        // An Effect Set review asks the reviewer for the optional
+        // partial-application claim only when the Host requires it.
+        requirements: kind !== 'effect_set' ? ['invocation_scope_approved']
+          : view.requiredClaims.includes('partial_application_accepted')
+            ? ['effect_scope_approved', 'partial_application_accepted']
+            : ['effect_scope_approved'],
+        reason_code: 'delegated_decision_deferred',
+        ...described.body,
+        // The reviewed artifact of an authorization deferral is the sealed
+        // subject artifact of the boundary; the gate owns this binding.
+        required_artifact: {
+          artifact_type: ARTIFACT_TYPE[kind as CheckpointKind],
+          ...described.body?.required_artifact,
+          artifact_cid: artifactCid,
+        },
+      };
+      // Durable commit happens before any waiting claim is made.
+      // A preparation Checkpoint precedes its Run and names no prior Run
+      // status; a Host `describe` may bind the current resume context.
+      persisted = await deferral.journal.persistCheckpoint({
+        body,
+        priorStatus: 'priorStatus' in described ? described.priorStatus
+          : 'running',
+        declaredResults: described.declaredResults,
+        authorities: deferral.authorities,
+        binding: described.binding ?? deferral.binding,
+        decisionSubjectCid: bindingCid,
+        // The claims this decision was requested with; resume admits the
+        // approval only if they are unchanged and its evidence establishes
+        // every one of them.
+        requestedClaims: [...view.requiredClaims],
+        // The configuration this decision was evaluated under; a resume
+        // under another configuration is refused whatever it now says.
+        configurationCid: core.configurationCid,
+        // Register the complete retained inventory atomically with its
+        // Checkpoint. Core/journal/physical owners verify original linkage,
+        // durable fixed-input custody and retries; this gate invents none.
+        ...(modelProfile ? {modelCallSet} : {}),
+      });
+    } catch (error) {
+      return frozenDecision({...base, action: 'failure',
+        reason: 'adapter_error', detail: 'CheckpointNotPersisted', error});
+    }
+    count('checkpointsPersisted');
+    return frozenDecision({...base, action: 'waiting', reason: 'deferred',
+      checkpoint: Object.freeze({
+        checkpointCid: persisted.checkpointCid,
+        checkpointId: persisted.checkpointId,
+        runId: persisted.runId,
+        prepareAttemptId: persisted.prepareAttemptId ?? null,
+        runState: persisted.runState,
+        preparation: persisted.preparation,
+        requiredArtifactCid: artifactCid,
+        decisionSubjectCid: bindingCid,
+      })});
+  }
+
+  async function evaluateResumed(boundary: Boundary, tuple: Tuple, subjectCid: string | undefined,
+    resumption: Resumption | undefined, sealedSubjectCid = subjectCid, signal: AbortSignal | undefined = undefined,
+    setApproval: Decision | undefined = undefined): Promise<Decision> {
+    const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
+    count('evaluations');
+    if (core.moon === undefined) {
+      return frozenDecision({...base, action: 'deny', basis: 'account',
+        reason: 'configuration_missing'});
+    }
+    const moon = core.moon;
+    // The account is evaluated again for the current tuple: a deny added
+    // while the Run waited still denies. An allow needs no Resolution for
+    // this tuple, but it does not make the continuation anyone's to resume:
+    // the resume ownership admission below applies to every resumed
+    // dispatch, allow or delegate.
+    const evaluation = moon.executionAuthorizationEvaluate(
+      core.account!, tuple.principal, tuple.connection, tuple.resource,
+      tuple.operation,
+    );
+    const outcome = JSON.parse(
+      moon.executionAuthorizationEvaluationJson(evaluation)) as Evaluation;
+    if (outcome.outcome !== 'delegate') {
+      const runtimeDecision = moon.executionAuthorizationEvaluationAction(
+        evaluation);
+      const projected = JSON.parse(
+        moon.executionAuthorizationDecisionJson(runtimeDecision)) as RuntimeOutcome;
+      const decided = {...base, action: projected.action,
+        basis: projected.basis, reason: projected.reason ?? undefined,
+        entryId: outcome.entry_id};
+      if (projected.action !== 'dispatch') return frozenDecision(decided);
+      // Ownership only: live claim, current intent, committed approval of
+      // the resumed Checkpoint still valid, same configuration. No approval
+      // claim is asked of an allow.
+      const owned = admitResumedDispatch(core.deferral?.journal, resumption,
+        {configurationCid: core.configurationCid, approvalClaims: false});
+      if (owned.detail !== undefined) {
+        return frozenDecision({...decided, action: 'failure',
+          reason: 'adapter_error', detail: owned.detail, error: owned.error});
+      }
+      count('resumedDecisions');
+      return frozenDecision({...decided,
+        checkpointCid: owned.admission.checkpointCid,
+        resolutionCid: owned.admission.resolutionCid,
+        admission: owned.admission,
+        runtimeDecision});
+    }
+    const withEntry = {...base, entryId: outcome.entry_id, basis: 'resumed'};
+    if (core.deferral === undefined) {
+      return frozenDecision({...withEntry, action: 'unsupported',
+        reason: 'checkpoint_journal_not_configured'});
+    }
+    const request = moon.executionAuthorizationPrepare(
+      evaluation, core.configurationCid!, boundary, subjectCid ?? '',
+      context.contextCid, [...core.answeringAuthorities],
+      [...core.requiredClaims],
+    );
+    const bound = JSON.parse(moon.executionAuthorizationRequestJson(request)) as BoundRequest;
+    if (bound.ok !== true) {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: 'adapter_error', detail: bound.issue});
+    }
+    const boundSubjectCid = await decisionSubjectCid(bound.subject);
+    ensureOpen();
+    signal?.throwIfAborted();
+    // From here on nothing awaits: the admission read below and the answer
+    // it produces describe the journal at one Host trusted instant. The
+    // caller still enters the admission immediately before its send.
+    const admitted = admitResumedDispatch(core.deferral.journal, resumption,
+      {requiredClaims: bound.required_claims,
+        configurationCid: core.configurationCid});
+    if (admitted.detail !== undefined) {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: 'adapter_error', detail: admitted.detail,
+        error: admitted.error});
+    }
+    const {admission, claims} = admitted;
+    // The approval covers only the sealed artifact and the decision subject
+    // bound at defer time: another artifact, Site, registration, boundary,
+    // subject, context, tuple or entry is not it. The one exception is a
+    // later member of an approved Effect Set, proven by this gate's first
+    // resumed decision for the same claim. A two-phase preparation names
+    // its captured prepared invocation as `sealedSubjectCid`.
+    // One Effect Set Checkpoint reviews the whole sealed Preview. Its first
+    // tuple was admitted against the original decision subject. A later
+    // member may use that same live approval only when this exact gate issued
+    // the first resumed decision for this claim and Preview. The current
+    // tuple is still evaluated above; deny and changed claims cannot pass.
+    const setWideApproval = boundary === 'effect_commit' &&
+      admission.kind === 'effect_set' &&
+      sealedSubjectCid === subjectCid &&
+      setApproval?.action === 'dispatch' &&
+      setApproval?.basis === 'resumed' &&
+      setApproval?.boundary === boundary &&
+      setApproval?.subjectCid === subjectCid &&
+      setApproval?.contextCid === context.contextCid &&
+      issuedDecisionScopes.get(setApproval) === gateScope &&
+      setApproval?.admission?.intentId === admission.intentId &&
+      setApproval?.admission?.checkpointCid === admission.checkpointCid &&
+      setApproval?.admission?.resolutionCid === admission.resolutionCid &&
+      setApproval?.admission?.generation === admission.generation &&
+      setApproval?.admission?.decisionSubjectCid ===
+        admission.decisionSubjectCid;
+    if (!cid(subjectCid) || !cid(sealedSubjectCid) ||
+        admission.requiredArtifactCid !== sealedSubjectCid ||
+        admission.decisionSubjectCid !== boundSubjectCid &&
+          !setWideApproval) {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: 'adapter_error', detail: 'ResolutionSubjectMismatch'});
+    }
+    // The committed approval is admitted as the Host permit for the bound
+    // request with only the claims its evidence established, so the runtime
+    // still checks subject, authority and the exact required claims.
+    const subject = SUBJECT_FIELDS.map(name => bound.subject[name]);
+    const runtimeDecision = moon.executionAuthorizationAnswer(request,
+      'permit', subject, admission.authority, [...claims], '');
+    const projected = JSON.parse(
+      moon.executionAuthorizationDecisionJson(runtimeDecision)) as RuntimeOutcome;
+    if (projected.action !== 'dispatch') {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: projected.reason ?? 'malformed_answer',
+        detail: projected.detail ?? projected.issue ?? undefined});
+    }
+    count('resumedDecisions');
+    return frozenDecision({...withEntry, action: 'dispatch',
+      authority: projected.authority,
+      claims: Object.freeze([...projected.claims!]),
+      checkpointCid: admission.checkpointCid,
+      resolutionCid: admission.resolutionCid,
+      admission,
+      runtimeDecision});
+  }
+
+  async function evaluate(boundary: Boundary, tuple: Tuple, subjectCid: string | undefined, signal: AbortSignal | undefined,
+    sealDeferredSubject: SealSubject | undefined, allowDeferral: boolean): Promise<Decision> {
+    const base = {boundary, tuple, subjectCid, contextCid: context.contextCid};
+    count('evaluations');
+    if (core.moon === undefined) {
+      return frozenDecision({...base, action: 'deny', basis: 'account',
+        reason: 'configuration_missing'});
+    }
+    const moon = core.moon;
+    const evaluation = moon.executionAuthorizationEvaluate(
+      core.account!, tuple.principal, tuple.connection, tuple.resource,
+      tuple.operation,
+    );
+    const outcome = JSON.parse(
+      moon.executionAuthorizationEvaluationJson(evaluation)) as Evaluation;
+    if (outcome.outcome !== 'delegate') {
+      const runtimeDecision = moon.executionAuthorizationEvaluationAction(
+        evaluation);
+      const projected = JSON.parse(
+        moon.executionAuthorizationDecisionJson(runtimeDecision)) as RuntimeOutcome;
+      return frozenDecision({...base, action: projected.action,
+        basis: projected.basis, reason: projected.reason ?? undefined,
+        entryId: outcome.entry_id,
+        runtimeDecision: projected.action === 'dispatch'
+          ? runtimeDecision : undefined});
+    }
+    const withEntry = {...base, entryId: outcome.entry_id, basis: 'delegate'};
+    // Local delegate default: without a Host decision function, wait in a
+    // Checkpoint only when durable storage and a later answer path exist;
+    // otherwise stop before the protected operation as not configured. This
+    // is neither a rejection nor a non-durable wait.
+    if (core.decide === undefined && core.deferral === undefined) {
+      return frozenDecision({...withEntry, action: 'unsupported',
+        reason: 'decision_function_not_configured'});
+    }
+    const request = moon.executionAuthorizationPrepare(
+      evaluation, core.configurationCid!, boundary, subjectCid ?? '',
+      context.contextCid, [...core.answeringAuthorities],
+      [...core.requiredClaims],
+    );
+    const bound = JSON.parse(moon.executionAuthorizationRequestJson(request)) as BoundRequest;
+    if (bound.ok !== true) {
+      return frozenDecision({...withEntry, action: 'failure',
+        reason: 'adapter_error', detail: bound.issue});
+    }
+    // The Host sees the sealed subject artifact and the decision-subject
+    // binding, so an immediate answer binds the same artifact and subject a
+    // deferred Checkpoint would.
+    const view = Object.freeze({
+      boundary,
+      tuple,
+      subject: Object.freeze({...bound.subject}),
+      subjectArtifactCid: cid(subjectCid) ? subjectCid : null,
+      decisionSubjectCid: await decisionSubjectCid(bound.subject),
+      answeringAuthorities: Object.freeze([...bound.answering_authorities]),
+      requiredClaims: Object.freeze([...bound.required_claims]),
+    });
+    signal?.throwIfAborted();
+    // No decision function: the durable journal and its answer path are the
+    // Host's decision route, so the bound subject is deferred as is.
+    ensureOpen();
+    const answer: Answer = core.decide === undefined
+      ? {kind: 'defer', subject: SUBJECT_FIELDS.map(name => view.subject[name])}
+      : immediateBinding(await askHost(view, signal), view);
+    const runtimeDecision = moon.executionAuthorizationAnswer(
+      request,
+      answer.kind,
+      answer.subject ?? [],
+      answer.authority ?? '',
+      answer.claims ?? [],
+      answer.kind === 'failure'
+        ? (FAILURE_REASONS.has(answer.failure!) ? answer.failure!
+          : String((answer.error as {code?: unknown} | undefined)?.code ??
+            (answer.error as {message?: unknown} | undefined)?.message ??
+            'adapter_error'))
+        : '',
+    );
+    const projected = JSON.parse(
+      moon.executionAuthorizationDecisionJson(runtimeDecision)) as RuntimeOutcome;
+    if (projected.action === 'dispatch') {
+      return frozenDecision({...withEntry, action: 'dispatch',
+        basis: 'host_permit', authority: projected.authority,
+        claims: Object.freeze([...projected.claims!]), runtimeDecision});
+    }
+    if (projected.action === 'deny') {
+      count('hostRejections');
+      return frozenDecision({...withEntry, action: 'deny',
+        basis: 'rejected_by_host', reason: 'rejected',
+        authority: projected.authority});
+    }
+    if (projected.action === 'checkpoint') {
+      if (!allowDeferral) {
+        return frozenDecision({...withEntry, action: 'unsupported',
+          reason: 'checkpoint_deferral_disabled'});
+      }
+      return defer(withEntry, view, sealDeferredSubject);
+    }
+    return frozenDecision({...withEntry, action: 'failure',
+      reason: projected.reason ?? 'malformed_answer',
+      detail: projected.detail ?? projected.issue ?? undefined,
+      error: answer.error});
+  }
+
+  return Object.freeze({
+    accountId: core.accountId,
+    configurationCid: core.configurationCid,
+    principal: context.principal,
+    contextCid: context.contextCid,
+
+    // Recheck this exact scope's original dispatch before later protected work.
+    // Callers still own current physical installation and resumed approval/
+    // claim entry. Success here returns no new decision or authority.
+    assertAccountCurrent(decision): undefined {
+      ensureOpen();
+      if (issuedDecisionScopes.get(decision) !== gateScope) {
+        fail('ForeignAuthorizationDecision');
+      }
+      assertCurrentAccount(decision);
+    },
+
+    // Non-authorizing fence for an existing Checkpoint owner's separate
+    // approval path. This admits no tuple or answer and accepts no substitute
+    // dispatch. The Checkpoint owner must separately check its approval/claim.
+    assertConfigurationCurrent(): undefined {
+      accountObservation(() => {assertScopeAccountCurrent();});
+    },
+
+    // Evaluate one protected boundary for the exact scope. The tuple principal
+    // is the Host context principal; the caller supplies only the Host-derived
+    // connection/resource/operation and the sealed subject CID.
+    //
+    // `sealDeferredSubject` makes the boundary two-phase: the account outcome
+    // and any immediate Host answer are decided on `subjectCid` (for
+    // preparation, the invocation request, before any path read); only on a
+    // deferred Host answer is it called with the Host view to capture inputs
+    // and return the CID of the artifact the Checkpoint requires (the
+    // prepared invocation). A throw or a non-CID result is a decision failure
+    // and nothing is persisted. Read-only inspection explicitly sets
+    // `allowDeferral: false`; a deferred answer then stops as unsupported before
+    // sealing, describing or persisting a Checkpoint. Ordinary execution keeps
+    // its existing default deferral behavior.
+    async authorize(boundary, scope, {subjectCid, signal,
+      sealDeferredSubject, allowDeferral = true}: AuthorizeOptions = {}) {
+      ensureOpen();
+      if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
+        fail('InvalidAuthorizationBoundary');
+      }
+      checkedScope(scope);
+      if (typeof allowDeferral !== 'boolean') fail('InvalidAuthorizationDeferralPolicy');
+      if (subjectCid !== undefined && typeof subjectCid !== 'string') {
+        fail('InvalidAuthorizationSubject');
+      }
+      if (sealDeferredSubject !== undefined &&
+          typeof sealDeferredSubject !== 'function') {
+        fail('InvalidAuthorizationSealer');
+      }
+      signal?.throwIfAborted();
+      const tuple = Object.freeze({
+        principal: context.principal,
+        connection: scope.connection,
+        resource: scope.resource,
+        operation: scope.operation,
+      });
+      // Bound retained key material before serialization. This is a Host
+      // capacity failure, not an account rejection or a permission TTL.
+      const capacityFailure = () => record(frozenDecision({boundary, tuple,
+        subjectCid, contextCid: context.contextCid, action: 'failure',
+        reason: 'adapter_error', detail: 'AuthorizationDecisionCapacity'}));
+      if ((subjectCid?.length ?? 0) > 512) return capacityFailure();
+      const key = JSON.stringify([
+        boundary, tuple.principal, tuple.connection, tuple.resource,
+        tuple.operation, subjectCid ?? '', context.contextCid, allowDeferral,
+      ]);
+      const cached = cache.get(key);
+      if (cached !== undefined) {
+        const decision = await awaitJoined(cached.operation!, signal);
+        ensureOpen();
+        signal?.throwIfAborted();
+        count('reusedDecisions');
+        return record(decision);
+      }
+      if (core.retention.entries >= core.maxRetainedDecisions) {
+        return capacityFailure();
+      }
+      // Reserve before starting, so concurrent evaluations cannot overfill
+      // the installation. The exact subject joins one pending evaluation.
+      const entry: PendingDecision = {};
+      cache.set(key, entry);
+      core.retention.entries++;
+      entry.operation = evaluate(boundary, tuple, subjectCid, signal,
+        sealDeferredSubject, allowDeferral).then(decision => {
+        ensureOpen();
+        if (decision.action !== 'dispatch' && decision.action !== 'deny') {
+          release(key, entry);
+        }
+        return decision;
+      }).catch(error => { release(key, entry); throw error; }).finally(() => {
+        entry.settled = true;
+        if (closed) release(key, entry);
+      });
+      return record(await entry.operation);
+    },
+
+    // Continue a deferred boundary from its committed Resolution. The
+    // `resumption` is {claim}: the claim the caller holds, as the Checkpoint
+    // journal's claimResume result (or its `claim`). It only names the claim;
+    // the claim, the committed Resolution and its evidence are read from the
+    // journal through `admitResumedDispatch` (fence, approval validity and
+    // observed claims at the Host trusted time). Anything else the caller
+    // supplies, such as a Resolution or verified wrapper, is ignored. The
+    // account is evaluated again for the current scope. A deny stops. Allow
+    // and delegate both pass the same ownership admission (live claim,
+    // committed approval of the resumed Checkpoint still valid, unchanged
+    // configuration); for a delegate the committed approval then authorizes
+    // only the exact decision subject its Checkpoint bound. No Host decision
+    // is asked and nothing is cached. For a two-phase boundary
+    // `sealedSubjectCid` is the artifact the Checkpoint sealed on its defer
+    // path (default: `subjectCid`).
+    //
+    // Caller contract (remote dispatch, Effect commit and any other resumed
+    // protected operation): a `dispatch` decision carries `admission`; the
+    // caller calls `admission.enter()` synchronously immediately before the
+    // protected send, with no await in between. `enter` fences again at the
+    // Host trusted time, rechecks the approval's validity and records the
+    // single protected dispatch start of this claim generation; if it throws
+    // nothing may be sent. The decision itself is not a reusable token. When
+    // an earlier claim generation already started a protected dispatch,
+    // `enter` refuses the fresh start (`PriorAdmissionUnresolved`): the
+    // caller may only re-send that exact durable dispatch identity through
+    // `admission.reconcile(identity)`, or leave the intent unresolved.
+    async resume(boundary, scope, {subjectCid, signal, resumption,
+      sealedSubjectCid, setApproval}: ResumeOptions = {}) {
+      ensureOpen();
+      if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
+        fail('InvalidAuthorizationBoundary');
+      }
+      checkedScope(scope);
+      if ((subjectCid !== undefined && typeof subjectCid !== 'string') ||
+          (sealedSubjectCid !== undefined &&
+           typeof sealedSubjectCid !== 'string')) {
+        fail('InvalidAuthorizationSubject');
+      }
+      if (setApproval !== undefined && boundary !== 'effect_commit') {
+        fail('InvalidAuthorizationSubject');
+      }
+      signal?.throwIfAborted();
+      const tuple = Object.freeze({
+        principal: context.principal,
+        connection: scope.connection,
+        resource: scope.resource,
+        operation: scope.operation,
+      });
+      return record(await evaluateResumed(boundary, tuple, subjectCid,
+        resumption, sealedSubjectCid ?? subjectCid, signal, setApproval));
+    },
+
+    // Explicit no-protected-scope coverage for pure compute over captured
+    // inputs on an unprotected in-process Site. No evaluation, no Host call.
+    cover(boundary, scope) {
+      ensureOpen();
+      if (!AUTHORIZATION_BOUNDARIES.includes(boundary)) {
+        fail('InvalidAuthorizationBoundary');
+      }
+      checkedScope(scope);
+      count('coveredOperations');
+      return frozenDecision({boundary, action: 'dispatch', basis: 'covered',
+        tuple: Object.freeze({principal: context.principal,
+          connection: scope.connection, resource: scope.resource,
+          operation: scope.operation})});
+    },
+
+    isProtectedSite(key) { return core.protectedSites.has(key); },
+
+    // A new execution-owned decision scope under the same immutable account
+    // and shared capacity. Reuse this returned scope within that execution;
+    // close it at the end. No installation-wide Map retains old contexts.
+    withContext(next) {
+      ensureOpen();
+      if (next === null || typeof next !== 'object' ||
+          !text(next.principal) || !cid(next.contextCid)) {
+        fail('InvalidAuthorizationContext');
+      }
+      return gateFor(core, Object.freeze({
+        principal: next.principal,
+        contextCid: next.contextCid,
+      }));
+    },
+
+    counters() { return Object.freeze({...core.counts}); },
+    resourceUsage() {
+      return Object.freeze({retainedDecisions: core.retention.entries,
+        scopeDecisions: cache.size, inFlightDecisions: core.pending.size,
+        scopeInFlightDecisions: pending.size});
+    },
+    close: closeScope,
+    cleanupPending() { return cache.size !== 0 || pending.size !== 0; },
+    cleanup: closeScope,
+  });
+}
+
+// Claims each deferred approval evidence profile can establish. A run-scope
+// style approval establishes its single invocation claim; an Effect Set
+// attestation its effect and optional partial-application claims. A Host
+// requirement outside this set cannot be answered by a deferred approval.
+const REPRESENTABLE_CLAIMS = Object.freeze({
+  effect_set: Object.freeze(['effect_scope_approved',
+    'partial_application_accepted']),
+  other: Object.freeze(['invocation_scope_approved']),
+});
+
+// Whether every required claim is representable by the approval evidence
+// profile of `kind` or, with no kind, by any deferred profile.
+function representableClaims(claims: readonly string[], kind?: string) {
+  const profiles = kind === undefined ? Object.values(REPRESENTABLE_CLAIMS)
+    : [REPRESENTABLE_CLAIMS[kind as keyof typeof REPRESENTABLE_CLAIMS] ?? REPRESENTABLE_CLAIMS.other];
+  const representable = new Set(profiles.flat());
+  return [...claims].every(claim => representable.has(claim));
+}
+
+const heldClaim = (resumption: Resumption | undefined) => {
+  const held = resumption?.claim as Claim & Readonly<{claim?: Claim; checkpointCid?: string}> | undefined;
+  const claim = held?.claim ?? held;
+  return Object.freeze({
+    checkpointCid: text(held?.checkpointCid) ? held.checkpointCid : undefined,
+    claim: claim === null || typeof claim !== 'object' ? undefined
+      : Object.freeze({intentId: claim.intentId, claimant: claim.claimant,
+        generation: claim.generation}),
+  });
+};
+
+// The one authoritative resumed-dispatch admission path, shared by
+// `gate.resume` and every resumed dispatch caller (the remote Coordinator,
+// the Local Host resume port and Effect callers).
+//
+// Inputs: the Checkpoint journal, the caller's `resumption` ({claim}, which
+// only names the held claim), the current account configuration CID and the
+// Host's current required claims. `approvalClaims: false` (a resumed tuple
+// the account now allows) checks ownership only and admits no claim.
+// Checks, all from committed journal rows at the journal's Host trusted time:
+// the claim is the current intent's live claim (MoonBit fence: claimant,
+// generation, unexpired lease), the Checkpoint is resolved by that intent's
+// committed approved Resolution, the Run or preparation is `resuming`, and
+// the approval's own permission is still current (`admitResume`); the
+// Checkpoint was deferred under the current configuration. Then the
+// claims: the requirements bound when the decision was deferred must equal
+// the current ones, each must be representable by the evidence profile, and
+// each must be established by the committed evidence (observed claims). No
+// claim is ever taken from configuration or from what the Host asks for.
+// Output: `{admission, claims}` or `{detail}`. The admission binds Run or
+// preparation, Checkpoint, intent, Resolution, claimant, generation and
+// lease; its `enter()` must be called immediately before the protected send
+// and succeeds at most once per claim generation.
+export function admitResumedDispatch(journal: ResumeJournal | undefined, resumption: Resumption | undefined, {
+  requiredClaims = [], configurationCid, approvalClaims = true,
+}: Readonly<{requiredClaims?: readonly string[]; configurationCid?: string; approvalClaims?: boolean}> = {}): ResumeResult {
+  if (journal === null || typeof journal !== 'object' ||
+      typeof journal.admitResume !== 'function' ||
+      typeof journal.enterResumedDispatch !== 'function') {
+    return {detail: 'ResumeJournalUnavailable'};
+  }
+  const held = heldClaim(resumption);
+  if (held.claim === undefined) return {detail: 'ResumeNotClaimed'};
+  let admitted: JournalAdmission;
+  try {
+    admitted = journal.admitResume(held.claim,
+      {checkpointCid: held.checkpointCid});
+  } catch (error) {
+    return {detail: typeof (error as {code?: unknown} | undefined)?.code === 'string' ? (error as {code: string}).code
+      : 'ResumeAdmissionFailed', error};
+  }
+  // A configuration change while the Run waited revokes the continuation:
+  // no resume under another (or an unrecorded) configuration.
+  if (!cid(configurationCid) ||
+      admitted.configurationCid !== configurationCid) {
+    return {detail: 'ResumeConfigurationChanged'};
+  }
+  // An allowed tuple asks no claim: ownership only.
+  const requested = approvalClaims ? [...admitted.requestedClaims].sort()
+    : [];
+  if (approvalClaims) {
+    const current = [...new Set(requiredClaims)].sort();
+    if (JSON.stringify(requested) !== JSON.stringify(current)) {
+      return {detail: 'RequiredClaimsChanged'};
+    }
+    const representable = REPRESENTABLE_CLAIMS[admitted.kind as keyof typeof REPRESENTABLE_CLAIMS] ??
+      REPRESENTABLE_CLAIMS.other;
+    if (!requested.every(claim => representable.includes(claim))) {
+      return {detail: 'RequiredClaimUnrepresentable'};
+    }
+    if (!requested.every(claim => admitted.observedClaims.includes(claim))) {
+      return {detail: 'RequiredClaimNotEstablished'};
+    }
+  }
+  let used = false;
+  const once = (method: 'enterResumedDispatch' | 'enterResumedReconciliation', dispatchIdentity?: string) => {
+    if (used) {
+      throw Object.assign(new Error('ResumeAdmissionConsumed'),
+        {code: 'ResumeAdmissionConsumed'});
+    }
+    if (method === 'enterResumedReconciliation' &&
+        typeof journal[method] !== 'function') {
+      throw Object.assign(new Error('ResumeJournalUnavailable'),
+        {code: 'ResumeJournalUnavailable'});
+    }
+    const entered = journal[method]!({
+      intentId: admitted.intentId,
+      claimant: admitted.claimant,
+      generation: admitted.generation,
+    }, {checkpointCid: admitted.checkpointCid,
+      resolutionCid: admitted.resolutionCid,
+      ...(dispatchIdentity === undefined ? {} : {dispatchIdentity})});
+    // Only a recorded entry consumes the admission: a refused fresh start
+    // (`PriorAdmissionUnresolved`) leaves the reconciliation path open.
+    used = true;
+    if (entered.intentId !== admitted.intentId ||
+        entered.generation !== admitted.generation ||
+        entered.claimant !== admitted.claimant) {
+      throw Object.assign(new Error('ResumeClaimStale'),
+        {code: 'ResumeClaimStale'});
+    }
+    return entered;
+  };
+  const admission = Object.freeze({
+    ...admitted as JournalAdmission & Pick<ResumeAdmission, 'configurationCid'>,
+    // Fence again at the Host trusted time immediately before the send and
+    // record the single protected dispatch start of this claim generation,
+    // with the send's durable identity when it has one. Throws
+    // `PriorAdmissionUnresolved` when an earlier claim generation of the
+    // same intent already started a protected dispatch: no fresh start.
+    enter(dispatchIdentity?: string) {
+      return once('enterResumedDispatch', dispatchIdentity);
+    },
+    // The physical reconciliation path after `PriorAdmissionUnresolved`:
+    // the same fence, admitting only a re-send of the earlier generation's
+    // exact durable dispatch identity (never a second distinct dispatch).
+    reconcile(dispatchIdentity: string) {
+      return once('enterResumedReconciliation', dispatchIdentity);
+    },
+  });
+  return {admission, claims: Object.freeze(requested)};
+}
+
+// Boundary helper: continue only with a dispatch decision for this exact
+// scope. Every other outcome stops before the protected operation.
+export async function requireAuthorizedDispatch(gate: Pick<Gate, 'authorize'>, boundary: Boundary, scope: Scope,
+  options?: AuthorizeOptions) {
+  const decision = await gate.authorize(boundary, scope, options);
+  if (decision.action !== 'dispatch') {
+    throw new ExecutionAuthorizationError(decision);
+  }
+  return decision;
+}
+
+// A gate for a Host installation without account configuration. It denies
+// every protected boundary (configuration_missing) and still allows explicit
+// no-protected-scope coverage.
+export function missingAuthorizationGate(context = {
+  principal: 'host',
+  contextCid: `sha256:${'0'.repeat(64)}`,
+}) {
+  return createAuthorizationGate({context});
+}

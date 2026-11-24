@@ -1,6 +1,6 @@
 # Native approval performance
 
-The `nativeApprovalTarget` profile in `scripts/operation-performance.mjs` applies
+The `nativeApprovalTarget` profile in `scripts/native-approval-performance.mts` applies
 only to the existing small `deal-review-mock` and `churn-risk-mock` workflows.
 Each template needs 30 completed, independently verified approvals on one fixed
 runner and one immutable Native cohort. The target is approval p95 <= 6000 ms

@@ -184,7 +184,7 @@ test('an original invocation refusal does not fall back or issue producer eviden
 });
 
 test('direct invocation forwarding preserves the same namespace originals without wire emission', () => {
-  const source = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
+  const source = readFileSync(new URL('../host-common/runtime-effect-preparation-control.mjs', import.meta.url), 'utf8');
   const parsed = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
   let property;
   (function visit(node) {
@@ -233,17 +233,24 @@ test('direct invocation forwarding preserves the same namespace originals withou
 
 
 test('combined Source preparation stays nominal and forwards only the actual Result export receipt', () => {
-  const source = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
-  const parsed = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}), properties = [];
-  (function visit(node) {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'Property' && ['prepareCombinedEffectSourceUnit', 'issueDependentLocalEffectResultArtifact'].includes(node.key?.name)) properties.push(node);
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit);
-      else if (value && typeof value === 'object') visit(value);
-    }
-  })(parsed);
-  assert.equal(properties.length, 2);
+  const files = [
+    ['../host-common/runtime-effect-preparation-control.mjs', 'prepareCombinedEffectSourceUnit'],
+    ['../host-common/runtime-effect-artifact-control.mjs', 'issueDependentLocalEffectResultArtifact'],
+  ];
+  const methodsCode = files.map(([path, name]) => {
+    const source = readFileSync(new URL(path, import.meta.url), 'utf8');
+    const selected = [];
+    (function visit(node) {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'Property' && node.key?.name === name) selected.push(node);
+      for (const value of Object.values(node)) {
+        if (Array.isArray(value)) value.forEach(visit);
+        else if (value && typeof value === 'object') visit(value);
+      }
+    })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
+    assert.equal(selected.length, 1, name);
+    return source.slice(selected[0].start, selected[0].end);
+  });
   const publication = {}, retention = {}, prepared = {}, invocation = {}, artifact = {};
   const owner = {}, inputs = {}, exported = {}, definition = {}, receipt = {}, context = {};
   const exactContext = Array.from({length: 4}, () => ({})), calls = [];
@@ -261,7 +268,7 @@ test('combined Source preparation stays nominal and forwards only the actual Res
     }};
   const tokens = new WeakMap();
   const create = Function('issuanceLimits','checked','moon','token','runtimeField','localEffectDependencyTokens',
-    'localEffectContext','inspectLocalEffectArtifact','return ({'+properties.map(node => source.slice(node.start,node.end)).join(',')+'});');
+    'localEffectContext','inspectLocalEffectArtifact','return ({'+methodsCode.join(',')+'});');
   const methods = create(() => {}, checked, moon, value => value, runtimeField, tokens,
     actual => {assert.strictEqual(actual, context); return exactContext;}, value => value);
   const dependency = methods.prepareCombinedEffectSourceUnit(publication, 0, retention, limits);

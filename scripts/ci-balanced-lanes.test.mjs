@@ -172,10 +172,11 @@ test('portable and Native packed parts preserve both original complete campaigns
     assert.deepEqual(calls, selected ? [{command: '/pinned/node', files: expectedControls,
       directory: '/original-source'}] : [], `Portable control ownership: ${JSON.stringify(args)}`);
   }
-  const portableStart = source.indexOf("if (ciPart !== 'native' && portableExtras) {\nconsole.log(run('bash'");
-  const portableEnd = source.indexOf('\nasync function exerciseNativeGraphSource', portableStart);
+  const authored = readFileSync(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
+  const portableStart = authored.indexOf("if (ciPart !== 'native' && portableExtras) {\nconsole.log(run('bash'");
+  const portableEnd = authored.indexOf('\nasync function exerciseNativeGraphSource', portableStart);
   assert(portableStart > 0 && portableEnd > portableStart);
-  const portableOnly = source.slice(portableStart, portableEnd);
+  const portableOnly = authored.slice(portableStart, portableEnd);
   assert(portableOnly.includes('quickstart.run'));
   assert(portableOnly.includes("['readme-acceptance.mjs']"));
   assert(portableOnly.includes("'missing-generated-asset.json'"));

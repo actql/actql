@@ -1,11 +1,17 @@
 {
   "source": "759af47f092ed3706d96d0b91b7684a33b39fa2a",
   "qualification": "References and syntax coverage only; actual147 tests retain separate Source qualification. Portable Mock references describe original Task/Run/startup/dispatch/answer/cleanup semantics; reference coverage is separate from source-qualified execution, physical installation and funding.",
+  "inputs": [
+    {
+      "file": "f-provider-owner-declarations.json",
+      "sha256": "f9f1a2b8ce793caba4f5f1fff561f2ce9095afa5560cf969cc8e15fd4db3d8b8"
+    }
+  ],
   "declarations": [
     {
       "module": "packages/provider-ai-sdk/_internal/installed-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "bb44e5f5df0f42b7394e4502af45516a2c2a1c2e59ec6a70cd73a89718d800e0",
+      "sha256": "b521a615b7046751dc6f63668c9d5980b6a7e2f22a37f22502a0140ccec457ca",
       "exports": [
         "createConfiguredUndiciOpenAIChatRegistration",
         "createConfiguredUndiciRegisteredSdkRegistration",
@@ -221,7 +227,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -243,13 +249,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -259,7 +265,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -269,27 +275,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -297,7 +303,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               },
               {
@@ -312,7 +318,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/installed-typesafe-decision.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4afd8b02a05002b22f4bebbb2c239f9712d7195163572187771f4dc2870e719a",
+      "sha256": "f229332093b9f88f583441c6b74607fd2ace671ab16f042a203b8d326f7f3d59",
       "exports": [
         "createInstalledTypeSafeDecisionRegistration"
       ],
@@ -472,7 +478,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -494,13 +500,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -510,7 +516,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -520,27 +526,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -548,7 +554,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -559,7 +565,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "12d9ff23046260eed355aeacd0f606bceba530fb0a93ddff17f90d3195f26010",
+      "sha256": "248511fd15a0578043f115453d67f3a4a6302332c7eea95534a7f72f8f7f9e8b",
       "exports": [
         "createAdmittedRegisteredSdkPreflight",
         "createSdkModelPreflight",
@@ -782,7 +788,8 @@
           "parameters": [
             "options",
             "admission",
-            "readReportedUsage"
+            "readReportedUsage",
+            "readReportedResponse"
           ],
           "async": false
         },
@@ -852,12 +859,18 @@
         {
           "operations": [
             "<module>",
+            "createAdmittedRegisteredSdkPreflight",
+            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance",
+            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/init:advance",
+            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/schema/schema",
+            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:cleanup/init:cleanup",
             "createSdkModelPreflight",
             "createSdkModelPreflight/createSdkModelPreflight",
             "createSdkNativeDecisionPreflight",
             "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight",
             "createSdkNativeDecisionPreflight/createSdkNativeDecisionPreflight#2",
             "createSdkPhysicalPreflight/advance/advance",
+            "createSdkPhysicalPreflight/bindRaw/bindRaw",
             "createSdkPhysicalPreflight/bound/bound",
             "createSdkPhysicalPreflight/cancel/cancel",
             "createSdkPhysicalPreflight/cleanup/cleanup",
@@ -873,17 +886,11 @@
             "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#3",
             "createSdkPhysicalPreflight/pollResponse/pollResponse/pollResponse#4",
             "createSdkPhysicalPreflight/preflight/preflight",
-            "createSdkPhysicalPreflight/start/start",
-            "generationPlan",
-            "createSdkPhysicalPreflight/bindRaw/bindRaw",
             "createSdkPhysicalPreflight/readDecoded/readDecoded",
+            "createSdkPhysicalPreflight/start/start",
             "createSdkStructuredModelPreflight",
             "createSdkStructuredModelPreflight/createSdkStructuredModelPreflight",
-            "createAdmittedRegisteredSdkPreflight",
-            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance",
-            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/init:advance",
-            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:advance/init:advance/schema/schema",
-            "createAdmittedRegisteredSdkPreflight/preparationProgress/init:cleanup/init:cleanup",
+            "generationPlan",
             "originalSdkCallOptions",
             "sdkProjectionBounds",
             "sdkProjectionBounds/sdkProjectionBounds"
@@ -905,7 +912,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -927,13 +934,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -943,7 +950,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -953,27 +960,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -981,7 +988,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               },
               {
@@ -1000,7 +1007,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/native-decision-preflight.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "d2408bae69efbe154e6cc8b2330be3113f7c302fd9f8df5ca3f9706822085df1",
+      "sha256": "c89324b23e6afa0dbd083c0771cee195dc243b64c34d366e75446930c8d37e66",
       "exports": [
         "createAdmittedTypeSafeDecisionPreflight"
       ],
@@ -1089,7 +1096,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -1111,13 +1118,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -1127,7 +1134,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -1137,27 +1144,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -1165,7 +1172,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -1176,7 +1183,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-materials.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "c822caf10bb73654c2a59609f2fa5664748bc04cbe2aafaa69ad66381e82d8ee",
+      "sha256": "57ea4a61029b1f79583c8c5f11343c27259f95d9101730e738a638c7ef105024",
       "exports": [
         "admitOpenAIOriginalMaterials",
         "snapshotOpenAIOriginalMaterials"
@@ -1434,7 +1441,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -1456,13 +1463,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -1472,7 +1479,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -1482,27 +1489,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -1510,7 +1517,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               },
               {
@@ -1525,7 +1532,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a7e62909a50e5cb8eba4a3febe67c06f64e313cca0e2f388aa660c5f9699bdb2",
+      "sha256": "7bf07026871783b0ab9be471e9317dab716013686e0836050ad04220400a9565",
       "exports": [
         "createAdmittedOpenAIChatPreflight",
         "prepareAdmittedOpenAIChatRequest",
@@ -1646,7 +1653,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               },
               {
@@ -1672,13 +1679,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -1688,7 +1695,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -1698,11 +1705,11 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               },
               {
@@ -1712,17 +1719,17 @@
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -1730,11 +1737,11 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "normal binding profile and original Read recipe"
               },
               {
@@ -1749,7 +1756,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/typesafe-decision.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7393be4221d7d60f510298c8476d2ae584722eeef5998cc7b6dcd29b90cf285b",
+      "sha256": "7ec91a06ae54bdb45ceac1afc8702e533540aefdf5f4f58c0aec165ef67d64eb",
       "exports": [
         "createProjectedTypeSafeDecisionPreflight",
         "prepareProjectedTypeSafeDecisionRequest",
@@ -1952,7 +1959,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -1974,13 +1981,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -1990,7 +1997,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -2000,27 +2007,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -2028,7 +2035,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -2039,7 +2046,7 @@
     {
       "module": "packages/provider-http/_internal/installed-http-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "1c738aecb43613466a89dbba571bb152e955b8a574d8ab738102d65e61675ede",
+      "sha256": "cd06dea93fde48906c9df6d9cbac61fdefcafef2c95fdbe2ebcd9cf159fe3caa",
       "exports": [
         "createInstalledHttpChatRegistration"
       ],
@@ -2231,7 +2238,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -2253,13 +2260,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -2269,7 +2276,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -2279,27 +2286,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -2307,7 +2314,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -2318,7 +2325,7 @@
     {
       "module": "packages/provider-http/_internal/model-port.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "897aac213bf3df784883ccbab51a4a462741317f85dc8d9902cd53e5813df784",
+      "sha256": "415086e70101e90f868c0b2052cdf1a78853ae66c75d27ca31a3234a66d81e7a",
       "exports": [
         "createHttpChatPreflight"
       ],
@@ -2603,7 +2610,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -2625,13 +2632,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -2641,7 +2648,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -2651,27 +2658,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -2679,7 +2686,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -2690,7 +2697,7 @@
     {
       "module": "packages/provider-http/_internal/original-chat-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "ec997a25657266a34994f92e8800177624bfb5e93b7efccd08a8283bce289e22",
+      "sha256": "1c3e46e3279de4b378793c6f82d57ed83868f4fcdaf2d092d39898d0d7e50fe4",
       "exports": [
         "prepareOriginalHttpChatRequest"
       ],
@@ -2761,7 +2768,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -2783,13 +2790,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -2799,7 +2806,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -2809,27 +2816,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -2837,7 +2844,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -2848,7 +2855,7 @@
     {
       "module": "packages/provider-http/_internal/original-materials.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "7b69f030557e3db7d9c82aa85dc4acbd72092237979bad491b7c8d3220c3be23",
+      "sha256": "762cd077912897e348c8a4b668f6bb9805dba1565e6cf6b75c9000e22aab38d2",
       "exports": [
         "admitHTTPOriginalMaterials",
         "snapshotHTTPOriginalMaterials"
@@ -3114,7 +3121,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -3136,13 +3143,13 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -3152,7 +3159,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "if (pending || saving !== undefined || reconciliationPending)"
               },
               {
@@ -3162,27 +3169,27 @@
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "Installation must fund"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-openai-chat.mts",
                 "anchor": "projectionLimits"
               }
             ],
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -3190,7 +3197,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -3201,11 +3208,21 @@
     {
       "module": "scripts/generate-model-original-materials.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3eebe8affcb154899104f1a6cf179ca5e6b6ffa38ab59a8403900e8c4e9b8ef8",
+      "sha256": "1bca77bde0ef72a45471a5e7c82e70940732b82fd917d97e070c83276c31afca",
       "exports": [],
-      "operations": [],
+      "operations": [
+        {
+          "name": "<anonymous>",
+          "parameters": [
+            "name",
+            "count"
+          ],
+          "async": false
+        }
+      ],
       "imports": [
         "./generate-js-compiler-bindings.mjs",
+        "./typescript-interface-emit.mjs",
         "node:fs"
       ],
       "compilerFields": [],
@@ -3215,19 +3232,20 @@
       "contracts": [
         {
           "operations": [
-            "<module>"
+            "<module>",
+            "<anonymous>"
           ],
           "exports": [],
           "attributes": {
             "responsibility": [
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "One closed DATA snapshot/Common-reader connection"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-common/model-original-materials.mjs.in",
+                "path": "adapters/host-common/model-original-materials.mts.in",
                 "anchor": "admit__PROVIDER__OriginalMaterials"
               }
             ],
@@ -3252,7 +3270,7 @@
             },
             "failure": [
               {
-                "path": "packages/provider-http/model-port.test.mjs",
+                "path": "packages/provider-http/model-port.test.mts",
                 "anchor": "unknown"
               },
               {
@@ -3268,17 +3286,17 @@
             },
             "extension": [
               {
-                "path": "scripts/generate-js-compiler-bindings.mjs",
+                "path": "scripts/generate-js-compiler-bindings.mts",
                 "anchor": "generateCompilerBindings"
               },
               {
-                "path": "scripts/generate-model-original-materials.mjs",
+                "path": "scripts/generate-model-original-materials.mts",
                 "anchor": "generateCompilerBindings"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-http/original-materials.test.mjs",
+                "path": "packages/provider-http/original-materials.test.mts",
                 "anchor": "actual HTTP Common readers"
               },
               {
@@ -3286,7 +3304,7 @@
                 "anchor": "actual Common readers"
               },
               {
-                "path": "scripts/model-original-materials.test.mjs",
+                "path": "scripts/model-original-materials.test.mts",
                 "anchor": "one closed DATA source"
               }
             ]
@@ -3827,9 +3845,9 @@
           "operations": [
             "<module>",
             "emit_normalized_public_task",
-            "emit_public_task_prompt_payload",
             "emit_public_task_checked_contract",
             "emit_public_task_prompt",
+            "emit_public_task_prompt_payload",
             "normalize_public_model_task",
             "normalize_public_model_task_selected",
             "normalized_public_model_task_materials",
@@ -3851,16 +3869,16 @@
             ],
             "inputsOutputs": [
               {
+                "path": "src/check_environment/public_model_task_normalization.mbt",
+                "anchor": "fn emit_public_task_prompt_payload("
+              },
+              {
                 "path": "src/model_execution/mock_installation.mbt",
                 "anchor": "pub fn install_original_model_mock("
               },
               {
                 "path": "src/check_environment/model_mock_execution.mbt",
                 "anchor": "pub fn model_mock_execution_materials("
-              },
-              {
-                "path": "src/check_environment/public_model_task_normalization.mbt",
-                "anchor": "emit_public_task_prompt_payload"
               }
             ],
             "identity": [
@@ -5374,12 +5392,6 @@
           }
         }
       ]
-    }
-  ],
-  "inputs": [
-    {
-      "file": "f-provider-owner-declarations.json",
-      "sha256": "f9f1a2b8ce793caba4f5f1fff561f2ce9095afa5560cf969cc8e15fd4db3d8b8"
     }
   ]
 }

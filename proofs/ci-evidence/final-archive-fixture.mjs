@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {encode} from '../bounded-session/action-inputs.mjs';
 import {readCatalog} from './actions.mjs';
 import {gitTree, hash, actionInputs} from './inputs.mjs';
-import {isolatedEnvironment, mutationSourcePaths, scratchDockerfile, isolatedRunArguments} from './isolation.mjs';
+import {isolatedEnvironment, mutationSourcePaths, proofRuntimeEmits, scratchDockerfile, isolatedRunArguments} from './isolation.mjs';
 import {isolatedExperimentDigest, isolatedContract} from './isolated-contract.mjs';
 import {imageRuntime, snapshotFromGit, runtimeForAction} from './isolated-runtime.mjs';
 import {runtimeResiduals, distributionSummary} from './runtime.mjs';
@@ -48,6 +48,7 @@ function observedImage(tree, closed) {
   }
   const paths = mutationSourcePaths(tree); tree.prefetch(paths);
   for (const path of paths) file(`source/${path}`, tree.read(path), Number.parseInt(tree.entries.get(path).mode.slice(-3), 8));
+  for (const {path, bytes, mode} of proofRuntimeEmits(tree, 'session')) file(`source/${path}`, bytes, mode);
   const executables = ['runtime/node', ...['moon', 'moonc', 'moonrun'].map(name => `runtime/moonbit/bin/${name}`), 'bin/sh'];
   for (const path of executables) file(path, Buffer.from(`synthetic executable ${path}`), 0o755);
   for (const entry of byPath.values()) {

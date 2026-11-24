@@ -22,7 +22,7 @@ test('row watermark independent controls distinguish equality and prefix-only la
 });
 test('row watermark fixtures are registered for normal and bounded packed acceptance',()=>{
   const packed=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
-  const installer=readFileSync('scripts/test-packed-public-query.mjs','utf8');
+  const installer=readFileSync('scripts/test-packed-public-query.mts','utf8');
   for(const symbol of ['rowWatermarkSourceSuccesses','rowWatermarkSourceRefusals'])assert.ok(packed.includes('...'+symbol));
   assert.ok(packed.includes('process.env.ACTQL_TEST_ROW_WATERMARK_ONLY'));
   assert.ok(installer.includes("['scripts/fixtures/row-watermark-source-input.mjs', 'row-watermark-source-input.mjs']"));

@@ -118,6 +118,17 @@ pub(all) struct NativeResultDeliveryLookup {
 }
 
 ///|
+/// Store-owned inputs to a File publication. The ordered generations are
+/// selected before the first payload writer may seal a Result.
+pub(all) struct NativePreparedFilePublication {
+  request : @publication.PublicationContract
+  attempt : @publication.PublicationContract
+  receipt : @publication.PublicationContract
+  committed_at : String
+  material_generations : Array[String]
+}
+
+///|
 pub(all) struct NativePublicationCommit {
   public_index_entry_cid : String
   committed : Bool

@@ -4,12 +4,13 @@ import test from 'node:test';
 import {inspect} from 'node:util';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../host-common/runtime-result.mjs';
+import {ledgerUsageSnapshot} from '../host-common/ledger-usage.mjs';
 import {createInstalledRowSource, rowSourceCheckEnvironment} from './installed-row-source.mjs';
 
 // Actual Common acquisition/planner/Ledger/capture; the authority, reader and
 // retirement observation are explicit test ports. No physical or normal
 // numerical adequacy is inferred from these private declaration amounts.
-async function fixture({withCompute = true} = {}) {
+async function fixture({withCompute = true, pendingRetirement = false} = {}) {
   const read = path => readFile(new URL(`../../${path}`, import.meta.url), 'utf8');
   const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
     'fixture', 'fixture', 'fixture/0.1', JSON.stringify({views: [{resource: 'records',
@@ -38,10 +39,12 @@ async function fixture({withCompute = true} = {}) {
     values: JSON.stringify(aoa.execution_contracts['REL.values']),
     fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+  preparation.registry = checked(moon.clientPrepareInstalledSequenceContracts(
+    registry, preparation.values, preparation.fragment, preparation.ordered));
   const originalCapacity = moon.clientProgramRowSourceProviderCapacity(4096n, 8192n);
   assert.ok(originalCapacity);
   let retired = false, readers = 0, reads = 0, stops = 0, fallback = 0, generation = 1;
-  let originalReader, originalOptions;
+  let originalReader, originalOptions, ledger, usageAtStop;
   const providerReader = {capacity: originalCapacity, prepare(options) {
     assert.equal(this, providerReader);
     assert.equal(Object.isFrozen(options), true);
@@ -56,28 +59,36 @@ async function fixture({withCompute = true} = {}) {
         const rows = [{id: 1}], charge = options.chargePage(Buffer.from(JSON.stringify(rows)));
         options.consumePage(rows, {charge});
       },
-      requestStop() {assert.equal(this, originalReader); stops++;},
+      requestStop() {
+        assert.equal(this, originalReader);
+        stops++;
+        usageAtStop = ledgerUsageSnapshot(moon.clientProgramMultiCapturedLedgerUsage(ledger));
+        if (!pendingRetirement) retired = true;
+      },
       observe() {assert.equal(this, originalReader); return {cleanupConfirmed: retired};},
     };
     return originalReader;
   }};
-  const adapter = await createInstalledRowSource({moon, declaration, declared,
+  const installation = {moon, declaration, declared,
     environmentWire: environment.wire, connectorId: 'fixture', connectorRegistration: 'fixture',
     connectorRevision: 'fixture/0.1', bindingCid: `sha256:${'a'.repeat(64)}`,
     site: {connection: 'fixture:records', issueReadGrant: () => ({}), close() {}},
     authorization: {authorize: async () => ({action: 'dispatch'}),
       accountConfiguration: '{}', context: {contextCid: 'context'}},
     readOperation: 'read', physicalTarget: (resource, fields) => ({resource, fields, generation}),
-    readPages() {fallback++; assert.fail('ordinary fallback used');}, providerReader,
-    limits: {maxPages: 1, maxPageBytes: 1024, maxPageRows: 10, maxCaptureRows: 10}});
+    providerReader, limits: {maxPages: 1, maxPageBytes: 1024, maxPageRows: 10, maxCaptureRows: 10}};
+  await assert.rejects(createInstalledRowSource({...installation,
+    readPages() {fallback++; assert.fail('ordinary fallback used');}}), {code: 'InvalidInstalledSourceReader'});
+  const adapter = await createInstalledRowSource(installation);
   const preparedSource = await adapter.prepare(preparation);
   const planned = adapter.ledgerCapacity(preparedSource);
-  const ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
+  ledger = moon.clientProgramPrepareSingleCapturedLocalInstalledLedger(preparedProgram,
     planned.capacity, planned.transferBytes, planned.executionBytes,
     preparation.registry, preparation.values, preparation.fragment, preparation.ordered);
   if (withCompute) assert.ok(ledger);
   return {adapter, preparation, preparedSource, ledger, providerReader, originalCapacity,
     usage: () => [...moon.clientProgramMultiCapturedLedgerUsage(ledger)],
+    usageAtStop: () => usageAtStop,
     options: () => originalOptions,
     counts: () => ({readers, reads, stops, fallback}),
     retire() {retired = true;}, stale() {generation++;}};
@@ -101,16 +112,17 @@ test('actual Common provider projection and original reader retain one reservati
     preparedSource: f.preparedSource, ledger: f.ledger});
   assert.ok(capture.capturedSource);
   assert.ok(capture.capture.originalRead());
-  assert.deepEqual(f.counts(), {readers: 1, reads: 1, stops: 0, fallback: 0});
+  assert.deepEqual(f.counts(), {readers: 1, reads: 1, stops: 1, fallback: 0});
   assert.equal(moon.clientProgramInstalledProviderRowCaptureCapacityMatches(
     f.adapter.ledgerCapacity(f.preparedSource).capacity,
     f.options().rowRun.acquisition, f.originalCapacity), true);
   const held = f.usage();
   assert.equal(held[1], original[1] + 1n);
-  assert.ok(held[6] >= 4096n); assert.ok(held[7] >= 8192n);
-  assert.throws(() => capture.close(), {code: 'MoonBitHostFailure'});
-  assert.deepEqual(f.usage(), held);
-  f.retire();
+  const atStop = f.usageAtStop(), captured = ledgerUsageSnapshot(held);
+  assert.ok(atStop.reservedRetentionBytes >= 4096n);
+  assert.ok(atStop.reservedExecutionBytes >= 8192n);
+  assert.equal(atStop.reservedExecutionBytes - captured.reservedExecutionBytes, 4096n);
+  assert.ok(captured.reservedExecutionBytes > 0n);
   let closed = false;
   for (let index = 0; index < 128 && !closed; index++) {
     try {capture.close(); closed = true;}
@@ -119,6 +131,31 @@ test('actual Common provider projection and original reader retain one reservati
   assert.equal(closed, true);
   assert.equal(ledgerUsageSnapshot(f.usage()).reservedRetentionBytes, 0n); assert.equal(ledgerUsageSnapshot(f.usage()).reservedExecutionBytes, 0n);
   assert.equal(f.counts().stops, 1);
+});
+
+test('pending provider retirement keeps the original reservation until its own cleanup', async () => {
+  const f = await fixture({pendingRetirement: true});
+  let recovery;
+  await assert.rejects(f.adapter.openCapture({...f.preparation,
+    preparedSource: f.preparedSource, ledger: f.ledger}), error => {
+    assert.equal(error.code, 'MoonBitHostFailure');
+    assert.equal(error.outcome, 'unknown');
+    assert.equal(error.recovery.cleanupPending(), true);
+    recovery = error.recovery;
+    return true;
+  });
+  const held = f.usage();
+  assert.ok(ledgerUsageSnapshot(held).reservedExecutionBytes >= 8192n);
+  assert.equal(await recovery.cleanup(), false);
+  assert.deepEqual(f.usage(), held);
+  f.retire();
+  let closed = false;
+  for (let index = 0; index < 128 && !closed; index++) closed = await recovery.cleanup();
+  assert.equal(closed, true);
+  assert.equal(recovery.cleanupPending(), false);
+  assert.equal(ledgerUsageSnapshot(f.usage()).reservedRetentionBytes, 0n);
+  assert.equal(ledgerUsageSnapshot(f.usage()).reservedExecutionBytes, 0n);
+  assert.deepEqual(f.counts(), {readers: 1, reads: 1, stops: 1, fallback: 0});
 });
 
 test('actual Common provider caller rejects copied preparation and stale installation before a reader', async () => {

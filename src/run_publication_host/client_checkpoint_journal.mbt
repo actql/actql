@@ -341,10 +341,11 @@ fn[E] decode_client_checkpoint_journal_row_in_format(
     client_checkpoint_optional_text(object, "resume_intent") {
     Ok(Some(wire)) =>
       match
-        decode_client_checkpoint_resume_row(wire, {
-          authorization_context_cid,
-          environment_binding_cid,
-        }) {
+        decode_client_checkpoint_resume_row_for_state(
+          wire,
+          { authorization_context_cid, environment_binding_cid, },
+          state.status == Succeeded,
+        ) {
         Some(intent) => Some(intent)
         None => return Err(invalid)
       }
@@ -390,15 +391,39 @@ fn[E] decode_client_checkpoint_journal_row_in_format(
         return Err(invalid)
       }
       match client_checkpoint_text(resolution, "decision") {
-        Some("approved") if resume_intent_id ==
+        Some("approved") if resume_intent_id is Some(_) &&
+          resume_intent_id ==
           @checkpoint.resume_intent_id(artifact.checkpoint_cid, cid, limits) =>
-          @checkpoint.issue_lifecycle_run_state(
-            run_id,
-            Resuming,
-            updated_at,
-            declared_results,
-            limits,
-          )
+          if resume_intent.map(value => value.state) !=
+            Some(@checkpoint.ResumeCompleted) {
+            @checkpoint.issue_lifecycle_run_state(
+              run_id,
+              Resuming,
+              updated_at,
+              declared_results,
+              limits,
+            )
+          } else {
+            // A completed claim is decoded only with its paired terminal
+            // state. This admits durable data and grants no publication,
+            // response, cleanup or send authority.
+            guard state.status == Succeeded &&
+              !settlement_only &&
+              unknown_effects.is_empty() &&
+              client_checkpoint_cursor(state_wire) is Some(cursor) &&
+              @decode.open_object(cursor) is Ok(object) &&
+              client_checkpoint_text(object, "updated_at") == Some(updated_at) &&
+              @decode.lookup(object, "result_availability") is Some(results) &&
+              @decode.open_object(results) is Ok(results) &&
+              @decode.object_view_map_geometry(results).1 ==
+              declared_results.length() &&
+              declared_results
+              .iter()
+              .all(name => @decode.lookup(results, name) is Some(_)) else {
+              return Err(invalid)
+            }
+            Ok(state.wire)
+          }
         Some("rejected") if resume_intent_id is None =>
           @checkpoint.issue_waiting_exit_run_state(
             run_id, updated_at, declared_results, unknown_effects, limits,
@@ -451,9 +476,11 @@ fn[E] decode_client_checkpoint_journal_row_in_format(
     }
     effect_ledger.push(entry)
   }
-  if !effect_ledger.is_empty() &&
-    resume_intent.map(value => value.state) != Some(@checkpoint.ResumeClaimed) {
-    return Err(invalid)
+  if !effect_ledger.is_empty() {
+    match resume_intent.map(value => value.state) {
+      Some(@checkpoint.ResumeClaimed | @checkpoint.ResumeCompleted) => ()
+      _ => return Err(invalid)
+    }
   }
   let record : ClientCheckpointJournalRecord = {
     artifact,
@@ -539,6 +566,15 @@ pub fn decode_client_checkpoint_resume_row(
   wire : String,
   binding : @checkpoint.ResumeBinding,
 ) -> @checkpoint.ResumeIntentView? {
+  decode_client_checkpoint_resume_row_for_state(wire, binding, false)
+}
+
+///|
+fn decode_client_checkpoint_resume_row_for_state(
+  wire : String,
+  binding : @checkpoint.ResumeBinding,
+  completed : Bool,
+) -> @checkpoint.ResumeIntentView? {
   guard client_checkpoint_cursor(wire) is Some(cursor) &&
     @decode.closed_object(cursor, [
       "claimant", "generation", "lease_expires_ms", "state",
@@ -558,9 +594,12 @@ pub fn decode_client_checkpoint_resume_row(
       return None
     }
     let state = match state_text {
-      "pending" if generation == 0L && claimant == "" && lease_expires_ms == 0L =>
-        @checkpoint.ResumePending
-      "claimed" if generation > 0L &&
+      "pending" if !completed &&
+        generation == 0L &&
+        claimant == "" &&
+        lease_expires_ms == 0L => @checkpoint.ResumePending
+      "claimed" | "completed" if (state_text == "completed") == completed &&
+        generation > 0L &&
         generation < 9223372036854775807L &&
         lease_expires_ms > 0L &&
         lease_expires_ms <= 9007199254740991L => {
@@ -582,10 +621,12 @@ pub fn decode_client_checkpoint_resume_row(
           is Err(_) {
           return None
         }
-        @checkpoint.ResumeClaimed
+        if completed {
+          @checkpoint.ResumeCompleted
+        } else {
+          @checkpoint.ResumeClaimed
+        }
       }
-      // Completion needs actual Effect Set/publication facts and is not
-      // admitted by this physical claim connection.
       _ => return None
     }
     let view : @checkpoint.ResumeIntentView = {

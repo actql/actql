@@ -9,7 +9,6 @@ import {timeSeriesPrimarySuccesses} from
   '../../scripts/fixtures/time-series-primary-source-input.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
-import {installNodeClientProgramPreparation} from './client-program-preparation.mjs';
 import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {installClientStaticPlan} from './client-interactive-plan.mjs';
 import {sourceFreeTaskPlan} from './local-values-plan.mjs';
@@ -79,13 +78,17 @@ for (const name of ['json', 'empty-json', 'parameters-json']) {
   });
 }
 
-test('Values keeps its direct compiler and its existing row ceiling', () => {
-  const prepare = installNodeClientProgramPreparation({moon, environment});
-  const prepared = prepare({kind: 'aql', input: {text: valuesDocument, format: 'json'},
-    parameters: null});
+test('Values keeps its direct compiler and validates the configured row limit', async t => {
+  const prepare = await fundedClientPreparation(t, {moon, environment});
+  const prepared = await prepare({kind: 'aql', input: {text: valuesDocument, format: 'json'},
+    parameters: null, maxWireBytes: 65536, maxNodes: 4096, maxDepth: 64});
   assert.equal(moon.clientProgramTaskCount(prepared), 1);
   assert.equal(moon.clientProgramRequiresTaskCompilation(prepared), false);
   checked(moon.clientProgramCompileLocalValues(prepared));
-  assert.ok(moon.clientProgramWithValuesRowLimit(prepared, 100));
-  assert.equal(moon.clientProgramWithValuesRowLimit(prepared, 10001), undefined);
+  for (const rows of [100, 10001]) {
+    const configured = moon.clientProgramWithValuesRowLimit(prepared, rows);
+    assert.ok(configured !== undefined);
+    assert.equal(moon.clientProgramValuesMaxRows(configured), rows);
+  }
+  assert.equal(moon.clientProgramWithValuesRowLimit(prepared, 0) === undefined, true);
 });

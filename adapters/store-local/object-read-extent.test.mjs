@@ -1,69 +1,76 @@
-// Actual consumeObject body and OS FD. Store/Run authority is not issued here.
+// Actual Store consumeObject on an original OS FileHandle.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFile, mkdtemp, writeFile, open, rm} from 'node:fs/promises';
-import {constants} from 'node:fs';
+import fs, {mkdtemp, writeFile, rm} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {createHash} from 'node:crypto';
-import {runInNewContext} from 'node:vm';
 import {join} from 'node:path';
 import {tmpdir} from 'node:os';
 
-const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-const start = source.indexOf('  const consumeObject = async (');
-const end = source.indexOf('\n  const withCommittedResult = async (', start);
-assert.ok(start >= 0 && end > start);
-const body = source.slice(start, end);
+import {openLocalPublicationStore} from './publication-store.mjs';
+import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
+
+const cid = value => `sha256:${createHash('sha256').update(value).digest('hex')}`;
 
 async function exercise(t, {original = 'abcd', changed, injected,
   maxRead = Infinity, onAccept} = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-object-read-extent-'));
-  const path = join(directory, 'original');
-  await writeFile(path, original);
-  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-  let stats = 0, streams = 0, reads = 0, passed = false;
+  const originalOpen = fs.open, slow = Buffer.allocUnsafeSlow;
+  let store, handle, passed = false;
+  const restore = () => {
+    fs.open = originalOpen;
+    Buffer.allocUnsafeSlow = slow;
+    syncBuiltinESMExports();
+  };
+  t.after(async () => {
+    restore();
+    if (handle?.fd >= 0) await handle.close();
+    if (store !== undefined) assert.equal(await store.close(), true);
+    if (passed) await rm(directory, {recursive: true, force: true});
+    else t.diagnostic(`Preserved object read extent failure: ${directory}`);
+  });
+  store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: cid('original object extent fixture'),
+    capacityBytes: 1024 * 1024, maxObjectBytes: 131072, maxObjects: 16,
+    maxContractNodes: 4096, maxContractDepth: 64}, createPublicationContractControlFixture());
+  const writer = store.createObjectWriter(Buffer.byteLength(original));
+  await writer.append(original);
+  const stored = await writer.seal(cid(original));
+  const path = join(directory, 'objects', stored.cid.slice(7));
+  let stats = 0, streams = 0, reads = 0;
   const accepted = [], aliases = [], allocations = [], destinations = [];
-  const slow = Buffer.allocUnsafeSlow;
   Buffer.allocUnsafeSlow = function(length) {
     const bytes = Reflect.apply(slow, Buffer, [length]);
     if (new Error().stack.includes('consumeObject')) allocations.push(length);
     return bytes;
   };
-  const restore = () => { Buffer.allocUnsafeSlow = slow; };
-  t.after(async () => {
-    restore();
-    if (handle.fd >= 0) await handle.close();
-    if (passed) await rm(directory, {recursive: true, force: true});
-    else t.diagnostic(`Preserved object read extent failure: ${directory}`);
-  });
-  const consume = runInNewContext(`(() => {${body} return consumeObject;})()`, {
-    Buffer, constants, createHash, configuration: {maxObjectBytes: 131072},
-    active() {}, quantity: n => Number.isSafeInteger(n) && n >= 0,
-    fail(code) { throw Object.assign(new Error(code), {code}); },
-    objectPath: () => path, cidHex: () => createHash('sha256').update(original).digest('hex'),
-    async open() {
-      return {
-        async stat() {
-          const result = await handle.stat();
-          if (stats++ === 0 && changed !== undefined) await writeFile(path, changed);
-          return result;
-        },
-        createReadStream(options) {
-          streams++;
-          return handle.createReadStream(options);
-        },
-        read(buffer, offset, length, position) {
-          reads++;
-          destinations.push({buffer, offset, length, position});
-          if (injected !== undefined) return Promise.resolve({bytesRead: injected});
-          return handle.read(buffer, offset, Math.min(length, maxRead), position);
-        },
-        close: () => handle.close(),
-      };
-    },
-  });
+  fs.open = async (...args) => {
+    const selected = await originalOpen(...args);
+    if (args[0] !== path) return selected;
+    assert.equal(handle, undefined, 'acquire the selected original once');
+    handle = selected;
+    const stat = handle.stat, stream = handle.createReadStream, read = handle.read;
+    handle.stat = async function(...args) {
+      const result = await Reflect.apply(stat, this, args);
+      if (stats++ === 0 && changed !== undefined) await writeFile(path, changed);
+      return result;
+    };
+    handle.createReadStream = function(options) {
+      streams++;
+      return Reflect.apply(stream, this, [options]);
+    };
+    handle.read = function(buffer, offset, length, position) {
+      reads++;
+      destinations.push({buffer, offset, length, position});
+      if (injected !== undefined) return Promise.resolve({bytesRead: injected});
+      return Reflect.apply(read, this, [buffer, offset, Math.min(length, maxRead), position]);
+    };
+    return handle;
+  };
+  syncBuiltinESMExports();
   let result, failure;
   try {
-    result = await consume('original', async bytes => {
+    result = await store.consumeObject(stored.cid, async bytes => {
       accepted.push(Buffer.from(bytes));
       aliases.push(bytes);
       await onAccept?.({bytes, reads: () => reads, allocations: () => [...allocations]});

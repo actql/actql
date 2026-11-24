@@ -364,7 +364,7 @@ pub fn[E] prepare_local_sdk_read_delivery_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[LocalSDKReadDeliveryPreparation, LocalSDKReadDeliveryIssue[E]] {
   prepare_local_sdk_read_delivery_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,
@@ -400,7 +400,7 @@ pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(
   current : () -> Result[Unit, E],
 ) -> Result[String, LocalSDKReadDeliveryIssue[E]] {
   prepare_local_sdk_read_delivery_storage_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,
@@ -439,7 +439,7 @@ pub fn[E] prepare_local_sdk_read_delivery_installation_from_store(
   LocalSDKReadDeliveryIssue[E],
 ] {
   prepare_local_sdk_read_delivery_installation_for_source(
-    live_sdk_read_source(preflight),
+    live_sdk_read_source(preflight, selection~),
     account,
     finite,
     selection,

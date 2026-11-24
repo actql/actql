@@ -4,7 +4,7 @@
   "declarations": [
     {
       "module": "adapters/connectors/slack/site/user-list-read.mjs",
-      "sha256": "12d67846c4775b9570ccfb97a569ca79308a20205971cc241f53b751bf2213f2",
+      "sha256": "27c897139aad9cfeaed4cb9255251ad53e8a666b53860525de7aa7d8fc983d7a",
       "exports": [
         "SLACK_USER_LIST_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
@@ -143,17 +143,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
                 "anchor": "function prepareRead("
               },
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
                 "anchor": "async function executeRead("
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
               },
               {
@@ -167,8 +167,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -177,21 +177,21 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
                 "anchor": "currentBeforeSend:()=>verify(operation)"
               },
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
                 "anchor": "await context.callbacks.consumeObservation(observed.charge);"
               },
               {
-                "path": "adapters/site-node/https-credential-resource.mjs",
+                "path": "adapters/site-node/https-credential-resource.mts",
                 "anchor": "journal.authorize("
               }
             ],
             "failure": [
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
                 "anchor": "throw new SlackUserListReadFailure(cause,observations);"
               },
               {
@@ -201,12 +201,12 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
                 "anchor": "signal.throwIfAborted();"
               },
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
-                "anchor": "requestStop(reason)"
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
+                "anchor": "requestStop(reason?: unknown)"
               },
               {
                 "path": "adapters/connectors/slack/test/user-list-read.test.mjs",
@@ -223,7 +223,7 @@
                 "anchor": "sharing is not zero retained cost"
               },
               {
-                "path": "adapters/connectors/slack/site/user-list-read.mjs",
+                "path": "adapters/connectors/slack/site/user-list-read.mts",
                 "anchor": "cleanupConfirmed:false"
               },
               {
@@ -261,7 +261,7 @@
     },
     {
       "module": "adapters/connectors/slack/host/installed-slack-source.mjs",
-      "sha256": "f8f0a27cf918d7abd79eac710b1be2701aa801b6144ffbbfec19467329b5edb8",
+      "sha256": "1704eab98fa1040dde634c4315265136ffed46b38adb6f23fdac784426367c4f",
       "exports": [
         "INSTALLED_SLACK_SITE_VERSION",
         "INSTALLED_SLACK_SOURCE_VERSION",
@@ -444,7 +444,7 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/runtime-result.mjs",
-        "../../../host-node/installed-host-cleanup.mjs",
+        "../../../host-node/installed-host-cleanup.mts",
         "../../../host-node/installed-host-services.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../../../host-node/source-profile-json.mjs",
@@ -509,23 +509,23 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "export async function loadInstalledSlackSource("
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "export function createSlackChannelListReader("
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "const views="
               },
               {
@@ -535,23 +535,23 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "workspaceBytesCid:sha(Buffer.from(installed.workspaceId))"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "slackWorkspaceIdentityMatches(identity,workspaceId)"
               },
               {
@@ -565,7 +565,7 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -573,12 +573,12 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -587,19 +587,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "await verify(SLACK_CHANNEL_LIST_OPERATION);"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -609,7 +609,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -617,11 +617,11 @@
                 "anchor": "test('installed Slack lost original reply"
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "export class SlackChannelListReadFailure"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -635,7 +635,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -643,7 +643,7 @@
                 "anchor": "test('installed Slack stop during original resolver"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -661,11 +661,11 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "BigInt(limits.maxTotalResponseBytes)>"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -673,11 +673,11 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "maxTotalResponseBytes - bytes"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -691,7 +691,7 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "providerReader=services('createSourceReader'"
               },
               {
@@ -699,7 +699,7 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
               },
               {
@@ -780,7 +780,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -790,23 +790,23 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "export async function loadInstalledSlackSource("
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "export function createSlackChannelListReader("
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "const views="
               },
               {
@@ -814,7 +814,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -824,23 +824,23 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "workspaceBytesCid:sha(Buffer.from(installed.workspaceId))"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "slackWorkspaceIdentityMatches(identity,workspaceId)"
               },
               {
@@ -848,7 +848,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -862,7 +862,7 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -870,19 +870,19 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -892,19 +892,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "await verify(SLACK_CHANNEL_LIST_OPERATION);"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -912,7 +912,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -922,7 +922,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -930,11 +930,11 @@
                 "anchor": "test('installed Slack lost original reply"
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "export class SlackChannelListReadFailure"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -946,7 +946,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -956,7 +956,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -964,7 +964,7 @@
                 "anchor": "test('installed Slack stop during original resolver"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -976,7 +976,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -990,11 +990,11 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "BigInt(limits.maxTotalResponseBytes)>"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -1002,11 +1002,11 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "maxTotalResponseBytes - bytes"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -1014,7 +1014,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -1028,7 +1028,7 @@
                 "anchor": "## Installed users Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "providerReader=services('createSourceReader'"
               },
               {
@@ -1036,7 +1036,7 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
               },
               {
@@ -1044,7 +1044,7 @@
                 "anchor": "## Installed messages Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -1098,7 +1098,7 @@
                 "anchor": "test('installed Slack channels Account permission cannot substitute"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "captureConfigurationReaders(configurationReader,readJson,"
               },
               {
@@ -1106,7 +1106,7 @@
                 "anchor": "Notion and Slack retain supplied configuration readers before awaiting reads."
               },
               {
-                "path": "adapters/connectors/notion/test/source-configuration-reader.test.mjs",
+                "path": "adapters/connectors/notion/test/source-configuration-reader.test.mts",
                 "anchor": "test('installed Source configuration preserves same pending read failure without cleanup or fallback'"
               }
             ]
@@ -1120,7 +1120,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1130,7 +1130,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1140,7 +1140,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1150,7 +1150,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1160,7 +1160,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1170,7 +1170,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1180,7 +1180,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1190,7 +1190,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1200,7 +1200,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1210,7 +1210,7 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/source-profile-json.mjs",
+                "path": "adapters/host-node/source-profile-json.mts",
                 "anchor": "export function captureConfigurationReaders("
               },
               {
@@ -1218,7 +1218,7 @@
                 "anchor": "The existing configuration-reader owner selects original methods for connectors."
               },
               {
-                "path": "adapters/host-node/source-profile-json.test.mjs",
+                "path": "adapters/host-node/source-profile-json.test.mts",
                 "anchor": "test('configuration reader selection refuses proxies accessors and incomplete originals without invoking them'"
               }
             ]
@@ -1299,7 +1299,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/channel-list-read.mjs",
-      "sha256": "3382cf5cbf916021eed9ae5075ae44a62b759bff7cb6031f7dd30c490454127f",
+      "sha256": "bafa972e889d55a00465ab627641a0dbb0e1021c010d4f3f9b08525383379997",
       "exports": [
         "SLACK_CHANNEL_LIST_OPERATION",
         "SLACK_WORKSPACE_IDENTITY_OPERATION",
@@ -1547,15 +1547,15 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "export function createSlackChannelListReader("
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "const views="
               },
               {
@@ -1567,21 +1567,21 @@
                 "anchor": "### History conversation enumeration"
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "export function createSlackConversationListReaderForHistory("
               }
             ],
             "identity": [
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "slackWorkspaceIdentityMatches(identity,workspaceId)"
               },
               {
@@ -1599,12 +1599,12 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
+                "anchor": "const readers = new WeakMap<object, ReaderState>();"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
@@ -1617,11 +1617,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "await verify(SLACK_CHANNEL_LIST_OPERATION);"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -1635,11 +1635,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "export class SlackChannelListReadFailure"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "fail('SlackSourceInitializationUnavailable')"
               },
               {
@@ -1657,7 +1657,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -1679,11 +1679,11 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/site/channel-list-read.mjs",
+                "path": "adapters/connectors/slack/site/channel-list-read.mts",
                 "anchor": "maxTotalResponseBytes - bytes"
               },
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               },
               {
@@ -1705,7 +1705,7 @@
                 "anchor": "## Channels Source"
               },
               {
-                "path": "adapters/connectors/slack/host/installed-slack-source.mjs",
+                "path": "adapters/connectors/slack/host/installed-slack-source.mts",
                 "anchor": "messages:SLACK_MESSAGE_HISTORY_OPERATION},physicalTarget:target,"
               },
               {
@@ -1769,7 +1769,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/message-history-read.mjs",
-      "sha256": "3d5225d3896880554cc38d1bd4f9f857daec8002729339dd92b8bb2c6acf5a3b",
+      "sha256": "423be91b1fc356d587d4817cc99ce347745d52e57c9b387d7c937b7b28a0e9ec",
       "exports": [
         "SLACK_MESSAGE_HISTORY_OPERATION",
         "SLACK_MESSAGE_REPLIES_OPERATION",
@@ -2134,31 +2134,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "function prepareRead("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "async function executeRead("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "function ownColumnArray("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "function prepareReplyRead("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "async function executeReplyRead("
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "export async function coalesceSlackMessageReaders(options)"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "export async function coalesceSlackMessageReaders(options: ProjectionOptions)"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "const projectionLimitFields=['maxRows','maxOccurrences','maxWork','maxComparisonNodes'"
               },
               {
@@ -2172,11 +2172,11 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "invocationBindingsMatch(authorization.scope,context.scope)"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "slackMessageHistoryRequestMatches(history,pending)"
               },
               {
@@ -2184,15 +2184,15 @@
                 "anchor": "The same retained credential binding"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "source.pages.get(originalPage)"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "context.scope.operation!==SLACK_MESSAGE_REPLIES_OPERATION"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "(context.scope as {operation?: unknown}).operation!==SLACK_MESSAGE_REPLIES_OPERATION"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "reply.prepared.source!==source || reply.phase!=='succeeded' || reply.control===undefined"
               },
               {
@@ -2206,31 +2206,31 @@
             ],
             "ownership": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "const readers = new WeakMap();"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "const readers = new WeakMap<object, HistoryState>();"
               },
               {
                 "path": "docs/design/slack-user-pages.md",
                 "anchor": "The live reader retains"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "const replyReaders = new WeakMap();"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "const replyReaders = new WeakMap<object, ReplyState>();"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "const outcomes = new WeakMap();"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "const outcomes = new WeakMap<object, HistoryState | ReplyState | ProjectionState>();"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
-                "anchor": "const state={historyReader:original.historyReader,handles,source,states,controls,signal,names,bound,"
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
+                "anchor": "const state: ProjectionState = {historyReader:original.historyReader,handles,source,states,controls,signal,names,bound,"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "retainControl(history);"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await callbacks.current(operation);"
               },
               {
@@ -2244,11 +2244,11 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await context.callbacks.consumeObservation(observed.charge);"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "currentBeforeSend:()=>verify(operation)"
               },
               {
@@ -2256,19 +2256,19 @@
                 "anchor": "Index getters keep their ordinary responsibility;"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge,originalPage:retained.token}));"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "retained.consumed=true;"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await context.callbacks.consumePage(rows,Object.freeze({charge}));"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "await current(source.prepared.context.callbacks,SLACK_MESSAGE_HISTORY_OPERATION);"
               },
               {
@@ -2282,7 +2282,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "throw new SlackMessageHistoryReadFailure(cause,observations);"
               },
               {
@@ -2290,11 +2290,11 @@
                 "anchor": "test('Slack history lost response retains original Unknown use and refuses resend'"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "throw new SlackMessageRepliesReadFailure(cause,observations);"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "const failure=new SlackMessageProjectionFailure(cause);"
               },
               {
@@ -2308,7 +2308,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "signal.throwIfAborted();"
               },
               {
@@ -2316,11 +2316,11 @@
                 "anchor": "test('Slack history current and stop after page consumption prevent next Common request and send'"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "const signals=[stop.signal,original.source.prepared.signal];"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "const signal=AbortSignal.any(signals);"
               },
               {
@@ -2338,7 +2338,7 @@
                 "anchor": "The actual Host supplier"
               },
               {
-                "path": "adapters/connectors/slack/site/message-history-read.mjs",
+                "path": "adapters/connectors/slack/site/message-history-read.mts",
                 "anchor": "cleanupConfirmed:false"
               },
               {
@@ -2504,7 +2504,7 @@
     },
     {
       "module": "adapters/connectors/slack/site/slack-source-read.mjs",
-      "sha256": "a2079b83c3c392cbefe55a26d47d9a4a1cef7387c0b18c5c8bd245cdf2d869fc",
+      "sha256": "0a24f8a3ad317c922a7edfca7add481f2331b2b5cf8bb0723fd5a0f8d2b3dc40",
       "exports": [
         "prepareSlackSourceReadSequence"
       ],
@@ -2728,7 +2728,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "export function prepareSlackSourceReadSequence("
               }
             ],
@@ -2740,13 +2740,13 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-credential-source-reader.mjs",
+                "path": "adapters/host-node/installed-credential-source-reader.mts",
                 "anchor": "export function createInstalledCredentialSourceReader("
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/slack/site/slack-source-read.mjs",
+                "path": "adapters/connectors/slack/site/slack-source-read.mts",
                 "anchor": "if(pending)return false;"
               }
             ],

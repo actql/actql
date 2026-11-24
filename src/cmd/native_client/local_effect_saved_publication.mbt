@@ -241,20 +241,26 @@ fn LocalCommandPreparationOriginal::publish_saved_effect_files(
     receipt: final_receipt,
     captured_run: captured,
   }
+  let count = @publication.retained_effectful_computation_result_count(
+    computation,
+  )
+  let material_generations = []
+  for _ in 0..<count {
+    material_generations.push(
+      publisher
+      .sample_original_generation_cid()
+      .unwrap_or_else(() => stop("LocalGenerationUnavailable")),
+    )
+  }
   let preparation = @local_publication.prepare_effectful_run_publication_native(
-      service, evidence, intent, occurrence,
+      service, evidence, intent, occurrence, material_generations,
     ).map_err(issue => CommandSavedEffectPublication(Service(issue)))
     |> command_preparation_result
-  for
-    index in 0..<@publication.retained_effectful_computation_result_count(
-      computation,
-    ) {
+  for index in 0..<count {
     let snapshot = @publication.retained_effectful_computation_result_at(
       computation, index,
     ).unwrap_or_else(() => stop("LocalSavedEffectResultUnavailable"))
-    let generation = publisher
-      .sample_original_generation_cid()
-      .unwrap_or_else(() => stop("LocalGenerationUnavailable"))
+    let generation = material_generations[index]
     // Retain the original occurrence BEFORE the helper can acquire a writer.
     // Only its successful payload or an explicit cleanup failure is reclaimed.
     saved.failed_generation = Some(generation)
@@ -320,15 +326,16 @@ fn LocalCommandPreparationOriginal::publish_saved_effect_files(
     )
     .unwrap_or_else(() => stop("LocalRunStateNeedsReconciliation"))
   business.run_receipt_original = Some(FreshRunReceipt(observed))
-  let retained = continuation.retain_saved_publication_state_in_original_read(
+  let retained = continuation.settle_saved_publication_in_original_read(
     observed,
+    saved.members,
     @env.now().to_double(),
   )
   match retained {
     Ok(state) => state.wire()
     Err(issue) => {
       self.retain_primary(CommandSavedEffectPublication(issue))
-      stop("LocalCommandPreparationUnavailable")
+      stop("LocalPublicationNeedsReconciliation")
     }
   }
 }

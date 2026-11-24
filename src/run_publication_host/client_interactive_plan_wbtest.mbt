@@ -151,6 +151,84 @@ test "static view rejects a separately prepared identical owner and finite limit
 }
 
 ///|
+test "task Static Explanation shares the existing Plan and Map without a Run" {
+  let prepared = input_result_prepared(input_result_document)
+  let foreign = input_result_prepared(input_result_document)
+  let compiled = issue_prepared_client_task_compilation(
+    prepared,
+    run_materials_manifests(),
+    run_materials_limits().sequence,
+    1000,
+    1000,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  assert_true(
+    capture_client_static_pure_explanation_original(
+      foreign,
+      Tasks(compiled),
+      65536,
+      8192,
+      64,
+    )
+    is Err(ForeignOriginal),
+  )
+  let (original, plan) = capture_client_static_pure_explanation_original(
+    prepared,
+    Tasks(compiled),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  assert_eq(
+    plan,
+    client_task_static_plan_view(prepared, compiled, 65536, 8192, 64).unwrap(),
+  )
+  let geometry = measure_client_static_pure_explanation_facts(
+    original, 65536, 8192, 64,
+  ).unwrap()
+  let (bytes, nodes, depth) = geometry.complete
+  let facts = seal_client_static_pure_explanation_facts(
+    original, bytes, nodes, depth,
+  ).unwrap()
+  let facts = @publication.parse_interactive_run_control_shape(
+    "explanation_facts",
+    @publication.run_evidence_value_json(facts),
+    bytes,
+    nodes,
+    depth,
+  ).unwrap()
+  let writer = @encode.writer(65536, 8192, 64)
+  write_client_static_pure_explanation_context(original, writer, 10000).unwrap()
+  let context = @publication.parse_interactive_run_control_shape(
+    "explanation_context",
+    @encode.finish(writer),
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let binding = explanation_original_field(context, "binding")
+  let plan_ref = compiled_run_plan_field(original.map, "compiled_plan_cid")
+  assert_eq(compiled_run_plan_field(binding, "compiled_plan_cid"), plan_ref)
+  assert_eq(compiled_run_plan_field(facts, "compiled_plan_cid"), plan_ref)
+  let map_ref = compiled_run_plan_field(original.map, "self_cid")
+  assert_eq(compiled_run_plan_field(binding, "logical_map_cid"), map_ref)
+  assert_eq(compiled_run_plan_field(facts, "logical_map_cid"), map_ref)
+  assert_eq(
+    compiled_run_plan_field(binding, "check_environment_cid"),
+    prepared_client_check_environment_cid(prepared),
+  )
+  let items = explanation_original_field(context, "items")
+  guard items is @canonical.Array(items) else { fail("original Context items") }
+  assert_eq(@canonical.array_count(items), 1)
+  assert_eq(
+    compiled_run_plan_field(@canonical.array_at(items, 0).unwrap(), "kind"),
+    "result",
+  )
+}
+
+///|
 test "static map retains checked chain occurrences rather than physical task coordinates" {
   let document =
     #|{"version":"actql/0.1","id":"static-chain","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false}},"rows":[{"id":1},{"id":2}]},"as":"original"},{"from":"original","filter":"id > 1","as":"filtered"},{"from":"filtered","select":["id"],"as":"selected"}],"results":{"rows":{"from":"selected","fields":["id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}

@@ -98,6 +98,14 @@ recipe/protocol projection. Their read-only checks verify actual outputs.
 Handwritten renderers remain implementation source; generated comments alone
 prove neither source correspondence nor binary/runtime acceptance.
 
+The same generator emits TypeScript declaration mirrors for the JS validator
+and candidate codec. Resolution types expose conservative structural fields;
+conditional field relationships, bounded canonical admission and identities
+remain checks in the unchanged runtime validator. Candidate and resolution
+stage brands distinguish the two stage kinds at compile time. They do not
+establish which codec owns an original, its lifetime or any signing authority;
+each runtime continuation still checks the original in its own WeakMap.
+
 Independent signed vectors exercise Common and both language codecs. Consumers
 check exact bytes/CIDs, captured inputs/receivers, signature omission, identity
 versus display domains, strict bounds and lightweight Python import. These

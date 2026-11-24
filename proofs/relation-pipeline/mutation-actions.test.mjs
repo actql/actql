@@ -26,6 +26,12 @@ test('the source adapter binds the actual committed wide pipeline inventory', ()
   const inputs = mutationSourceInputs({tree: gitTree(root, result.stdout.trim()), source, root});
   assert(inputs.files.length >= Object.keys(source.sources).length);
   assert(inputs.files.some(entry => entry.path === 'proofs/ci-evidence/Reuse.lean'));
+  for (const path of ['scripts/ci-artifact-reader.mts', 'scripts/ci-main-base.mts', 'scripts/ci-core-partitions.mts', 'scripts/owned-scratch.mts',
+    'tsconfig.base.json', 'tsconfig.tooling.json']) {
+    assert(inputs.files.some(entry => entry.path === path), path);
+  }
+  assert(!inputs.files.some(entry => entry.path === 'scripts/ci-artifact-reader.mjs'));
+  assert(!inputs.files.some(entry => entry.path === 'scripts/owned-scratch.mjs'));
   assert(inputs.unresolved.length > 0);
 });
 
@@ -46,11 +52,16 @@ test('the consumer refuses working checker bytes and input modes that differ fro
   assert.throws(() => mutationSourceInputs({tree, source, root: directory}), /Working pipeline input mode differs/);
 });
 
-test('the existing final consumer installs the audited Lean pin before executing action admission', () => {
+test('the existing final consumer prepares typed tooling and the audited Lean pin before action admission', () => {
   const workflow = parse(readFileSync(new URL('../../.github/workflows/ci.yml', import.meta.url), 'utf8'));
   const steps = workflow.jobs['pipeline-evidence'].steps;
+  const prepare = steps.findIndex(step => step.run === 'npm ci');
+  const join = steps.findIndex(step => step.run === 'node proofs/relation-pipeline/ci-parts.mjs join');
   const install = steps.findIndex(step => step.run?.includes('node proofs/bounded-session/setup-lean.mjs'));
   const audit = steps.findIndex(step => step.run === 'node proofs/relation-pipeline/mutation-action-archive.mjs seal');
+  assert(prepare >= 0 && prepare < join && join < audit);
+  assert.equal(steps[prepare].if, undefined);
+  assert.equal(steps[prepare]['continue-on-error'], undefined);
   assert(install >= 0 && audit > install, 'Final action checker lacks its prepared Lean runtime');
   const pin = readFileSync(new URL('../bounded-session/lean-toolchain', import.meta.url), 'utf8').trim().split(':v')[1];
   assert(steps[install].run.includes(`.toolchains/lean-${pin}-linux/bin`));
@@ -123,6 +134,8 @@ test('Git bytes, mode and membership remain input dependencies outside the compi
   }
   const next = inputTree(); next.entries.delete('proofs/ci-evidence/Claims.lean');
   assert.throws(() => mutationSourceInputs({tree: next, source: snapshot(next)}), /Missing\/nonregular/);
+  const missingPartition = inputTree(); missingPartition.entries.delete('scripts/ci-core-partitions.mjs');
+  assert.throws(() => mutationSourceInputs({tree: missingPartition, source: snapshot(missingPartition)}), /Missing\/nonregular/);
   assert(!before.files.some(entry => entry.path === fixturePath));
 });
 

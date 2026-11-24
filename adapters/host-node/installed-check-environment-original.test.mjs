@@ -8,6 +8,9 @@ import {canonicalJson, contentCid} from './local-account-config.mjs';
 import * as environmentOwner from './installed-check-environment.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {createInstalledLoaderParent} from './fixtures/installed-loader-parent.fixture.mjs';
+import {snapshotInstalledCalendar} from './installed-calendar.mjs';
+import {calendarSourceArtifact, calendarSourceSelection, calendarSourceArtifactLimits}
+  from '../../scripts/fixtures/calendar-source-input.mjs';
 import {composeInstalledSourceEnvironment, readInstalledHostEnvironment,
   admitInstalledSourceFinalEnvironment, assertInstalledEnvironmentPublicationOriginal}
   from './installed-funded-environment.mjs';
@@ -161,6 +164,30 @@ test('changed final Host policy constructs its own actual raw checker original',
     parent.services, runtime, final, prepared, wire));
   assert.throws(() => assertInstalledEnvironmentPublicationOriginal(
     parent.services, runtime, final, prepared, composed.wire), {code: 'ForeignInstalledEnvironmentOriginal'});
+});
+
+test('funded Calendar admission publishes the checker carrying the original artifact', async t => {
+  const parent = await parentFixture(t);
+  const body = JSON.parse(baseWire);
+  body.host_policy_profile.calendar = calendarSourceSelection;
+  const wire = encoded(body);
+  const calendarArtifact = snapshotInstalledCalendar({
+    selection: calendarSourceSelection,
+    tableBytes: Buffer.from(calendarSourceArtifact.slice(0, -1)),
+    limits: calendarSourceArtifactLimits,
+    maxSelectionWork: 10000,
+  });
+  const base = readInstalledHostEnvironment(parent.services, runtime, wire,
+    {...profiles, calendar: true});
+  const admitted = readInstalledHostEnvironment(parent.services, runtime, wire,
+    {...profiles, calendar: true, calendarArtifact});
+  assert.equal(admitted.wire, wire);
+  const prepared = publication(admitted);
+  assert.doesNotThrow(() => assertInstalledEnvironmentPublicationOriginal(
+    parent.services, runtime, admitted, prepared, wire));
+  assert.throws(() => assertInstalledEnvironmentPublicationOriginal(
+    parent.services, runtime, base, prepared, wire), {code: 'ForeignInstalledEnvironmentOriginal'});
+  await parent.close();
 });
 
 test('funded Host final admission refuses copied foreign and no-longer-current originals', async t => {

@@ -17,7 +17,7 @@ import {canonical, token} from './file-listing-source.fixture.mjs';
 export async function openManagedContentSourceFixture({scratch, keys, account,
   generated, destination, content, fixture, allowSourceRead, onRead}) {
   const directory = join(scratch.path, 'source-site');
-  await mkdir(directory);
+  await mkdir(directory, {recursive: true});
   const tls = await fixtureCertificates(directory);
   const credentialPrivateKeyPath = join(directory, 'credential.pem');
   await writeFile(credentialPrivateKeyPath, keys.privateKey.export({type: 'pkcs8', format: 'pem'}));

@@ -43,6 +43,21 @@ fn require_effectful_publication_materials(
 }
 
 ///|
+/// The original private preparation was retained before any output writer.
+struct NativeEffectfulRunPublicationPreparation {
+  request : @publication.PublicationContract
+  attempt : @publication.PublicationContract
+  material_generations : Array[String]
+}
+
+///|
+pub fn NativeEffectfulRunPublicationPreparation::publication_attempt(
+  self : Self,
+) -> @publication.PublicationContract {
+  self.attempt
+}
+
+///|
 /// Issue only the original Run's publication-operation request/attempt before
 /// payload persistence. Business Request/Model/Source originals are unchanged.
 pub fn prepare_effectful_run_publication_native(
@@ -50,7 +65,8 @@ pub fn prepare_effectful_run_publication_native(
   evidence : NativeEffectfulPublicationEvidence,
   intent : NativeRunPublicationIntent,
   occurrence : NativeRunPublicationOccurrence,
-) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue] {
+  material_generations : Array[String],
+) -> Result[NativeEffectfulRunPublicationPreparation, NativeRunPublicationIssue] {
   match require_effectful_publication_materials(service, evidence) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -94,7 +110,28 @@ pub fn prepare_effectful_run_publication_native(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok({ request, attempt, })
+  let prepared : @store.NativePreparedFilePublication = {
+    request,
+    attempt,
+    receipt: evidence.receipt,
+    committed_at: occurrence.committed_at,
+    material_generations,
+  }
+  match
+    service.store.retain_prepared_file_publication(
+      prepared,
+      service.max_wire_bytes,
+      service.max_nodes,
+      service.max_depth,
+    ) {
+    Ok(_) =>
+      Ok({
+        request,
+        attempt,
+        material_generations: material_generations.copy(),
+      })
+    Err(issue) => Err(Store(issue))
+  }
 }
 
 ///|
@@ -241,6 +278,21 @@ fn commit_new_effectful_run_native(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  commit_effectful_index_native(
+    service, evidence, intent, request, attempt, index,
+  )
+}
+
+///|
+fn commit_effectful_index_native(
+  service : NativeRunPublicationService,
+  evidence : NativeEffectfulPublicationEvidence,
+  intent : NativeRunPublicationIntent,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index : @publication.PublicationContract,
+  recover_prepared? : (() -> Bool)? = None,
+) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
   (service.commit_guard)(() => {
     match
       authorize(
@@ -274,6 +326,7 @@ fn commit_new_effectful_run_native(
       service.max_nodes,
       service.max_depth,
       effectful=Some(evidence.final_evidence),
+      recover_prepared~,
     )
     match committed {
       Ok(value) =>
@@ -288,6 +341,8 @@ fn commit_new_effectful_run_native(
           committed: value.committed,
           idempotent: value.idempotent,
         })
+      Err(@store.PublicationCommitConflict) if recover_prepared is Some(_) =>
+        Err(CommitConflict)
       Err(@store.PublicationCommitConflict) =>
         match
           inspect_existing_effectful_commit(service, evidence, intent, request) {
@@ -301,6 +356,29 @@ fn commit_new_effectful_run_native(
 }
 
 ///|
+/// Reuse the original Request, attempt and index. The Store verifies the
+/// private locator and the original durable bodies again inside commit.
+pub fn commit_recovered_effectful_index_native(
+  service : NativeRunPublicationService,
+  evidence : NativeEffectfulPublicationEvidence,
+  intent : NativeRunPublicationIntent,
+  request : @publication.PublicationContract,
+  attempt : @publication.PublicationContract,
+  index : @publication.PublicationContract,
+  lease_current : () -> Bool,
+) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
+  commit_effectful_index_native(
+    service,
+    evidence,
+    intent,
+    request,
+    attempt,
+    index,
+    recover_prepared=Some(lease_current),
+  )
+}
+
+///|
 /// Commit a prepared occurrence after every Result payload and Run-bound
 /// evidence contract exists. The preparation is re-derived and compared, so
 /// a foreign request or attempt cannot be substituted between the two phases.
@@ -309,7 +387,7 @@ pub fn commit_prepared_effectful_run_publication_native(
   evidence : NativeEffectfulPublicationEvidence,
   intent : NativeRunPublicationIntent,
   occurrence : NativeRunPublicationOccurrence,
-  preparation : NativeRunPublicationPreparation,
+  preparation : NativeEffectfulRunPublicationPreparation,
 ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] {
   match require_effectful_publication_materials(service, evidence) {
     Ok(_) => ()

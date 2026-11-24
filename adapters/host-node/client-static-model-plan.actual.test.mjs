@@ -3,6 +3,7 @@ import test from 'node:test';
 import {readFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
+import {DatabaseSync} from 'node:sqlite';
 import {setImmediate} from 'node:timers/promises';
 import {createHostObservationConnection} from '../host-common/observation.mjs';
 import {connectEmbeddedLocal} from './embedded-local.mjs';
@@ -10,6 +11,8 @@ import {staticExplanationReadModel} from '../../packages/explorer-ui/read-model.
 import {scaffoldProject} from '../../packages/native-cli/lib/project-scaffold.mjs';
 import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
+import {projectTemplateFiles} from '../../packages/native-cli/lib/project-template.mjs';
+import {twoModelDealReviewProgram} from '../../scripts/fixtures/deal-review-two-models.mjs';
 
 // Actual imported installed static service, original public template and
 // current Common bridge. This is a source-checkout caller regression, not
@@ -167,6 +170,81 @@ test('installed static Explanation retains the original deal-review Source, Mode
 });
 
 
+test('installed static SDK explains effect-free SQL, Source JOIN and Source INFER without starting a Run', async t => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-static-pure-',
+    label: 'effect-free static Explanation'});
+  const project = scaffoldProject(join(scratch.path, 'project'), 'deal-review-mock');
+  const cwd = process.cwd();
+  let client, primary, phase = 'open';
+  process.chdir(project.directory);
+  try {
+    const target = await readFile('mock/data.json');
+    const records = [];
+    const authorization = {accountConfiguration: JSON.stringify({
+      version: 'actql-execution-account-config/0.1', account_id: 'effect-free-static',
+      entries: [{entry_id: 'describe', outcome: 'allow', principal: {all: true}, connection: {all: true},
+        resource: {any_of: ['run']}, operation: {any_of: ['read']}, exclusions: []}],
+    })};
+    const observation = createHostObservationConnection({include: ['source', 'infer', 'compute', 'effect', 'run'],
+      deliver: record => records.push(record)});
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
+      installation: {directory: '.actql-node', authorization, observation}});
+    const original = await readFile('deal-review.aql', 'utf8');
+    const readOnly = original.split('|> EFFECT')[0].trim();
+    assert.notEqual(readOnly, original);
+    for (const [label, source, format, expected] of [
+      ['SELECT', 'SELECT 1 AS answer', 'sql', ['result']],
+      ['JOIN', 'SELECT o.id AS id FROM salesforce.opportunities AS o\n' +
+        'JOIN drive.files AS f ON f.name = o.name\n|> RESULT joined', 'aql',
+        ['source', 'source', 'result']],
+      ['INFER', readOnly, 'aql', ['source', 'source', 'source', 'model_task', 'result']],
+    ]) {
+      phase = label;
+      const {plan, facts, context, version} = await client.explain(source, {format});
+      assert.equal(version, 'actql-static-explanation/0.1');
+      assert.equal(plan.version, 'actql-plan-view/0.1');
+      assert.equal(plan.provider_io, 0);
+      assert.equal(context.binding.compiled_plan_cid, plan.compiled_plan_cid);
+      assert.equal(context.binding.program_definition_cid, plan.logical_map.program_definition_cid);
+      assert.equal(facts.parameter_values_cid, context.binding.parameter_values_cid);
+      assert.equal(context.binding.logical_map_cid, plan.logical_map.self_cid);
+      assert.equal(facts.logical_map_cid, plan.logical_map.self_cid);
+      assert.deepEqual(context.items.map(item => item.kind), expected);
+      assert.deepEqual(facts.steps.map(step => step.step_id), plan.logical_map.steps.map(step => step.step_id));
+      if (label === 'JOIN') assert(facts.steps.some(step => step.meaning.kind === 'join'));
+      if (label === 'INFER') {
+        const model = context.items.find(item => item.kind === 'model_task');
+        assert.equal(model.task_id, 'model-task:deal-review.v1');
+        assert.deepEqual(model.input_bindings.map(input => input.role).sort(), ['NextStep', 'StageName', 'notes']);
+      }
+    }
+    phase = 'first close';
+    await client.close();
+    client = undefined;
+    assert.deepEqual(await readFile('mock/data.json'), target);
+    const status = observation.status();
+    assert.deepEqual(status.loss, {});
+    assert.equal(status.closed, true);
+    assert.equal(status.dropped, 0);
+    assert(!records.some(record => record.attributes['actql.run.definition_cid'] !== undefined ||
+      ['attempt_started', 'task_started', 'application_observed', 'write_observed'].includes(record.event)));
+    const journal = new DatabaseSync(join('.actql-node', 'requests', 'client-requests.sqlite3'), {readOnly: true});
+    try {assert.equal(journal.prepare('SELECT COUNT(*) AS total FROM client_requests').get().total, 0);}
+    finally {journal.close();}
+  } catch (error) {
+    primary = error;
+    t.diagnostic(JSON.stringify({phase, retainedScratch: scratch.path, code: error?.code}));
+  } finally {
+    try {await client?.close();}
+    catch (error) {primary = primary === undefined ? error :
+      new AggregateError([primary, error], 'Effect-free explanation and cleanup failed');}
+    finally {process.chdir(cwd);}
+  }
+  if (primary !== undefined) throw primary;
+  scratch.passed();
+  scratch.close();
+});
+
 // One real ordinary Run and a fresh embedded Host generation. Its cold read
 // only uses the original committed Journal and never supplies the AQL again.
 test('installed Saved Context uses the retained original after Host close and reopen', async t => {
@@ -246,6 +324,87 @@ test('installed Saved Context uses the retained original after Host close and re
     finally {process.chdir(cwd);}
   }
   if (primary !== undefined) throw primary;
+  scratch.passed();
+  scratch.close();
+});
+
+test('public Effectful Explain projects one checked parameter, field and redacted literal without admitting a Run', async () => {
+  const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-effectful-explain-inputs-',
+    label: 'ordinary Effectful Explain checked Model inputs'});
+  const project = scaffoldProject(join(scratch.path, 'project'), 'deal-review-mock');
+  const program = twoModelDealReviewProgram(projectTemplateFiles('deal-review-mock'));
+  const [review, , apply] = program.stages;
+  program.stages = [review, apply];
+  apply.inputs.confirmed.result.stage = review.id;
+  for (const step of apply.steps) {
+    if (step.select !== undefined) step.select = step.select.filter(name => name !== 'confirmation');
+  }
+  for (const result of Object.values(apply.results)) {
+    result.fields = result.fields.filter(name => name !== 'confirmation');
+  }
+  program.params = {input_text: {type: 'string', nullable: false}};
+  const privateLiteral = 'effectful_fixture_private_literal';
+  const privateValues = ['effectful_fixture_param_a', 'effectful_fixture_param_b'];
+  review.steps.find(step => step.infer !== undefined).infer.input = {
+    StageName: {$param: 'input_text'}, NextStep: {literal: privateLiteral}, notes: {field: 'notes'},
+  };
+
+  const records = [];
+  const observer = createHostObservationConnection({include: ['source', 'infer', 'compute', 'effect', 'run'],
+    deliver: record => records.push(record)});
+  const cwd = process.cwd();
+  const target = join(project.directory, 'mock/data.json');
+  const initialTarget = await readFile(target);
+  let client, primary;
+  process.chdir(project.directory);
+  try {
+    client = await connectEmbeddedLocal({mode: 'local', owner: 'local', profile: 'mock',
+      installation: {directory: '.actql-node', observation: observer}});
+    const parameterCids = [];
+    for (const input_text of privateValues) {
+      const parameters = {input_text};
+      const response = await client.explain(program, {parameters});
+      const {plan, facts, context} = response;
+      assert.equal(plan.version, 'actql-effectful-static-plan-view/0.1');
+      assert.equal(plan.provider_io, 0);
+      assert.equal(context.binding.parameter_values_cid, plan.parameter_values_cid);
+      assert.equal(facts.parameter_values_cid, plan.parameter_values_cid);
+      assert.equal(context.binding.logical_map_cid, plan.computation.plan_view.logical_map.self_cid);
+      const model = context.items.find(item => item.kind === 'model_task');
+      assert.equal(model.task_id, 'model-task:deal-review.v1');
+      assert.deepEqual(Object.fromEntries(model.input_bindings.map(({role, binding}) => [role, binding])), {
+        StageName: {state: 'parameter', name: 'input_text'}, NextStep: {state: 'redacted'},
+        notes: {state: 'field', name: 'notes'},
+      });
+      const parameter = model.input_bindings.find(item => item.role === 'StageName');
+      assert.deepEqual(parameter.type, {kind: 'string', nullable: false, projection: 'shape_and_nullability'});
+      const wire = JSON.stringify(response);
+      for (const undisclosed of [...privateValues, privateLiteral]) assert(!wire.includes(undisclosed));
+      parameterCids.push(plan.parameter_values_cid);
+    }
+    assert.notEqual(...parameterCids);
+  } catch (error) {primary = error;}
+  finally {
+    try {await client?.close();}
+    catch (error) {primary = primary === undefined ? error
+      : new AggregateError([primary, error], 'Effectful Explain and first Host close failed');}
+    finally {process.chdir(cwd);}
+  }
+  if (primary !== undefined) throw primary;
+  assert.deepEqual(await readFile(target), initialTarget);
+  const status = observer.status();
+  assert.equal(status.closed, true);
+  assert.equal(status.dropped, 0);
+  assert.deepEqual(status.loss, {});
+  assert(!records.some(record => record.attributes['actql.run.definition_cid'] !== undefined ||
+    ['attempt_started', 'task_started', 'application_observed', 'write_observed'].includes(record.event)));
+
+  // Read the actual normal Journal after its first close. Provider I/O=0 and
+  // absence of delivery markers alone cannot prove no durable Run was admitted.
+  const journal = new DatabaseSync(join(project.directory, '.actql-node', 'requests', 'client-requests.sqlite3'),
+    {readOnly: true});
+  try {assert.equal(journal.prepare('SELECT COUNT(*) AS total FROM client_requests').get().total, 0);}
+  finally {journal.close();}
   scratch.passed();
   scratch.close();
 });

@@ -1,14 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,open,lstat,writeFile,rm,link} from 'node:fs/promises';
-import {readFileSync,constants} from 'node:fs';
+import fs, {mkdtemp,writeFile,rm,link} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {compileFunction} from 'node:vm';
 import {createHash} from 'node:crypto';
 import {DatabaseSync} from 'node:sqlite';
-import {parse} from 'acorn';
-import {PublicationStoreError} from '../store-local/publication-store.mjs';
+import {readBoundedLocalMetadata} from '../store-local/publication-store.mjs';
+import {createPublicationSemanticReader} from '../store-local/publication-semantic-reader.mjs';
 import {openDeliveryAttemptIndex} from '../store-local/delivery-attempt-index.mjs';
 import {createLocalResultReadWorkspace} from './local-result-read-workspace.mjs';
 import {runtimeField} from '../host-common/compiler-binding.generated.mjs';
@@ -29,30 +28,28 @@ function owner(bytes=16*1024*1024) {
   const reserved=()=>{const value=raw.clientProgramRequestPreparationAccounting(parents[0]);return [runtimeField(value,0),runtimeField(value,1)];};
   return {workspace,request,reserved};
 }
-const source=readFileSync(new URL('../store-local/publication-store.mjs',import.meta.url),'utf8');
-const ast=parse(source,{ecmaVersion:'latest',sourceType:'module'});
-const reader=ast.body.find(node=>node.type==='FunctionDeclaration'&&node.id.name==='readBounded');
-const originalExpression=name=>{
-  const declaration=ast.body.filter(node=>node.type==='VariableDeclaration').flatMap(node=>node.declarations)
-    .find(node=>node.id.name===name);
-  assert(declaration);return source.slice(declaration.init.start,declaration.init.end);
-};
-// Execute the exact existing private FD reader body with real filesystem ports,
-// not a second reader algorithm or an exported test-only production helper.
-function fdReader(onAllocate,openOriginal=open) {
-  const fail=compileFunction('return ('+originalExpression('fail')+');',['PublicationStoreError'])(PublicationStoreError);
-  const quantity=compileFunction('return ('+originalExpression('quantity')+');',[])();
-  return compileFunction('return ('+source.slice(reader.start,reader.end)+');',
-    ['quantity','fail','open','constants','lstat','Buffer','originalApply'])(quantity,fail,openOriginal,constants,lstat,
-    {allocUnsafeSlow(bytes){onAllocate(bytes);return Buffer.allocUnsafeSlow(bytes);}},Reflect.apply);
+function observeAllocation(t, onAllocate) {
+  const allocate = Buffer.allocUnsafeSlow;
+  const mock = t.mock.method(Buffer, 'allocUnsafeSlow', function (bytes) {
+    onAllocate(bytes);
+    return Reflect.apply(allocate, this, [bytes]);
+  });
+  return () => mock.mock.restore();
 }
 async function directory(t,beforeRemove=()=>{}) {const dir=await mkdtemp(join(tmpdir(),'actql-read-metadata-'));t.after(async()=>{await beforeRemove();await rm(dir,{recursive:true,force:true});});return dir;}
 
 test('metadata SAME FD extent reserves actual bytes before buffer construction and JSON admission',async t=>{
   const dir=await directory(t),path=join(dir,'schema.json');await writeFile(path,'{"é":7}');
   const o=owner();o.workspace.begin(o.request);const before=o.reserved(),demand=[],alloc=[];
-  const read=fdReader(bytes=>{alloc.push(bytes);assert.equal(o.reserved()[0]-before[0],1392n);});
-  const bytes=await read(path,1024,undefined,undefined,false,extent=>{demand.push(extent);o.workspace.metadata(o.request,extent);});
+  const restore = observeAllocation(t, bytes => {
+    alloc.push(bytes); assert.equal(o.reserved()[0]-before[0],1392n);
+  });
+  let bytes;
+  try {
+    bytes = await readBoundedLocalMetadata(path,1024,undefined,undefined,false,extent=>{
+      demand.push(extent); o.workspace.metadata(o.request,extent);
+    });
+  } finally { restore(); }
   assert.deepEqual(demand,[8]);assert.deepEqual(alloc,[8,1]);assert.equal(bytes.toString(),'{"é":7}');
   assert.deepEqual(JSON.parse(bytes),{'é':7});o.workspace.metadataFinish(o.request);
   assert.deepEqual(o.reserved(),before);o.workspace.close(o.request);
@@ -63,10 +60,28 @@ test('metadata refusal precedes allocation and retains SAME real FD until origin
   let fd,closeCalls=0,alloc=0;
   const dir=await directory(t,()=>{assert(fd===undefined||fd.fd===-1,'a pending original FD keeps its fixture');}),path=join(dir,'schema.json');await writeFile(path,'x'.repeat(16384));
   const o=owner(256*1024);o.workspace.begin(o.request);const before=o.reserved();
-  const read=fdReader(()=>{alloc++;},async(...args)=>{
-    fd=await open(...args);return {stat:fd.stat.bind(fd),read:fd.read.bind(fd),async close(){if(++closeCalls===1)return false;return fd.close();}};
+  const originalOpen = fs.open;
+  let closeOriginal;
+  const mock = t.mock.method(fs, 'open', async (...args) => {
+    const opened = await Reflect.apply(originalOpen, fs, args);
+    if (args[0] !== path) return opened;
+    assert.equal(fd, undefined, 'The same FD is retained instead of reopened');
+    fd = opened;
+    closeOriginal = fd.close.bind(fd);
+    fd.close = async () => ++closeCalls === 1 ? false : closeOriginal();
+    return fd;
   });
-  let failure;await assert.rejects(read(path,65536,undefined,undefined,false,extent=>o.workspace.metadata(o.request,extent)),error=>{failure=error;return error.code==='MoonBitHostFailure';});
+  syncBuiltinESMExports();
+  const restore = observeAllocation(t, () => {alloc++;});
+  let failure;
+  try {
+    await assert.rejects(readBoundedLocalMetadata(path,65536,undefined,undefined,false,
+      extent=>o.workspace.metadata(o.request,extent)), error=>{
+        failure=error; return error.code==='MoonBitHostFailure';
+      });
+  } finally {
+    mock.mock.restore(); syncBuiltinESMExports(); restore();
+  }
   assert.equal(alloc,0);assert.equal(closeCalls,1);assert(fd.fd>=0);
   o.workspace.close(o.request,failure);assert.deepEqual(o.reserved(),before);
   assert.deepEqual(await o.workspace.closeAll(),{pending:false});
@@ -157,26 +172,26 @@ test('metadata actual semantic schema FD reader reserves before stream backing a
   const dir=await directory(t),path=join(dir,'schema-original'),object=join(dir,'physical-original');
   const wire='{"é":7}';await writeFile(path,wire);await link(path,object);
   const identity='sha256:'+createHash('sha256').update(wire).digest('hex');
-  const declarations=[];
-  function visit(node) {
-    if(node===null||typeof node!=='object')return;
-    if(node.type==='VariableDeclarator'&&node.id.name==='readSemanticOriginal')declarations.push(node);
-    for(const child of Object.values(node))if(Array.isArray(child))child.forEach(visit);
-    else if(child!==null&&typeof child==='object')visit(child);
-  }
-  visit(ast);assert.equal(declarations.length,1);
-  const node=declarations[0],quantity=compileFunction('return ('+originalExpression('quantity')+');',[])();
-  const fail=compileFunction('return ('+originalExpression('fail')+');',['PublicationStoreError'])(PublicationStoreError);
   const readers=new Set(),o=owner();o.workspace.begin(o.request);const before=o.reserved(),alloc=[];
   const unused=()=>assert.fail('the original schema reader must not select Native contract admission');
-  const ports={contractPath:cid=>{assert.equal(cid,identity);return path;},active(){},deliveryIndex:undefined,
-    admitOriginalContract:unused,admitNativeContract:native=>{assert.equal(native,undefined);},
-    Buffer:{allocUnsafeSlow(bytes){alloc.push(bytes);assert.equal(o.reserved()[0]-before[0],1392n);return Buffer.allocUnsafeSlow(bytes);}},
-    activeSemanticReaders:readers,open,constants,configuration:{maxObjectBytes:1024},createHash,
-    quantity,fail,lstat,objectPath:cid=>{assert.equal(cid,identity);return object;},cidHex:cid=>cid.slice(7),physicalContentReadWindowBytes:65536};
-  const original=compileFunction('return ('+source.slice(node.init.start,node.init.end)+');',Object.keys(ports))(...Object.values(ports));
-  const value=await original(identity,false,false,undefined,bytes=>{assert.equal(readers.size,1);assert.equal(bytes,8);o.workspace.metadata(o.request,bytes);});
-  assert.equal(value.physicalCid,identity);assert.equal(value.bytes.toString(),wire);assert.deepEqual(alloc,[8]);
+  const {readSemanticOriginal} = createPublicationSemanticReader({maxObjectBytes:1024}, readers, 65536, {
+    contractPath(cid) {assert.equal(cid,identity); return path;},
+    objectPath(cid) {assert.equal(cid,identity); return object;},
+    active(){}, currentDeliveryIndex:unused, admitContract:unused, admitOriginalContract:unused,
+    nativeContractRead:unused, parseContract:unused,
+  });
+  const restore = observeAllocation(t, bytes => {
+    alloc.push(bytes); assert.equal(o.reserved()[0]-before[0],1392n);
+  });
+  let value;
+  try {
+    value = await readSemanticOriginal(identity,false,false,undefined,bytes=>{
+      assert.equal(readers.size,1); assert.equal(bytes,8); o.workspace.metadata(o.request,bytes);
+    });
+  } finally { restore(); }
+  assert.equal(value.physicalCid,identity); assert.equal(value.bytes.toString(),wire);
+  // The direct reader now observes both the destination and the bounded FD stream allocation.
+  assert.deepEqual(alloc,[8,8]);
   assert.equal(readers.size,0);o.workspace.metadataFinish(o.request);assert.deepEqual(o.reserved(),before);
   o.workspace.close(o.request);assert.deepEqual(o.reserved(),[0n,0n]);
 });

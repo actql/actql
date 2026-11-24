@@ -32,10 +32,19 @@ function managedComposition(acquired, count) {
   const same = (parent, actual, identity) => {
     assert.strictEqual(parent, managedRun); assert.strictEqual(actual, prepared); assert.strictEqual(identity, request);
   };
+  const coordinates = () => ok(Array.from({length: count}, (_, index) => [index, 0, index, index]));
   const moon = {
     clientProgramEffectAcquisitionCount(actual) {assert.strictEqual(actual, prepared); return count;},
-    clientProgramEffectDirectSourceCoordinates(actual) {assert.strictEqual(actual, prepared);
-      return ok(Array.from({length: count}, (_, index) => [index, 0, index, index]));},
+    clientProgramEffectDirectSourceCoordinates(actual) {
+      assert.strictEqual(actual, prepared); return coordinates();
+    },
+    clientProgramInstalledEffectManagedPlanSourceCoordinates(plan, actual, identity) {
+      assert.strictEqual(this, moon);
+      assert.strictEqual(plan, operationPlan);
+      assert.strictEqual(actual, prepared);
+      assert.strictEqual(identity, request);
+      return coordinates();
+    },
     clientProgramInstalledEffectManagedOperationPlan(parent, actual, identity) {
       assert.strictEqual(this, moon); same(parent, actual, identity); return ok(operationPlan);
     },

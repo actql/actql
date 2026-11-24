@@ -28,7 +28,7 @@ test('JOIN set controls preserve duplicate multiplication, NULL and exact argume
 
 test('JOIN sets use the existing normal and focused public consumer', () => {
   const consumer = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = readFileSync(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(consumer.includes('scopeInputs.successes.push(...setCorrespondingSuccesses, ...setJoinSuccesses)'));
   assert.ok(consumer.includes('scopeInputs.refusals.push(...setCorrespondingRefusals, ...setJoinRefusals)'));
   assert.ok(driver.includes("['scripts/fixtures/set-join-source-input.mjs', 'set-join-source-input.mjs']"));

@@ -21,7 +21,7 @@ test('independent star exclusion fixture preserves NULL multiplicity order and i
 
 test('star exclusion acceptance joins the ordinary packed corpus and isolated narrow selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...starExclusionSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...starExclusionRefusals)'));
   assert.match(fixture, /starExclusionOnly \? \{successes: starExclusionSuccesses, refusals: starExclusionRefusals\}/);

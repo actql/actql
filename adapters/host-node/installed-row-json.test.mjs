@@ -107,6 +107,7 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
   const preparedBefore = new WeakMap();
   let writeGrants = 0;
   let readGrants = 0;
+  let recoveryCalls = 0;
   let before = {payload: beforePayload ?? {$json: {previous: true}}};
   let stopPending = stopBeforeProjection;
   const description = {version: 'fixture-json-update/0.1', resource: 'records',
@@ -245,12 +246,17 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
           },
           recoveryEntry: () => ({kind: 'fixture-json-update', observationCid,
             wire: dataJson(description)}),
-          recoverRequests({durable, body}) {
+          recoverRequests({durable, body, members}) {
+            assert(Object.isFrozen(members));
+            assert.equal(members.length, 1);
+            assert.equal(members[0].kind, kind);
+            assert.equal(members[0].memberIndex, 0);
             assert.deepEqual(durable.connectorRecovery, [{memberIndex: 0,
               kind: 'fixture-json-update', observationCid,
               wire: dataJson(description)}]);
             assert.equal(body.effects.length, 1);
             assert.equal(body.effects[0].changes.length, 1);
+            recoveryCalls++;
             return {currents: [description], requests: [
               body.effects[0].changes.map(change => requestFor(
                 change.after.value, change.target_row_identity))]};
@@ -294,6 +300,7 @@ async function installationFor(t, {changeRequestValue, payloadContract, beforePa
   return {root, load, preparedValues, sends, projections,
     requestChildren,
     writeGrants: () => writeGrants, readGrants: () => readGrants,
+    recoveryCalls: () => recoveryCalls,
     onClose: close => closers.push(close)};
 }
 
@@ -428,6 +435,7 @@ test('installed JSON update preserves approved value and exact recovered outcome
       'interrupted projection must not fabricate a typed outcome');
     const continuation = JSON.parse(stage.continuationWire);
     const runDefinitionCid = stopped.accepted.ref.runDefinitionCid;
+    assert.equal(installation.recoveryCalls(), 0);
     await first.close();
     firstEffect.close();
 
@@ -438,6 +446,7 @@ test('installed JSON update preserves approved value and exact recovered outcome
     assert.equal(resumed.error, undefined, diagnostic(resumed.error));
     assert.equal(resumed.result.status, 'published');
     assert.equal(second.outcomes.length, 1);
+    assert.equal(installation.recoveryCalls(), 1, 'resume invoked the original UPDATE recovery callback');
     assert.equal(installation.sends.length, 1,
       'recovery must not repeat the physical send');
     assert.equal(installation.writeGrants(), 1,

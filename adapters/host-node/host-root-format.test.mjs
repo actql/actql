@@ -32,15 +32,15 @@ async function publicationPrefix(parent, root) {
   });
 }
 
-test('publication prefix retains the fresh original Account intent before runtime loading', async () => {
+test('publication prefix requires the runtime before writing a fresh Account intent', async () => {
   const parent = await mkdtemp(join(tmpdir(), 'actql-publication-account-prefix-'));
   const root = join(parent, 'host');
   try {
     await publicationPrefix(parent, root);
-    const intent = JSON.parse(await readFile(join(root, 'account-initialization.json'), 'utf8'));
-    assert.equal(intent.version, 'actql-local-account-initialization/0.1');
-    assert.equal(intent.principal, 'publication-principal');
-    assert.deepEqual(Object.keys(intent).sort(), ['account_id', 'principal', 'record_id', 'version']);
+    assert.deepEqual(JSON.parse(await readFile(join(root, 'host-format.json'), 'utf8')), {
+      version: 'actql-local-host-root/0.1', isolation: 'execution-namespace',
+    });
+    await assert.rejects(readFile(join(root, 'account-initialization.json')), {code: 'ENOENT'});
     await assert.rejects(readFile(join(root, 'account', 'account.json')), {code: 'ENOENT'});
   } finally { await rm(parent, {recursive: true, force: true}); }
 });

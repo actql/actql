@@ -24,7 +24,7 @@ test('short ROWS independent control distinguishes moving cumulative and current
 
 test('ordinary packed corpus and narrow short ROWS selection retain the same cases', async () => {
   const corpus = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(corpus.includes('scopeInputs.successes.push(...shortRowsSuccesses)'));
   assert.ok(corpus.includes('scopeInputs.refusals.push(...shortRowsRefusals)'));
   assert.ok(corpus.match(/const scopeOnly = ([^;]+);/u)?.[1].split(' || ').includes('shortRowsOnly'));

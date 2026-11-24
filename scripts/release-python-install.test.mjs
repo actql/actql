@@ -7,7 +7,8 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {pythonReleaseInstallSelection, pythonPublicConsumerEnvironment, pythonInstallCommand, pythonConsumerDestination,
   pythonUvConsumerEnvironment, pythonUvInstallCommand, pythonUvProject, pythonUvProjectParents} from './release-public-install.mjs';
-import {runPythonReleaseInstall, observeChildFds} from './test-python-release-install.mjs';
+import {runPythonReleaseInstall} from './test-python-release-install.mjs';
+import {observeChildFds} from './release-install-child.mjs';
 
 test('Python public consumer: fixed digest, target, absolute interpreter and new destination are explicit', () => {
   const value = pythonReleaseInstallSelection(['fixed', 'a'.repeat(64), 'python', '/selected/python', '/new/consumer']);

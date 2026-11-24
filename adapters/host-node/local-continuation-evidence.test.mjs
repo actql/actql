@@ -8,8 +8,9 @@ import {ensureAuthorizationRuntime, ensureCheckpointRuntime} from './authorizati
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
   openContinuationEvidence} from './local-continuation-evidence.mjs';
 
-import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
+import {openSqliteCheckpointJournal} from
   './sqlite-checkpoint-journal.mjs';
+import {loadCheckpointRuntime} from './checkpoint-runtime.mjs';
 
 ensureAuthorizationRuntime();
 ensureCheckpointRuntime();

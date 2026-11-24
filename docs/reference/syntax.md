@@ -759,6 +759,13 @@ never a `|>` step.
 **Meaning** Adds the column `name` holding the calendar bucket that contains
 `time` in the named time zone.
 
+Node Local requires an explicitly selected Calendar artifact in
+`open({installation: {calendarArtifact}})`. The artifact must include the
+named time zone. If the checking context lacks a Calendar selection or its
+matching artifact, Check reports `calendar_profile_required`. To group by a
+bucket, project its timestamp fields as keys. Grouping by the bucket record
+itself is unsupported.
+
 **Examples**
 
 ```sql
@@ -786,7 +793,9 @@ WITH days AS (calendar_series(start: '2026-01-01T00:00:00.000Z',
                               unit: 'day', timezone: 'Asia/Tokyo'))
 FROM days AS d
 |> calendar_bucket(time: d.start, into: month, unit: 'month', timezone: 'Asia/Tokyo')
-|> AGGREGATE COUNT(*) AS days GROUP BY month;
+|> EXTEND month.start AS month_start, month.`end` AS month_end
+|> AGGREGATE COUNT(*) AS days GROUP BY month_start, month_end
+|> ORDER BY month_start;
 ```
 
 **Errors** `query_invalid` (wrong carrier, missing required key),

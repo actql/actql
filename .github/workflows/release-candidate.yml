@@ -338,10 +338,10 @@ jobs:
         include:
           - platform: linux-x64-gnu
             runner: ubuntu-24.04
-            minutes: 50
+            minutes: 75
           - platform: darwin-arm64
             runner: macos-26
-            minutes: 70
+            minutes: 95
     runs-on: ${{ matrix.runner }}
     timeout-minutes: ${{ matrix.minutes }}
     permissions:
@@ -428,7 +428,9 @@ jobs:
               selected = [('sqlite.zip', sqlite), ('libssl-dev.deb', target['package']), ('libssl3t64.deb', target['license']['package'])]
               assert (selected[1][1]['bytes'], selected[1][1]['sha256']) == (2408684, '2b4734df0475e305ac03abb0a2cc5659651ed37ef02d967a1c4033a154cf714b')
               assert (selected[2][1]['bytes'], selected[2][1]['sha256']) == (1945300, '219f43b1cd836a4da550938db5fda93160d269d39a4edcf1f1ce698a470db797')
-              assert all(item['url'].startswith('https://security.ubuntu.com/ubuntu/pool/main/o/openssl/') for _, item in selected[1:])
+              snapshot = 'https://snapshot.ubuntu.com/ubuntu/20261101T000000Z/pool/main/o/openssl/'
+              for _, item in selected[1:]:
+                  assert item['url'] == snapshot + f"{item['name']}_{item['version']}_{item['architecture']}.deb"
           else:
               assert platform == 'darwin-arm64'
               openssl = crypto['upstream']
@@ -468,6 +470,25 @@ jobs:
               host['qualification'] = 'macOS 26 ARM producer host; installed acceptance is separate; binary ABI is recorded, not relabelled'
           (root / 'input-identities.json').write_text(json.dumps(host, indent=2) + '\n')
           PY
+      - name: Prepare the original Model HTTPS member
+        timeout-minutes: 25
+        shell: bash
+        run: |
+          output="$RUNNER_TEMP/native-release-$SELECTED_PLATFORM"
+          if [ "$SELECTED_PLATFORM" = linux-x64-gnu ]; then
+            sudo apt-get install --yes --no-install-recommends gnupg gpgv
+            selected=(--target linux-x64 --clang "$(realpath /usr/bin/clang-19)")
+          else
+            test "$SELECTED_PLATFORM" = darwin-arm64
+            selected=(--target darwin-arm64 --clang "$SELECTED_DARWIN_CLANG" --sdk "$SELECTED_DARWIN_SDK")
+          fi
+          tool() {
+            python3 -c 'import os, shutil, sys; print(os.path.realpath(shutil.which(sys.argv[1])))' "$1"
+          }
+          python3 scripts/prepare-native-resident-http-component.py \
+            --source "$SELECTED_SOURCE" "${selected[@]}" \
+            --make "$(tool make)" --perl "$(tool perl)" --gpg "$(tool gpg)" --gpgv "$(tool gpgv)" \
+            --model-resolver --destination "$output/model-http" --seconds 1200 --tls-jobs 2
       - name: Produce the exact normal Linux Local artifact with compiled 0.0.2
         if: matrix.platform == 'linux-x64-gnu'
         timeout-minutes: 40
@@ -482,6 +503,7 @@ jobs:
             --sqlite-archive "$RUNNER_TEMP/native-release-linux-x64-gnu/inputs/sqlite.zip" \
             --openssl-package-archive "$RUNNER_TEMP/native-release-linux-x64-gnu/inputs/libssl-dev.deb" \
             --openssl-package-archive "$RUNNER_TEMP/native-release-linux-x64-gnu/inputs/libssl3t64.deb" \
+            --model-http-preparation "$RUNNER_TEMP/native-release-linux-x64-gnu/model-http/preparation.json" \
             --component-seconds 300 --compile-seconds 1800 \
             2>&1 | tee "$RUNNER_TEMP/native-release-linux-x64-gnu/producer.log"
       - name: Produce the exact normal Darwin Local artifact with compiled 0.0.2
@@ -495,6 +517,7 @@ jobs:
             --clang "$SELECTED_DARWIN_CLANG" --sdk "$SELECTED_DARWIN_SDK" \
             --sqlite-archive "$RUNNER_TEMP/native-release-darwin-arm64/inputs/sqlite.zip" \
             --openssl-source-archive "$RUNNER_TEMP/native-release-darwin-arm64/inputs/openssl-3.6.2.tar.gz" \
+            --model-http-preparation "$RUNNER_TEMP/native-release-darwin-arm64/model-http/preparation.json" \
             --component-seconds 900 --compile-seconds 1800 \
             2>&1 | tee "$RUNNER_TEMP/native-release-darwin-arm64/producer.log"
       - name: Retain complete artifact payload and original producer evidence without compiler products
@@ -525,6 +548,7 @@ jobs:
           }
           await cp(join(root,'production/recipe'),join(retained,'production/recipe'),{recursive:true,preserveTimestamps:true});
           for(const path of ['input-identities.json','producer.log','production/sqlite/process-producer.json',
+              'model-http/preparation.json','model-http/component/build.json','model-http/owned-tls/build.json',
               ...(p==='darwin-arm64'?['production/crypto/component/producer.json','production/crypto/static-source.json']:['production/crypto/producer.json'])]) {
             const destination=join(retained,path);await mkdir(join(destination,'..'),{recursive:true});
             await cp(join(root,path),destination,{preserveTimestamps:true});

@@ -24,7 +24,7 @@ test('partition obligations distinguish input, SELECT alias, NULL and current Pi
 
 test('partition properties are in the normal packed corpus as well as the focused selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...analyticPartitionPropertySuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...analyticPartitionPropertyRefusals)'));
   assert.ok(fixture.includes('analyticPartitionPropertyOnly ? {successes: analyticPartitionPropertySuccesses'));

@@ -6,10 +6,10 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing credential HTTPS scope, Account current fence and original Common RowRun borrower",
-      "sha256": "5d42b4d973594a4783a17047e26d3ea3f9ccedb8d6b648e49f73558d6e8eeadd",
+      "sha256": "7075a142b1d1751e1a7e916cc4c4741ccd8a58110faf10dc21583ffd9e5f4146",
       "exports": [
         "SNOWFLAKE_SQL_READ_OPERATION",
-        "readSnowflakeSqlApi"
+        "prepareSnowflakeManagedRead"
       ],
       "operations": [
         {
@@ -20,25 +20,57 @@
           "async": false
         },
         {
-          "name": "readSnowflakeSqlApi",
+          "name": "prepareSnowflakeManagedRead",
           "parameters": [
             "moon",
-            "prepared",
-            "rowRun",
+            "description",
+            "descriptionLimits",
+            "input",
             "limits",
             "warehouse",
             "role",
             "authenticationType",
-            "authorizationFor",
-            "credential",
-            "verifyRead",
-            "signal",
-            "callResource"
+            "responseBound"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSnowflakeManagedRead/init:onError/init:onError",
+          "parameters": [
+            "cause",
+            "retained",
+            "confirmTransportStop"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSnowflakeManagedRead/init:read/init:read",
+          "parameters": [
+            "context"
           ],
           "async": true
         },
         {
-          "name": "readSnowflakeSqlApi/readSnowflakeSqlApi",
+          "name": "prepareSnowflakeManagedRead/init:read/init:read/init:prepare/init:prepare",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareSnowflakeManagedRead/init:read/init:read/init:prepare/init:prepare/init:project/init:project",
+          "parameters": [
+            "observed"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSnowflakeManagedRead/init:read/init:read/init:read",
+          "parameters": [
+            "charge"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareSnowflakeManagedRead/init:retire/init:retire",
           "parameters": [],
           "async": false
         }
@@ -48,12 +80,17 @@
           "operations": [
             "<module>",
             "decodeResponse/encoding/encoding",
-            "readSnowflakeSqlApi",
-            "readSnowflakeSqlApi/readSnowflakeSqlApi"
+            "prepareSnowflakeManagedRead",
+            "prepareSnowflakeManagedRead/init:onError/init:onError",
+            "prepareSnowflakeManagedRead/init:read/init:read",
+            "prepareSnowflakeManagedRead/init:read/init:read/init:prepare/init:prepare",
+            "prepareSnowflakeManagedRead/init:read/init:read/init:prepare/init:prepare/init:project/init:project",
+            "prepareSnowflakeManagedRead/init:read/init:read/init:read",
+            "prepareSnowflakeManagedRead/init:retire/init:retire"
           ],
           "exports": [
             "SNOWFLAKE_SQL_READ_OPERATION",
-            "readSnowflakeSqlApi"
+            "prepareSnowflakeManagedRead"
           ],
           "attributes": {
             "responsibility": [
@@ -125,7 +162,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Host, Account, credential Site and same-runtime Common RowRun borrower",
-      "sha256": "bb143dfe9c5489e36a5c4693ec97d91aa8c1354371652fcd8f9906bb7bf2b4c9",
+      "sha256": "ca449f3f38fa35154d829f3ee567edfd09024af6ceb3db5f36e85ba7eee48896",
       "exports": [
         "INSTALLED_SNOWFLAKE_SITE_VERSION",
         "INSTALLED_SNOWFLAKE_SOURCE_VERSION",
@@ -216,6 +253,13 @@
           "async": false
         },
         {
+          "name": "loadInstalledSnowflakeSource/capacity/capacity",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
           "name": "loadInstalledSnowflakeSource/init:project/init:project",
           "parameters": [],
           "async": false
@@ -260,16 +304,16 @@
         {
           "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#4",
           "parameters": [
-            "options"
+            "nonce"
           ],
           "async": false
         },
         {
-          "name": "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#5",
+          "name": "loadInstalledSnowflakeSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
           "parameters": [
-            "options"
+            "input"
           ],
-          "async": true
+          "async": false
         },
         {
           "name": "loadInstalledSnowflakeSource/target/target",
@@ -308,6 +352,7 @@
             "loadInstalledSnowflakeSource",
             "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget",
             "loadInstalledSnowflakeSource/admitsApprovalTarget/admitsApprovalTarget/admitsApprovalTarget",
+            "loadInstalledSnowflakeSource/capacity/capacity",
             "loadInstalledSnowflakeSource/init:project/init:project",
             "loadInstalledSnowflakeSource/init:project/init:project/decoded/decoded",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource",
@@ -316,7 +361,7 @@
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#2",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#3",
             "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#4",
-            "loadInstalledSnowflakeSource/loadInstalledSnowflakeSource#5",
+            "loadInstalledSnowflakeSource/providerReader/init:prepareReadSequence/init:prepareReadSequence",
             "loadInstalledSnowflakeSource/target/target",
             "readInputs/bodies/bodies",
             "readInputs/readInputs"
@@ -395,6 +440,7 @@
       "imports": [
         "../../../../packages/sdk/host-port.mjs",
         "../../../host-common/runtime-result.mjs",
+        "../../../host-node/installed-credential-source-reader.mjs",
         "../../../host-node/source-profile-json.mjs",
         "../site/snowflake-key-pair.mjs",
         "../site/snowflake-sql-read.mjs",
@@ -410,7 +456,7 @@
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "Existing installed Credential Site material lifetime and original HTTPS acquisition binding",
-      "sha256": "9da0fd85a5a7dfe6f5ce3229a4647707f51d52bb0c5fe3cf67a26e47fe653493",
+      "sha256": "6b571355e1af808d3b1de9279d9ea4d51aa00c5dd0bd4766f3afa9fe2e388d76",
       "exports": [
         "checkSnowflakeKeyPairProfile",
         "openSnowflakeKeyPairMaterial"

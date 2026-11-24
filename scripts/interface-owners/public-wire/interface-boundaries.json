@@ -7,7 +7,7 @@
     {
       "module": "packages/client-wire/client-host.generated.js",
       "responsibilityFacet": "primary",
-      "sha256": "c1629434daadda1a706e4c36e1b5626af1aee9160f8a3c240b2cff4c2be2c433",
+      "sha256": "0cc804d412d383ab95718963834f3ebca494cea67a1d6ed0dd11913f95c4bda7",
       "exports": [
         "checkOutcomeProtocol",
         "checkOutcomeSchemaCid",
@@ -486,7 +486,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -609,7 +609,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -1132,12 +1132,12 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               }
             ],
             "synchronization": [
@@ -1150,11 +1150,11 @@
                 "anchor": "Validation is synchronous."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -1164,7 +1164,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -1182,11 +1182,11 @@
                 "anchor": "Validation performs no cancellation or I/O."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               }
             ],
@@ -1196,11 +1196,11 @@
                 "anchor": "| resources |"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -1494,8 +1494,8 @@
                 "anchor": "| identity |"
               },
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               },
               {
                 "path": "docs/spec/language.md",
@@ -1512,7 +1512,7 @@
                 "anchor": "| ownership |"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               },
               {
@@ -1530,8 +1530,8 @@
                 "anchor": "Validation is synchronous."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -1562,7 +1562,7 @@
                 "anchor": "Validation performs no cancellation or I/O."
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
@@ -1580,8 +1580,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -1664,20 +1664,20 @@
             ],
             "identity": [
               {
-                "path": "packages/sdk/internal/run-observation.mjs",
-                "anchor": "state.run_id !== latestState.runId"
+                "path": "packages/sdk/internal/run-observation.mts",
+                "anchor": "(state as WireRunState).run_id !== latestState.runId"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "const current = await observeStep(observeRun({ref, principalId:actual},\n          originalFrame, retainFrame));"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "const observeStep = async promise => {"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "const observeStep = async <Value,>(promise: PromiseLike<Value>) => {"
               }
             ],
             "failure": [
@@ -1688,7 +1688,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/embedded-local.mjs",
+                "path": "adapters/host-node/embedded-local.mts",
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               }
             ],
@@ -1698,8 +1698,8 @@
                 "anchor": "max_nodes : Int"
               },
               {
-                "path": "adapters/host-node/embedded-local.mjs",
-                "anchor": "finally { signal?.removeEventListener('abort', abort); }"
+                "path": "adapters/host-node/embedded-local.mts",
+                "anchor": "finally { signal?.removeEventListener('abort', abort!); }"
               }
             ],
             "extension": [
@@ -1766,8 +1766,8 @@
                 "anchor": "The physical index belongs to this same Journal and transaction owner."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
               }
             ],
             "synchronization": [
@@ -1776,7 +1776,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
@@ -1806,7 +1806,7 @@
                 "anchor": "Names have finite admission capacity under the existing Journal limit."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               }
             ],
@@ -2305,7 +2305,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -2413,7 +2413,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -2930,7 +2930,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -3037,7 +3037,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -3147,7 +3147,7 @@
                 "anchor": "\"schemas\""
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "buildClientPublicationWire"
               }
             ],
@@ -3243,7 +3243,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "const schemas ="
               }
             ],
@@ -3443,7 +3443,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "finiteWireNumberSource"
               },
               {
@@ -3549,7 +3549,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -3557,7 +3557,7 @@
                 "anchor": "UTF-16 maximum lengths, scalar"
               },
               {
-                "path": "scripts/client-wire-scalar-rules.mjs",
+                "path": "scripts/client-wire-scalar-rules.mts",
                 "anchor": "wireFieldNamePattern"
               },
               {
@@ -4312,7 +4312,7 @@
                 "anchor": "| responsibility |"
               },
               {
-                "path": "scripts/generate-client-publication-wire.mjs",
+                "path": "scripts/generate-client-publication-wire.mts",
                 "anchor": "structuralValidatorSource"
               },
               {
@@ -4425,7 +4425,7 @@
                 "anchor": "\"submission_epoch\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionRef"
               }
             ],
@@ -4531,7 +4531,7 @@
                 "anchor": "\"submission_attempt\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validSubmissionAttempt"
               }
             ],
@@ -4637,7 +4637,7 @@
                 "anchor": "\"cancellation\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validCancellationAttempt"
               }
             ],
@@ -4841,7 +4841,7 @@
                 "anchor": "\"operations\""
               },
               {
-                "path": "packages/client-wire/index.mjs",
+                "path": "packages/client-wire/index.mts",
                 "anchor": "validClientBody"
               }
             ],

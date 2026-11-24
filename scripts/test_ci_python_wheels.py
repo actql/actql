@@ -24,6 +24,119 @@ ci = load('ci_python_wheels', SCRIPTS / 'ci-python-wheels.py')
 audit = load('ci_python_audit', SCRIPTS / 'fixtures/ci-python-installed-audit.py')
 
 
+class InstalledNamedResultTests(unittest.TestCase):
+    def observed(self, phase):
+        return {'mode': 'local', 'version': '0.0.0.dev0', 'phase': phase, 'case': 'named-results',
+                'pid': 41 if phase == 'initial' else 42, 'results': ['before_change', 'after_change'],
+                'submitted': phase == 'initial', 'original_run_reused': phase == 'resume',
+                'first_close': True}
+
+    def test_named_results_use_the_shared_fixture_and_one_original_receipt(self):
+        consumer = Path('/installed/bin/python')
+        env = {'PATH': '/installed/bin'}
+        calls = []
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp)
+            def run(name, args, **options):
+                flags = dict(zip(args[5::2], args[6::2]))
+                calls.append(flags['--phase'])
+                self.assertEqual(args[:3], [consumer, '-I', '-B'])
+                self.assertEqual(args[3:5], [destination / 'ci-python-installed-run.py',
+                                             destination / 'python-product-installed.py'])
+                self.assertEqual((flags['--mode'], flags['--facade'], flags['--case']),
+                                 ('local', 'sync', 'named-results'))
+                self.assertEqual(flags['--named-results-fixture'].read_bytes(),
+                                 (ci.ROOT / 'scripts/fixtures/named-result-publication.json').read_bytes())
+                self.assertEqual(flags['--receipt'], options['cwd'] / 'original.json')
+                self.assertEqual(options['cwd'], destination / 'named-results')
+                self.assertIs(options['env'], env)
+                return json.dumps(self.observed(flags['--phase']))
+            ci.accept_installed_named_results(run, consumer, destination, '0.0.0.dev0', env)
+        self.assertEqual(calls, ['initial', 'resume'])
+
+    def test_named_results_refuse_missing_outcomes_close_failure_or_resubmission(self):
+        for changed in ({'results': ['before_change', 'before_change']},
+                        {'first_close': False}, {'submitted': True},
+                        {'original_run_reused': False}, {'pid': 41}):
+            calls = []
+            with self.subTest(changed=changed), tempfile.TemporaryDirectory() as tmp:
+                def run(name, args, **options):
+                    phase = args[args.index('--phase') + 1]
+                    calls.append(phase)
+                    report = self.observed(phase)
+                    return json.dumps(report if phase == 'initial' else report | changed)
+                with self.assertRaisesRegex(ValueError, 'original Saved'):
+                    ci.accept_installed_named_results(run, Path('/python'), Path(tmp), '0.0.0.dev0', {})
+            self.assertEqual(calls, ['initial', 'resume'])
+
+
+class InstalledSavedControlTests(unittest.TestCase):
+    source = 'a' * 40
+    cohort = {'module_sha256': 'b' * 64, 'image_sha256': 'c' * 64}
+
+    def run_controls(self, directory, *, change=None):
+        identity = dict(source=self.source, module=self.cohort['module_sha256'],
+                        image=self.cohort['image_sha256'])
+        records = [
+            dict(pid=41, first_close=True, rows=1, core_cancellation=[{'phase': 'core'}],
+                 hash_cancellation=[{'phase': 'hash'}], successful_reads=[{'core_turns': 2}] * 2),
+            dict(pid=42, phase='warm', first_close=True),
+            dict(pid=43, passed=True, cases=1, originalTrapCode=12, firstClose=True,
+                 normalFenced=True, sameStore=True, newSubmission=False, installedSourceOverlay=False,
+                 injections=[{'before': 10, 'after': 0, 'actualCurrentResult': 5,
+                              'ticket': 7, 'operation': 5}]),
+            dict(pid=44, phase='recover', first_close=True, same_saved=True, replayed=False),
+        ]
+        calls = []
+        if change is not None:
+            index, fields = change
+            records[index].update(fields)
+
+        def run(name, args, **options):
+            calls.append((name, args, options))
+            return json.dumps(identity | records[len(calls) - 1]).encode()
+
+        return calls, lambda: ci.accept_installed_saved(
+            run, Path('/consumer/bin/python'), directory, self.source, self.cohort, {'ORIGINAL': 'env'})
+
+    def test_same_installed_cohort_for_continuation_and_separate_stop_recovery(self):
+        with tempfile.TemporaryDirectory() as temp:
+            directory = Path(temp)
+            calls, agreement = self.run_controls(directory)
+            report = agreement()
+            self.assertEqual([name for name, _, _ in calls], [
+                'installed-saved-continuation', 'installed-saved-fuel-warm',
+                'installed-saved-fuel-interruption', 'installed-saved-fuel-recovery',
+            ])
+            for _, args, options in calls:
+                self.assertEqual(args[:3], [Path('/consumer/bin/python'), '-I', '-B'])
+                self.assertEqual(args[3].parent, directory / 'saved-read')
+                self.assertTrue(args[3].is_file())
+                self.assertEqual(options['env'], {'ORIGINAL': 'env'})
+                self.assertEqual(options['timeout'], 180)
+            self.assertEqual(calls[2][1][4:], [directory / 'saved-read' / 'fuel', self.source])
+            self.assertEqual(report['fuel_recovery_pid'], 44)
+            self.assertTrue(report['original_first_closes_returned'])
+
+    def test_foreign_or_incomplete_controls_stop_before_later_process(self):
+        for index, fields in [
+                (0, {'module': '0' * 64}), (0, {'hash_cancellation': []}),
+                (0, {'successful_reads': [{'core_turns': 2}]}),
+                (1, {'pid': 41}), (1, {'first_close': False}),
+                (2, {'originalTrapCode': 0}), (2, {'sameStore': False}),
+                (2, {'injections': []}), (2, {'firstClose': False}),
+                (2, {'injections': [{'before': 10, 'after': 0, 'actualCurrentResult': 0,
+                                     'ticket': 7, 'operation': 5}]}),
+                (2, {'injections': [{'before': 10, 'after': 0, 'actualCurrentResult': 6,
+                                     'ticket': 7, 'operation': 5}]}),
+                (3, {'replayed': True})]:
+            with self.subTest(index=index, fields=fields), tempfile.TemporaryDirectory() as temp:
+                calls, agreement = self.run_controls(Path(temp), change=(index, fields))
+                with self.assertRaises(ValueError):
+                    agreement()
+                self.assertEqual(len(calls), index + 1)
+
+
 class InstalledNumericReductionTests(unittest.TestCase):
     def test_same_cohort_numeric_saved_requires_a_distinct_process(self):
         source, module = 'a' * 40, 'b' * 64

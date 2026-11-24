@@ -5,11 +5,12 @@
     "path": "i6-f-provider-observation-uncovered-projection.json",
     "sha256": "5fed5046797e480bc0fa8ab66de01e78eeffe3e5fae0b9bc5277f61077ae47e4"
   },
+  "actualRuntimeQualification": "Earlier F Credential147, Provider759 and durablea15 receipts remain source-specific. This additional metadata pass runs no OTel/Provider/Native product or public acceptance tests.",
   "declarations": [
     {
       "module": "adapters/site-node/remote-credential-signature.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "45758f3adf6bbc27b722d8f3b22dbe9cd78de372303557514fd1de5e2b1fea51",
+      "sha256": "5a300f6533fce113110343721715fd3a3a1abc401335af0733cfaecc80e01671",
       "exports": [
         "admitSignedRemoteCredentialGrant",
         "signRemoteCredentialGrant"
@@ -55,7 +56,7 @@
                 "anchor": "credential_grant_signature_preimage"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "admitSignedRemoteCredentialGrant"
               }
             ],
@@ -75,23 +76,23 @@
                 "anchor": "actql-remote-credential-grant-signature/0.1"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "authorities.get(projection[5])"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "Object.freeze({version, keyId, grantCid, body, signature})"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "privateKey"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "control.signaturePreimage"
               },
               {
@@ -101,11 +102,11 @@
             ],
             "failure": [
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "RemoteCredentialAuthorityRejected"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "RemoteCredentialSignatureRejected"
               }
             ],
@@ -128,17 +129,17 @@
                 "anchor": "admit_credential_signature_envelope"
               },
               {
-                "path": "adapters/site-node/remote-credential-signature.mjs",
+                "path": "adapters/site-node/remote-credential-signature.mts",
                 "anchor": "InvalidRemoteCredentialSigner"
               }
             ],
             "verification": [
               {
-                "path": "adapters/site-node/sqlite-credential-journal.test.mjs",
+                "path": "adapters/site-node/sqlite-credential-journal.test.mts",
                 "anchor": "untrusted or altered issuer envelope"
               },
               {
-                "path": "adapters/site-node/sqlite-credential-journal.test.mjs",
+                "path": "adapters/site-node/sqlite-credential-journal.test.mts",
                 "anchor": "authenticate current grants without consuming a use"
               }
             ]
@@ -149,7 +150,7 @@
     {
       "module": "packages/otel-node/configuration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4677b6c419bcdd20b2e302f408b06ad1ccec9a842ff95cd3a841294adfd90410",
+      "sha256": "49273c6d3119f9933e03fa506a7805ab05e9d3b0eb88ff405934c5d0c1fafaa4",
       "exports": [
         "managedLimits",
         "observationConfiguration"
@@ -251,13 +252,13 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "observationConfiguration"
               }
             ],
             "identity": [
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "configuration"
               },
               {
@@ -267,23 +268,23 @@
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "Object.freeze"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "before constructing"
               }
             ],
             "failure": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "trace export failure does not disable logs or metrics or change execution"
               },
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "HTTP errors cannot be reported as exported"
               }
             ],
@@ -292,7 +293,7 @@
             },
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -302,25 +303,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -331,7 +332,7 @@
     {
       "module": "packages/otel-node/environment.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "851f35b47afa445a0082dbeef7a39649caf1aef6f0c323148a4dcb709e2dfc98",
+      "sha256": "dd7ad961e04eec4bdd397ed2dca33d41a1fe5c6f6c72566486cc0ae402ada0a3",
       "exports": [
         "environmentOptions"
       ],
@@ -401,31 +402,31 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/environment.mjs",
-                "anchor": "environment = process.env"
+                "path": "packages/otel-node/environment.mts",
+                "anchor": "environment: NodeJS.ProcessEnv = process.env"
               }
             ],
             "identity": [
               {
-                "path": "packages/otel-node/environment.mjs",
+                "path": "packages/otel-node/environment.mts",
                 "anchor": "source: 'environment+explicit'"
               }
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/environment.mjs",
+                "path": "packages/otel-node/environment.mts",
                 "anchor": "never inherit an environment overlay"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/environment.mjs",
+                "path": "packages/otel-node/environment.mts",
                 "anchor": "options.environment !== true"
               }
             ],
             "failure": [
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "without leaking diagnostics"
               }
             ],
@@ -434,7 +435,7 @@
             },
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -444,25 +445,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -471,9 +472,9 @@
       ]
     },
     {
-      "module": "packages/otel-node/index.d.ts",
+      "module": "packages/otel-node/index.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "7d4957b2614d8438ff88abce81a253c909e902fbf8b5add278a88b14cc980980",
+      "sha256": "c51ffa9c1b1e5cc33381b2e18cdd6deafb56da331596286eb97d992fe888154e",
       "exports": [
         "NodeHostObservationOptions",
         "OtlpSignal",
@@ -485,7 +486,7 @@
           "parameters": [
             "options?: NodeHostObservationOptions"
           ],
-          "result": "Readonly<{\n  connection: HostObservationConnection;\n  /** Supply to the SDK remote connection's traceContext option. */\n  currentContext(): ObservationContext | undefined;\n  /** Read-only metadata; no destination URLs, credentials or connectivity probe. */\n  configuration(): Readonly<{host: 'node'; transport: 'http/protobuf';\n    disclosure: 'metadata-only'; scope: string; revision: string;\n    schemaUrl: string; sdk: string; signals: Readonly<Record<string,\n      Readonly<{enabled: boolean; destination?: 'explicit';\n        sampler?: 'parentbased_traceidratio'; sampleRate?: number;\n        credentialsPresent: boolean}>>>;\n    source: 'explicit' | 'environment+explicit'; diagnostics: readonly string[];\n    resourceAttributes: readonly string[]; unsupported: readonly string[];\n    correlations: readonly ObservationCorrelation[];\n    measurements: Readonly<{selected: readonly ObservationMeasurement[];\n      available: readonly ObservationMeasurement[]}>;\n    attributes: Readonly<{exclude: readonly string[]}>;\n    events: Readonly<{level: 'lifecycle' | 'diagnostic'}>;\n    operations: readonly ObservationOperation[]; correlation: boolean;\n    limits: Readonly<ObservationLimits>; transportLimits: Readonly<Record<string, number>>}>;\n  status(): Readonly<{profile: 'managed' | 'application-owned';\n    closed: boolean; deliveryConflicts: number;\n    projection: ReturnType<HostObservationConnection['status']>;\n    signals: Readonly<Record<string, Readonly<{sent: number; failed: number;\n      limited: number; active: number; windowRecords: number; windowBytes: number;\n      closed: boolean}>>>}>;\n  /** Call after Host/Client close; never shuts down application providers. */\n  close(): Promise<void>;\n}>"
+          "result": "Readonly<{\n    connection: HostObservationConnection;\n    /** Supply to the SDK remote connection's traceContext option. */\n    currentContext(): ObservationContext | undefined;\n    /** Read-only metadata; no destination URLs, credentials or connectivity probe. */\n    configuration(): Readonly<{\n        host: 'node';\n        transport: 'http/protobuf';\n        disclosure: 'metadata-only';\n        scope: string;\n        revision: string;\n        schemaUrl: string;\n        sdk: string;\n        signals: Readonly<Record<string, Readonly<{\n            enabled: boolean;\n            destination?: 'explicit';\n            sampler?: 'parentbased_traceidratio';\n            sampleRate?: number;\n            credentialsPresent: boolean;\n        }>>>;\n        source: 'explicit' | 'environment+explicit';\n        diagnostics: readonly string[];\n        resourceAttributes: readonly string[];\n        unsupported: readonly string[];\n        correlations: readonly ObservationCorrelation[];\n        measurements: Readonly<{\n            selected: readonly ObservationMeasurement[];\n            available: readonly ObservationMeasurement[];\n        }>;\n        attributes: Readonly<{\n            exclude: readonly string[];\n        }>;\n        events: Readonly<{\n            level: 'lifecycle' | 'diagnostic';\n        }>;\n        operations: readonly ObservationOperation[];\n        correlation: boolean;\n        limits: Readonly<ObservationLimits>;\n        transportLimits: Readonly<Record<string, number>>;\n    }>;\n    status(): Readonly<{\n        profile: 'managed' | 'application-owned';\n        closed: boolean;\n        deliveryConflicts: number;\n        projection: ReturnType<HostObservationConnection['status']>;\n        signals: Readonly<Record<string, Readonly<{\n            sent: number;\n            failed: number;\n            limited: number;\n            active: number;\n            windowRecords: number;\n            windowBytes: number;\n            closed: boolean;\n        }>>>;\n    }>;\n    /** Call after Host/Client close; never shuts down application providers. */\n    close(): Promise<void>;\n}>"
         },
         {
           "name": "createNodeHostObservability/close",
@@ -495,7 +496,7 @@
         {
           "name": "createNodeHostObservability/configuration",
           "parameters": [],
-          "result": "Readonly<{host: 'node'; transport: 'http/protobuf';\n    disclosure: 'metadata-only'; scope: string; revision: string;\n    schemaUrl: string; sdk: string; signals: Readonly<Record<string,\n      Readonly<{enabled: boolean; destination?: 'explicit';\n        sampler?: 'parentbased_traceidratio'; sampleRate?: number;\n        credentialsPresent: boolean}>>>;\n    source: 'explicit' | 'environment+explicit'; diagnostics: readonly string[];\n    resourceAttributes: readonly string[]; unsupported: readonly string[];\n    correlations: readonly ObservationCorrelation[];\n    measurements: Readonly<{selected: readonly ObservationMeasurement[];\n      available: readonly ObservationMeasurement[]}>;\n    attributes: Readonly<{exclude: readonly string[]}>;\n    events: Readonly<{level: 'lifecycle' | 'diagnostic'}>;\n    operations: readonly ObservationOperation[]; correlation: boolean;\n    limits: Readonly<ObservationLimits>; transportLimits: Readonly<Record<string, number>>}>"
+          "result": "Readonly<{\n        host: 'node';\n        transport: 'http/protobuf';\n        disclosure: 'metadata-only';\n        scope: string;\n        revision: string;\n        schemaUrl: string;\n        sdk: string;\n        signals: Readonly<Record<string, Readonly<{\n            enabled: boolean;\n            destination?: 'explicit';\n            sampler?: 'parentbased_traceidratio';\n            sampleRate?: number;\n            credentialsPresent: boolean;\n        }>>>;\n        source: 'explicit' | 'environment+explicit';\n        diagnostics: readonly string[];\n        resourceAttributes: readonly string[];\n        unsupported: readonly string[];\n        correlations: readonly ObservationCorrelation[];\n        measurements: Readonly<{\n            selected: readonly ObservationMeasurement[];\n            available: readonly ObservationMeasurement[];\n        }>;\n        attributes: Readonly<{\n            exclude: readonly string[];\n        }>;\n        events: Readonly<{\n            level: 'lifecycle' | 'diagnostic';\n        }>;\n        operations: readonly ObservationOperation[];\n        correlation: boolean;\n        limits: Readonly<ObservationLimits>;\n        transportLimits: Readonly<Record<string, number>>;\n    }>"
         },
         {
           "name": "createNodeHostObservability/currentContext",
@@ -505,7 +506,7 @@
         {
           "name": "createNodeHostObservability/status",
           "parameters": [],
-          "result": "Readonly<{profile: 'managed' | 'application-owned';\n    closed: boolean; deliveryConflicts: number;\n    projection: ReturnType<HostObservationConnection['status']>;\n    signals: Readonly<Record<string, Readonly<{sent: number; failed: number;\n      limited: number; active: number; windowRecords: number; windowBytes: number;\n      closed: boolean}>>>}>"
+          "result": "Readonly<{\n        profile: 'managed' | 'application-owned';\n        closed: boolean;\n        deliveryConflicts: number;\n        projection: ReturnType<HostObservationConnection['status']>;\n        signals: Readonly<Record<string, Readonly<{\n            sent: number;\n            failed: number;\n            limited: number;\n            active: number;\n            windowRecords: number;\n            windowBytes: number;\n            closed: boolean;\n        }>>>;\n    }>"
         }
       ],
       "role": "observation-presentation",
@@ -538,17 +539,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "NodeHostObservationOptions"
               },
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "currentContext():"
               }
             ],
             "identity": [
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "configuration"
               },
               {
@@ -558,31 +559,31 @@
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "providers remain application-owned"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "Capacity is held until physical close"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "application provider callback is deferred"
               },
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "if (busy)"
               }
             ],
             "failure": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "trace export failure does not disable logs or metrics or change execution"
               },
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "HTTP errors cannot be reported as exported"
               }
             ],
@@ -592,13 +593,13 @@
                 "anchor": "does not cancel a Run or revoke authority"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "await active.settled.catch"
               }
             ],
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -608,25 +609,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -637,7 +638,7 @@
     {
       "module": "packages/otel-node/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "798ebc98512e68b4e08d2253f8af4cbfe54ff26b97b111615e9dfbacb6e9bc79",
+      "sha256": "b0c9396b9dbb88fd169e8525fb9b16ed3fefaffc8a134c3e3e3441f6ab64580a",
       "exports": [
         "createNodeHostObservability"
       ],
@@ -868,17 +869,17 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "NodeHostObservationOptions"
               },
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "currentContext():"
               }
             ],
             "identity": [
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "configuration"
               },
               {
@@ -888,31 +889,31 @@
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "providers remain application-owned"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "Capacity is held until physical close"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "application provider callback is deferred"
               },
               {
-                "path": "packages/otel-node/index.mjs",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "if (busy)"
               }
             ],
             "failure": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "trace export failure does not disable logs or metrics or change execution"
               },
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "HTTP errors cannot be reported as exported"
               }
             ],
@@ -922,13 +923,13 @@
                 "anchor": "does not cancel a Run or revoke authority"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "await active.settled.catch"
               }
             ],
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -938,25 +939,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -967,7 +968,7 @@
     {
       "module": "packages/otel-node/transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3e0944455a538e6a4668db7cfe297d3d10731560cbaf64ff1359c89f4172c4d3",
+      "sha256": "7eacf0f0033c40479438751f9a3762b0aa0a9ba154e849446dfd9bde56619918",
       "exports": [
         "createBoundedOtlpSender"
       ],
@@ -1091,35 +1092,35 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/transport.mjs",
-                "anchor": "async send(payload, serializer)"
+                "path": "packages/otel-node/transport.mts",
+                "anchor": "async send(payload: unknown, serializer?: OtlpDecoder)"
               }
             ],
             "identity": [
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "endpoint"
               }
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "active = {req, settled}"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "req.on('close'"
               }
             ],
             "failure": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "trace export failure does not disable logs or metrics or change execution"
               },
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "HTTP errors cannot be reported as exported"
               }
             ],
@@ -1129,13 +1130,13 @@
                 "anchor": "does not cancel a Run or revoke authority"
               },
               {
-                "path": "packages/otel-node/transport.mjs",
+                "path": "packages/otel-node/transport.mts",
                 "anchor": "await active.settled.catch"
               }
             ],
             "resources": [
               {
-                "path": "packages/otel-node/configuration.mjs",
+                "path": "packages/otel-node/configuration.mts",
                 "anchor": "managedLimits"
               },
               {
@@ -1145,25 +1146,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -1174,7 +1175,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4f05887943eeba1ef079ace2d221d23ddacb1e38ca7307fe9675afcb976a1e78",
+      "sha256": "0f8cda10a7d04393cb4935de747dcf2dbe0daa7233a358d5a4e0dee6a87641f1",
       "exports": [
         "fixedInferResponseLimits",
         "readBoundedInferResponse"
@@ -1293,17 +1294,17 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "fixedInferResponseLimits"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "readBoundedInferResponse"
               }
             ],
@@ -1313,25 +1314,25 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cannot change across the body await"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "one byte over the bound"
               }
             ],
@@ -1341,37 +1342,37 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxChunkBytes"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxHeaderBytes"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "real Response streams"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cleanup failure retains the same reader"
               }
             ]
@@ -1382,7 +1383,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "e520a551c62dd471c913076dd81a1ca1d4505612460c4bda287885b0c775f6f3",
+      "sha256": "16ce45709612d09324784ec87911e666d1d3f724554001eb4790b49d813bf0a4",
       "exports": [
         "bindSdkTransportCredential",
         "cancelSdkPreparation",
@@ -1823,7 +1824,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -1843,27 +1844,27 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -1873,7 +1874,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -1883,33 +1884,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -1917,7 +1918,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               },
               {
@@ -1925,7 +1926,7 @@
                 "anchor": "selected SDK decodes the original Store-confirmed fetch response once"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "a selected registered V4 factory serializes and decodes Responses through the guarded port"
               }
             ]
@@ -1936,12 +1937,13 @@
     {
       "module": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "52d0b8fe10440ae007f66ecff8f6e0f12c7d4f35859e7a9e2bfc0b9a737f2093",
+      "sha256": "d4c755b0612e347e4a936a2d306e804ab3dfb3467c4d70434826b82869b48035",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
         "optionNamespace",
         "optionSchema",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -1954,6 +1956,13 @@
             "modelId",
             "fetch",
             "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -1982,6 +1991,7 @@
           "operations": [
             "<module>",
             "createLanguageModel",
+            "readReportedResponse",
             "readReportedUsage",
             "verifyRequest"
           ],
@@ -1990,6 +2000,7 @@
             "credentialBinding",
             "optionNamespace",
             "optionSchema",
+            "readReportedResponse",
             "readReportedUsage",
             "sdkProvider",
             "verifyRequest"
@@ -2001,57 +2012,57 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
                 "anchor": "export function verifyRequest"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
                 "anchor": "export function readReportedUsage"
               }
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
                 "anchor": "factory !== createAnthropic"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
                 "anchor": "route.apiMode !== 'messages'"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "path": "adapters/host-node/installed-model-configuration.mts",
                 "anchor": "readVerifiedSdkImage"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
                 "anchor": "credentialBinding.placeholder"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "prepareRegisteredSdkLanguageModel"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "SdkAdditionalRequestRefused"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
                 "anchor": "InvalidRegisteredAnthropicMessages"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
                 "anchor": "topP !== 1"
               }
             ],
@@ -2061,33 +2072,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mjs",
+                "path": "packages/provider-ai-sdk/_internal/anthropic-messages.mts",
                 "anchor": "optionSchema"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/model-port.mjs",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "createAdmittedRegisteredSdkPreflight"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "registered Anthropic preserves the selected Messages body"
               }
             ]
@@ -2097,17 +2108,20 @@
       "imports": [
         "@ai-sdk/anthropic",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "2def9d9e6fe7a8ba45895cd0c0b78fb10be67f8c62200a56881a5992bcc96cf9",
+      "sha256": "a02dd6ec4ab046d289c3a272b7781e82d8eba883579feec0eefa8bbb118e314f",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
         "optionNamespace",
         "optionSchema",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -2120,6 +2134,13 @@
             "modelId",
             "fetch",
             "route"
+          ],
+          "async": false
+        },
+        {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
           ],
           "async": false
         },
@@ -2148,6 +2169,7 @@
           "operations": [
             "<module>",
             "createLanguageModel",
+            "readReportedResponse",
             "readReportedUsage",
             "verifyRequest"
           ],
@@ -2156,6 +2178,7 @@
             "credentialBinding",
             "optionNamespace",
             "optionSchema",
+            "readReportedResponse",
             "readReportedUsage",
             "sdkProvider",
             "verifyRequest"
@@ -2167,57 +2190,57 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
                 "anchor": "export function verifyRequest"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
                 "anchor": "export function readReportedUsage"
               }
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
                 "anchor": "factory !== createGoogle"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
                 "anchor": "route.apiMode !== 'generate_content'"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "path": "adapters/host-node/installed-model-configuration.mts",
                 "anchor": "readVerifiedSdkImage"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
                 "anchor": "credentialBinding.placeholder"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "prepareRegisteredSdkLanguageModel"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "SdkAdditionalRequestRefused"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
                 "anchor": "InvalidRegisteredGoogleGenerateContent"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
                 "anchor": "seed !== undefined"
               }
             ],
@@ -2227,33 +2250,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mjs",
+                "path": "packages/provider-ai-sdk/_internal/google-generate-content.mts",
                 "anchor": "optionSchema"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/model-port.mjs",
+                "path": "packages/provider-ai-sdk/_internal/model-port.mts",
                 "anchor": "createAdmittedRegisteredSdkPreflight"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "registered Google preserves the selected GenerateContent body"
               }
             ]
@@ -2263,12 +2286,14 @@
       "imports": [
         "@ai-sdk/google",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4bb5bba1cb4e3f806d2dfe62b8054c152a486e445d0f218a0a00e3420344af65",
+      "sha256": "eeb0eb69050d9d1bf7d9d98f8c02f5faa6c00b677d05ca2bdfb5e1ee777dc413",
       "exports": [
         "createLanguageModel",
         "credentialBinding",
@@ -2276,6 +2301,7 @@
         "optionNamespace",
         "optionSchema",
         "prepareOpenAIChatRequest",
+        "readReportedResponse",
         "readReportedUsage",
         "sdkProvider",
         "verifyRequest"
@@ -2324,6 +2350,13 @@
           "async": false
         },
         {
+          "name": "readReportedResponse",
+          "parameters": [
+            "body"
+          ],
+          "async": false
+        },
+        {
           "name": "readReportedUsage",
           "parameters": [
             "body"
@@ -2351,6 +2384,7 @@
             "prepareOpenAIChatRequest",
             "prepareOpenAIChatRequest/prepareOpenAIChatRequest",
             "prepareOpenAIChatRequest/prepareOpenAIChatRequest#2",
+            "readReportedResponse",
             "readReportedUsage",
             "verifyRequest"
           ],
@@ -2361,6 +2395,7 @@
             "optionNamespace",
             "optionSchema",
             "prepareOpenAIChatRequest",
+            "readReportedResponse",
             "readReportedUsage",
             "sdkProvider",
             "verifyRequest"
@@ -2372,13 +2407,13 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "prepareOpenAIChatRequest"
               }
             ],
@@ -2388,23 +2423,23 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "openAIChatStaticOriginals"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "forgetting this borrowed shell is not module GC"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "interceptSdkRequest"
               }
             ],
@@ -2414,7 +2449,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -2424,33 +2459,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -2458,7 +2493,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -2471,12 +2506,14 @@
         "@ai-sdk/openai",
         "@ai-sdk/provider-utils",
         "node:util"
-      ]
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "6b648cb60e40e5d80a6b0a58f491888b1be0452890da3505e4d2e4c8bf859842",
+      "sha256": "dc48f630b585e893ba143cb2241f7421631906a99799a453e82a01ef0f3e9674",
       "exports": [
         "createOriginalUndiciFetch",
         "fixedOriginalAcquisitionLimits",
@@ -2815,7 +2852,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -2831,19 +2868,19 @@
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
-                "anchor": "installations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
+                "anchor": "installations.set(fetch, Object.freeze(original))"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "per-call Client/duty"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "before that allocation"
               }
             ],
@@ -2853,7 +2890,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -2863,21 +2900,21 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "controller.abort(reason)"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "maxBorrowedBackingBytes"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "does not bound native emission"
               },
               {
@@ -2887,11 +2924,11 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
@@ -3133,7 +3170,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -3153,7 +3190,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -3165,11 +3202,11 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3179,7 +3216,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -3189,7 +3226,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -3205,17 +3242,17 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -3223,7 +3260,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               },
               {
@@ -3238,7 +3275,7 @@
     {
       "module": "packages/provider-ai-sdk/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "3ff505e3c4204944cc9b9f3275a3d459692bbdd3b7d072b73466fe5b4f8d9a44",
+      "sha256": "a2d70cb86279738a4c62d22a2bb0d31bdef99bddea4f0cd6813943073a01d12c",
       "exports": [
         "createInstalledOpenAIChatRegistration",
         "createInstalledUndiciOpenAIChatRegistration",
@@ -3270,13 +3307,13 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/index.mjs",
+                "path": "packages/provider-ai-sdk/index.mts",
                 "anchor": "export"
               }
             ],
@@ -3286,27 +3323,27 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3316,7 +3353,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -3326,33 +3363,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -3360,7 +3397,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -3375,7 +3412,7 @@
     {
       "module": "packages/provider-http/_internal/bounded-response.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4f05887943eeba1ef079ace2d221d23ddacb1e38ca7307fe9675afcb976a1e78",
+      "sha256": "0f8cda10a7d04393cb4935de747dcf2dbe0daa7233a358d5a4e0dee6a87641f1",
       "exports": [
         "fixedInferResponseLimits",
         "readBoundedInferResponse"
@@ -3494,17 +3531,17 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "fixedInferResponseLimits"
               },
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "readBoundedInferResponse"
               }
             ],
@@ -3514,25 +3551,25 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cannot change across the body await"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "one byte over the bound"
               }
             ],
@@ -3542,37 +3579,37 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxChunkBytes"
               },
               {
-                "path": "packages/provider-http/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "maxHeaderBytes"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "real Response streams"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "cleanup failure retains the same reader"
               }
             ]
@@ -3674,7 +3711,7 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
@@ -3694,7 +3731,7 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
@@ -3706,11 +3743,11 @@
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3720,7 +3757,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -3730,7 +3767,7 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
@@ -3746,17 +3783,17 @@
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -3764,7 +3801,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -3775,7 +3812,7 @@
     {
       "module": "packages/provider-http/index.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "4a7fb63ba81cb229821c3380e4c72fb8615e69f207e9d13c5a26cc50798024c5",
+      "sha256": "2aa708876a7ec9371d3e499bba25889fda40f60b92653c0b7934758239f4e8f3",
       "exports": [
         "createInstalledHttpChatRegistration"
       ],
@@ -3797,13 +3834,13 @@
                 "anchor": "model_physical_call_for_request"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Physical SDK preparation only"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-http/index.mjs",
+                "path": "packages/provider-http/index.mts",
                 "anchor": "export"
               }
             ],
@@ -3813,27 +3850,27 @@
                 "anchor": "physical_equal(original.request, request)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "ForeignSdkPreparation"
               }
             ],
             "ownership": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
-                "anchor": "preparations = new WeakMap()"
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
+                "anchor": "preparations.set(handle, state)"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "heldReader"
               }
             ],
             "synchronization": [
               {
-                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mjs",
+                "path": "packages/provider-ai-sdk/_internal/intercepted-request.mts",
                 "anchor": "Only its explicitly installed transport"
               },
               {
-                "path": "packages/provider-http/_internal/model-port.mjs",
+                "path": "packages/provider-http/_internal/model-port.mts",
                 "anchor": "No notification, await or request construction is interposed here."
               }
             ],
@@ -3843,7 +3880,7 @@
                 "anchor": "response loss after original request is Unknown and not retried"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "permanent preparation violation"
               }
             ],
@@ -3853,33 +3890,33 @@
                 "anchor": "cancel acknowledgement alone does not retire an abort-ignoring read"
               },
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "Promise settles"
               }
             ],
             "resources": [
               {
-                "path": "packages/provider-ai-sdk/_internal/bounded-response.mjs",
+                "path": "adapters/host-common/model-response-reader.mts",
                 "anchor": "Fund the fixed backing buffer"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mjs",
+                "path": "packages/provider-ai-sdk/_internal/original-undici-transport.mts",
                 "anchor": "these checks cannot fund or bound that first allocator"
               }
             ],
             "extension": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "exact installed lock closure"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/openai-chat.mts",
                 "anchor": "options.tools !== undefined"
               }
             ],
             "verification": [
               {
-                "path": "packages/provider-ai-sdk/request-preparation.test.mjs",
+                "path": "packages/provider-ai-sdk/request-preparation.test.mts",
                 "anchor": "real pinned SDK captures one exact original request"
               },
               {
@@ -3887,7 +3924,7 @@
                 "anchor": "actual pinned OpenAI SDK"
               },
               {
-                "path": "packages/provider-ai-sdk/bounded-response.test.mjs",
+                "path": "packages/provider-ai-sdk/bounded-response.test.mts",
                 "anchor": "no success claim"
               }
             ]
@@ -3898,7 +3935,7 @@
     {
       "module": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "88bf72822e574b608f66c9eb8c43202b07d0eff975c1f60281b69931989c9f6b",
+      "sha256": "8d277bb976c4830c95b2aeb1370cd828eb5cc4c5781cbe672edcd7598f3ad632",
       "exports": [
         "createOpenAIChatProvider",
         "createProjectOpenAIChatProvider",
@@ -4179,37 +4216,37 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "path": "adapters/host-node/installed-model-configuration.mts",
                 "anchor": "export async function installConfiguredModelProviders"
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "export function createOpenAIChatProvider"
               }
             ],
             "identity": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "context.prepareBindingOriginals"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "snapshotTaskInstallations"
               }
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/infer-operation.mjs",
+                "path": "adapters/host-node/infer-operation.mts",
                 "anchor": "startSourceFreeSingleUnit"
               }
             ],
             "failure": [
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "OpenAIProviderConfigurationReused"
               }
             ],
@@ -4221,11 +4258,11 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-model-configuration.mjs",
+                "path": "adapters/host-node/installed-model-configuration.mts",
                 "anchor": "const nodes = 128n + 2048n"
               },
               {
-                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mjs",
+                "path": "packages/provider-ai-sdk/_internal/normal-openai-chat.mts",
                 "anchor": "clientProgramInstalledNodeModelDeadlineCapacity"
               },
               {
@@ -4235,7 +4272,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-model.mjs",
+                "path": "adapters/host-node/installed-model.mts",
                 "anchor": "InstalledModelTaskProfileUnavailable"
               }
             ],
@@ -4245,11 +4282,11 @@
                 "anchor": "normal OpenAI factory executes two unequal Tasks through actual Host and HTTP"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "normal deadline missing invalid overflow or over-budget quote refuses before IO"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "normal binding profile and original Read recipe"
               },
               {
@@ -4257,11 +4294,11 @@
                 "anchor": "SDK expected wires remain per row"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "an explicit selector binds the resolved Chat model"
               },
               {
-                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mjs",
+                "path": "packages/provider-ai-sdk/normal-deadline-configuration.test.mts",
                 "anchor": "one registered batch prepares the original Tasks once with distinct binding originals"
               }
             ]
@@ -4277,6 +4314,5 @@
       "compilerFields": [],
       "unresolvedSyntax": []
     }
-  ],
-  "actualRuntimeQualification": "Earlier F Credential147, Provider759 and durablea15 receipts remain source-specific. This additional metadata pass runs no OTel/Provider/Native product or public acceptance tests."
+  ]
 }

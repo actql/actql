@@ -5,28 +5,14 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {writeFile} from 'node:fs/promises';
-import {isAbsolute} from 'node:path';
 import {parse} from 'acorn';
 import {createInstalledLoaderParent} from './installed-loader-parent.fixture.mjs';
 import {createInstalledHostServices, installedSourceConfigurationReader,
   installedSourceEnvironmentConstructionReader} from '../installed-host-services.mjs';
-import {composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment} from '../installed-funded-environment.mjs';
-import {verifyInstalledConnectorBindings} from '../installed-check-environment.mjs';
 import {retainInstalledHostInitializationFailure} from '../installed-host-cleanup.mjs';
-import {captureSourceAliasConstruction, sourceAliasCollectionConstructionGeometry,
-  sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
-  sourceBindingCollectionConstructionGeometry}
-  from '../source-alias-construction.mjs';
-import {installedSourceReadBindings} from '../installed-source.mjs';
+import {createInstalledSourceInventoryLoader} from '../installed-source-inventory.mjs';
 import {composeInstalledEffects, validPluralEffectPaths} from '../installed-effect-inventory.mjs';
 
-const source = readFileSync(new URL('../installed-source.mjs', import.meta.url), 'utf8');
-const tree = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-const declaration = name => {
-  const nodes = tree.body.map(node => node.declaration ?? node)
-    .filter(node => node.type === 'FunctionDeclaration' && node.id.name === name);
-  assert.equal(nodes.length, 1, name); return source.slice(nodes[0].start, nodes[0].end);
-};
 // Match Node's ordinary realpath behavior for the copied loader's existing
 // dependencies, including the nominal HostServices registry. Only its authored
 // connector table remains relative to the isolated installation tree.
@@ -39,17 +25,6 @@ export async function copyInstalledInventoryLoader(from, to) {
   for (const node of imports.reverse()) copied = copied.slice(0, node.source.start) +
     JSON.stringify(new URL(node.source.value, from).href) + copied.slice(node.source.end);
   await writeFile(to, copied);
-}
-
-function sourceFold(loadInstalledSource) {
-  const ports = {isAbsolute, loadInstalledSource,
-    sourceMemberCollectionConstructionGeometry, sourceReferenceCollectionConstructionGeometry,
-    sourceBindingCollectionConstructionGeometry,
-    installedSourceReadBindings, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader,
-    captureSourceAliasConstruction, sourceAliasCollectionConstructionGeometry,
-    composeInstalledSourceEnvironment, composeInstalledInventoryEnvironment, verifyInstalledConnectorBindings, retainInstalledHostInitializationFailure};
-  return Function(...Object.keys(ports), declaration('validPluralSourcePaths') + '\n' +
-    declaration('loadInstalledSources') + '\nreturn loadInstalledSources;')(...Object.values(ports));
 }
 
 function effectFold(loadEffect) {
@@ -107,7 +82,9 @@ export function installedInventoryComponent(loader, authoredMembers, effectMembe
         }
         retain?.(value); return value;
       };
-      const fold = role === 'source' ? sourceFold(member) : effectFold(member);
+      const fold = role === 'source' ? createInstalledSourceInventoryLoader({
+        loadInstalledSource: member, installedSourceConfigurationReader, installedSourceEnvironmentConstructionReader,
+      }) : effectFold(member);
       return parent.load(fold, paths, {...options, installationServices: parent.services});
     },
   });

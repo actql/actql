@@ -24,7 +24,7 @@ const closure = localModuleGraphInputs(repository, entries);
 const nativeRoot = process.env.ACTQL_DIRECTORY_NATIVE_DIAGNOSTIC_ROOT;
 
 async function fixture(label, {replaceBeforeJournalCapture, managedCompute = false,
-  resultPublication = false, localMockModel = false, ordinaryPublic = false} = {}) {
+  resultPublication = false, localMockModel = false, ordinaryPublic = false, pinnedResult = false} = {}) {
   const scratch = await createOwnedScratch({parent: tmpdir(),
     prefix: 'actql-journal-ordinary-service-', label});
   const root = join(scratch.path, 'node_modules/@actql/local-node');
@@ -79,7 +79,12 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
   sources.set('adapters/host-node/embedded-local.mjs', Buffer.from(`
     ${replaceBeforeJournalCapture === undefined ? '' : "import './fixture-journal-native-replacement.mjs';"}
     import {join} from 'node:path';
-    import {beginInitialControlInstallation} from './node-initial-control-installation.mjs';
+    ${pinnedResult ? `
+    import {createRequire} from 'node:module';
+    const requirePinnedResult=createRequire(import.meta.url);
+    const beginInitialControlInstallation=(...args)=>requirePinnedResult('./node-public-initial-control-bootstrap.cjs')
+      .beginInitialControlInstallation(...args);
+    ` : "import {beginInitialControlInstallation} from './node-initial-control-installation.mjs';"}
     import {prepareHostJournalInstallation} from './node-host-journal-installation.mjs';
     ${!resultPublication ? '' : `
     import {prepareHostResultPublicationInstallation} from './node-host-result-installation.mjs';
@@ -99,6 +104,9 @@ async function fixture(label, {replaceBeforeJournalCapture, managedCompute = fal
       assertInitialControlHostPreparation(value);
       originalSourceManagedHostRequest(value,prepared);
       return Object.freeze({resultCount:1,maxRows:1});
+    }
+    export function readHostEffectResultPublicationRunRequirements() {
+      throw new Error('Unexpected Effect publication in the Pure Result fixture');
     }
     `}
     ${!managedCompute ? '' : `
@@ -620,31 +628,34 @@ test('actual SDK query and all retain one Root producer and its separate Result 
 });
 
 test('actual ordinary Result service adopts the same prepared Store and retains joint Journal ACK', async () => {
-  const f = await fixture('ordinary selected Result Store original', {managedCompute:true,resultPublication:true});
+  const f = await fixture('ordinary selected Result Store original', {resultPublication:true,pinnedResult:true});
   f.run(`
     import assert from 'node:assert/strict'; import {existsSync} from 'node:fs';
     import {connect} from '@actql/local-node'; import {createRequire} from 'node:module';
     const require=createRequire(import.meta.url);
     const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
     const root=require(${JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))});
-    await assert.rejects(client.prepareResult());
-    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
-    await journal.openRequestJournal(client.root+'/requests',{});
-    const result=await client.prepareResult(); result.assertCurrent();
+    const held=client.originals;
+    assert.throws(()=>root.prepareHostResultPublicationInstallation(held));
+    const journal=await root.prepareHostJournalInstallation(held);
+    await root.admitHostJournalRootFormat(journal,held,client.root);
+    await root.openHostJournalRequestJournal(journal,held,client.root+'/requests',{});
+    const result=await root.prepareHostResultPublicationInstallation(held);
+    root.assertHostResultPublicationInstallationCurrent(result,held);
     assert.throws(()=>root.prepareHostResultPublicationInstallation(client.originals));
     assert.throws(()=>root.assertHostResultPublicationInstallationCurrent({},client.originals));
     const control=client.resultControl;
     const options={directory:client.root+'/publication',storeAuthorityCid:'sha256:'+'a'.repeat(64),
       capacityBytes:536870912,maxObjectBytes:10000000,maxObjects:10000,maxContractNodes:10000,maxContractDepth:64};
-    const store=await result.openStore(options,control);
+    const store=await root.openHostResultPublicationStore(result,held,options,control);
     assert.equal(store.status().closed,false); assert.equal(existsSync(client.root+'/checkpoints'),false);
-    assert.throws(()=>result.openStore(options,control));
+    assert.throws(()=>root.openHostResultPublicationStore(result,held,options,control));
     // Store cannot return the shared token while its SAME Journal is open.
     await assert.rejects(store.close()); assert.equal(store.status().closed,false);
-    assert.equal((await journal.close()).pending,true);
+    assert.equal((await root.closeHostJournalInstallation(journal,held)).pending,true);
     await store.close(); assert.equal(store.status().closed,true);
-    assert.equal((await result.close()).pending,false);
-    assert.equal((await journal.close()).pending,false);
+    assert.equal((await root.closeHostResultPublicationInstallation(result,held)).pending,false);
+    assert.equal((await root.closeHostJournalInstallation(journal,held)).pending,false);
     assert.equal((await client.scope.close()).pending,false);
   `);
   f.scratch.passed();
@@ -739,14 +750,17 @@ test('Result Store work history bounds repeated calls without blocking its origi
 });
 
 test('Result failed actual Store construction keeps original cleanup until the same Journal closes', async () => {
-  const f = await fixture('ordinary Result actual failed Store constructor', {resultPublication:true});
+  const f = await fixture('ordinary Result actual failed Store constructor', {resultPublication:true,pinnedResult:true});
   f.run(`
-    import assert from 'node:assert/strict'; import {connect} from '@actql/local-node';
+    import assert from 'node:assert/strict'; import {connect} from '@actql/local-node'; import {createRequire} from 'node:module';
     import {mkdir,writeFile} from 'node:fs/promises';
     const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
-    const journal=await client.prepareJournal(); await journal.admitRootFormat(client.root);
-    await journal.openRequestJournal(client.root+'/requests',{});
-    const result=await client.prepareResult();
+    const root=createRequire(import.meta.url)(${JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))});
+    const held=client.originals;
+    const journal=await root.prepareHostJournalInstallation(held);
+    await root.admitHostJournalRootFormat(journal,held,client.root);
+    await root.openHostJournalRequestJournal(journal,held,client.root+'/requests',{});
+    const result=await root.prepareHostResultPublicationInstallation(held);
     // A known exact format passes the original format boundary; the owned
     // fault below is then reached inside actual Store initialization.
     await writeFile(client.root+'/publication/store.json',JSON.stringify({version:'actql-local-publication-store/0.1',
@@ -757,13 +771,13 @@ test('Result failed actual Store construction keeps original cleanup until the s
     const options={directory:client.root+'/publication',storeAuthorityCid:'sha256:'+'a'.repeat(64),
       capacityBytes:536870912,maxObjectBytes:10000000,maxObjects:10000,maxContractNodes:10000,maxContractDepth:64};
     let original;
-    await assert.rejects(result.openStore(options,control),error=>{
+    await assert.rejects(root.openHostResultPublicationStore(result,held,options,control),error=>{
       original=error;return error.code==='HostResultPublicationCleanupPending'&&error.cleanupHandle.status().pending;});
-    assert.equal((await result.close()).pending,true);
-    assert.throws(()=>result.openStore(options,control));
-    assert.equal((await journal.close()).pending,false);
+    assert.equal((await root.closeHostResultPublicationInstallation(result,held)).pending,true);
+    assert.throws(()=>root.openHostResultPublicationStore(result,held,options,control));
+    assert.equal((await root.closeHostJournalInstallation(journal,held)).pending,false);
     assert.equal((await original.cleanupHandle.retry()).pending,false);
-    assert.equal((await result.close()).pending,false);
+    assert.equal((await root.closeHostResultPublicationInstallation(result,held)).pending,false);
     assert.equal((await client.scope.close()).pending,false);
   `);
   f.scratch.passed();
@@ -771,18 +785,21 @@ test('Result failed actual Store construction keeps original cleanup until the s
 
 test('Result Store rejects a foreign control or authority before creating its format', async () => {
   for (const wrong of ['control','authority']) {
-    const f = await fixture('ordinary Result original '+wrong+' refusal', {resultPublication:true});
+    const f = await fixture('ordinary Result original '+wrong+' refusal', {resultPublication:true,pinnedResult:true});
     f.run(`
-      import assert from 'node:assert/strict';import {existsSync} from 'node:fs';import {connect} from '@actql/local-node';
+      import assert from 'node:assert/strict';import {existsSync} from 'node:fs';import {connect} from '@actql/local-node'; import {createRequire} from 'node:module';
       const client=await connect({mode:'local',installation:{directory:'.actql'},profile:'mock'});
-      const journal=await client.prepareJournal();await journal.admitRootFormat(client.root);
-      await journal.openRequestJournal(client.root+'/requests',{});
-      const result=await client.prepareResult();
+      const root=createRequire(import.meta.url)(${JSON.stringify(join(f.root,'adapters/host-node/node-public-initial-control-bootstrap.cjs'))});
+      const held=client.originals;
+      const journal=await root.prepareHostJournalInstallation(held);
+      await root.admitHostJournalRootFormat(journal,held,client.root);
+      await root.openHostJournalRequestJournal(journal,held,client.root+'/requests',{});
+      const result=await root.prepareHostResultPublicationInstallation(held);
       const options={directory:client.root+'/publication',storeAuthorityCid:'sha256:'+${JSON.stringify(wrong === 'authority' ? 'b' : 'a')}.repeat(64),
         capacityBytes:536870912,maxObjectBytes:10000000,maxObjects:10000,maxContractNodes:10000,maxContractDepth:64};
-      await assert.rejects(result.openStore(options,${wrong === 'control' ? '{...client.resultControl}' : 'client.resultControl'}));
+      await assert.rejects(root.openHostResultPublicationStore(result,held,options,${wrong === 'control' ? '{...client.resultControl}' : 'client.resultControl'}));
       assert.equal(existsSync(client.root+'/publication/store.json'),false);
-      assert.equal((await result.close()).pending,false);assert.equal((await journal.close()).pending,false);
+      assert.equal((await root.closeHostResultPublicationInstallation(result,held)).pending,false);assert.equal((await root.closeHostJournalInstallation(journal,held)).pending,false);
       assert.equal((await client.scope.close()).pending,false);
     `);
     f.scratch.passed();

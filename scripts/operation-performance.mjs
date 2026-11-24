@@ -1,7 +1,10 @@
 import {createHash} from 'node:crypto';
+import {publicLatencyTarget, integer, requireValue, latencySummary, resourceSummary,
+  assessPublicLatencySamples} from './operation-performance-sample-summary.mjs';
+export {publicLatencyTarget, latencySummary, resourceSummary, assessPublicLatencySamples} from
+  './operation-performance-sample-summary.mjs';
 // Acceptance evidence only. This module grants no runtime authority and does
 // not replace package provenance, the public result oracle, or resource guards.
-export const publicLatencyTarget = Object.freeze({p95Ms: 200, maxMs: 200});
 export const operationTargets = Object.freeze({
   ...Object.fromEntries(['warm-select', 'warm-result', 'warm-status', 'warm-join',
     'warm-union', 'warm-decimal-sum', 'warm-parameters', 'warm-unicode'].map(operation => [operation,
@@ -11,42 +14,11 @@ export const operationTargets = Object.freeze({
   'mock-workflow': {samples: 30, p95Ms: 5000},
 });
 for (const target of Object.values(operationTargets)) Object.freeze(target);
-// Separate Native profile: adding it must not impose Native samples on every
-// portable Host performance campaign.
-export const nativeApprovalTarget = Object.freeze({samples: 30, p95Ms: 6000, maxMs: 10000});
 export const historySizes = Object.freeze([1, 10, 100, 1000]);
-const integer = value => Number.isSafeInteger(value) && value >= 0;
 const digest = value => typeof value === 'string' && /^[a-f0-9]{64}$/u.test(value);
-const requireValue = (condition, message) => { if (!condition) throw new Error(message); };
 const outcome = (failures, missing, detail = {}) => ({
   status: failures.length ? 'failed' : missing.length ? 'incomplete' : 'passed', failures, missing, ...detail,
 });
-
-export function latencySummary(samples, minimum) {
-  requireValue(integer(minimum) && minimum > 0, 'A nonzero sample minimum is required');
-  for (const row of samples) {
-    requireValue(integer(row.wallNs) && integer(row.cpuUserUs) && integer(row.cpuSystemUs), 'Invalid wall/CPU sample');
-  }
-  const values = samples.map(row => row.wallNs / 1e6).sort((a, b) => a - b);
-  const n = values.length;
-  return {count: n, medianMs: n ? (values[Math.floor((n - 1) / 2)] + values[Math.floor(n / 2)]) / 2 : null,
-    // A small diagnostic never supplies an acceptance p95.
-    p95Ms: n >= minimum ? values[Math.ceil(n * 0.95) - 1] : null,
-    maxMs: n ? values[n - 1] : null, quantile: 'nearest-rank', minimum};
-}
-
-export function resourceSummary(samples, minimum) {
-  const cpuAvailable = samples.length > 0 && samples.every(row =>
-    row.cpuAvailable !== false && row.childCpuAvailable !== false &&
-    integer(row.cpuUserUs) && integer(row.cpuSystemUs) && typeof row.cpuScope === 'string' && row.cpuScope.length > 0);
-  const rssAvailable = samples.length > 0 && samples.every(row =>
-    integer(row.peakRssBytes) && row.peakRssBytes > 0 && typeof row.rssScope === 'string' && row.rssScope.length > 0);
-  return {cpu: cpuAvailable ? {available: true, scopes: [...new Set(samples.map(row => row.cpuScope))],
-    ...latencySummary(samples.map(row => ({wallNs: (row.cpuUserUs + row.cpuSystemUs) * 1000,
-      cpuUserUs: row.cpuUserUs, cpuSystemUs: row.cpuSystemUs})), minimum)} : {available: false},
-  rss: rssAvailable ? {available: true, scopes: [...new Set(samples.map(row => row.rssScope))],
-    maximumBytes: Math.max(...samples.map(row => row.peakRssBytes))} : {available: false}};
-}
 
 // Trend observations are not acceptance assessments. Three repetitions support
 // median/max only; the final protocol's minimum continues to govern p95.
@@ -58,34 +30,6 @@ export function recordOperationMeasurements(series) {
   const resources = resourceSummary(series.samples, operationTargets[series.operation].samples);
   requireValue(resources.cpu.available && resources.rss.available, 'Record-only CPU/RSS measurements are missing');
   return {operation: series.operation, mode: series.mode, ...summary, resources, acceptanceAssessed: false};
-}
-
-// These are actual clocks around the existing public caller and its row
-// oracle, not validation-call counters or inferred work durations. Child
-// clocks are compared by elapsed time only, never by cross-process origin.
-export function assessPublicLatencySamples(samples, minimum, operation) {
-  const summary = latencySummary(samples, minimum), failures = [], missing = [];
-  for (const row of samples) {
-    if (row.completed !== true || row.verified !== true) continue;
-    const timing = row.publicTiming;
-    if (!timing) {missing.push(`sample ${row.iteration}: public completion timing`); continue;}
-    const names = timing.kind === 'process-result-close'
-      ? ['startNs', 'observedNs', 'closeStartNs', 'closeEndNs', 'endNs']
-      : timing.kind === 'cli-result-exit' ? ['startNs', 'exitNs', 'observedNs', 'endNs']
-        : ['startNs', 'observedNs', 'endNs'];
-    const allowed = operation.startsWith('warm-')
-      ? [operation === 'warm-status' ? 'public-status' : 'public-result']
-      : operation.endsWith('-process-first-result')?['process-first-result']
-        : ['process-result-close', 'cli-result-exit'];
-    if (!allowed.includes(timing.kind) || names.some(name => !integer(timing[name])) ||
-        names.some((name, index) => index > 0 && timing[name] < timing[names[index - 1]]) ||
-        timing.endNs - timing.startNs > row.wallNs) {
-      failures.push(`sample ${row.iteration}: public timer excludes completion or close`);
-    }
-  }
-  if (summary.p95Ms !== null && summary.p95Ms > publicLatencyTarget.p95Ms) failures.push('public E2E p95 exceeds 200ms');
-  if (summary.maxMs !== null && summary.maxMs > publicLatencyTarget.maxMs) failures.push('public E2E observed max exceeds 200ms');
-  return {summary, failures, missing};
 }
 
 // Diagnostic calibration consumes independently measured SQLite data, never

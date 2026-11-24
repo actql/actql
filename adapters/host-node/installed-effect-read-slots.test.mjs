@@ -2,12 +2,16 @@
 // and grant doubles. This is not original Core/credential or TLS acceptance.
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
-import {types as nodeTypes} from 'node:util';
-import {parse} from 'acorn';
 import {captureInstalledEffectPlanRecipe, selectInstalledEffectCredentialOperation} from './installed-effect-plan.mjs';
+import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
+import {createInstalledRowEffectPhysicalOperation, createInstalledRowEffectReadChild} from './installed-row-effect-physical-read.mjs';
 
 const fail = code => {throw Object.assign(new Error(code), {code});};
+const captureOnly = () => assert.fail('The read fixture does not admit another driver');
+const {requireSynchronousEffectResource} = createInstalledRowEffectDriverControls({
+  fail, text: value => typeof value === 'string' && value.length > 0,
+  optionalFunction: captureOnly, kinds: [], guarded: captureOnly,
+});
 const freeze = value => Object.freeze(value);
 function recipeInput() {
   const operation = operation => freeze({operation, extent: freeze({testExtent: true})});
@@ -38,27 +42,6 @@ function recipeInput() {
 }
 const limitOf = value => value.memberOperations.length + value.rowOperations.length;
 const capture = value => captureInstalledEffectPlanRecipe(value, limitOf(value));
-function privateArrow(name, dependencies) {
-  const source = readFileSync(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-  const pending = [parse(source, {ecmaVersion: 'latest', sourceType: 'module'})];
-  let selected;
-  while (pending.length) {
-    const node = pending.pop();
-    if (node.type === 'VariableDeclarator' && node.id.name === name) {
-      assert.equal(selected, undefined, 'One actual private caller'); selected = node.init;
-    }
-    if (node.type === 'FunctionDeclaration' && node.id.name === name) {
-      assert.equal(selected, undefined, 'One actual private caller'); selected = node;
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) pending.push(...value.filter(item => item?.type));
-      else if (value?.type) pending.push(value);
-    }
-  }
-  assert(selected);
-  return Function(...Object.keys(dependencies), `return (${source.slice(selected.start, selected.end)});`)(...Object.values(dependencies));
-}
-
 test('named credential read slots retain distinct original operation indexes within unchanged total bound', () => {
   const input = recipeInput(), selected = capture(input);
   assert.equal(selected.credentialOperations.length, 19);
@@ -93,9 +76,8 @@ test('named credential read slots reject duplicate slots/indexes mixed legacy se
 function readFixture() {
   const recipe = capture(recipeInput()), site = {}, calls = [], consumed = [];
   const member = {resource: 'companies'}, originalTarget = {grant: {}}, targetView = {grant: originalTarget.grant};
-  const managedReadChild = privateArrow('managedReadChild', {recipeOf: () => recipe,
-    ownerOf: () => ({site}), fail, selectInstalledEffectCredentialOperation, nodeTypes,
-    requireSynchronousEffectResource: privateArrow('requireSynchronousEffectResource', {fail})});
+  const managedReadChild = createInstalledRowEffectReadChild({recipeOf: () => recipe,
+    ownerOf: () => ({site}), fail, requireSynchronousEffectResource});
   const read = managedReadChild({member, phase: 'capture-target',
     physicalOperations: options => {calls.push(options); return options;},
     runInvocationCid: 'original-run', dispatchRequestCid: 'original-dispatch', assertCurrent() {},
@@ -134,9 +116,8 @@ test('named credential read caller refuses missing slot foreign grant and oversi
 test('named credential read caller preserves child binding and immutable request bound over caller input', async () => {
   const recipe = capture(recipeInput()), grant = {}, binding = {}, scope = {}, site = {};
   let received;
-  const managedReadChild = privateArrow('managedReadChild', {recipeOf: () => recipe,
-    ownerOf: () => ({site}), fail, selectInstalledEffectCredentialOperation, nodeTypes,
-    requireSynchronousEffectResource: privateArrow('requireSynchronousEffectResource', {fail})});
+  const managedReadChild = createInstalledRowEffectReadChild({recipeOf: () => recipe,
+    ownerOf: () => ({site}), fail, requireSynchronousEffectResource});
   const read = managedReadChild({member: {resource: 'companies'}, phase: 'capture-target',
     physicalOperations: options => options.invoke({authorization: {grant, scope, useId: 'actual-use'},
       credential: {binding}, callResource: input => {received = input; return 'original-response';}}),
@@ -191,8 +172,7 @@ test('named physical credential caller selects same-endpoint occurrences by exac
     clientProgramInstalledEffectManagedPlanCaptureChildren: () => 100,
   };
   const originalSite = {}, member = {resource: 'companies', memberIndex: 0};
-  const prepare = privateArrow('prepareCredentialOperation', {recipeOf: () => recipe, moon,
-    fail, selectInstalledEffectCredentialOperation,
+  const prepare = createInstalledRowEffectPhysicalOperation({recipeOf: () => recipe, moon, fail,
     installedRowCredentialOperationSite: () => originalSite,
     prepareInstalledRowCaptureChild: ({create}) => create(),
     prepareInstalledEffectCredentialChild: options => {calls.push(options); return 'selected-child';},

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {compileFunction} from 'node:vm';
 import {parse} from 'acorn';
 import {checked} from '../host-common/runtime-result.mjs';
+import {createInstalledRowSourcePreparation} from './installed-row-source-preparation.mjs';
 
 const source = readFileSync(new URL('./installed-infer-run.mjs', import.meta.url), 'utf8');
 const declaration = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
@@ -412,17 +413,6 @@ test('fresh singleton Source retention failures preserve the original failure an
 });
 
 test('retained row Source metadata uses the same original Request without issuing a physical read', async () => {
-  const source = readFileSync(new URL('./installed-row-source.mjs', import.meta.url), 'utf8');
-  let node, description;
-  (function walk(value) {
-    if (!value || typeof value !== 'object') return;
-    if (value.type === 'FunctionDeclaration' && value.id.name === 'prepareRetained') node = value;
-    if (value.type === 'FunctionDeclaration' && value.id.name === 'describePreparedSource') description = value;
-    for (const child of Object.values(value)) {
-      if (Array.isArray(child)) child.forEach(walk); else if (child && typeof child === 'object') walk(child);
-    }
-  })(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
-  assert(node); assert(description);
   const preparedProgram = {}, requestIdentity = {}, requirement = {}, declaration = {}, sourceAccess = {};
   const occurrence = Object.freeze({stage: 3, input: 1, task: 0}), preparations = new WeakMap();
   const calls = [];
@@ -441,12 +431,11 @@ test('retained row Source metadata uses the same original Request without issuin
     clientProgramQueryRequirementInputContractCid: () => 'input',
     clientProgramQueryRequirementOutputContractCid: () => 'output',
   };
-  const ports = {immutableTargets: undefined, physicalTargetGeneration: undefined, moon, checked,
-    sourceRefs: new Set(['source']), declaration, site: {connection: 'original'}, sourceAccess, preparations,
+  const {prepareRetained: prepare} = createInstalledRowSourcePreparation({
+    moon, sourceRefs: new Set(['source']), declaration, site: {connection: 'original'}, sourceAccess, preparations,
     physicalTarget(resource, fields) {return {resource, fields};}, valueCid: value => JSON.stringify(value),
     ordinaryRecoveryBinding(prepared) {assert.equal(preparations.get(prepared).retainedOnly, true); calls.push('actual binding');},
-    fail(code) {throw Object.assign(new Error(code), {code});}};
-  const prepare = Function(...Object.keys(ports), source.slice(description.start, description.end) + '\nreturn (' + source.slice(node.start, node.end) + ');')(...Object.values(ports));
+  });
   const facts = {preparedProgram, requestIdentity, occurrence, registry: 'registry', values: 'values', fragment: 'fragment', ordered: 'ordered'};
   assert.throws(() => prepare({...facts, requestIdentity: {}}), {code: 'InstalledSourcePreparationMismatch'});
   const prepared = prepare(facts), owner = preparations.get(prepared);

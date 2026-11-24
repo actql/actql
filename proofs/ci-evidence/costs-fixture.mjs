@@ -26,6 +26,7 @@ export function costFixture(reused = false, fullCatalog = false) {
     runId: context.runId, runAttempt: context.runAttempt, jobId: 4, event: 'pull_request', branch: 'feature'};
   const runtime = {profile: 'controlled-test-runtime', unresolved: []}, state = {context, origin, runtime};
   const files = new Map([...sharedFiles, ...mutationSnapshotExtras,
+    'scripts/ci-core-partitions.mjs',
     ...['check.mjs', 'Session.lean', 'Claims.lean', 'lean-toolchain', 'setup-lean.mjs', 'mutations.mjs', 'evidence.mjs'].map(path => `proofs/bounded-session/${path}`),
     ...['bounded_execution', 'connectors/local', 'query_integration'].map(path => `src/${path}/moon.pkg`)].map(path => [path, path]));
   for (const {path} of [pipelineInventoryBoundary, ...pipelineInventoryBoundary.dependencies])

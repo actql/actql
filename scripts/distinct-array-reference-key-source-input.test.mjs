@@ -58,6 +58,6 @@ test('source obligations include equivalent references, distinct order inputs an
 });
 
 test('the existing packed consumer copies the ARRAY fixture into its external install', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/distinct-array-reference-key-source-input.mjs', 'distinct-array-reference-key-source-input.mjs']"));
 });

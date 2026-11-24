@@ -143,6 +143,40 @@ test "member receipt requires the exact durable terminal row evidence" {
     @publication.publication_contract_identity(issued),
     @publication.publication_contract_identity(member_receipt),
   )
+  let recovered = issue_effect_member_receipt_from_recovered_rows(
+    preview,
+    0,
+    [Some(terminal)],
+    [Some(row_receipt)],
+    8192,
+    256,
+    12,
+  ).unwrap()
+  assert_eq(@publication.publication_contract_json(recovered), member_wire)
+  assert_true(
+    issue_effect_member_receipt_from_recovered_rows(
+      preview,
+      0,
+      [Some(dispatch)],
+      [Some(row_receipt)],
+      8192,
+      256,
+      12,
+    )
+    is Err(ForeignTerminalReceipt(0)),
+  )
+  assert_true(
+    issue_effect_member_receipt_from_recovered_rows(
+      preview,
+      0,
+      [Some(terminal)],
+      [None],
+      8192,
+      256,
+      12,
+    )
+    is Err(ForeignTerminalReceipt(0)),
+  )
   let (member_bytes, member_nodes, member_depth) = effect_member_receipt_encoding_limits(
     1,
   ).unwrap()

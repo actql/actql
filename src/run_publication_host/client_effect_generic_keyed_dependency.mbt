@@ -581,7 +581,7 @@ fn prepare_client_effect_keyed_generic_dependencies(
     64L + 2L * max_depth.to_int64(),
     max_nodes,
     max_depth,
-    fn() {
+    fn(phase) {
       // New temporary receiver H1/R4 + Some H1/R1/W1; Catalog geometry
       // callback H1/R4 + Some H1/R1/W1 + three scalar Refs H3/W3;
       // returned body/byte tuple and Result H2/R2/W2. The regular quote
@@ -608,7 +608,7 @@ fn prepare_client_effect_keyed_generic_dependencies(
       // Each Generic Request can admit at most one serial body. Without
       // a second Request there is no following admission that can reuse it.
       let serial_cursor = if lookup.known.length() > 1 {
-        match begin_keyed_dependency_serial_cursor(lookup) {
+        match begin_keyed_dependency_serial_cursor(lookup, phase) {
           Ok(cursor) => Some(cursor)
           Err(issue) => return Err(issue)
         }
@@ -686,21 +686,15 @@ fn prepare_client_effect_keyed_generic_dependencies(
         Ok(value) => value
         Err(issue) => return Err(primary.val.unwrap_or(Dependency(issue)))
       }
-      let proof = match serial_cursor {
+      let dependencies = match serial_cursor {
         Some(cursor) =>
-          match cursor.seal(lookup) {
+          match cursor.seal(lookup, bodies) {
             Ok(value) => value
             Err(issue) => return Err(issue)
           }
-        None => None
+        None => Unmeasured(bodies)
       }
-      Ok(
-        keyed_protocol_built(
-          bodies,
-          dependency_bodies=Some(bodies),
-          measured_bodies=proof,
-        ),
-      )
+      Ok(keyed_protocol_built(bodies, dependencies~))
     },
     bodies => {
       guard !lookup.closed &&

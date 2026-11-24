@@ -14,6 +14,7 @@ const common = await import(process.env.ACTQL_TEST_GMAIL_COMMON_MODULE ??
 const provider = await import(process.env.ACTQL_TEST_GMAIL_PROVIDER_MODULE ??
   new URL('../../../../_build/js/release/build/connectors/gmail/host_node/host_node.js', import.meta.url).href);
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -59,8 +60,9 @@ export async function threadRowOwner(verifyOriginalTransport, factsWire, format,
       sourceViewContractCid:view.view_cid,schemaContractCid:view.carrier_schema_cid}]});
   // Text must enter the original Source binder; the canonical JSON-only
   // preparation API deliberately refuses SQL and AQL format names.
-  const source = format === 'sql' ? `SELECT ${selection} FROM gmail.threads`
-    : `FROM gmail.threads |> SELECT ${selection}`;
+  // This fixture drives QueryMaterial's scan-filter-select capture prefix.
+  const source = format === 'sql' ? `SELECT ${selection} FROM gmail.threads WHERE TRUE`
+    : `FROM gmail.threads |> WHERE TRUE |> SELECT ${selection}`;
   const preparation = common.clientProgramPrepareSourceWithParameters(
     source, format, check, publication, undefined, undefined);
   const program = common.clientProgramPreparationReady(preparation);
@@ -86,7 +88,15 @@ export async function threadRowOwner(verifyOriginalTransport, factsWire, format,
     observation: charge => checked(common.clientProgramRowSourceConsumeObservationCharge(run, charge)),
     page: (rows, charge) => checked(common.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
     finish: () => checked(common.clientProgramRowSourceFinish(run)),
-    captureCount: () => {const capture=checked(common.clientProgramRowSourceCapture(run));
+    captureCount: () => {
+      checked(common.clientProgramRowSourceCaptureBegin(run));
+      let done = false;
+      for (let advance = 0; advance < 1000 && !done; advance += 1) {
+        const progress = checked(common.clientProgramRowSourceCaptureAdvance(run, 1));
+        done = runtimeField(progress, 0) === true;
+      }
+      assert.ok(done, 'the original capture completes within the fixture work bound');
+      const capture=checked(common.clientProgramRowSourceCapture(run));
       const source=checked(common.clientProgramRowSourceCaptureSource(capture));
       return common.clientProgramCapturedSourceRowCount(checked(common.clientProgramIdentifyCapturedSourceRelation(source)));},
     assertNoCapture: () => assert.throws(() => checked(common.clientProgramRowSourceCapture(run)), {code:'MoonBitHostFailure'}),

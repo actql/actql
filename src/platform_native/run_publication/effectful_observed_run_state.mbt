@@ -1,4 +1,15 @@
 ///|
+// Shared read-only carrier. No Store mutation, prepared attempt or cleanup
+// authority can be recovered from an observation of a committed index.
+priv struct NativeEffectfulRunStateOriginal {
+  service : NativeRunPublicationService
+  evidence : NativeEffectfulPublicationEvidence
+  intent : NativeRunPublicationIntent
+  original_request : @publication.PublicationContract
+  still_current : () -> Bool
+}
+
+///|
 /// SAME candidate/current/release protocol; Host terminal authorization stays separate.
 pub fn NativePreparedEffectfulRunPublication::prepare_run_state_candidate(
   self : NativePreparedEffectfulRunPublication,
@@ -7,10 +18,56 @@ pub fn NativePreparedEffectfulRunPublication::prepare_run_state_candidate(
   quantum : Int,
   max_rounds : Int,
 ) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
+  let original : NativeEffectfulRunStateOriginal = {
+    service: self.service,
+    evidence: self.evidence,
+    intent: self.intent,
+    original_request: self.preparation.request,
+    still_current: () => !self.cancelled && !self.closing,
+  }
+  original.prepare_run_state_candidate(
+    observed_at, max_workspace, quantum, max_rounds,
+  )
+}
+
+///|
+/// Inspect the already committed occurrence without issuing a request,
+/// attempt, Result writer or Store mutation. The Host retains independent
+/// Publisher/RunRead currentness and the actual original Store selection.
+pub fn prepare_recovered_effectful_run_state_candidate(
+  service : NativeRunPublicationService,
+  evidence : NativeEffectfulPublicationEvidence,
+  intent : NativeRunPublicationIntent,
+  original_request : @publication.PublicationContract,
+  observed_at : String,
+  max_workspace : Int,
+  quantum : Int,
+  max_rounds : Int,
+) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
+  let original : NativeEffectfulRunStateOriginal = {
+    service,
+    evidence,
+    intent,
+    original_request,
+    still_current: () => service.store.retained_data_current() is Ok(_),
+  }
+  original.prepare_run_state_candidate(
+    observed_at, max_workspace, quantum, max_rounds,
+  )
+}
+
+///|
+fn NativeEffectfulRunStateOriginal::prepare_run_state_candidate(
+  self : Self,
+  observed_at : String,
+  max_workspace : Int,
+  quantum : Int,
+  max_rounds : Int,
+) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
   if max_workspace < 1 || quantum < 1 || max_rounds < 1 {
     return Err(InvalidLimits)
   }
-  if self.cancelled || self.closing {
+  if !(self.still_current)() {
     return Err(Unavailable)
   }
   let service = self.service
@@ -20,14 +77,14 @@ pub fn NativePreparedEffectfulRunPublication::prepare_run_state_candidate(
       service,
       self.intent,
       evidence.run_definition,
-      self.preparation.request,
+      self.original_request,
       "request",
       None,
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Publication(issue))
   }
-  if self.cancelled || self.closing {
+  if !(self.still_current)() {
     return Err(Publication(AccessDenied))
   }
   let index = match
@@ -64,7 +121,7 @@ pub fn NativePreparedEffectfulRunPublication::prepare_run_state_candidate(
     Err(issue) => return Err(Publication(Store(issue)))
   }
   if @publication.publication_contract_identity(stored_request) !=
-    @publication.publication_contract_identity(self.preparation.request) {
+    @publication.publication_contract_identity(self.original_request) {
     return Err(Publication(CommitConflict))
   }
   let owner : @local.ClientProgramValidation? = None
@@ -154,8 +211,8 @@ pub fn NativePreparedEffectfulRunPublication::prepare_run_state_candidate(
 }
 
 ///|
-fn NativePreparedEffectfulRunPublication::finish_observed_run_state(
-  self : NativePreparedEffectfulRunPublication,
+fn NativeEffectfulRunStateOriginal::finish_observed_run_state(
+  self : Self,
   validation : @publication.PublicationCommitPreparation,
   view : @publication.PublicationCommitReadView,
   stored_request : @publication.PublicationContract,
@@ -173,14 +230,14 @@ fn NativePreparedEffectfulRunPublication::finish_observed_run_state(
       self.service,
       self.intent,
       self.evidence.run_definition,
-      self.preparation.request,
+      self.original_request,
       "return_committed",
       Some(index),
     ) {
     Ok(_) => ()
     Err(issue) => return Err(Publication(issue))
   }
-  if (self.cancelled || self.closing) ||
+  if !(self.still_current)() ||
     !native_state_validation_loan_current(validation, owner) {
     return Err(Publication(AccessDenied))
   }

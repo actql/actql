@@ -30,7 +30,7 @@ test('positive take fixtures retain independent rows, column order and parameter
 
 test('positive take selection is also present in the ordinary public registration', async () => {
   const packed = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(packed.includes('scopeInputs.successes.push(...positiveLimitSuccesses)'));
   assert.ok(packed.includes('scopeInputs.refusals.push(...positiveLimitRefusals)'));
   assert.ok(packed.includes('positiveLimitOnly ? {successes: positiveLimitSuccesses, refusals: positiveLimitRefusals}'));

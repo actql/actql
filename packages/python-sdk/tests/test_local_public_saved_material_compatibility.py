@@ -36,7 +36,7 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             helper.addCleanup = self.addCleanup
             _, store, core, _, _, _, _, _, codes, _, binding = helper.fixture()
             core._retired = False
-            state = dict(snapshot=0, full=0, bind=0, port=0, ordinal=0, cleanup=True,
+            state = dict(snapshot=0, bind=0, port=0, ordinal=0, cleanup=True,
                          current=0, on_full=lambda: None, on_port=lambda: None,
                          on_bind=lambda: None)
             calls = []
@@ -45,7 +45,7 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                 if family == 'publication_commit_export' and name == 'reserve':
                     return 200 + args[1]
                 if ((family == 'publication_commit_export' and name in (
-                        'validate_payload_binding', 'validate_reader_facts',
+                        'validate_payload_binding',
                         'bind_sdk_payload_record', 'prepare_sdk_payload_input', 'sdk_payload_ordinal',
                         'produce_sdk_payload_chunk', 'produce_sdk_terminal_storage',
                         'observe_sdk_terminal'))
@@ -57,9 +57,9 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                     if name == 'sdk_payload_ordinal':
                         self.assertEqual(args, (first.handle, 31, 2))
                         return state['ordinal']
-                    if name in ('validate_reader_facts', 'validate_snapshot'):
+                    if name == 'validate_snapshot':
                         state['on_full']()
-                        return state['snapshot'] if name == 'validate_snapshot' else state['full']
+                        return state['snapshot']
                     if name == 'bind_sdk_payload_record':
                         state['on_bind']()
                         return state['bind']
@@ -206,18 +206,27 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             changes = store._connection.total_changes
             observe = fact._root.observe_original
             physical_current = observation._binding._physical_current
+            callback = observation._binding._current
+            produced_in = []
+            state['on_port'] = lambda: produced_in.append(core._journal_callbacks(callback.ticket).reader)
+
+            def read_material(output):
+                self.assertIs(holder._payload_outputs[request.ticket], output)
+                self.assertIs(core._journal_callbacks(callback.ticket).reader, produced_in[-1])
+                self.assertTrue(store._connection.in_transaction)
+                return b'original'
             with patch.object(fact._root, 'observe_original', wraps=observe) as physical, patch.object(
                     observation._binding, '_physical_current', wraps=physical_current) as current:
                 holder.prepare_original_input(request, clock)
-                output = holder.produce_original_chunk(request, chunk, clock, eof=True)
-                with patch.object(core, 'read_publication_commit_material', return_value=b'original'):
-                    self.assertEqual(holder.read_original_chunk(
-                        request, chunk, clock, output, eof=True), b'original')
+                with patch.object(core, 'read_publication_commit_material', side_effect=read_material):
+                    output, material = holder.produce_original_chunk(request, chunk, clock, eof=True)
+                    self.assertIs(holder._payload_outputs[request.ticket], output)
+                    self.assertEqual(material, b'original')
                 holder.observe_original_terminal(request, clock)
-                self.assertEqual(physical.call_count, 12)
-                self.assertGreaterEqual(current.call_count, 4)
+                self.assertEqual(physical.call_count, 9)
+                self.assertGreaterEqual(current.call_count, 3)
             self.assertEqual(calls[before:], ['prepare_sdk_payload_input', 'produce_sdk_payload_chunk',
-                                           'produce_sdk_payload_chunk', 'observe_sdk_terminal'])
+                                           'observe_sdk_terminal'])
             state['port'] = -35
             with self.assertRaises(LocalCoreError):
                 holder.prepare_original_input(request, clock)
@@ -226,10 +235,47 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
             self.assertEqual(store._connection.total_changes, changes)
             self.assertFalse(store._connection.in_transaction)
 
-    def test_sealed_pair_only_falls_back_when_the_capability_query_is_unsupported(self):
-        for capability, code, refused in (
-                (-2, None, None), (1, 0, None), (1, -32, 'validate_saved_payload_binding'),
-                (1, -1056, 'validate_payload_snapshot'), (-41, None, 'saved_reader_facts_capability')):
+    def test_file_change_during_output_copy_refuses_without_retiring_the_original(self):
+        with self.fixture() as (holder, observation, fact, store, core, request, first,
+                                clock, chunk, _, calls, _, _, _):
+            holder.bind_original_payload(request, clock, fact)
+            changes = store._connection.total_changes
+            selected = observation._binding._selected[0]
+            root = observation._binding._source._root
+            children = []
+
+            def copy_then_change(output):
+                children.append(output)
+                self.assertTrue(store._connection.in_transaction)
+                fd = os.open(selected.name, os.O_WRONLY, dir_fd=root._open())
+                try:
+                    self.assertEqual(os.pwrite(fd, b'!', 0), 1)
+                finally:
+                    os.close(fd)
+                return b'original'
+
+            with patch.object(core, 'read_publication_commit_material', side_effect=copy_then_change):
+                with self.assertRaises(LocalFileError):
+                    holder.produce_original_chunk(request, chunk, clock, eof=True)
+            self.assertEqual(calls.count('produce_sdk_payload_chunk'), 1)
+            self.assertEqual(len(children), 1)
+            self.assertIs(holder._payload_outputs[request.ticket], children[0])
+            self.assertIs(core._loans[children[0].ticket], children[0])
+            self.assertIs(core._loans[first.ticket], first)
+            self.assertIsNone(fact._original_material)
+            self.assertEqual(store._connection.total_changes, changes)
+            self.assertFalse(store._connection.in_transaction)
+            self.assertTrue(holder.close_original_payload_output(request))
+
+    def test_sealed_pair_refuses_unsupported_capability_without_split_validation(self):
+        for capability, code, refusal in (
+                (None, None, None), (1, 0, None),
+                (-2, None, ('saved_reader_facts_capability', -2)),
+                (-41, None, ('saved_reader_facts_capability', -41)),
+                (2, None, ('saved_reader_facts_capability', 2)),
+                (1, -32, ('validate_saved_payload_binding', -32)),
+                (1, -4, ('validate_saved_payload_binding', -4)),
+                (1, -1056, ('validate_payload_snapshot', -32))):
             with self.subTest(capability=capability, code=code):
                 with self.fixture() as (holder, observation, fact, _, core, request, _first,
                                         clock, *unused):
@@ -250,24 +296,24 @@ class PublicSavedMaterialCompatibilityTests(unittest.TestCase):
                         return 0
                     def validate(_):
                         with (patch.object(core, '_call', side_effect=invoke),
-                              patch.object(core, '_ordinary_host', True, create=True),
+                              patch.object(core, '_ordinary_host', capability is not None, create=True),
                               patch.object(core, '_closed_wasm_exports',
                                            object.__new__(_ClosedWasmExports), create=True)):
                             fact._projection.validate_reader_facts(fact._record, loan, 0, 0)
-                    if refused is None:
+                    if refusal is None:
                         observation._binding.inspect(validate)
                     else:
                         with self.assertRaises(LocalCoreError) as failure:
                             observation._binding.inspect(validate)
-                        self.assertEqual(failure.exception.operation, refused)
-                        self.assertEqual(failure.exception.code, -41 if code is None else -32)
+                        self.assertEqual((failure.exception.operation, failure.exception.code), refusal)
+                    if capability is None:
+                        self.assertEqual([entry[1] for entry in inspected],
+                                         ['validate_payload_binding', 'validate_snapshot'])
+                        continue
                     first, *remaining = inspected
                     self.assertEqual(first, ('publication_commit_export', 'validate_payload_binding',
                                              (0, 0, 0, -(2**31), 0)))
-                    if capability == -2:
-                        self.assertEqual([entry[1] for entry in remaining],
-                                         ['validate_payload_binding', 'validate_snapshot'])
-                    elif capability == 1:
+                    if capability == 1:
                         self.assertEqual(remaining, [('publication_commit_export', 'validate_payload_binding',
                             (fact._projection._publication.handle, fact._record.handle, 31,
                              -(2**30), loan.handle))])

@@ -112,9 +112,9 @@ jobs:
         with:
           node-version: 22.22.0
           cache: npm
+      - run: npm ci
       - name: Check owned contract versions
         run: npm run check:contract-versions
-      - run: npm ci
       - name: Identify reviewed documentation modifications before compiler admission
         id: documentation-candidate
         run: node scripts/ci-targets.mjs documentation-candidate
@@ -185,11 +185,11 @@ jobs:
           tar -xzf "$tool/original.tar.gz" -C "$tool" actionlint
           # Keep this fixed workflow checker independent of optional unpinned external tools.
           "$tool/actionlint" -oneline -shellcheck= -pyflakes=
+      - run: npm ci
       - name: Reject inconsistent operation support and acceptance evidence before fan-out
         run: node --test scripts/pure-operation-inventory.test.mjs
       - name: Check Native diagnostic counter assignments before fan-out
         run: python3 scripts/test_native_timings.py CommandCounterMap
-      - run: npm ci
       - name: Test pipeline artifact and aggregate contracts
         run: node --test proofs/relation-pipeline/ci-artifacts.test.mjs
       - name: Check specification metadata without updating it
@@ -260,7 +260,7 @@ jobs:
         run: node --test scripts/worktree-inventory.test.mjs
       - name: Test nonzero execution guards
         if: needs.select-targets.outputs.profile != 'documentation'
-        run: node --test scripts/test-execution.test.mjs
+        run: node --test scripts/test-execution.test.mjs scripts/js-compiler-binding-generation.test.mjs
       - name: Test bounded local execution and optional hook adapters
         if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/local-checks.test.mjs scripts/local-checks-guard.test.mjs scripts/local-checks-policy.test.mjs scripts/local-checks-hook.test.mjs
@@ -317,7 +317,7 @@ jobs:
         run: python3 -I -B scripts/benchmark-ordinary-processes.test.py
       - name: Test ordinary artifact reuse and controlled performance gate
         if: needs.select-targets.outputs.profile != 'documentation'
-        run: node --test scripts/ordinary-operation-packages.test.mjs scripts/packed-provider-ai-sdk.test.mjs
+        run: node --test scripts/ordinary-operation-packages.test.mjs scripts/packed-provider-ai-sdk.test.mjs scripts/typescript-packaging.test.mjs scripts/typescript-bootstrap.test.mjs
       - name: Test Client CI partition and aggregate requirements
         if: needs.select-targets.outputs.profile != 'documentation'
         run: node --test scripts/client-ci.test.mjs scripts/native-cli-project-init.test.mjs scripts/native-cli-project-scaffold.test.mjs scripts/native-cli-linux-local-ci.test.mjs scripts/produce-native-cli-linux-local.test.mjs scripts/native-cli-source-free-install.test.mjs scripts/release-test-registry.test.mjs scripts/native-cli-linux-local-recipe.test.mjs scripts/ci-native-cli-installed.test.mjs scripts/native-cli-mock-scenario.test.mjs
@@ -394,6 +394,7 @@ jobs:
           toolchain="$GITHUB_WORKSPACE/.toolchains/moonbit-$(node -p "require('./toolchain.json').version")"
           echo "MOON_HOME=$toolchain" >> "$GITHUB_ENV"
           echo "$toolchain/bin" >> "$GITHUB_PATH"
+      - run: npm ci
       - name: Check package and execute changed tests plus owning JS family
         env:
           CI_PLAN_PATH: ${{ runner.temp }}/actql-ci-plan.json
@@ -1411,6 +1412,7 @@ jobs:
           artifact-ids: ${{ needs.pipeline-mutations-rest-second.outputs.artifact-id }}
           path: ${{ runner.temp }}/pipeline-ci/L-M5
           merge-multiple: true
+      - run: npm ci
       - name: Validate every part before constructing the immutable complete union
         env:
           PIPELINE_NEEDS: ${{ toJSON(needs) }}
@@ -1472,7 +1474,8 @@ jobs:
     needs: [select-targets]
     if: ${{ github.event.repository.visibility == 'public' && toJSON(github.event.repository.private) == 'false' && !inputs.performance_matrix && !inputs.packed_query_evidence_probe && needs.select-targets.outputs.profile == 'full' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # The final check runs three fresh connector package builds after the Host checks.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -1779,6 +1782,7 @@ jobs:
         with:
           artifact-id: ${{ needs.client-packages.outputs.artifact-id }}
           path: ${{ runner.temp }}/main-performance/packages
+      - run: npm ci
       - name: Bind normal artifacts and install the existing benchmark consumer
         env:
           PACKAGE_ARTIFACT_ID: ${{ needs.client-packages.outputs.artifact-id }}
@@ -1860,6 +1864,7 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '22.22.0'
+      - run: npm ci
       - name: Download the exact Client package artifact
         uses: ./.github/actions/download-client-packages
         with:
@@ -1918,7 +1923,7 @@ jobs:
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
           TMPDIR: ${{ github.workspace }}/_build
-        run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/local-analytic-preparation.test.mjs adapters/host-node/local-analytic-public.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs adapters/host-node/infer-usage-evidence.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/client-failure-catalog-message.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/client-request-journal-parent-budget.test.mjs adapters/host-node/client-submission-usage.test.mjs adapters/host-node/host-journal-schema-support.test.mjs adapters/host-node/client-keyed-lookup-journal.test.mjs adapters/store-local/lookup-raw-evidence.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-timestamp-pattern-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs adapters/host-node/rest-source-initial-material.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs packages/provider-http/*.test.mjs adapters/host-node/client-run-explanation-https.test.mjs adapters/host-node/client-run-explanation-sdk.test.mjs adapters/host-node/client-original-explanation-journal.test.mjs adapters/host-node/client-run-explanation.test.mjs
+        run: node --test adapters/host-common/file-media-type-consumers.test.mjs adapters/host-node/installed-family-content.test.mjs scripts/packed-public-query-profile.test.mjs scripts/node-local-compile-cache.test.mjs scripts/node-local-owner-selection.test.mjs scripts/node-initial-control-open-routing.test.mjs scripts/node-selected-connect-input.test.mjs adapters/host-node/initial-control-package-custody.test.mjs adapters/host-node/initial-control-image-source.test.mjs adapters/host-node/client-full-join-refusal.test.mjs adapters/host-node/local-analytic-preparation.test.mjs adapters/host-node/local-analytic-public.test.mjs adapters/host-node/installed-composed-infer-run.test.mjs adapters/host-common/strategy-usage.test.mjs adapters/host-node/ledger-usage-consumers.test.mjs adapters/host-node/composed-infer-provider.test.mjs adapters/host-node/infer-evaluation-evidence.test.mjs adapters/host-node/infer-usage-evidence.test.mjs examples/infer-evaluation/capture-sink.test.mjs scripts/typed-json-literal-preparation.test.mjs scripts/typed-json-literal-public.test.mjs scripts/packed-client-packages.test.mjs scripts/packed-graph-host-dependencies.test.mjs scripts/packed-package-boundaries.test.mjs scripts/graph-composition-fixture.test.mjs scripts/packed-salesforce-model-materials.test.mjs scripts/dbt-compat-judge.test.mjs scripts/sga-surface-checker.test.mjs scripts/infer-owner-checker.test.mjs scripts/graph-surface-checker.test.mjs scripts/graph-public-host.test.mjs scripts/generate-client-publication-wire.test.mjs scripts/generate-client-host-wire.test.mjs packages/client-wire/index.test.mjs packages/client-wire/submission-check-observations.test.mjs packages/sdk/structured-program-check-observations.test.mjs packages/sdk/scoped-authoring-check.test.mjs packages/sdk/index.test.mjs packages/sdk/cancel-identity.test.mjs packages/sdk/read-progress.test.mjs packages/sdk/host-port.test.mjs packages/sdk/result-description.test.mjs packages/sdk/http-redirect.test.mjs packages/sdk/checkpoints.test.mjs packages/sdk/model-checkpoints.test.mjs adapters/host-node/installed-check-environment.test.mjs adapters/host-node/installed-host-policy.test.mjs adapters/host-node/remote-checkpoint-host.test.mjs adapters/host-node/client-effect-checkpoints.test.mjs adapters/host-node/client-effect-query-time.test.mjs adapters/host-node/installed-effect-site.test.mjs adapters/host-node/installed-effect-plan-current.test.mjs adapters/host-node/installed-effect-plan-consumer.test.mjs adapters/host-node/installed-effect-plan.test.mjs adapters/host-node/installed-row-effect-create-occurrence.test.mjs adapters/host-node/installed-row-write.test.mjs adapters/host-node/installed-effect-model-plan-consumer.test.mjs adapters/host-node/ordinary-node-resource-runtime.test.mjs adapters/connectors/notion/test/source-configuration-reader.test.mjs adapters/connectors/notion/test/installed-notion-standard-reader.test.mjs adapters/connectors/calendar/test/installed-calendar-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-standard-reader.test.mjs adapters/connectors/gmail/test/installed-gmail-thread-standard-reader.test.mjs adapters/connectors/gmail/test/gmail-thread-sequence.test.mjs adapters/host-node/installed-update-targets.test.mjs adapters/host-node/recovered-command-content.test.mjs adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs adapters/connectors/local/host/local-file-store-driver.test.mjs adapters/connectors/local/host/local-file-store-authorization.test.mjs adapters/connectors/local/host/local-file-store-authorization-physical.test.mjs adapters/host-node/requested-effect-checkpoints.test.mjs adapters/connectors/local/host/local-file-store-target.test.mjs adapters/host-node/acquired-effect-computation.test.mjs adapters/host-node/acquired-effect-installed-capacity.test.mjs adapters/host-node/acquired-effect-source-binding.test.mjs adapters/host-node/remote-acquisition-checkpoint.test.mjs adapters/host-node/acquired-chain-capacity.test.mjs adapters/host-node/duckdb-import-boundary.test.mjs adapters/host-node/embedded-installation.test.mjs adapters/host-node/installed-infer.test.mjs adapters/host-node/installed-infer-capture.test.mjs adapters/host-node/model-resume-public.test.mjs adapters/host-node/model-resume-effect-public.test.mjs adapters/local-node/model-pause.test.mjs adapters/host-common/result-access-snapshot.test.mjs adapters/host-common/result-description.test.mjs adapters/host-node/client-check.test.mjs adapters/host-node/client-publication-limit-projection.test.mjs adapters/local-node/managed-failure-public.test.mjs adapters/host-node/client-result-alias-routing.test.mjs adapters/host-node/client-result-publication-envelope.test.mjs adapters/host-node/source-selector-check.test.mjs adapters/host-node/client-http.test.mjs adapters/host-node/in-process-client.test.mjs adapters/host-node/client-workspace-binding.test.mjs adapters/host-node/client-workspace-installed.test.mjs adapters/host-node/client-read-progress.test.mjs adapters/host-node/client-read-opening.test.mjs adapters/host-node/client-read-run-capacity.test.mjs adapters/host-node/client-values-row-limit.test.mjs adapters/host-node/client-values-join-profile.test.mjs adapters/host-node/client-sql-array-struct.test.mjs adapters/host-node/client-values-fragment-capacity.test.mjs adapters/host-node/client-values-capacity-custody.test.mjs adapters/host-node/client-submission-input.test.mjs adapters/host-node/client-cancel-response-loss.test.mjs adapters/host-node/client-cancellation-attempt-public.test.mjs adapters/host-node/client-cancellation-operation.test.mjs adapters/host-node/client-cancellation-public.test.mjs adapters/host-node/client-cancellation-attempt-installed.test.mjs adapters/host-node/client-effect-cancellation-public.test.mjs adapters/host-node/client-effect-uncertainty.test.mjs adapters/host-node/client-owner-cursor.test.mjs adapters/host-node/client-owner-observations.test.mjs adapters/host-node/client-owner-observations-public.test.mjs adapters/host-node/sqlite-effect-history-page.test.mjs packages/client-wire/owner-observations.test.mjs packages/sdk/owner-observations.test.mjs adapters/host-node/client-dispatch-owner.test.mjs adapters/host-node/client-failure-catalog-message.test.mjs adapters/host-node/infer-operation-approval.test.mjs adapters/host-node/client-confirmed-cancellation.test.mjs adapters/host-node/infer-dispatch-waiting.test.mjs adapters/host-node/installed-host-cleanup.test.mjs adapters/host-node/installed-effect-profile-cleanup.test.mjs adapters/host-node/installed-duckdb-source-owner.test.mjs adapters/host-node/client-request-journal.test.mjs adapters/host-node/client-request-journal-parent-budget.test.mjs adapters/host-node/client-submission-usage.test.mjs adapters/host-node/host-journal-schema-support.test.mjs adapters/host-node/client-keyed-lookup-journal.test.mjs adapters/store-local/lookup-raw-evidence.test.mjs adapters/host-node/ordinary-source-binding.test.mjs adapters/host-node/installed-row-source-binding-originals.test.mjs adapters/host-node/ordinary-project-source-managed.test.mjs adapters/connectors/local/host/installed-project-files-managed.test.mjs adapters/host-node/client-mock-source-occurrences.test.mjs adapters/host-node/embedded-values-cleanup.test.mjs adapters/host-node/client-request-lookup.test.mjs adapters/host-node/client-run-attach.test.mjs adapters/host-node/client-run-state-fallback.test.mjs adapters/host-node/client-program-bridge.test.mjs adapters/host-node/public-source-preparation.test.mjs adapters/host-node/public-store-source-preparation.test.mjs adapters/host-node/local-values-plan.test.mjs adapters/host-node/local-values-plan-policy.test.mjs packages/sdk/delivery-observation.test.mjs adapters/host-node/client-delivery-observation.test.mjs adapters/host-node/effect-partial-refusal.test.mjs packages/sdk/request-observation.test.mjs packages/sdk/response-capture.test.mjs adapters/host-node/client-submission-epoch.test.mjs adapters/host-node/client-submitted-intent.test.mjs adapters/host-node/client-submission.test.mjs adapters/host-node/source-request-lineage.test.mjs adapters/host-node/journal-lifecycle-limits.test.mjs adapters/host-node/client-pre-admission-refusal.test.mjs adapters/host-node/client-timestamp-pattern-refusal.test.mjs adapters/host-node/client-submission-attempt.test.mjs adapters/host-node/client-submission-operation.test.mjs adapters/host-node/submission-epoch-public.test.mjs adapters/host-node/synthetic-held-values-public.test.mjs packages/sdk/submission-identity.test.mjs packages/sdk/submission-attempt.test.mjs scripts/connector-authoring.cli.test.mjs adapters/host-node/rest-source-metadata.test.mjs adapters/host-node/rest-source-initial-material.test.mjs scripts/fixtures/external-rest/preparation.test.mjs scripts/fixtures/external-rest/marker-publication.test.mjs packages/provider-http/*.test.mjs adapters/host-node/client-run-explanation-https.test.mjs adapters/host-node/client-run-explanation-sdk.test.mjs adapters/host-node/client-original-explanation-journal.test.mjs adapters/host-node/client-run-explanation.test.mjs
       - name: Test pinned AI SDK provider contracts with GC
         if: ${{ !cancelled() && steps.distribution-preparation.outcome == 'success' }}
         env:
@@ -2632,7 +2637,7 @@ jobs:
       artifact-run-attempt: ${{ github.run_attempt }}
       artifact-source-sha: ${{ github.sha }}
     runs-on: ubuntu-24.04
-    timeout-minutes: ${{ inputs.native_shared_remote_linux && 90 || 50 }}
+    timeout-minutes: ${{ inputs.native_shared_remote_linux && 90 || 75 }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -2688,26 +2693,32 @@ jobs:
           for name, original in [('sqlite.zip', sqlite), ('libssl-dev.deb', crypto['package']), ('libssl3t64.deb', crypto['license']['package'])]:
               retain_original(original, inputs / name)
           PY
-      - name: Prepare the verified synchronous Remote HTTPS member
-        if: github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux
+      - name: Prepare the verified Local HTTPS member
         timeout-minutes: 25
+        env:
+          SHARED_REMOTE_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux }}
         run: |
           test "$(uname -m)" = x86_64
-          sudo apt-get update
           sudo apt-get install --yes --no-install-recommends gnupg gpgv
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          selected=(--model-resolver --destination "$output/model-http")
+          if [ "$SHARED_REMOTE_LINUX" = true ]; then
+            selected=(--destination "$output/http")
+          fi
           python3 scripts/prepare-native-resident-http-component.py \
             --source "$(git rev-parse HEAD)" --target linux-x64 \
             --clang "$(realpath /usr/bin/clang-19)" --make "$(realpath /usr/bin/make)" \
             --perl "$(realpath /usr/bin/perl)" --gpg "$(realpath /usr/bin/gpg)" \
             --gpgv "$(realpath /usr/bin/gpgv)" \
-            --destination "$RUNNER_TEMP/native-cli-linux-local/http" --seconds 1200 --tls-jobs 2
+            --seconds 1200 --tls-jobs 2 "${selected[@]}"
       - name: Produce normal selected Linux Local artifact
         env:
           SHARED_REMOTE_LINUX: ${{ github.event_name == 'workflow_dispatch' && inputs.native_shared_remote_linux }}
         run: |
-          remote_http=()
+          output="$RUNNER_TEMP/native-cli-linux-local"
+          http_member=(--model-http-preparation "$output/model-http/preparation.json")
           if [ "$SHARED_REMOTE_LINUX" = true ]; then
-            remote_http=(--remote-http-preparation "$RUNNER_TEMP/native-cli-linux-local/http/preparation.json")
+            http_member=(--remote-http-preparation "$output/http/preparation.json")
           fi
           node scripts/produce-native-cli-linux-local.mjs \
             --source "$(git rev-parse HEAD)" --package-version 0.0.2 \
@@ -2716,7 +2727,7 @@ jobs:
             --sqlite-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/sqlite.zip" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl-dev.deb" \
             --openssl-package-archive "$RUNNER_TEMP/native-cli-linux-local/inputs/libssl3t64.deb" \
-            --component-seconds 300 --compile-seconds 1800 "${remote_http[@]}"
+            --component-seconds 300 --compile-seconds 1800 "${http_member[@]}"
       - name: Require Local payload in the selected npm cohort
         id: local_cohort
         run: |
@@ -2759,6 +2770,9 @@ jobs:
             ${{ runner.temp }}/native-cli-linux-local/http/preparation.json
             ${{ runner.temp }}/native-cli-linux-local/http/component/build.json
             ${{ runner.temp }}/native-cli-linux-local/http/owned-tls/build.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/preparation.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/component/build.json
+            ${{ runner.temp }}/native-cli-linux-local/model-http/owned-tls/build.json
             ${{ runner.temp }}/native-cli-linux-local/release/install-linux-x64-gnu-*.json
             ${{ runner.temp }}/native-cli-linux-local/node-release/release.json
             ${{ runner.temp }}/native-cli-linux-local/node-release/*.tgz
@@ -3166,6 +3180,13 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+      - name: Set up pinned Node for the required gate and evidence consumers
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - name: Prepare original TypeScript gate inputs
+        run: npm ci
       - name: Require every selected integration obligation
         env:
           RESULTS_PATH: ${{ runner.temp }}/actql-ci-results.json
@@ -3178,11 +3199,6 @@ jobs:
           ${{ toJSON(needs) }}
           ACTQL_CI_RESULTS_JSON
           node scripts/ci-targets.mjs gate
-      - name: Set up pinned Node for the selected evidence consumer
-        if: ${{ needs.session-evidence.result == 'success' || needs.pipeline-evidence.result == 'success' }}
-        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: 22.22.0
       - name: Authenticate all action receipts and the executed Lean certificate
         id: session-acceptance-check
         if: ${{ needs.session-evidence.result == 'success' }}

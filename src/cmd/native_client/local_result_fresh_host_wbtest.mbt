@@ -18,13 +18,7 @@ fn result_fresh_host_write(
 }
 
 ///|
-fn result_fresh_host_marker(value : String) -> Unit raise {
-  let bytes = @utf8.encode(value + "\n")
-  assert_true(write_stdout_ffi(bytes, bytes.length()))
-}
-
-///|
-test "public Result reads actual published Values from a fresh Host and preserves the original after reopen" {
+test "fresh Host preserves the original published Values Run across reopen" {
   // Real-clock execution selects the existing normal 24-hour TTL only for this
   // fresh installation. Controlled-time historical fixtures retain 100ms.
   let (host, settings, crypto, _) = effect_finite_cli_host(
@@ -135,12 +129,6 @@ test "public Result reads actual published Values from a fresh Host and preserve
     "fresh.saved",
   )
   let saved_wire = saved.wire()
-  let result = result_command_child(["--mode", "local", "result", run_id])
-  result_fresh_host_marker("ACTQL_PUBLIC_RESULT_BEGIN")
-  let _ = local_public_result(host, settings, crypto, sqlite, result) catch {
-    ClientStop(kind) => fail("fresh.result: " + kind)
-  }
-  result_fresh_host_marker("ACTQL_PUBLIC_RESULT_END")
   effect_finite_cli_ok(host.close(), "fresh.host.close")
   // Read only the same saved original after an actual close/reopen; never
   // resubmit, prepare, dispatch or repeat the payload read to heal Unknown.

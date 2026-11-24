@@ -37,7 +37,7 @@ test('numeric reuse fixtures retain independent values, NULLs, duplicates and al
 
 test('numeric reuse fixtures remain part of ordinary and focused public acceptance', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...groupSelectScopeSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...groupSelectScopeRefusals)'));
   assert.ok(fixture.includes('groupSelectScopeOnly ? {successes: groupSelectScopeSuccesses'));

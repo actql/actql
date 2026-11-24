@@ -1850,3 +1850,70 @@ test "Native Site normal lookup and duplicate acceptance refuse a private uncert
   assert_true(persisted_start is Err(TransactionFenced))
   assert_true(recovery is Err(TransactionFenced))
 }
+
+///|
+extern "C" fn test_start_claim_barrier() -> Int = "getchar"
+
+///|
+test "native competing processes authorize one physical start for the same revision" {
+  // The selected process runner supplies a private database and releases both
+  // independent processes only after they prepared the same durable revision.
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_START_CLAIM_PHASE") is Some(phase) else {
+    return
+  }
+  let root = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let library = @sqlite.load_library(
+    @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+  ).unwrap()
+  let site = test_site()
+  let journal = open_journal(
+    library,
+    root + "/start-claim.sqlite3",
+    262144L,
+    test_control(site),
+  ).unwrap()
+  let request = test_request("concurrent-start-claim")
+  if phase == "seed" {
+    let (_, record) = journal.accept(request).unwrap()
+    assert_eq(@remote.dispatch_record_revision(record), 0)
+    assert_eq(journal.start_claimant(request).unwrap(), None)
+  } else {
+    assert_true(phase == "claim-a" || phase == "claim-b")
+    let record = journal.require(request).unwrap()
+    let prepared = @remote.prepare_begin_provisioning(
+      record,
+      test_capability(site),
+    ).unwrap()
+    assert_eq(@remote.dispatch_transition_expected_revision(prepared), 0)
+    let barrier = @filesystem.open_private_root(root).unwrap()
+    ignore(barrier.create_directory(phase + "-ready").unwrap())
+    barrier.close().unwrap()
+    assert_eq(test_start_claim_barrier(), 10)
+    let expected_wire = @remote.dispatch_transition_durable_json(prepared).unwrap()
+    match journal.claim_start(prepared, phase).unwrap() {
+      Won => {
+        // Only this result grants an actual executor entry in the Site.
+        assert_eq(journal.start_claimant(request).unwrap(), Some(phase))
+        println("NativeStartClaim: " + phase + " won")
+      }
+      LostTo(winner) => {
+        assert_true(winner != phase)
+        assert_eq(journal.start_claimant(request).unwrap(), Some(winner))
+        println("NativeStartClaim: " + phase + " lost to " + winner)
+      }
+      _ => fail("unexpected start-claim outcome")
+    }
+    let durable = journal.require(request).unwrap()
+    assert_eq(
+      @remote.dispatch_record_request(durable)
+      |> @remote.dispatch_request_identity,
+      @remote.dispatch_request_identity(request),
+    )
+    assert_eq(@remote.dispatch_record_revision(durable), 1)
+    assert_eq(
+      @remote.dispatch_record_durable_json(durable).unwrap(),
+      expected_wire,
+    )
+  }
+  assert_true(journal.close())
+}

@@ -58,7 +58,7 @@ test('negated predicate reuse enters both ordinary packed acceptance and its nar
   }
   assert.match(app, /const scopeOnly = [^;]*\bnegatedPredicateReuseOnly\b/u);
   assert.ok(app.includes('negatedPredicateReuseOnly ? {successes: negatedPredicateReuseSuccesses, refusals: negatedPredicateReuseRefusals}'));
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/negated-predicate-reuse-source-input.mjs', 'negated-predicate-reuse-source-input.mjs']"));
   assert.ok(driver.includes("runtimeEnvironment.ACTQL_TEST_NEGATED_PREDICATE_REUSE_ONLY = '1'"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--negated-predicate-reuse-only'/u);

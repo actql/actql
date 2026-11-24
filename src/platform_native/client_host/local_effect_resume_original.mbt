@@ -31,6 +31,7 @@ struct NativeLocalEffectResumeOriginal {
   record : NativeClientRunRecord
   invocation_cid : String
   unit_definition_cid : String
+  settlement_only : Bool
   mut subject : NativeLocalOriginalEffectSigningSubjectRead?
   mut host_key : NativeLocalInitialHostSigningOriginal?
   mut attempted : Bool
@@ -122,6 +123,7 @@ pub fn NativeLocalInitialHostAttestationSigning::prepare_effect_resume_original(
     record,
     invocation_cid: preparation.scope.run_invocation_cid,
     unit_definition_cid: preparation.scope.unit_definition_cid,
+    settlement_only: false,
     subject: Some(preparation.reviewer_current.subject),
     host_key: Some(preparation.account.original),
     attempted: false,
@@ -133,6 +135,196 @@ pub fn NativeLocalInitialHostAttestationSigning::prepare_effect_resume_original(
   self.resume_original = Some(original)
   if !original.authority_current() {
     return Err(HostAttestationUnavailable)
+  }
+  original.prepared = true
+  Ok(original)
+}
+
+///|
+/// Recover the same signed approval and adopted verification authorities for
+/// observation and settlement. This path cannot acquire TargetIO or sign
+/// again. It reads public key originals only.
+pub fn NativeLocalSavedEffectReview::restore_effect_settlement_in_original_read(
+  self : Self,
+  host_configuration_file : String,
+) -> Result[
+  NativeLocalEffectResumeOriginal,
+  NativeLocalSavedEffectResolutionIssue,
+] {
+  self.restore_effect_resume_in_original_read(
+    host_configuration_file,
+    settlement_only=true,
+  )
+}
+
+///|
+// The only dispatch-capable cold handoff is the approved intent before its
+// first claim. The caller obtained record through the Journal's retained
+// read, which also verified the independent Effect custody witness.
+fn native_pending_effect_approval(
+  record : NativeClientRunRecord,
+  binding : @checkpoint.ResumeBinding,
+) -> Bool {
+  record.checkpoint is Some(checkpoint) &&
+  checkpoint.state.status == @publication.Resuming &&
+  checkpoint.resolution_cid is Some(_) &&
+  checkpoint.resume_intent_id is Some(_) &&
+  checkpoint.resume_intent ==
+  Some({
+    state: @checkpoint.ResumePending,
+    generation: 0L,
+    claimant: "",
+    lease_expires_ms: 0L,
+  }) &&
+  checkpoint.binding == binding &&
+  !record.cancellation_requested &&
+  !checkpoint.settlement_only &&
+  checkpoint.unknown_effects.is_empty() &&
+  checkpoint.effect_ledger.is_empty()
+}
+
+///|
+// Both cold paths reauthenticate the existing Reviewer proof. The exact
+// original Host attestation, signed closure and intent are then re-admitted
+// by the Journal before its claim CAS. No signing credential is acquired.
+fn NativeLocalSavedEffectReview::restore_effect_resume_in_original_read(
+  self : Self,
+  host_configuration_file : String,
+  settlement_only~ : Bool,
+) -> Result[
+  NativeLocalEffectResumeOriginal,
+  NativeLocalSavedEffectResolutionIssue,
+] {
+  guard self.approval_original is Some(approval) &&
+    self._retained_original is Some(metadata) &&
+    self.capture.opening is JournalAcquired(host) &&
+    self.saved_approval_original_live(approval) &&
+    metadata.state.status == @publication.Resuming &&
+    !metadata.cancellation_requested else {
+    return Err(SavedResolutionUnavailable)
+  }
+  let selected = self.selected
+  let record = match
+    self.capture.with_current_adoption_material_in_original_read((
+      actual,
+      _material,
+      operations,
+    ) => {
+      if !physical_equal(actual, host) {
+        return Err(CustodyLost)
+      }
+      match
+        host.journal.retained(selected.request, reads=Some(operations.reads)) {
+        Ok(Some(value)) if value.revision == metadata.revision => Ok(value)
+        Ok(_) => Err(Journal(CustodyLost))
+        Err(issue) => Err(Journal(issue))
+      }
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionOriginal(issue))
+  }
+  guard record.checkpoint is Some(checkpoint) &&
+    checkpoint.artifact.checkpoint_cid == selected.checkpoint_cid &&
+    checkpoint.verified_wire is Some(verified_wire) &&
+    checkpoint.resume_intent is Some(intent) &&
+    !checkpoint.settlement_only &&
+    !record.cancellation_requested &&
+    @scalar.admit_utf8_length(verified_wire, 65536) is Ok(bytes) &&
+    bytes > 0 else {
+    return Err(SavedResolutionUnavailable)
+  }
+  if settlement_only {
+    if intent.state != @checkpoint.ResumeClaimed {
+      return Err(SavedResolutionUnavailable)
+    }
+  } else if record.request != selected.request ||
+    @publication.publication_contract_identity(record.definition) !=
+    metadata.run_definition_cid ||
+    checkpoint.artifact.wire != approval.checkpoint.artifact.wire ||
+    !native_pending_effect_approval(record, {
+      authorization_context_cid: @host.client_request_authority_scope_cid(
+        selected.request,
+      ),
+      environment_binding_cid: @host.prepared_client_effect_computation_environment_cid(
+        approval.materials.prepared,
+      ),
+    }) {
+    return Err(SavedResolutionUnavailable)
+  }
+  let nodes = Int::min(bytes, 4096)
+  match
+    self.capture.prepare_model_entry_construction(
+      Some(bytes),
+      nodes~,
+      depth=64,
+      additional_controls=Some({
+        // Recovered packet/clock callback and same original public key,
+        // authorization, claim and continuation carrier. No signing buffers.
+        record_headers: 43L,
+        reference_slots: 136L,
+        scalar_words: 60L,
+        owned_utf16_units: 940L + bytes.to_int64(),
+        owned_wire_bytes: 0L,
+      }),
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(SavedResolutionOriginal(issue))
+  }
+  let limits = native_checkpoint_limits()
+  let signed = match
+    @checkpoint.signed_resolution_from_verified(verified_wire, limits) {
+    Ok(value) => value
+    Err(_) => return Err(SavedResolutionUnavailable)
+  }
+  let initial = match
+    host.restore_initial_signing_original(capture=Some(self.capture)) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionOriginal(issue))
+  }
+  let host_key = match
+    host.restore_initial_host_signing_original(reviewer_original=Some(initial)) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionOriginal(issue))
+  }
+  let (binding, installed) = match
+    self.bind_initial_effect_reviewer(initial, host_configuration_file, () => {
+      @env.now().to_double()
+    }) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionReviewer(issue))
+  }
+  let authenticated = match binding.authenticate_resolution(signed, limits) {
+    Ok(value) => value
+    Err(issue) => return Err(SavedResolutionReviewer(issue))
+  }
+  let original : NativeLocalEffectResumeOriginal = {
+    host,
+    crypto: binding.crypto,
+    principal: binding.principal,
+    connection: binding.connection,
+    reference: selected.reference,
+    request: selected.request,
+    installed,
+    authentication: authenticated.authentication,
+    registration: authenticated.registration,
+    record,
+    invocation_cid: @publication.publication_contract_identity(
+      approval.invocation,
+    ),
+    unit_definition_cid: approval.unit_definition_cid,
+    settlement_only,
+    subject: Some(SavedSigningSubject({ owner: self, original: approval, })),
+    host_key: Some(host_key),
+    attempted: false,
+    prepared: false,
+    retired: false,
+    action: None,
+    issue: None,
+  }
+  // The existing Journal claim re-admits this same Host attestation and
+  // Reviewer-signed Resolution before recording a new generation.
+  if !original.authority_current() {
+    return Err(SavedResolutionUnavailable)
   }
   original.prepared = true
   Ok(original)
@@ -288,6 +480,24 @@ pub fn NativeLocalEffectResumeOriginal::claim(
   NativeClientEffectResumeAction,
   NativeLocalInitialHostAttestationIssue,
 ] {
+  if self.settlement_only {
+    return Err(HostAttestationUnavailable)
+  }
+  self.claim_original_resume(
+    lease_ms,
+    expected_revision=Some(self.record.revision),
+  )
+}
+
+///|
+fn NativeLocalEffectResumeOriginal::claim_original_resume(
+  self : Self,
+  lease_ms : Int64,
+  expected_revision? : Int64? = None,
+) -> Result[
+  NativeClientEffectResumeAction,
+  NativeLocalInitialHostAttestationIssue,
+] {
   if self.retired || !self.prepared || self.attempted {
     return Err(HostAttestationUnavailable)
   }
@@ -318,6 +528,7 @@ pub fn NativeLocalEffectResumeOriginal::claim(
             checkpoint.binding,
             lease_ms,
             Some(operations),
+            expected_revision~,
           )
           .map_err(issue => Journal(issue))
         }) {
@@ -327,7 +538,13 @@ pub fn NativeLocalEffectResumeOriginal::claim(
       }
     None =>
       self
-      .claim_in_original_journal(key, checkpoint.binding, lease_ms, None)
+      .claim_in_original_journal(
+        key,
+        checkpoint.binding,
+        lease_ms,
+        None,
+        expected_revision~,
+      )
       .map_err(issue => HostAttestationJournal(issue))
   }
 }
@@ -396,6 +613,7 @@ pub fn NativeLocalEffectResumeOriginal::dispatch_row(
   NativeLocalInitialHostAttestationIssue,
 ] {
   guard !self.retired &&
+    !self.settlement_only &&
     self.prepared &&
     self.action is Some(Claimed(claim)) &&
     self.record.checkpoint is Some(checkpoint) &&
@@ -484,6 +702,7 @@ fn NativeLocalEffectResumeOriginal::claim_in_original_journal(
   binding : @checkpoint.ResumeBinding,
   lease_ms : Int64,
   operations : NativeClientJournalOperationAccess?,
+  expected_revision? : Int64? = None,
 ) -> Result[NativeClientEffectResumeAction, NativeClientRunJournalIssue] {
   let result = self.host.journal.claim_effect_resume_with_operations(
     self.request,
@@ -505,6 +724,7 @@ fn NativeLocalEffectResumeOriginal::claim_in_original_journal(
       (@values.epoch_milliseconds_timestamp(now).unwrap_or(""), now)
     },
     operations,
+    expected_revision~,
   )
   match result {
     Ok(action) => {

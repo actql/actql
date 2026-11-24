@@ -1,0 +1,246 @@
+import type {TestContext} from 'node:test';
+import type {ClientError as SdkFailure, Reader} from './index.d.ts';
+import assert from 'node:assert/strict';
+import test, {mock} from 'node:test';
+import {connect, explainReadFailure} from './index.mjs';
+
+const cid = (digit: string) => `sha256:${digit.repeat(64)}`;
+const ref = {namespaceId: 'namespace', authorityScopeCid: cid('a'),
+  runDefinitionCid: cid('9')};
+const profile = {version: 'actql-client-host/0.1', mode: 'remote',
+  owner: 'remote', durability: 'durable', scopeRef: 'scope', capabilities: [],
+  limits: {maxReadWireBytes: 65536, maxRowWireBytes: 1024,
+    maxRowRetainedValueBytes: 1024, maxRetainedValueBytes: 65536,
+    maxRows: 256, maxBatchRows: 3, maxBatchRetainedValueBytes: 4096}};
+
+async function result(t: TestContext, respond: (number: number) => Response | Promise<Response>) {
+  const reads: string[] = [];
+  mock.method(globalThis, 'fetch', async (url: URL, init: {body: string}) => {
+    const operation = url.pathname.split('/').at(-1);
+    if (operation === 'connect') return Response.json(profile);
+    if (operation === 'attach') return Response.json({ref,
+      durability: 'durable', revision: 1});
+    assert.equal(operation, 'read');
+    reads.push(JSON.parse(init.body).attemptId);
+    return respond(reads.length);
+  });
+  t.after(() => mock.restoreAll());
+  const client = await connect({mode: 'remote', endpoint: 'https://host.example/',
+    token: 'token'});
+  return {result: (await client.attach(ref)).result('answer'), reads};
+}
+
+test('a pending opening and a lost response retain one immutable attempt without retry', async t => {
+  let reject!: (reason: unknown) => void, started!: () => void;
+  const invoked = new Promise<void>(resolve => {started = resolve;});
+  const pending = new Promise<Response>((_resolve, refuse) => {reject = refuse;});
+  const f = await result(t, () => {started(); return pending;});
+  const reader = f.result.rows();
+  const attemptId = reader.attemptId;
+  assert.equal(reader.state(), 'not_started');
+  const next = reader[Symbol.asyncIterator]().next();
+  await invoked;
+  assert.equal(reader.state(), 'opening');
+  assert.equal(reader.rowsYielded(), 0);
+  assert.deepEqual(f.reads, [attemptId]);
+  let failure: (SdkFailure & {cause: SdkFailure & {cause: SdkFailure}}) | undefined;
+  const refused = assert.rejects(next, error => {
+    failure = error as SdkFailure & {cause: SdkFailure & {cause: SdkFailure}};
+    return (error as SdkFailure).attemptId === attemptId && (error as SdkFailure).rowsYielded === 0;
+  });
+  reject(new TypeError('opening response lost'));
+  await refused;
+  assert.equal(reader.state(), 'open_unknown');
+  assert.equal(explainReadFailure(failure)!.observation, 'read_open_unknown');
+  assert.equal(explainReadFailure(failure)!.summary,
+    'Opening this read could not be confirmed. The DeliveryAttempt may already have been recorded.');
+  await assert.rejects(Array.fromAsync(reader), {code: 'ReadAttemptAlreadyStarted'});
+  assert.deepEqual(f.reads, [attemptId]);
+});
+
+for (const operation of ['batches', 'all', 'one', 'scalar'] as const) {
+  test(`${operation} preserves opening uncertainty without another read`, async t => {
+    const f = await result(t, () => {throw new TypeError('private-opening-loss');});
+    let failure: (SdkFailure & {cause: SdkFailure & {cause: SdkFailure}}) | undefined;
+    try {
+      const value = f.result[operation]();
+      if (operation === 'batches') await Array.fromAsync(value as Reader<unknown[]>);
+      else await value;
+    } catch (error) {failure = error as SdkFailure & {cause: SdkFailure & {cause: SdkFailure}};}
+    const explanation = explainReadFailure(failure)!;
+    assert.equal(explanation.observation, 'read_open_unknown');
+    assert.equal(explanation.rowsYielded, 0);
+    assert.equal(explanation.attemptId, f.reads[0]);
+    assert.equal(f.reads.length, 1);
+    assert.doesNotMatch(JSON.stringify(explanation), /private-opening-loss/);
+  });
+}
+
+test('120 yielded rows remain a prefix and a fresh read does not append or retry', async t => {
+  const text = Array.from({length: 120}, (_, index) => `{"value":${index + 1}}\n`).join('');
+  const f = await result(t, number => new Response(text + (number === 1 ? '' : '\x1e')));
+  const reader = f.result.rows();
+  assert.equal(reader.rowsYielded(), 0);
+  const prefix = [];
+  await assert.rejects(async () => {
+    for await (const row of reader) {
+      prefix.push(row);
+      assert.equal(reader.rowsYielded(), prefix.length, '[check-mutation:read-progress]');
+    }
+  }, {code: 'IncompleteResultStream', attemptId: reader.attemptId, rowsYielded: 120});
+  assert.equal(reader.state(), 'prefix');
+  assert.equal(reader.rowsYielded(), 120);
+  assert.equal(f.reads.length, 1);
+  const fresh = f.result.rows();
+  assert.notEqual(fresh.attemptId, reader.attemptId);
+  assert.equal(fresh.rowsYielded(), 0);
+  assert.equal(f.reads.length, 1);
+  assert.deepEqual(await Array.fromAsync(fresh),
+    Array.from({length: 120}, (_, index) => ({value: index + 1})));
+  assert.equal(fresh.state(), 'complete');
+  assert.equal(fresh.rowsYielded(), 120);
+  assert.equal(prefix.length, 120);
+  assert.equal(f.reads.length, 2);
+});
+
+test('decoding a large chunk does not count rows before they are yielded', async t => {
+  const f = await result(t, () => new Response('{"value":1}\n{"value":2}\n\x1e'));
+  const reader = f.result.rows();
+  const iterator = reader[Symbol.asyncIterator]();
+  assert.deepEqual((await iterator.next()).value, {value: 1});
+  assert.equal(reader.rowsYielded(), 1, '[check-mutation:read-progress]');
+  await iterator.return!();
+  assert.equal(reader.rowsYielded(), 1);
+  assert.equal(reader.state(), 'prefix');
+});
+
+test('a malformed row does not increase the yielded count', async t => {
+  const f = await result(t, () => new Response('{"value":1}\nnot-json\n\x1e'));
+  const reader = f.result.rows();
+  await assert.rejects(Array.fromAsync(reader), error =>
+    (error as SdkFailure).attemptId === reader.attemptId && (error as SdkFailure).rowsYielded === 1);
+  assert.equal(reader.rowsYielded(), 1);
+});
+
+for (const operation of ['rows', 'all'] as const) {
+  test(`${operation} rejects malformed first rows without exposing their data or counting them`, async t => {
+    for (const text of ['null', 'false', '0', '""', '[]', '[{"value":1}]',
+      '"private-result-fragment"', 'private-result-fragment', '{"value":']) {
+      const f = await result(t, () => new Response(text + '\n\x1e'));
+      const reader = operation === 'rows' ? f.result.rows() : undefined;
+      let failure: (SdkFailure & {cause: SdkFailure & {cause: SdkFailure}}) | undefined;
+      try {
+        if (reader) await Array.fromAsync(reader);
+        else await f.result.all();
+      } catch (error) { failure = error as SdkFailure & {cause: SdkFailure & {cause: SdkFailure}}; }
+      assert.equal(failure?.code, 'InvalidResultFrame');
+      assert.equal(failure!.rowsYielded, 0);
+      assert.equal(failure!.attemptId, f.reads[0]);
+      const frameFailure = reader ? failure!.cause : failure!.cause.cause;
+      assert.equal(frameFailure.code, 'InvalidResultFrame');
+      assert.equal(frameFailure.cause, undefined);
+      assert.equal(f.reads.length, 1);
+      if (reader) {
+        assert.equal(reader.state(), 'prefix');
+        assert.equal(reader.rowsYielded(), 0);
+      }
+    }
+  });
+}
+
+test('valid object rows retain empty records and scalar-valued fields', async t => {
+  const f = await result(t, () => new Response('{}\n{"value":null}\n{"value":false}\n{"value":0}\n{"value":""}\n{"value":[]}\n\x1e'));
+  const reader = f.result.rows();
+  assert.deepEqual(await Array.fromAsync(reader), [{}, {value: null},
+    {value: false}, {value: 0}, {value: ''}, {value: []}]);
+  assert.equal(reader.state(), 'complete');
+  assert.equal(reader.rowsYielded(), 6);
+});
+
+for (const [name, text, count] of [
+  ['unreturned batch', '{"value":1}\n{"value":2}\n', 0],
+  ['one yielded batch and one buffered row',
+    '{"value":1}\n{"value":2}\n{"value":3}\n{"value":4}\n', 3],
+] as const) {
+  test(`batch failure counts only ${name}`, async t => {
+    const f = await result(t, () => new Response(text));
+    const reader = f.result.batches();
+    const seen = [];
+    await assert.rejects(async () => {
+      for await (const batch of reader) {
+        seen.push(...batch);
+        assert.equal(reader.rowsYielded(), seen.length);
+      }
+    }, {code: 'IncompleteResultStream', attemptId: reader.attemptId, rowsYielded: count});
+    assert.equal(reader.rowsYielded(), count, '[check-mutation:batch-progress]');
+    assert.equal(seen.length, count);
+  });
+}
+
+test('a final complete batch includes all returned rows', async t => {
+  const f = await result(t, () => new Response('{"value":1}\n{"value":2}\n\x1e'));
+  const reader = f.result.batches();
+  assert.deepEqual(await Array.fromAsync(reader), [[{value: 1}, {value: 2}]]);
+  assert.equal(reader.rowsYielded(), 2);
+  assert.equal(reader.state(), 'complete');
+});
+
+for (const operation of ['all', 'one', 'scalar'] as const) {
+  test(`failed ${operation} returns no rows to its caller`, async t => {
+    const f = await result(t, () => new Response('{"value":1}\n'));
+    await assert.rejects(f.result[operation](), error =>
+      (error as SdkFailure).code === 'IncompleteResultStream' && (error as SdkFailure).rowsYielded === 0 &&
+      (error as SdkFailure).attemptId === f.reads[0] && (error as {cause: SdkFailure}).cause.rowsYielded === 1);
+    assert.equal(f.reads.length, 1);
+  });
+}
+
+test('yielded progress preserves independent cleanup uncertainty', async t => {
+  const cleanupError = new Error('cleanup unknown');
+  const f = await result(t, () => new Response(new ReadableStream({
+    start(controller) { controller.enqueue(new TextEncoder().encode('{"value":1}\n\n')); },
+    cancel() { throw cleanupError; },
+  })));
+  const reader = f.result.batches();
+  let failure: (SdkFailure & {cause: SdkFailure & {cause: SdkFailure}}) | undefined;
+  await assert.rejects(Array.fromAsync(reader), error => {
+    failure = error as SdkFailure & {cause: SdkFailure & {cause: SdkFailure}};
+    return (error as SdkFailure).code === 'InvalidResultStream' && (error as SdkFailure).rowsYielded === 0 &&
+      (error as SdkFailure).cleanupError === cleanupError && (error as SdkFailure).attemptId === reader.attemptId;
+  });
+  assert.deepEqual(explainReadFailure(failure), {
+    observation: 'read_incomplete', cleanup: 'unknown',
+    attemptId: reader.attemptId, rowsYielded: 0,
+    summary: 'This read stopped after returning 0 rows.',
+    hint: 'Keep this read reference. Look it up before deciding whether to open a new read from the beginning.',
+    next: {operation: 'deliveryAttempt', ref, resultName: 'answer', attemptId: reader.attemptId,
+      lookupContext: {endpoint: 'https://host.example/', scopeRef: 'scope'}},
+  });
+});
+
+for (const operation of ['rows', 'batches'] as const) {
+  test(`${operation} retains cleanup uncertainty after early return`, async t => {
+    const cleanupError = new Error('private cleanup failure');
+    const f = await result(t, () => new Response(new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"value":1}\n{"value":2}\n{"value":3}\n'));
+      },
+      cancel() { throw cleanupError; },
+    })));
+    const reader = f.result[operation]({maxBatchRows: 1});
+    const iterator = reader[Symbol.asyncIterator]();
+    await iterator.next();
+    let failure: (SdkFailure & {cause: SdkFailure & {cause: SdkFailure}}) | undefined;
+    await assert.rejects(iterator.return!(), error => {
+      failure = error as SdkFailure & {cause: SdkFailure & {cause: SdkFailure}};
+      return (error as SdkFailure).code === 'ResultReadCleanupUnknown';
+    });
+    const explanation = explainReadFailure(failure)!;
+    assert.equal(explanation.observation, 'cleanup_unknown');
+    assert.equal(explanation.rowsYielded, 1);
+    assert.equal(explanation.attemptId, reader.attemptId);
+    assert.equal(explanation.next.operation, 'deliveryAttempt');
+    assert.deepEqual(explanation.next.ref, ref);
+    assert.equal(f.reads.length, 1);
+  });
+}

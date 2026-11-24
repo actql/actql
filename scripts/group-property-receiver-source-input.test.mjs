@@ -31,7 +31,7 @@ test('receiver cases distinguish scopes, computed subtrees, NULL, duplicates and
 
 test('receiver source cases are copied and registered in normal and selected public cohorts', () => {
   const fixture = readFileSync('scripts/fixtures/packed-public-query.mjs', 'utf8');
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...groupPropertyReceiverSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...groupPropertyReceiverRefusals)'));
   assert.ok(fixture.includes('groupByAllOnly ? {successes: [...groupByAllSuccesses, ...groupPropertyReceiverSuccesses]'));

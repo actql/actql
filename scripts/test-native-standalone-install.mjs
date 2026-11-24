@@ -1,7 +1,6 @@
 // Actual public Native bytes and direct Node-free child, with the existing
 // separately installed Remote Host fixture. No product fallback or publisher.
 import assert from 'node:assert/strict';
-import {spawn} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {copyFile, mkdir, readFile, writeFile} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
@@ -12,58 +11,10 @@ import {publicConsumerEnvironment, publicInstallCommand, releaseConsumerDestinat
 import {nativeReleaseInstallSelection, nativeStandaloneEnvironment, extractNativeStandaloneDownload,
   verifyNativeStandaloneInstallation, nativeStandaloneAcceptanceScope} from './release-native-install.mjs';
 import {platformKey, macOSProductVersion, admitInstalledBinary} from '../packages/native-cli/bin/actql.mjs';
-import {observeChildFds} from './test-python-release-install.mjs';
+import {runNativeInstallCommand} from './release-install-child.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const sha = bytes => createHash('sha256').update(bytes).digest('hex');
-
-export async function runNativeInstallCommand(command, args, {cwd, env, state, expectedCode = 0, expectedError} = {}) {
-  let observation = Promise.resolve(), childRecord;
-  await new Promise((resolveRun, rejectRun) => {
-    const child = spawn(command, args, {cwd, env, stdio: ['pipe', 'pipe', 'pipe']});
-    childRecord = {command, args, pid: child.pid ?? null, startedAt: new Date().toISOString(), stdout: '', stderr: ''};
-    let bytes = 0, lines = '', observing = false;
-    const timer = setTimeout(() => {childRecord.terminationReason = 'original-child-timeout'; child.kill('SIGTERM');}, 180_000);
-    child.stdin.on('error', failure => {childRecord.stdinFailure = failure.code;});
-    child.on('error', failure => {childRecord.spawnFailure = failure.code;});
-    const output = (chunk, error) => {
-      bytes += chunk.length;
-      if (bytes > 8 * 1024 * 1024) {childRecord.terminationReason = 'output-limit'; child.kill('SIGTERM'); return;}
-      if (error) {childRecord.stderr += chunk; return;}
-      childRecord.stdout += chunk; lines += chunk;
-      let end;
-      while ((end = lines.indexOf('\n')) !== -1) {
-        const line = lines.slice(0, end); lines = lines.slice(end + 1);
-        if (!state) continue;
-        let body; try {body = JSON.parse(line);} catch {continue;}
-        if (body.stage === 'close-observation-ack') {childRecord.closeObservationAcknowledged = body.pid === child.pid; continue;}
-        if (body.stage !== 'closed' || observing) continue;
-        observing = true;
-        observation = (async () => {
-          assert.equal(body.pid, child.pid); assert.equal(body.clientCloseReturned, true); assert.equal(body.hostCloseReturned, true);
-          childRecord.close = await observeChildFds(child, state); child.stdin.end('observed\n');
-        })().catch(failure => {childRecord.closeObservationFailure = failure.message; child.stdin.end('unobserved\n');});
-      }
-    };
-    child.stdout.on('data', chunk => output(chunk, false)); child.stderr.on('data', chunk => output(chunk, true));
-    child.once('close', async (code, signal) => {
-      clearTimeout(timer); await observation;
-      Object.assign(childRecord, {code, signal, endedAt: new Date().toISOString()});
-      try {
-        if (expectedError !== undefined) {assert.equal(childRecord.spawnFailure, expectedError); assert.notEqual(code, 0); assert.equal(signal, null);}
-        else {assert.equal(code, expectedCode, childRecord.stderr); assert.equal(signal, null); assert(!childRecord.spawnFailure);}
-        assert(!childRecord.terminationReason);
-        if (state) {
-          assert.equal(childRecord.close?.scopedStateFd0, true); assert.equal(childRecord.closeObservationAcknowledged, true);
-          assert(!childRecord.closeObservationFailure && !childRecord.stdinFailure);
-        }
-        resolveRun();
-      } catch (failure) {failure.commandRecord = childRecord; rejectRun(failure);}
-    });
-    if (!state) child.stdin.end();
-  });
-  return childRecord;
-}
 
 export async function runNativeStandaloneInstall(args) {
   const selection = nativeReleaseInstallSelection(args), fixed = await verifyReleaseSet(selection.directory,
