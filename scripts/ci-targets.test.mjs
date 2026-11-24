@@ -11,6 +11,7 @@ import {runInNewContext} from 'node:vm';
 import test from 'node:test';
 import {parse} from 'yaml';
 import {parse as parseModule} from 'acorn';
+import ts from 'typescript';
 import {pullRequestDraft, readChanges, selectTargets, validateSelection, verifyGate, maintenanceFiles, documentationFiles, gateJobs, pythonWheelAcceptanceRequired, pythonWheelMatrix, deepProofRequired, gateJobRequired, readPushChanges} from './ci-targets.mjs';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {prepareNativeRuntimeBundle} from './native-runtime-bundle-fixture.mjs';
@@ -152,10 +153,27 @@ test('early Source admission runs original recipes once and refuses plan publica
     assert.equal(observed.some(row => row.args.includes('moon-graph-candidate')), failure === '');
   }
   const {scripts} = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
-  const types = scripts['check:client-types'].split(/\s+/u);
-  for (const required of ['--strict', '--noEmit', 'packages/sdk/index.d.ts', 'packages/client-wire/index.d.ts'])
-    assert(types.includes(required), required);
-  assert(!types.includes('--skipLibCheck'));
+  const [compiler, ...args] = scripts['check:client-types'].split(/\s+/u);
+  assert.equal(compiler, 'tsc');
+  const invocation = ts.parseCommandLine(args);
+  assert.deepEqual(invocation.errors, []);
+  assert.equal(typeof invocation.options.project, 'string');
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const config = ts.getParsedCommandLineOfConfigFile(join(root, invocation.options.project), invocation.options, {
+    ...ts.sys,
+    onUnRecoverableConfigFileDiagnostic(diagnostic) {
+      assert.fail(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+    },
+  });
+  assert(config);
+  assert.deepEqual(config.errors, []);
+  assert.equal(config.options.strict, true);
+  assert.equal(config.options.noEmit, true);
+  assert.equal(config.options.skipLibCheck, false);
+  for (const required of ['packages/sdk/index.d.ts', 'packages/sdk/host-port.d.ts',
+    'packages/client-wire/index.d.ts', 'scripts/fixtures/installed-connector-table.typecheck.mts']) {
+    assert(config.fileNames.includes(join(root, required)), required);
+  }
 });
 
 test('Linux Native profile compilers retain their commands and existing stack prerequisite', t => {
@@ -425,6 +443,52 @@ test('macOS HTTP retains its original command under shared preparation and a man
     }
   assert(jobs['native-macos'].needs.includes('native-http-macos'));
   assert(jobs['native-macos'].needs.includes('native-macos-workloads'));
+});
+
+test('Native aggregate steps receive only required results when the selector plan exceeds the exec limit', () => {
+  const aggregates = {
+    native: {
+      WORKLOADS_RESULT: 'native-workloads',
+      HTTP_RESULT: 'native-http',
+      INSTALLED_RESULT: 'native-cli-linux-local-installed',
+      MOCK_RESULT: 'native-cli-linux-local-mock',
+    },
+    'native-macos': {
+      WORKLOADS_RESULT: 'native-macos-workloads',
+      HTTP_RESULT: 'native-http-macos',
+    },
+  };
+  for (const [name, bindings] of Object.entries(aggregates)) {
+    const job = jobs[name], step = job.steps[0];
+    const required = Object.values(bindings);
+    assert.deepEqual(job.needs, ['select-targets', ...required]);
+    assert.deepEqual(step.env, Object.fromEntries(Object.entries(bindings)
+      .map(([key, dependency]) => [key, '${{ needs.' + dependency + '.result }}'])));
+    const needs = {'select-targets': {result: 'success', outputs: {moon_test_plan: 'x'.repeat(192 * 1024)}},
+      ...Object.fromEntries(required.map(dependency => [dependency, {result: 'success'}]))};
+    assert(Buffer.byteLength(JSON.stringify(needs)) > 128 * 1024);
+    const run = () => {
+      const inputs = Object.fromEntries(Object.entries(step.env).map(([key, expression]) => {
+        const [, dependency] = /^\$\{\{ needs\.([a-z-]+)\.result \}\}$/u.exec(expression);
+        return [key, needs[dependency].result ?? ''];
+      }));
+      assert(Buffer.byteLength(JSON.stringify(inputs)) < 512);
+      const result = spawnSync('bash', ['-eo', 'pipefail', '-c', step.run], {
+        encoding: 'utf8', timeout: 5000, env: {...process.env, ...inputs},
+      });
+      assert.equal(result.error, undefined);
+      assert.equal(result.signal, null);
+      return result;
+    };
+    assert.equal(run().status, 0, name);
+    for (const dependency of required) for (const failure of ['failure', 'cancelled', 'skipped', undefined]) {
+      needs[dependency].result = failure;
+      const result = run();
+      assert.equal(result.status, 1, `${name}/${dependency}/${failure}`);
+      assert.equal(result.stderr.trim(), `${dependency}: ${failure ?? 'missing'}`);
+      needs[dependency].result = 'success';
+    }
+  }
 });
 
 test('Native retained verification builds exactly its checked release module inventory', () => {

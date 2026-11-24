@@ -709,7 +709,7 @@ jobs:
         include:
           - platform: linux-x64-gnu
             runner: ubuntu-24.04
-            minutes: 40
+            minutes: 60
           - platform: darwin-arm64
             runner: macos-26
             minutes: 65
