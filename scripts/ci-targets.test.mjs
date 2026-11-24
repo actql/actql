@@ -620,7 +620,7 @@ test('portable PR paths choose JS and explain deferred macOS coverage', () => {
   for (const path of ['README.md', 'src/source_span/span.mbt', 'scripts/worktree-inventory.mjs']) {
     const result = validateSelection(selectTargets([path]));
     assert.deepEqual(result.targets, ['js'], path); assert.equal(result.macos, false, path);
-    assert.match(result.reason, /full targets run on main integration; optional macOS can be requested manually/u);
+    assert.match(result.reason, /full targets run on main integration/u);
   }
 });
 test('platform, per-file target, runtime ownership, identities and build retain every target', () => {
@@ -628,19 +628,19 @@ test('platform, per-file target, runtime ownership, identities and build retain 
     'src/cmd/native_client/main.mbt', 'src/something/backend_js.mbt', 'src/a/ffi.mbt',
     'src/managed_record_runtime/read.mbt', 'src/execution_relation/rows.mbt',
     'src/connectors/local/driver.mbt', 'src/canonical_json/read.mbt', 'src/sha256/hash.mbt',
-    'adapters/host-node/completion-custody.test.mjs', 'scripts/owned-scratch.mjs',
-    'src/a/moon.pkg', 'adapters/workers/build.mjs', 'packages/sdk/package.json',
-    'adapters/store-local/publication-commit-owner.mjs', 'src/a/native.c', 'src/a/memory.mbt', 'src/value_contract/cid.mbt',
+    'src/a/moon.pkg', 'packages/sdk/package.json', 'adapters/workers/package-lock.json',
+    'adapters/host-node/native/api.h', 'tests/native/read.c', 'adapters/workers/runtime.wasm', 'src/a/native.c', 'src/a/memory.mbt', 'src/value_contract/cid.mbt',
     '.github/workflows/ci.yml', 'toolchain.json', 'moon.mod', 'package-lock.json',
-    'spec/contracts/pin.json', 'docs/spec/language.md', 'docs/reviews/runtime.json',
-    'src/random/new.S', 'src/encode_core/value.mbt', 'src/decode_scalar/value.mbt', 'src/a/pkg.generated.mbti', 'packages/new-runtime/index.mjs', 'portability/corpus/value.json', 'proofs/relation-pipeline/run.mjs',
+    'spec/contracts/pin.json', 'scripts/ci-targets.mjs',
+    'packages/python-sdk/src/actql_sdk/client.py', 'packages/python-local-runtime/README.md',
+    'src/random/new.S', 'src/encode_core/value.mbt', 'src/decode_scalar/value.mbt', 'src/a/pkg.generated.mbti', 'portability/corpus/value.json', 'proofs/relation-pipeline/run.mjs',
     'vendor/runtime/code.mbt']) {
     const result = selectTargets([path]);
     assert.deepEqual(result.targets, all, path);
   }
 });
 test('unknown, unavailable, malformed and empty diff cannot omit target coverage', () => {
-  for (const paths of [[], null, ['README.md', 'new-tool/config.json'], ['../src/a.mbt'],
+  for (const paths of [[], null, ['README.md', 'src/new-tool/config.json'], ['../src/a.mbt'],
     ['src/a\nb.mbt'], ['/tmp/a'], ['src//a'], ['src/a\0b']]) {
     assert.deepEqual(selectTargets(paths).targets, all, JSON.stringify(paths));
   }
@@ -1022,16 +1022,14 @@ test('canonical identities in otherwise portable source files retain all targets
   }
 });
 
-test('P1: unregistered runtime files and configuration cannot qualify by directory', () => {
-  for (const path of [
-    'adapters/new-engine/index.mjs',
-    'adapters/workers/wrangler.toml',
-    'packages/sdk/tsconfig.json',
-    'src/source_frontend/lower.mbt',
-  ]) {
-    const selected = selectTargets([path], {targetSensitiveDiff: false});
-    assert.deepEqual(selected.targets, all, path);
-    assert.equal(gateJobRequired(selected, 'core'), true, path);
+test('P1: unregistered Core source cannot qualify by directory; other runtime files keep their own jobs', () => {
+  const source = selectTargets(['src/source_frontend/lower.mbt'], {targetSensitiveDiff: false});
+  assert.deepEqual(source.targets, all);
+  for (const path of ['adapters/new-engine/index.mjs', 'adapters/workers/wrangler.toml', 'packages/sdk/tsconfig.json']) {
+    const selected = validateSelection(selectTargets([path], {targetSensitiveDiff: false}));
+    assert.deepEqual(selected.targets, ['js'], path);
+    for (const name of ['core', 'host', 'client', 'workers', 'native'])
+      assert.equal(gateJobRequired(selected, name), true, `${path}/${name}`);
   }
 });
 test('an existing unregistered MoonBit file stays full even with portable contents', () => {
@@ -1043,11 +1041,9 @@ test('an existing unregistered MoonBit file stays full even with portable conten
   assert.deepEqual(selectTargets(result.paths, result).targets, all);
   assert.equal(gateJobRequired(selectTargets(result.paths, result), 'core'), true);
 });
-test('only the exact registered portable file qualifies, not siblings or configuration', () => {
+test('only the exact registered portable source file qualifies, not siblings or configuration', () => {
   assert.deepEqual(selectTargets(['src/source_span/span.mbt']).targets, ['js']);
-  for (const path of ['src/source_span/other.mbt', 'src/source_span/moon.pkg',
-    'scripts/worktree-inventory.config.json', 'docs/new-engine.md',
-    'packages/sdk/index.mjs', 'adapters/workers/runtime.mjs']) {
+  for (const path of ['src/source_span/other.mbt', 'src/source_span/moon.pkg']) {
     assert.deepEqual(selectTargets([path]).targets, all, path);
   }
   assert.deepEqual(selectTargets(['src/source_span/span.mbt'], {targetSensitiveDiff: true}).targets, all);
@@ -1359,7 +1355,8 @@ test('raw Git classification rejects additions deletions renames modes and malfo
     raw('T', '100644', '120000'), raw('M', '100644', '100755'), raw('M', '120000', '120000')]) {
     const changed = inspect(output);
     assert.equal(selectTargets(changed.paths, changed).profile, 'full');
-    assert.deepEqual(selectTargets(changed.paths, changed).targets, all);
+    // An ordinary script is outside the Core target inputs in every shape.
+    assert.deepEqual(selectTargets(changed.paths, changed).targets, ['js']);
   }
   for (const output of ['', raw().slice(0, -1), raw() + raw(), raw().replace(path, 'scripts/other.mjs'), 'malformed\0']) {
     assert.throws(() => inspect(output));
@@ -2068,8 +2065,7 @@ test('main CLI selects full checks from a fresh checkout without API token or pr
 
 test('neutral ABI and existing Host source changes retain required current families and unknown fallback', () => {
   for (const path of ['src/client_host_wasm/host.mbt', 'spec/contracts/core-wasm-abi.generated.json',
-    'scripts/generate-local-wasm-abi.py', 'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py',
-    'unclassified/future-abi-input']) {
+    'scripts/generate-local-wasm-abi.py', 'packages/python-sdk/src/actql_sdk/_local_wasm_abi.py']) {
     const selection = selectTargets([path]);
     assert.equal(selection.profile, 'full', path);
     assert.deepEqual(selection.targets, ['js', 'wasm', 'native'], path);
@@ -2374,7 +2370,10 @@ test('unclassified adapter and package safety inputs retain deep campaigns', () 
   ]) for (const event of ['pull_request', 'push']) {
     const selection = selectTargets([path], {event});
     assert.equal(selection.profile, 'full', path);
-    assert.deepEqual(selection.targets, all, path);
+    // The Python SDK is a Core target input and the DuckDB transport selects
+    // the macOS workload; the remaining paths use JS core on a PR only.
+    assert.deepEqual(selection.targets, event === 'push' || path === duckdbWitness ||
+      path.startsWith('packages/python-sdk/') ? all : ['js'], `${event}/${path}`);
     assert.equal(deepProofRequired(selection), true, `${event}/${path}`);
   }
 });
@@ -2550,70 +2549,37 @@ test('mandatory packed query CI selects its finite full-corpus envelope inside t
     'the whole job retains time for installation, other selected checks and original Saved');
 });
 
-test('a PR that changes no recorded Wasm or Native Core input uses JS core', () => {
-  const coreInputs = {files: ['scripts/fixtures/read.json', 'scripts/test-native-core.mjs'], structural: []};
-  for (const paths of [['adapters/host-node/session.mjs'], ['packages/python-sdk/src/actql_sdk/client.py', 'docs/guides/python.md'],
-    ['scripts/interface-owners/host-functional/interface-boundaries.json', 'scripts/release-check.mjs']]) {
-    const result = validateSelection(selectTargets(paths, {coreInputs}));
-    assert.deepEqual(result.targets, ['js'], paths[0]);
-    assert.equal(result.profile, 'full'); assert.equal(result.macos, false); assert.equal(result.darwinWheels, false);
-    assert.match(result.reason, /Recorded Wasm and Native Core inputs unchanged/u);
-    assert.deepEqual(selectTargets(paths).targets, all, 'no recording keeps the reviewed inventory');
-  }
-  for (const path of ['src/scalar/value.mbt', 'vendor/runtime/code.mbt', '.github/workflows/ci.yml', 'moon.mod', 'toolchain.json',
-    'package-lock.json', 'adapters/workers/package.json', 'src/a/moon.pkg', 'tests/native/read.c', 'adapters/host-node/native/api.h',
-    'scripts/ci-core-inputs.json', 'scripts/ci-core-inputs.mjs', 'scripts/ci-targets.mjs',
-    'scripts/fixtures/read.json', 'scripts/test-native-core.mjs']) {
-    assert.deepEqual(selectTargets([path, 'adapters/host-node/session.mjs'], {coreInputs}).targets, all, path);
+test('a Ready PR that changes no Core target input directory uses JS core and main keeps every target', () => {
+  for (const paths of [['scripts/check-canonical-json.mjs'], ['scripts/ci-core-partitions.mjs', 'scripts/fixtures/read.json'],
+    ['scripts/interface-owners/host-functional/interface-boundaries.json', 'adapters/host-node/session.mjs'],
+    ['packages/sdk/index.mjs', 'docs/guides/sdk.md'], ['docs/spec/language.md'], ['new-tool/config.json']]) {
+    const ready = validateSelection(selectTargets(paths, {draft: false}));
+    assert.equal(ready.profile, 'full', paths[0]); assert.deepEqual(ready.targets, ['js'], paths[0]);
+    assert.equal(ready.macos, false); assert.equal(ready.darwinWheels, false);
+    assert.match(ready.reason, /No Core target input directory changed/u);
+    // Only the Wasm and Native Core legs are omitted; every other family stays required.
+    for (const name of ['core', 'host', 'client', 'native', 'native-cli-installed', 'python-wheels'])
+      assert.equal(gateJobRequired(ready, name), true, `${paths[0]}/${name}`);
+    assert.equal(gateJobRequired(ready, 'native-macos'), false);
+    const main = validateSelection(selectTargets(paths, {event: 'push'}));
+    assert.deepEqual(main.targets, all, paths[0]); assert.equal(main.macos, true); assert.equal(main.darwinWheels, true);
+    assert.equal(validateSelection(selectTargets(paths, {draft: true})).profile, 'draft');
+    for (const event of ['schedule', 'workflow_dispatch'])
+      assert.deepEqual(validateSelection(selectTargets(paths, {event})).targets, all, event);
   }
 });
 
-test('recorded Core inputs keep every target for structural neighbours, macOS inputs and non-PR events', () => {
-  const files = ['scripts/fixtures/read.json'];
-  // A new file beside a recorded input may be enumerated by its reader.
-  assert.deepEqual(selectTargets(['scripts/fixtures/added.json'],
-    {coreInputs: {files, structural: ['scripts/fixtures/added.json']}}).targets, all);
-  assert.deepEqual(selectTargets(['scripts/fixtures/other.json'], {coreInputs: {files, structural: null}}).targets, all);
-  assert.deepEqual(selectTargets(['scripts/fixtures/other.json'], {coreInputs: {files, structural: []}}).targets, ['js']);
-  assert.deepEqual(selectTargets(['adapters/host-node/added.mjs'],
-    {coreInputs: {files, structural: ['adapters/host-node/added.mjs']}}).targets, ['js']);
-  // A selected macOS wheel keeps the complete selection.
-  const wheel = selectTargets(['packages/python-sdk/pyproject.toml'], {coreInputs: {files, structural: []}});
-  assert.deepEqual(wheel.targets, all); assert.equal(wheel.darwinWheels, true);
-  for (const event of ['push', 'schedule', 'workflow_dispatch'])
-    assert.deepEqual(validateSelection(selectTargets(['adapters/host-node/session.mjs'],
-      {event, coreInputs: {files, structural: []}})).targets, all, event);
-  assert.deepEqual(validateSelection(selectTargets(['adapters/host-node/session.mjs'],
-    {draft: true, coreInputs: {files, structural: []}})).profile, 'draft');
-});
-
-test('the recorded Core input inventory is exact, sorted and derived from the Core job steps', async () => {
-  const {alwaysCoreInput, coreLegScript, readCoreInputs, reduceCoreTrace, uncoveredCoreInputs, validateCoreInputs} =
-    await import('./ci-core-inputs.mjs');
-  const files = readCoreInputs();
-  assert(files.length > 0 && files.every(path => !alwaysCoreInput(path)));
-  assert.throws(() => validateCoreInputs({schema: 'actql-ci-core-inputs/0.1', files: ['b', 'a']}), /sorted/u);
-  assert.throws(() => validateCoreInputs({schema: 'actql-ci-core-inputs/0.1', files: ['src/a.mbt']}), /Invalid recorded/u);
-  assert.deepEqual(uncoveredCoreInputs(['src/a.mbt', 'scripts/new-reader.mjs', files[0]], files), ['scripts/new-reader.mjs']);
-  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
-  const native = coreLegScript(workflow, 'native', 'linux-common-3/8'), wasm = coreLegScript(workflow, 'wasm', '1/4');
-  assert(native.includes('node scripts/test-native-core-linux-common.mjs "linux-common-3/8"'));
-  assert(!native.includes('moon check') && wasm.includes('moon check --target "wasm" --deny-warn'));
-  assert(wasm.includes('moon test --target "wasm" --deny-warn'));
-  for (const script of [native, wasm]) assert(!script.includes('${{'));
-  const changed = structuredClone(workflow);
-  changed.jobs['core-common'].steps.find(step => step.name === 'Test common core').run += '\necho ${{ github.sha }}';
-  assert.throws(() => coreLegScript(changed, 'wasm', '1/4'), /Unresolved Core step expression: github\.sha/u);
-  const root = '/work/repo', tracked = new Set(['scripts/read.mjs', 'scripts/status-only.mjs', 'spec/data.json']);
-  assert.deepEqual(await reduceCoreTrace([
-    '10 execve("/usr/bin/node", ["node", "scripts/read.mjs"], 0x1 /* 3 vars */) = 0',
-    `10 openat(AT_FDCWD</work/repo>, "scripts/read.mjs", O_RDONLY) = 3<${root}/scripts/read.mjs>`,
-    '10 clone(child_stack=NULL, flags=SIGCHLD) = 11',
-    `11 openat(AT_FDCWD</work/repo>, "${root}/spec/data.json", O_RDONLY) = 4<${root}/spec/data.json>`,
-    '11 clone(child_stack=NULL, flags=SIGCHLD) = 12',
-    '12 execve("/usr/bin/git", ["git", "status", "--porcelain"], 0x1 /* 3 vars */) = 0',
-    `12 openat(AT_FDCWD</work/repo>, "scripts/status-only.mjs", O_RDONLY) = 3<${root}/scripts/status-only.mjs>`,
-    `10 openat(AT_FDCWD</work/repo>, "/tmp/outside", O_RDONLY) = 5</tmp/outside>`,
-    `10 openat(AT_FDCWD</work/repo>, "untracked", O_RDONLY) = 5<${root}/untracked>`,
-  ], tracked, root), ['scripts/read.mjs', 'spec/data.json']);
+test('Core target input directories, manifests, native sources, the selector and macOS selectors keep every target', () => {
+  for (const path of ['src/scalar/value.mbt', 'vendor/runtime/code.mbt', 'spec/contracts/pin.json', 'portability/corpus/value.json',
+    'proofs/relation-pipeline/run.mjs', '.github/workflows/ci.yml', '.github/actions/setup-toolchain/action.yml',
+    'packages/python-sdk/tests/test_client.py', 'packages/python-local-runtime/pyproject.toml',
+    'moon.mod', 'toolchain.json', 'package-lock.json', 'adapters/workers/package.json', 'src/a/moon.pkg',
+    'tests/native/read.c', 'adapters/host-node/native/api.h', 'packages/local-node/core.wasm', 'scripts/ci-targets.mjs']) {
+    assert.deepEqual(selectTargets([path, 'scripts/release-check.mjs'], {draft: false}).targets, all, path);
+  }
+  // The existing macOS workload selector still owns the Native drivers.
+  for (const path of ['scripts/native-core-c-compiler.mjs', 'scripts/test-native-core.mjs']) {
+    const workload = validateSelection(selectTargets([path], {draft: false}));
+    assert.deepEqual(workload.targets, all, path); assert.equal(workload.macos, true, path);
+  }
 });

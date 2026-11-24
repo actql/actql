@@ -12,7 +12,6 @@ import {fileURLToPath} from 'node:url';
 import {moonGraphCandidate, readMoonTestPlan, validateMoonTestPlan, nonMoonRequirements} from './ci-moon-test-plan.mjs';
 import {readmeQuickstart} from './readme-quickstart.mjs';
 import {readCiInput} from './ci-input.mjs';
-import {coreInputRequired, readCoreInputs} from './ci-core-inputs.mjs';
 
 const all = ['js', 'wasm', 'native'];
 const sha = /^[0-9a-f]{40}$/u;
@@ -75,6 +74,19 @@ const reviewedPortableFiles = new Set([
   'src/source_span/span.mbt',
   'scripts/worktree-inventory.mjs',
 ]);
+// A Ready PR that changes none of these runs JS core only; main integration
+// runs every target and catches a remaining cross-target regression there.
+// The policy is a short directory list: Core source, vendored code, specs,
+// portability and proof inputs, workflows, and the Python SDK and Local
+// Runtime. Manifests, the toolchain pin, native sources and binaries, and this
+// selector also keep every target. Ordinary scripts, including fixtures and
+// test drivers, do not: a regression there can first fail on main.
+function coreTargetInput(path) {
+  return /^(?:src|vendor|spec|portability|proofs|\.github|packages\/python-sdk|packages\/python-local-runtime)\//u.test(path)
+    || /(?:^|\/)(?:moon\.mod|moon\.pkg|toolchain\.json|package(?:-lock)?\.json)$/u.test(path)
+    || /\.(?:c|h|cc|cpp|inc|s|a|so|dylib|wasm)$/iu.test(path)
+    || path === 'scripts/ci-targets.mjs';
+}
 // Deep campaigns use their real source snapshot plus orchestration and safety
 // boundaries. The snapshot currently includes ALL Core source and vendor code;
 // narrowing that closure requires a separate proof-input review. Unknown roots
@@ -212,7 +224,7 @@ export function pullRequestDraft(event, payload) {
 }
 export function selectTargets(paths, {draft = null, event = 'pull_request', mainIntegration = event === 'push', nativeMacos = false, failure = null,
   targetSensitiveDiff = false, maintenanceChanges = null, focusedChanges = null, focusedTests = null,
-  moonTests = null, moonGraphFailure = null, darwinWorkflowChanges = null, coreInputs = null} = {}) {
+  moonTests = null, moonGraphFailure = null, darwinWorkflowChanges = null} = {}) {
   const validPaths = Array.isArray(paths) && paths.every(validPath);
   const focusedPaths = validPaths ? partitionFocusedPaths(paths, maintenanceChanges) : null;
   const changedPaths = validPaths && !failure ? [...paths] : [];
@@ -266,11 +278,10 @@ export function selectTargets(paths, {draft = null, event = 'pull_request', main
     return {...full('Reviewed fixed-request tests: execute changed files and owning JS family; unrelated runtime/proof families not applicable'),
       profile: 'focused-tests', targets: ['js'], macos: false, darwinWheels: false, maintenanceChanges, focusedChanges, focusedTests};
   }
-  // The Wasm and Native Core steps read none of these files (recorded from the
-  // steps themselves), so their results cannot differ from main. A change that
-  // selects a macOS workload or wheel keeps every target.
-  if (coreInputs && !paths.some(path => coreInputRequired(path, coreInputs))) {
-    const result = full('Recorded Wasm and Native Core inputs unchanged: PR core uses JS; full targets run on main integration');
+  // The existing macOS workload and wheel selectors still decide those jobs;
+  // a change that selects either keeps the complete selection.
+  if (!paths.some(coreTargetInput)) {
+    const result = full('No Core target input directory changed: PR core uses JS; full targets run on main integration');
     if (!result.macos && !result.darwinWheels) return {...result, targets: ['js']};
   }
   if (targetSensitiveDiff) return full('Target-specific syntax or runtime boundary changed');
@@ -440,18 +451,7 @@ export function readChanges(payload, git = args => execFileSync('git', args,
     } catch { targetSensitiveDiff = true; }
   }
   const darwinWorkflowChanges = paths.includes(ciWorkflow) ? readDarwinWorkflowChanges(base, head, git) : null;
-  // Added, deleted, retyped and mode-changed paths. Unknown stays null.
-  let structuralPaths = null;
-  try {
-    const raw = git(['diff', '--no-renames', '--raw', '--no-abbrev', '-z', base, head, '--']);
-    const records = raw.slice(0, -1).split('\0');
-    assert(raw.endsWith('\0') && records.length === paths.length * 2);
-    structuralPaths = paths.filter((path, index) => {
-      assert.equal(records[index * 2 + 1], path);
-      return !/^:100644 100644 [0-9a-f]{40} [0-9a-f]{40} M$/u.test(records[index * 2]);
-    });
-  } catch { structuralPaths = null; }
-  return {paths, targetSensitiveDiff, maintenanceChanges, focusedChanges, focusedTests, head, darwinWorkflowChanges, structuralPaths};
+  return {paths, targetSensitiveDiff, maintenanceChanges, focusedChanges, focusedTests, head, darwinWorkflowChanges};
 }
 
 function readModificationIdentities(paths, base, head, git) {
@@ -550,9 +550,7 @@ async function main() {
     nativeMacos: process.env.NATIVE_MACOS === 'true', failure, targetSensitiveDiff: changes.targetSensitiveDiff,
     maintenanceChanges: changes.maintenanceChanges,
     focusedChanges: changes.focusedChanges, focusedTests: changes.focusedTests, moonTests, moonGraphFailure,
-    darwinWorkflowChanges: changes.darwinWorkflowChanges,
-    coreInputs: process.env.GITHUB_EVENT_NAME === 'pull_request' && !failure
-      ? {files: readCoreInputs(), structural: changes.structuralPaths ?? null} : null}));
+    darwinWorkflowChanges: changes.darwinWorkflowChanges}));
   const sourceRevision = execFileSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'}).trim();
   assert(sha.test(sourceRevision) && sourceRevision === process.env.GITHUB_SHA, 'Unexpected tested checkout');
   const plan = {sourceRevision, selection: selected};
