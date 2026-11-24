@@ -3288,3 +3288,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/fixtures/external-rest/publish-barrier.d.mts
 /scripts/fixtures/external-rest/marker-publication.test.mjs
 /scripts/fixtures/external-rest/marker-publication.test.d.mts
+/scripts/fixtures/shared-host-source-acceptance.mjs
+/scripts/fixtures/shared-host-source-acceptance.d.mts
