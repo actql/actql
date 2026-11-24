@@ -2962,7 +2962,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -3410,7 +3410,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -6921,7 +6921,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               }
             ],
@@ -6997,7 +6997,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               }
             ],
@@ -20882,7 +20882,7 @@
                 "anchor": "await beforeDefer();"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -20972,7 +20972,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -21136,7 +21136,7 @@
                 "anchor": "await beforeDefer();"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               }
             ],
@@ -21567,7 +21567,7 @@
                 "anchor": "await beforeDefer();"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -21657,7 +21657,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -22688,7 +22688,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -23223,7 +23223,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -29736,7 +29736,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -31058,7 +31058,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -34463,7 +34463,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -35863,7 +35863,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -36671,7 +36671,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -39375,7 +39375,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -43255,7 +43255,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -43919,7 +43919,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -72853,7 +72853,7 @@
     {
       "module": "adapters/host-node/installed-effect-site.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "56279f2660841fe2e4f0a88ff81c60a10045a931f508273c85241e9e46aa1aa6",
+      "sha256": "491ba8d2834b1f7fc6107cb011a67fe8c20727b39a16a88e5cc9efda66afd101",
       "role": "physical-io",
       "owner": "Existing Effect application/Ledger/receipt Owners and installed physical dispatch",
       "exports": [
@@ -73188,7 +73188,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "export function createInstalledEffectSite({environmentWire,"
               },
               {
@@ -73200,7 +73200,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73210,7 +73210,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "export function createInstalledEffectSite({environmentWire,"
               },
               {
@@ -73222,7 +73222,7 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73232,7 +73232,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from"
               },
               {
@@ -73244,7 +73244,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73254,7 +73254,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "// Composition of one installed Effect Site with the common captured Run owner."
               },
               {
@@ -73266,7 +73266,7 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73276,7 +73276,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "// synchronous, retryable close: false or an exception retains custody."
               },
               {
@@ -73288,7 +73288,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73298,7 +73298,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "completeInterruptedEffectRun, settleRefusedEffectRun} from"
               },
               {
@@ -73310,7 +73310,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73318,13 +73318,13 @@
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
-                "anchor": "function interruptedCompletionFailure(primary, completion)"
+                "path": "adapters/host-node/installed-effect-site.mts",
+                "anchor": "function interruptedCompletionFailure(primary: unknown, completion: unknown)"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "import {releaseCompletedRunPreparedPayloads,"
               },
               {
@@ -73342,7 +73342,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "!Array.isArray(stage.scopes) || stage.scopes.length === 0 ||"
               },
               {
@@ -73358,13 +73358,13 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "// Composition of one installed Effect Site with the common captured Run owner."
               },
               {
@@ -73376,7 +73376,7 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73480,7 +73480,7 @@
                 "anchor": "await beforeDefer();"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               }
             ],
@@ -73552,7 +73552,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "export function createInstalledEffectSite({environmentWire,"
               },
               {
@@ -73564,7 +73564,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73574,7 +73574,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "export function createInstalledEffectSite({environmentWire,"
               },
               {
@@ -73586,7 +73586,7 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73596,7 +73596,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "import {assertEffectTargetReadBinding, isEffectTargetReadRefusal} from"
               },
               {
@@ -73608,7 +73608,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73618,7 +73618,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "// Composition of one installed Effect Site with the common captured Run owner."
               },
               {
@@ -73630,7 +73630,7 @@
                 "anchor": "# Settling Effect evidence after a resume refusal"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73640,7 +73640,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "// synchronous, retryable close: false or an exception retains custody."
               },
               {
@@ -73652,7 +73652,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73662,7 +73662,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "completeInterruptedEffectRun, settleRefusedEffectRun} from"
               },
               {
@@ -73674,7 +73674,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -73684,7 +73684,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "import {releaseCompletedRunPreparedPayloads,"
               },
               {
@@ -73702,7 +73702,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "!Array.isArray(stage.scopes) || stage.scopes.length === 0 ||"
               },
               {
@@ -73718,13 +73718,13 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               }
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "// Composition of one installed Effect Site with the common captured Run owner."
               },
               {
@@ -73736,7 +73736,7 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -87542,7 +87542,7 @@
                 "anchor": "await beforeDefer();"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               },
               {
@@ -87767,7 +87767,7 @@
                 "anchor": "await beforeDefer();"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               }
             ],
@@ -88068,7 +88068,7 @@
                 "anchor": "await beforeDefer();"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               },
               {

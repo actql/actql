@@ -7848,7 +7848,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -9152,7 +9152,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -12689,7 +12689,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -13529,7 +13529,7 @@
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -14530,7 +14530,7 @@
                 "anchor": "await beforeDefer();"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               }
             ],

@@ -24,21 +24,150 @@ import {runtimeUnboxedReferenceOption} from '../host-common/compiler-binding.gen
 import {INSTALLED_EFFECT_CHECKPOINT_LIMITS} from
   '../host-common/installed-checkpoint-codec-limits.mjs';
 
-const fail = code => {
+import type {SynchronousRuntimeData} from '../host-common/runtime-result.mjs';
+import type {createEffectPreviewControls} from '../host-common/runtime-effect-preview-control.mjs';
+import type {applyCapturedEffectSet, applyRecoveredEffectSet} from './effect-run-apply.mjs';
+import type {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
+import type {effectTargetReadContinuation} from './effect-target-read-continuation.mjs';
+import type {ControlWork} from './installed-effect-plan.mjs';
+import type {createInstalledRowEffect} from './installed-row-effect.mjs';
+
+type Awaitable<Value> = Value | PromiseLike<Value>;
+type Current = () => SynchronousRuntimeData;
+type Completion = Parameters<typeof completeCapturedEffectRun>[0];
+type Result = Awaited<ReturnType<typeof completeCapturedEffectRun | typeof settleRefusedEffectRun>>;
+type Authorization = NonNullable<Completion['apply']['authorization']>;
+type Publication = Completion['publication'];
+type PreviewControl = ReturnType<typeof createEffectPreviewControls>['effectPreviewControls'];
+type Control = Publication['control'] & Pick<PreviewControl, 'projectEffectComputationReview'> &
+  Readonly<{// The Common constructor returns a synchronous optional ExecutionCapacity.
+    effectComputationReviewConstructionCapacity(...args: Parameters<
+      PreviewControl['effectComputationReviewConstructionCapacity']>): SynchronousRuntimeData;
+    runDefinitionRunId(definition: unknown): string;
+    effectComputationPreviewWire(preview: Publication['preview']): string}>;
+type Runtime = Completion['apply']['moon'] & Readonly<{
+  clientProgramEffectCompilationUnitId(compilation: unknown): string;
+  clientProgramEffectCompilationResultNames(compilation: unknown): readonly string[];
+  clientProgramRequestedEffectStop(intent: unknown, referenceWire: string, identity: unknown,
+    allowed: unknown, definition: unknown, capturedInputs: unknown): unknown;
+  clientProgramRequestedEffectStopContinuation(original: unknown, providerWire: string,
+    targetBindingWire: string | undefined, maxBytes: number, maxNodes: number, maxDepth: number): unknown;
+}>;
+type TargetReads = Awaited<ReturnType<typeof effectTargetReadContinuation>>;
+type Ref = Parameters<typeof projectEffectApplication>[1];
+type Recovered = Awaited<ReturnType<typeof recoverAdmittedEffectRun>>;
+type RecoveryResources = NonNullable<Recovered['recoveryResources']> &
+  Readonly<{status(): Readonly<{pending: boolean}>}>;
+type FailureStatus = Readonly<{pending: boolean; errors: readonly unknown[]}>;
+type CleanupHandle = Readonly<{status(): FailureStatus; retry(): Promise<FailureStatus>}>;
+type CompletionFailure = Error & {outcome?: 'unknown'; uncertain?: true;
+  cleanupPending?: boolean; cleanupErrors?: readonly unknown[]; cleanupHandle?: CleanupHandle};
+type Cleanup = Readonly<{close(): unknown; cleanup?(): unknown; cleanupPending?(): boolean}>;
+type Physical = Required<Cleanup>;
+type Construction = Readonly<{close(): unknown; status(): Readonly<{pending: boolean}>;
+  releaseInputs?(): unknown}>;
+type Stage = Readonly<{
+  preview: Publication['preview']; computation: Publication['computation'];
+  storedResults: Publication['storedResults']; publication: Publication;
+  receipt: Completion['receipt']; scopes: Authorization['scopes'];
+  continuationWire: string; dispose?(): unknown; releaseInputs?(): unknown;
+  requestedStop?: unknown; assertRequestedStopCurrent?: Current; cleanupOwner?: Physical;
+}>;
+type CapturedStage = Stage & Readonly<{apply: Completion['apply'] & Parameters<typeof applyCapturedEffectSet>[0]}>;
+type RecoveredStage = Stage & Readonly<{apply: Completion['apply'] & Parameters<typeof applyRecoveredEffectSet>[0]}>;
+type OwnedStage = CapturedStage | RecoveredStage;
+type ReviewArgs = Parameters<PreviewControl['projectEffectComputationReview']>;
+type Gate = Authorization['gate'] & Cleanup;
+type AuthorizeFacts = Readonly<{
+  runId: string; runDefinitionCid: string; runDefinition: unknown; unitId: string;
+  declaredResults: readonly string[]; reviewWire: string; continuationWire: string;
+  projectReview(policy: ReviewArgs[1], limits: ReviewArgs[2]): SynchronousRuntimeData;
+  requestedStop?: unknown; assertRequestedStopCurrent?: Current;
+  beforeDefer(): void | Promise<void>; targetReads?: TargetReads;
+}>;
+type Checkpoint = Readonly<{runId: string; checkpointCid: string;
+  subject?: Readonly<{kind?: string; unit_id?: string}>}>;
+type Claim = Readonly<{intentId: string; runId: string; claimant: string; generation: number}>;
+type Resume = NonNullable<Authorization['resume']>;
+type Claimed = Extract<NonNullable<Resume['claim']>, {action: 'claimed'}> &
+  Readonly<{claim: Claim}>;
+type Attempt = Claimed | Readonly<{action: 'settlement'; claim: Claim}> |
+  Readonly<{action: 'invalidated' | 'admitted' | 'busy' | 'completed' | 'changed'}>;
+type CheckpointJournal = Readonly<{
+  claimResume(runId: string, options: Readonly<{claimant: string; leaseMs: number; binding: unknown;
+    expectedCheckpointCid: string; settleEffectRevalidation: true}>): Attempt;
+  admitResume(claim: Claim, options: Readonly<{checkpointCid: string}>): unknown;
+  completeResume(claim: Claim, result: Readonly<{status?: 'failed'; runStateWire?: string}>): unknown;
+  refuseUnsentEffectResume(checkpointCid: string, runDefinitionCid: string): Readonly<{outcome: string}>;
+  finishRun(runId: string, result: Readonly<{from: 'needs_reconciliation'; status: string;
+    runStateWire?: string}>): unknown;
+}>;
+type Continuation = Readonly<{version: string; run_definition_cid: string; unit_id: string;
+  preview_cid: string; target_read_binding?: unknown; requested_stop?: unknown}>;
+type ObservedRun = Readonly<{status: string; control?: unknown}>;
+type Reconciliation = Extract<Result, {status: 'needs_reconciliation'}>;
+type Facts = Readonly<{
+  ref: Ref; moon: Runtime; control: Control; store: Publication['store'];
+  compilation?: unknown; continuation?: Continuation; view?: Checkpoint;
+  retained?: Readonly<{resultNames: readonly string[]; runDefinition: unknown}>;
+  runDefinition?: unknown; identity?: unknown; allowed?: unknown; definition?: unknown;
+  originalSubmittedIntent?: Readonly<{intent: unknown; referenceWire: string; assertCurrent: Current}>;
+  signal?: AbortSignal; targetReads?: TargetReads; observation?: unknown;
+  managedEffect?: Readonly<{controlConstruction?: ControlWork}>;
+  effectAuthorization(input: AuthorizeFacts): Awaitable<Gate>;
+  recordReconciliation(ref: Ref, selected: Readonly<{issuedSet: Reconciliation['issuedSet'];
+    ledger: OwnedStage['apply']['ledger']; preview: Stage['preview']}>): ObservedRun;
+  observeRun(input: Readonly<{ref: Ref}>): Awaitable<ObservedRun>;
+  retainExecution(owner: ReturnType<typeof cleanupCustody>): void;
+  beginPhysicalWork?(): void; assertContinuationCurrent?: Current;
+}>;
+type Execution = NonNullable<Publication['execution']> & Physical;
+type Opened = Readonly<{execution?: Execution; checkedHost?: object; cleanupOwner?: Physical;
+  contentOwner?: object; publicationPlan?: unknown; status?: string; checkpoint?: unknown;
+  modelUnknown?: boolean}>;
+type CapturedFacts = Facts & Readonly<{
+  assertUpdateSelectionCurrent?: Current; observePreEffectFailure?(): void;
+  publicationPlan?: unknown; contentOwner?: object;
+  openComputation(ports: Readonly<{retainComputationOwner(owner: Physical): void}>):
+    Awaitable<Opened | null | undefined>;
+}>;
+type RecoveredFacts = Facts & Readonly<{
+  view: Checkpoint; reconciliationOnly?: boolean; checkpointJournal: CheckpointJournal;
+  checkpointBinding: unknown;
+  recoverCapture(ports: Readonly<{signal: AbortSignal | undefined;
+    retainRecoveryResources(owner: RecoveryResources): void}>): Awaitable<AdmittedRecovery>;
+  prepareTargetReads?(claim: Claimed): Awaitable<TargetReads | undefined>;
+}>;
+type AdmittedRecovery = Omit<Recovered, 'recoveryResources'> & Readonly<{recoveryResources?: RecoveryResources}>;
+type RecoverySelection = RecoveredFacts & Readonly<{recovered: AdmittedRecovery}>;
+type SiteOptions = Readonly<{
+  environmentWire: string; privateEvidenceKey?: Uint8Array;
+  prepareCaptured(facts: CapturedFacts & Readonly<{execution: Execution; checkedHost: object;
+    retainConstructionOwner(owner: Construction): void}>): Awaitable<CapturedStage>;
+  prepareRecovered(facts: RecoverySelection & Readonly<{retainRecoveryOwner(owner: Physical): void;
+    retainConstructionOwner(owner: Construction): void}>): Awaitable<RecoveredStage>;
+  prepareManagedPlan?: Awaited<ReturnType<typeof createInstalledRowEffect>>['prepareManagedPlan'];
+  validateRecoveredInstallation?(facts: RecoverySelection): unknown;
+  queryTableBindings?: unknown; queryTableWriteAccesses?: unknown;
+  targetReadInventory?(facts: Facts & Readonly<{assertUpdateSelectionCurrent?: Current}>): unknown; targetReadAuthorization?: unknown;
+  claimant?: string; leaseMs?: number;
+}>;
+
+const fail: (code: string) => never = code => {
   throw Object.assign(new Error(code), {code});
 };
 
 // Only interrupted completion composes these two failures. Keep both exact
 // originals, including immutable objects and primitive rejection reasons.
-const failureData = (value, key) => {
+const failureData = (value: unknown, key: PropertyKey): unknown => {
   try {
-    const field = Object.getOwnPropertyDescriptor(value, key);
+    const field = Object.getOwnPropertyDescriptor(value as object, key);
     return field && Object.hasOwn(field, 'value') ? field.value : undefined;
   } catch { return undefined; }
 };
-function interruptedCompletionFailure(primary, completion) {
+function interruptedCompletionFailure(primary: unknown, completion: unknown) {
   const code = failureData(primary, 'code');
-  const failure = Object.assign(new AggregateError([primary, completion],
+  const failure: CompletionFailure = Object.assign(new AggregateError([primary, completion],
     'InstalledEffectCompletionFailed', {cause: primary}), {
     code: typeof code === 'string' ? code : 'InstalledEffectCompletionFailed',
     primaryFailure: primary, completionFailure: completion,
@@ -46,15 +175,20 @@ function interruptedCompletionFailure(primary, completion) {
   const reasons = [primary, completion];
   if (reasons.some(value => failureData(value, 'outcome') === 'unknown')) failure.outcome = 'unknown';
   if (reasons.some(value => failureData(value, 'uncertain') === true)) failure.uncertain = true;
-  const owners = [], seen = new Set(), errors = [];
-  const record = error => retainFirstAndLatestCleanupError(errors, error);
+  const owners: {handle: unknown; status: unknown; retry: unknown; released: boolean}[] = [];
+  const seen = new Set<unknown>();
+  const errors: unknown[] = [];
+  const record = (error: unknown) => retainFirstAndLatestCleanupError(errors, error);
   for (const reason of reasons) {
     if (failureData(reason, 'cleanupPending') !== true) continue;
     const handle = failureData(reason, 'cleanupHandle');
     if (handle !== undefined && seen.has(handle)) continue;
     seen.add(handle);
-    let status, retry;
-    try { status = handle?.status; retry = handle?.retry; }
+    let status: unknown, retry: unknown;
+    try {
+      status = (handle as Partial<CleanupHandle> | null | undefined)?.status;
+      retry = (handle as Partial<CleanupHandle> | null | undefined)?.retry;
+    }
     catch (error) { record(error); }
     owners.push({handle, status, retry, released: false});
   }
@@ -77,7 +211,7 @@ function interruptedCompletionFailure(primary, completion) {
       errors: Object.freeze([...errors])});
   };
   failure.cleanupPending = true;
-  let flight;
+  let flight: Promise<FailureStatus> | undefined;
   failure.cleanupHandle = Object.freeze({status, retry() {
     if (flight !== undefined) return flight;
     flight = Promise.resolve().then(async () => {
@@ -97,7 +231,7 @@ function interruptedCompletionFailure(primary, completion) {
   return failure;
 }
 
-function ownedStage(stage, code) {
+function ownedStage(stage: OwnedStage, code: string) {
   if (stage === null || typeof stage !== 'object' ||
       !stage.preview || !stage.computation || !stage.storedResults ||
       !stage.apply || !stage.receipt || !stage.publication ||
@@ -110,7 +244,7 @@ function ownedStage(stage, code) {
   return stage;
 }
 
-function effectUnitId(facts) {
+function effectUnitId(facts: Facts) {
   const unit = facts.compilation === undefined
     ? facts.continuation?.unit_id
     : facts.moon.clientProgramEffectCompilationUnitId(facts.compilation);
@@ -123,9 +257,9 @@ function effectUnitId(facts) {
   return unit;
 }
 
-function requestedStopOriginal(facts, stage) {
+function requestedStopOriginal(facts: Facts, stage: OwnedStage) {
   if (stage.requestedStop !== undefined) {
-    stage.assertRequestedStopCurrent();
+    stage.assertRequestedStopCurrent!();
     return stage.requestedStop;
   }
   const original = facts.originalSubmittedIntent;
@@ -137,11 +271,11 @@ function requestedStopOriginal(facts, stage) {
       stage.apply.capturedInputs)));
 }
 
-function continuation(facts, stage, settlementOnly = false, requestedStop) {
-  let provider;
+function continuation(facts: Facts, stage: OwnedStage, settlementOnly = false, requestedStop?: unknown) {
+  let provider: unknown;
   try { provider = JSON.parse(stage.continuationWire); }
   catch { fail('InvalidInstalledEffectContinuation'); }
-  let targetBinding = facts.targetReads?.captureBinding();
+  let targetBinding: unknown = facts.targetReads?.captureBinding();
   if (settlementOnly && facts.continuation?.target_read_binding !== undefined) {
     // This authenticated historical binding identifies the original capture.
     // Observing that capture does not reopen its target-read authorization.
@@ -154,7 +288,7 @@ function continuation(facts, stage, settlementOnly = false, requestedStop) {
       targetBinding === undefined ? undefined : canonicalValueJson(targetBinding, {dataKeys:true}),
       INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxWireBytes,
       INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxNodes,
-      INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxDepth));
+      INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxDepth)) as string;
   }
   return canonicalValueJson({version: 'actql-installed-effect-continuation/0.1',
     run_definition_cid: facts.ref.runDefinitionCid,
@@ -165,7 +299,7 @@ function continuation(facts, stage, settlementOnly = false, requestedStop) {
     provider}, {dataKeys: true});
 }
 
-function checkContinuation(facts, stage, settlementOnly = false) {
+function checkContinuation(facts: Facts, stage: OwnedStage, settlementOnly = false) {
   const original = facts.continuation?.requested_stop === undefined ? undefined
     : requestedStopOriginal(facts, stage);
   if (facts.continuation?.requested_stop !== undefined && original === undefined) {
@@ -177,7 +311,7 @@ function checkContinuation(facts, stage, settlementOnly = false) {
   }
 }
 
-function checkContinuationBinding(facts, recovered) {
+function checkContinuationBinding(facts: Facts, recovered: Recovered['computation']) {
   effectUnitId(facts);
   const saved = facts.continuation;
   if (saved?.version !== 'actql-installed-effect-continuation/0.1' ||
@@ -188,7 +322,7 @@ function checkContinuationBinding(facts, recovered) {
   }
 }
 
-function authorization(facts, stage, beforeDefer) {
+function authorization(facts: Facts, stage: OwnedStage, beforeDefer: AuthorizeFacts['beforeDefer']) {
   const declaredResults = facts.compilation === undefined
     ? facts.retained?.resultNames
     : facts.moon.clientProgramEffectCompilationResultNames(
@@ -214,7 +348,7 @@ function authorization(facts, stage, beforeDefer) {
     // substitute. The Checkpoint Owner supplies its original policy/claims.
     projectReview: (policy, limits) => {
       const input = stage.publication.contractLimits;
-      const args = [stage.preview, policy, limits, input];
+      const args: ReviewArgs = [stage.preview, policy, limits, input];
       const construction = facts.managedEffect?.controlConstruction;
       if (construction === undefined) {
         return facts.control.projectEffectComputationReview(...args);
@@ -231,21 +365,23 @@ function authorization(facts, stage, beforeDefer) {
     continuationWire: continuation(facts, stage, false, requestedStop),
     ...(requestedStop === undefined ? {} : {requestedStop,
       assertRequestedStopCurrent: stage.assertRequestedStopCurrent ??
-        (() => facts.originalSubmittedIntent.assertCurrent())}),
+        (() => facts.originalSubmittedIntent!.assertCurrent())}),
     beforeDefer,
     targetReads: facts.targetReads,
   });
 }
 
-function completionOptions(stage, gate, signal, resume, beforeDispatch) {
-  const apply = {...stage.apply, authorization: Object.freeze({gate,
+function completionOptions(stage: OwnedStage, gate: Gate | undefined, signal: AbortSignal | undefined,
+  resume?: Resume, beforeDispatch?: Current): Completion {
+  // Observation and refused settlement never call the authorization gate.
+  const apply = {...stage.apply, authorization: Object.freeze({gate: gate!,
     scopes: stage.scopes,
     ...(resume === undefined ? {} : {resume})})};
   return Object.freeze({apply, receipt: stage.receipt,
     publication: stage.publication, signal, beforeDispatch});
 }
 
-function noEffectRowWasSent(options) {
+function noEffectRowWasSent(options: Completion) {
   const {apply, receipt} = options;
   const control = runtimeCore(apply.moon).effectApplicationControl;
   return receipt.members.every(member => member.rowOwners.every(owner => {
@@ -257,7 +393,7 @@ function noEffectRowWasSent(options) {
   }));
 }
 
-function terminalPreSendRefusal(error, options) {
+function terminalPreSendRefusal(error: unknown, options: Completion) {
   return (error instanceof ExecutionAuthorizationError &&
       error.authorization?.action === 'deny' ||
     isEffectApplyPreflightRejection(error) || isEffectPreparationRefusal(error) ||
@@ -265,9 +401,9 @@ function terminalPreSendRefusal(error, options) {
       noEffectRowWasSent(options);
 }
 
-function finishStatus(result) {
+function finishStatus(result: Result) {
   if (result.status === 'waiting') {
-    if (result.progress?.checkpoint === undefined) {
+    if ((result.progress as Readonly<{checkpoint?: unknown}> | undefined)?.checkpoint === undefined) {
       fail('InstalledEffectReadDeferralUnsupported');
     }
     return Object.freeze({status: 'waiting_checkpoint', result});
@@ -276,17 +412,17 @@ function finishStatus(result) {
     ? 'failed_effect_set' : result.status, result});
 }
 
-function cleanupCustody(physical, requirePhysical = false) {
-  let stage;
-  const authorizations = [];
+function cleanupCustody(physical: Physical | undefined, requirePhysical = false) {
+  let stage: OwnedStage | undefined;
+  const authorizations: {owner: Cleanup; closeAttempted: boolean; released: boolean}[] = [];
   let physicalCloseAttempted = false;
   let physicalReleased = false;
   let disposed = false;
-  let release;
+  let release: (() => unknown) | undefined;
   let released = false;
   let inputsReleased = false;
-  let recoveryResources;
-  let constructionOwner;
+  let recoveryResources: RecoveryResources | undefined;
+  let constructionOwner: Construction | undefined;
   const releaseAuthorizations = async () => {
     let failure;
     for (const state of authorizations) {
@@ -297,7 +433,7 @@ function cleanupCustody(physical, requirePhysical = false) {
         const recover = state.closeAttempted &&
           typeof state.owner.cleanup === 'function';
         state.closeAttempted = true;
-        const result = await (recover ? state.owner.cleanup() : state.owner.close());
+        const result = await (recover ? state.owner.cleanup!() : state.owner.close());
         state.released = result !== false &&
           (typeof state.owner.cleanupPending !== 'function' ||
             state.owner.cleanupPending() === false);
@@ -318,14 +454,14 @@ function cleanupCustody(physical, requirePhysical = false) {
   };
   return Object.freeze({
     expectPhysical() { requirePhysical = true; },
-    retainAuthorization(owner) {
+    retainAuthorization(owner: Cleanup) {
       if (authorizations.some(state => state.owner === owner) ||
           typeof owner?.close !== 'function') {
         fail('InstalledEffectCleanupOwnerAlreadySet');
       }
       authorizations.push({owner, closeAttempted: false, released: false});
     },
-    attachPhysical(value) {
+    attachPhysical(value: Physical) {
       if (physical !== undefined && physical !== value ||
           typeof value?.close !== 'function' ||
           typeof value?.cleanup !== 'function' ||
@@ -334,23 +470,23 @@ function cleanupCustody(physical, requirePhysical = false) {
       }
       physical = value;
     },
-    attach(value) {
+    attach(value: OwnedStage) {
       if (stage !== undefined) fail('InstalledEffectCleanupOwnerAlreadySet');
       stage = value;
     },
-    requireRelease(operation) {
+    requireRelease(operation: () => unknown) {
       if (release !== undefined || typeof operation !== 'function') {
         fail('InstalledEffectCleanupOwnerAlreadySet');
       }
       release = operation;
     },
-    retainConstruction(original) {
+    retainConstruction(original: Construction) {
       if (constructionOwner !== undefined || typeof original?.close !== 'function' ||
           typeof original?.status !== 'function' || original.releaseInputs !== undefined &&
           typeof original.releaseInputs !== 'function') fail('InstalledEffectCleanupOwnerAlreadySet');
       constructionOwner = original;
     },
-    retainRecoveryResources(original) {
+    retainRecoveryResources(original: RecoveryResources) {
       if (recoveryResources === original) return;
       if (recoveryResources !== undefined || typeof original?.close !== 'function' ||
           typeof original?.status !== 'function') fail('InstalledEffectCleanupOwnerAlreadySet');
@@ -414,13 +550,13 @@ function cleanupCustody(physical, requirePhysical = false) {
   });
 }
 
-function recordUnknown(facts, result, stage) {
+function recordUnknown(facts: Facts, result: Result, stage: OwnedStage) {
   if (result.status !== 'needs_reconciliation') return undefined;
   return facts.recordReconciliation(facts.ref, {issuedSet: result.issuedSet,
     ledger: stage.apply.ledger, preview: stage.preview});
 }
 
-async function currentRunState(facts, result, stage) {
+async function currentRunState(facts: Facts, result: Result, stage: OwnedStage) {
   const unknown = recordUnknown(facts, result, stage);
   if (unknown !== undefined) return unknown;
   const observed = await facts.observeRun({ref: facts.ref});
@@ -437,7 +573,7 @@ export function createInstalledEffectSite({environmentWire,
   queryTableBindings,
   queryTableWriteAccesses,
   targetReadInventory, targetReadAuthorization,
-  claimant = 'installed-effect-host', leaseMs = 60_000}) {
+  claimant = 'installed-effect-host', leaseMs = 60_000}: SiteOptions) {
   if (typeof environmentWire !== 'string' || !environmentWire ||
       typeof prepareCaptured !== 'function' ||
       typeof prepareRecovered !== 'function' ||
@@ -462,7 +598,7 @@ export function createInstalledEffectSite({environmentWire,
     targetReadInventory, targetReadAuthorization,
     privateEvidenceKey: privateEvidenceKey === undefined ? undefined :
       Uint8Array.from(privateEvidenceKey),
-    async execute(facts) {
+    async execute(facts: CapturedFacts) {
       const {moon, retainExecution, signal} = facts;
       signal?.throwIfAborted();
       facts.assertUpdateSelectionCurrent?.();
@@ -481,12 +617,12 @@ export function createInstalledEffectSite({environmentWire,
       }
       custody.expectPhysical();
       facts.beginPhysicalWork?.();
-      let opened;
+      let opened: Opened | null | undefined;
       try {
         facts.assertUpdateSelectionCurrent?.();
         facts.targetReads?.enterComputation();
         opened = await facts.openComputation(Object.freeze({
-          retainComputationOwner: owner => custody.attachPhysical(owner),
+          retainComputationOwner: (owner: Physical) => custody.attachPhysical(owner),
         }));
       } catch (failure) {
         // No Effect provider callback has run. The same failure remains the
@@ -520,21 +656,21 @@ export function createInstalledEffectSite({environmentWire,
       }
       // A failed Preview or Store operation still belongs to the dispatch
       // cleanup owner. Retain before any provider callback can fail.
-      custody.attachPhysical(opened.cleanupOwner ?? execution);
+      custody.attachPhysical(opened!.cleanupOwner ?? execution);
       // This original belongs to the completed computation's retained cleanup
       // owner. It is not a holding-CID resolver supplied by the caller.
-      const contentOwner = opened.contentOwner;
+      const contentOwner = opened!.contentOwner;
       // Acquired Runs can issue their Observation Set only after acquisition.
       // The installed Host supplies this plan from the same checked owner.
-      if (opened.publicationPlan !== undefined) {
+      if (opened!.publicationPlan !== undefined) {
         facts = Object.freeze({...facts,
-          publicationPlan: opened.publicationPlan});
+          publicationPlan: opened!.publicationPlan});
       }
-      let stage;
+      let stage: CapturedStage;
       try {
         facts.assertUpdateSelectionCurrent?.();
         const capturedFacts = {...facts, execution, checkedHost,
-          retainConstructionOwner: owner => custody.retainConstruction(owner)};
+          retainConstructionOwner: (owner: Construction) => custody.retainConstruction(owner)};
         delete capturedFacts.contentOwner;
         if (contentOwner !== undefined) capturedFacts.contentOwner = contentOwner;
         stage = await prepareCaptured(Object.freeze(capturedFacts));
@@ -641,7 +777,7 @@ export function createInstalledEffectSite({environmentWire,
         }
       }
     },
-    async resume(facts) {
+    async resume(facts: RecoveredFacts) {
       const {signal, ref, view, checkpointJournal, checkpointBinding} = facts;
       const observing = facts.reconciliationOnly === true;
       signal?.throwIfAborted();
@@ -651,7 +787,7 @@ export function createInstalledEffectSite({environmentWire,
       // claim has not begun a new physical continuation and may be retried.
       const custody = cleanupCustody(undefined);
       facts.retainExecution(custody);
-      let recovered;
+      let recovered: AdmittedRecovery | undefined;
       try { recovered = await facts.recoverCapture({signal,
         retainRecoveryResources: custody.retainRecoveryResources}); }
       catch (error) {
@@ -667,12 +803,12 @@ export function createInstalledEffectSite({environmentWire,
       }
       custody.requireRelease(async () => {
         if (releaseMode === 'retire') {
-          await releaseCompletedRunPreparedPayloads(recovered.computation.storedResults, facts.control);
+          await releaseCompletedRunPreparedPayloads(recovered!.computation.storedResults, facts.control);
         } else {
           await suspendCompletedEffectfulComputation({execution: null,
-            store: facts.store, storedResults: recovered.computation.storedResults,
-            control: facts.control, computation: recovered.computation.computation,
-            preview: recovered.computation.preview});
+            store: facts.store, storedResults: recovered!.computation.storedResults,
+            control: facts.control, computation: recovered!.computation.computation,
+            preview: recovered!.computation.preview});
         }
         recovered = undefined;
       });
@@ -698,7 +834,7 @@ export function createInstalledEffectSite({environmentWire,
         return Object.freeze({status: 'failed'});
       }
       const settling = claimed?.action === 'settlement';
-      if (!observing && claimed.action !== 'claimed' && !settling) return claimed;
+      if (!observing && claimed!.action !== 'claimed' && !settling) return claimed!;
       const originalContinuationFacts = facts;
       const originalContinuationCurrent = facts.assertContinuationCurrent;
       const assertResumeCurrent = () => {
@@ -707,22 +843,22 @@ export function createInstalledEffectSite({environmentWire,
           if (originalContinuationCurrent !== undefined) {
             Reflect.apply(originalContinuationCurrent, originalContinuationFacts, []);
           }
-          checkpointJournal.admitResume(claimed.claim, {checkpointCid: view.checkpointCid});
+          checkpointJournal.admitResume((claimed as Claimed).claim, {checkpointCid: view.checkpointCid});
         }
       };
       facts = Object.freeze({...facts, assertContinuationCurrent: assertResumeCurrent});
       if (recovered.updateTargetSelections !== undefined) {
         const original = recovered.assertUpdateSelectionCurrent;
         recovered = Object.freeze({...recovered, assertUpdateSelectionCurrent() {
-          original();
+          original!();
           assertResumeCurrent();
         }});
       }
-      let stage;
+      let stage: RecoveredStage;
       try {
         recovered.assertUpdateSelectionCurrent?.();
         if (!observing && !settling && facts.prepareTargetReads !== undefined) {
-          const targetReads = await facts.prepareTargetReads(claimed);
+          const targetReads = await facts.prepareTargetReads(claimed as Claimed);
           recovered.assertUpdateSelectionCurrent?.();
           if (targetReads !== undefined) {
             custody.retainAuthorization(targetReads);
@@ -734,8 +870,8 @@ export function createInstalledEffectSite({environmentWire,
         }
         stage = await prepareRecovered(Object.freeze({...facts,
           recovered,
-          retainRecoveryOwner: owner => custody.attachPhysical(owner),
-          retainConstructionOwner: owner => custody.retainConstruction(owner)}));
+          retainRecoveryOwner: (owner: Physical) => custody.attachPhysical(owner),
+          retainConstructionOwner: (owner: Construction) => custody.retainConstruction(owner)}));
         recovered.assertUpdateSelectionCurrent?.();
       } catch (error) {
         if (!observing && !settling && (isEffectPreparationRefusal(error) || isEffectTargetReadRefusal(error) ||
@@ -786,10 +922,10 @@ export function createInstalledEffectSite({environmentWire,
         projectEffectApplication(facts.observation, facts.ref, result);
         if (result.status === 'needs_reconciliation') {
           const state = recordUnknown(facts, result, stage);
-          checkpointJournal.completeResume(claimed.claim,
+          checkpointJournal.completeResume((claimed as Claimed | Extract<Attempt, {action: 'settlement'}>).claim,
             {runStateWire: JSON.stringify(state)});
         } else {
-          checkpointJournal.completeResume(claimed.claim, {status: 'failed'});
+          checkpointJournal.completeResume((claimed as Claimed | Extract<Attempt, {action: 'settlement'}>).claim, {status: 'failed'});
           releaseMode = 'retire';
         }
         return finishStatus(result);
@@ -803,7 +939,7 @@ export function createInstalledEffectSite({environmentWire,
         if (gate !== undefined) custody.retainAuthorization(gate);
         recovered.assertUpdateSelectionCurrent?.();
         const completion = completionOptions(stage, gate, signal,
-          observing ? undefined : Object.freeze({claim: claimed}));
+          observing ? undefined : Object.freeze({claim: claimed as Claimed}));
         const options = observing ? Object.freeze({...completion,
           apply: Object.freeze({...completion.apply, observationOnly: true})}) : completion;
         facts.beginPhysicalWork?.();
@@ -818,7 +954,7 @@ export function createInstalledEffectSite({environmentWire,
             if (failureData(completionError, 'code') === 'EffectRunNoAttemptedSend') {
               projectEffectPreflightFailure(facts.observation, facts.ref, effectApplyPreflightFailureObservation(error));
               if (terminalPreSendRefusal(error, options)) {
-                checkpointJournal.completeResume(claimed.claim,
+                checkpointJournal.completeResume((claimed as Claimed | Extract<Attempt, {action: 'settlement'}>).claim,
                   {status: 'failed'});
                 releaseMode = 'retire';
                 return Object.freeze({status: 'failed'});
@@ -846,14 +982,14 @@ export function createInstalledEffectSite({environmentWire,
         if (result.status === 'failed') {
           if (observing) checkpointJournal.finishRun(view.runId,
             {from: 'needs_reconciliation', status: 'failed'});
-          else checkpointJournal.completeResume(claimed.claim, {status: 'failed'});
+          else checkpointJournal.completeResume((claimed as Claimed | Extract<Attempt, {action: 'settlement'}>).claim, {status: 'failed'});
           releaseMode = 'retire';
         } else {
           const state = await currentRunState(facts, result, stage);
           if (observing) checkpointJournal.finishRun(view.runId,
             {from: 'needs_reconciliation', status: state.status,
               runStateWire: JSON.stringify(state)});
-          else checkpointJournal.completeResume(claimed.claim, {
+          else checkpointJournal.completeResume((claimed as Claimed | Extract<Attempt, {action: 'settlement'}>).claim, {
             runStateWire: JSON.stringify(state),
           });
           if (result.status !== 'needs_reconciliation') {
