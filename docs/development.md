@@ -1225,6 +1225,18 @@ invalid selection, failed or cancelled required jobs, and unexpected skips
 cannot satisfy the final `check`. Inspect the jobs actually executed; a narrow
 PR run does not establish a full integration or release checkpoint.
 
+A PR that changes no Wasm or Native Core input runs JS core only; main
+integration still runs every target. Compiler inputs (`src`, `vendor`, Moon
+and package manifests, the toolchain pin, C sources, workflows) always count as
+inputs. Every other input is recorded, not reviewed by hand:
+`scripts/ci-core-inputs.json` lists the tracked files the Linux Core steps
+opened. The `Core inputs` workflow reruns those same steps under `strace` on
+main and fails when they open a file the list does not cover; regenerate the
+list from that run's recordings with
+`node scripts/ci-core-inputs.mjs update <directory>`. A change that selects a
+macOS workload or wheel keeps every target. The recording covers the Linux
+partitions only; files read solely by the macOS partitions are not observed.
+
 CI passes the complete selection and aggregate job results through quoted JSON
 files in the runner's temporary directory (`CI_PLAN_PATH` and `RESULTS_PATH`).
 Source inventories can exceed Linux's per-environment-string execution limit.

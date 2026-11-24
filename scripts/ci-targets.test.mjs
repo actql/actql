@@ -2549,3 +2549,71 @@ test('mandatory packed query CI selects its finite full-corpus envelope inside t
   assert.ok(job['timeout-minutes'] * 60_000 > Number(step.env.ACTQL_TEST_QUERY_TIMEOUT_MS) + 120_000,
     'the whole job retains time for installation, other selected checks and original Saved');
 });
+
+test('a PR that changes no recorded Wasm or Native Core input uses JS core', () => {
+  const coreInputs = {files: ['scripts/fixtures/read.json', 'scripts/test-native-core.mjs'], structural: []};
+  for (const paths of [['adapters/host-node/session.mjs'], ['packages/python-sdk/src/actql_sdk/client.py', 'docs/guides/python.md'],
+    ['scripts/interface-owners/host-functional/interface-boundaries.json', 'scripts/release-check.mjs']]) {
+    const result = validateSelection(selectTargets(paths, {coreInputs}));
+    assert.deepEqual(result.targets, ['js'], paths[0]);
+    assert.equal(result.profile, 'full'); assert.equal(result.macos, false); assert.equal(result.darwinWheels, false);
+    assert.match(result.reason, /Recorded Wasm and Native Core inputs unchanged/u);
+    assert.deepEqual(selectTargets(paths).targets, all, 'no recording keeps the reviewed inventory');
+  }
+  for (const path of ['src/scalar/value.mbt', 'vendor/runtime/code.mbt', '.github/workflows/ci.yml', 'moon.mod', 'toolchain.json',
+    'package-lock.json', 'adapters/workers/package.json', 'src/a/moon.pkg', 'tests/native/read.c', 'adapters/host-node/native/api.h',
+    'scripts/ci-core-inputs.json', 'scripts/ci-core-inputs.mjs', 'scripts/ci-targets.mjs',
+    'scripts/fixtures/read.json', 'scripts/test-native-core.mjs']) {
+    assert.deepEqual(selectTargets([path, 'adapters/host-node/session.mjs'], {coreInputs}).targets, all, path);
+  }
+});
+
+test('recorded Core inputs keep every target for structural neighbours, macOS inputs and non-PR events', () => {
+  const files = ['scripts/fixtures/read.json'];
+  // A new file beside a recorded input may be enumerated by its reader.
+  assert.deepEqual(selectTargets(['scripts/fixtures/added.json'],
+    {coreInputs: {files, structural: ['scripts/fixtures/added.json']}}).targets, all);
+  assert.deepEqual(selectTargets(['scripts/fixtures/other.json'], {coreInputs: {files, structural: null}}).targets, all);
+  assert.deepEqual(selectTargets(['scripts/fixtures/other.json'], {coreInputs: {files, structural: []}}).targets, ['js']);
+  assert.deepEqual(selectTargets(['adapters/host-node/added.mjs'],
+    {coreInputs: {files, structural: ['adapters/host-node/added.mjs']}}).targets, ['js']);
+  // A selected macOS wheel keeps the complete selection.
+  const wheel = selectTargets(['packages/python-sdk/pyproject.toml'], {coreInputs: {files, structural: []}});
+  assert.deepEqual(wheel.targets, all); assert.equal(wheel.darwinWheels, true);
+  for (const event of ['push', 'schedule', 'workflow_dispatch'])
+    assert.deepEqual(validateSelection(selectTargets(['adapters/host-node/session.mjs'],
+      {event, coreInputs: {files, structural: []}})).targets, all, event);
+  assert.deepEqual(validateSelection(selectTargets(['adapters/host-node/session.mjs'],
+    {draft: true, coreInputs: {files, structural: []}})).profile, 'draft');
+});
+
+test('the recorded Core input inventory is exact, sorted and derived from the Core job steps', async () => {
+  const {alwaysCoreInput, coreLegScript, readCoreInputs, reduceCoreTrace, uncoveredCoreInputs, validateCoreInputs} =
+    await import('./ci-core-inputs.mjs');
+  const files = readCoreInputs();
+  assert(files.length > 0 && files.every(path => !alwaysCoreInput(path)));
+  assert.throws(() => validateCoreInputs({schema: 'actql-ci-core-inputs/0.1', files: ['b', 'a']}), /sorted/u);
+  assert.throws(() => validateCoreInputs({schema: 'actql-ci-core-inputs/0.1', files: ['src/a.mbt']}), /Invalid recorded/u);
+  assert.deepEqual(uncoveredCoreInputs(['src/a.mbt', 'scripts/new-reader.mjs', files[0]], files), ['scripts/new-reader.mjs']);
+  const workflow = parse(readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8'));
+  const native = coreLegScript(workflow, 'native', 'linux-common-3/8'), wasm = coreLegScript(workflow, 'wasm', '1/4');
+  assert(native.includes('node scripts/test-native-core-linux-common.mjs "linux-common-3/8"'));
+  assert(!native.includes('moon check') && wasm.includes('moon check --target "wasm" --deny-warn'));
+  assert(wasm.includes('moon test --target "wasm" --deny-warn'));
+  for (const script of [native, wasm]) assert(!script.includes('${{'));
+  const changed = structuredClone(workflow);
+  changed.jobs['core-common'].steps.find(step => step.name === 'Test common core').run += '\necho ${{ github.sha }}';
+  assert.throws(() => coreLegScript(changed, 'wasm', '1/4'), /Unresolved Core step expression: github\.sha/u);
+  const root = '/work/repo', tracked = new Set(['scripts/read.mjs', 'scripts/status-only.mjs', 'spec/data.json']);
+  assert.deepEqual(await reduceCoreTrace([
+    '10 execve("/usr/bin/node", ["node", "scripts/read.mjs"], 0x1 /* 3 vars */) = 0',
+    `10 openat(AT_FDCWD</work/repo>, "scripts/read.mjs", O_RDONLY) = 3<${root}/scripts/read.mjs>`,
+    '10 clone(child_stack=NULL, flags=SIGCHLD) = 11',
+    `11 openat(AT_FDCWD</work/repo>, "${root}/spec/data.json", O_RDONLY) = 4<${root}/spec/data.json>`,
+    '11 clone(child_stack=NULL, flags=SIGCHLD) = 12',
+    '12 execve("/usr/bin/git", ["git", "status", "--porcelain"], 0x1 /* 3 vars */) = 0',
+    `12 openat(AT_FDCWD</work/repo>, "scripts/status-only.mjs", O_RDONLY) = 3<${root}/scripts/status-only.mjs>`,
+    `10 openat(AT_FDCWD</work/repo>, "/tmp/outside", O_RDONLY) = 5</tmp/outside>`,
+    `10 openat(AT_FDCWD</work/repo>, "untracked", O_RDONLY) = 5<${root}/untracked>`,
+  ], tracked, root), ['scripts/read.mjs', 'spec/data.json']);
+});
