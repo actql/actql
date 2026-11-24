@@ -10,20 +10,48 @@ import {fileURLToPath} from 'node:url';
 import {preparedNativeCommand, preparedNativeComponents, preparedNativeHttpReceipt,
   verifyNativeHttpPreparation, receiveNativeCompiledCommand} from './native-preparation-originals.mjs';
 
-export function prepareNativeRuntimeBundle(repository, destination, options) {
+import type {ExecFileSyncOptionsWithStringEncoding} from 'node:child_process';
+
+type Execute = (command: string, args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding) => string;
+type PlatformOptions = {execute?: Execute; platform?: string; arch?: string};
+type CommandOptions = PlatformOptions & {
+  moonHome?: string; seconds?: number; preparation?: string | null;
+  compiledInput?: Parameters<typeof receiveNativeCompiledCommand>[0];
+};
+type HttpLibraryOptions = PlatformOptions & {receiptPath?: string; preparation?: string | null};
+type HttpComponentOptions = PlatformOptions & {
+  seconds?: number; curlArchive?: string; curlSignature?: string; releaseKey?: string; tlsArchive?: string; tlsJobs?: number;
+};
+type LibraryOptions = Omit<CommandOptions, 'compiledInput'> & {
+  opensslPrefix?: string; darwinCryptoProfile?: string; opensslSourceArchive?: string;
+};
+type Original = Parameters<typeof verifyNativeHttpPreparation>[2] & {path: string};
+type OriginalLibrary = Original & Record<'dev' | 'ino' | 'mode', string | number>;
+type HttpOriginal = {
+  source: string; target: string; minimumMacOS: string; recipe_sha256: string; upstream: unknown;
+  loaded: number; initialized: number; installed_supplier: boolean; inputs: readonly Original[];
+  ownedOpenSSLReceipt: Original; library: OriginalLibrary;
+};
+type BuildReceipt = {source: string; entry: string; target: string; plan_only: boolean;
+  moon_build_exit: number; providers: number; executable: Original};
+type ComponentReceipt = {source: string; target: string; providers: number; loaded: boolean; initialized: boolean;
+  sqlite: Original; crypto: Original};
+type PreparedCommand = Exclude<ReturnType<typeof preparedNativeCommand>, string> | (string & {kind?: never});
+
+export function prepareNativeRuntimeBundle(repository: string, destination: string, options?: CommandOptions) {
   return prepareNativeCommand(repository, destination, 'native_runtime_bundle', options);
 }
 
-export function prepareNativeResidentSite(repository, destination, options) {
+export function prepareNativeResidentSite(repository: string, destination: string, options?: CommandOptions) {
   return prepareNativeCommand(repository, destination, 'native_remote_resident_site', options);
 }
 
-function prepareNativeCommand(repository, destination, entry, {
+function prepareNativeCommand(repository: string, destination: string, entry: string, {
   execute = execFileSync, platform = process.platform, arch = process.arch,
   moonHome = process.env.MOON_HOME, seconds = 600,
   preparation = process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION,
   compiledInput,
-} = {}) {
+}: CommandOptions = {}) {
   assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 1800);
   const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
     : platform === 'linux' && arch === 'x64' ? 'linux-x64' : undefined;
@@ -33,7 +61,7 @@ function prepareNativeCommand(repository, destination, entry, {
     'The existing pinned Moon toolchain is required');
   repository = realpathSync(repository);
   destination = join(realpathSync(dirname(resolve(destination))), basename(destination));
-  const run = (command, args) => execute(command, args, {cwd: repository,
+  const run = (command: string, args: readonly string[]) => execute(command, args, {cwd: repository,
     encoding: 'utf8', timeout: (seconds + 30) * 1000, maxBuffer: 8 * 1024 ** 2});
   const source = run('git', ['rev-parse', 'HEAD']).trim();
   assert.match(source, /^[0-9a-f]{40}$/u);
@@ -51,7 +79,7 @@ function prepareNativeCommand(repository, destination, entry, {
   }
   if (preparation !== undefined && preparation !== null) {
     const prepared = preparedNativeCommand(preparation, entry, {source,target,clang,sdk,
-      moon_home:realpathSync(moonHome),repository});
+      moon_home:realpathSync(moonHome),repository}) as PreparedCommand;
     if (prepared.kind === 'received') {
       assert.equal(run('git', ['rev-parse', 'HEAD']).trim(), source);
       assert.equal(run('git', ['status', '--porcelain']), '');
@@ -64,7 +92,7 @@ function prepareNativeCommand(repository, destination, entry, {
     '--destination', destination, '--seconds', String(seconds),
     '--entry', entryPath]);
   const receiptPath = join(destination, 'build.json');
-  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as BuildReceipt;
   assert.equal(receipt.source, source);assert.equal(receipt.entry, entryPath);
   assert.equal(receipt.target, target);assert.equal(receipt.plan_only, false);
   assert.equal(receipt.moon_build_exit, 0);assert.equal(receipt.providers, 1);
@@ -77,7 +105,7 @@ function prepareNativeCommand(repository, destination, entry, {
   assert.equal(run('git', ['rev-parse', 'HEAD']).trim(), source);
   assert.equal(run('git', ['status', '--porcelain']), '');
   const after = lstatSync(binary);
-  for (const key of ['dev','ino','size','mode','mtimeMs','ctimeMs']) assert.equal(after[key],original[key]);
+  for (const key of ['dev','ino','size','mode','mtimeMs','ctimeMs'] as const) assert.equal(after[key],original[key]);
   return binary;
 }
 
@@ -85,7 +113,7 @@ export function prepareNativeResidentHttpLibrary({
   receiptPath = process.env.ACTQL_TEST_NATIVE_HTTP_COMPONENT_RECEIPT,
   platform = process.platform, arch = process.arch, execute = execFileSync,
   preparation = process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION,
-} = {}) {
+}: HttpLibraryOptions = {}) {
   const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
     : platform === 'linux' && arch === 'x64' ? 'linux-x64' : undefined;
   assert(target, 'No selected Resident HTTP component for this actual platform');
@@ -93,7 +121,7 @@ export function prepareNativeResidentHttpLibrary({
     'The original owned HTTP component receipt is required; stock libcurl is not a fallback');
   if(preparation!==undefined && preparation!==null) {
     const repository=realpathSync(fileURLToPath(new URL('../',import.meta.url)));
-    const run=(command,args)=>execute(command,args,{cwd:repository,encoding:'utf8',timeout:60000});
+    const run=(command: string,args: readonly string[])=>execute(command,args,{cwd:repository,encoding:'utf8',timeout:60000});
     const source=run('git',['rev-parse','HEAD']).trim();
     assert.equal(run('git',['status','--porcelain']),'');
     const clang=realpathSync(platform==='darwin'?run('xcrun',['--find','clang']).trim()
@@ -103,9 +131,9 @@ export function prepareNativeResidentHttpLibrary({
   }
   const receiptFile = lstatSync(receiptPath,{bigint:true});
   assert(receiptFile.isFile() && !receiptFile.isSymbolicLink() && receiptFile.size <= 4n * 1024n ** 2n);
-  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8'));
+  const receipt = JSON.parse(readFileSync(receiptPath, 'utf8')) as HttpOriginal;
   const recipeBytes = readFileSync(new URL('./native-http-component-source.json', import.meta.url));
-  const recipe = JSON.parse(recipeBytes);
+  const recipe = JSON.parse(recipeBytes as unknown as string) as {upstream: unknown};
   assert.match(receipt.source, /^[0-9a-f]{40}$/u);
   assert.equal(receipt.target, target);
   if (platform === 'darwin') {
@@ -113,7 +141,7 @@ export function prepareNativeResidentHttpLibrary({
       {encoding: 'utf8', timeout: 10000, maxBuffer: 4096}).trim();
     assert.match(current, /^\d+\.\d+(?:\.\d+)?$/u);
     assert(['11.0', '26.0'].includes(receipt.minimumMacOS), 'Selected HTTP macOS deployment profile required');
-    const version = value => {
+    const version = (value: string) => {
       const parts = value.split('.').map(Number).concat([0,0]).slice(0,3);
       assert(parts.every(Number.isSafeInteger), 'Bounded actual macOS version required');
       return parts;
@@ -141,30 +169,30 @@ export function prepareNativeResidentHttpLibrary({
   const item = receipt.library;
   const before = lstatSync(item.path,{bigint:true});
   assert(before.isFile() && !before.isSymbolicLink() && before.size > 0n && before.size <= 64n * 1024n ** 2n);
-  for (const key of ['dev', 'ino', 'mode']) {
+  for (const key of ['dev', 'ino', 'mode'] as const) {
     if(typeof item[key]==='string')assert.match(item[key],/^(?:0|[1-9][0-9]{0,19})$/u);
     else assert(Number.isSafeInteger(item[key]) && item[key]>=0);
-    const expected=BigInt(item[key]);assert(expected<=0xffffffffffffffffn);
+    const expected: bigint=BigInt(item[key]);assert(expected<=0xffffffffffffffffn);
     assert.equal(before[key],expected);
   }
   const bytes = readFileSync(item.path);
   assert.equal(bytes.length, item.bytes);
   assert.equal(createHash('sha256').update(bytes).digest('hex'), item.sha256);
-  for (const [path, original] of [[item.path, before], [receiptPath, receiptFile]]) {
+  for (const [path, original] of [[item.path, before], [receiptPath, receiptFile]] as const) {
     const after = lstatSync(path,{bigint:true});
-    for (const key of ['dev','ino','size','mode','mtimeNs','ctimeNs']) assert.equal(after[key], original[key]);
+    for (const key of ['dev','ino','size','mode','mtimeNs','ctimeNs'] as const) assert.equal(after[key], original[key]);
   }
   return item.path;
 }
 
-export function prepareNativeResidentHttpComponent(repository,destination,{
+export function prepareNativeResidentHttpComponent(repository: string,destination: string,{
   execute=execFileSync,platform=process.platform,arch=process.arch,seconds=900,
   curlArchive=process.env.ACTQL_TEST_NATIVE_HTTP_CURL_ARCHIVE,
   curlSignature=process.env.ACTQL_TEST_NATIVE_HTTP_CURL_SIGNATURE,
   releaseKey=process.env.ACTQL_TEST_NATIVE_HTTP_RELEASE_KEY,
   tlsArchive=process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE,
   tlsJobs=1,
-}={}) {
+}: HttpComponentOptions={}) {
   assert(Number.isSafeInteger(seconds) && seconds>0 && seconds<=1800);
   assert(Number.isSafeInteger(tlsJobs) && [1,2].includes(tlsJobs));
   const target=platform==='darwin' && arch==='arm64'?'darwin-arm64'
@@ -172,7 +200,7 @@ export function prepareNativeResidentHttpComponent(repository,destination,{
   assert(target,'No selected Resident HTTP preparation target');
   repository=realpathSync(repository);
   destination=join(realpathSync(dirname(resolve(destination))),basename(destination));
-  const run=(command,args)=>execute(command,args,{cwd:repository,encoding:'utf8',
+  const run=(command: string,args: readonly string[])=>execute(command,args,{cwd:repository,encoding:'utf8',
     timeout:(seconds+30)*1000,maxBuffer:8*1024**2});
   const source=run('git',['rev-parse','HEAD']).trim();assert.match(source,/^[0-9a-f]{40}$/u);
   assert.equal(run('git',['status','--porcelain']),'');
@@ -194,7 +222,7 @@ export function prepareNativeResidentHttpComponent(repository,destination,{
   return receipt;
 }
 
-export function prepareNativeRuntimeBundleLibraries(repository, destination, {
+export function prepareNativeRuntimeBundleLibraries(repository: string, destination: string, {
   execute = execFileSync, platform = process.platform, arch = process.arch,
   opensslPrefix = process.env.ACTQL_TEST_NATIVE_OPENSSL_PREFIX ??
     (platform === 'linux' ? '/usr' : '/opt/homebrew/opt/openssl@3'),
@@ -203,14 +231,14 @@ export function prepareNativeRuntimeBundleLibraries(repository, destination, {
   moonHome = process.env.MOON_HOME,
   preparation = process.env.ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_PREPARATION,
   seconds = 600,
-} = {}) {
+}: LibraryOptions = {}) {
   assert(Number.isSafeInteger(seconds) && seconds > 0 && seconds <= 1800);
   const target = platform === 'darwin' && arch === 'arm64' ? 'darwin-arm64'
     : platform === 'linux' && arch === 'x64' ? 'linux-x64' : undefined;
   assert(target, 'No selected bundle component recipe for this actual platform');
   repository = realpathSync(repository);
   destination = join(realpathSync(dirname(resolve(destination))), basename(destination));
-  const run = (command, args) => execute(command, args, {cwd: repository,
+  const run = (command: string, args: readonly string[]) => execute(command, args, {cwd: repository,
     encoding: 'utf8', timeout: (seconds + 30) * 1000, maxBuffer: 8 * 1024 ** 2});
   const source = run('git', ['rev-parse', 'HEAD']).trim();
   assert.match(source, /^[0-9a-f]{40}$/u);
@@ -229,11 +257,11 @@ export function prepareNativeRuntimeBundleLibraries(repository, destination, {
     ...(opensslSourceArchive === undefined || platform !== 'darwin' ? []
       : ['--openssl-source-archive', realpathSync(opensslSourceArchive)]),
     '--destination', destination, '--seconds', String(seconds)]);
-  const receipt = JSON.parse(readFileSync(join(destination, 'bundle-components.json'), 'utf8'));
+  const receipt = JSON.parse(readFileSync(join(destination, 'bundle-components.json'), 'utf8')) as ComponentReceipt;
   assert.equal(receipt.source, source); assert.equal(receipt.target, target);
   assert.equal(receipt.providers, 0); assert.equal(receipt.loaded, false);
   assert.equal(receipt.initialized, false);
-  for (const name of ['sqlite', 'crypto']) {
+  for (const name of ['sqlite', 'crypto'] as const) {
     const item = receipt[name];
     assert.equal(dirname(item.path), join(destination, name));
     const original = lstatSync(item.path);

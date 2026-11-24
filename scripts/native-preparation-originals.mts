@@ -164,7 +164,7 @@ function index(root: string,selected: Selection) {
   if(selected.moon_home!==undefined)assert.equal(record.moon_home,selected.moon_home);
   return {root,record};
 }
-function readVerifiedNativeHttpPreparation(path: string,selected: Target,item: Original,requireModelResolver?: boolean) {
+function readVerifiedNativeHttpPreparation(path: string,selected: Target,item?: Original,requireModelResolver?: boolean) {
   const directory=realpathSync(join(path,'..')),body=json<HttpPreparation>(path,item);
   for (const key of ['source', 'target'] as const) {
     assert.equal(body[key], selected[key], `HTTP preparation ${key} differs from the selected original`);
@@ -218,7 +218,7 @@ function readVerifiedNativeHttpPreparation(path: string,selected: Target,item: O
   return {path: body.component.path, component, tls};
 }
 
-export function verifyNativeHttpPreparation(path: string, selected: Target, item: Original,
+export function verifyNativeHttpPreparation(path: string, selected: Target, item?: Original,
   {requireModelResolver = false}: HttpOptions = {}) {
   return readVerifiedNativeHttpPreparation(path, selected, item, requireModelResolver).path;
 }
