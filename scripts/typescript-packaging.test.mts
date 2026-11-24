@@ -2,11 +2,12 @@
 // prepack and cannot qualify a normal package, runtime or outside-checkout use.
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtemp, rm} from 'node:fs/promises';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
+import ts from 'typescript';
 
 test('SDK npm file selection keeps executable emit and declarations without maintained TS sources', async t => {
   const cache = await mkdtemp(join(tmpdir(), 'actql-ts-pack-selection-'));
@@ -36,4 +37,32 @@ test('SDK npm file selection keeps executable emit and declarations without main
       `Maintained TypeScript source entered the installed package: ${path}`);
     assert(!/\.test\.[cm]?[jt]s$/u.test(path), `Test entered the installed SDK: ${path}`);
   }
+});
+
+test('required client typecheck includes every tracked SDK and Wire type fixture', async () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const manifest: unknown = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
+  assert(manifest && typeof manifest === 'object' && 'scripts' in manifest);
+  const scripts = manifest.scripts;
+  assert(scripts && typeof scripts === 'object' && 'check:client-types' in scripts);
+  assert.equal(scripts['check:client-types'], 'tsc --project tsconfig.client-types.json');
+  const config = ts.getParsedCommandLineOfConfigFile(join(root, 'tsconfig.client-types.json'), {}, {
+    ...ts.sys,
+    onUnRecoverableConfigFileDiagnostic(diagnostic) {
+      assert.fail(ts.flattenDiagnosticMessageText(diagnostic.messageText, '\n'));
+    },
+  });
+  assert(config);
+  assert.deepEqual(config.errors, []);
+  assert.equal(config.options.strict, true);
+  assert.equal(config.options.noEmit, true);
+  const tracked = spawnSync('git', ['ls-files', '-z', '--', 'packages/sdk', 'packages/client-wire'], {
+    cwd: root, encoding: 'utf8', timeout: 5_000,
+  });
+  assert.equal(tracked.status, 0, tracked.stderr);
+  const fixtures = tracked.stdout.split('\0').filter(path => /\.typecheck\.[cm]?tsx?$/u.test(path));
+  assert(fixtures.includes('packages/sdk/run-wait-since.typecheck.mts'));
+  assert(fixtures.includes('packages/sdk/public-aql-format.typecheck.mts'));
+  const roots = new Set(config.fileNames);
+  assert.deepEqual(fixtures.filter(path => !roots.has(resolve(root, path))), []);
 });

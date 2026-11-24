@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "files": [
+    "packages/sdk/index.d.ts",
+    "packages/sdk/host-port.d.ts",
+    "packages/client-wire/index.d.ts",
+    "scripts/fixtures/installed-connector-table.typecheck.mts"
+  ],
+  "include": [
+    "packages/sdk/**/*.typecheck.*",
+    "packages/client-wire/**/*.typecheck.*"
+  ]
+}
