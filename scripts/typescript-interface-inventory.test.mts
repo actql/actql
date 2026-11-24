@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtempSync, mkdirSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {test} from 'node:test';
@@ -25,6 +25,31 @@ for (const [name, source] of [
     assert(result.some(value => value.module.startsWith('outside/owner.')));
   });
 }
+
+test('installed declarations follow relative siblings and leave bare dependency packages external', t => {
+  const root = mkdtempSync(join(tmpdir(), 'actql-if-installed-types-'));
+  t.after(() => rmSync(root, {recursive: true}));
+  const installed = join(root, 'node_modules/@actql/sdk');
+  const peer = join(root, 'node_modules/@actql/client-wire');
+  mkdirSync(join(installed, 'internal'), {recursive: true});
+  mkdirSync(peer);
+  writeFileSync(join(installed, 'package.json'), '{"name":"@actql/sdk","type":"module"}');
+  writeFileSync(join(peer, 'package.json'), '{"name":"@actql/client-wire","types":"./index.d.ts"}');
+  writeFileSync(join(peer, 'index.d.ts'), 'export interface Wire {}');
+  const member = 'internal/transport.d.mts', sibling = join(installed, 'host-port.d.ts');
+  writeFileSync(join(installed, member),
+    'export type Port = import("../host-port.d.ts").Host | import("@actql/client-wire").Wire;');
+  writeFileSync(sibling, 'export interface Host { open(): void; }');
+  const checked = typescriptInterfaceInputs(installed, [member]);
+  assert.deepEqual(checked.modules.map(value => value.module), ['host-port.d.ts', member]);
+  assert.deepEqual(checked.external.map(value => value.specifier), ['@actql/client-wire']);
+
+  rmSync(sibling);
+  assert.throws(() => typescriptInterfaceInputs(installed, [member]),
+    /Unresolved TypeScript interface dependency: internal\/transport.d.mts:\.\.\/host-port.d.ts/u);
+  symlinkSync(join(peer, 'index.d.ts'), sibling);
+  assert.throws(() => typescriptInterfaceInputs(installed, [member]), /Escaped TypeScript interface/u);
+});
 
 test('private TS arrow helpers and global declaration interfaces have actual names', () => {
   assert.equal(typescriptInterface('const decide = (run: string) => run;').operations[0].name, 'decide');
