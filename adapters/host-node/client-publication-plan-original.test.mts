@@ -119,7 +119,8 @@ function capturedPublicationFixture(kind: 'multi' | 'keyed',
   const name = kind === 'multi' ? 'acquiredMultiTaskPublicationPlan' : 'acquiredKeyedTaskPublicationPlan';
   const build = kind === 'multi' ? acquiredMultiTaskPublicationPlan : acquiredKeyedTaskPublicationPlan;
 
-  const dispatch = readFileSync(new URL('./client-dispatch-owner.mjs', import.meta.url), 'utf8');
+  const dispatchPath = kind === 'multi' ? './client-dispatch-owner.mjs' : './client-dispatch-source-acquisition.mjs';
+  const dispatch = readFileSync(new URL(dispatchPath, import.meta.url), 'utf8');
   const calls: CallExpression[] = [];
   function walk(node: unknown) {
     if (!node || typeof node !== 'object') return;
