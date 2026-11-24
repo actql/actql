@@ -22582,7 +22582,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -23141,7 +23141,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -27350,7 +27350,7 @@
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -28145,7 +28145,7 @@
                 "anchor": "pub fn client_program_prepare_published_effect_computation_with_parameters("
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -29514,7 +29514,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -29694,7 +29694,7 @@
                 "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "finally {release?.();}"
               },
               {
@@ -29846,7 +29846,7 @@
                 "anchor": "An unchanged complete row reuses its original request identity and"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               },
               {
@@ -30063,7 +30063,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
@@ -30840,7 +30840,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -31016,7 +31016,7 @@
                 "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "finally {release?.();}"
               },
               {
@@ -31168,7 +31168,7 @@
                 "anchor": "An unchanged complete row reuses its original request identity and"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               },
               {
@@ -32488,7 +32488,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
@@ -34237,7 +34237,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -34421,7 +34421,7 @@
                 "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "finally {release?.();}"
               },
               {
@@ -34577,7 +34577,7 @@
                 "anchor": "An unchanged complete row reuses its original request identity and"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               },
               {
@@ -34815,7 +34815,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
@@ -35645,7 +35645,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -35821,7 +35821,7 @@
                 "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "finally {release?.();}"
               },
               {
@@ -35973,7 +35973,7 @@
                 "anchor": "An unchanged complete row reuses its original request identity and"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               },
               {
@@ -36449,7 +36449,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -36629,7 +36629,7 @@
                 "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "finally {release?.();}"
               },
               {
@@ -36781,7 +36781,7 @@
                 "anchor": "An unchanged complete row reuses its original request identity and"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               },
               {
@@ -36999,7 +36999,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
@@ -39153,7 +39153,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -39333,7 +39333,7 @@
                 "anchor": "remain separate prerequisites, and an already recorded stop needs no repeated"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "finally {release?.();}"
               },
               {
@@ -39485,7 +39485,7 @@
                 "anchor": "An unchanged complete row reuses its original request identity and"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               },
               {
@@ -42738,7 +42738,7 @@
     {
       "module": "adapters/host-node/client-submission.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "53bf302e4583a464bcde465b90027ab2026ed2a4e5ac89a4a2cec46c8f5d83c1",
+      "sha256": "ceeff7134ea4415d9c00a44ac45e54fd40639cda1627515412944e04f0754bdf",
       "role": "physical-io",
       "owner": "Existing Client request/Run/submission Owners and same physical journal",
       "exports": [
@@ -42969,7 +42969,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "export function installNodeClientSubmission({journal, moon, authorizedScope,"
               },
               {
@@ -42989,8 +42989,8 @@
                 "anchor": "### Original short-query continuation"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}, request) {"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}: EpochOptions, request: Actor) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -43011,7 +43011,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "export function installNodeClientSubmission({journal, moon, authorizedScope,"
               },
               {
@@ -43031,11 +43031,11 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "admitPreparedSubmission"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const admissionCandidate = admitPreparedSubmission === undefined ? undefined :"
               },
               {
@@ -43045,7 +43045,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "validSubmissionName, validNamedSubmissionAttempt} from"
               },
               {
@@ -43065,7 +43065,7 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "return journal.issueSubmissionEpoch(scopeFields(await authorizedScope(snapshot(request))), moon);"
               },
               {
@@ -43087,8 +43087,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const withRestart = (outcome, retained) => retained.unresolvedHistory === undefined ? outcome"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "retained.unresolvedHistory === undefined ? outcome"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -43125,7 +43125,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "export function installNodeClientSubmission({journal, moon, authorizedScope,"
               },
               {
@@ -43141,7 +43141,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -43157,14 +43157,14 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const fail = code => {throw Object.assign(new Error(code), {code});};"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -43191,12 +43191,12 @@
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const retainPreparationRefusal = async (error, issuedCode) => {"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const retainPreparationRefusal = async (error: unknown, issuedCode?: string)"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "(error as Failure)?.cleanupPending === true || (error as Failure)?.cleanupHandle !== undefined) throw error;"
               },
               {
                 "path": "src/run_publication_host/client_submitted_intent.mbt",
@@ -43205,8 +43205,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const discloseOutcome = async (value, outcome, fields, retained, originalObservation) => {"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const discloseOutcome = async (value: Actor, outcome: Disclosed"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -43239,7 +43239,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "ClientProgramNeedsInputs: 'requirements', ClientProgramUnsupported: 'implementation_limit',"
               },
               {
@@ -43285,7 +43285,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "ClientProgramNeedsInputs: 'requirements', ClientProgramUnsupported: 'implementation_limit',"
               },
               {
@@ -43309,7 +43309,7 @@
                 "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const originalPreparationRefusal = refusalProperty !== undefined &&"
               }
             ],
@@ -43453,7 +43453,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               },
               {
@@ -43485,7 +43485,7 @@
                 "anchor": "Run/Effect reconciliation, current authorization and resource rules remain separate."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "finally {release?.();}"
               }
             ],
@@ -43513,7 +43513,7 @@
                 "anchor": "The old explicit-epoch submission response still requires its original exact"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "input = journal.prepareSubmittedIntent(value.submissionRef.epoch, wire, moon);"
               }
             ],
@@ -43545,8 +43545,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43555,8 +43555,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43565,8 +43565,8 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43575,8 +43575,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43585,8 +43585,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43595,8 +43595,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43605,8 +43605,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43615,8 +43615,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43625,8 +43625,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const preparedSubmission = (value, prepared) => preparationCustody === undefined"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined"
               },
               {
                 "path": "docs/design/local-capacity-plan.md",
@@ -43649,7 +43649,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "export function installNodeClientSubmission({journal, moon, authorizedScope,"
               },
               {
@@ -43669,8 +43669,8 @@
                 "anchor": "### Original short-query continuation"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}, request) {"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}: EpochOptions, request: Actor) {"
               },
               {
                 "path": "docs/design/reference-host.md",
@@ -43687,7 +43687,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "export function installNodeClientSubmission({journal, moon, authorizedScope,"
               },
               {
@@ -43707,17 +43707,17 @@
                 "anchor": "\"readOnly\": {\"const\": true}"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "admitPreparedSubmission"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const admissionCandidate = admitPreparedSubmission === undefined ? undefined :"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "validSubmissionName, validNamedSubmissionAttempt} from"
               },
               {
@@ -43737,7 +43737,7 @@
                 "anchor": "pub fn client_submitted_intent_cid("
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "return journal.issueSubmissionEpoch(scopeFields(await authorizedScope(snapshot(request))), moon);"
               },
               {
@@ -43755,8 +43755,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const withRestart = (outcome, retained) => retained.unresolvedHistory === undefined ? outcome"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "retained.unresolvedHistory === undefined ? outcome"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -43793,7 +43793,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "export function installNodeClientSubmission({journal, moon, authorizedScope,"
               },
               {
@@ -43809,7 +43809,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -43825,14 +43825,14 @@
                 "anchor": "One durable clock floor covers unchanged internal observations."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const fail = code => {throw Object.assign(new Error(code), {code});};"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};"
               },
               {
                 "path": "docs/spec/execution.md",
@@ -43859,18 +43859,18 @@
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const retainPreparationRefusal = async (error, issuedCode) => {"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const retainPreparationRefusal = async (error: unknown, issuedCode?: string)"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "(error as Failure)?.cleanupPending === true || (error as Failure)?.cleanupHandle !== undefined) throw error;"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "const discloseOutcome = async (value, outcome, fields, retained, originalObservation) => {"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "const discloseOutcome = async (value: Actor, outcome: Disclosed"
               },
               {
                 "path": "docs/design/portable-execution-boundary.md",
@@ -43903,7 +43903,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "ClientProgramNeedsInputs: 'requirements', ClientProgramUnsupported: 'implementation_limit',"
               },
               {
@@ -43949,7 +43949,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "ClientProgramNeedsInputs: 'requirements', ClientProgramUnsupported: 'implementation_limit',"
               },
               {
@@ -43973,7 +43973,7 @@
                 "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const originalPreparationRefusal = refusalProperty !== undefined &&"
               }
             ],

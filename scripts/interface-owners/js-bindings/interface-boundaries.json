@@ -56481,7 +56481,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -56695,7 +56695,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -56849,7 +56849,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -57005,7 +57005,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -57276,7 +57276,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -57739,7 +57739,7 @@
                 "anchor": "prepareResultPublication() {"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const admissionCandidate = admitPreparedSubmission === undefined ? undefined :"
               }
             ],
@@ -57781,7 +57781,7 @@
                 "anchor": "resultPublicationFlight = Promise.resolve().then(async () => {"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,"
               }
             ],
@@ -57795,8 +57795,8 @@
                 "anchor": "Result failed actual Store construction keeps original cleanup until the same Journal closes"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
-                "anchor": "error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;"
+                "path": "adapters/host-node/client-submission.mts",
+                "anchor": "(error as Failure)?.cleanupPending === true || (error as Failure)?.cleanupHandle !== undefined) throw error;"
               }
             ],
             "cancellation": [
@@ -57837,7 +57837,7 @@
                 "anchor": "legacy private Evidence key; a later key-dependent operation keeps its original"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const originalPreparationRefusal = refusalProperty !== undefined &&"
               }
             ],
@@ -60620,7 +60620,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -60834,7 +60834,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -61006,7 +61006,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -61558,7 +61558,7 @@
                 "anchor": "const observeStep = async promise => {"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -62799,7 +62799,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -64090,7 +64090,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -64244,7 +64244,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -64473,7 +64473,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -64631,7 +64631,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -64789,7 +64789,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -64946,7 +64946,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -65100,7 +65100,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -65254,7 +65254,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -67014,7 +67014,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -67395,7 +67395,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -68805,7 +68805,7 @@
                 "anchor": "const observeStep = async promise => {"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -70503,7 +70503,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -70747,7 +70747,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -70987,7 +70987,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -71227,7 +71227,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {

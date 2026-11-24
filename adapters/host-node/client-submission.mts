@@ -6,39 +6,112 @@ import {validSubmissionRef, validSubmissionOutcome, validSubmissionLookup,
   isClientSubmitRejection, validCheckOutcome, validOperationAttemptRef,
   validSubmissionName, validNamedSubmissionAttempt} from '../../packages/client-wire/index.mjs';
 
-const fail = code => {throw Object.assign(new Error(code), {code});};
-const classification = code => ({
+import type {WireCheckOutcome, WireClientBodyByOperation, WireConnection, WireNamedSubmissionAttempt, WireOperationAttemptRef,
+  WireRequestLookup, WireRunRef, WireSubmissionLookup, WireSubmissionOutcome, WireSubmissionRef,
+  WireSubmissionRestart, WireSubmitReply} from '../../packages/client-wire/index.js';
+import type {openClientRequestJournal} from './client-request-journal.mjs';
+import type {installLocalPreparationRegistry} from './local-preparation-registry.mjs';
+
+type RequestJournal = ReturnType<typeof openClientRequestJournal>;
+type Journal = Pick<RequestJournal, 'issueSubmissionEpoch' | 'retainSubmissionOperation' | 'prepareSubmittedIntent' |
+  'lookup' | 'checkSubmittedIntent' | 'recordSubmittedIntent' | 'lookupSubmittedIntent' | 'completeSubmittedIntent' |
+  'verifySubmissionEpoch' | 'submissionIdentity' | 'checkSubmissionAttempt' | 'recordSubmissionAttempt' |
+  'resolveNamedSubmissionAttempt'>;
+type Core = Parameters<Journal['recordSubmittedIntent']>[3] & Parameters<Journal['lookup']>[1] &
+  Parameters<Journal['prepareSubmittedIntent']>[2] & Parameters<Journal['retainSubmissionOperation']>[1];
+type Retained = NonNullable<ReturnType<Journal['lookupSubmittedIntent']>>;
+type Scope = Readonly<{authorityScopeCid: string; namespaceId: string; currentAuthorization: true}>;
+type ScopeCandidate = Readonly<{authorityScopeCid?: unknown; namespaceId?: unknown}> | undefined;
+type Actor = Readonly<{principalId: string; connection: WireConnection}>;
+type LookupRequest = Readonly<Actor & WireClientBodyByOperation['lookup-submission']>;
+type Intent = WireClientBodyByOperation['submit-intent'];
+type SubmitRequest = Readonly<Actor & Intent & Partial<Pick<WireClientBodyByOperation['submit-named-intent'],
+  'stopBefore' | 'readOnly'>> & Partial<Pick<WireClientBodyByOperation['restart-intent'], 'unresolvedHistory'>>>;
+type AttemptRequest = SubmitRequest & Readonly<{attemptRef: WireOperationAttemptRef}>;
+type NamedRequest = Readonly<Actor & WireClientBodyByOperation['submit-named-intent']>;
+type PrepareRequest = SubmitRequest & Readonly<{requestId: string}>;
+type Submission = PrepareRequest & Readonly<{preparedProgram: unknown;
+  submission?: WireSubmissionRef & Readonly<{intentCid: string; currentAuthorization: boolean}>}>;
+type MaybePromise<Result> = Result | PromiseLike<Result>;
+type SelectedScope = (request: Actor) => MaybePromise<ScopeCandidate>;
+type EpochOptions = Readonly<{journal: Pick<Journal, 'issueSubmissionEpoch'>;
+  moon: Parameters<Journal['issueSubmissionEpoch']>[1]; authorizedScope: SelectedScope}>;
+type Custody = Pick<ReturnType<typeof installLocalPreparationRegistry>,
+  'copy' | 'read' | 'attach' | 'capture' | 'adopt' | 'finishHandler'>;
+type Prepare = ((request: PrepareRequest) => MaybePromise<object>) &
+  Readonly<{assertSubmittedIntent?(prepared: unknown, intent: unknown): unknown}>;
+type PreparationCheck = Readonly<Actor & {kind: 'program' | 'text'; scope: 'bound_input';
+  input: SubmitRequest['input']; parameters: unknown}>;
+type Installation = Readonly<EpochOptions & {journal: Journal; moon: Core; prepareSubmit: Prepare;
+  submit(request: Submission): MaybePromise<WireSubmitReply>;
+  lookupRequest(request: Actor & Readonly<{requestId: string}>): MaybePromise<WireRequestLookup>;
+  checkSubmissionInput?(request: PreparationCheck): MaybePromise<WireCheckOutcome | undefined>;
+  observeOriginalPreparationFailure?(failure: unknown, request: SubmitRequest): MaybePromise<unknown>;
+  bindOwnedRequest?(parent: object, derived: object): unknown;
+  admitPreparedSubmission?(request: Submission | undefined): unknown;
+  preparationCustody?: Custody;
+  submittedIntentOriginal?(request: Actor): unknown;
+}>;
+type AttemptFields = Scope & Readonly<{actorId: string; unresolvedHistory?: WireSubmissionRestart}>;
+type RecordFields = AttemptFields & Readonly<{phase?: string; outcome?: WireSubmissionOutcome}>;
+type Attempt = Readonly<{fields: Scope;
+  observe(retained: Retained | undefined): void;
+  check(ref: WireSubmissionRef, intent: unknown, options: AttemptFields): void;
+  record(ref: WireSubmissionRef, intent: unknown, options: RecordFields): Retained;
+}>;
+type AttemptResult = ReturnType<Journal['recordSubmissionAttempt']>;
+type AttemptWithSubmission = Extract<AttemptResult, {submission: unknown}>;
+type RecordedAttempt = AttemptWithSubmission & Readonly<{submission: Retained}>;
+type ObservedAttempt = Readonly<{kind: 'recorded' | 'already_satisfied'; attemptRef: WireOperationAttemptRef;
+  outcome: WireSubmissionLookup}>;
+type SubmissionService = Readonly<{
+  submitIntent(request: SubmitRequest): Promise<WireSubmissionLookup>;
+  submitAttempt(request: AttemptRequest): Promise<AttemptResult | ObservedAttempt>;
+  submitNamedAttempt(request: NamedRequest): Promise<WireNamedSubmissionAttempt>;
+  lookupSubmission(request: LookupRequest): Promise<WireSubmissionLookup>;
+  issueEpoch(request: Actor): Promise<ReturnType<Journal['issueSubmissionEpoch']>>;
+}>;
+type Ready = Extract<WireSubmissionOutcome, {kind: 'ready'}>;
+type Disclosed = WireSubmissionLookup & Readonly<{checkObservation?: WireCheckOutcome}>;
+type ProblemOutcome = Extract<WireSubmissionOutcome, {kind: 'not_accepted' | 'preparation_failed'}>;
+type RunKey = keyof WireRunRef;
+type Failure = Readonly<{code?: string; cleanupPending?: unknown; cleanupHandle?: unknown}> | null | undefined;
+type Report = Extract<WireCheckOutcome, {outcome: 'completed'}>['report'];
+type ReportFields = Readonly<{report?: Report; partial_report?: Report}>;
+
+const fail: (code: string) => never = code => {throw Object.assign(new Error(code), {code});};
+const classification = (code?: string): ProblemOutcome['problem']['classification'] => ({
   ClientProgramInvalidInput: 'invalid_input', ClientParametersInvalid: 'invalid_input',
   ClientProgramNeedsInputs: 'requirements', ClientProgramUnsupported: 'implementation_limit',
   ClientParametersTooLarge: 'implementation_limit', ClientProgramAnalysisLimit: 'implementation_limit',
   ClientProgramImplementationLimit: 'implementation_limit', ClientProgramRejected: 'operation_failed',
-})[code] ?? 'operation_failed';
-const immutable = value => {
+} as Readonly<Partial<Record<string, ProblemOutcome['problem']['classification']>>>)[code!] ?? 'operation_failed';
+const immutable = <Value,>(value: Value): Value => {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) immutable(child);
     Object.freeze(value);
   }
   return value;
 };
-const scopeFields = selected => {
+const scopeFields = (selected: ScopeCandidate): Scope => {
   const authorityScopeCid = selected?.authorityScopeCid;
   const namespaceId = selected?.namespaceId;
   if (typeof authorityScopeCid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(authorityScopeCid) ||
       typeof namespaceId !== 'string' || !namespaceId) fail('ClientRequestLookupDenied');
   return {authorityScopeCid, namespaceId, currentAuthorization: true};
 };
-const snapshot = value => immutable(JSON.parse(canonicalJson(value, {dataKeys: true})));
+const snapshot = <Value extends Actor>(value: Value): Value => immutable(JSON.parse(canonicalJson(value, {dataKeys: true})) as Value);
 
 // The same Journal-owned epoch operation is available before optional Result
 // and Model services are constructed. This issues no Run, Account or Store
 // permission and keeps the original authenticated scope and packet snapshot.
-export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}, request) {
+export async function issueNodeClientSubmissionEpoch({journal, moon, authorizedScope}: EpochOptions, request: Actor) {
   return journal.issueSubmissionEpoch(scopeFields(await authorizedScope(snapshot(request))), moon);
 }
 
 export function installNodeClientSubmission({journal, moon, authorizedScope,
   prepareSubmit, submit, lookupRequest, checkSubmissionInput, observeOriginalPreparationFailure,
-  bindOwnedRequest, admitPreparedSubmission, preparationCustody, submittedIntentOriginal}) {
+  bindOwnedRequest, admitPreparedSubmission, preparationCustody, submittedIntentOriginal}: Installation): SubmissionService {
   if (typeof journal?.recordSubmittedIntent !== 'function' ||
       typeof journal?.checkSubmittedIntent !== 'function' ||
       typeof moon?.clientSubmittedIntent !== 'function' ||
@@ -50,14 +123,14 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       submittedIntentOriginal !== undefined && typeof submittedIntentOriginal !== 'function') {
     throw new TypeError('InvalidClientSubmissionInstallation');
   }
-  const copyRequest = (value, changes) => preparationCustody === undefined
-    ? {...value, ...changes} : preparationCustody.copy(value, changes);
-  const preparedValue = value => preparationCustody === undefined ? value : preparationCustody.read(value);
-  const preparedSubmission = (value, prepared) => preparationCustody === undefined
+  const copyRequest = <Value extends Actor, Changes extends Readonly<Record<string, unknown>>>(value: Value, changes: Changes): Value & Changes => preparationCustody === undefined
+    ? {...value, ...changes} : preparationCustody.copy(value, changes) as Value & Changes;
+  const preparedValue = (value: unknown) => preparationCustody === undefined ? value : preparationCustody.read(value);
+  const preparedSubmission = (value: PrepareRequest, prepared: unknown): Submission => preparationCustody === undefined
     ? {...value, preparedProgram: prepared}
     : preparationCustody.attach(value, prepared);
-  const flights = new Map();
-  const ownedSnapshots = new WeakSet();
+  const flights = new Map<string, Promise<WireSubmissionLookup>>();
+  const ownedSnapshots = new WeakSet<object>();
   // The installed callback and its own original projection are one port.
   // A public-looking code, inherited method or later property replacement is
   // not the Host's retained same-call preparation refusal.
@@ -66,22 +139,22 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
   const originalPreparationRefusal = refusalProperty !== undefined &&
       Object.hasOwn(refusalProperty, 'value') && typeof refusalProperty.value === 'function'
     ? refusalProperty.value : undefined;
-  const authorize = async value => scopeFields(await authorizedScope(value));
-  const own = (parent, derived) => {
+  const authorize = async (value: Actor) => scopeFields(await authorizedScope(value));
+  const own = <Value extends object>(parent: object, derived: Value): Value => {
     if (bindOwnedRequest !== undefined && bindOwnedRequest(parent, derived) !== undefined) {
       fail('SourceManagedPreparationUnavailable');
     }
     return derived;
   };
-  const captureSnapshot = (value, bind = true) => {
+  const captureSnapshot = <Value extends Actor>(value: Value, bind = true): Value => {
     const raw = snapshot(value);
     const selected = preparationCustody === undefined ? raw : preparationCustody.capture(raw);
     const captured = bind ? own(value, selected) : selected;
     ownedSnapshots.add(captured);
-    return captured;
+    return captured as Value;
   };
-  const ownedSnapshot = value => ownedSnapshots.has(value) ? value : captureSnapshot(value);
-  const operation = (action, bind = true) => async request => {
+  const ownedSnapshot = <Value extends Actor>(value: Value): Value => ownedSnapshots.has(value) ? value : captureSnapshot(value);
+  const operation = <Value extends LookupRequest, Result>(action: (value: Value) => MaybePromise<Result>, bind = true) => async (request: Value) => {
     const value = captureSnapshot(request, bind);
     let release;
     try {
@@ -94,7 +167,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       try {release?.();} finally {preparationCustody?.finishHandler(value);}
     }
   };
-  const prepareOwned = (value, requestId) => {
+  const prepareOwned = (value: SubmitRequest, requestId: string) => {
     const request = own(value, copyRequest(value, {requestId}));
     const prepared = prepareSubmit(request);
     // Preserve the unselected caller's original single await. Only the
@@ -107,38 +180,40 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         return preparationCustody === undefined ? original : preparationCustody.adopt(original, request);
       });
   };
-  const unresolved = (submissionRef, code = 'submission_history_unresolvable') =>
-    immutable({kind: 'unresolvable', submissionRef, problem: {code}});
-  const withRestart = (outcome, retained) => retained.unresolvedHistory === undefined ? outcome
+  const unresolved = (submissionRef: WireSubmissionRef,
+    code: Extract<WireSubmissionLookup, {kind: 'unresolvable'}>['problem']['code'] = 'submission_history_unresolvable') =>
+    immutable({kind: 'unresolvable' as const, submissionRef, problem: {code}});
+  const withRestart = <Value extends WireSubmissionLookup>(outcome: Value, retained: Retained): Value => retained.unresolvedHistory === undefined ? outcome
     : immutable({...outcome, unresolvedHistory: {
       submissionRef: retained.unresolvedHistory.submissionRef,
       acknowledgement: retained.unresolvedHistory.acknowledgement}});
-  const storedOutcome = retained => withRestart(retained.outcome ?? immutable({kind: 'preparing',
+  const storedOutcome = (retained: Retained): WireSubmissionLookup => withRestart(retained.outcome ?? immutable({kind: 'preparing' as const,
     submissionRef: retained.submissionRef, intentCid: retained.intentCid}), retained);
   // Match the existing SDK observation input contract. Other Source formats
   // retain their actual preparation outcome without an unsupported report.
-  const supportsCheckObservation = intent => intent.kind === 'program' ||
-    intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format);
-  const discloseOutcome = async (value, outcome, fields, retained, originalObservation) => {
+  const supportsCheckObservation = (intent: Pick<SubmitRequest, 'kind' | 'input'>) => intent.kind === 'program' ||
+    intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes((intent.input as Extract<WireClientBodyByOperation['submit'], {kind: 'aql'}>['input']).format);
+  const discloseOutcome = async (value: Actor, outcome: Disclosed & {problem?: Readonly<{code: string}>},
+    fields: Scope, retained: Pick<Retained, 'intentWire'>, originalObservation?: WireCheckOutcome | null): Promise<Disclosed> => {
     if (!['not_accepted', 'preparation_failed'].includes(outcome.kind)) return outcome;
-    const projectsProblem = outcome.problem.code === 'ClientProgramInvalidInput' ||
-      outcome.problem.code === 'ClientProgramParameterUndeclared' ||
-      outcome.problem.code === 'ClientProgramTimestampPatternInvalid' ||
-      outcome.problem.code === 'ClientProgramAggregateOrderRequired' ||
-      outcome.problem.code === 'ClientProgramOrderUnresolved' ||
-      outcome.problem.code === 'ClientSuppliedParameterUndeclared' ||
-      outcome.problem.code === 'ClientProgramAnalysisLimit' ||
-      outcome.problem.code === 'ClientProgramImplementationLimit';
+    const projectsProblem = outcome.problem!.code === 'ClientProgramInvalidInput' ||
+      outcome.problem!.code === 'ClientProgramParameterUndeclared' ||
+      outcome.problem!.code === 'ClientProgramTimestampPatternInvalid' ||
+      outcome.problem!.code === 'ClientProgramAggregateOrderRequired' ||
+      outcome.problem!.code === 'ClientProgramOrderUnresolved' ||
+      outcome.problem!.code === 'ClientSuppliedParameterUndeclared' ||
+      outcome.problem!.code === 'ClientProgramAnalysisLimit' ||
+      outcome.problem!.code === 'ClientProgramImplementationLimit';
     if (!projectsProblem && originalObservation === undefined) return outcome;
     // The durable problem describes the original preparation, not a new check.
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
-    const intent = immutable(JSON.parse(retained.intentWire));
+    const intent = immutable(JSON.parse(retained.intentWire) as Intent);
     if (!supportsCheckObservation(intent)) {
       if (originalObservation !== undefined) {
         const current = await authorize(value);
-        if (current.authorityScopeCid !== fields.authorityScopeCid ||
-            current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+        if (current.authorityScopeCid !== (fields as Scope).authorityScopeCid ||
+            current.namespaceId !== (fields as Scope).namespaceId) fail('ClientRequestLookupDenied');
       }
       return outcome;
     }
@@ -152,22 +227,22 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         !projectsProblem ? undefined : await checkSubmissionInput?.({principalId: value.principalId,
         connection: value.connection, kind: intent.kind === 'program' ? 'program' : 'text',
         scope: 'bound_input', input: intent.input, parameters: intent.parameters});
-      const observed = report?.report ?? report?.partial_report;
+      const observed = (report as ReportFields | null | undefined)?.report ?? (report as ReportFields | null | undefined)?.partial_report;
       disclosable = !projectsProblem || validCheckOutcome(report) && (
-        outcome.problem.code === 'ClientProgramInvalidInput' ||
-        outcome.problem.code === 'ClientProgramParameterUndeclared' ||
-        outcome.problem.code === 'ClientProgramTimestampPatternInvalid' ||
-        outcome.problem.code === 'ClientProgramAggregateOrderRequired' ||
-        outcome.problem.code === 'ClientProgramOrderUnresolved' ||
-        outcome.problem.code === 'ClientSuppliedParameterUndeclared'
+        outcome.problem!.code === 'ClientProgramInvalidInput' ||
+        outcome.problem!.code === 'ClientProgramParameterUndeclared' ||
+        outcome.problem!.code === 'ClientProgramTimestampPatternInvalid' ||
+        outcome.problem!.code === 'ClientProgramAggregateOrderRequired' ||
+        outcome.problem!.code === 'ClientProgramOrderUnresolved' ||
+        outcome.problem!.code === 'ClientSuppliedParameterUndeclared'
         ? observed?.scope.kind === 'bound_input' && observed.verdict === 'invalid'
         : observed?.scope.kind === 'bound_input' && observed.coverage.limits.some(
-          limit => limit.code === (outcome.problem.code === 'ClientProgramAnalysisLimit'
+          limit => limit.code === (outcome.problem!.code === 'ClientProgramAnalysisLimit'
             ? 'analysis_budget_exhausted' : 'implementation_limit')));
       // A protected Program dependency can change preparation's coarse cause.
       // Keep the original operation terminal, but do not reveal that private
       // distinction through its Problem even when independent input facts exist.
-      if (projectsProblem && intent.kind === 'program' && observed?.coverage.unresolved.length > 0) disclosable = false;
+      if (projectsProblem && intent.kind === 'program' && observed?.coverage.unresolved.length! > 0) disclosable = false;
     } catch {
       // A failed reporting attempt neither changes acceptance nor establishes
       // disclosure. No error text or HTTP status supplies a check verdict.
@@ -176,19 +251,19 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (current.authorityScopeCid !== fields.authorityScopeCid ||
         current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
     const projected = disclosable ? outcome : {...outcome,
-      problem: {code: 'ClientProgramRejected', classification: 'operation_failed'}};
+      problem: {code: 'ClientProgramRejected' as const, classification: 'operation_failed' as const}};
     // This separate current disclosure check can gate the stored Problem,
     // but is never the original preparation's transient CheckOutcome.
-    return immutable(projected);
+    return immutable(projected) as Disclosed;
   };
-  const refresh = async (value, retained, fields) => {
+  const refresh = async (value: Actor, retained: Retained, fields: Scope): Promise<WireSubmissionLookup> => {
     if (['not_accepted', 'preparation_failed'].includes(retained.phase)) return storedOutcome(retained);
     const found = await lookupRequest(copyRequest(value, {requestId: retained.requestId}));
     // Revalidate current authority after the async lookup before changing facts.
     const current = await authorize(value);
     if (current.authorityScopeCid !== fields.authorityScopeCid ||
         current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
-    let outcome;
+    let outcome: WireSubmissionOutcome;
     if (found.kind === 'found') {
       // Public request lookup names the Run but carries no control revision.
       // Obtain that fact from the same authorized journal record, never invent
@@ -196,7 +271,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       const admitted = journal.lookup({namespaceId: current.namespaceId,
         authorityScopeCid: current.authorityScopeCid, requestId: retained.requestId}, moon);
       if (admitted === undefined || ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
-        .some(key => admitted.ref[key] !== found.ref[key])) return unresolved(retained.submissionRef);
+        .some(key => admitted.ref[key as RunKey] !== found.ref[key as RunKey])) return unresolved(retained.submissionRef);
       if (retained.phase === 'ready') return storedOutcome(retained);
       outcome = {kind: 'ready', submissionRef: retained.submissionRef,
         intentCid: retained.intentCid, admission: {ref: admitted.ref,
@@ -211,7 +286,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       {...current, connection: value.connection, expectedRevision: retained.revision}, moon);
     return storedOutcome(updated);
   };
-  const lookupSubmission = async request => {
+  const lookupSubmission = async (request: LookupRequest): Promise<WireSubmissionLookup> => {
     const value = ownedSnapshot(request);
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
     const fields = await authorize(value);
@@ -219,7 +294,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     try {retained = journal.lookupSubmittedIntent(value.submissionRef, fields, moon);}
     catch (error) {
       if (['ClientSubmittedIntentCorrupt', 'ClientSubmissionEpochCustodyLost',
-        'ClientSubmissionRestartCorrupt', 'ClientSubmissionRestartCustodyLost'].includes(error?.code)) {
+        'ClientSubmissionRestartCorrupt', 'ClientSubmissionRestartCustodyLost'].includes((error as Failure)?.code!)) {
         return unresolved(value.submissionRef);
       }
       throw error;
@@ -230,7 +305,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (!validSubmissionLookup(result, value.connection, value.submissionRef)) fail('InvalidClientHostSubmissionLookup');
     return result;
   };
-  const assertOriginalPreparation = (prepared, input, value) => {
+  const assertOriginalPreparation = (prepared: unknown, input: unknown, value: SubmitRequest) => {
     if (typeof prepareSubmit.assertSubmittedIntent === 'function') {
       prepareSubmit.assertSubmittedIntent(preparedValue(prepared), input);
     } else if (Object.hasOwn(value, 'readOnly') || Object.hasOwn(value, 'executionProfile')) {
@@ -239,7 +314,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       fail('ClientProgramUnsupported');
     }
   };
-  const replayReady = async (value, retained, fields, original, input) => {
+  const replayReady = async (value: SubmitRequest, retained: Retained, fields: Scope, original: Ready, input: unknown): Promise<Ready> => {
     const requestId = retained.requestId;
     if (flights.has(requestId)) return original;
     // A ready receipt establishes acceptance, not physical dispatch. Only
@@ -251,7 +326,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         assertOriginalPreparation(preparedProgram, input, value);
       }
       catch (error) {
-        if (!isClientSubmitRejection(error?.code)) throw error;
+        if (!isClientSubmitRejection((error as Failure)?.code)) throw error;
         // Current execution support cannot replace an already accepted intent.
         // Re-read through the same authorized owner after the awaited failure:
         // lost authority or custody is not permission to return a stale receipt.
@@ -259,7 +334,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         if (observed.kind !== 'ready') fail('ClientSubmissionUnresolvable');
         if (observed.intentCid !== original.intentCid ||
             ['namespaceId', 'authorityScopeCid', 'runDefinitionCid'].some(
-              key => observed.admission.ref[key] !== original.admission.ref[key])) {
+              key => observed.admission.ref[key as RunKey] !== original.admission.ref[key as RunKey])) {
           fail('InvalidClientHostSubmissionOutcome');
         }
         return observed;
@@ -273,8 +348,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       const observed = await authorize(value);
       if (observed.authorityScopeCid !== fields.authorityScopeCid ||
           observed.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
-      if (reply.kind === 'held' || ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
-        .some(key => reply.ref?.[key] !== original.admission.ref[key])) {
+      if ((reply as Partial<Extract<WireSubmitReply, {kind: 'held'}>>).kind === 'held' || ['namespaceId', 'authorityScopeCid', 'runDefinitionCid']
+        .some(key => (reply as Partial<WireSubmitReply & {ref: WireRunRef}>).ref?.[key as RunKey] !== original.admission.ref[key as RunKey])) {
         fail('InvalidClientHostSubmissionOutcome');
       }
       // Dispatch revalidation cannot replace an immutable acceptance receipt,
@@ -284,7 +359,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     flights.set(requestId, flight);
     return await flight;
   };
-  const submittedInput = value => {
+  const submittedInput = (value: SubmitRequest) => {
     const original = submittedIntentOriginal?.(value);
     if (original !== undefined) {
       if (moon.clientSubmittedIntentCid(original) !== value.intentCid) fail('InvalidClientSubmittedIntent');
@@ -314,7 +389,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     }
     return input;
   };
-  const submitIntent = async (request, attempt) => {
+  const submitIntent = async (request: SubmitRequest, attempt?: Attempt): Promise<WireSubmissionLookup> => {
     const value = ownedSnapshot(request);
     if (!validSubmissionRef(value.submissionRef)) fail('InvalidClientRequest');
     const fields = attempt?.fields ?? await authorize(value);
@@ -322,14 +397,14 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     // The Host supplies principalId after authentication. Client data cannot
     // substitute another actor for this explicit decision. Check through the
     // same journal owner before preparation and at atomic receipt acceptance.
-    const restartFields = current => ({...current, actorId: value.principalId,
+    const restartFields = (current: Scope): AttemptFields => ({...current, actorId: value.principalId,
       unresolvedHistory: value.unresolvedHistory});
     if (attempt === undefined) journal.checkSubmittedIntent(value.submissionRef, input, restartFields(fields), moon);
     else attempt.check(value.submissionRef, input, restartFields(fields));
     let retained = journal.lookupSubmittedIntent(value.submissionRef, fields, moon, input);
     attempt?.observe(retained);
     if (retained !== undefined) {
-      if (!['conflict', 'recorded', 'already_satisfied'].includes(retained.observation)) {
+      if (!['conflict', 'recorded', 'already_satisfied'].includes(retained.observation!)) {
         fail('ClientSubmittedIntentCorrupt');
       }
       if (retained.observation === 'conflict') fail('ClientSubmittedIntentConflict');
@@ -349,11 +424,11 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (flights.has(requestId)) {
       // The original in-process operation owns preparation. Observation never
       // starts another preparation merely to wait for its response.
-      return storedOutcome(journal.lookupSubmittedIntent(value.submissionRef, fields, moon));
+      return storedOutcome(journal.lookupSubmittedIntent(value.submissionRef, fields, moon)!);
     }
-    const retainPreparationRefusal = async (error, issuedCode) => {
+    const retainPreparationRefusal = async (error: unknown, issuedCode?: string): Promise<WireSubmissionLookup> => {
       const originalCode = requestProgramPreparationProblemCode(error);
-      const originalRefusalCode = requestProgramPreparationRefusalCode(error) ?? error?.code;
+      const originalRefusalCode = requestProgramPreparationRefusalCode(error) ?? (error as Failure)?.code;
       if (!isClientSubmitRejection(issuedCode ?? originalRefusalCode)) throw error;
       const kind = retained === undefined ? 'not_accepted' : 'preparation_failed';
       const current = await authorize(value);
@@ -381,8 +456,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
           checkObservation.report.scope.kind === 'bound_input' &&
           checkObservation.report.verdict === 'invalid'
         ? 'ClientProgramInvalidInput' : code;
-      const candidate = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
-        problem: {code: originalCode ?? problemCode,
+      const candidate: ProblemOutcome = {kind, submissionRef: value.submissionRef, intentCid: value.intentCid,
+        problem: {code: (originalCode ?? problemCode)! as ProblemOutcome['problem']['code'],
           classification: classification(originalCode === undefined ? problemCode : originalRefusalCode)}};
       const projected = await discloseOutcome(value, candidate, current,
         {intentWire: moon.clientSubmittedIntentWire(input)}, checkObservation);
@@ -390,8 +465,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       void transientObservation;
       const result = retained === undefined
         ? (attempt === undefined ? journal.recordSubmittedIntent(value.submissionRef, input,
-          {...restartFields(current), phase: kind, outcome}, moon)
-          : attempt.record(value.submissionRef, input, {...restartFields(current), phase: kind, outcome}))
+          {...restartFields(current), phase: kind, outcome: outcome as WireSubmissionOutcome}, moon)
+          : attempt.record(value.submissionRef, input, {...restartFields(current), phase: kind, outcome: outcome as WireSubmissionOutcome}))
         : journal.completeSubmittedIntent(value.submissionRef, outcome,
           {...current, connection: value.connection, expectedRevision: retained.revision}, moon);
       // The durable write is an actual external boundary. Re-project the SAME
@@ -421,7 +496,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       if (originalPreparationRefusal === undefined ||
           Reflect.apply(originalPreparationRefusal, admitPreparedSubmission,
             [error, admissionCandidate]) !== true ||
-          error?.cleanupPending === true || error?.cleanupHandle !== undefined) throw error;
+          (error as Failure)?.cleanupPending === true || (error as Failure)?.cleanupHandle !== undefined) throw error;
       // The installed holder recognizes only its original pure Unsupported,
       // before any Resource/start duty. Do not re-read a mutable error code to
       // replace that issued fact; the old preparation catch remains unchanged.
@@ -441,25 +516,25 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         const reply = await submit(own(value, preparedSubmission(copyRequest(value, {requestId,
           submission: {epoch: value.submissionRef.epoch, nonce: value.submissionRef.nonce,
             intentCid: value.intentCid, currentAuthorization: true}}), preparedProgram)));
-        const outcome = reply.kind === 'held'
+        const outcome: WireSubmissionOutcome = (reply as Partial<Extract<WireSubmitReply, {kind: 'held'}>>).kind === 'held'
           ? {kind: 'held', submissionRef: value.submissionRef, intentCid: value.intentCid,
-            held: {...reply, requestId: value.submissionRef.nonce}}
-          : {kind: 'ready', submissionRef: value.submissionRef, intentCid: value.intentCid, admission: reply};
+            held: {...reply as Extract<WireSubmitReply, {kind: 'held'}>, requestId: value.submissionRef.nonce}}
+          : {kind: 'ready', submissionRef: value.submissionRef, intentCid: value.intentCid, admission: reply as Ready['admission']};
         const current = await authorize(value);
         return storedOutcome(journal.completeSubmittedIntent(value.submissionRef, outcome,
-          {...current, connection: value.connection, expectedRevision: retained.revision}, moon));
+          {...current, connection: value.connection, expectedRevision: retained!.revision}, moon));
       } catch (error) {
         // A throw may follow a successful Run COMMIT. Look up that original
         // record before considering a typed preparation refusal.
-        const found = await refresh(value, retained, current);
+        const found = await refresh(value, retained!, current);
         if (found.kind !== 'preparing') return found;
         const originalCode = requestProgramPreparationProblemCode(error);
-        const refusalCode = requestProgramPreparationRefusalCode(error) ?? error?.code;
+        const refusalCode = requestProgramPreparationRefusalCode(error) ?? (error as Failure)?.code;
         if (!isClientSubmitRejection(refusalCode)) throw error;
-        const outcome = {kind: 'preparation_failed', submissionRef: value.submissionRef,
-          intentCid: value.intentCid, problem: {code: originalCode ?? refusalCode, classification: classification(refusalCode)}};
+        const outcome: ProblemOutcome = {kind: 'preparation_failed', submissionRef: value.submissionRef,
+          intentCid: value.intentCid, problem: {code: (originalCode ?? refusalCode)! as ProblemOutcome['problem']['code'], classification: classification(refusalCode)}};
         return storedOutcome(journal.completeSubmittedIntent(value.submissionRef, outcome,
-          {...await authorize(value), connection: value.connection, expectedRevision: retained.revision}, moon));
+          {...await authorize(value), connection: value.connection, expectedRevision: retained!.revision}, moon));
       }
     })().finally(() => {if (flights.get(requestId) === flight) flights.delete(requestId);});
     flights.set(requestId, flight);
@@ -470,7 +545,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     }
     return await discloseOutcome(value, result, current, retained);
   };
-  const submitAttempt = async request => {
+  const submitAttempt = async (request: AttemptRequest) => {
     const value = ownedSnapshot(request);
     if (!validSubmissionRef(value.submissionRef) || !validOperationAttemptRef(value.attemptRef) ||
         value.attemptRef.operation !== 'submit') fail('InvalidClientSubmissionAttempt');
@@ -478,9 +553,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     if (selected === undefined) return journal.checkSubmissionAttempt(value.submissionRef,
       undefined, {attemptRef: value.attemptRef, currentAuthorization: false}, moon);
     const fields = scopeFields(selected);
-    const rejections = new WeakMap();
-    let attemptKind = 'recorded';
-    const project = result => {
+    const rejections = new WeakMap<Error, AttemptResult>();
+    let attemptKind: ObservedAttempt['kind'] = 'recorded';
+    const project = (result: AttemptResult): AttemptResult => {
       if (['refused', 'conflict'].includes(result.kind)) {
         const interruption = new Error('SubmissionAttemptRejected');
         rejections.set(interruption, result);
@@ -499,8 +574,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         },
         record(ref, input, options) {
           const result = project(journal.recordSubmissionAttempt(ref, input,
-            {...options, attemptRef: value.attemptRef}, moon));
-          if (!['recorded', 'already_satisfied'].includes(result.attemptKind)) {
+            {...options, attemptRef: value.attemptRef}, moon)) as RecordedAttempt;
+          if (!['recorded', 'already_satisfied'].includes(result.attemptKind as string)) {
             fail('ClientSubmittedIntentCorrupt');
           }
           if (result.attemptKind === 'already_satisfied') attemptKind = result.attemptKind;
@@ -513,12 +588,12 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       // Only the exact private Owner projection can terminate this invocation
       // as Refused or Conflict. Preparation, dispatch and COMMIT exceptions
       // retain their unknown-outcome handling, whatever their error code.
-      const rejected = rejections.get(error);
+      const rejected = rejections.get(error as Error);
       if (rejected === undefined) throw error;
       return immutable(rejected);
     }
   };
-  const submitNamedAttempt = async request => {
+  const submitNamedAttempt = async (request: NamedRequest) => {
     const value = ownedSnapshot(request);
     if (!validSubmissionName(value.requestName) || !validSubmissionRef(value.submissionRef) ||
         !validOperationAttemptRef(value.attemptRef) || value.attemptRef.operation !== 'submit') {
@@ -526,7 +601,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     }
     if (typeof journal.resolveNamedSubmissionAttempt !== 'function') fail('ClientOperationUnavailable');
     const selected = await authorizedScope(value);
-    const fields = selected === undefined ? {currentAuthorization: false} : scopeFields(selected);
+    const fields = selected === undefined ? {currentAuthorization: false as const} : scopeFields(selected);
     const input = selected === undefined ? undefined : submittedInput(value);
     const resolution = journal.resolveNamedSubmissionAttempt(value.requestName, input,
       {...fields, actorId: value.principalId, submissionRef: value.submissionRef,
@@ -538,9 +613,9 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
       // Only the same Journal's nominal, confirmed rollback/initial refusal
       // path can issue this projection. Error text never certifies nonacceptance.
       answer = {...original, kind: resolution.kind, reason: resolution.reason,
-        ...(resolution.kind === 'refused' ? {guarantee: resolution.guarantee} : {})};
+        ...(resolution.kind === 'refused' ? {guarantee: (resolution as {guarantee: string}).guarantee} : {})};
     } else {
-      const retained = resolution.submission;
+      const retained = (resolution as RecordedAttempt & Readonly<{submission: {inserted: boolean}}>).submission;
       const bound = Object.freeze(own(value, copyRequest(value, {submissionRef: retained.submissionRef})));
       ownedSnapshots.add(bound);
       // The original name and intent are already committed before preparation.
@@ -555,8 +630,8 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
         ownedSnapshots.add(lookup);
         const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);
         const current = await authorize(value);
-        if (current.authorityScopeCid !== fields.authorityScopeCid ||
-            current.namespaceId !== fields.namespaceId) fail('ClientRequestLookupDenied');
+        if (current.authorityScopeCid !== (fields as Scope).authorityScopeCid ||
+            current.namespaceId !== (fields as Scope).namespaceId) fail('ClientRequestLookupDenied');
         answer = {...original, kind: 'observed', outcome};
       } finally {release?.();}
     }
@@ -566,5 +641,5 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
   };
   return Object.freeze({submitIntent: operation(submitIntent), submitAttempt: operation(submitAttempt),
     submitNamedAttempt: operation(submitNamedAttempt), lookupSubmission: operation(lookupSubmission, false),
-    issueEpoch(request) {return issueNodeClientSubmissionEpoch({journal,moon,authorizedScope},request);}});
+    issueEpoch(request: Actor) {return issueNodeClientSubmissionEpoch({journal,moon,authorizedScope},request);}});
 }

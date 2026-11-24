@@ -75,6 +75,12 @@ type SubmissionRows = ReturnType<typeof createJournalSubmissionRows>;
 type SubmissionMethods = SubmissionRows['methods'];
 type Attempts = ReturnType<typeof createJournalAttempts>;
 type AttemptOptions = Parameters<Attempts['submissionAttempt']>[2];
+type UnauthorizedSubmissionAttempt = AttemptOptions & Readonly<{currentAuthorization: false}>;
+type AuthorizedSubmissionCheck = Parameters<SubmissionMethods['checkSubmittedIntent']>[2] & AttemptOptions;
+type SubmissionCheckOptions = AuthorizedSubmissionCheck | UnauthorizedSubmissionAttempt;
+type AuthorizedNamedSubmission = Parameters<SubmissionMethods['resolveOrBindSubmittedName']>[2] & AttemptOptions;
+type NamedSubmissionOptions = AuthorizedNamedSubmission | (UnauthorizedSubmissionAttempt &
+  Pick<AuthorizedNamedSubmission, 'submissionRef' | 'actorId'>);
 type CancellationMethods = ReturnType<typeof createJournalCancellation>;
 type CancelRecord = CancellationMethods['recordCancellationOperation'];
 type CancelAttemptOptions = Parameters<CancelRecord>[1] & Readonly<{attemptRef?: Parameters<Attempts['cancellationAttempt']>[2]}>;
@@ -338,20 +344,20 @@ export function openClientRequestJournal(directory: string, options: JournalOpti
     },
     resolveOrBindSubmittedName,
     resolveNamedSubmissionAttempt(name: unknown, intent: unknown,
-      options: Parameters<SubmissionMethods['resolveOrBindSubmittedName']>[2] & AttemptOptions,
+      options: NamedSubmissionOptions,
       control: Parameters<SubmissionMethods['resolveOrBindSubmittedName']>[3]): ReturnType<Attempts['submissionAttempt']> {
       return submissionAttempt(options.submissionRef, intent, options, control,
-        () => journal.resolveOrBindSubmittedName(name, intent, options, control), 'recorded', originalIntent);
+        () => journal.resolveOrBindSubmittedName(name, intent, options as AuthorizedNamedSubmission, control), 'recorded', originalIntent);
     },
     checkSubmittedIntent,
     recordSubmittedIntent,
     // Invocation facts are projections of the existing admission boundary,
     // never replacement receipts or proof that another invocation did not run.
     checkSubmissionAttempt(submissionRef: WireSubmissionRef, intent: unknown,
-      options: Parameters<SubmissionMethods['checkSubmittedIntent']>[2] & AttemptOptions,
+      options: SubmissionCheckOptions,
       control: Parameters<SubmissionMethods['checkSubmittedIntent']>[3]): ReturnType<Attempts['submissionAttempt']> {
       return submissionAttempt(submissionRef, intent, options, control,
-        () => journal.checkSubmittedIntent(submissionRef, intent, options, control), 'checked', originalIntent);
+        () => journal.checkSubmittedIntent(submissionRef, intent, options as AuthorizedSubmissionCheck, control), 'checked', originalIntent);
     },
     recordSubmissionAttempt(submissionRef: WireSubmissionRef, intent: unknown,
       options: Parameters<SubmissionMethods['recordSubmittedIntent']>[2] & AttemptOptions,

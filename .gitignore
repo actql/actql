@@ -3200,3 +3200,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/connectors/local/host/installed-project-files.actual.test.d.mts
 /adapters/host-node/local-file-keyed-effect-current.test.mjs
 /adapters/host-node/local-file-keyed-effect-current.test.d.mts
+/adapters/host-node/client-submission.mjs
+/adapters/host-node/client-submission.d.mts

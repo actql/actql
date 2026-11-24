@@ -1154,7 +1154,7 @@
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               }
             ],
@@ -1776,7 +1776,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
