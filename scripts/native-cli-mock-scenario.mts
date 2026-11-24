@@ -288,20 +288,49 @@ export function nativeLauncherEnvelope(stderr: string, mode: LauncherTimings) {
   return {native: stderr.slice(0, start), timing};
 }
 
-function nativeMockScenarioCommands<Command extends CommandRecord>({project, run, launcherTimings, rows, work}:
-  Readonly<{project: string; run: ScenarioOptions<Command>['run']; launcherTimings: LauncherTimings; rows: number; work?: MockWorkOptions}>) {
+function assertNativeFirstHostClose(stderr: string) {
+  const prefix = 'ACTQL_NATIVE_PHASE ';
+  const phases = stderr.split('\n').filter(line => line.startsWith(prefix))
+    .map(line => JSON.parse(line.slice(prefix.length)) as {
+      tag: number; name: string; begins: number; ends: number; active: number; unmatched_end: number;
+    });
+  const close = phases.filter(phase => phase.tag === 5);
+  assert.deepEqual(close.map(({name, begins, ends, active, unmatched_end}) =>
+    [name, begins, ends, active, unmatched_end]), [['close', 1, 1, 0, 0]],
+  'Native Shared File command must return from its first Host close');
+}
+
+function nativeMockScenarioCommands<Command extends CommandRecord>({project, run, launcherTimings, rows, work, requireFirstClose = false}:
+  Readonly<{project: string; run: ScenarioOptions<Command>['run']; launcherTimings: LauncherTimings; rows: number;
+    work?: MockWorkOptions; requireFirstClose?: boolean}>) {
   assert(['optional','required'].includes(launcherTimings), 'Invalid launcher observation contract');
   assert.equal(typeof run, 'function');
   const commands: (ObservedCommand & Command)[] = [];
-  async function invoke(workflowPhase: string, args: readonly string[], cwd = project) {
+  const processIds = requireFirstClose ? new Set<number>() : undefined;
+  async function invoke(workflowPhase: string, args: readonly string[], cwd = project,
+    resultRefusal?: 'LocalResultPublicationUnavailable') {
     const record = await run(args, cwd);
     commands.push({args, cwd, ...record, workflowPhase});
     assert.equal(record.signal, null, `${args[0]} terminated by signal`);
-    assert.equal(record.code, 0, `${args.join(' ')} failed: ${record.stderr}`);
+    assert.equal(record.code, resultRefusal === undefined ? 0 : 1,
+      `${args.join(' ')} returned an unexpected status: ${record.stderr}`);
     const envelope = nativeLauncherEnvelope(record.stderr, launcherTimings);
-    const observations = nativeMockAcceptanceObservations(envelope.native);
+    let observed = envelope.native;
+    if (resultRefusal !== undefined) {
+      assert.equal(record.stdout, '', 'Rejected Run must not disclose Result rows');
+      const primary = `actql-native-client: ${resultRefusal}\n`;
+      assert(observed.startsWith(primary), 'Rejected Run must refuse the original named Result');
+      observed = observed.slice(primary.length);
+    }
+    const observations = nativeMockAcceptanceObservations(observed);
     if (envelope.timing) { record.launcherTiming = envelope.timing; commands.at(-1)!.launcherTiming = envelope.timing; }
     assert.equal(observations.length, args[0] === 'init' ? 2 : 1, 'Native child observations missing or duplicated');
+    if (processIds !== undefined) {
+      assertNativeFirstHostClose(observed);
+      const [{pid}] = observations;
+      assert(!processIds.has(pid), 'Native Shared File commands require separate Native processes');
+      processIds.add(pid);
+    }
     record.acceptance = requireNativeMockWork(args, observations, rows, work);
     commands.at(-1)!.acceptance = record.acceptance;
     return record;
@@ -432,7 +461,8 @@ async function runNativeSharedFileMutation<Command extends CommandRecord>(
   const file = join(project, 'mock/data.json');
   const configuration = join(project, 'actql.config.json'), stateDirectory = join(project, '.actql');
   const {commands, invoke} = nativeMockScenarioCommands({project, run, launcherTimings,
-    rows: changes.length, work: {modelRows: 0, writeOrdinals: changes.map(() => 0)}});
+    rows: changes.length, requireFirstClose: launcherTimings === 'required',
+    work: {modelRows: 0, writeOrdinals: changes.map(() => 0)}});
   await mkdir(project, {mode: 0o700});
   for (const [name, body] of Object.entries(fixture.files)) {
     const path = join(project, name);
@@ -479,11 +509,16 @@ async function runNativeSharedFileMutation<Command extends CommandRecord>(
   const after = await targetSnapshot(file);
   const common = {runId, checkpointId: checkpoint, checkpointCid: original.checkpoint.checkpoint_cid,
     beforeSha256: before.sha256, afterSha256: after.sha256, lockPathAbsent: true};
+  const resultArguments = ['result', runId, '--result', 'updates', '--format', 'jsonl'];
   if (decision === 'reject') {
     assert.deepEqual(after, before, 'Rejection must not replace the original file');
     runState(await invoke('saved-status', ['status', runId, '--json']), 'cancelled', runId);
     assert.deepEqual(await targetSnapshot(file), before, 'Saved rejection must not write');
-    return {...common, commands};
+    const resultRefusal = 'LocalResultPublicationUnavailable';
+    await invoke('saved-result-refusal', resultArguments, project, resultRefusal);
+    assert.deepEqual(await targetSnapshot(file), before, 'Refused Result must not write');
+    await assert.rejects(lstat(file + '.actql-write.lock'), {code: 'ENOENT'});
+    return {...common, resultRefusal, commands};
   }
   if (changes.some(change => change.kind === 'delete')) {
     assert.equal(after.bytes, fixture.after, 'The ordered DELETE and UPDATE must preserve every untouched byte');
@@ -495,7 +530,6 @@ async function runNativeSharedFileMutation<Command extends CommandRecord>(
   runState(await invoke('completed-status', ['status', runId, '--json']), 'succeeded', runId);
   assert.deepEqual(await targetSnapshot(file), after, 'Completed status must not rewrite the target');
 
-  const resultArguments = ['result', runId, '--result', 'updates', '--format', 'jsonl'];
   const first = await invoke('result', resultArguments);
   const rows = first.stdout.trimEnd().split('\n').map(line => JSON.parse(line));
   assert.deepEqual(rows, fixture.rows, 'Result must retain every independently expected field');
