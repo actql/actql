@@ -8,11 +8,11 @@ import {selectReleaseTemporalJoinQueryCases} from './release-temporal-join-query
 import {selectReleaseCalendarQueryCases} from './release-calendar-query-cases.mjs';
 
 export const releaseSourcefreeSuccessNames = Object.freeze([
-  'general-element', 'array-field', 'conditional-array', 'lazy-array-branch',
+  'general-element', 'array-field', 'conditional-array', 'lazy-array-branch', 'negative-zero',
 ].map(name => `in-unnest-literal-array-${name}`));
 export const releaseSourcefreeRefusalNames = Object.freeze([
   'annotation-not-erased', 'mixed-types', 'undeclared',
-  'wrong-parameter-value', 'nonfinite', 'negative-zero',
+  'wrong-parameter-value', 'nonfinite',
 ].map(name => `in-unnest-literal-array-${name}`));
 
 export const releaseSourcefreeFixturePaths = Object.freeze([

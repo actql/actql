@@ -88,22 +88,24 @@ test('installed source-free worker and consumer parse without starting a product
   }
 });
 
-test('release selection preserves four independent inputs and all six refusals', () => {
+test('release selection preserves five independent inputs and all five refusals', () => {
   const before = JSON.stringify({successes, refusals});
   const selected = selectReleaseSourcefreeQueryCases();
   assert.deepEqual(selected.successes.map(value => value.name), [
     'in-unnest-literal-array-general-element', 'in-unnest-literal-array-array-field',
-    'in-unnest-literal-array-conditional-array', 'in-unnest-literal-array-lazy-array-branch']);
-  assert.equal(selected.refusals.length, 6);
+    'in-unnest-literal-array-conditional-array', 'in-unnest-literal-array-lazy-array-branch',
+    'in-unnest-literal-array-negative-zero']);
+  assert.equal(selected.refusals.length, 5);
   for (const value of selected.refusals) {
     assert.equal(value, combinedRefusals.find(item => item.name === value.name));
   }
-  assert.equal(combinedRefusals.length, 13, 'the packed corpus keeps whole-ARRAY refusals');
+  assert.equal(combinedRefusals.length, 12, 'the packed corpus keeps whole-ARRAY refusals');
   for (const value of selected.successes) {
     assert.equal(value, successes.find(item => item.name === value.name));
-    assert.deepEqual(value.expected, value.name.endsWith('general-element') ? [{found: true}] : [{included: true}]);
-    assert.deepEqual(value.columns, [{name: value.name.endsWith('general-element') ? 'found' : 'included',
-      contract: {type: 'boolean', nullable: false}}]);
+    const signedZero = value.name === 'in-unnest-literal-array-negative-zero';
+    const column = signedZero || value.name.endsWith('general-element') ? 'found' : 'included';
+    assert.deepEqual(value.expected, [{[column]: !signedZero}]);
+    assert.deepEqual(value.columns, [{name: column, contract: {type: 'boolean', nullable: false}}]);
   }
   assert.ok(!selected.successes.some(value => value.name.endsWith('where-source-once')));
   assert.equal(successes.find(value => value.name.endsWith('where-source-once')).sourceReadCount, 1);
