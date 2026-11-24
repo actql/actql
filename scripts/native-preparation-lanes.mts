@@ -57,6 +57,14 @@ export function nativePreparationConsumerJobs({target,selection,lanes,destinatio
 }
 
 
+// Both preparation modes reuse the immutable archive checked by Crypto. TLS
+// performs its own digest check and independent build.
+export function nativePreparationOpenSSL(components: string, target: string, env = process.env) {
+  return env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE ??
+    (target === 'darwin-arm64' && (env.ACTQL_TEST_NATIVE_CRYPTO_PROFILE ?? 'source-macos11') === 'source-macos11'
+      ? join(components, 'openssl-original.tar.gz') : undefined);
+}
+
 function timed<Value>(destination: string,source: string,target: string,phase: string,prepare: () => Value) {
   const started=performance.now(),startedEpochMs=Date.now();let succeeded=false;
   try {const result=prepare();succeeded=true;return result;}
@@ -114,9 +122,7 @@ export function prepareNativeConstructionLane(lane: Lane,configuration: LaneConf
   const components=join(destination,'components');
   prepare('runtime_libraries',()=>(ports.libraries??prepareNativeRuntimeBundleLibraries)(repository,components,
     {moonHome,seconds,preparation:null}));
-  const sharedOpenSSL=process.env.ACTQL_TEST_NATIVE_OPENSSL_SOURCE_ARCHIVE??
-    (target==='darwin-arm64'&&(process.env.ACTQL_TEST_NATIVE_CRYPTO_PROFILE??'source-macos11')==='source-macos11'
-      ?join(components,'openssl-original.tar.gz'):undefined);
+  const sharedOpenSSL = nativePreparationOpenSSL(components, target);
   const httpReceipt=selection==='bundle'?undefined:prepare('http_component',()=>(ports.http??prepareNativeResidentHttpComponent)(
     repository,join(destination,'http'),{seconds,tlsArchive:sharedOpenSSL,tlsJobs:httpJobs}));
   if(queryLane) {

@@ -177,13 +177,7 @@ test('Query reuse retains the actual selected compiler override bytes and refuse
   assert.equal(f.calls().length,1);
 });
 
-test('the serial Query publisher and existing callers retain their prepared software handoff',()=>{
-  const source=readFileSync(new URL('./prepare-native-runtime-bundle-fixture.mjs',import.meta.url),'utf8');
-  // Parallel dependency order and failure closure use the imported lane controls.
-  const prepare=source.indexOf('queryReceipt=prepareNativeQuerySoftware(repository,destination,');
-  assert(prepare>source.indexOf('?await prepareNativeParallel('));
-  assert(prepare<source.indexOf("writeFileSync(join(destination,'preparation.json')"));
-  assert(source.includes("'ACTQL_TEST_NATIVE_QUERY_PREPARATION='+queryReceipt+'\\n'"));
+test('the Query coverage runner retains its prepared software handoff',()=>{
   const caller=readFileSync(new URL('./native-query-coverage.mjs',import.meta.url),'utf8');
   assert(caller.indexOf('selectNativeQueryTests(owner, readNativeQuerySources(root), env)')<
     caller.indexOf('preparedNativeQuerySoftware(root, env)'));

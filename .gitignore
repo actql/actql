@@ -3312,3 +3312,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/native-preparation-lanes.d.mts
 /scripts/native-preparation-lanes.test.mjs
 /scripts/native-preparation-lanes.test.d.mts
+/scripts/prepare-native-runtime-bundle-fixture.mjs
+/scripts/prepare-native-runtime-bundle-fixture.d.mts
