@@ -13,7 +13,7 @@ type GateOptions = NonNullable<Parameters<typeof createLocalAuthorizationGate>[0
 type TargetAuthorization = Pick<GateOptions, 'accountConfiguration' | 'accountConstruction'> &
   Readonly<{context: NonNullable<GateOptions['context']>}>;
 type TargetSelector = Readonly<{kind: string; target: string; mappingRef: string; mappingCid: string; effectId?: string}>;
-type EffectTarget = Readonly<{selectors: readonly TargetSelector[]; authorization: TargetAuthorization}>;
+export type EffectTarget = Readonly<{selectors: readonly TargetSelector[]; authorization: TargetAuthorization}>;
 type Mapping = Readonly<{mappingRef: string; mappingCid: string}>;
 type MappingOwner = Mapping & Readonly<{authorization: TargetAuthorization; target: string}>;
 type InstalledEffectTarget = {
@@ -22,7 +22,7 @@ type InstalledEffectTarget = {
   readonly configuration: Readonly<TargetAuthorization>;
   gate?: Awaited<ReturnType<typeof createLocalAuthorizationGate>>;
 };
-type ReviewerInput = Readonly<{
+export type ReviewerInput = Readonly<{
   keyId: string; reviewerId: string; principalId: string; publicKey: Parameters<typeof createPublicKey>[0];
 }>;
 type TrustedReviewer = Omit<ReviewerInput, 'publicKey'> & Readonly<{publicKey: KeyObject}>;

@@ -1150,7 +1150,7 @@
                 "anchor": "Validation is synchronous."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -1164,7 +1164,7 @@
                 "anchor": "| failure |"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -1182,7 +1182,7 @@
                 "anchor": "Validation performs no cancellation or I/O."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {

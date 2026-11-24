@@ -2856,7 +2856,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -2890,7 +2890,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -2924,7 +2924,7 @@
                 "anchor": "#### Run-bound publication chain"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -3328,7 +3328,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -3354,7 +3354,7 @@
                 "anchor": "pub fn admit_captured_effect_dependency_body(String, String?, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -3380,7 +3380,7 @@
                 "anchor": "#### Run-bound publication chain"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -6899,19 +6899,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               }
             ],
@@ -6975,19 +6975,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               }
             ],
@@ -19408,7 +19408,7 @@
     {
       "module": "adapters/host-node/client-checkpoints.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "539f76e16e1dbc9b7bb0c61712904b2d29494044e5182a4f988ba33dd0ba59ab",
+      "sha256": "fa6e689dc9574ff6f1bf3a9b9c7041295c73459b2bc37176eff1683ba5ef1183",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
@@ -19565,62 +19565,6 @@
           "name": "installRemoteCheckpoints/init:acceptRun/init:acceptRun/init:acceptRun",
           "parameters": [],
           "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess",
-          "parameters": [
-            "requestId",
-            "base",
-            "occurrence"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvalCurrent",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvedNow/approvedNow",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/assertApprovedReadCurrent/assertApprovedReadCurrent",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize",
-          "parameters": [
-            "boundary",
-            "scope",
-            "options"
-          ],
-          "async": true
-        },
-        {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:authorize",
-          "parameters": [
-            "cid"
-          ],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/init:originalCheckpointApproval/init:originalCheckpointApproval",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/same/same/same",
-          "parameters": [
-            "key"
-          ],
-          "async": false
         },
         {
           "name": "installRemoteCheckpoints/init:attestResolution/init:attestResolution",
@@ -20178,14 +20122,6 @@
             "installRemoteCheckpoints/init:acceptRun/init:acceptRun",
             "installRemoteCheckpoints/init:acceptRun/init:acceptRun/answering/answering",
             "installRemoteCheckpoints/init:acceptRun/init:acceptRun/init:acceptRun",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvalCurrent",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvedNow/approvedNow",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/assertApprovedReadCurrent/assertApprovedReadCurrent",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:authorize",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/init:originalCheckpointApproval/init:originalCheckpointApproval",
-            "installRemoteCheckpoints/init:acquisitionAccess/init:acquisitionAccess/same/same/same",
             "installRemoteCheckpoints/init:attestResolution/init:attestResolution",
             "installRemoteCheckpoints/init:authorizeResolution/init:authorizeResolution",
             "installRemoteCheckpoints/init:cancelEffectContinuation/init:cancelEffectContinuation",
@@ -20282,7 +20218,7 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -20316,7 +20252,7 @@
                 "anchor": "### Checkpoint and Resolution admission"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -20328,8 +20264,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -20338,7 +20274,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "// Host's protected Site is a protected operation: the account decides allow,"
               },
               {
@@ -20350,7 +20286,7 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -20362,7 +20298,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -20380,7 +20316,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "import {retainInstalledHostInitializationFailure} from"
               },
               {
@@ -20392,7 +20328,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -20414,7 +20350,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "// and after answers), never by an in-memory callback alone and never by the"
               },
               {
@@ -20426,15 +20362,15 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -20442,13 +20378,13 @@
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "import {ExecutionAuthorizationError, createAuthorizationDecisionBudget,"
               },
               {
@@ -20460,15 +20396,15 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -20476,13 +20412,13 @@
                 "anchor": "fail('ContinuationEvidenceRetired')"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "'./installed-host-cleanup.mjs';"
               },
               {
@@ -20494,11 +20430,11 @@
                 "anchor": "### Checkpoint and Resolution admission"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -20506,13 +20442,13 @@
                 "anchor": "and cleanup custody remain with their existing Owners."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "import {ExecutionAuthorizationError, createAuthorizationDecisionBudget,"
               },
               {
@@ -20546,7 +20482,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "// Checkpoint connection of the installed Remote Host. Run acceptance on the"
               },
               {
@@ -20558,7 +20494,7 @@
                 "anchor": "### Checkpoint and Resolution admission"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -20658,8 +20594,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               }
             ],
             "identity": [
@@ -20668,7 +20604,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -20688,7 +20624,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -20698,7 +20634,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -20708,7 +20644,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -20854,27 +20790,27 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "export async function installHostRunAcceptance(options) {"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "export async function installHostRunAcceptance(options: Installation) {"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "async acceptRun({requested, captured, signal}) {"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "async acceptRun({requested, captured, signal}: AcceptanceInput) {"
               }
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const tuple = Object.freeze({connection: siteKey, resource: realizationKey,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (captured.principalId !== ownerPrincipal) fail('ClientConnectionDenied');"
               }
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const scope = gate.withContext({principal: gate.principal,"
               },
               {
@@ -20884,41 +20820,41 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "scope.assertAccountCurrent(decision);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (stopped) fail('ExecutionAuthorizationStopped');"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (decision.action !== 'dispatch') {"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "checkpointFields.some(name => name in authorization)) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "{subjectCid: contentCid(subject), signal, allowDeferral: false});"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "stopped = true;"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const decisionBudget = createAuthorizationDecisionBudget({"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "scope.close();"
               }
             ],
@@ -20968,7 +20904,7 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -21002,7 +20938,7 @@
                 "anchor": "### Checkpoint and Resolution admission"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -21014,8 +20950,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               },
               {
                 "path": "src/connectors_builtin_node/client_local_signing_bridge.mbt",
@@ -21024,7 +20960,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "// Host's protected Site is a protected operation: the account decides allow,"
               },
               {
@@ -21036,7 +20972,7 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -21048,7 +20984,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -21062,7 +20998,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "import {retainInstalledHostInitializationFailure} from"
               },
               {
@@ -21074,7 +21010,7 @@
                 "anchor": "# OSS Host authorization behavior"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -21096,7 +21032,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "// and after answers), never by an in-memory callback alone and never by the"
               },
               {
@@ -21108,15 +21044,15 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -21124,13 +21060,13 @@
                 "anchor": "facts.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "import {ExecutionAuthorizationError, createAuthorizationDecisionBudget,"
               },
               {
@@ -21142,15 +21078,15 @@
                 "anchor": "pub const RESUME_REVALIDATION_FAILED_CODE : String = \"ACTQL_E_RESUME_REVALIDATION_FAILED\""
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -21158,13 +21094,13 @@
                 "anchor": "fail('ContinuationEvidenceRetired')"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "'./installed-host-cleanup.mjs';"
               },
               {
@@ -21176,11 +21112,11 @@
                 "anchor": "### Checkpoint and Resolution admission"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -21188,13 +21124,13 @@
                 "anchor": "and cleanup custody remain with their existing Owners."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               }
             ],
             "resources": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "import {ExecutionAuthorizationError, createAuthorizationDecisionBudget,"
               },
               {
@@ -21228,7 +21164,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "// Checkpoint connection of the installed Remote Host. Run acceptance on the"
               },
               {
@@ -21240,7 +21176,7 @@
                 "anchor": "### Checkpoint and Resolution admission"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "assertCurrent: () => read.assertConfigurationCurrent(),"
               },
               {
@@ -21313,7 +21249,6 @@
       "imports": [
         "../../packages/sdk/host-port.mjs",
         "../host-common/authorization-gate.mjs",
-        "../host-common/checkpoint-approval.mjs",
         "../host-common/diagnostic-observer.mjs",
         "../host-common/installed-checkpoint-codec-limits.mjs",
         "./checkpoint-runtime.mjs",
@@ -21338,14 +21273,79 @@
     {
       "module": "adapters/host-node/client-checkpoint-computation-source.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "cda98b16d90a45b2f805ccffe9b21c7988dadea5f27fe1b0147cef8bbaf65104",
+      "sha256": "30b5f8ea3237720486281e5f4421f95168f70537f96444c6798177dab058e013",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
+        "createCheckpointAcquisitionAccess",
         "createCheckpointComputationSource",
         "createCheckpointSourceSelection"
       ],
       "operations": [
+        {
+          "name": "createCheckpointAcquisitionAccess",
+          "parameters": [
+            "admittedReads",
+            "journal"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess",
+          "parameters": [
+            "requestId",
+            "base",
+            "occurrence"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvalCurrent",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvedNow/approvedNow",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/assertApprovedReadCurrent/assertApprovedReadCurrent",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize",
+          "parameters": [
+            "boundary",
+            "scope",
+            "options"
+          ],
+          "async": true
+        },
+        {
+          "name": "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:authorize",
+          "parameters": [
+            "cid"
+          ],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/init:originalCheckpointApproval/init:originalCheckpointApproval",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/same/same/same",
+          "parameters": [
+            "key"
+          ],
+          "async": false
+        },
         {
           "name": "createCheckpointComputationSource",
           "parameters": [
@@ -21516,9 +21516,19 @@
             "createCheckpointComputationSource/init:retireComputationSources/init:retireComputationSources",
             "createCheckpointSourceSelection",
             "createCheckpointSourceSelection/installedSource",
-            "createCheckpointSourceSelection/installedSource/installed/installed"
+            "createCheckpointSourceSelection/installedSource/installed/installed",
+            "createCheckpointAcquisitionAccess",
+            "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess",
+            "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvalCurrent",
+            "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/approvalCurrent/approvalCurrent/approvedNow/approvedNow",
+            "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/assertApprovedReadCurrent/assertApprovedReadCurrent",
+            "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize",
+            "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/authorization/init:authorize/init:authorize/init:authorize",
+            "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/init:originalCheckpointApproval/init:originalCheckpointApproval",
+            "createCheckpointAcquisitionAccess/init:acquisitionAccess/init:acquisitionAccess/same/same/same"
           ],
           "exports": [
+            "createCheckpointAcquisitionAccess",
             "createCheckpointComputationSource",
             "createCheckpointSourceSelection"
           ],
@@ -21547,7 +21557,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const computationSource = createCheckpointComputationSource({installedSource,"
               }
             ],
@@ -21589,12 +21599,17 @@
               {
                 "path": "adapters/host-node/client-effect-checkpoints.test.mjs",
                 "anchor": "an acquired Effect Source wait retains its capture and resumes only the exact read"
+              },
+              {
+                "path": "adapters/host-node/client-two-source-checkpoints.test.mjs",
+                "anchor": "acquisition access retains only the same actual original approved decision for Source metadata"
               }
             ]
           }
         }
       ],
       "imports": [
+        "../host-common/checkpoint-approval.mjs",
         "./client-checkpoint-admission-inputs.mjs",
         "./local-account-config.mjs"
       ],
@@ -21766,7 +21781,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const {modelStoredContinuation, review} = createCheckpointReview({journal, evidence,"
               }
             ],
@@ -21986,7 +22001,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "heldRequestId, held} = createCheckpointHeldRecovery({captureInventory,"
               }
             ],
@@ -22194,7 +22209,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "readDeferralFor} = createHeldCheckpointDeferrals({authorityScopeCid, namespaceId, siteKey,"
               }
             ],
@@ -22467,7 +22482,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": ": captureEffectTargets(effectTargets);"
               }
             ],
@@ -22710,7 +22725,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const modelCustody = createCheckpointModelCustody({contractControl, evidence, IDENTIFIER,"
               }
             ],
@@ -23562,7 +23577,7 @@
                 "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -23600,7 +23615,7 @@
                 "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -23634,7 +23649,7 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -24121,7 +24136,7 @@
                 "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -24151,7 +24166,7 @@
                 "anchor": "capturePreparedOriginal(prepared: unknown, original?: CapturedPrepared) {"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -24177,7 +24192,7 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -30494,7 +30509,7 @@
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -30564,7 +30579,7 @@
                 "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -30638,7 +30653,7 @@
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -31820,7 +31835,7 @@
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -31890,7 +31905,7 @@
                 "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -31960,7 +31975,7 @@
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -35217,7 +35232,7 @@
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -35291,7 +35306,7 @@
                 "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -35365,7 +35380,7 @@
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -36625,7 +36640,7 @@
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -36695,7 +36710,7 @@
                 "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -36765,7 +36780,7 @@
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -37429,7 +37444,7 @@
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -37499,7 +37514,7 @@
                 "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -37573,7 +37588,7 @@
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -40133,7 +40148,7 @@
                 "anchor": "return transact('run_state_observation', 'ClientRunStateObservationUnknown',"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -40203,7 +40218,7 @@
                 "anchor": "test('state revision retains Unknown on COMMIT loss before or after durability'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -40277,7 +40292,7 @@
                 "anchor": "cancellationRequested: frame.cancellationRequested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -44121,7 +44136,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -44159,7 +44174,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -44201,7 +44216,7 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -44789,7 +44804,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -44827,7 +44842,7 @@
                 "anchor": "pub fn admit_client_check_environment(String, String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile_cid? : String?, graph? : Bool) -> @program_check.CheckEnvironment?"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -44865,7 +44880,7 @@
                 "anchor": "### Run admission and identity"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -74276,7 +74291,7 @@
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
@@ -74298,7 +74313,7 @@
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -74320,7 +74335,7 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               }
             ],
@@ -74430,8 +74445,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               }
             ],
             "identity": [
@@ -74440,7 +74455,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -74460,7 +74475,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -74470,7 +74485,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -74480,7 +74495,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -74640,7 +74655,7 @@
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
@@ -74662,7 +74677,7 @@
                 "anchor": "recovered.assertUpdateSelectionCurrent?.();"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
@@ -74680,7 +74695,7 @@
                 "anchor": "### Outcomes and reconciliation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               }
             ],
@@ -88444,8 +88459,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               },
               {
                 "path": "adapters/host-node/local-continuation-evidence.mts",
@@ -88470,7 +88485,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -88522,7 +88537,7 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -88552,7 +88567,7 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -88582,7 +88597,7 @@
                 "anchor": "## Private Model raw response custody"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -88717,8 +88732,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               }
             ],
             "identity": [
@@ -88727,7 +88742,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -88747,7 +88762,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -88757,7 +88772,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -88767,7 +88782,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -88970,8 +88985,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               },
               {
                 "path": "adapters/host-node/local-continuation-evidence.mts",
@@ -88996,7 +89011,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -89048,7 +89063,7 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -89078,7 +89093,7 @@
                 "anchor": "pub fn acknowledge_model_call_entry(ModelCallEntry, ModelPreparedCallSet) -> ModelCallEntryAcknowledgement?"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -89108,7 +89123,7 @@
                 "anchor": "## Private Model raw response custody"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {

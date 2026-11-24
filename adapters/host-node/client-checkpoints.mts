@@ -7,8 +7,6 @@
 // Checkpoint journal; an approved request is resumed by this Host (on start
 // and after answers), never by an in-memory callback alone and never by the
 // Client. No second approval state machine lives here.
-import {recordCheckpointApproval} from
-  '../host-common/checkpoint-approval.mjs';
 import {createPrivateKey, randomUUID, sign,
   verify} from 'node:crypto';
 import {mkdir} from 'node:fs/promises';
@@ -38,8 +36,111 @@ import {acquisitionsOf, captureEffectTargets, capturedValueCid, capturedValueWir
   computationSourceCheckpointId, fail, hex, IDENTIFIER, occurrenceIdentity, occurrenceKey,
   pluralCapture, principals, trustedReviewers, without} from './client-checkpoint-admission-inputs.mjs';
 import {createCheckpointReview, MODEL_CHECKPOINT_STORAGE} from './client-checkpoint-review.mjs';
-import {createCheckpointComputationSource, createCheckpointSourceSelection}
+import {createCheckpointComputationSource, createCheckpointSourceSelection, createCheckpointAcquisitionAccess}
   from './client-checkpoint-computation-source.mjs';
+
+import type {runtimeCore} from '../host-common/runtime-core.mjs';
+import type {CapturedOccurrence, EffectTarget, ReviewerInput, SourceCapture} from './client-checkpoint-admission-inputs.mjs';
+import type {CapturedRequest} from './client-checkpoint-held-deferral.mjs';
+import type {prepareInstalledSourceCheckpointInventory} from './installed-source-inventory.mjs';
+
+type GateOptions = NonNullable<Parameters<typeof createLocalAuthorizationGate>[0]>;
+type Gate = Awaited<ReturnType<typeof createLocalAuthorizationGate>>;
+type Deferral = NonNullable<GateOptions['deferral']>;
+type Decision = Awaited<ReturnType<Gate['authorize']>>;
+type Journal = ReturnType<typeof openSqliteCheckpointJournal>;
+type JournalOptions = NonNullable<Parameters<typeof openSqliteCheckpointJournal>[1]>;
+type Evidence = ReturnType<typeof openContinuationEvidence>;
+type CleanupHandle = Awaited<ReturnType<typeof retainInstalledHostInitializationFailure>>['cleanupHandle'];
+type EvidenceControl = Parameters<typeof openContinuationEvidence>[0]['contractControl'];
+type ContractControl = ReturnType<typeof runtimeCore>['publicationControl'] & EvidenceControl;
+type SourceConfiguration = Readonly<{sourceRef?: string}> &
+  Pick<GateOptions, 'accountConfiguration' | 'context'>;
+type SourceBinding = {source_ref?: string; configuration_cid?: string | null; context_cid?: string};
+type SourceSlot = {configuration: SourceConfiguration; gate?: Gate; resumeGate?: Gate};
+type OriginalSourceInventory = NonNullable<ReturnType<typeof prepareInstalledSourceCheckpointInventory>>;
+type SourceInventory = Omit<OriginalSourceInventory, 'installedSources' | 'sources' | 'custody'> &
+  Readonly<{installedSources: SourceSlot[]; sources: readonly SourceConfiguration[];
+    custody: OriginalSourceInventory['custody'] & {cleanupIssue?: unknown}}>;
+type Authorization = Pick<GateOptions, 'accountConfig' | 'accountConfiguration' | 'accountConstruction' |
+  'decisionTimeoutMs' | 'maxInFlightDecisions' | 'maxRetainedDecisions' | 'decide' | 'answeringAuthorities'> & Readonly<{
+  reviewers?: readonly ReviewerInput[]; hostKey?: Readonly<{
+    keyId: string; privateKey: Parameters<typeof createPrivateKey>[0];
+  }>;
+  reviewReaders?: readonly string[]; effectRequiredClaims?: readonly string[];
+  checkpointTtlMs?: number; leaseMs?: number; maxReviewBytes?: number;
+  resumeAfterAnswer?: boolean; sweepPage?: number;
+  observe?(name: string, detail: unknown): unknown; faultInjection?(name: string, detail: unknown): unknown;
+}>;
+type Installation = Readonly<{
+  root: string; namespaceId: string; authorityScopeCid: string; ownerPrincipal: string;
+  siteKey: string; realizationKey: string; environmentCid: string; contractControl: ContractControl;
+  authorization?: Authorization | null; source?: SourceConfiguration;
+  sources?: readonly SourceConfiguration[]; sourceInventory?: SourceInventory;
+  effectTarget?: SourceConfiguration; effectTargets?: readonly EffectTarget[];
+  modelResumeVerifier?: JournalOptions['modelResumeVerifier']; now?(): number;
+}>;
+type AcceptanceInput = Readonly<{
+  requested: Readonly<{logicalRequestScopeCid: string; intentFingerprintCid: string}>;
+  captured: CapturedRequest; signal?: AbortSignal;
+}>;
+type Fault = Readonly<{code?: string; message?: string}> | null | undefined;
+type HeldSourceRequest = Parameters<ReturnType<typeof createHeldCheckpointDeferrals>['readDeferralFor']>[0];
+type ReadDecisionInput = Omit<HeldSourceRequest, 'answering'> & Readonly<{signal?: AbortSignal}>;
+type HostProbe = Readonly<{state: 'absent'} |
+  {state: 'abandoned' | 'cancelled' | 'unstarted'; runId?: string} |
+  {state: 'started' | 'terminal'; runId: string; status: string}>;
+type ResumeInput = Readonly<{captured: CapturedRequest;
+  step(name: string, detail: unknown): Promise<void>;
+  renew(): void; preparationCancelled(): boolean; beforePhysicalStart(): void; started(runId: string): void;
+}>;
+type HostSweep = Readonly<{drain?(): unknown; sweep(): boolean | PromiseLike<boolean>}>;
+type HostPort = Readonly<{
+  inspect(captured: CapturedRequest): PromiseLike<HostProbe>;
+  cancelRun(captured: CapturedRequest): unknown; abandon(captured: CapturedRequest): unknown;
+  observe(input: Readonly<{captured: CapturedRequest; runId: string}>): string | PromiseLike<string>;
+  resume(input: ResumeInput): PromiseLike<'started' | 'not_started' | Readonly<{refused: unknown}>>;
+  models?: HostSweep; effects?: HostSweep;
+}>;
+type ReadApproval = ReturnType<ReturnType<typeof createCheckpointHeldRecovery>['admittedRead']>;
+type CheckpointView = NonNullable<ReturnType<Journal['inspect']>>;
+type RunUnit = Readonly<{runId: string; runDefinitionCid: string; unitId: string}>;
+type JournalPort = Pick<Journal, 'persistCheckpoint' | 'submitResolution'>;
+type ModelCheckpointPort = JournalPort & Readonly<{
+  modelParentResume?: Readonly<{claim: Readonly<{runId: string}>; checkpointCid: string}>;
+  attachModelCallSetCheckpoint?: Journal['attachModelCallSetCheckpoint'];
+}>;
+type ModelAuthorization = RunUnit & Readonly<{
+  scopeCid: string; tuple: Parameters<Gate['authorize']>[1];
+  declaredResults: readonly string[];
+  modelCallSet: NonNullable<Parameters<Journal['persistCheckpoint']>[0]['modelCallSet']>;
+  reviewWire: string; continuationWire: string; beforeDefer(): unknown;
+  journalPort?: ModelCheckpointPort; attachImmediate?: boolean;
+}>;
+type EffectJournalPort = JournalPort & Pick<Journal, 'admitResume' | 'inspect' |
+  'enterResumedDispatch' | 'enterResumedReconciliation'>;
+type ResumeArguments = Parameters<Gate['resume']>;
+type Resumption = NonNullable<ResumeArguments[2]>['resumption'];
+type EffectAuthorization = RunUnit & Readonly<{
+  runDefinition?: unknown; declaredResults: readonly string[];
+  reviewWire: string; continuationWire: string; beforeDefer(): unknown;
+  targetReads?: Readonly<{authorize(scope: AuthorizationArguments[1], options?: AuthorizationArguments[2]): Decision | PromiseLike<Decision>}>;
+  requestedStop?: unknown; assertRequestedStopCurrent?(): unknown;
+  projectReview?: (policy: Readonly<{authorityScopeCid: string; approvalClaims: readonly string[]; redactionPolicyCid: string}>,
+    limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>) => Readonly<{wire: string; identity: string}>;
+  journalPort?: EffectJournalPort;
+}>;
+type TargetAuthorization = RunUnit & Readonly<{
+  inventoryCid: string; target: Parameters<typeof effectTargetReadScope>[0]['target'];
+  declaredResults: readonly string[]; continuation(): string | PromiseLike<string>; beforeDefer(): unknown;
+  effectTargetAuthority?: EffectTarget['authorization']; journalPort?: JournalPort;
+}>;
+type AuthorizationArguments = Parameters<Gate['authorize']>;
+type SavedTarget = Readonly<Record<string, unknown> & {
+  version?: string; run_definition_cid: string; unit_id?: string;
+}>;
+
+
 
 const MAX_REVIEW_BYTES = INSTALLED_EFFECT_CHECKPOINT_LIMITS.maxWireBytes;
 const PAGE = 100;
@@ -48,7 +149,7 @@ const PAGE = 100;
 // capabilities. An omitted signer configuration does not make an admitted
 // Account invalid; any explicitly selected Checkpoint option still takes the
 // existing complete validation/installation path below.
-export async function installHostRunAcceptance(options) {
+export async function installHostRunAcceptance(options: Installation) {
   const {authorization, ownerPrincipal, authorityScopeCid, namespaceId,
     siteKey, realizationKey} = options;
   const checkpointFields = ['reviewers', 'hostKey', 'reviewReaders',
@@ -72,7 +173,7 @@ export async function installHostRunAcceptance(options) {
     maxInFlightDecisions = 16, maxRetainedDecisions = 1024} = authorization;
   const decisionBudget = createAuthorizationDecisionBudget({
     maxInFlightDecisions, maxRetainedDecisions});
-  let gate;
+  let gate: Gate;
   try {
     gate = await createLocalAuthorizationGate({accountConfig, accountConstruction,
       accountConfiguration, principal: ownerPrincipal, decisionTimeoutMs,
@@ -90,7 +191,7 @@ export async function installHostRunAcceptance(options) {
     decisionBudget.close();
   };
   const runAcceptance = Object.freeze({
-    async acceptRun({requested, captured, signal}) {
+    async acceptRun({requested, captured, signal}: AcceptanceInput) {
       if (stopped) fail('ExecutionAuthorizationStopped');
       if (captured.principalId !== ownerPrincipal) fail('ClientConnectionDenied');
       const subject = Object.freeze({
@@ -149,7 +250,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   environmentCid, contractControl, authorization, source, sources, effectTarget,
   effectTargets, sourceInventory,
   modelResumeVerifier,
-  now = () => Date.now()}) {
+  now = () => Date.now()}: Installation) {
   if (authorization === undefined) return undefined;
   if (authorization === null || typeof authorization !== 'object') {
     fail('InvalidRemoteHostAuthorization');
@@ -194,7 +295,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   const readers = principals(reviewReaders, 'InvalidReviewReaders');
   const answerers = new Set([...trusted.values()].map(item => item.principalId));
   if (!IDENTIFIER.test(hostKey?.keyId ?? '')) fail('InvalidRemoteHostKey');
-  const hostPrivateKey = createPrivateKey(hostKey.privateKey);
+  const hostPrivateKey = createPrivateKey(hostKey!.privateKey);
   if (!Number.isSafeInteger(checkpointTtlMs) || checkpointTtlMs < 1000 ||
       !Number.isSafeInteger(leaseMs) || leaseMs < 1000 ||
       !Number.isSafeInteger(maxReviewBytes) || maxReviewBytes < 1 ||
@@ -209,11 +310,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
   const decisionBudget = createAuthorizationDecisionBudget({
     maxInFlightDecisions, maxRetainedDecisions});
   const decisionOptions = {decisionBudget, decisionTimeoutMs};
-  const installedSources = sourceInventory?.installedSources ?? [];
-  let sourceConsumerClosed = false, originalSetupCleanup;
+  const installedSources: SourceSlot[] = sourceInventory?.installedSources ?? [];
+  let sourceConsumerClosed = false;
+  let originalSetupCleanup: CleanupHandle | undefined;
   if (sourceInventory !== undefined) {
     // This is the existing Source body borrow, not authority or a stop ACK.
-    sourceInventory.custody.holder.environment();
+    sourceInventory.custody.holder!.environment();
     sourceInventory.custody.retire = () => {
       decisionBudget.close();
       for (const installed of installedSources) {
@@ -229,14 +331,14 @@ export async function installRemoteCheckpoints({root, namespaceId,
       return true;
     };
   }
-  let journal;
-  let evidence;
+  let journal: Journal | undefined;
+  let evidence: Evidence | undefined;
   try {
   const state = join(root, 'checkpoints');
   let privateKey;
   try { privateKey = await loadPrivateEvidenceKey(state); }
   catch (error) {
-    if (error?.code !== 'PrivateEvidenceKeyUnavailable') throw error;
+    if ((error as Fault)?.code !== 'PrivateEvidenceKeyUnavailable') throw error;
     await createPrivateEvidenceKey(state);
     privateKey = await loadPrivateEvidenceKey(state);
   }
@@ -261,7 +363,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       accountConfiguration: installed.accountConfiguration,
       ...(context === undefined ? {} : {context: Object.freeze({...context})}),
     });
-    const entry = sourceInventory === undefined ? {configuration}
+    const entry: SourceSlot = sourceInventory === undefined ? {configuration}
       : installedSources[sourceIndex++];
     if (sourceInventory === undefined) installedSources.push(entry);
     entry.gate = await createLocalAuthorizationGate({accountConstruction,
@@ -272,7 +374,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     : undefined;
   if (effectTarget !== undefined) effectTarget = Object.freeze({
     accountConfiguration: effectTarget.accountConfiguration,
-    context: Object.freeze({...effectTarget.context}),
+    context: Object.freeze({...effectTarget.context}) as GateOptions['context'],
   });
   const effectTargetGate = effectTarget === undefined ? undefined :
     await createLocalAuthorizationGate({accountConstruction,
@@ -285,8 +387,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
   }
   const effectTargetAuthorities = new Map(installedEffectTargets.map(installed =>
     [installed.authority, installed]));
-  const installedSource = createCheckpointSourceSelection({sources, installedSources});
-  function captureInventory(captured) {
+  const installedSource = createCheckpointSourceSelection({sources,
+    installedSources: installedSources as (SourceSlot & {gate: Gate})[]});
+  function captureInventory(captured: SourceCapture) {
     const inventory = acquisitionsOf(captured);
     if (pluralCapture(captured) && sources === undefined &&
         source?.sourceRef === undefined) {
@@ -297,10 +400,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
     }
     return inventory;
   }
-  const sourceBindings = sourceInventory?.bindings ?? [];
+  const sourceBindings: SourceBinding[] = sourceInventory?.bindings ?? [];
   if (sources !== undefined) {
     for (let index = 0; index < installedSources.length; index++) {
-      const {configuration, gate: read} = installedSources[index];
+      const {configuration, gate: read} = installedSources[index] as SourceSlot & {gate: Gate};
       const row = sourceInventory === undefined ? {source_ref: configuration.sourceRef} : sourceBindings[index];
       // Actual admitted Account identities fit their existing CID codec.
       // Refuse an incompatible producer; never truncate or invent a binding.
@@ -311,7 +414,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       row.context_cid = read.contextCid;
       if (sourceInventory === undefined) sourceBindings.push(row);
     }
-    sourceBindings.sort((left, right) => left.source_ref < right.source_ref ? -1 : 1);
+    sourceBindings.sort((left, right) => left.source_ref! < right.source_ref! ? -1 : 1);
   }
   const binding = Object.freeze({
     authorizationContextCid: contentCid({principal: ownerPrincipal,
@@ -327,8 +430,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
         installedEffectTargets.flatMap(({mappings, gate: read}) =>
           mappings.map(({mappingRef, mappingCid}) => ({mapping_ref: mappingRef,
             mapping_cid: mappingCid,
-            configuration_cid: read.configurationCid ?? null,
-            context_cid: read.contextCid})))
+            configuration_cid: read!.configurationCid ?? null,
+            context_cid: read!.contextCid})))
           .sort((left, right) => left.mapping_ref < right.mapping_ref ? -1
             : left.mapping_ref > right.mapping_ref ? 1 : 0)}),
       ...(sources === undefined ? {} : {source_authorization_bindings: sourceBindings}),
@@ -387,7 +490,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       };
     },
     attestResolution(preimage) {
-      return {hostKeyId: hostKey.keyId,
+      return {hostKeyId: hostKey!.keyId,
         signature: sign(null, Buffer.from(preimage, 'utf8'),
           hostPrivateKey).toString('base64')};
     },
@@ -398,52 +501,54 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // releases it.
   evidence = openContinuationEvidence({
     stateDirectory: state, ...privateKey, contractControl,
-    isTerminalRunOutcome: journal.isTerminalRunOutcome,
+    isTerminalRunOutcome: journal!.isTerminalRunOutcome,
     preparation(prepareAttemptId) {
       if (prepareAttemptId.startsWith('effect-') ||
           prepareAttemptId.startsWith('model-')) {
         const model = prepareAttemptId.startsWith('model-');
-        const run = journal.getRunState(prepareAttemptId.slice(
+        const run = journal!.getRunState(prepareAttemptId.slice(
           model ? 6 : 7));
         // Cancellation/expiry can stop unsent work while entered calls still
         // need historical observation and cleanup. Missing discovery is not
         // proof that those immutable Model originals may be retired.
-        if (run !== undefined && journal.isTerminalRunOutcome(run.status)) {
-          const unresolved = journal.hasUnresolvedModelCalls?.(
+        if (run !== undefined && journal!.isTerminalRunOutcome(run.status)) {
+          const unresolved = journal!.hasUnresolvedModelCalls?.(
             prepareAttemptId.slice(model ? 6 : 7));
           if (model ? unresolved !== false : unresolved === true) return undefined;
         }
         return run === undefined ? undefined :
           {status: 'run_created', runStatus: run.status};
       }
-      const current = journal.getPreparation(prepareAttemptId);
+      const current = journal!.getPreparation(prepareAttemptId);
       if (current === undefined) return undefined;
       return {status: current.status, runStatus: current.runId === null
-        ? undefined : journal.getRunState(current.runId)?.status};
+        ? undefined : journal!.getRunState(current.runId)?.status};
     },
   });
 
   const tuple = Object.freeze({connection: siteKey, resource: realizationKey,
     operation: 'write'});
   // The gate that continues approved requests: the same configuration and
-  // durable journal; a resume never defers again.
+  // durable journal; a resume never defers again. The gate's general
+  // describe type permits broader Model data, which the Journal admits or
+  // refuses using its original checked Model inventory.
   const resumeGate = await createLocalAuthorizationGate({accountConfig, accountConstruction,
     accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
-    deferral: {journal,
+    deferral: {journal: journal as Journal & Deferral['journal'],
       authorities, binding,
       describe() { fail('ResumeDoesNotDefer'); }}});
   for (const installed of installedSources) {
     installed.resumeGate = await createLocalAuthorizationGate({accountConstruction,
       accountConfiguration: installed.configuration.accountConfiguration,
       context: installed.configuration.context, ...decisionOptions,
-      deferral: {journal, authorities, binding,
+      deferral: {journal: journal as Journal & Deferral['journal'], authorities, binding,
         describe() { fail('ResumeDoesNotDefer'); }}});
   }
   // The read approval admitted immediately before a held request's physical
   // start, for the source adapter's current-authority check that follows in
   // the same process (after a restart a started acquisition is only
   // reconciled, never started again).
-  const admittedReads = new Map();
+  const admittedReads = new Map<string, Map<string, ReadApproval>>();
   const {requestSubject, prepareAttemptIdOf, deferralFor, acquisitionIntent,
     readDeferralFor} = createHeldCheckpointDeferrals({authorityScopeCid, namespaceId, siteKey,
     realizationKey, journal, authorities, binding, evidence, gate, now,
@@ -453,7 +558,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // account allows, denies or delegates; a delegated read is answered by the
   // Host's decision function or held through `port`.
   async function decideRead({prepareAttemptId, request, requestCid,
-    captured, occurrence, port, earlier, signal}) {
+    captured, occurrence, port, earlier, signal}: ReadDecisionInput) {
     const {configuration} = installedSource(occurrence);
     const answering = answeringAuthorities ??
       authorities.map(item => item.reviewerId);
@@ -468,7 +573,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       // decision before it seals evidence or creates a Checkpoint.
       deferral: captured.submission === undefined
         ? readDeferralFor({prepareAttemptId, request, requestCid,
-          captured, occurrence, answering, port, earlier}) : undefined});
+          captured, occurrence, answering, port, earlier}) as ReturnType<typeof readDeferralFor> & Deferral : undefined});
     try {
       return await deferring.authorize('acquisition',
         occurrence.readTuple, {subjectCid: intentCid, signal});
@@ -479,12 +584,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
     heldRequestId, held} = createCheckpointHeldRecovery({captureInventory,
     evidence, acquisitionIntent, journal, indexedRequestId, recordHeld, now});
   const diagnostic = diagnosticObserver(observe);
-  const step = async (name, detail) => {
+  const step = async (name: string, detail: unknown) => {
     diagnostic(name, detail);
     await faultInjection?.(name, detail);
   };
 
-  const refusal = decision => {
+  const refusal = (decision: Decision) => {
     const error = new ExecutionAuthorizationError(decision);
     return coded(error.runtimeCode ?? 'ACTQL_E_DELEGATION_UNAVAILABLE',
       error);
@@ -493,10 +598,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // Resume sweep. Approved preparations are continued by whichever Host
   // claims their intent; a busy intent (a live or recently dead claimant) is
   // retried after its lease.
-  let sweeping;
-  let retry;
+  let sweeping: Promise<void> | undefined;
+  let retry: ReturnType<typeof setTimeout> | undefined;
   let closed = false;
-  let host;
+  let host: HostPort | undefined;
   const modelCustody = createCheckpointModelCustody({contractControl, evidence, IDENTIFIER,
     capturedValueWire, fail, get closed() { return closed; }});
   // Errors that a later attempt may clear (a busy Store, a transient read);
@@ -506,7 +611,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     'PrivateEvidenceKeyMismatch', 'HeldRunDefinitionMissing',
     'HeldRequestChanged', 'HeldAcquisitionChanged',
     'InvalidContinuationLedger']);
-  const retryable = error => !PERMANENT.has(error?.code ?? error?.message);
+  const retryable = (error: Fault) => !PERMANENT.has((error?.code ?? error?.message)!);
   // Observe Runs created from approved preparations. The intent completes
   // only after the physical start is reserved, so these Runs are started
   // (or unknown); they are never started or sent again here. A terminal Run
@@ -515,35 +620,35 @@ export async function installRemoteCheckpoints({root, namespaceId,
     let busy = false;
     let after = '';
     for (;;) {
-      const page = journal.listPreparationRuns({after, limit: sweepPage});
+      const page = journal!.listPreparationRuns({after, limit: sweepPage});
       for (const {prepareAttemptId, runId} of page) {
         if (closed) return busy;
         try {
           const {captured} = await continuationOf(prepareAttemptId);
           await step('run_observed', {prepareAttemptId, runId});
-          const status = await host.observe({captured, runId});
-          if (journal.isTerminalRunOutcome(status)) {
-            journal.finishRun(runId, {status});
+          const status = await host!.observe({captured, runId});
+          if (journal!.isTerminalRunOutcome(status)) {
+            journal!.finishRun(runId, {status});
           }
         } catch (error) {
-          const code = error?.code ?? error?.message;
+          const code = (error as Fault)?.code ?? (error as Fault)?.message;
           await step('recovery_failed', {prepareAttemptId, runId, code,
-            retry: retryable(error)});
-          if (retryable(error)) busy = true;
+            retry: retryable(error as Fault)});
+          if (retryable(error as Fault)) busy = true;
         }
       }
       if (page.length < sweepPage) return busy;
-      after = page.at(-1).prepareAttemptId;
+      after = page.at(-1)!.prepareAttemptId;
     }
   }
-  async function resumeOne(prepareAttemptId) {
+  async function resumeOne(prepareAttemptId: string) {
     const claimant = `remote-host-${process.pid}-${randomUUID()}`;
     let claimed;
     try {
-      claimed = journal.claimPreparationResume(prepareAttemptId,
+      claimed = journal!.claimPreparationResume(prepareAttemptId,
         {claimant, leaseMs, binding});
     } catch (error) {
-      if (error?.code === 'ResumeIntentNotFound') return 'done';
+      if ((error as Fault)?.code === 'ResumeIntentNotFound') return 'done';
       throw error;
     }
     if (claimed.action === 'busy') return 'busy';
@@ -553,10 +658,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
       // started fails before dispatch, so nothing starts later.
       try {
         const {captured} = await continuationOf(prepareAttemptId);
-        await host.abandon(captured);
+        await host!.abandon(captured);
       } catch (error) {
         await step('abandon_failed', {prepareAttemptId,
-          code: error?.code ?? error?.message});
+          code: (error as Fault)?.code ?? (error as Fault)?.message});
       }
       return 'done';
     }
@@ -564,11 +669,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
     const claim = claimed.claim;
     await step('resume_claimed', {prepareAttemptId,
       generation: claim.generation});
-    const end = status => {
+    const end = (status: 'failed' | 'cancelled') => {
       // A stale fence did not settle the preparation. Let the owned drain
       // retain retry responsibility and re-observe it under a fresh claim.
       // In particular, a cancelled Run must not strand its held evidence.
-      journal.completeResume(claim, {status});
+      journal!.completeResume(claim, {status});
     };
     let continuation;
     let captured;
@@ -577,20 +682,20 @@ export async function installRemoteCheckpoints({root, namespaceId,
       ({continuation, captured, request} = await continuationOf(
         prepareAttemptId, claimed.continuationStateCid));
     } catch (error) {
-      if (retryable(error)) return 'busy';
+      if (retryable(error as Fault)) return 'busy';
       end('failed');
       return 'done';
     }
-    const probe = await host.inspect(captured);
+    const probe = await host!.inspect(captured);
     // A durable request cancellation: nothing new starts. A Run already
     // defined but not started is cancelled through its own cancellation;
     // one whose start is reserved keeps the existing stop and cleanup
     // owners (the cancellation was applied to the Run by cancel-request).
     const cancelRequested = () =>
-      journal.getPreparation(prepareAttemptId)?.cancelRequested === true;
+      journal!.getPreparation(prepareAttemptId)?.cancelRequested === true;
     if (cancelRequested() && probe.state !== 'started' &&
         probe.state !== 'terminal') {
-      if (probe.state === 'unstarted') await host.cancelRun(captured);
+      if (probe.state === 'unstarted') await host!.cancelRun(captured);
       end(probe.state === 'abandoned' ? 'failed' : 'cancelled');
       return 'done';
     }
@@ -610,10 +715,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
       return 'done';
     }
     if (probe.state === 'started' || probe.state === 'terminal') {
-      journal.completeResume(claim, {run: {runId: probe.runId,
+      journal!.completeResume(claim, {run: {runId: probe.runId,
         status: 'running'}});
       if (probe.state === 'terminal') {
-        journal.finishRun(probe.runId, {status: probe.status});
+        journal!.finishRun(probe.runId, {status: probe.status});
       }
       return 'done';
     }
@@ -622,14 +727,14 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // trusted time, live claim), whether or not the Run Definition exists.
     // The resumed Checkpoint is Run acceptance (`run_scope`) or a held
     // source read (`read_access`), each decided for its own tuple.
-    const resumedKind = journal.inspect(claimed.checkpointCid)?.kind;
+    const resumedKind = journal!.inspect(claimed.checkpointCid)?.kind;
     const readHeld = resumedKind === 'read_access';
     const inventory = captureInventory(captured);
     const resumedOccurrence = readHeld
       ? continuedOccurrence(captured, continuation) : undefined;
     if (readHeld && (installedSources.length === 0 ||
         resumedOccurrence === undefined)) {
-      await host.abandon(captured);
+      await host!.abandon(captured);
       end('failed');
       return 'done';
     }
@@ -638,15 +743,15 @@ export async function installRemoteCheckpoints({root, namespaceId,
     const earlier = [...(continuation.earlier_approvals ?? [])];
     const earlierCurrent = () => {
       for (const checkpointCid of earlier) {
-        if (journal.committedApprovalAt(checkpointCid).current !== true) {
+        if (journal!.committedApprovalAt(checkpointCid).current !== true) {
           throw Object.assign(new Error('ApprovalExpired'),
             {code: 'ApprovalExpired'});
         }
       }
     };
     const decision = readHeld
-      ? await installedSource(resumedOccurrence).resumeGate.resume('acquisition',
-        resumedOccurrence.readTuple, {
+      ? await installedSource(resumedOccurrence!).resumeGate!.resume('acquisition',
+        resumedOccurrence!.readTuple, {
           subjectCid: continuation.invocation_cid,
           sealedSubjectCid: continuation.invocation_cid,
           resumption: {claim: {checkpointCid: claimed.checkpointCid, claim}},
@@ -662,7 +767,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         !earlierValid) {
       // A lapsed or superseded claim sends nothing and ends nothing.
       if (decision.detail === 'ResumeClaimStale') return 'busy';
-      await host.abandon(captured);
+      await host!.abandon(captured);
       end('failed');
       return 'done';
     }
@@ -670,19 +775,19 @@ export async function installRemoteCheckpoints({root, namespaceId,
       captured, earlier);
     const allApprovals = [...earlier, claimed.checkpointCid];
     if (readHeld) {
-      readApprovals.set(occurrenceKey(resumedOccurrence), admittedRead(
-        captured, resumedOccurrence, {checkpointCid: claimed.checkpointCid,
+      readApprovals.set(occurrenceKey(resumedOccurrence!), admittedRead(
+        captured, resumedOccurrence!, {checkpointCid: claimed.checkpointCid,
           earlier, prepareAttemptId}));
     }
     // Decide the complete ordered inventory before any provider I/O. A new
     // delegated occurrence replaces this resume intent with its own durable
-    // Checkpoint in the existing journal. Ephemeral Host permits are decided
+    // Checkpoint in the existing journal!. Ephemeral Host permits are decided
     // again after restart; only actual held approvals are reconstructed.
     if (installedSources.length > 0) for (const occurrence of inventory) {
       if (readApprovals.has(occurrenceKey(occurrence))) continue;
-      try { journal.renewResume(claim, leaseMs); }
+      try { journal!.renewResume(claim, leaseMs); }
       catch (error) {
-        if (error?.code === 'ResumeClaimStale') return 'busy';
+        if ((error as Fault)?.code === 'ResumeClaimStale') return 'busy';
         throw error;
       }
       const read = await decideRead({prepareAttemptId, request,
@@ -691,16 +796,16 @@ export async function installRemoteCheckpoints({root, namespaceId,
         port: {
           persistCheckpoint: ({body, authorities: reviewers, binding: bound,
             decisionSubjectCid, requestedClaims, configurationCid}) =>
-            journal.completeResume(claim, {checkpoint: {body,
+            journal!.completeResume(claim, {checkpoint: {body,
               authorities: reviewers, binding: bound, decisionSubjectCid,
-              requestedClaims, configurationCid}}),
-          submitResolution: item => journal.submitResolution(item),
+              requestedClaims, configurationCid}}) as ReturnType<Journal['persistCheckpoint']>,
+          submitResolution: item => journal!.submitResolution(item),
         }});
       if (read.action === 'waiting') return 'done';
-      if (read.error?.code === 'ResumeClaimStale' ||
+      if ((read.error as Fault)?.code === 'ResumeClaimStale' ||
           read.detail === 'ResumeClaimStale') return 'busy';
       if (read.action !== 'dispatch') {
-        await host.abandon(captured);
+        await host!.abandon(captured);
         end('failed');
         return 'done';
       }
@@ -711,9 +816,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
     }
     const admission = decision.admission;
     const identity = request.subject.logical_request_scope_cid;
-    const outcome = await host.resume({
+    const outcome = await host!.resume({
       captured, step,
-      renew() { journal.renewResume(claim, leaseMs); },
+      renew() { journal!.renewResume(claim, leaseMs); },
       // Entered synchronously immediately before the physical start
       // reservation (fence, approval validity, single start per claim
       // generation). A later generation reconciles the same identity.
@@ -727,11 +832,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
         }
         // The claimant keeps its lease while it works; a lapsed or
         // superseded claim throws here and nothing starts.
-        journal.renewResume(claim, leaseMs);
+        journal!.renewResume(claim, leaseMs);
         earlierCurrent();
         try { admission.enter(identity); }
         catch (error) {
-          if (error?.code !== 'PriorAdmissionUnresolved') throw error;
+          if ((error as Fault)?.code !== 'PriorAdmissionUnresolved') throw error;
           admission.reconcile(identity);
         }
         // Each adapter receives only its exact occurrence grant, bound to
@@ -746,15 +851,15 @@ export async function installRemoteCheckpoints({root, namespaceId,
       // The intent completes with the Run right after its physical start is
       // reserved; the Run is then only observed.
       started(runId) {
-        journal.completeResume(claim, {run: {runId, status: 'running'}});
+        journal!.completeResume(claim, {run: {runId, status: 'running'}});
       },
     });
     if (outcome === 'started') return 'done';
-    const refusal = outcome?.refused;
+    const refusal = (outcome as Readonly<{refused?: Fault}> | undefined)?.refused;
     // A start that did not happen may be a cancellation that arrived during
     // the resume: settle it now rather than retrying.
     if (outcome === 'not_started') {
-      const after = await host.inspect(captured);
+      const after = await host!.inspect(captured);
       if (after.state === 'cancelled') {
         end('cancelled');
         return 'done';
@@ -763,12 +868,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
     }
     if (refusal?.code === 'ResumeClaimStale') return 'busy';
     if (refusal?.code === 'PreparationCancelled') {
-      await host.cancelRun(captured);
+      await host!.cancelRun(captured);
       end('cancelled');
       return 'done';
     }
     if (refusal !== undefined) {
-      await host.abandon(captured);
+      await host!.abandon(captured);
       end('failed');
     }
     return 'done';
@@ -786,11 +891,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // One drain: every resumable preparation, page by page (a busy page never
   // starves later ones), then the Run-side duties and evidence retention.
   async function drain() {
-    journal.expire();
+    journal!.expire();
     let busy = false;
     let after = '';
     for (;;) {
-      const page = journal.listResumablePreparations({after,
+      const page = journal!.listResumablePreparations({after,
         limit: sweepPage});
       for (const id of page) {
         if (closed) return busy;
@@ -799,17 +904,17 @@ export async function installRemoteCheckpoints({root, namespaceId,
         catch (error) {
           outcome = 'busy';
           await step('resume_failed', {prepareAttemptId: id,
-            code: error?.code ?? error?.message});
+            code: (error as Fault)?.code ?? (error as Fault)?.message});
         }
         if (outcome === 'busy') busy = true;
       }
       if (page.length < sweepPage) break;
-      after = page.at(-1);
+      after = page.at(-1)!;
     }
     if (await recoverRuns()) busy = true;
     if (await host?.models?.sweep()) busy = true;
     if (await host?.effects?.sweep()) busy = true;
-    await evidence.settle();
+    await evidence!.settle();
     return busy;
   }
 
@@ -829,7 +934,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           try { busy = await drain() || busy; }
           catch (error) {
             busy = true;
-            await step('sweep_failed', {code: error?.code ?? error?.message});
+            await step('sweep_failed', {code: (error as Fault)?.code ?? (error as Fault)?.message});
           }
         }
       } finally {
@@ -849,9 +954,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
     maxReviewBytes, heldRequestId, resumeAfterAnswer, sweep, get closed() { return closed; }});
 
   const computationSource = createCheckpointComputationSource({installedSource,
-    createLocalAuthorizationGate, journal, evidence, accountConstruction, decisionOptions,
+    createLocalAuthorizationGate, journal: journal as Journal & Deferral['journal'], evidence, accountConstruction, decisionOptions,
     decide, answeringAuthorities, authorities, binding, authorityScopeCid, ownerPrincipal,
     now, maxReviewBytes, checkpointTtlMs});
+
+  const acquisitionAccess = createCheckpointAcquisitionAccess({admittedReads, journal});
 
   return Object.freeze({
     configured,
@@ -867,7 +974,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // Source answer nor the later Effect Set answer is a Model send permit.
     async modelAuthorization({runId, runDefinitionCid, unitId, scopeCid, tuple,
       declaredResults, modelCallSet, reviewWire, continuationWire, beforeDefer,
-      journalPort = journal, attachImmediate = false}) {
+      journalPort = journal!, attachImmediate = false}: ModelAuthorization) {
       if (!IDENTIFIER.test(runId ?? '') || typeof unitId !== 'string' || unitId.length === 0 ||
           typeof runDefinitionCid !== 'string' || typeof scopeCid !== 'string' ||
           tuple?.operation !== 'infer' || typeof tuple.connection !== 'string' ||
@@ -890,16 +997,16 @@ export async function installRemoteCheckpoints({root, namespaceId,
            typeof journalPort.modelParentResume?.checkpointCid !== 'string' ||
            !Object.hasOwn(journalPort, 'attachModelCallSetCheckpoint') ||
            typeof journalPort.attachModelCallSetCheckpoint !== 'function' ||
-           journalPort.attachModelCallSetCheckpoint === journal.attachModelCallSetCheckpoint)) {
+           journalPort.attachModelCallSetCheckpoint === journal!.attachModelCallSetCheckpoint)) {
         fail('ModelImmediateCheckpointChainingUnsupported');
       }
       const port = !attachImmediate ? journalPort : {...journalPort,
-        persistCheckpoint: checkpoint => journalPort.attachModelCallSetCheckpoint(checkpoint)};
+        persistCheckpoint: (checkpoint: Parameters<Journal['attachModelCallSetCheckpoint']>[0]) => journalPort.attachModelCallSetCheckpoint!(checkpoint)};
       const model = await createLocalAuthorizationGate({accountConfig, accountConstruction,
         accountConfiguration, principal: ownerPrincipal, ...decisionOptions,
         decide, requiredClaims: ['invocation_scope_approved'],
         answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
-        deferral: {journal: port, authorities, binding,
+        deferral: {journal: port as JournalPort & Deferral['journal'], authorities, binding,
           async describe(view) {
             if (view.boundary !== 'activation' || view.tuple.operation !== 'infer' ||
                 view.subject.subject_cid !== scopeCid) {
@@ -910,14 +1017,14 @@ export async function installRemoteCheckpoints({root, namespaceId,
             // The review's common semantic CID excludes its self field. The
             // existing encrypted continuation store uses a full-byte digest;
             // retain their exact association instead of confusing identities.
-            const storedReview = evidence.reference(`model-${runId}`,
+            const storedReview = evidence!.reference(`model-${runId}`,
               'review_projection', reviewWire).semantic_cid;
             const storedContinuation = canonicalValueJson({version: MODEL_CHECKPOINT_STORAGE,
               run_definition_cid: runDefinitionCid,
               model_invocation_scope_cid: scopeCid,
               review_projection_cid: review.identity, review_storage_cid: storedReview,
               continuation_wire: continuationWire});
-            const refs = await evidence.hold(`model-${runId}`, runDefinitionCid, [
+            const refs = await evidence!.hold(`model-${runId}`, runDefinitionCid, [
               {name: 'review_projection', wire: reviewWire},
               {name: 'continuation_record', wire: storedContinuation},
             ]);
@@ -946,16 +1053,16 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       return Object.freeze({scopeCid, configurationCid: model.configurationCid,
         contextCid: model.contextCid,
-        authorize: options => model.authorize('activation', tuple,
+        authorize: (options?: Parameters<Gate['authorize']>[2]) => model.authorize('activation', tuple,
           {...options, subjectCid: scopeCid}),
-        resume: options => model.resume('activation', tuple,
+        resume: (options?: Parameters<Gate['resume']>[2]) => model.resume('activation', tuple,
           {...options, subjectCid: scopeCid}),
         close: () => model.close(),
         cleanup: () => model.cleanup(),
         cleanupPending: () => model.cleanupPending(),
       });
     },
-    async modelContinuation(view) {
+    async modelContinuation(view: CheckpointView) {
       const {record} = await modelStoredContinuation(view);
       return JSON.parse(record.continuation_wire);
     },
@@ -964,11 +1071,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // pre-computation approvals never reuse a Source or Effect-commit grant.
     async effectTargetAuthorization({runId, runDefinitionCid, unitId,
       inventoryCid, target, declaredResults, continuation, beforeDefer,
-      effectTargetAuthority, journalPort = journal}) {
+      effectTargetAuthority, journalPort = journal!}: TargetAuthorization) {
       const installed = effectTargets === undefined
         ? effectTargetAuthority === undefined && effectTargetGate !== undefined
-          ? {configuration: effectTarget, gate: effectTargetGate} : undefined
-        : effectTargetAuthorities.get(effectTargetAuthority);
+          ? {configuration: effectTarget!, gate: effectTargetGate} : undefined
+        : effectTargetAuthorities.get(effectTargetAuthority!);
       if (installed === undefined || !IDENTIFIER.test(runId ?? '') ||
           !IDENTIFIER.test(unitId ?? '') || typeof runDefinitionCid !== 'string' ||
           typeof inventoryCid !== 'string' || typeof continuation !== 'function' ||
@@ -987,7 +1094,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         accountConfiguration: installed.configuration.accountConfiguration,
         context: installed.configuration.context, ...decisionOptions, decide,
         answeringAuthorities: answeringAuthorities ?? authorities.map(item => item.reviewerId),
-        deferral: {journal: journalPort, authorities, binding,
+        deferral: {journal: journalPort as JournalPort & Deferral['journal'], authorities, binding,
           async describe(view) {
             if (view.boundary !== 'acquisition' || view.subject.subject_cid !== scopeCid) {
               fail('InvalidEffectTargetCheckpointBoundary');
@@ -996,10 +1103,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
             const wire = await continuation();
             if (typeof wire !== 'string') fail('InvalidEffectTargetContinuation');
             const reviewWire = canonicalValueJson({scope,
-              configuration_cid: installed.gate.configurationCid,
-              context_cid: installed.gate.contextCid}, {dataKeys: true});
+              configuration_cid: installed.gate!.configurationCid,
+              context_cid: installed.gate!.contextCid}, {dataKeys: true});
             if (Buffer.byteLength(reviewWire) > maxReviewBytes) fail('CheckpointReviewTooLarge');
-            const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
+            const refs = await evidence!.hold(`effect-${runId}`, runDefinitionCid, [
               {name: 'review_projection', wire: reviewWire},
               {name: 'continuation_record', wire},
             ]);
@@ -1019,62 +1126,62 @@ export async function installRemoteCheckpoints({root, namespaceId,
             }};
           },
         }});
-      if (read.configurationCid !== installed.gate.configurationCid ||
-          read.contextCid !== installed.gate.contextCid) {
+      if (read.configurationCid !== installed.gate!.configurationCid ||
+          read.contextCid !== installed.gate!.contextCid) {
         read.close();
         fail('EffectTargetCheckpointConfigurationChanged');
       }
       return Object.freeze({scopeCid, configurationCid: read.configurationCid,
         contextCid: read.contextCid,
         assertCurrent: () => read.assertConfigurationCurrent(),
-        authorize: options => read.authorize('acquisition', target.readTuple,
+        authorize: (options?: Parameters<Gate['authorize']>[2]) => read.authorize('acquisition', target.readTuple,
           {...options, subjectCid: scopeCid}),
-        resume: options => read.resume('acquisition', target.readTuple,
+        resume: (options?: Parameters<Gate['resume']>[2]) => read.resume('acquisition', target.readTuple,
           {...options, subjectCid: scopeCid}),
-        current: options => installed.gate.authorize('acquisition', target.readTuple,
+        current: (options?: Parameters<Gate['authorize']>[2]) => installed.gate!.authorize('acquisition', target.readTuple,
           {...options, subjectCid: scopeCid}),
         close: () => read.close(),
         cleanup: () => read.cleanup(),
         cleanupPending: () => read.cleanupPending(),
       });
     },
-    async effectTargetContinuation(view) {
+    async effectTargetContinuation(view: CheckpointView) {
       if (view?.kind !== 'read_access' || view.prepareAttemptId !== null) {
         fail('InvalidEffectTargetContinuation');
       }
-      const held = await evidence.open(`effect-${view.runId}`);
+      const held = await evidence!.open(`effect-${view.runId}`);
       if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
-      const saved = await held.record('continuation_record', view.continuationStateCid);
+      const saved = await held.record('continuation_record', view.continuationStateCid) as SavedTarget | null;
       if (saved?.version !== EFFECT_TARGET_CONTINUATION ||
           saved.run_definition_cid !== view.runDefinitionCid ||
-          saved.unit_id !== view.subject?.unit_id) fail('InvalidEffectTargetContinuation');
+          saved.unit_id !== (view.subject as Readonly<{unit_id?: string}>)?.unit_id) fail('InvalidEffectTargetContinuation');
       return saved;
     },
-    async runUnitReadContinuation(view) {
+    async runUnitReadContinuation(view: CheckpointView) {
       if (view?.kind !== 'read_access' || view.prepareAttemptId !== null) {
         fail('InvalidRunUnitReadContinuation');
       }
-      const held = await evidence.open(`effect-${view.runId}`);
+      const held = await evidence!.open(`effect-${view.runId}`);
       if (held.requestCid !== view.runDefinitionCid) fail('EffectContinuationRunMismatch');
       return held.record('continuation_record', view.continuationStateCid);
     },
-    async inspectEffectTargetApprovals(runId, runDefinitionCid) {
+    async inspectEffectTargetApprovals(runId: string, runDefinitionCid: string) {
       if (!IDENTIFIER.test(runId ?? '') || typeof runDefinitionCid !== 'string') {
         fail('InvalidEffectTargetContinuation');
       }
       const records = [];
       let after = '';
       for (;;) {
-        const page = journal.listRunCheckpoints({after, limit: PAGE});
+        const page = journal!.listRunCheckpoints({after, limit: PAGE});
         for (const view of page) {
           if (view.runId !== runId || view.kind !== 'read_access' ||
               !view.checkpointId.startsWith(`${runId}-target-`)) continue;
           if (view.runDefinitionCid !== runDefinitionCid || view.prepareAttemptId !== null) {
             fail('EffectContinuationRunMismatch');
           }
-          const held = await evidence.open(`effect-${runId}`);
+          const held = await evidence!.open(`effect-${runId}`);
           if (held.requestCid !== runDefinitionCid) fail('EffectContinuationRunMismatch');
-          const continuation = await held.record('continuation_record', view.continuationStateCid);
+          const continuation = await held.record('continuation_record', view.continuationStateCid) as SavedTarget | null;
           if (continuation?.version !== EFFECT_TARGET_CONTINUATION ||
               continuation.run_definition_cid !== runDefinitionCid) {
             fail('InvalidEffectTargetContinuation');
@@ -1082,7 +1189,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           records.push(Object.freeze({view, continuation}));
         }
         if (page.length < PAGE) break;
-        after = page.at(-1).checkpointCid;
+        after = page.at(-1)!.checkpointCid;
       }
       return Object.freeze(records);
     },
@@ -1093,7 +1200,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     async effectAuthorization({runId, runDefinitionCid, runDefinition, unitId,
       declaredResults, reviewWire, continuationWire, beforeDefer, targetReads,
       requestedStop, assertRequestedStopCurrent, projectReview,
-      journalPort = journal}) {
+      journalPort = journal!}: EffectAuthorization) {
       if (!IDENTIFIER.test(runId ?? '') || !IDENTIFIER.test(unitId ?? '') ||
           typeof beforeDefer !== 'function' ||
           typeof reviewWire !== 'string' ||
@@ -1109,7 +1216,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       const originalLifetime = runDefinition === undefined ? undefined :
         contractControl.runDefinitionLifetime(runDefinition, runDefinitionCid);
-      const checkpointEnd = (created, stopLifetime) => {
+      const checkpointEnd = (created: number,
+        stopLifetime: ReturnType<ContractControl['requestedEffectStopLifetime']> | undefined) => {
         let expires = created + checkpointTtlMs;
         for (const lifetime of [originalLifetime, stopLifetime]) {
           if (lifetime === undefined) continue;
@@ -1132,7 +1240,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         maxWireBytes: maxReviewBytes});
       const reviewPolicyCid = contentCid({version:
         'actql-remote-review-redaction/0.1', redacted: []});
-      const originalReview = (subjectCid, claims) => {
+      const originalReview = (subjectCid: string | undefined, claims: readonly string[]) => {
         if (typeof projectReview !== 'function') fail('OriginalEffectReviewUnavailable');
         const {wire, identity} = projectReview(Object.freeze({authorityScopeCid,
           approvalClaims: Object.freeze([...claims]),
@@ -1155,11 +1263,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
           ? authorities.map(item => item.reviewerId)
           : [...answeringAuthorities]};
       const read = await createLocalAuthorizationGate(common);
-      let commit;
+      let commit: Gate | undefined;
       try {
         commit = await createLocalAuthorizationGate({...common,
           requiredClaims: effectClaims,
-          deferral: {journal: journalPort, authorities, binding,
+          deferral: {journal: journalPort as EffectJournalPort & Deferral['journal'], authorities, binding,
             async describe(view) {
               if (view.boundary !== 'effect_commit' &&
                   view.subject.boundary !== 'effect_commit') {
@@ -1171,7 +1279,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
                   ? ['effect_scope_approved', 'partial_application_accepted']
                   : ['effect_scope_approved']);
               const id = `effect-${runId}`;
-              const refs = await evidence.hold(id, runDefinitionCid, [
+              const refs = await evidence!.hold(id, runDefinitionCid, [
                 {name: 'review_projection', wire: review.wire, artifactCid: review.identity},
                 {name: 'continuation_record', wire: continuationWire},
               ]);
@@ -1193,24 +1301,25 @@ export async function installRemoteCheckpoints({root, namespaceId,
             },
           }});
         if (read.configurationCid !== gate.configurationCid ||
-            commit.configurationCid !== gate.configurationCid) {
+            commit!.configurationCid !== gate.configurationCid) {
           fail('EffectCheckpointConfigurationChanged');
         }
         const stopLimits = Object.freeze({...INSTALLED_EFFECT_CHECKPOINT_LIMITS,
           maxWireBytes: maxReviewBytes});
         const stopCurrent = () => {
           if (requestedStop === undefined) fail('RequestedEffectStopUnavailable');
-          assertRequestedStopCurrent();
+          assertRequestedStopCurrent!();
           read.assertConfigurationCurrent();
-          commit.assertConfigurationCurrent();
+          commit!.assertConfigurationCurrent();
         };
         // Project the existing journal's admitted body, not caller-supplied
         // approval DATA. Common rechecks its original Run/Preview/intent and
         // canonical checkpoint CID before an ownership admission is returned.
-        const checkedStopView = (resumption, subjectCid) => {
-          const held = resumption?.claim;
+        const checkedStopView = (resumption: Resumption, subjectCid: string | undefined) => {
+          const held = resumption?.claim as (Parameters<Journal['admitResume']>[0] &
+            Readonly<{claim?: Parameters<Journal['admitResume']>[0]; checkpointCid?: string}>) | undefined;
           const claim = held?.claim ?? held;
-          const admitted = journalPort.admitResume(claim,
+          const admitted = journalPort.admitResume(claim!,
             {checkpointCid: held?.checkpointCid});
           const view = journalPort.inspect(admitted.checkpointCid);
           if (view?.reasonCode !== 'user_requested_stop') return undefined;
@@ -1241,13 +1350,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
           stopCurrent();
           return view;
         };
-        const requestStop = async (decision, options) => {
+        const requestStop = async (decision: Decision, options: NonNullable<AuthorizationArguments[2]>) => {
           stopCurrent();
           options.signal?.throwIfAborted();
           await beforeDefer();
           stopCurrent();
           const review = originalReview(decision.subjectCid, ['effect_scope_approved']);
-          const refs = await evidence.hold(`effect-${runId}`, runDefinitionCid, [
+          const refs = await evidence!.hold(`effect-${runId}`, runDefinitionCid, [
             {name: 'review_projection', wire: review.wire, artifactCid: review.identity},
             {name: 'continuation_record', wire: continuationWire},
           ]);
@@ -1279,7 +1388,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           const persisted = await journalPort.persistCheckpoint({body,
             priorStatus: 'running', declaredResults, authorities, binding,
             decisionSubjectCid: contractControl.requestedEffectStopIntentCid(requestedStop),
-            requestedClaims: [], configurationCid: commit.configurationCid});
+            requestedClaims: [], configurationCid: commit!.configurationCid});
           if (persisted.checkpointCid !== JSON.parse(wire).checkpoint_cid) {
             fail('RequestedEffectStopCommitMismatch');
           }
@@ -1304,11 +1413,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
           return !cleanupPending();
         };
         return Object.freeze({
-          async authorize(boundary, scope, options = {}) {
+          async authorize(boundary: AuthorizationArguments[0], scope: AuthorizationArguments[1], options: NonNullable<AuthorizationArguments[2]> = {}) {
             if (boundary === 'acquisition' && targetReads !== undefined) {
               return targetReads.authorize(scope, options);
             }
-            const decision = await (boundary === 'effect_commit' ? commit : read)
+            const decision = await (boundary === 'effect_commit' ? commit! : read)
               .authorize(boundary, scope, options);
             // A genuine delegated Checkpoint already stops this exact Preview.
             // Neither an Account Allow nor an immediate Host permit discharges
@@ -1316,29 +1425,29 @@ export async function installRemoteCheckpoints({root, namespaceId,
             return boundary === 'effect_commit' && requestedStop !== undefined &&
               decision.action === 'dispatch' ? requestStop(decision, options) : decision;
           },
-          async resume(boundary, scope, options = {}) {
+          async resume(boundary: ResumeArguments[0], scope: ResumeArguments[1], options: NonNullable<ResumeArguments[2]> = {}) {
             const view = checkedStopView(options.resumption, options.subjectCid);
-            if (view === undefined) return commit.resume(boundary, scope, options);
+            if (view === undefined) return commit!.resume(boundary, scope, options);
             if (boundary !== 'effect_commit') fail('RequestedEffectStopBindingChanged');
             // This approval releases only the continuation restriction. Current
             // Delegate still needs a genuine current Host answer; these review
             // claims must never be supplied to executionAuthorizationAnswer.
-            const decision = await commit.authorize(boundary, scope,
+            const decision = await commit!.authorize(boundary, scope,
               {...options, allowDeferral: false});
             checkedStopView(options.resumption, options.subjectCid);
             return decision;
           },
-          continuationAdmission(resumption, subjectCid) {
+          continuationAdmission(resumption: Resumption, subjectCid?: string) {
             if (checkedStopView(resumption, subjectCid) === undefined) return undefined;
             const owned = admitResumedDispatch(journalPort, resumption,
-              {configurationCid: commit.configurationCid, approvalClaims: false});
+              {configurationCid: commit!.configurationCid, approvalClaims: false});
             if (owned.detail !== undefined) fail(owned.detail, owned.error);
             stopCurrent();
             return owned.admission;
           },
           assertCurrent() {
             read.assertConfigurationCurrent();
-            commit.assertConfigurationCurrent();
+            commit!.assertConfigurationCurrent();
           },
           close, cleanup: close, cleanupPending,
         });
@@ -1349,29 +1458,29 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
     },
     ...computationSource,
-    async effectContinuation(view) {
+    async effectContinuation(view: CheckpointView) {
       if (view?.kind !== 'effect_set' || view.prepareAttemptId !== null) {
         fail('InvalidEffectContinuation');
       }
-      const held = await evidence.open(`effect-${view.runId}`);
+      const held = await evidence!.open(`effect-${view.runId}`);
       if (held.requestCid !== view.runDefinitionCid) {
         fail('EffectContinuationRunMismatch');
       }
       return held.record('continuation_record', view.continuationStateCid);
     },
-    effectRunState(runId, runDefinitionCid) {
+    effectRunState(runId: string, runDefinitionCid: string) {
       if (!IDENTIFIER.test(runId ?? '') ||
           typeof runDefinitionCid !== 'string') {
         fail('InvalidEffectContinuation');
       }
-      let view = journal.activeRunCheckpoint(runId);
+      let view = journal!.activeRunCheckpoint(runId);
       if (view === undefined) {
         let after = '';
         for (;;) {
-          const page = journal.listRunCheckpoints({after, limit: PAGE});
+          const page = journal!.listRunCheckpoints({after, limit: PAGE});
           view = page.find(item => item.runId === runId);
           if (view !== undefined || page.length < PAGE) break;
-          after = page.at(-1).checkpointCid;
+          after = page.at(-1)!.checkpointCid;
         }
       }
       if (view === undefined) return undefined;
@@ -1380,26 +1489,26 @@ export async function installRemoteCheckpoints({root, namespaceId,
           view.prepareAttemptId !== null) {
         fail('EffectContinuationRunMismatch');
       }
-      return journal.getRunState(runId);
+      return journal!.getRunState(runId);
     },
     // Route only through the journal's exact current continuation. The
     // transition owner fences physical entry; this lookup grants no authority.
-    cancelEffectContinuation(runId, runDefinitionCid) {
-      const view = journal.activeRunCheckpoint(runId);
-      if (!['effect_set', 'read_access', 'model_invocation'].includes(view?.kind) ||
-          view.runId !== runId || view.runDefinitionCid !== runDefinitionCid ||
-          view.prepareAttemptId !== null) return false;
-      const state = journal.getRunState(runId);
+    cancelEffectContinuation(runId: string, runDefinitionCid: string) {
+      const view = journal!.activeRunCheckpoint(runId);
+      if (!['effect_set', 'read_access', 'model_invocation'].includes(view?.kind!) ||
+          view!.runId !== runId || view!.runDefinitionCid !== runDefinitionCid ||
+          view!.prepareAttemptId !== null) return false;
+      const state = journal!.getRunState(runId);
       if (state?.status === 'waiting_checkpoint') {
-        return journal.cancelCheckpoint(view.checkpointCid).outcome === 'cancelled';
+        return journal!.cancelCheckpoint(view!.checkpointCid).outcome === 'cancelled';
       }
       if (state?.status === 'resuming') {
-        return journal.cancelUnsentResume(view.checkpointCid).outcome === 'cancelled';
+        return journal!.cancelUnsentResume(view!.checkpointCid).outcome === 'cancelled';
       }
       return false;
     },
-    hasUnresolvedSourceStart(runId, runDefinitionCid) {
-      const view = journal.activeRunCheckpoint(runId);
+    hasUnresolvedSourceStart(runId: string, runDefinitionCid: string) {
+      const view = journal!.activeRunCheckpoint(runId);
       return view?.kind === 'read_access' && view.runId === runId &&
         view.runDefinitionCid === runDefinitionCid &&
         view.requiredArtifact.type === 'read_scope' &&
@@ -1407,42 +1516,42 @@ export async function installRemoteCheckpoints({root, namespaceId,
           view.requiredArtifact.cid) ||
           // Already sealed legacy Checkpoints retain their original identity.
           view.checkpointId.startsWith(`${runId}-source-`)) &&
-        journal.hasStartedResume(view.checkpointCid);
+        journal!.hasStartedResume(view.checkpointCid);
     },
-    hasUnresolvedEffectTargetStart(runId, runDefinitionCid) {
-      const view = journal.activeRunCheckpoint(runId);
+    hasUnresolvedEffectTargetStart(runId: string, runDefinitionCid: string) {
+      const view = journal!.activeRunCheckpoint(runId);
       return view?.kind === 'read_access' && view.runDefinitionCid === runDefinitionCid &&
         view.checkpointId.startsWith(`${runId}-target-`) &&
-        journal.hasStartedResume(view.checkpointCid);
+        journal!.hasStartedResume(view.checkpointCid);
     },
-    hasUnresolvedModelStart(runId, runDefinitionCid) {
-      const view = journal.activeRunCheckpoint(runId);
+    hasUnresolvedModelStart(runId: string, runDefinitionCid: string) {
+      const view = journal!.activeRunCheckpoint(runId);
       return view?.kind === 'model_invocation' && view.runId === runId &&
         view.runDefinitionCid === runDefinitionCid &&
-        journal.hasUnresolvedModelCalls(runId);
+        journal!.hasUnresolvedModelCalls(runId);
     },
     // Principals admitted to the Checkpoint operations at all. Each
     // operation still applies its own authorization.
-    admitsCheckpointPrincipal: principal => principal === ownerPrincipal ||
+    admitsCheckpointPrincipal: (principal: string) => principal === ownerPrincipal ||
       readers.has(principal) || answerers.has(principal),
 
     // Decide Run acceptance for one Host-resolved request before any Run
     // definition exists. `dispatch`: continue; `held`: the durable held
     // reply; refusals throw with their ACTQL runtime code and record nothing.
-    async acceptRun({requested, captured, signal}) {
+    async acceptRun({requested, captured, signal}: AcceptanceInput) {
       captureInventory(captured);
       const prepareAttemptId = prepareAttemptIdOf(captured.requestId);
       const subject = requestSubject(requested);
       const request = {version: 'actql-remote-invocation-request/0.1',
         subject, subject_cid: contentCid(subject)};
       const requestCid = contentCid(request);
-      const existing = journal.getPreparation(prepareAttemptId);
+      const existing = journal!.getPreparation(prepareAttemptId);
       if (existing !== undefined) {
         // The held request's durable fingerprint is its evidence ledger's
         // request CID. Unavailable evidence is never a reason to skip the
         // comparison.
         let ledger;
-        try { ledger = await evidence.open(prepareAttemptId); }
+        try { ledger = await evidence!.open(prepareAttemptId); }
         catch (error) { fail('HeldRequestEvidenceUnavailable', error); }
         if (ledger.requestCid !== requestCid) {
           fail('ClientRequestIntentConflict');
@@ -1454,7 +1563,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         if (['waiting_checkpoint', 'resuming'].includes(existing.status)) {
           const captures = ledger.held('captured_input');
           if (captures.length !== 1) fail('HeldAcquisitionChanged');
-          const original = await ledger.record('captured_input', captures[0]);
+          const original = await ledger.record('captured_input', captures[0]) as CapturedRequest;
           if ((pluralCapture(captured) || pluralCapture(original)) &&
               capturedValueCid(acquisitionsOf(original)) !==
                 capturedValueCid(acquisitionsOf(captured))) {
@@ -1475,9 +1584,9 @@ export async function installRemoteCheckpoints({root, namespaceId,
         // continuation paths. Unsupported pre-Run waits must not be admitted.
         deferral: captured.submission === undefined
           ? deferralFor({prepareAttemptId, request, requestCid,
-            captured, answering}) : undefined});
-      let sealed;
-      let decision;
+            captured, answering}) as ReturnType<typeof deferralFor> & Deferral : undefined});
+      let sealed: string | undefined;
+      let decision: Decision;
       try { decision = await deferring.authorize('preparation', tuple, {
         subjectCid: request.subject_cid, signal,
         // Two-phase: the account outcome and any immediate Host answer are
@@ -1502,7 +1611,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
       // Evidence held for a Checkpoint that was never committed has no
       // remaining need.
-      if (sealed !== undefined) await evidence.abandon(prepareAttemptId);
+      if (sealed !== undefined) await evidence!.abandon(prepareAttemptId);
       throw refusal(decision);
     },
 
@@ -1510,7 +1619,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // allowed or permitted, before any Run Definition or provider I/O. A
     // delegated read is held as a `read_access` `prepare_attempt`
     // Checkpoint (the held reply); refusals throw and record nothing.
-    async acceptAcquisition({requested, captured, signal}) {
+    async acceptAcquisition({requested, captured, signal}: AcceptanceInput) {
       const inventory = captureInventory(captured);
       if (inventory.length === 0 || installedSources.length === 0) {
         return {kind: 'dispatch'};
@@ -1524,11 +1633,11 @@ export async function installRemoteCheckpoints({root, namespaceId,
       // The Host's acquisition owner durably reserves the captured inventory
       // before physical I/O when no Checkpoint is needed.
       for (const occurrence of inventory) installedSource(occurrence);
-      const permits = new Map();
+      const permits = new Map<string, ReadApproval>();
       admittedReads.delete(captured.requestId);
       for (const occurrence of inventory) {
         const decision = await decideRead({prepareAttemptId, request,
-          requestCid, captured, occurrence, port: journal, signal});
+          requestCid, captured, occurrence, port: journal!, signal});
         if (decision.action === 'dispatch') {
           // A Host permit is process-local and occurrence-specific. Never
           // retain a partial pair if a later decision holds or refuses.
@@ -1542,104 +1651,35 @@ export async function installRemoteCheckpoints({root, namespaceId,
           return {kind: 'held', held: held(prepareAttemptId,
             captured.requestId)};
         }
-        await evidence.abandon(prepareAttemptId);
+        await evidence!.abandon(prepareAttemptId);
         throw refusal(decision);
       }
       if (permits.size > 0) admittedReads.set(captured.requestId, permits);
       return {kind: 'dispatch'};
     },
 
-    // The source access a request's acquisition uses. For a request whose
-    // read was held and approved, the adapter's current-authority check just
-    // before provider I/O (and before Source Evidence) accepts that exact
-    // admitted approval while it is still current and the request is not
-    // cancelled; deny and allow are the source account's own. Every other
-    // request uses the installed access unchanged.
-    acquisitionAccess(requestId, base, occurrence) {
-      const key = occurrence === undefined ? 'singular' : occurrenceKey(occurrence);
-      const admitted = admittedReads.get(requestId)?.get(key);
-      if (admitted === undefined || occurrence !== undefined &&
-          capturedValueCid(occurrence) !== capturedValueCid(admitted.acquisition)) return base;
-      const same = scope => ['connection', 'resource', 'operation'].every(
-        key => scope?.[key] === admitted.readTuple[key]);
-      let originalApproval;
-      const approvalCurrent = () => {
-        if (admittedReads.get(requestId)?.get(key) !== admitted) return false;
-        const preparation = admitted.prepareAttemptId === undefined
-          ? undefined : journal.getPreparation(admitted.prepareAttemptId);
-        const approvedNow = cid => {
-          try {return journal.committedApprovalAt(cid).current === true;}
-          catch {return false;}
-        };
-        return preparation?.cancelRequested !== true &&
-          [admitted.checkpointCid,...admitted.earlier].filter(cid=>cid!==undefined).every(approvedNow);
-      };
-      const assertApprovedReadCurrent = () => {
-        if (!approvalCurrent()) fail('ApprovalExpired');
-      };
-      const authorization = Object.freeze({
-        ...base.authorization,
-        async authorize(boundary, scope, options) {
-          if (boundary === 'acquisition') originalApproval = undefined;
-          const current = await base.authorization.authorize(boundary, scope,
-            options);
-          if (current.action === 'dispatch' || current.action === 'deny' ||
-              boundary !== 'acquisition' || !same(scope)) return current;
-          // The returned approval carries the exact approved read, which a
-          // source adapter verifies against its own installation.
-          if (!approvalCurrent()) return current;
-          originalApproval = recordCheckpointApproval(Object.freeze({boundary,
-            action: 'dispatch', basis: 'resumed_approval',
-            tuple: Object.freeze({...scope}),
-            checkpointCid: admitted.checkpointCid}), {
-            checkpointCid: admitted.checkpointCid,
-            earlierCheckpointCids: Object.freeze(admitted.earlier.filter(cid=>cid!==undefined)),
-            // The original resume entered before this admitted read was
-            // published. Both Site fences retain that same live occurrence;
-            // they issue no new grant or physical request.
-            assertCurrent: assertApprovedReadCurrent,
-            enter: assertApprovedReadCurrent,
-            readTuple: admitted.readTuple,
-            physicalBinding: admitted.acquisition?.physicalBinding,
-            checkedSource: admitted.acquisition?.checkedSource,
-            ...(admitted.acquisition?.installationBinding === undefined ? {} :
-              {installationBinding: admitted.acquisition.installationBinding}),
-            ...(admitted.acquisition?.stage === undefined ? {} :
-              {occurrence: occurrenceIdentity(admitted.acquisition)}),
-            principalId: admitted.principalId});
-          return originalApproval;
-        },
-      });
-      // The same read's nominal decision is metadata custody, never another
-      // authorization. Its consumer must validate the original facts/current.
-      return Object.freeze({...base, authorization,
-        originalCheckpointApproval() {
-          if (originalApproval === undefined || admitted.checkpointCid === undefined) return undefined;
-          if (!approvalCurrent()) fail('ApprovalExpired');
-          return originalApproval;
-        }});
-    },
+    ...acquisitionAccess,
 
     // The dispatch of a held read ended; its admitted approval is no longer
     // used for provider I/O in this process.
-    releaseAcquisition(requestId) { admittedReads.delete(requestId); },
+    releaseAcquisition(requestId: string) { admittedReads.delete(requestId); },
 
     // Durable request cancellation of a held request (before or after its
     // Run exists); the caller applies it to an existing Run.
-    cancelHeld(requestId) {
-      const cancelled = journal.requestPreparationCancellation(
+    cancelHeld(requestId: string) {
+      const cancelled = journal!.requestPreparationCancellation(
         prepareAttemptIdOf(requestId));
       return Object.freeze({outcome: cancelled.outcome});
     },
 
     // Whether this Host held the request (a prepare attempt exists): its Run
     // may start only through the resumed authorization.
-    heldOrigin(requestId) {
-      return journal.getPreparation(prepareAttemptIdOf(requestId)) !==
+    heldOrigin(requestId: string) {
+      return journal!.getPreparation(prepareAttemptIdOf(requestId)) !==
         undefined;
     },
 
-    heldLookup(requestId) {
+    heldLookup(requestId: string) {
       return held(prepareAttemptIdOf(requestId), requestId);
     },
 
@@ -1649,18 +1689,18 @@ export async function installRemoteCheckpoints({root, namespaceId,
 
     // Install the Host's physical port for held requests ({inspect, resume,
     // abandon, observe}), then sweep once (Host start).
-    start(port) {
+    start(port: HostPort) {
       host = port;
       return sweep();
     },
     sweep,
 
     // The checkpoint-journal Run created by a resumed request ended.
-    runFinished(runId, status) {
-      const run = journal.getRunState(runId);
-      if (run === undefined || journal.isTerminalRunOutcome(run.status) ||
+    runFinished(runId: string, status: string) {
+      const run = journal!.getRunState(runId);
+      if (run === undefined || journal!.isTerminalRunOutcome(run.status) ||
           run.status !== 'running') return;
-      journal.finishRun(runId, {status});
+      journal!.finishRun(runId, {status});
       // Retention settles in the owned sweep (which stop() waits for), or in
       // close(); never as a detached write.
       void sweep();
@@ -1669,25 +1709,25 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // Stop starting new resumes; running work may still end its Runs.
     stop,
     // After the Host's running dispatches settled: settle retention, then
-    // release the evidence owner and the journal. Returns what is left for
+    // release the evidence owner and the journal!. Returns what is left for
     // the next owner (retention that could not complete yet).
     async close() {
       await stop();
       admittedReads.clear();
       gate.close();
       effectTargetGate?.close();
-      for (const installed of installedEffectTargets) installed.gate.close();
+      for (const installed of installedEffectTargets) installed.gate!.close();
       resumeGate.close();
       for (const installed of installedSources) {
-        installed.gate.close();
-        installed.resumeGate.close();
+        installed.gate!.close();
+        installed.resumeGate!.close();
       }
       decisionBudget.close();
       let retention;
-      try { retention = await evidence.settle(); }
+      try { retention = await evidence!.settle(); }
       finally {
-        await evidence.close();
-        journal.close();
+        await evidence!.close();
+        journal!.close();
         sourceConsumerClosed = true;
       }
       sourceInventory?.custody.retire();
@@ -1702,13 +1742,13 @@ export async function installRemoteCheckpoints({root, namespaceId,
     if (journal !== undefined) {
       retainedFailure = await retainInstalledHostInitializationFailure(cause,
         {journal, store: evidence});
-      originalSetupCleanup = retainedFailure.cleanupHandle;
+      originalSetupCleanup = (retainedFailure as Awaited<ReturnType<typeof retainInstalledHostInitializationFailure>>).cleanupHandle;
     }
     try {sourceInventory?.custody.retire();}
     catch (cleanupIssue) {
       // Keep the original admission failure. The actual initial Host retains
       // this same borrow/callback and retries only its cleanup responsibility.
-      sourceInventory.custody.cleanupIssue = cleanupIssue;
+      sourceInventory!.custody.cleanupIssue = cleanupIssue;
     }
     // Before journal custody exists, preserve the original admission error.
     throw retainedFailure;

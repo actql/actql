@@ -7622,7 +7622,7 @@
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -7638,7 +7638,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               },
               {
@@ -7700,7 +7700,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -7716,7 +7716,7 @@
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               },
               {
@@ -7778,7 +7778,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -8966,7 +8966,7 @@
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -8982,7 +8982,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               },
               {
@@ -9032,7 +9032,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -9048,7 +9048,7 @@
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               },
               {
@@ -9094,7 +9094,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -12467,7 +12467,7 @@
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -12483,7 +12483,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               },
               {
@@ -12545,7 +12545,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -12561,7 +12561,7 @@
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               },
               {
@@ -12619,7 +12619,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -13307,7 +13307,7 @@
                 "anchor": "pub fn client_values_host_admit_captured_result_snapshot(@run_publication.PublicationContract, @run_publication.PublicationContract, String, Array[String], Int, Int, Int) -> Result[@run_publication.CapturedResultSnapshot, @run_publication.CapturedRunIssuanceIssue]"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -13323,7 +13323,7 @@
                 "anchor": "const admitted = journal.resolveDefinition(requested.requested,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               },
               {
@@ -13385,7 +13385,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -13401,7 +13401,7 @@
                 "anchor": "test('restored Infer plan refuses equal-byte foreign graph or original caller preparation substitution'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               },
               {
@@ -13459,7 +13459,7 @@
                 "anchor": "# Portable execution boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -14492,8 +14492,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               },
               {
                 "path": "adapters/host-common/runtime-effect-preview-control.mts",
@@ -14506,7 +14506,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -14526,7 +14526,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -14536,7 +14536,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -14546,7 +14546,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {

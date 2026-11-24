@@ -23994,11 +23994,11 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               },
               {
@@ -24060,11 +24060,11 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               },
               {
@@ -24122,7 +24122,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -28308,11 +28308,11 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               },
               {
@@ -28374,11 +28374,11 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               },
               {
@@ -28436,7 +28436,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -29012,11 +29012,11 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const expires = checkpointEnd(created, requestedStop === undefined"
               },
               {
@@ -29078,11 +29078,11 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "if (!Number.isFinite(expires) || expires <= created) {"
               },
               {
@@ -29140,7 +29140,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -30113,8 +30113,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               },
               {
                 "path": "adapters/host-common/runtime-effect-preview-control.mts",
@@ -30127,7 +30127,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -30147,7 +30147,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -30157,7 +30157,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -30167,7 +30167,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -53639,7 +53639,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               }
             ],
@@ -53653,7 +53653,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               }
             ],
@@ -53667,7 +53667,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               }
             ],
@@ -93798,7 +93798,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -93856,7 +93856,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -93914,7 +93914,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -101891,7 +101891,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -101937,7 +101937,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -101987,7 +101987,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -102851,7 +102851,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -102905,7 +102905,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -102959,7 +102959,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -103507,7 +103507,7 @@
                 "anchor": "## Synchronization"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -103557,7 +103557,7 @@
                 "anchor": "## Failure"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -103607,7 +103607,7 @@
                 "anchor": "## Cancellation"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {

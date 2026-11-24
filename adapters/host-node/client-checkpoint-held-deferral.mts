@@ -19,6 +19,7 @@ type Gate = Pick<Awaited<ReturnType<typeof createLocalAuthorizationGate>>, 'cont
 type RequestIdentity = Readonly<{logicalRequestScopeCid: string; intentFingerprintCid: string}>;
 export type CapturedRequest = SourceCapture & Readonly<{
   requestId: string; principalId: string; parameters: unknown; resultNames: readonly string[];
+  submission?: unknown;
 }> & (Readonly<{kind: 'aql'; input: Readonly<{format: string; text: string}>}> |
   Readonly<{kind: 'program'; input: unknown}>);
 type HeldRequest = Readonly<{
@@ -177,7 +178,7 @@ export function createHeldCheckpointDeferrals({authorityScopeCid, namespaceId, s
   // held request, or the current resume claim for one already resuming.
   // `earlier` names the approvals this attempt already holds (checked again
   // on their own before the start).
-  function readDeferralFor<Port extends Pick<Journal, 'persistCheckpoint'>>({prepareAttemptId, request, requestCid, captured,
+  function readDeferralFor<Port extends Pick<Journal, 'persistCheckpoint' | 'submitResolution'>>({prepareAttemptId, request, requestCid, captured,
     occurrence, answering, port, earlier = []}: HeldSourceRequest<Port>) {
     const {gate: readGate} = installedSource(occurrence);
     return {

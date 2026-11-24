@@ -4976,8 +4976,8 @@
                 "anchor": "projectEffectComputationReview(preview: unknown, policy: ReviewPolicy, limits: Limits,"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
-                "anchor": "const originalReview = (subjectCid, claims) =>"
+                "path": "adapters/host-node/client-checkpoints.mts",
+                "anchor": "const originalReview = (subjectCid: string | undefined, claims: readonly string[]) =>"
               },
               {
                 "path": "packages/sdk/checkpoints.mts",
@@ -5002,7 +5002,7 @@
                 "anchor": "const original = computationPreviewTokens.get(preview as object);"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "body.effect_preview_cid !== subjectCid"
               },
               {
@@ -5050,7 +5050,7 @@
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "await beforeDefer();"
               },
               {
@@ -5072,7 +5072,7 @@
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('OriginalEffectReviewUnavailable')"
               },
               {
@@ -5094,7 +5094,7 @@
                 "anchor": "// Checkpoint answers built by the Client and signed by the application's"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "signal?.throwIfAborted();"
               },
               {
@@ -7159,7 +7159,7 @@
                 "anchor": "const observeStep = async promise => {"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -7189,7 +7189,7 @@
                 "anchor": "return Err(InvalidSince)"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -7223,7 +7223,7 @@
                 "anchor": "signal?.reason?.name === 'TimeoutError' ? 'WaitTimeout' : 'WaitAborted'"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -12998,7 +12998,7 @@
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -13024,7 +13024,7 @@
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -13054,7 +13054,7 @@
                 "anchor": "// Original Submission/Request inputs, invocation outcomes and lookup custody."
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
