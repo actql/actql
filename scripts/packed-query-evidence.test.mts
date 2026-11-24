@@ -268,6 +268,9 @@ test('existing failure probe collects after failure and separately tests upload 
   const job = probe.jobs['failure-probe'];
   assert.deepEqual(job.strategy.matrix.fault, ['nonzero', 'timeout', 'interrupted', 'upload']);
   assert.equal(job['timeout-minutes'], 3, 'existing watchdog is unchanged');
+  const prepare = job.steps.findIndex(step => step.run === 'npm ci' && step.if === undefined);
+  const inject = job.steps.findIndex(step => step.id === 'probe');
+  assert.ok(prepare >= 0 && prepare < inject, 'npm prepare emits the evidence module before fault injection');
   const collect = job.steps.find(step => step.id === 'collection')!;
   assert.match(collect.if!, /^always\(\)/u);
   assert.equal(collect['continue-on-error'], undefined);
