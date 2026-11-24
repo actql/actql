@@ -4,6 +4,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {canonicalJson, contentCid} from './local-account-config.mjs';
 import {installedSourceEnvironmentConstructionReader, isInstalledSourceInitializationRetired} from './installed-host-services.mjs';
 import {composeAdmittedCheckEnvironmentOriginals} from './installed-check-environment.mjs';
+import {admitInstalledCalendar} from './installed-calendar.mjs';
 import {installedEnvironmentParseConstructionGeometry,
   installedEnvironmentDocumentConstructionStages,
   installedEnvironmentCompositionConstructionGeometry} from './installed-check-environment-construction.mjs';
@@ -120,7 +121,7 @@ export function readInstalledSourceEnvironment(services, moon, wire) {
 // Task text). Core performs complete canonical/member validation. Every native
 // constructor below borrows its real original from the same funded parse.
 export function readInstalledHostEnvironment(services, moon, wire,
-  {textTime, calendar, numericProfileCid, graphLawCid}) {
+  {textTime, calendar, calendarArtifact, numericProfileCid, graphLawCid}) {
   const reader = installedSourceEnvironmentConstructionReader(services, moon);
   const owner = owners.get(services);
   if (owner === undefined || owner.failed || owner.busy || owner.reader !== reader) {
@@ -150,12 +151,15 @@ export function readInstalledHostEnvironment(services, moon, wire,
       : moon.clientProgramCheckEnvironmentFromWireConstructionCapacity;
     const admit = populated ? moon.clientProgramCheckEnvironmentModelFromWireWithGraphProfile
       : moon.clientProgramCheckEnvironmentFromWireWithGraphProfile;
-    const admitted = construct(() => Reflect.apply(quote, moon, [raw]), () => {
+    const base = construct(() => Reflect.apply(quote, moon, [raw]), () => {
       const value = Reflect.apply(admit, moon, [raw,
         textTime, true, true, true, true, calendar, false, numericProfileCid, graphLawCid]);
       if (value === undefined) fail('InstalledCheckEnvironmentConflict');
       return value;
     });
+    // Keep the actual selected checker with the same funded native original
+    // before using it to publish the Environment.
+    const admitted = admitInstalledCalendar(moon, base, calendarArtifact, construct, counts.maxFields);
     // This exact raw original and checker remain retained by the parent. No
     // independently reconstructed DTO becomes a publication matcher here.
     return construct(() => checked(moon.clientProgramInstalledSourceConstructionCapacity(
