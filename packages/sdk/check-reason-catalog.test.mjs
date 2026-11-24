@@ -11,7 +11,7 @@ test('public check catalog exposes separate readonly presentation metadata witho
   assert.equal(previous.checkSchemas.previousOriginal.reasonCid, reasonCid);
   verifyIdentity(current.body, current.cid, current.canonicalPreimage);
   assert.deepEqual(getCheckReasonCatalogInfo(), {version: 'actql-check-reason-catalog/0.1',
-    revision: '2026-11-21.1', reasonSchemaCid: current.cid});
+    revision: '2026-11-23.2', reasonSchemaCid: current.cid});
   const entry = getCheckReasonCatalogEntry('parameter_value_required');
   assert.equal(entry.family, 'requirement');
   assert.equal(entry.default_severity, 'info');

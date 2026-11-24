@@ -128,7 +128,7 @@ import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
 import {snapshotInstalledCalendar, installedCalendarIdentityCid,
-  installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
+  installedCalendarSelection} from './installed-calendar.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {installedRunWaitDecision, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
@@ -2352,7 +2352,7 @@ async function openInstalledHost(originalInstallation, preparation) {
     environmentBody = undefined;
     if (projectTasks !== undefined && mockModels === undefined) {
       finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
-        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined,
+        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined, calendarArtifact,
           numericProfileCid, graphLawCid: contentCid(graphLaw)});
       environment = finalEnvironmentOriginal.admitted;
     } else if (calendarArtifact === undefined && environmentWire === composedEnvironment.wire) {
@@ -2364,12 +2364,9 @@ async function openInstalledHost(originalInstallation, preparation) {
       // its measured, funded raw/checker original through completion instead
       // of admitting an unowned compatibility body and estimating it again.
       finalEnvironmentOriginal = readInstalledHostEnvironment(installationServices, moon, environmentWire,
-        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined,
+        {textTime: textTimeEnabled, calendar: calendarArtifact !== undefined, calendarArtifact,
           numericProfileCid, graphLawCid: contentCid(graphLaw)});
       environment = finalEnvironmentOriginal.admitted;
-    }
-    if (environment !== undefined) {
-      environment = admitInstalledCalendar(moon, environment, calendarArtifact);
     }
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,

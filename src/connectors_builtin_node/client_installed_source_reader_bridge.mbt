@@ -1,4 +1,20 @@
 ///|
+/// Quote the explicitly selected Calendar profile before its existing parser.
+#export_name("clientProgramInstalledCalendarArtifactConstructionCapacity")
+pub fn client_program_installed_calendar_artifact_construction_capacity(
+  bytes : Int,
+  nodes : Int,
+  depth : Int,
+  zones : Int,
+  transitions : Int,
+  policy_fields : Int,
+) -> @execution.ExecutionCapacity? {
+  @client_local_host.installed_calendar_artifact_construction_capacity(
+    bytes, nodes, depth, zones, transitions, policy_fields,
+  )
+}
+
+///|
 /// Original installed JSON reader representation DATA. Core admission remains
 /// at the existing same-acquisition provider RowRun and actual parent Ledger.
 #export_name("clientProgramInstalledSourceReaderPolicy")

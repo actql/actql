@@ -57263,7 +57263,7 @@
     {
       "module": "adapters/host-node/installed-calendar.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "17793f9d82aec55574a6a271c26e5530b667f97cac535b7ab8fb4f0b625938d9",
+      "sha256": "c0373c7a60cdc04516253c68b4ffcba7710e374d79909f552381d0ee72670dbc",
       "role": "physical-io",
       "owner": "Existing MoonBit calendar profile Owner and trusted semantic-artifact selection",
       "exports": [
@@ -57279,8 +57279,20 @@
           "parameters": [
             "moon",
             "environment",
-            "selected"
+            "selected",
+            "construct",
+            "policyFields"
           ],
+          "async": false
+        },
+        {
+          "name": "admitInstalledCalendar/admit/admit",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "admitInstalledCalendar/admitInstalledCalendar",
+          "parameters": [],
           "async": false
         },
         {
@@ -57351,7 +57363,9 @@
             "snapshotInstalledCalendar/snapshotInstalledCalendar",
             "snapshotInstalledCalendar/snapshotInstalledCalendar#2",
             "snapshotRecord/snapshotRecord",
-            "snapshotRecord/snapshotRecord#2"
+            "snapshotRecord/snapshotRecord#2",
+            "admitInstalledCalendar/admit/admit",
+            "admitInstalledCalendar/admitInstalledCalendar"
           ],
           "exports": [
             "admitInstalledCalendar",
@@ -57491,6 +57505,10 @@
               {
                 "path": "adapters/host-node/installed-calendar.test.mjs",
                 "anchor": "test('omitted Calendar installation retains the original environment without enabling a profile', () => {"
+              },
+              {
+                "path": "adapters/host-node/installed-calendar.test.mjs",
+                "anchor": "test('Calendar admission reserves the exact artifact before returning the selected checker', () => {"
               },
               {
                 "path": "src/calendar_profile/pkg.generated.mbti",
@@ -134085,7 +134103,7 @@
     },
     {
       "module": "adapters/host-node/installed-funded-environment.mjs",
-      "sha256": "d7a59309895332cd94499e0470ce6ab79bcd496a9bed88719d05bb949a88bf6a",
+      "sha256": "dd888e5c6ade9ff8e4e08b22bfba2095918e147eb36fba59f0f6e9a8827d96cb",
       "exports": [
         "admitInstalledSourceFinalEnvironment",
         "assertInstalledEnvironmentPublicationOriginal",
@@ -134264,19 +134282,28 @@
             "wire",
             "textTime",
             "calendar",
+            "calendarArtifact",
             "numericProfileCid",
             "graphLawCid"
           ],
           "async": false
         },
         {
-          "name": "readInstalledHostEnvironment/admitted/admitted",
+          "name": "readInstalledHostEnvironment/base/base",
           "parameters": [],
           "async": false
         },
         {
-          "name": "readInstalledHostEnvironment/admitted/admitted#2",
+          "name": "readInstalledHostEnvironment/base/base#2",
           "parameters": [],
+          "async": false
+        },
+        {
+          "name": "readInstalledHostEnvironment/construct/construct",
+          "parameters": [
+            "capacity",
+            "project"
+          ],
           "async": false
         },
         {
@@ -134328,6 +134355,7 @@
       ],
       "imports": [
         "../host-common/runtime-result.mjs",
+        "./installed-calendar.mjs",
         "./installed-check-environment-construction.mjs",
         "./installed-check-environment.mjs",
         "./installed-host-services.mjs",
@@ -134460,14 +134488,15 @@
         {
           "operations": [
             "readInstalledHostEnvironment",
-            "readInstalledHostEnvironment/admitted/admitted",
-            "readInstalledHostEnvironment/admitted/admitted#2",
             "readInstalledHostEnvironment/parsed/parsed",
             "readInstalledHostEnvironment/parsed/parsed#2",
             "readInstalledHostEnvironment/raw/raw",
             "readInstalledHostEnvironment/raw/raw#2",
             "readInstalledHostEnvironment/readInstalledHostEnvironment",
-            "readInstalledHostEnvironment/readInstalledHostEnvironment#2"
+            "readInstalledHostEnvironment/readInstalledHostEnvironment#2",
+            "readInstalledHostEnvironment/base/base",
+            "readInstalledHostEnvironment/base/base#2",
+            "readInstalledHostEnvironment/construct/construct"
           ],
           "exports": [
             "readInstalledHostEnvironment"

@@ -10099,6 +10099,29 @@ const schemas = {
                               }
                             }
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "issue",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "issue": {
+                              "enum": [
+                                "selection_missing",
+                                "artifact_missing"
+                              ]
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
@@ -11204,6 +11227,7 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
+                                "calendar_profile_required",
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
                                 "query_alias_absent",
@@ -11489,6 +11513,61 @@ const schemas = {
                       }
                     },
                     {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "calendar_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "not": {
                         "properties": {
                           "code": {
@@ -11496,7 +11575,8 @@ const schemas = {
                               "parameter_value_required",
                               "parameter_consumer_condition",
                               "host_capacity_policy_required",
-                              "numeric_reduction_profile_required"
+                              "numeric_reduction_profile_required",
+                              "calendar_profile_required"
                             ]
                           }
                         }
@@ -11521,7 +11601,8 @@ const schemas = {
                         "parameter_value_required",
                         "parameter_consumer_condition",
                         "host_capacity_policy_required",
-                        "numeric_reduction_profile_required"
+                        "numeric_reduction_profile_required",
+                        "calendar_profile_required"
                       ]
                     },
                     "location": {
@@ -12407,6 +12488,29 @@ const schemas = {
                               }
                             }
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "issue",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "issue": {
+                              "enum": [
+                                "selection_missing",
+                                "artifact_missing"
+                              ]
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
@@ -13512,6 +13616,7 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
+                                "calendar_profile_required",
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
                                 "query_alias_absent",
@@ -13795,6 +13900,61 @@ const schemas = {
                           }
                         }
                       }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "calendar_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
@@ -14012,7 +14172,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+            "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -15227,6 +15387,29 @@ const schemas = {
                               }
                             }
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "issue",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "issue": {
+                              "enum": [
+                                "selection_missing",
+                                "artifact_missing"
+                              ]
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
@@ -16332,6 +16515,7 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
+                                "calendar_profile_required",
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
                                 "query_alias_absent",
@@ -16617,6 +16801,61 @@ const schemas = {
                       }
                     },
                     {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "calendar_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "not": {
                         "properties": {
                           "code": {
@@ -16624,7 +16863,8 @@ const schemas = {
                               "parameter_value_required",
                               "parameter_consumer_condition",
                               "host_capacity_policy_required",
-                              "numeric_reduction_profile_required"
+                              "numeric_reduction_profile_required",
+                              "calendar_profile_required"
                             ]
                           }
                         }
@@ -16649,7 +16889,8 @@ const schemas = {
                         "parameter_value_required",
                         "parameter_consumer_condition",
                         "host_capacity_policy_required",
-                        "numeric_reduction_profile_required"
+                        "numeric_reduction_profile_required",
+                        "calendar_profile_required"
                       ]
                     },
                     "location": {
@@ -17535,6 +17776,29 @@ const schemas = {
                               }
                             }
                           ]
+                        },
+                        {
+                          "type": "object",
+                          "required": [
+                            "issue",
+                            "supplier",
+                            "stage"
+                          ],
+                          "additionalProperties": false,
+                          "properties": {
+                            "issue": {
+                              "enum": [
+                                "selection_missing",
+                                "artifact_missing"
+                              ]
+                            },
+                            "supplier": {
+                              "const": "checking_context_owner"
+                            },
+                            "stage": {
+                              "const": "checking"
+                            }
+                          }
                         }
                       ]
                     }
@@ -18640,6 +18904,7 @@ const schemas = {
                                 "implementation_limit",
                                 "host_capacity_policy_required",
                                 "numeric_reduction_profile_required",
+                                "calendar_profile_required",
                                 "program_structure_invalid",
                                 "source_selector_unregistered",
                                 "query_alias_absent",
@@ -18923,6 +19188,61 @@ const schemas = {
                           }
                         }
                       }
+                    },
+                    {
+                      "if": {
+                        "properties": {
+                          "code": {
+                            "const": "calendar_profile_required"
+                          }
+                        }
+                      },
+                      "then": {
+                        "required": [
+                          "facts"
+                        ],
+                        "properties": {
+                          "facts": {
+                            "type": "object",
+                            "required": [
+                              "issue",
+                              "supplier",
+                              "stage"
+                            ],
+                            "additionalProperties": false,
+                            "properties": {
+                              "issue": {
+                                "enum": [
+                                  "selection_missing",
+                                  "artifact_missing"
+                                ]
+                              },
+                              "supplier": {
+                                "const": "checking_context_owner"
+                              },
+                              "stage": {
+                                "const": "checking"
+                              }
+                            }
+                          }
+                        },
+                        "allOf": [
+                          {
+                            "not": {
+                              "required": [
+                                "location"
+                              ]
+                            }
+                          },
+                          {
+                            "not": {
+                              "required": [
+                                "fixes"
+                              ]
+                            }
+                          }
+                        ]
+                      }
                     }
                   ]
                 }
@@ -19158,7 +19478,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+            "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -19204,7 +19524,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652"
+            "const": "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -21792,8 +22112,8 @@ const optionalRequestFields = {
   }
 };
 
-export const checkReasonSchemaCid = "sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652";
-export const checkOutcomeSchemaCid = "sha256:cd072f277d0b6f0910e5e4930f5345dc202eda6167cb487a98202725895c26bf";
+export const checkReasonSchemaCid = "sha256:a2bf0f2824052a62a9b501094edd89888c8a5b1ce9530c5d28a6dcee33ce816f";
+export const checkOutcomeSchemaCid = "sha256:12497b50d1f2a20ef355b6a3a59ae497bd8dd86ebaca33797ed47af4e2f08423";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function finiteWireNumber(value) {
