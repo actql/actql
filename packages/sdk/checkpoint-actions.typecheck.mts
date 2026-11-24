@@ -50,3 +50,20 @@ void [rootConnected, hostConnected];
 rootConnectInProcess({mode: 'remote', owner: 'remote'}, port);
 // @ts-expect-error An original in-process Host port remains required.
 rootConnectInProcess(originalLocalOptions);
+
+// The generated codec distinguishes its two existing WeakMap stage kinds.
+// This compile-only distinction is not a current/owner/authority check: the
+// runtime must still authenticate each original stage in its own WeakMap.
+import {createCheckpointAnswerCodec} from './internal/checkpoint-answer-construction.generated.mjs';
+declare const codec: ReturnType<typeof createCheckpointAnswerCodec>;
+declare const candidate: Awaited<ReturnType<typeof codec.prepareAnswerCandidate>>;
+declare const resolution: Awaited<ReturnType<typeof codec.prepareAnswerResolution>>;
+const approvalPreimage: string | undefined = codec.answerCandidateApprovalPreimage(candidate);
+const resolutionPreimage: string = codec.answerResolutionPreimage(resolution);
+void [approvalPreimage, resolutionPreimage];
+// @ts-expect-error A structural object is not an admitted original candidate stage.
+codec.answerCandidateApprovalPreimage({});
+// @ts-expect-error A candidate has not yet become a resolution stage.
+codec.answerResolutionPreimage(candidate);
+// @ts-expect-error A resolution is not the earlier candidate stage.
+codec.prepareAnswerResolution(resolution);

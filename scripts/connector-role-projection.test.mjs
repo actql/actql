@@ -77,6 +77,18 @@ test('explicit empty selection generates empty role projections without reading 
   assert.equal(checkComputeAssembly(root, false, {names: [], directory: 'selected_compute'}), 0);
   assert.equal(installedConnectorTable([]).size, 0);
   assert.equal(installedEffectTable([]).size, 0);
+
+  const strategy = join(root, 'adapters/selected-node/strategy.generated.mjs');
+  const declarations = join(root, 'adapters/selected-node/strategy.generated.d.mts');
+  const runtime = readFileSync(strategy, 'utf8');
+  const generated = readFileSync(declarations, 'utf8');
+  assert.match(generated, /^type Contribution = never;$/m);
+  assert.doesNotMatch(generated, /strategy-bundle/);
+  const stale = generated + '\n// deliberately stale declaration\n';
+  writeFileSync(declarations, stale);
+  assert.throws(() => checkNodeAssembly(root, false, options([])), /stale: .*strategy\.generated\.d\.mts/u);
+  assert.equal(readFileSync(declarations, 'utf8'), stale);
+  assert.equal(readFileSync(strategy, 'utf8'), runtime);
 });
 
 test('mixed selection projects a genuine Compute-only member independently', t => {

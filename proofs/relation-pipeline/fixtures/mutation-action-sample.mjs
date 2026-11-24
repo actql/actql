@@ -16,14 +16,15 @@ export function inputTree() {
     'proofs/ci-evidence/check.mjs', 'proofs/ci-evidence/Reuse.lean', 'proofs/ci-evidence/Claims.lean',
     'proofs/ci-evidence/inputs.mjs', 'proofs/ci-evidence/package-configurations.mjs',
     'proofs/ci-evidence/receipts.mjs', 'proofs/ci-evidence/transport.mjs',
-    'scripts/ci-artifact-reader.mjs', 'scripts/ci-main-base.mjs',
+    'scripts/ci-artifact-reader.mjs', 'scripts/ci-main-base.mjs', 'scripts/ci-core-partitions.mjs',
     ...variants.map(entry => entry.path)];
   const contents = new Map([...new Set(paths)].map(path => [path, Buffer.from(`synthetic ${path}`)]));
   return {entries: new Map([...contents.keys()].map(path => [path, {kind: 'blob', mode: '100644'}])),
     read: path => contents.get(path), contents};
 }
 export function snapshot(tree) {
-  const sources = Object.fromEntries([...tree.entries.keys()].filter(path => !path.startsWith('proofs/ci-evidence/') && !['scripts/ci-artifact-reader.mjs', 'scripts/ci-main-base.mjs'].includes(path))
+  const sources = Object.fromEntries([...tree.entries.keys()].filter(path => !path.startsWith('proofs/ci-evidence/') &&
+    !['scripts/ci-artifact-reader.mjs', 'scripts/ci-main-base.mjs', 'scripts/ci-core-partitions.mjs'].includes(path))
     .sort().map(path => [path, hash(tree.read(path))]));
   return {sources, digest: digest(sources)};
 }

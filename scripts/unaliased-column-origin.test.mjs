@@ -16,7 +16,7 @@ test('authored origin expectations retain exact original bytes and repeated spel
 
 test('the normal packed public check uses the origin fixture at both existing entrances', () => {
   const app = readFileSync(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = readFileSync(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = readFileSync(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(app.includes('await exerciseUnaliasedColumnOrigins(client, publicCheckSdk)'));
   assert.ok(driver.includes("['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs']"));
   assert.ok(app.includes('packed public check ${options.mode} passed'));

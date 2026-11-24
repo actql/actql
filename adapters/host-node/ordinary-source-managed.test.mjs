@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {mkdtemp, writeFile} from 'node:fs/promises';
-import {readFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareOrdinarySourceManagedInstallation,
   prepareOrdinaryProjectSourceManagedInstallation} from './ordinary-source-managed.mjs';
+import {createOrdinarySourceProducerCustody} from './ordinary-source-producer-custody.mjs';
 import runtime from './ordinary-node-resource-runtime.cjs';
 import {mockProjectFiles} from '../../scripts/fixtures/hubspot-approval/three-source-mock-project.mjs';
 
@@ -199,11 +199,6 @@ test('retired Mock Effect manager entry cannot acquire another Model Root', asyn
 // Actual lookup body with explicit weak/live/receipt ports. This is a local
 // work counter, not a Run, Resource admission or latency measurement.
 test('producer Request lookup stays linear for N and twice N without scanning other live originals', () => {
-  const source = readFileSync(new URL('./ordinary-source-managed.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('  const producerForRequest = request => {');
-  const end = source.indexOf('  const current = () => {', start);
-  assert(start >= 0 && end > start);
-  const body = source.slice(start, end);
   for (const count of [64, 128]) {
     let visits = 0, gets = 0, memberships = 0;
     const weak = new WeakMap(), receipts = new WeakMap(), values = [];
@@ -219,15 +214,18 @@ test('producer Request lookup stays linear for N and twice N without scanning ot
       const request = {}, receipt = {}, producer = {request, receipt, finished:false};
       weak.set(request, new WeakRef(producer)); receipts.set(receipt, producer); producers.add(producer); values.push(producer);
     }
-    const makeLookup = new Function('requestProducers', 'producers', 'receipts', 'closing', 'closed', body + ';return producerForRequest;');
-    const lookup = makeLookup(index, producers, receipts, false, false);
+    const makeLookup = (closing, closed) => createOrdinarySourceProducerCustody({
+      originals: Object.freeze({}), callbacks: Object.freeze({}), requestProducers: index, producers, receipts,
+      closing, closed, fail: () => assert.fail('Lookup must not acquire Source initialization'),
+    }).producerForRequest;
+    const lookup = makeLookup(false, false);
     for (const producer of values) assert.equal(lookup(producer.request), producer);
     assert.equal(visits, 0, 'unrelated live producer visits');
     assert.equal(gets, count, 'one original weak lookup per Request');
     assert.equal(memberships, count, 'one actual live membership check per Request');
     const original = values[0], request = original.request;
-    assert.equal(makeLookup(index, producers, receipts, true, false)(request), undefined);
-    assert.equal(makeLookup(index, producers, receipts, false, true)(request), undefined);
+    assert.equal(makeLookup(true, false)(request), undefined);
+    assert.equal(makeLookup(false, true)(request), undefined);
     producers.delete(original); assert.equal(lookup(request), undefined);
     producers.add(original); original.finished = true; assert.equal(lookup(request), undefined);
     original.finished = false; receipts.delete(original.receipt); assert.equal(lookup(request), undefined);

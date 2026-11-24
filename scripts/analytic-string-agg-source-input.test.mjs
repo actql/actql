@@ -45,7 +45,7 @@ test('analytic STRING_AGG obligations preserve NULLs, duplicates and empty-frame
 
 test('ordinary and selected packed acceptance share the STRING_AGG obligations', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'analyticStringAggSuccesses'],
     ['refusals', 'analyticStringAggRefusals'], ['executionFailures', 'analyticStringAggExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));

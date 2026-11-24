@@ -41,7 +41,7 @@ test('DISTINCT aggregate order obligations distinguish multiplicity and input sn
 
 test('normal packed acceptance and selected cohort share DISTINCT aggregate order cases', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, name] of [['successes', 'distinctAggregateOrderSuccesses'],
     ['refusals', 'distinctAggregateOrderRefusals']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${name})`));

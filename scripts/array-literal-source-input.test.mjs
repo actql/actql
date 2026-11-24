@@ -34,7 +34,7 @@ test('ARRAY fixtures retain independently authored types order multiplicity and 
 
 test('ordinary public campaign and narrow consumer both include ARRAY fixtures', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...arrayLiteralSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...arrayLiteralRefusals)'));
   assert.ok(fixture.includes('arrayLiteralOnly ? {successes: arrayLiteralSuccesses'));

@@ -12,6 +12,7 @@ import {execFileSync} from 'node:child_process';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import * as provider from '../../../../_build/js/release/build/connectors/gmail/host_node/host_node.js';
 import {runtimeCore} from '../../../host-common/runtime-core.mjs';
+import {runtimeField} from '../../../host-common/compiler-binding.generated.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 import {canonicalJson, createLocalAuthorizationGate} from '../../../host-node/local-account-config.mjs';
 import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
@@ -53,8 +54,9 @@ export async function labelListRowOwner(verifyOriginalTransport, factsWire, form
       sourceViewContractCid:view.view_cid,schemaContractCid:view.carrier_schema_cid}]});
   // Text must enter the original Source binder; the canonical JSON-only
   // preparation API deliberately refuses SQL and AQL format names.
-  const source = format === 'sql' ? `SELECT ${selection} FROM gmail.labels`
-    : `FROM gmail.labels |> SELECT ${selection}`;
+  // This fixture drives QueryMaterial's scan-filter-select capture prefix.
+  const source = format === 'sql' ? `SELECT ${selection} FROM gmail.labels WHERE TRUE`
+    : `FROM gmail.labels |> WHERE TRUE |> SELECT ${selection}`;
   const preparation = common.clientProgramPrepareSourceWithParameters(
     source, format, check, publication, undefined, undefined);
   const program = common.clientProgramPreparationReady(preparation);
@@ -62,10 +64,12 @@ export async function labelListRowOwner(verifyOriginalTransport, factsWire, form
   const [registry, aoa, query, evidence] = await Promise.all([
     read('spec/dependencies/aoa-pipeline-registry.json'), read('spec/contracts/actql-aoa.json').then(JSON.parse),
     read('spec/contracts/actql-query-acquisition.json'), read('spec/contracts/actql-query-process-evidence.json')]);
-  const requirement = checked(common.clientProgramPrepareLocalQueryRequirement(program, 0, 0, registry,
-    JSON.stringify(aoa.execution_contracts['REL.values']),
-    JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])));
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const contracts = checked(common.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
+  const requirement = checked(common.clientProgramPrepareLocalQueryRequirement(program, 0, 0, contracts,
+    values, fragment, ordered));
   const acquisition = checked(common.clientProgramRowSourcePrepareAcquisition(declaration, requirement, query, evidence));
   // Explicit independent component bounds, not normal Host funding.
   const ledger = checked(common.clientProgramAcquisitionLedger(1, 1, 24576n, 100000000n, 100000000n, 0));
@@ -75,7 +79,15 @@ export async function labelListRowOwner(verifyOriginalTransport, factsWire, form
   return {charge: bytes => checked(common.clientProgramRowSourceChargePage(run, bytes)),
     page: (rows, charge) => checked(common.clientProgramRowSourceAcceptChargedPage(run, charge, Buffer.from(JSON.stringify(rows)))),
     finish: () => checked(common.clientProgramRowSourceFinish(run)),
-    captureCount: () => {const capture=checked(common.clientProgramRowSourceCapture(run));
+    captureCount: () => {
+      checked(common.clientProgramRowSourceCaptureBegin(run));
+      let done = false;
+      for (let advance = 0; advance < 1000 && !done; advance += 1) {
+        const progress = checked(common.clientProgramRowSourceCaptureAdvance(run, 1));
+        done = runtimeField(progress, 0) === true;
+      }
+      assert.ok(done, 'the original capture completes within the fixture work bound');
+      const capture=checked(common.clientProgramRowSourceCapture(run));
       const source=checked(common.clientProgramRowSourceCaptureSource(capture));
       return common.clientProgramCapturedSourceRowCount(checked(common.clientProgramIdentifyCapturedSourceRelation(source)));},
     assertNoCapture: () => assert.throws(() => checked(common.clientProgramRowSourceCapture(run)), {code:'MoonBitHostFailure'}),

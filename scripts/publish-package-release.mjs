@@ -7,7 +7,7 @@ import {lstat, mkdir, mkdtemp, open, readFile, readdir, realpath, rm, writeFile}
 import {basename, dirname, isAbsolute, join, relative, resolve, sep} from 'node:path';
 import {tmpdir} from 'node:os';
 import {fileURLToPath} from 'node:url';
-import {inventory, publicationPlan, publishedVersion, unpack, verifyPackageRelease} from './package-release.mjs';
+import {inventory, publishPackageRelease, unpack, verifyPackageRelease} from './package-release.mjs';
 import {refuseUnconfiguredPublication} from './release-authority.mjs';
 import {nativeReleaseDraftRequest, readFrozenReleaseArtifact, verifyReleaseSet, verifyReleasePromotionReview,
   releaseSetSummary} from './release-set.mjs';
@@ -844,36 +844,6 @@ export async function promoteNativeReleaseLatest(options) {
     targetId,attemptId,operationCount,releaseId:move.releaseId,tag:move.tag,state:'exact-original-latest-observed',
     qualification:'protocol/current-byte readback only; no owner identity, permission separation, accepted install, exclusive lease/CAS or complete release acceptance'};
   await record('summary.json',summary);return {...summary,receiptDirectory:attempt};
-}
-
-export async function publishPackageRelease({directory, executePublish, fetchMetadata = fetch, verify = verifyPackageRelease}) {
-  const manifest = await verify(directory);
-  // Inspect the whole cohort first, so an occupied conflicting version does
-  // not cause an avoidable partial publication of earlier dependencies.
-  const plan = await publicationPlan(manifest, fetchMetadata);
-  const receipts = join(directory, 'publication-receipts');
-  await mkdir(receipts, {recursive: true});
-  const manifestSha256 = createHash('sha256').update(await readFile(join(directory, 'release.json'))).digest('hex');
-  for (const [index, action] of plan.entries()) {
-    if (action.state === 'published-identical') continue;
-    // Recheck immediately before publishing. Never overwrite, bump or silently
-    // pick another tag when a version appeared between planning and execution.
-    const item = manifest.packages[index];
-    if (await publishedVersion(item, manifest.cohort.registry, fetchMetadata) === 'published-identical') continue;
-    await executePublish({file: join(directory, item.file), registry: manifest.cohort.registry,
-      access: manifest.cohort.access, tag: manifest.cohort.tag});
-    // Command success is recorded separately from registry confirmation. If
-    // confirmation fails, the next invocation authenticates existing bytes
-    // first; it does not assume that the previous publication never happened.
-    const receipt = {version: 'actql-package-publication/0.1', at: new Date().toISOString(),
-      manifestSha256, sourceSha: manifest.sourceSha, name: item.name, packageVersion: item.version,
-      integrity: item.integrity, registry: manifest.cohort.registry, commandSucceeded: true};
-    const filename = `${index}-${Date.now()}-${crypto.randomUUID()}.json`;
-    await writeFile(join(receipts, filename), `${JSON.stringify(receipt, null, 2)}\n`, {flag: 'wx'});
-    assert.equal(await publishedVersion(item, manifest.cohort.registry, fetchMetadata), 'published-identical',
-      'Publication not yet confirmed; preserve receipt and rerun inspection');
-  }
-  return publicationPlan(manifest, fetchMetadata);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

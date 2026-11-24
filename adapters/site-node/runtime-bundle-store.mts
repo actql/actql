@@ -1,0 +1,907 @@
+import {createHash, randomUUID} from 'node:crypto';
+import {DatabaseSync} from 'node:sqlite';
+import type {SQLInputValue, SQLOutputValue, StatementSync} from 'node:sqlite';
+import {constants} from 'node:fs';
+import {
+  link,
+  mkdir,
+  open,
+  readdir,
+  realpath,
+  unlink,
+} from 'node:fs/promises';
+import {join} from 'node:path';
+import {admitSignedRemoteRuntimeBundle} from
+  './remote-bundle-signature.mjs';
+
+import {createSqliteTransaction, throwSqliteInitializationFailure} from
+  '../host-common/sqlite-transaction.mjs';
+
+import type {remoteBundleControl} from '../host-common/remote-bundle-control.mjs';
+
+type BundleControl = ReturnType<typeof remoteBundleControl>;
+type StoreControl = Pick<BundleControl,
+  'identity' | 'json' | 'admitJson' | 'projection' | 'componentsProjection' |
+  'admitSignatureEnvelope' | 'signatureEnvelopeProjection' | 'signatureEnvelopeManifest' |
+  'signaturePreimage' | 'open' | 'restore' | 'prepareActivation' | 'activationTransitionCount' |
+  'activationTransitionAt' | 'commitActivation' | 'prepareDrain' | 'prepareActiveDrain' |
+  'prepareRetain' | 'prepareActiveRetain' | 'prepareRelease' | 'prepareReclaim' |
+  'prepareInactiveReclaim' | 'transitionProjection' | 'transitionKey' | 'commitTransition' |
+  'recordProjection'>;
+type RetentionControl = StoreControl & Pick<BundleControl,
+  'catalogIncarnationValid' | 'holdBindingIdentity' | 'holdBindingJson' | 'holdBindingProjection' |
+  'observeHold' | 'prepareHoldFence' | 'prepareHoldRetain'>;
+type SignedEnvelope = Parameters<typeof admitSignedRemoteRuntimeBundle>[0];
+type BundleAuthorities = Parameters<typeof admitSignedRemoteRuntimeBundle>[1];
+type StoreOptions = Readonly<{
+  bundleAuthorities?: BundleAuthorities;
+  targetTriple?: string;
+  maxBundles?: number;
+  maxOwners?: number;
+  maxComponentBytes?: bigint;
+}>;
+type Durability = Readonly<{
+  remove(path: string): void | PromiseLike<void>;
+  syncDirectory(path: string): void | PromiseLike<void>;
+}>;
+
+// These views follow the selected columns and existing STRICT table schema.
+type SqlRow = Record<string, SQLOutputValue>;
+type SelectedRows<Row extends SqlRow> = {
+  get(...parameters: SQLInputValue[]): Row | undefined;
+  all(...parameters: SQLInputValue[]): Row[];
+} & StatementSync;
+type CountRow = Readonly<{count: number}>;
+type BundleRow = Readonly<{
+  runtime_bundle_cid: string;
+  manifest_json: string;
+  signature_version: string;
+  signature_key_id: string;
+  signature: string;
+  artifact_name: string;
+  component_cid: string;
+  component_bytes: string;
+  record_revision: number;
+  phase: number;
+  owners: number;
+  reclaim_pending: number;
+}>;
+type HoldRow = Readonly<{runtime_bundle_cid: string; kind: string}>;
+type MetadataRow = Readonly<{value: string}>;
+
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
+  throw Object.assign(new Error(code, {cause}), {code});
+};
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const count = (value: number) => Number.isSafeInteger(value) && value >= 0;
+const retentionVersion = 'actql-runtime-bundle-retention/0.1';
+// Caller-selected dispatch IDs cannot address Coordinator-owned holds.
+const retentionHoldPrefix = 'set-retention:';
+
+async function syncDirectory(path: string) {
+  const descriptor = await open(path, 'r');
+  try { await descriptor.sync(); }
+  finally { await descriptor.close(); }
+}
+
+const localDurability = Object.freeze({
+  remove: unlink,
+  syncDirectory,
+});
+
+async function digestFile(path: string, expectedBytes: bigint, expectedCid: string) {
+  const descriptor = await open(
+    path,
+    constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0),
+  );
+  try {
+    const information = await descriptor.stat();
+    if (!information.isFile() || BigInt(information.size) !== expectedBytes) {
+      fail('RemoteBundleComponentMismatch');
+    }
+    const hash = createHash('sha256');
+    const buffer = Buffer.allocUnsafe(65_536);
+    let offset = 0;
+    while (offset < information.size) {
+      const {bytesRead} = await descriptor.read(
+        buffer,
+        0,
+        Math.min(buffer.length, information.size - offset),
+        offset,
+      );
+      if (bytesRead === 0) fail('RemoteBundleComponentChanged');
+      hash.update(buffer.subarray(0, bytesRead));
+      offset += bytesRead;
+    }
+    if (`sha256:${hash.digest('hex')}` !== expectedCid) {
+      fail('RemoteBundleComponentMismatch');
+    }
+    return information;
+  } finally {
+    await descriptor.close();
+  }
+}
+
+async function copyComponent(sourcePath: string, stagingPath: string, expectedBytes: bigint,
+  expectedCid: string) {
+  const source = await open(
+    sourcePath,
+    constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0),
+  );
+  let destination;
+  try {
+    const information = await source.stat();
+    if (!information.isFile() || BigInt(information.size) !== expectedBytes) {
+      fail('RemoteBundleComponentMismatch');
+    }
+    destination = await open(
+      stagingPath,
+      constants.O_CREAT | constants.O_EXCL | constants.O_WRONLY |
+        (constants.O_NOFOLLOW ?? 0),
+      0o500,
+    );
+    const hash = createHash('sha256');
+    const buffer = Buffer.allocUnsafe(65_536);
+    let offset = 0;
+    while (offset < information.size) {
+      const {bytesRead} = await source.read(
+        buffer,
+        0,
+        Math.min(buffer.length, information.size - offset),
+        offset,
+      );
+      if (bytesRead === 0) fail('RemoteBundleComponentChanged');
+      const chunk = buffer.subarray(0, bytesRead);
+      hash.update(chunk);
+      let written = 0;
+      while (written < bytesRead) {
+        const result = await destination.write(
+          chunk,
+          written,
+          bytesRead - written,
+          offset + written,
+        );
+        if (result.bytesWritten === 0) fail('RemoteBundleWriteFailed');
+        written += result.bytesWritten;
+      }
+      offset += bytesRead;
+    }
+    if (`sha256:${hash.digest('hex')}` !== expectedCid) {
+      fail('RemoteBundleComponentMismatch');
+    }
+    await destination.sync();
+  } finally {
+    await source.close();
+    if (destination !== undefined) await destination.close();
+  }
+}
+
+export async function openRuntimeBundleStore(root: string, {
+  bundleAuthorities,
+  targetTriple,
+  maxBundles = 1024,
+  maxOwners = 100_000,
+  maxComponentBytes = 1_073_741_824n,
+}: StoreOptions = {}, durability: Durability = localDurability) {
+  if (!text(root) || !(bundleAuthorities instanceof Map) ||
+      bundleAuthorities.size === 0 || !text(targetTriple) ||
+      !count(maxBundles) || maxBundles === 0 ||
+      !count(maxOwners) || maxOwners === 0 ||
+      typeof maxComponentBytes !== 'bigint' || maxComponentBytes < 0n) {
+    fail('InvalidRemoteBundleStoreConfiguration');
+  }
+  if (durability === null || typeof durability !== 'object' ||
+      typeof durability.remove !== 'function' ||
+      typeof durability.syncDirectory !== 'function') {
+    fail('InvalidRemoteBundleStoreDurability');
+  }
+  const remove = durability.remove;
+  const sync = durability.syncDirectory;
+  await mkdir(root, {recursive: true, mode: 0o700});
+  const directory = await realpath(root);
+  const artifacts = join(directory, 'artifacts');
+  const staging = join(directory, 'staging');
+  await mkdir(artifacts, {recursive: true, mode: 0o700});
+  await mkdir(staging, {recursive: true, mode: 0o700});
+  const database = new DatabaseSync(join(directory, 'bundles.sqlite3'), {
+    open: true,
+    readOnly: false,
+    enableForeignKeyConstraints: true,
+  });
+  const transaction = createSqliteTransaction(database, 'RemoteBundleStore');
+  let closed = false;
+  try {
+    const newCatalog = database.prepare(`
+      SELECT COUNT(*) AS count FROM sqlite_schema
+      WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+    `).get()!.count === 0;
+    database.exec('PRAGMA journal_mode = WAL');
+    database.exec('PRAGMA synchronous = FULL');
+    database.exec(`
+      CREATE TABLE IF NOT EXISTS metadata (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS bundles (
+        runtime_bundle_cid TEXT PRIMARY KEY NOT NULL,
+        manifest_json TEXT NOT NULL,
+        signature_version TEXT NOT NULL,
+        signature_key_id TEXT NOT NULL,
+        signature TEXT NOT NULL,
+        artifact_name TEXT NOT NULL,
+        component_cid TEXT NOT NULL,
+        component_bytes TEXT NOT NULL,
+        record_revision INTEGER NOT NULL CHECK (record_revision >= 0),
+        phase INTEGER NOT NULL CHECK (phase BETWEEN 0 AND 3),
+        owners INTEGER NOT NULL CHECK (owners >= 0),
+        reclaim_pending INTEGER NOT NULL DEFAULT 0
+          CHECK (reclaim_pending IN (0, 1))
+      ) STRICT;
+      CREATE TABLE IF NOT EXISTS bundle_holds (
+        hold_id TEXT PRIMARY KEY NOT NULL,
+        runtime_bundle_cid TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        FOREIGN KEY (runtime_bundle_cid)
+          REFERENCES bundles(runtime_bundle_cid)
+      ) STRICT;
+    `);
+    transaction.run(() => {
+      const version = database.prepare(
+        'SELECT value FROM metadata WHERE key = ?',
+      ).get('schema_version');
+      if (version === undefined) {
+        const insert = database.prepare(
+          'INSERT INTO metadata (key, value) VALUES (?, ?)',
+        );
+        insert.run('schema_version', 'actql-runtime-bundle-store/0.1');
+        insert.run('active_bundle_cid', '');
+        if (newCatalog) {
+          insert.run('owned_retention_version', retentionVersion);
+          insert.run('catalog_incarnation', randomUUID());
+        }
+      } else if (version.value !== 'actql-runtime-bundle-store/0.1') {
+        fail('UnsupportedRemoteBundleStoreVersion');
+      }
+    });
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'runtime-bundle-store');
+  }
+
+  try {
+  const select = database.prepare(
+    'SELECT * FROM bundles WHERE runtime_bundle_cid = ?',
+  ) as SelectedRows<BundleRow>;
+  const selectAll = database.prepare('SELECT * FROM bundles ORDER BY rowid') as SelectedRows<BundleRow>;
+  const total = database.prepare('SELECT COUNT(*) AS count FROM bundles') as SelectedRows<CountRow>;
+  const activeRow = database.prepare(
+    'SELECT value FROM metadata WHERE key = ?',
+  ) as SelectedRows<MetadataRow>;
+  const setActive = database.prepare(
+    'UPDATE metadata SET value = ? WHERE key = ?',
+  );
+  const insert = database.prepare(`
+    INSERT INTO bundles (
+      runtime_bundle_cid, manifest_json, signature_version,
+      signature_key_id, signature, artifact_name, component_cid,
+      component_bytes, record_revision, phase, owners
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const update = database.prepare(`
+    UPDATE bundles SET record_revision = ?, phase = ?, owners = ?
+    WHERE runtime_bundle_cid = ? AND record_revision = ? AND phase = ?
+      AND owners = ?
+  `);
+  const selectHold = database.prepare(
+    'SELECT * FROM bundle_holds WHERE hold_id = ?',
+  ) as SelectedRows<HoldRow>;
+  const insertHold = database.prepare(`
+    INSERT INTO bundle_holds (hold_id, runtime_bundle_cid, kind)
+    VALUES (?, ?, ?)
+  `);
+  const deleteHold = database.prepare(
+    'DELETE FROM bundle_holds WHERE hold_id = ?',
+  );
+  const ownedHoldCount = database.prepare(`
+    SELECT COUNT(*) AS count FROM bundle_holds WHERE hold_id LIKE ?
+  `) as SelectedRows<CountRow>;
+  const memberHoldCount = database.prepare(`
+    SELECT COUNT(*) AS count FROM bundle_holds WHERE runtime_bundle_cid = ?
+  `) as SelectedRows<CountRow>;
+  const artifactUsers = database.prepare(`
+    SELECT COUNT(*) AS count FROM bundles
+    WHERE artifact_name = ? AND phase != 3 AND runtime_bundle_cid != ?
+  `) as SelectedRows<CountRow>;
+
+  const active = () => {
+    if (closed) fail('RemoteBundleStoreClosed');
+    transaction.assertUsable();
+  };
+  const requireControl = (control: StoreControl) => {
+    for (const name of [
+      'identity', 'json', 'admitJson', 'projection', 'open', 'restore',
+      'prepareActivation', 'activationTransitionCount',
+      'activationTransitionAt', 'commitActivation', 'prepareDrain',
+      'prepareActiveDrain', 'prepareRetain', 'prepareActiveRetain',
+      'prepareRelease', 'prepareReclaim', 'prepareInactiveReclaim',
+      'transitionProjection', 'transitionKey', 'commitTransition',
+      'recordProjection', 'componentsProjection',
+    ]) {
+      if (typeof control?.[name as keyof StoreControl] !== 'function') {
+        fail('MissingRemoteBundleControl');
+      }
+    }
+    return control;
+  };
+  const envelope = (row: BundleRow) => Object.freeze({
+    version: row.signature_version,
+    keyId: row.signature_key_id,
+    runtimeBundleCid: row.runtime_bundle_cid,
+    body: row.manifest_json,
+    signature: row.signature,
+  });
+  const restore = (row: BundleRow, control: StoreControl) => {
+    const manifest = admitSignedRemoteRuntimeBundle(
+      envelope(row),
+      bundleAuthorities,
+      control,
+    );
+    if (control.componentsProjection(manifest).length !== 1) {
+      fail('RemoteBundleComponentsNotInstalled');
+    }
+    return Object.freeze({
+      manifest,
+      record: control.restore(manifest, [
+        String(row.record_revision),
+        String(row.phase),
+        String(row.owners),
+      ]),
+      artifactPath: join(artifacts, row.artifact_name),
+      reclaimPending: row.reclaim_pending === 1,
+    });
+  };
+  const persist = (transition: unknown, control: StoreControl) => {
+    const [before, after] = control.transitionProjection(transition)!;
+    const runtimeBundleCid = control.transitionKey(transition);
+    const result = update.run(
+      Number(after[0]),
+      Number(after[1]),
+      Number(after[2]),
+      runtimeBundleCid,
+      Number(before[0]),
+      Number(before[1]),
+      Number(before[2]),
+    );
+    if (result.changes !== 1) fail('RemoteBundleStateCollision');
+    return after;
+  };
+  const artifactName = (componentCid: string) => componentCid.replace(':', '-');
+  let retentionInitialized =
+    activeRow.get('owned_retention_version') !== undefined ||
+    activeRow.get('catalog_incarnation') !== undefined;
+  const requireRetentionControl = (control: RetentionControl) => {
+    requireControl(control);
+    for (const name of [
+      'catalogIncarnationValid', 'holdBindingIdentity', 'holdBindingJson',
+      'holdBindingProjection', 'observeHold', 'prepareHoldFence',
+      'prepareHoldRetain',
+    ]) {
+      if (typeof control[name as keyof RetentionControl] !== 'function') {
+        fail('MissingRemoteBundleRetentionControl');
+      }
+    }
+    return control;
+  };
+  const catalogIncarnation = (control: RetentionControl) => {
+    const version = activeRow.get('owned_retention_version');
+    const incarnation = activeRow.get('catalog_incarnation');
+    if (version === undefined && incarnation === undefined) {
+      fail(retentionInitialized
+        ? 'RemoteBundleRetentionUnavailable'
+        : 'RemoteBundleRetentionUninitialized');
+    }
+    if (version?.value !== retentionVersion ||
+        !control.catalogIncarnationValid(incarnation?.value ?? '')) {
+      fail('RemoteBundleRetentionUnavailable');
+    }
+    return incarnation!.value;
+  };
+  const memberIdentity = (binding: unknown, control: RetentionControl) => {
+    const body = control.holdBindingJson(binding);
+    const projection = control.holdBindingProjection(binding);
+    const bindingCid = control.holdBindingIdentity(binding);
+    return Object.freeze({
+      binding,
+      bindingCid,
+      body,
+      holdId: `${retentionHoldPrefix}${bindingCid}`,
+      runtimeBundleCid: projection[8],
+    });
+  };
+  const restoreMember = (row: BundleRow, control: RetentionControl) => {
+    const value = restore(row, control);
+    const projection = control.projection(value.manifest);
+    if (value.reclaimPending || projection[4] !== targetTriple ||
+        row.artifact_name !== artifactName(projection[5]) ||
+        row.component_cid !== projection[5] ||
+        row.component_bytes !== projection[6] ||
+        Number(memberHoldCount.get(row.runtime_bundle_cid)!.count) !==
+          row.owners) {
+      fail('RemoteBundleRetentionUnavailable');
+    }
+    return value;
+  };
+  type RestoredBundle = ReturnType<typeof restore>;
+  type Member = ReturnType<typeof memberIdentity>;
+  type MemberSnapshot = Readonly<{
+    status: string;
+    incarnation?: string;
+    value?: RestoredBundle;
+    revision?: number;
+    exactLiveHold?: boolean;
+  }>;
+  const memberSnapshot = (member: Member, control: RetentionControl): MemberSnapshot => {
+    // Recheck after asynchronous artifact verification without changing the
+    // originally admitted attempt, revision, or owner-derived identity.
+    if (control.holdBindingJson(member.binding) !== member.body ||
+        control.holdBindingIdentity(member.binding) !== member.bindingCid) {
+      fail('RemoteBundleHoldCollision');
+    }
+    const hold = selectHold.get(member.holdId);
+    if (hold !== undefined &&
+        (hold.runtime_bundle_cid !== member.runtimeBundleCid ||
+          hold.kind !== member.body)) {
+      fail('RemoteBundleHoldCollision');
+    }
+    let incarnation;
+    let value;
+    try {
+      incarnation = catalogIncarnation(control);
+      const row = select.get(member.runtimeBundleCid);
+      value = row === undefined ? undefined : restoreMember(row, control);
+    } catch {
+      return Object.freeze({status: 'unavailable'});
+    }
+    const status = control.observeHold({
+      catalogIncarnation: incarnation,
+      record: value?.record,
+      binding: member.binding,
+      exactLiveHold: hold !== undefined,
+    });
+    return Object.freeze({status, incarnation, value,
+      revision: value === undefined ? undefined :
+        Number(control.recordProjection(value.record)[0]),
+      exactLiveHold: hold !== undefined});
+  };
+  const memberReceipt = (member: Member, snapshot: MemberSnapshot) => Object.freeze({
+    status: snapshot.status,
+    bindingCid: member.bindingCid,
+    catalogIncarnation: snapshot.incarnation,
+    runtimeBundleCid: member.runtimeBundleCid,
+    revision: snapshot.revision,
+  });
+  const verifyMember = async (snapshot: MemberSnapshot, control: RetentionControl) => {
+    if (snapshot.status !== 'retained' && snapshot.status !== 'unresolved') {
+      return snapshot;
+    }
+    try {
+      const projection = control.projection(snapshot.value!.manifest);
+      await digestFile(snapshot.value!.artifactPath,
+        BigInt(projection[6]), projection[5]);
+      return snapshot;
+    } catch {
+      return Object.freeze({...snapshot, status: 'unavailable'});
+    }
+  };
+
+  const store = {
+    path: join(directory, 'bundles.sqlite3'),
+    initializeRetention(control: RetentionControl) {
+      active();
+      requireRetentionControl(control);
+      const incarnation = transaction.run(() => {
+        const version = activeRow.get('owned_retention_version');
+        const existing = activeRow.get('catalog_incarnation');
+        if (version !== undefined || existing !== undefined) {
+          return catalogIncarnation(control);
+        }
+        // This is a legacy opt-in, never a repair or replacement of custody.
+        if (retentionInitialized || Number(ownedHoldCount.get(
+          `${retentionHoldPrefix}%`,
+        )!.count) !== 0) {
+          fail('RemoteBundleRetentionUnavailable');
+        }
+        const value = randomUUID();
+        const insertMetadata = database.prepare(
+          'INSERT INTO metadata (key, value) VALUES (?, ?)',
+        );
+        insertMetadata.run('owned_retention_version', retentionVersion);
+        insertMetadata.run('catalog_incarnation', value);
+        return value;
+      });
+      retentionInitialized = true;
+      return incarnation;
+    },
+    async retentionContext(runtimeBundleCid: string, control: RetentionControl) {
+      active();
+      requireRetentionControl(control);
+      const incarnation = catalogIncarnation(control);
+      const row = select.get(runtimeBundleCid);
+      if (row === undefined) fail('RemoteBundleMissing');
+      const installed = restoreMember(row, control);
+      const component = control.projection(installed.manifest);
+      await digestFile(installed.artifactPath,
+        BigInt(component[6]), component[5]);
+      active();
+      return transaction.run(() => {
+        if (catalogIncarnation(control) !== incarnation) {
+          fail('RemoteBundleRetentionUnavailable');
+        }
+        const row = select.get(runtimeBundleCid);
+        if (row === undefined) fail('RemoteBundleMissing');
+        const value = restoreMember(row, control);
+        const projection = control.recordProjection(value.record);
+        if (projection[1] === '3') fail('RemoteBundleRetentionUnavailable');
+        return Object.freeze({
+          catalogIncarnation: incarnation,
+          runtimeBundleCid,
+          initialRevision: Number(projection[0]),
+          manifest: value.manifest,
+        });
+      });
+    },
+    async retainMember(binding: unknown, control: RetentionControl) {
+      active();
+      requireRetentionControl(control);
+      const member = memberIdentity(binding, control);
+      const before = transaction.run(() =>
+        memberSnapshot(member, control));
+      if (before.status === 'fenced' || before.status === 'unavailable') {
+        return memberReceipt(member, before);
+      }
+      const verified = await verifyMember(before, control);
+      active();
+      if (verified.status === 'unavailable') {
+        return memberReceipt(member, verified);
+      }
+      return transaction.run(() => {
+        const snapshot = memberSnapshot(member, control);
+        if (snapshot.status !== 'unresolved') {
+          return memberReceipt(member, snapshot);
+        }
+        const activeBundleCid = activeRow.get('active_bundle_cid')?.value;
+        const transition = control.prepareHoldRetain({
+          catalogIncarnation: snapshot.incarnation!,
+          activeBundleCid: activeBundleCid === ''
+            ? undefined : activeBundleCid,
+          record: snapshot.value!.record,
+          binding,
+          maxOwners,
+        });
+        persist(transition, control);
+        insertHold.run(member.holdId, member.runtimeBundleCid, member.body);
+        control.commitTransition(transition, true);
+        return memberReceipt(member, memberSnapshot(member, control));
+      });
+    },
+    async inspectMemberHold(binding: unknown, control: RetentionControl) {
+      active();
+      requireRetentionControl(control);
+      const member = memberIdentity(binding, control);
+      const snapshot = transaction.run(() =>
+        memberSnapshot(member, control));
+      const verified = await verifyMember(snapshot, control);
+      active();
+      if (verified.status === 'unavailable') {
+        return memberReceipt(member, verified);
+      }
+      return transaction.run(() =>
+        memberReceipt(member, memberSnapshot(member, control)));
+    },
+    releaseMember(binding: unknown, control: RetentionControl) {
+      active();
+      requireRetentionControl(control);
+      const member = memberIdentity(binding, control);
+      return transaction.run(() => {
+        const snapshot = memberSnapshot(member, control);
+        if (snapshot.status === 'fenced' ||
+            snapshot.status === 'unavailable') {
+          return memberReceipt(member, snapshot);
+        }
+        const transition = snapshot.status === 'retained'
+          ? control.prepareRelease(snapshot.value!.record)
+          : control.prepareHoldFence({
+            catalogIncarnation: snapshot.incarnation!,
+            record: snapshot.value!.record,
+            binding,
+            exactLiveHold: snapshot.exactLiveHold!,
+          });
+        persist(transition, control);
+        if (snapshot.exactLiveHold) deleteHold.run(member.holdId);
+        control.commitTransition(transition, true);
+        return memberReceipt(member, memberSnapshot(member, control));
+      });
+    },
+    async install(sourcePath: string, signed: unknown, control: StoreControl) {
+      active();
+      requireControl(control);
+      const manifest = admitSignedRemoteRuntimeBundle(
+        signed as SignedEnvelope,
+        bundleAuthorities,
+        control,
+      );
+      if (control.componentsProjection(manifest).length !== 1) {
+        fail('RemoteBundleComponentsNotInstalled');
+      }
+      const projection = control.projection(manifest);
+      const runtimeBundleCid = projection[0];
+      const componentCid = projection[5];
+      const componentBytes = BigInt(projection[6]);
+      if (projection[4] !== targetTriple ||
+          componentBytes > maxComponentBytes) {
+        fail('RemoteBundleTargetRejected');
+      }
+      const name = artifactName(componentCid);
+      const finalPath = join(artifacts, name);
+      const stagingPath = join(staging, randomUUID());
+      let staged = false;
+      try {
+        try {
+          await digestFile(finalPath, componentBytes, componentCid);
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+          await copyComponent(
+            sourcePath,
+            stagingPath,
+            componentBytes,
+            componentCid,
+          );
+          staged = true;
+          try {
+            await link(stagingPath, finalPath);
+            await sync(artifacts);
+          } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+            await digestFile(finalPath, componentBytes, componentCid);
+          }
+        }
+        const installed = transaction.run(() => {
+          const existing = select.get(runtimeBundleCid);
+          if (existing !== undefined) {
+            if (existing.manifest_json !== (signed as SignedEnvelope).body ||
+                existing.signature_version !== (signed as SignedEnvelope).version ||
+                existing.signature_key_id !== (signed as SignedEnvelope).keyId ||
+                existing.signature !== (signed as SignedEnvelope).signature ||
+                existing.artifact_name !== name) {
+              fail('RemoteBundleInstallCollision');
+            }
+            return restore(existing, control);
+          }
+          if (Number(total.get()!.count) >= maxBundles) {
+            fail('RemoteBundleStoreCapacityExceeded');
+          }
+          const record = control.open(manifest);
+          insert.run(
+            runtimeBundleCid,
+            (signed as SignedEnvelope).body,
+            (signed as SignedEnvelope).version,
+            (signed as SignedEnvelope).keyId,
+            (signed as SignedEnvelope).signature,
+            name,
+            componentCid,
+            projection[6],
+            ...control.recordProjection(record).map(Number),
+          );
+          return restore(select.get(runtimeBundleCid)!, control);
+        });
+        return installed;
+      } finally {
+        if (staged) {
+          try { await remove(stagingPath); }
+          catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+          await sync(staging);
+        }
+      }
+    },
+    activate(runtimeBundleCid: string, control: StoreControl) {
+      active();
+      requireControl(control);
+      return transaction.run(() => {
+        const targetRow = select.get(runtimeBundleCid);
+        if (targetRow === undefined) fail('RemoteBundleMissing');
+        const currentCid = activeRow.get('active_bundle_cid')!.value;
+        if (currentCid === runtimeBundleCid) return restore(targetRow, control);
+        const target = restore(targetRow, control);
+        let current;
+        if (currentCid !== '') {
+          const currentRow = select.get(currentCid);
+          if (currentRow === undefined) fail('RemoteBundleActiveMissing');
+          current = restore(currentRow, control);
+        }
+        const activation = control.prepareActivation(
+          current?.record,
+          target.record,
+        );
+        const transitionCount = control.activationTransitionCount(activation);
+        for (let index = 0; index < transitionCount; index++) {
+          persist(control.activationTransitionAt(activation, index), control);
+        }
+        setActive.run(runtimeBundleCid, 'active_bundle_cid');
+        control.commitActivation(activation, true);
+        return restore(select.get(runtimeBundleCid)!, control);
+      });
+    },
+    rollback(runtimeBundleCid: string, control: StoreControl): RestoredBundle {
+      return store.activate(runtimeBundleCid, control);
+    },
+    drain(runtimeBundleCid: string, control: StoreControl) {
+      active();
+      requireControl(control);
+      return transaction.run(() => {
+        const row = select.get(runtimeBundleCid);
+        if (row === undefined) fail('RemoteBundleMissing');
+        const value = restore(row, control);
+        const state = control.recordProjection(value.record);
+        if (state[1] === '2') return value;
+        const activeBundleCid = activeRow.get('active_bundle_cid')!.value;
+        const transition = control.prepareActiveDrain(
+          activeBundleCid === '' ? undefined : activeBundleCid,
+          value.record,
+        );
+        persist(transition, control);
+        setActive.run('', 'active_bundle_cid');
+        control.commitTransition(transition, true);
+        return restore(select.get(runtimeBundleCid)!, control);
+      });
+    },
+    retain(runtimeBundleCid: string, holdId: string, kind: string, control: StoreControl) {
+      active();
+      requireControl(control);
+      if (!text(holdId) || !text(kind) ||
+          holdId.startsWith(retentionHoldPrefix)) {
+        fail('InvalidRemoteBundleHold');
+      }
+      return transaction.run(() => {
+        const existing = selectHold.get(holdId);
+        if (existing !== undefined) {
+          if (existing.runtime_bundle_cid !== runtimeBundleCid ||
+              existing.kind !== kind) {
+            fail('RemoteBundleHoldCollision');
+          }
+          return restore(select.get(runtimeBundleCid)!, control);
+        }
+        const currentCid = activeRow.get('active_bundle_cid')!.value;
+        const row = select.get(runtimeBundleCid);
+        if (row === undefined) fail('RemoteBundleMissing');
+        const value = restore(row, control);
+        const transition = control.prepareActiveRetain(
+          currentCid === '' ? undefined : currentCid,
+          value.record,
+          maxOwners,
+        );
+        persist(transition, control);
+        insertHold.run(holdId, runtimeBundleCid, kind);
+        control.commitTransition(transition, true);
+        return restore(select.get(runtimeBundleCid)!, control);
+      });
+    },
+    release(holdId: string, control: StoreControl) {
+      active();
+      requireControl(control);
+      if (!text(holdId) || holdId.startsWith(retentionHoldPrefix)) {
+        fail('InvalidRemoteBundleHold');
+      }
+      return transaction.run(() => {
+        const hold = selectHold.get(holdId);
+        if (hold === undefined) return false;
+        const row = select.get(hold.runtime_bundle_cid);
+        if (row === undefined) fail('RemoteBundleMissing');
+        const value = restore(row, control);
+        const transition = control.prepareRelease(value.record);
+        persist(transition, control);
+        deleteHold.run(holdId);
+        control.commitTransition(transition, true);
+        return true;
+      });
+    },
+    async reclaim(runtimeBundleCid: string, control: StoreControl) {
+      active();
+      requireControl(control);
+      const prepared = transaction.run(() => {
+        const currentCid = activeRow.get('active_bundle_cid')!.value;
+        const row = select.get(runtimeBundleCid);
+        if (row === undefined) fail('RemoteBundleMissing');
+        const value = restore(row, control);
+        if (control.recordProjection(value.record)[1] === '3') {
+          return Object.freeze({row, transition: undefined});
+        }
+        const transition = control.prepareInactiveReclaim(
+          currentCid === '' ? undefined : currentCid,
+          value.record,
+        );
+        database.prepare(`
+          UPDATE bundles SET reclaim_pending = 1
+          WHERE runtime_bundle_cid = ? AND reclaim_pending = 0
+        `).run(runtimeBundleCid);
+        return Object.freeze({row, transition});
+      });
+      if (prepared.transition === undefined) {
+        return restore(prepared.row, control);
+      }
+      const users = Number(artifactUsers.get(
+        prepared.row.artifact_name,
+        runtimeBundleCid,
+      )!.count);
+      if (users === 0) {
+        try { await remove(join(artifacts, prepared.row.artifact_name)); }
+        catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        await sync(artifacts);
+      }
+      transaction.run(() => {
+        persist(prepared.transition, control);
+        database.prepare(`
+          UPDATE bundles SET reclaim_pending = 0
+          WHERE runtime_bundle_cid = ?
+        `).run(runtimeBundleCid);
+      });
+      control.commitTransition(prepared.transition, true);
+      return restore(select.get(runtimeBundleCid)!, control);
+    },
+    inspect(runtimeBundleCid: string, control: StoreControl) {
+      active();
+      requireControl(control);
+      const row = select.get(runtimeBundleCid);
+      return row === undefined ? undefined : restore(row, control);
+    },
+    active(control: StoreControl) {
+      active();
+      const runtimeBundleCid = activeRow.get('active_bundle_cid')!.value;
+      return runtimeBundleCid === ''
+        ? undefined
+        : restore(select.get(runtimeBundleCid)!, requireControl(control));
+    },
+    list(control: StoreControl) {
+      active();
+      requireControl(control);
+      return Object.freeze(selectAll.all().map(row => restore(row, control)));
+    },
+    async verify(runtimeBundleCid: string, control: StoreControl): Promise<RestoredBundle> {
+      const value = store.inspect(runtimeBundleCid, control);
+      if (value === undefined) fail('RemoteBundleMissing');
+      const projection = control.projection(value.manifest);
+      await digestFile(value.artifactPath, BigInt(projection[6]), projection[5]);
+      return value;
+    },
+    async recover(control: StoreControl): Promise<readonly RestoredBundle[]> {
+      active();
+      requireControl(control);
+      for (const name of await readdir(staging)) {
+        await remove(join(staging, name));
+      }
+      await sync(staging);
+      for (const row of selectAll.all()) {
+        if (row.reclaim_pending === 1) {
+          await store.reclaim(row.runtime_bundle_cid, control);
+        }
+      }
+      const referenced = new Set(selectAll.all()
+        .filter(row => row.phase !== 3)
+        .map(row => row.artifact_name));
+      for (const name of await readdir(artifacts)) {
+        if (!referenced.has(name)) await remove(join(artifacts, name));
+      }
+      await sync(artifacts);
+      return store.list(control);
+    },
+    close() {
+      if (closed) return false;
+      database.exec('PRAGMA wal_checkpoint(TRUNCATE)');
+      database.close();
+      closed = true;
+      return true;
+    },
+  };
+  return Object.freeze(store);
+  } catch (error) {
+    throwSqliteInitializationFailure(database, error, 'runtime-bundle-store');
+  }
+}

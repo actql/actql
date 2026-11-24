@@ -9320,8 +9320,8 @@
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
               },
               {
-                "path": "adapters/host-node/client-program-preparation.mjs",
-                "anchor": "assertSubmittedIntent(prepared, intent)"
+                "path": "adapters/host-node/client-program-preparation.mts",
+                "anchor": "assertSubmittedIntent(prepared: object, intent: unknown)"
               },
               {
                 "path": "docs/design/check-sdk.md",
@@ -9338,7 +9338,7 @@
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "assertOriginalPreparation(preparedProgram, input, value);"
               },
               {
@@ -9374,7 +9374,7 @@
                 "anchor": "# Generated from registered ActQL contracts; do not edit."
               },
               {
-                "path": "adapters/host-node/client-effect-run.mjs",
+                "path": "adapters/host-node/client-effect-run.mts",
                 "anchor": "originalSubmittedIntent?.assertCurrent();"
               },
               {
@@ -9566,8 +9566,8 @@
                 "anchor": "The physical index belongs to this same Journal and transaction owner."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
-                "anchor": "resolveOrBindSubmittedName(name, intent, {namespaceId, actorId, authorityScopeCid,"
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
+                "anchor": "resolveOrBindSubmittedName(name: unknown, intent: unknown, {namespaceId, actorId, authorityScopeCid,"
               }
             ],
             "synchronization": [
@@ -9576,7 +9576,7 @@
                 "anchor": "Only the first confirmed insertion can enter preparation."
               },
               {
-                "path": "adapters/host-node/client-submission.mjs",
+                "path": "adapters/host-node/client-submission.mts",
                 "anchor": "const outcome = retained.inserted ? await submitIntent(bound) : await lookupSubmission(lookup);"
               }
             ],
@@ -9606,7 +9606,7 @@
                 "anchor": "Names have finite admission capacity under the existing Journal limit."
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal-submission-originals.mts",
                 "anchor": "rejectSubmission('ClientSubmissionNameCapacity', 'refused', 'admission_capacity');"
               }
             ],

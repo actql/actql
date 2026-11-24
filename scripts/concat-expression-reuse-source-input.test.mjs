@@ -38,7 +38,7 @@ test('concatenation fixtures enter both ordinary and selected packed acceptance'
   assert.ok(app.includes('scopeInputs.successes.push(...concatReuseSuccesses)'));
   assert.ok(app.includes('scopeInputs.refusals.push(...concatReuseRefusals)'));
   assert.ok(app.includes('concatReuseOnly ? {successes: concatReuseSuccesses, refusals: concatReuseRefusals}'));
-  const driver = readFileSync('scripts/test-packed-public-query.mjs', 'utf8');
+  const driver = readFileSync('scripts/test-packed-public-query.mts', 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/concat-expression-reuse-source-input.mjs', 'concat-expression-reuse-source-input.mjs']"));
   assert.ok(driver.includes('ACTQL_TEST_CONCAT_REUSE_ONLY'));
 });

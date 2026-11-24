@@ -4,7 +4,7 @@ export const gatewayLimits: Readonly<{bodyBytes: 65536; replyBytes: 262144;
   assetBytes: number; sessionMs: 300000; bootstrapMs: 60000; requestMs: 15000}>;
 export type ExplorerAsset = Readonly<{body: Uint8Array; contentType:
   'text/html; charset=utf-8' | 'text/javascript; charset=utf-8' |
-  'text/css; charset=utf-8' | 'image/svg+xml'}>;
+  'text/css; charset=utf-8' | 'image/svg+xml' | 'font/woff2'}>;
 /** Bounded presentation input; neither a submission nor an authority. */
 export type ExplorerLaunchInput = Readonly<{
   kind: 'program'; text: string; format: 'sql' | 'aql' | 'aql-text' | 'program';

@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
 import {mkdtemp, rm} from 'node:fs/promises';
-import {readFileSync} from 'node:fs';
 import {EventEmitter} from 'node:events';
 import {Readable} from 'node:stream';
-import {types} from 'node:util';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {createServer} from 'node:https';
+import https, {createServer} from 'node:https';
 import {maxHeaderSize} from 'node:http';
 import test from 'node:test';
 import {fixtureCertificates} from './https-exchange-fixture.mjs';
 import * as resource from './https-credential-resource.mjs';
+import {receive} from './https-credential-response.mjs';
 
 // Real original HTTPS binding/request/socket and explicit authority/Journal
 // ports. This does not issue a Common grant or prove a normal funded Effect.
@@ -270,13 +270,34 @@ test('original repeated headers preserve the selected normalized value without a
   assert.equal(resource.closeHttpsCredentialBinding(f.binding), 'closed');
 });
 
-// Execute the exact private receiver body with explicit original HTTP ports.
-// No provider, Common grant, installed Run or physical cleanup is inferred.
+// Run the actual emitted receiver with an explicit HTTP request port. Restore
+// the live Node export before any test response is delivered to its callback.
+function startOriginalReceive(response, options) {
+  const request = new EventEmitter();
+  request.end = () => {};
+  const originalRequest = https.request;
+  let callback, pending;
+  try {
+    https.request = (_options, onResponse) => {callback = onResponse; return request;};
+    syncBuiltinESMExports();
+    pending = receive({
+      hostname: 'fixture.invalid', path: '/read', method: 'GET',
+      requestBytes: 0, secret: 'fixture', headers: [],
+      ...(options.observeResponseBytes === undefined ? {} : {binding: {request: undefined}}),
+      ...options,
+    }, code => {throw Object.assign(new Error(code), {code});});
+  } finally {
+    https.request = originalRequest;
+    syncBuiltinESMExports();
+  }
+  assert.equal(typeof callback, 'function');
+  callback(response);
+  response.once('end', () => request.emit('close'));
+  if (response instanceof Readable) response.once('close', () => request.emit('close'));
+  return pending;
+}
+
 function originalReceiveComponent({observed = true, concatFailure, readFailure, nodeResponse = false} = {}) {
-  const source = readFileSync(new URL('./https-credential-resource.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('function receive({');
-  const end = source.indexOf('\n/// Execute one pre-registered HTTPS operation.', start);
-  assert(start >= 0 && end > start);
   const response = nodeResponse ? new Readable({read() {}}) : new EventEmitter();
   const originalNodeRead = nodeResponse ? response.read : undefined;
   response.statusCode = 200; response.headers = {}; response.rawHeaders = [];
@@ -284,24 +305,9 @@ function originalReceiveComponent({observed = true, concatFailure, readFailure, 
     response.destroyed = false;
     response.destroy = error => {response.destroyed = true; response.emit('error', error);};
   }
-  const request = new EventEmitter(); request.end = () => {};
-  let callback, copied, copiedAtConcat;
+  let copied, copiedAtConcat;
   const originalBytes = [Buffer.from('one'), Buffer.from('two')];
-  const buffer = {from: Buffer.from.bind(Buffer), concat(chunks, received) {
-    copied = chunks; copiedAtConcat = chunks.map(chunk => Buffer.from(chunk));
-    if (concatFailure !== undefined) throw concatFailure.original;
-    return Buffer.concat(chunks, received);
-  }};
-  const fail = code => {throw Object.assign(new Error(code), {code});};
-  const receive = new Function('httpsRequest', 'httpsCredentialResponseHeaderByteLimit',
-    'httpsCredentialAuthorizationPrefix', 'Buffer', 'types', 'nativePromiseThen',
-    'httpsCredentialResponseReadQuantum', 'fail', `${source.slice(start, end)};return receive;`)(
-    (_options, originalCallback) => {callback = originalCallback; return request;},
-    maxHeaderSize, 'Bearer ', buffer, types, Promise.prototype.then, 16384, fail);
   const charges = [];
-  const pending = receive({hostname: 'fixture.invalid', path: '/read', method: 'GET',
-    requestBytes: 0, secret: 'fixture', headers: [], maxResponseBytes: 64,
-    ...(observed ? {observeResponseBytes: count => {charges.push(count);}} : {})});
   if (observed) {
     const reads = [...originalBytes, null];
     response.read = () => reads.shift() ?? null;
@@ -316,10 +322,24 @@ function originalReceiveComponent({observed = true, concatFailure, readFailure, 
       }});
     }
   }
-  callback(response);
+  const pending = startOriginalReceive(response, {maxResponseBytes: 64,
+    ...(observed ? {observeResponseBytes: count => {charges.push(count);}} : {})});
   if (observed) response.emit('readable');
   else for (const chunk of originalBytes) response.emit('data', chunk);
-  return {response, pending, charges, originalBytes,
+  const end = () => {
+    const concat = Buffer.concat;
+    try {
+      Buffer.concat = function(chunks, received) {
+        copied = chunks; copiedAtConcat = chunks.map(chunk => Buffer.from(chunk));
+        if (concatFailure !== undefined) throw concatFailure.original;
+        return Reflect.apply(concat, this, [chunks, received]);
+      };
+      response.emit('end');
+    } finally {
+      Buffer.concat = concat;
+    }
+  };
+  return {response, pending, charges, originalBytes, end,
     copied: () => copied, copiedAtConcat: () => copiedAtConcat};
 }
 
@@ -327,7 +347,7 @@ for (const observed of [false, true]) {
   test(`successful original ${observed ? 'observed' : 'legacy'} receiver severs copied chunks before returning its exact body`, async () => {
     const f = originalReceiveComponent({observed});
     assert.equal(f.response.listenerCount(observed ? 'readable' : 'data'), 1);
-    f.response.emit('end');
+    f.end();
     const result = await f.pending;
     assert.equal(result.body.toString(), 'onetwo');
     assert.deepEqual(f.copiedAtConcat(), f.originalBytes);
@@ -342,7 +362,7 @@ test('failed original response concatenation retains its prefix and rejects with
   const primary = {original: undefined};
   const f = originalReceiveComponent({concatFailure: primary});
   const rejected = assert.rejects(f.pending, error => error === primary.original);
-  assert.doesNotThrow(() => f.response.emit('end'));
+  assert.doesNotThrow(f.end);
   await rejected;
   assert.deepEqual(f.copied(), f.originalBytes);
   assert.equal(f.response.listenerCount('readable'), 1);
@@ -366,40 +386,44 @@ test('successful original response retains its independent historical byte snaps
 // this proves copied-buffer geometry, not physical or normal Run admission.
 test('observed original binary reader coalesces tiny ingress chunks with one EOF partial and retains its read method', async () => {
   assert.equal(resource.httpsCredentialResponseReadQuantum, 16384);
-  const source = readFileSync(new URL('./https-credential-resource.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('function receive({');
-  const end = source.indexOf('\n/// Execute one pre-registered HTTPS operation.', start);
-  assert(start >= 0 && end > start);
   for (const bytes of [1,16383,16384,16385,32768,32769]) {
     const response = new Readable({read() {}});
     response.statusCode=200;response.headers={};response.rawHeaders=[];
-    const request = new EventEmitter();request.end=()=>{};
     const nativeRead = response.read;
-    let callback;
-    const copied=[];const charges=[];
-    const buffer={from(chunk){copied.push(chunk.byteLength);return Buffer.from(chunk);},concat:Buffer.concat.bind(Buffer)};
-    const receive=new Function('httpsRequest','httpsCredentialResponseHeaderByteLimit',
-      'httpsCredentialAuthorizationPrefix','Buffer','types','nativePromiseThen',
-      'httpsCredentialResponseReadQuantum','fail',`${source.slice(start,end)};return receive;`)(
-      (_options,original)=>{callback=original;return request;}, maxHeaderSize,'Bearer ',buffer,types,
-      Promise.prototype.then,resource.httpsCredentialResponseReadQuantum,
-      code=>{throw Object.assign(new Error(code),{code});});
-    const pending=receive({hostname:'fixture.invalid',path:'/read',method:'GET',requestBytes:0,
-      secret:'fixture',headers:[],maxResponseBytes:bytes,observeResponseBytes(count){
-        charges.push(count);
-        response.read=size=>{
-          // Node's own deferred read(0) housekeeping remains outside this
-          // receiver; all positive reads must use its captured original.
-          assert.equal(size,0);
-          return Reflect.apply(nativeRead,response,[size]);
-        };
-      }});
-    callback(response);
-    for(let i=0;i<bytes;i++) {
-      response.push(Buffer.from([i%251]));
+    const copied = [], charges = [];
+    let expectedCopy;
+    const pending = startOriginalReceive(response, {maxResponseBytes: bytes, observeResponseBytes(count){
+      assert.equal(expectedCopy, undefined);
+      expectedCopy = count;
+      charges.push(count);
+      response.read = size => {
+        // Node's own deferred read(0) housekeeping remains outside this
+        // receiver; all positive reads must use its captured original.
+        assert.equal(size,0);
+        return Reflect.apply(nativeRead,response,[size]);
+      };
+    }});
+    const from = Buffer.from;
+    try {
+      Buffer.from = function(chunk, ...rest) {
+        if (expectedCopy !== undefined) {
+          assert(Buffer.isBuffer(chunk));
+          assert.equal(chunk.byteLength, expectedCopy);
+          copied.push(chunk.byteLength);
+          expectedCopy = undefined;
+        }
+        return Reflect.apply(from, this, [chunk, ...rest]);
+      };
+      for (let i = 0; i < bytes; i++) {
+        response.push(Buffer.from([i % 251]));
+        response.emit('readable');
+      }
+      response.push(null);
       response.emit('readable');
+    } finally {
+      Buffer.from = from;
     }
-    response.push(null);response.emit('readable');
+    assert.equal(expectedCopy, undefined);
     const result=await pending;
     assert.equal(copied.length,Math.ceil(bytes/16384));
     assert.deepEqual(copied,charges);

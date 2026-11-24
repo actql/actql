@@ -136,7 +136,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               },
               {
@@ -144,13 +144,13 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               },
               {
@@ -160,11 +160,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "source labels need independent"
               },
               {
@@ -177,21 +177,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('private member bytes match independent literal and digest"
               }
             ],
@@ -200,11 +200,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These are not funding."
               },
               {
@@ -218,11 +218,11 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "No file is"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function observeMember("
               },
               {
@@ -232,11 +232,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('private member bytes match independent literal and digest"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -244,7 +244,7 @@
                 "anchor": "existing Node census agrees with independent Common root and child expectations"
               },
               {
-                "path": "scripts/native-cli-product-member-staging.test.mjs",
+                "path": "scripts/native-cli-product-member-staging.test.mts",
                 "anchor": "test('one dual launcher descriptor verifies the same strict payload on each exact platform'"
               }
             ]
@@ -256,7 +256,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const exact ="
               },
               {
@@ -264,13 +264,13 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const exact ="
               },
               {
@@ -280,11 +280,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const exact ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "source labels need independent"
               },
               {
@@ -297,21 +297,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const exact ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const exact ="
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('closed inventory rejects unknown, duplicate, unsorted or malformed fields"
               }
             ],
@@ -320,11 +320,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const exact ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These are not funding."
               },
               {
@@ -338,11 +338,11 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "No file is"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function observeMember("
               },
               {
@@ -352,11 +352,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('closed inventory rejects unknown, duplicate, unsorted or malformed fields"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -372,7 +372,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const parts ="
               },
               {
@@ -380,13 +380,13 @@
                 "anchor": "fn product_inventory_name("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const parts ="
               },
               {
@@ -396,11 +396,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const parts ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "source labels need independent"
               },
               {
@@ -413,21 +413,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const parts ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const parts ="
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('same-root finite paths cannot escape, recurse or conflict with file kinds"
               }
             ],
@@ -436,11 +436,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const parts ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "assert(result.length <= 2)"
               },
               {
@@ -454,11 +454,11 @@
                 "anchor": "fn product_inventory_name("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "No file is"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function observeMember("
               },
               {
@@ -468,11 +468,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('same-root finite paths cannot escape, recurse or conflict with file kinds"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -488,7 +488,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const selectors ="
               },
               {
@@ -496,13 +496,13 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const selectors ="
               },
               {
@@ -512,11 +512,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const selectors ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "source labels need independent"
               },
               {
@@ -529,21 +529,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const selectors ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const selectors ="
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('reader preserves exact source, platform, package and canonical input"
               }
             ],
@@ -552,11 +552,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const selectors ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These are not funding."
               },
               {
@@ -570,11 +570,11 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "No file is"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function observeMember("
               },
               {
@@ -584,11 +584,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('reader preserves exact source, platform, package and canonical input"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -609,7 +609,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersBody("
               },
               {
@@ -617,13 +617,13 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersBody("
               },
               {
@@ -633,11 +633,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersBody("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "source labels need independent"
               },
               {
@@ -650,21 +650,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersBody("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersBody("
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('private member bytes match independent literal and digest"
               }
             ],
@@ -673,15 +673,15 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersBody("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "assert(Buffer.byteLength(wire) <= 65536)"
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "assert(5 + value.files.length * 5 <= 8192)"
               },
               {
@@ -695,11 +695,11 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "No file is"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function observeMember("
               },
               {
@@ -709,11 +709,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('private member bytes match independent literal and digest"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -733,7 +733,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function readProductMembers("
               },
               {
@@ -741,13 +741,13 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function readProductMembers("
               },
               {
@@ -757,11 +757,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function readProductMembers("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "source labels need independent"
               },
               {
@@ -774,21 +774,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function readProductMembers("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function readProductMembers("
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('reader preserves exact source, platform, package and canonical input"
               }
             ],
@@ -797,15 +797,15 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function readProductMembers("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "assert(Buffer.byteLength(wire) <= 65536)"
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "assert(5 + value.files.length * 5 <= 8192)"
               },
               {
@@ -819,11 +819,11 @@
                 "anchor": "pub fn admit_client_native_product_members("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "No file is"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function observeMember("
               },
               {
@@ -833,11 +833,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('reader preserves exact source, platform, package and canonical input"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -860,7 +860,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersCensus("
               },
               {
@@ -868,13 +868,13 @@
                 "anchor": "pub fn client_native_product_census("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersCensus("
               },
               {
@@ -884,11 +884,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersCensus("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "source labels need independent"
               },
               {
@@ -901,21 +901,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersCensus("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersCensus("
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('self exclusion is one exact root path but physical census still requires it"
               }
             ],
@@ -924,11 +924,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function productMembersCensus("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These are not funding."
               },
               {
@@ -942,11 +942,11 @@
                 "anchor": "pub fn client_native_product_census("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "No file is"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function observeMember("
               },
               {
@@ -956,11 +956,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('self exclusion is one exact root path but physical census still requires it"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -978,7 +978,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const absolute ="
               },
               {
@@ -986,13 +986,13 @@
                 "anchor": "pub fn prepare_client_native_product_placement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const absolute ="
               },
               {
@@ -1002,11 +1002,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const absolute ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These strings do not authenticate a Root"
               },
               {
@@ -1023,21 +1023,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const absolute ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const absolute ="
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('placement does not permit foreign packages, arbitrary node_modules or path normalisation"
               }
             ],
@@ -1046,11 +1046,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "const absolute ="
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These are not funding."
               },
               {
@@ -1064,11 +1064,11 @@
                 "anchor": "pub fn prepare_client_native_product_placement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "not an exemption for arbitrary node_modules"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function stageCensus("
               },
               {
@@ -1078,11 +1078,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('placement does not permit foreign packages, arbitrary node_modules or path normalisation"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -1102,7 +1102,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function selectedPlatformPlacement("
               },
               {
@@ -1110,13 +1110,13 @@
                 "anchor": "pub fn prepare_client_native_product_placement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function selectedPlatformPlacement("
               },
               {
@@ -1126,11 +1126,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function selectedPlatformPlacement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These strings do not authenticate a Root"
               },
               {
@@ -1147,21 +1147,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function selectedPlatformPlacement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function selectedPlatformPlacement("
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('hoisted and nested selected optional platform placements remain distinct"
               }
             ],
@@ -1170,11 +1170,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function selectedPlatformPlacement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These are not funding."
               },
               {
@@ -1188,11 +1188,11 @@
                 "anchor": "pub fn prepare_client_native_product_placement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "not an exemption for arbitrary node_modules"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function stageCensus("
               },
               {
@@ -1202,11 +1202,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('hoisted and nested selected optional platform placements remain distinct"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {
@@ -1228,7 +1228,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function installedProductCensus("
               },
               {
@@ -1236,13 +1236,13 @@
                 "anchor": "pub fn prepare_client_native_product_placement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "// Private formal-package metadata."
               }
             ],
             "inputsOutputs": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function installedProductCensus("
               },
               {
@@ -1252,11 +1252,11 @@
             ],
             "identity": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function installedProductCensus("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These strings do not authenticate a Root"
               },
               {
@@ -1273,21 +1273,21 @@
             },
             "synchronization": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function installedProductCensus("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "import assert from"
               }
             ],
             "failure": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function installedProductCensus("
               },
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('installed pair rejects foreign source platform role route and conflicting payload membership"
               }
             ],
@@ -1296,11 +1296,11 @@
             },
             "resources": [
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "export function installedProductCensus("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "These are not funding."
               },
               {
@@ -1314,11 +1314,11 @@
                 "anchor": "pub fn prepare_client_native_product_placement("
               },
               {
-                "path": "packages/native-cli/lib/product-members.mjs",
+                "path": "packages/native-cli/lib/product-members.mts",
                 "anchor": "not an exemption for arbitrary node_modules"
               },
               {
-                "path": "scripts/native-cli-product-members.mjs",
+                "path": "scripts/native-cli-product-members.mts",
                 "anchor": "async function stageCensus("
               },
               {
@@ -1328,11 +1328,11 @@
             ],
             "verification": [
               {
-                "path": "scripts/native-cli-product-members.test.mjs",
+                "path": "scripts/native-cli-product-members.test.mts",
                 "anchor": "test('installed pair rejects foreign source platform role route and conflicting payload membership"
               },
               {
-                "path": "scripts/native-cli-common-product-members.test.mjs",
+                "path": "scripts/native-cli-common-product-members.test.mts",
                 "anchor": "independent Common descriptor vectors match the existing formal Node codec"
               },
               {

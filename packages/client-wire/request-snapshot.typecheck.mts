@@ -15,3 +15,17 @@ if (prepared !== undefined) {
   void body;
   void target;
 }
+
+// The optional callback observes the same serializer's bounded DATA. It does
+// not replace native traversal, detachment or the Host's actual preparation.
+snapshotClientRequest({parameters: {value: 1}}, (units, document, values) => {
+  const reservedUnits: number = units;
+  const reservedValues: number = values;
+  const completedDocument: string | undefined = document;
+  void [reservedUnits, reservedValues, completedDocument];
+  // @ts-expect-error Intermediate growth has no completed JSON document yet.
+  const alwaysComplete: string = document;
+  void alwaysComplete;
+});
+// @ts-expect-error The observer receives numeric extents, not caller-selected text.
+snapshotClientRequest({}, (units: string) => {void units;});

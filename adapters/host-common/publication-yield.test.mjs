@@ -3,17 +3,18 @@ import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
 import {runtimeField, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';
+import {tuplePair} from './runtime-tuple.mjs';
 import {publishEffectFreeRun} from './run-publication.mjs';
 import {retainFirstAndLatestCleanupError} from './managed-failure.mjs';
 import {checkedLocalManagedAdvance} from '../local-node/managed-advance-diagnostic.mjs';
 
 // Execute the actual private loops with explicit Common ports. These
 // counters establish scheduling and cleanup, not installed Host acceptance.
-const source=readFileSync(new URL('./runtime-core.mjs',import.meta.url),'utf8');
+const sources=['./runtime-captured-publication-control.mjs','./runtime-publication-validation-control.mjs'];
 const wanted=new Set(['capturedPreparationLimits','finishCapturedPreparation','finishPublicationValidation',
-  'tuplePair','finishProgramSnapshot']);
+  'finishProgramSnapshot']);
 const declarations=new Map();
-function visit(node){
+function visit(node,source){
   if(node===null||typeof node!=='object')return;
   if(node.type==='VariableDeclaration')for(const d of node.declarations){
     if(d.id.type==='Identifier'&&wanted.has(d.id.name)){
@@ -21,12 +22,15 @@ function visit(node){
     }
   }
   for(const value of Object.values(node)){
-    if(Array.isArray(value))value.forEach(visit);
-    else if(value&&typeof value==='object')visit(value);
+    if(Array.isArray(value))value.forEach(child=>visit(child,source));
+    else if(value&&typeof value==='object')visit(value,source);
   }
 }
-visit(parse(source,{ecmaVersion:'latest',sourceType:'module'}));
-assert.equal(declarations.size,5);
+for(const path of sources){
+  const source=readFileSync(new URL(path,import.meta.url),'utf8');
+  visit(parse(source,{ecmaVersion:'latest',sourceType:'module'}),source);
+}
+assert.equal(declarations.size,4);
 const compile=new Function('moon','checked','inspect','setTimeout','setImmediate','runtimeField','runtimeIsBoxedSome',
   [...declarations.values()].join('\n')+';return {finishCapturedPreparation,finishPublicationValidation};');
 function fixture({pending=3,advance,finish,inspect=x=>x,onYield,immediate=true}={}){
@@ -135,9 +139,9 @@ function snapshotFixture({pending=3,advance,finish,inspect=value=>value,onYield,
     assert(!immediate,'A runnable snapshot quantum must not start a delay timer');
     return setTimeout(callback,delay);
   };
-  const loop=new Function('moon','checked','runtimeField','inspectSnapshot','setTimeout','setImmediate',
-    declarations.get('tuplePair')+'\n'+declarations.get('finishProgramSnapshot')+'\nreturn finishProgramSnapshot;')(
-    moon,value=>value,runtimeField,inspect,timer,immediate?callback=>{
+  const loop=new Function('moon','checked','tuplePair','inspectSnapshot','setTimeout','setImmediate',
+    declarations.get('finishProgramSnapshot')+'\nreturn finishProgramSnapshot;')(
+    moon,value=>value,tuplePair,inspect,timer,immediate?callback=>{
       counts.yields++;return setImmediate(()=>{onYield?.();callback();});
     }:undefined);
   return {counts,result,run:signal=>loop(publication,output,signal)};

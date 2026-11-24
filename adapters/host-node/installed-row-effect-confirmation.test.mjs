@@ -4,17 +4,16 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {createHash} from 'node:crypto';
-import {types as nodeTypes} from 'node:util';
+import {createInstalledRowEffectDriverControls} from './installed-row-effect-driver.mjs';
+import {createInstalledRowEffectReadDecision} from './installed-row-effect-authorization.mjs';
 import {parse} from 'acorn';
 import * as providerMoon from '../../_build/js/release/build/connectors/github/host_node/host_node.js';
 import * as provider from '../connectors/github/site/github-comment-create.mjs';
-import {canonicalJson} from './local-account-config.mjs';
-import {localContractLimits} from './local-values-plan.mjs';
 import {captureInstalledStandardCreateLimits, prepareInstalledEffectControlConstruction} from './installed-effect-plan.mjs';
 import {createInstalledRowEffect} from './installed-row-effect.mjs';
-import {captureClaimedEffectResponse} from './effect-physical-dispatch.mjs';
-import {ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames} from '../host-common/http-exchange.mjs';
+import {deriveInstalledRowWrite} from './installed-row-effect-standard-write.mjs';
+import {createInstalledRowEffectPhysicalRoute} from './installed-row-effect-physical-route.mjs';
+import {createInstalledRowEffectRecovery} from './installed-row-effect-recovery.mjs';
 
 function parsed(source) {
   const nodes = [];
@@ -42,7 +41,7 @@ const tag = 'sha256:' + 'a'.repeat(64);
 const limits = captureInstalledStandardCreateLimits(providerMoon);
 const repository = {nodeId: 'R_original', databaseId: 13, nameWithOwner: 'o/r'};
 const value = {subject_id: 'I_original', body: ' e\u0301\r\n東京 '};
-const member = {memberIndex: 0, kind: 'create', resource: 'issue_comments'};
+const member = {memberIndex: 0, kind: 'create', resource: 'issue_comments', mapping: Object.freeze({})};
 const evidence = Object.freeze({kind: 'CreatedComment', comment_id: 7, node_id: 'IC_original'});
 const pending = Object.freeze({kind: 'provider-response', providerEvidence: evidence});
 const writeNode = installed.nodes.filter(n => n.type === 'Property' && n.key.name === 'write' && n.value.type === 'ObjectExpression');
@@ -65,40 +64,57 @@ function recipe() {
       {phase: 'apply-confirm', operationIndex: 3, ...limits},
       {phase: 'resume-confirm', operationIndex: 4, ...limits}]};
 }
-const capture = source.fn('captureResponseConfirmation', {nodeTypes, text, fail});
+const captureOnly = () => assert.fail('The hook fixture does not admit another driver');
+const {captureResponseConfirmation: capture} = createInstalledRowEffectDriverControls({
+  fail, text, optionalFunction: captureOnly, kinds: [], guarded: captureOnly,
+});
 function fixture(options = {}) {
   const events = [], readCalls = [];
   let current = true, grantCount = 0, decision = {action: options.action ?? 'dispatch'};
-  const grant = Object.freeze({original: 'read authorization',
-    scope: Object.freeze({resourceOrigin: 'https://api.github.test'})});
-  const writeAuthorization = Object.freeze({original: 'write authorization',
-    scope: Object.freeze({resourceOrigin: 'https://api.github.test'})});
-  const credential = {}, callResource = () => assert.fail('No transport engine in this component');
+  const readOperation = 'github:graphql:read';
+  const writeOperation = provider.GITHUB_COMMENT_CREATE_OPERATION;
+  const grant = Object.freeze({useId: 'read authorization', grant: Object.freeze({}),
+    scope: Object.freeze({operation: readOperation, resourceOrigin: 'https://api.github.test'})});
+  const writeAuthorization = Object.freeze({useId: 'write authorization', grant: Object.freeze({}),
+    scope: Object.freeze({operation: writeOperation, resourceOrigin: 'https://api.github.test'})});
+  const credentialOriginal = Object.freeze({});
+  const credential = Object.freeze({credentialOriginal});
   const write = originalWrite();
   if (options.body) write.confirmation.body = options.body(write.confirmation.body);
   if (options.project) write.confirmation.project = options.project;
-  const derive = source.fn('deriveInstalledRowWrite', {nodeTypes, createHash, canonicalJson, localContractLimits,
-    ownHttpRequest, ownRequestHeaders, ownResponseHeaderNames,
-    async invokeScopedCredentialOperation(facts) {
-      if (facts.operation === provider.GITHUB_COMMENT_CREATE_OPERATION && options.mutation) {
-        assert.strictEqual(facts.authorization, writeAuthorization);
-        assert.strictEqual(facts.credential, credential); assert.strictEqual(facts.callResource, callResource);
-        assert.equal(facts.body, originalRequest.body); events.push('write');
-        return options.mutation(facts);
-      }
-      assert.strictEqual(facts.authorization, grant); assert.strictEqual(facts.credential, credential);
-      assert.strictEqual(facts.callResource, callResource); assert.equal(facts.operation, 'github:graphql:read');
-      assert.equal(facts.method, 'POST'); assert.equal(facts.path, '/graphql');
-      const body = JSON.parse(facts.body);
-      assert.match(body.query, /^query ActqlConfirmComment/u); assert.deepEqual(body.variables, {id: 'IC_original'});
-      readCalls.push(facts); events.push('read');
-      if (options.read) return options.read(facts, originalRequest);
-      return {accepted: true, useCid: tag, statusCode: 200, body: readReply(originalRequest), headers: []};
-    }});
-  const {driver, construction} = derive(write, 'github');
+  async function callResource(facts) {
+    assert.strictEqual(facts.credentialOriginal, credentialOriginal);
+    const operation = facts.scope.operation;
+    const request = facts.operations.get(operation);
+    assert.equal(facts.operations.size, 1);
+    assert.equal(facts.returnRejectedResponse, true);
+    if (operation === writeOperation && options.mutation) {
+      assert.strictEqual(facts.grant, writeAuthorization.grant);
+      assert.equal(facts.useId, writeAuthorization.useId);
+      assert.equal(request.body, originalRequest.body); events.push('write');
+      return options.mutation(facts);
+    }
+    assert.strictEqual(facts.grant, grant.grant);
+    assert.equal(facts.useId, grant.useId);
+    assert.equal(operation, readOperation);
+    assert.equal(request.method, 'POST'); assert.equal(request.path, '/graphql');
+    const body = JSON.parse(request.body);
+    assert.match(body.query, /^query ActqlConfirmComment/u); assert.deepEqual(body.variables, {id: 'IC_original'});
+    readCalls.push(facts); events.push('read');
+    if (options.read) return options.read(facts, originalRequest);
+    return {accepted: true, useCid: tag, statusCode: 200, body: readReply(originalRequest), headers: []};
+  }
+  const {driver, construction} = deriveInstalledRowWrite(write, 'github');
   const logical = driver.prepareRequest({member, value});
   const originalRequest = driver.finalizeRequest({request: logical.request, requestTag: tag}).request;
   const plan = recipe(), responseConfirmation = capture(driver, plan);
+  function projectOwnedResponse(selectedMember, facts, construct) {
+    assert.strictEqual(selectedMember, member);
+    assert.strictEqual(facts.member, member);
+    assert.strictEqual(facts.request, originalRequest);
+    assert.equal(plan.projectConstruction, undefined);
+    return construct(driver, driver.project, [facts]);
+  }
   const site = {issueReadGrant(facts) {
     assert.strictEqual(this, site); assert.strictEqual(facts.decision, decision);
     assert.equal(facts.operation, 'github:graphql:read'); assert.equal(facts.resource, 'issue_comments');
@@ -106,6 +122,7 @@ function fixture(options = {}) {
     assert.equal(facts.maxUses, 1); grantCount++; events.push('grant'); options.onGrant?.(() => {current = false;}); return grant;
   }, issueEffectGrant() {assert.fail('Confirmation never obtains a mutation grant');}};
   const owner = {owned: driver, responseConfirmation, managedPlanRecipe: plan, site,
+    installed: [member.mapping], installedCommands: [],
     connection: 'original connection', authorization: {async authorize(kind, target, context) {
       assert.equal(kind, 'acquisition'); assert.deepEqual(target, {connection: 'original connection', resource: 'issue_comments', operation: 'read'});
       assert.equal(context.subjectCid, 'original subject'); events.push('decision');
@@ -113,8 +130,9 @@ function fixture(options = {}) {
       return decision;
     }}};
   const ownerOf = original => {assert.strictEqual(original, member); return owner;};
-  const readDecision = source.variable('readDecision', {ownerOf});
-  const route = source.variable('physicalRoute', {ownerOf, fail, readDecision})({
+  const readDecision = createInstalledRowEffectReadDecision({ownerOf});
+  const routeControls = {ownerOf, fail, readDecision};
+  const routeInput = {
     members: [member], entries: [[{request: originalRequest, requestCid: originalRequest.requestCid, value}]],
     previewRows: [[{}]], runInvocationCid: 'original invocation', dispatches: ['original dispatch'],
     subjectCid: 'original subject', dispatchIndexes: [[0]], operationPhase: options.phase ?? 'apply',
@@ -132,8 +150,10 @@ function fixture(options = {}) {
       events.push('child'); facts.assertCurrent();
       return facts.invoke({authorization: grant, credential, callResource});
     },
-  });
-  return {route, driver, write, construction, owner, events, readCalls, originalRequest, credential, callResource, writeAuthorization,
+  };
+  const route = createInstalledRowEffectPhysicalRoute(routeControls)(routeInput);
+  return {route, routeControls, routeInput, driver, write, construction, owner, events, readCalls, originalRequest, credential, callResource,
+    projectOwnedResponse, writeAuthorization,
     grantCount: () => grantCount, revoke: () => {current = false;},
     confirm: projected => route.confirmResponse({memberIndex: 0, rowIndex: 0, projected, current: {}, signal: undefined})};
 }
@@ -237,14 +257,21 @@ test('actual invalid asynchronous pure projector remains joined and cannot produ
   assert.equal(h.route.retire(), true);
 });
 
-const recoveryNode = source.nodes.find(n => n.type === 'VariableDeclarator' && n.id.name === 'reconcileStoredResponses');
 function cold(h, {outcome, commitError, callSignal} = {}) {
   const claim = {}, preview = {}, events = [], ownedClaim = Object.freeze({});
   const response = Buffer.from(JSON.stringify({data: {addComment: {
     commentEdge: {node: {id: 'IC_original', databaseId: 7}}, subject: {__typename: 'Issue', id: value.subject_id}}}}));
   const stored = {credentialUseCid: tag, statusCode: 200, responseBytes: response};
   const entry = {request: h.originalRequest, requestCid: h.originalRequest.requestCid};
-  const ledger = {readClaimedResponse(original) {assert.strictEqual(original, claim); return stored;},
+  const moon = {}, scope = {}, keys = [[{}]], admitted = {}, members = [member];
+  const body = {invocation_cid: 'original invocation', run_identity_cid: 'original run',
+    authoring_context: {authoring_context_cid: 'original authoring'},
+    effects: [{changes: [{}], capability_evidence_cid: 'original capability'}]};
+  const previewWire = JSON.stringify(body);
+  const ledger = {recoverClaimFacts(facts, originalKeys) {
+    assert.strictEqual(facts.preview, admitted); assert.strictEqual(facts.scope, scope);
+    assert.strictEqual(originalKeys, keys); return {members: [{claims: [claim]}]};
+  }, readClaimedResponse(original) {assert.strictEqual(original, claim); return stored;},
     readClaimedOutcome(original) {assert.strictEqual(original, ownedClaim); events.push('outcome'); return outcome;},
     commitAdmittedRowOutcome(facts) {
       assert.strictEqual(facts.claim, ownedClaim); assert.strictEqual(facts.preview, preview);
@@ -252,9 +279,20 @@ function cold(h, {outcome, commitError, callSignal} = {}) {
       if (commitError) throw commitError;
       return {receipt: {}, transition: {created: false}};
     }};
-  const ports = {route: h.route, ledger, fail, dispatchIndexes: [[0]], entries: [[entry]],
-    members: [member], currents: [{}], ownerOf: () => h.owner, applyPreview: preview, moon: {}, signal: undefined,
-    previewRows: [[{}]], controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
+  const prepare = createInstalledRowEffectRecovery({
+    moon, fail, text, localContractLimits: {}, ROUTING_VERSION: 'original version',
+    owners: [h.owner], ownerOf: () => h.owner, recoveredMembers: () => members,
+    bindRunResources() {}, selectionFence: () => h.route.assertClaimedCurrent,
+    memberDispatch: () => 'original dispatch', scopes: () => [],
+    runLimits: () => ({maxMembers: 1, maxRows: 1, maxRowsPerMember: 1, maxWork: 1,
+      maxFrontierWork: 1, key: {}, preview: {}}),
+    effect: {recoveredPreviewKeys: () => keys, admitPreviewIdentity: () => preview, dispatchKeyCid: () => tag},
+    openLedger: () => ledger, prepareRecoveredEntries: () => ({entries: [[entry]], currents: [{}]}),
+    admitCapability: () => ({identity: 'original capability'}), orderedSourceIndexes: () => [0],
+    physicalRoute: () => h.route,
+    projectOwnedResponse(selected, facts) {
+      return h.projectOwnedResponse(selected, facts, (receiver, method, args) => Reflect.apply(method, receiver, args));
+    },
     admitRow(facts) {assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.entry, entry); return ownedClaim;},
     async recoverProjectedEffectResponse(options) {
       assert.strictEqual(options.claims, ownedClaim); assert.equal(options.expectedRequestCid, entry.requestCid);
@@ -263,11 +301,15 @@ function cold(h, {outcome, commitError, callSignal} = {}) {
     },
     settle(facts) {assert.strictEqual(facts.claim, ownedClaim); assert.strictEqual(facts.applyPreview, preview);
       applied(facts.projected); events.push('settle');},
-  };
-  // Evaluate only the original callback; its enclosing resource/lifetime
-  // variables remain explicit, mutable protocol inputs to this component.
-  return {events, run: Function(...Object.keys(ports), `let closing=false,closed=false,reconciling=0;
-    return (${sourceText.slice(recoveryNode.init.start, recoveryNode.init.end)});`)(...Object.values(ports))({members: [{claims: [claim]}], preview, signal: callSignal})};
+  });
+  const stage = prepare({moon, control: {
+    effectComputationPreviewWire(actual) {assert.strictEqual(actual, preview); return previewWire;},
+    effectComputationPreviewLedgerIdentity: () => admitted,
+    effectComputationPreviewSemanticCid: () => 'original preview',
+  }, recovered: {requestIdentity: {}, requestScope: scope, computation: {preview}},
+  continuation: {version: 'original version', program_id: 'program', stage_id: 'stage',
+    members: [{dispatch_request_cid: 'original dispatch'}]}});
+  return {events, run: stage.apply.reconcileStoredResponses({members: [{claims: [claim]}], preview, signal: callSignal})};
 }
 
 test('actual cold caller confirms the stored original response before typed settlement without another mutation', async () => {
@@ -301,7 +343,7 @@ test('actual fresh dispatch stores the original mutation response before indepen
   const h = fixture({mutation: () => ({accepted: true, useCid: tag, statusCode: 200, body: originalResponse, headers: []})});
   const claim = Object.freeze({scope: {}, locator: {}, key: {}, basis: {},
     intentFingerprintCid: tag, canonicalRequestCid: h.originalRequest.requestCid});
-  const preview = {}, preflight = {}, decision = {}, current = {};
+  const preview = {}, decision = {}, current = {};
   const entry = {request: h.originalRequest, requestCid: claim.canonicalRequestCid, value};
   const ledger = {claimDispatch(original) {
     assert.strictEqual(original.key, claim.key); assert.strictEqual(original.basis, claim.basis);
@@ -316,31 +358,42 @@ test('actual fresh dispatch stores the original mutation response before indepen
   h.owner.site.issueEffectGrant = function(facts) {
     assert.strictEqual(this, h.owner.site); assert.strictEqual(facts.decision, decision); return h.writeAuthorization;
   };
-  const ports = {fail, subjectCid: 'original subject', hasRefreshed: true, members: [member],
-    requireOpen() {}, assertCurrent: h.route.assertClaimedCurrent, assertClaimedCurrent: h.route.assertClaimedCurrent,
+  const route = createInstalledRowEffectPhysicalRoute({
+    ...h.routeControls, guarded: () => false, resourceFields: () => ({}),
+    describeMember: () => current, checkRows: () => undefined,
+    admitCapability: () => ({identity: 'original capability'}), routeOf: () => 'single_serial',
     commitDecisions: () => new Map([['original', decision]]), scopeKey: () => 'original',
-    currentsByPreflight: new WeakMap([[preflight, [current]]]), dispatchIndexes: [[0]], entries: [[entry]],
-    ownerOf: () => h.owner, resourceFields: () => ({}), dispatches: ['original dispatch'],
-    runInvocationCid: 'original invocation', applyPreview: preview, previewRows: [[{}]], ledger,
     requireApproval(_member, original) {assert.strictEqual(original, decision);},
     admitRow(facts) {assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.entry, entry); return claim;},
-    recipeOf: source.variable('recipeOf', {ownerOf: () => h.owner,
-      controlRecipes: new Map([[h.owner.managedPlanRecipe, h.owner.managedPlanRecipe]])}),
-    captureClaimedEffectResponse, controlConstruction: (receiver, method, args) => Reflect.apply(method, receiver, args),
-    async physicalOperations(facts) {
-      assert.equal(facts.phase, 'write'); assert.equal(facts.purpose, 'effect');
-      assert.strictEqual(facts.originalAuthorization, h.writeAuthorization);
-      return facts.invoke({authorization: h.writeAuthorization, credential: h.credential, callResource: h.callResource});
-    }, confirmResponse: h.route.confirmResponse,
+    recipeOf(original) {
+      assert.strictEqual(original, member);
+      assert.equal(h.owner.managedTargetPlanRecipes, undefined);
+      assert.equal(h.owner.managedPlanRecipes, undefined);
+      return h.owner.managedPlanRecipe;
+    },
+    installedEffectWriteOperation(driver, original, updateWriteSlot) {
+      assert.strictEqual(driver, h.driver);
+      assert.strictEqual(original, member);
+      assert.equal(updateWriteSlot, undefined);
+      return driver.writeOperation(original);
+    },
+    projectOwnedResponse: h.projectOwnedResponse,
     settle(facts) {
       assert.strictEqual(facts.claim, claim); assert.strictEqual(facts.applyPreview, preview);
       applied(facts.projected); h.events.push('settle'); return {};
-    }};
-  const node = source.nodes.find(n => n.type === 'VariableDeclarator' && n.id.name === 'bindDispatch');
-  const bind = Function(...Object.keys(ports), `let active=0;
-    return (${sourceText.slice(node.init.start, node.init.end)});`)(...Object.values(ports));
-  const dispatch = bind({members: [{claims: [claim]}], subjectCid: 'original subject', decisions: []});
-  const result = await dispatch({memberIndex: 0, rowIndex: 0, claim, currentPreflight: preflight});
+    },
+  })({
+    ...h.routeInput, entries: [[entry]], applyPreview: preview, ledger,
+    async physicalOperations(facts) {
+      if (facts.phase !== 'write') return h.routeInput.physicalOperations(facts);
+      assert.equal(facts.purpose, 'effect');
+      assert.strictEqual(facts.originalAuthorization, h.writeAuthorization);
+      return facts.invoke({authorization: h.writeAuthorization, credential: h.credential, callResource: h.callResource});
+    },
+  });
+  const currentPreflight = await route.current({preflight: {observedRows: []}});
+  const dispatch = route.bindDispatch({members: [{claims: [claim]}], subjectCid: 'original subject', decisions: []});
+  const result = await dispatch({memberIndex: 0, rowIndex: 0, claim, currentPreflight});
   applied(result.physical); assert.equal(result.claimed, true);
   assert.equal(h.events.filter(event => event === 'write').length, 1);
   assert(h.events.indexOf('claim') < h.events.indexOf('write'));

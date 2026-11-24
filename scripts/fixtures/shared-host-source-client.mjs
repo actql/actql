@@ -5,7 +5,7 @@ import {createRequire} from 'node:module';
 import {pathToFileURL} from 'node:url';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {publishStandardRestBarrier} from './external-rest/cancel-conformance.mjs';
+import {publishStandardRestBarrier} from './external-rest/publish-barrier.mjs';
 
 const [configurationPath, phase] = process.argv.slice(2);
 assert(process.argv.length === 4 && ['first', 'second', 'first-submit', 'second-submit', 'recover-first', 'observe-second'].includes(phase));

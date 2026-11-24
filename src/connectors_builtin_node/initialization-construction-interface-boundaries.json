@@ -1142,7 +1142,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "The generic owner has retained and charged the original body before"
               }
             ],
@@ -1198,7 +1198,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "const {original, declared, metadataCid} = construction.prepareNativeDeclaration"
               }
             ],
@@ -1210,7 +1210,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "const complete = moon.clientProgramKintoneMetadataIdentityCapacity(base, encoded.length,"
               }
             ],
@@ -1234,7 +1234,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "resource, metadataCid, fields: Object.freeze([...fields])"
               }
             ],
@@ -1603,7 +1603,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mjs",
+                "path": "adapters/connectors/kintone/site/kintone-managed-sequence.mts",
                 "anchor": "The generic owner has retained and charged the original body before"
               }
             ],
@@ -1659,7 +1659,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "const {original, declared, metadataCid} = construction.prepareNativeDeclaration"
               }
             ],
@@ -1671,7 +1671,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "const complete = moon.clientProgramKintoneMetadataIdentityCapacity(base, encoded.length,"
               }
             ],
@@ -1695,7 +1695,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/connectors/kintone/host/installed-kintone-source.mjs",
+                "path": "adapters/connectors/kintone/host/installed-kintone-source.mts",
                 "anchor": "resource, metadataCid, fields: Object.freeze([...fields])"
               }
             ],

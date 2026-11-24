@@ -202,8 +202,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -212,8 +212,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -232,8 +232,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -242,8 +242,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -252,8 +252,8 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -262,8 +262,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -272,8 +272,8 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -282,8 +282,8 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/update-target-original-shape.mjs",
-                "anchor": "export function retainUpdateTargetSelection(moon, prepared) {"
+                "path": "adapters/host-node/update-target-original-shape.mts",
+                "anchor": "export function retainUpdateTargetSelection(moon: SelectionRuntime, prepared: unknown) {"
               },
               {
                 "path": "docs/design/connector-layout.md",
@@ -727,7 +727,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -745,7 +745,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -785,7 +785,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -793,7 +793,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-request-journal.mjs",
+                "path": "adapters/host-node/client-request-journal.mts",
                 "anchor": "originalSubmittedIntent("
               },
               {
@@ -803,7 +803,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -811,7 +811,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "const persisted = await journalPort.persistCheckpoint({body,"
               },
               {
@@ -821,7 +821,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -829,7 +829,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "fail('RequestedEffectStopCommitMismatch');"
               },
               {
@@ -839,7 +839,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -847,7 +847,7 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-node/client-checkpoints.mjs",
+                "path": "adapters/host-node/client-checkpoints.mts",
                 "anchor": "options.signal?.throwIfAborted();"
               },
               {
@@ -857,7 +857,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {
@@ -865,11 +865,11 @@
                 "anchor": "## Original Effect selection boundary"
               },
               {
-                "path": "adapters/host-common/installed-checkpoint-codec-limits.mjs",
+                "path": "adapters/host-common/installed-checkpoint-codec-limits.mts",
                 "anchor": "maxWireBytes: 256 * 1024"
               },
               {
-                "path": "adapters/host-node/installed-effect-site.mjs",
+                "path": "adapters/host-node/installed-effect-site.mts",
                 "anchor": "function cleanupCustody("
               },
               {
@@ -879,7 +879,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/installed-update-originals.mjs",
+                "path": "adapters/host-node/installed-update-originals.mts",
                 "anchor": "export function installUpdateTargetOriginals({moon, control, installedEffect, limits,"
               },
               {

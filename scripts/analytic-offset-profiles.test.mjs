@@ -103,7 +103,7 @@ test('machine control and authored result contracts remain independent fixed fix
 });
 
 test('packed selection and normal corpus retain OFFSET plus current main routes', async () => {
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
   for (const [stem, variable] of [['analytic-offset', 'analyticOffset'],
     ['analytic-frame-parameter', 'analyticFrameParameter'], ['grouped-in', 'groupedIn'],

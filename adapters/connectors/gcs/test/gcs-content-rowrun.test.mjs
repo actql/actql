@@ -100,9 +100,11 @@ async function fixture(t, {gzip = false, objectName = name} = {}) {
   const direct = moon.clientProgramKeyedDirectAcquisitionCoordinates(acquisition);
   const occurrence = {stage:runtimeField(direct,0),input:runtimeField(direct,1),task:runtimeField(direct,2)};
   const [registry,aoa] = await Promise.all([read('spec/dependencies/aoa-pipeline-registry.json'),read('spec/contracts/actql-aoa.json').then(JSON.parse)]);
-  const contracts = {registry,values:JSON.stringify(aoa.execution_contracts['REL.values']),
-    fragment:JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
-    ordered:JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+  const values = JSON.stringify(aoa.execution_contracts['REL.values']);
+  const fragment = JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']);
+  const ordered = JSON.stringify(aoa.execution_contracts['REL.derive.ordered']);
+  const installedContracts = checked(moon.clientPrepareInstalledSequenceContracts(registry, values, fragment, ordered));
+  const contracts = {registry: installedContracts, values, fragment, ordered};
   const scope = operation => ({operation,resourceOrigin:'https://storage.googleapis.com',siteGeneration:1,
     connectorRegistration:'gcs',connectorRevision:'gcs/0.1'});
   const credential = {journal:{explicitPhysicalCounter:true}};

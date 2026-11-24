@@ -83,7 +83,7 @@ test('independent machine control uses existing typed property and checked param
 
 test('computed receiver corpus runs in the ordinary packed route as well as a focused selection', async () => {
   const app = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const name of ['computedObjectPropertySuccesses', 'computedObjectPropertyRefusals',
     'computedObjectPropertyExecutionFailures']) {
     assert.ok(app.includes('push(...' + name + ')'));

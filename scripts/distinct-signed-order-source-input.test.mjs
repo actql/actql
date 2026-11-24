@@ -44,7 +44,7 @@ test('normal and focused existing packed routes retain signed DISTINCT obligatio
     assert.ok(app.includes('push(...' + name + ')'));
     assert.ok(app.includes('...distinctAggregateOrder' + (name.endsWith('Successes') ? 'Successes' : 'Refusals') + ', ...' + name));
   }
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(driver.includes("['scripts/fixtures/distinct-signed-order-source-input.mjs', 'distinct-signed-order-source-input.mjs']"));
   assert.deepEqual([successes.length, refusals.length], [10, 5]);
 });

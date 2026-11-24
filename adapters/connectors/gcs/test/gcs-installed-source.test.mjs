@@ -10,6 +10,7 @@ import {inspect} from 'node:util';
 import * as moon from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {createOwnedScratch} from '../../../../scripts/owned-scratch.mjs';
 import {loadInstalledSource, installedSourceIdentity} from '../../../host-node/installed-source.mjs';
+import {createInstalledLoaderParent, installedFailureCode} from '../../../host-node/fixtures/installed-loader-parent.fixture.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from '../../../host-node/embedded-local.mjs';
 import {connect as connectRemote} from '../../../../packages/sdk/index.mjs';
 import {fixtureCertificates} from '../../../site-node/https-exchange-fixture.mjs';
@@ -84,16 +85,25 @@ async function fixture(t) {
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
+  const options = {root: scratch.path, principalId: userInfo().username, moon, runtimeUrl,
+    baseEnvironmentWire, resolveSecret};
+  let loaderParent;
+  const load = async () => {
+    if (loaderParent === undefined) {
+      loaderParent = createInstalledLoaderParent({root: options.root, principalId: options.principalId, moon});
+      loaderParent.open();
+    }
+    return loaderParent.load(loadInstalledSource, profilePath, options);
+  };
   const loaded = [], closers = [];
   t.after(async () => {
     for (const close of closers) await close();
     for (const source of loaded) await source.close();
+    await loaderParent?.close();
     scratch.passed();
   });
   return {scratch, site, siteProfilePath, profile, profilePath, declared, queryAliases,
-    loaded, closers, authorization, secretCalls: () => secretCalls, resolveSecret,
-    options: {root: scratch.path, principalId: userInfo().username, moon, runtimeUrl,
-      baseEnvironmentWire, resolveSecret}};
+    load, loaded, closers, authorization, secretCalls: () => secretCalls, resolveSecret, options};
 }
 
 function acceptancePrograms(value) {
@@ -144,8 +154,7 @@ async function connectFixture(t, entrance, value) {
 
 test('standard GCS Connector loads its three declared read Resources without provider or credential I/O', async t => {
   const value = await fixture(t);
-  const source = await loadInstalledSource(value.profilePath, value.options);
-  value.loaded.push(source);
+  const source = await value.load();
   assert.equal(source.connectorRegistration, 'gcs');
   assert.equal(source.connectorRevision, 'gcs/0.1');
   assert.deepEqual(source.sourceReadAccesses.map(({resource}) => resource).sort(), ['contents', 'files', 'objects']);
@@ -174,7 +183,7 @@ test('standard GCS installation identity preserves exact scope and observes Site
 test('standard GCS Site rejects arbitrary origins and unknown profile fields before credential use', async t => {
   const value = await fixture(t);
   await writeFile(value.siteProfilePath, JSON.stringify({...value.site, apiOrigin: 'https://foreign.example'}));
-  await assert.rejects(loadInstalledSource(value.profilePath, value.options), {code: 'InvalidInstalledGcsSite'});
+  await assert.rejects(value.load(), installedFailureCode('InvalidInstalledGcsSite'));
   assert.equal(value.secretCalls(), 0);
 });
 

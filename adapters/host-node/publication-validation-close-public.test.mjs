@@ -12,15 +12,15 @@ const hookKey=Symbol.for('actql.test.validation-close');
 let open,coherence,loader;
 before(async()=>{
  coherence=await verifyLocalSourceRuntime(root);
- const target=new URL('../../packages/local-node/adapters/host-common/runtime-core.mjs',import.meta.url).href;
+ const target=new URL('../../packages/local-node/adapters/host-common/runtime-publication-validation-control.mjs',import.meta.url).href;
  loader=registerHooks({load(url,context,next){
   const loaded=next(url,context);if(url!==target)return loaded;
   const original=String(loaded.source);
-  const begin='          moon.clientProgramAdvanceValidation(validation, 256)));';
-  const cancel='      moon.clientProgramCancelValidation(validation);';
+  const begin='                const progress = tuplePair(checked(moon.clientProgramAdvanceValidation(validation, 256)));';
+  const cancel='            moon.clientProgramCancelValidation(validation);';
   assert.equal(original.split(begin).length,2,'one exact typed validation advance seam');
   assert.equal(original.split(cancel).length,2,'one exact typed validation cancel seam');
-  const source=original.replace(begin,begin+`\n        if (requireCurrent !== undefined) await globalThis[Symbol.for('actql.test.validation-close')].afterAdvance(validation);`).replace(cancel,cancel+`\n      if (requireCurrent !== undefined) globalThis[Symbol.for('actql.test.validation-close')].afterCancel(validation);`);
+  const source=original.replace(begin,begin+`\n                if (requireCurrent !== undefined) await globalThis[Symbol.for('actql.test.validation-close')].afterAdvance(validation);`).replace(cancel,cancel+`\n            if (requireCurrent !== undefined) globalThis[Symbol.for('actql.test.validation-close')].afterCancel(validation);`);
   console.log(JSON.stringify({testInstrumentation:'validation-close-negative',path:target,originalSha256:createHash('sha256').update(original).digest('hex'),instrumentedSha256:createHash('sha256').update(source).digest('hex')}));
   return {...loaded,source};
  }});

@@ -11,7 +11,7 @@ import {packSdkFixture} from './packed-package.fixture.mjs';
 function fixture(t, mode = 'normal') {
   const root = mkdtempSync(join(tmpdir(), 'sdk-packed-package-'));
   t.after(() => rmSync(root, {recursive: true}));
-  const directory = join(root, 'source');
+  const directory = join(root, 'packages', 'sdk');
   const destination = join(root, 'destination');
   const packageRoot = join(root, 'archive', 'package');
   for (const path of [directory, destination, packageRoot]) mkdirSync(path, {recursive: true});
@@ -40,12 +40,12 @@ function fixture(t, mode = 'normal') {
     }
     return execFileSync(command, args, {encoding: 'utf8', timeout: 30000});
   };
-  return {directory, destination, target, filename, calls, run};
+  return {repository: root, destination, target, filename, calls, run};
 }
 
-test('normal prepack diagnostics do not replace actual package bytes or digests', t => {
+test('normal prepack diagnostics do not replace actual package bytes or digests', async t => {
   const f = fixture(t);
-  const report = packSdkFixture({name: 'sdk', ...f});
+  const report = await packSdkFixture({name: 'sdk', shared: '', ...f});
   assert.equal(report.name, '@actql/sdk');
   assert.equal(report.filename, f.filename);
   assert.equal(report.shasum, createHash('sha1').update(readFileSync(f.target)).digest('hex'));
@@ -55,9 +55,9 @@ test('normal prepack diagnostics do not replace actual package bytes or digests'
 });
 
 for (const mode of ['missing', 'empty', 'linked', 'foreign', 'member-link', 'exit']) {
-  test(`normal prepack refuses ${mode} artifact or original failure`, t => {
+  test(`normal prepack refuses ${mode} artifact or original failure`, async t => {
     const f = fixture(t, mode);
-    assert.throws(() => packSdkFixture({name: 'sdk', ...f}));
+    await assert.rejects(packSdkFixture({name: 'sdk', shared: '', ...f}));
     assert.equal(f.calls.filter(call => call.command === 'npm').length, 1);
   });
 }

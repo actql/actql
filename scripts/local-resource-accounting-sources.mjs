@@ -20,7 +20,7 @@ const fixedSources = [
   'adapters/local-node/strategy-bundle.mjs',
   'adapters/host-node/embedded-installation.test.mjs',
   'scripts/graph-public-host.test.mjs',
-  'scripts/fixtures/graph-host-cases.mjs',
+  'scripts/fixtures/graph-host-cases.mts',
   'scripts/graph-surface-checker.test.mjs',
   'scripts/test-packed-graph.mjs',
   'src/connectors/local/driver/dispatch.mbt',

@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createServer} from 'node:http';
+import {readFile} from 'node:fs/promises';
 import {connect} from '../../packages/sdk/index.mjs';
 import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {createClientHttpHandler} from './client-http.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 import {installClientRunInspect} from './client-run-inspect.mjs';
 import {prepareClientHostRequest} from '../../packages/client-wire/index.mjs';
 import {cid, ref, legacyState} from '../../scripts/fixtures/interactive-run-control-vectors.mjs';
@@ -101,7 +103,14 @@ for (const transport of ['local', 'http-loopback']) {
       client = await connectInProcess({mode: 'local', owner: 'local'},
         createNodeInProcessClientHost({...operations, authenticate: () => 'inspect-test', maxRowBytes: 1024}));
     } else {
-      server = createServer(createClientHttpHandler({...operations,
+      const moon = await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
+      const wire = await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8');
+      const body = JSON.parse(wire);
+      const environment = moon.clientProgramCheckEnvironment(wire.trimEnd(),
+        body.evidence_bundle_cid, false, false, true, true, false, false, false);
+      assert.ok(environment);
+      const {prepareRequest} = await fundedClientPreparation(t, {moon, environment, http: true});
+      server = createServer(createClientHttpHandler({...operations, prepareRequest,
         authenticate: () => 'inspect-test', loopbackHttp: true}));
       await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
       client = await connect({mode: 'local', owner: 'local', token: 'fixture',

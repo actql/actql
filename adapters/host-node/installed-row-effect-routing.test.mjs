@@ -11,6 +11,10 @@ import test from 'node:test';
 import {createInstalledRowEffect, composeInstalledRowEffectOwners,
   retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
 import {installedEffectFor} from './installed-effect-inventory.mjs';
+import {createInstalledRowEffectApproval} from './installed-row-effect-commit.mjs';
+import {createInstalledRowEffectPreview} from './installed-row-effect-preview.mjs';
+import {runtimePair, runtimeTupleFromFields} from '../host-common/compiler-binding.generated.mjs';
+import {isEffectPreparationRefusal} from '../host-common/effect-preparation-result.mjs';
 
 // Admission/provenance tests only. Core issuance and physical dispatch are not
 // replaced with successful doubles; accepted recovery stops before the Ledger.
@@ -292,61 +296,45 @@ test('schema-valid Command without approval minimum reaches the actual installed
   assert.deepEqual(f.calls, ['close:owner-0']);
 });
 
-async function commandApprovalProductionPorts() {
-  const source = await readFile(new URL('./installed-row-effect.mjs', import.meta.url), 'utf8');
-  const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-  const stage = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'createRowEffectStage');
-  const variable = (body, name) => body.filter(node => node.type === 'VariableDeclaration')
-    .flatMap(node => node.declarations).find(node => node.id.name === name).init;
-  const expression = name => {const node = variable(stage.body.body, name); return source.slice(node.start, node.end);};
-  const approval = variable(ast.body, 'approvalOf');
-  const approvalOf = new Function(`return (${source.slice(approval.start, approval.end)});`)();
-  return {source, stage, expression, approvalOf};
-}
+const floor = createInstalledRowEffectApproval(value => typeof value === 'string' && value.length > 0);
 
-test('Command dispatch adds no contract floor to the original Account allow or immediate permit', async () => {
+test('Command dispatch adds no contract floor to the original Account allow or immediate permit', () => {
   // Exact production extra-floor function. Decisions are explicit DATA here;
   // the separate original authorization gate owns interpretation and custody.
-  const f = await commandApprovalProductionPorts();
-  const floor = new Function('approvalOf', 'text', 'refusedEffectPreparation',
-    `return (${f.expression('requireApproval')});`)(f.approvalOf,
-    value => typeof value === 'string' && value.length > 0, error => error);
   const command = {kind: 'command', command: {approval: 'required'}};
   for (const basis of ['account_allow', 'permitted_by_host']) {
     assert.doesNotThrow(() => floor(command, {action: 'dispatch', basis}));
   }
   const mapping = {kind: 'update', mapping: {approval: 'required'}};
   assert.throws(() => floor(mapping, {action: 'dispatch', basis: 'account_allow'}),
-    {code: 'InstalledRowEffectApprovalRequired'});
+    error => error.code === 'InstalledRowEffectApprovalRequired' && isEffectPreparationRefusal(error));
   assert.doesNotThrow(() => floor(mapping, {action: 'dispatch', basis: 'resumed',
     checkpointCid: cid('a'), resolutionCid: cid('b')}));
 });
 
-test('Command Preview omits contract approval DATA while Mapping carriage stays exact', async () => {
+test('Command Preview omits contract approval DATA while Mapping carriage stays exact', () => {
   // Execute the complete original builder with explicit descriptor, identity,
   // source-binding and canonicalization ports. This does not issue Core facts.
-  const f = await commandApprovalProductionPorts();
-  const node = f.stage.body.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'authorPreview');
+  const ok = value => ({$tag: 1, _0: value});
   const moon = {
     clientProgramEffectRequestAuthority: () => cid('a'), clientProgramEffectDefinitionCid: () => cid('b'),
-    strategyRunEvidenceSeal: (_kind, wire) => JSON.parse(wire), strategyRunEvidenceJson: value => JSON.stringify(value),
+    strategyRunEvidenceSeal: (_kind, wire) => ok(JSON.parse(wire)), strategyRunEvidenceJson: value => JSON.stringify(value),
     clientProgramEffectMemberDescriptor: (_prepared, _stage, effect) =>
-      [0, effect, effect === 'command' ? 'command' : 'update', 'target', 'contract:fixture', cid('c'), 'rows', 'halt'],
-    strategyPublicationContractIdentity: () => cid('d'), clientProgramEffectPlanCid: () => undefined,
+      ok(runtimeTupleFromFields([0, effect, effect === 'command' ? 'command' : 'update',
+        'target', 'contract:fixture', cid('c'), 'rows', 'halt'])),
+    strategyPublicationContractIdentity: () => cid('d'), clientProgramEffectPlanCid: () => ok(undefined),
     clientProgramEffectSemanticsCid: () => cid('e'), clientProgramEffectEnvironmentCid: () => cid('f'),
-    clientProgramCanonicalEffectPreviewDraft: wire => wire,
-    clientProgramAuthorEffectPreview: wire => [wire, []],
+    clientProgramCanonicalEffectPreviewDraft: ok,
+    clientProgramAuthorEffectPreview: wire => ok(runtimePair(wire, [])),
   };
-  const control = {effectSourceArtifactPreviewBinding: () => [null, cid('1')],
+  const control = {effectSourceArtifactPreviewBinding: () => runtimePair(null, cid('1')),
     issueSourceFreeLocalEffectIdentity: () => ({identity: cid('2')}),
     checkSourceFreeLocalEffectPreviewIdentities() {}};
   const limits = {preview: {maxWireBytes: 65536, maxNodes: 4096, maxDepth: 32},
     maxRows: 10, maxRowsPerMember: 10, planWork: 100, maxFields: 10,
     key: {maxBytes: 4096, maxNodes: 64, maxDepth: 8}};
-  const build = new Function('limits', 'moon', 'checked', 'runtimeField', 'approvalOf',
-    'permissionsOf', 'pendingCid', 'fail', `return (${f.source.slice(node.start, node.end)});`)(
-    limits, moon, value => value,
-    (value, index) => value[index], f.approvalOf, () => ['scope'], cid('0'), () => assert.fail('Unexpected builder refusal'));
+  const build = createInstalledRowEffectPreview({moon, permissionsOf: () => ['scope'],
+    pendingCid: cid('0'), fail: () => assert.fail('Unexpected builder refusal')});
   const members = [{kind: 'command', effectId: 'command', stageIndex: 0, command: {approval: 'required'}},
     {kind: 'update', effectId: 'mapping', stageIndex: 0, mapping: {approval: 'required'}}];
   const result = build({control, prepared: {}, inputs: {}, context: {}, requestScope: {}, limits, members,
@@ -414,10 +402,6 @@ function commandAccountGate(outcome, answer = 'permit') {
 }
 
 test('Command uses the same original Account gate for allow deny no-match immediate permit reject and defer', async () => {
-  const f = await commandApprovalProductionPorts();
-  const floor = new Function('approvalOf', 'text', 'refusedEffectPreparation',
-    `return (${f.expression('requireApproval')});`)(f.approvalOf,
-    value => typeof value === 'string' && value.length > 0, error => error);
   const member = {kind: 'command', command: {}};
   for (const [outcome, answer, allowed] of [['allow', 'permit', true], ['deny', 'permit', false],
     ['no_match', 'permit', false], ['delegate', 'permit', true], ['delegate', 'reject', false], ['delegate', 'defer', false]]) {
@@ -442,10 +426,6 @@ test('Command uses the same original Account gate for allow deny no-match immedi
 });
 
 test('Command defer still requires the same committed Set Resolution original claim and current Account', async () => {
-  const f = await commandApprovalProductionPorts();
-  const floor = new Function('approvalOf', 'text', 'refusedEffectPreparation',
-    `return (${f.expression('requireApproval')});`)(f.approvalOf,
-    value => typeof value === 'string' && value.length > 0, error => error);
   const x = commandAccountGate('delegate', 'defer');
   try {
     const waiting = await x.gate.authorize('effect_commit', x.scope, {subjectCid: x.subjectCid});

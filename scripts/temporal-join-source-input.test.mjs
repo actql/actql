@@ -38,14 +38,14 @@ test('temporal controls retain independent left/inner values, full schema, limit
 });
 test('temporal public selector preserves ordinary registration and actual receipts',()=>{
   const acceptance=readFileSync('scripts/fixtures/packed-public-query.mjs','utf8');
-  const consumer=readFileSync('scripts/test-packed-public-query.mjs','utf8');
+  const consumer=readFileSync('scripts/test-packed-public-query.mts','utf8');
   for(const symbol of ['temporalJoinSourceSuccesses','temporalJoinSourceRefusals']) assert.ok(acceptance.includes('scopeInputs.'+(symbol.endsWith('Successes')?'successes':'refusals')+'.push(...'+symbol+')'));
   assert.ok(acceptance.includes('ACTQL_TEST_TEMPORAL_JOIN_ONLY')); assert.ok(consumer.includes('--temporal-join-only'));
   assert.ok(consumer.includes("['scripts/fixtures/temporal-join-source-input.mjs', 'temporal-join-source-input.mjs']"));
   assert.ok(consumer.includes('temporal-join-receipts.local.json'));
 });
 test('actual copied import closure reaches temporal fixtures and detects their removal',()=>{
-  const copies=new Map([...readFileSync('scripts/test-packed-public-query.mjs','utf8')
+  const copies=new Map([...readFileSync('scripts/test-packed-public-query.mts','utf8')
     .matchAll(/\['([^']+)', '([^']+\.mjs)'\]/gu)].map(match=>[match[2],match[1]]));
   function missing(map) {
     const pending=['acceptance.mjs'],seen=new Set(),absent=[];

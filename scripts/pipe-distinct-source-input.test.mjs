@@ -51,7 +51,7 @@ test('CROSS JOIN control preserves eight rows and its explicit output ceiling', 
 });
 test('Pipe DISTINCT is included in the ordinary packed corpus and focused cohort', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...pipeDistinctSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...pipeDistinctRefusals)'));
   assert.ok(fixture.includes('pipeDistinctOnly ? {successes: pipeDistinctSuccesses'));

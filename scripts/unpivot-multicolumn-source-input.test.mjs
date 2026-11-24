@@ -44,7 +44,7 @@ test('tuple oracle preserves partial NULL duplicate rows ordered contracts and e
 
 test('tuple cases use the existing full corpus and actual completion receipts', async () => {
   const packed = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, exportName] of [['successes', 'unpivotMulticolumnSuccesses'],
     ['refusals', 'unpivotMulticolumnRefusals']]) {
     assert.ok(packed.includes(`scopeInputs.${kind}.push(...${exportName})`));

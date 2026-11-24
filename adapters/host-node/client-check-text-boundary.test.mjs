@@ -19,6 +19,7 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createNodeInProcessClientHost} from './in-process-client.mjs';
 import {sourceAliasPublication} from './source-alias-publication.mjs';
 import {createNodeAuthorizationGate} from './authorization.mjs';
+import {fundedClientPreparation} from './funded-client-preparation.fixture.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const scratch = join(root, '_build', 'client-check-text-boundary');
@@ -62,6 +63,7 @@ async function publicCheck(t, entrance, {program = false, environmentWire = wire
     context: {principal: principalId, contextCid: `sha256:${'3'.repeat(64)}`}}) : undefined;
   if (authorization) t.after(() => authorization.close());
   if (visibility === 'unpublished') authorization.close();
+  const publication = sourceAliasPublication(moon, selected, aliases);
   const check = installNodeClientCheck({moon: {...moon,
     clientProgramCheckProgram: (...args) => {
       assert.equal(program, true, 'Text fixture must not check a structured Program');
@@ -73,7 +75,7 @@ async function publicCheck(t, entrance, {program = false, environmentWire = wire
       counts.analysis++;
       const outcome = moon.clientProgramCheckSource(...args);
       return transformOwnerOutcome?.(outcome, args[10]) ?? outcome;
-    }}, environment: selected, publication: sourceAliasPublication(moon, selected, aliases),
+    }}, environment: selected, publication,
     ...(contextKey === undefined ? {} : {contextKey}),
     sourceAccesses: authorization ? [{authorization, connection: 'local-database',
       resource: '/records.duckdb', sourceRef}] : []});
@@ -111,7 +113,9 @@ async function publicCheck(t, entrance, {program = false, environmentWire = wire
       });
     }};
   }
-  const handler = createClientHttpHandler(configuration);
+  const {prepareRequest} = await fundedClientPreparation(t, {moon, environment: selected, http: true,
+    sourcePublication: publication});
+  const handler = createClientHttpHandler({...configuration, prepareRequest});
   let acknowledgeChunk, receivedChunks = 0;
   const server = createServer({key, cert}, (request, response) => {
     if (request.url.endsWith('/check')) {

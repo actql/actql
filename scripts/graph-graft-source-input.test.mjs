@@ -21,7 +21,7 @@ test('graft independent fixture preserves parallel self-loops and both Result co
 
 test('graft public fixtures reach the normal and narrow packed harness', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   for (const [kind, group] of [['successes', 'graphGraftSourceSuccesses'],
     ['refusals', 'graphGraftSourceRefusals'], ['executionFailures', 'graphGraftSourceExecutionFailures']]) {
     assert.ok(fixture.includes(`scopeInputs.${kind}.push(...${group})`));
@@ -33,7 +33,7 @@ test('graft public fixtures reach the normal and narrow packed harness', async (
   const restart = driver.indexOf("await exerciseRetainedQueryRestart({ACTQL_TEST_RETAINED_COHORT_ONLY: '1'});");
   const acceptance = driver.indexOf("['packed-query-transports.mjs']");
   assert.ok(restart > acceptance, 'graft must reread retained Results after both producers exit');
-  const consumer = await readFile(new URL('./fixtures/string-values-restart.mjs', import.meta.url), 'utf8');
+  const consumer = await readFile(new URL('./fixtures/string-values-restart.mts', import.meta.url), 'utf8');
   assert.ok(consumer.includes("const cohortOnly = process.env.ACTQL_TEST_RETAINED_COHORT_ONLY === '1';"));
   assert.ok(consumer.includes('assert.deepEqual(actual, oracle.rows)'));
   assert.ok(consumer.includes("'reopened cohort attach/replay/lookup must preserve the original Run'"));

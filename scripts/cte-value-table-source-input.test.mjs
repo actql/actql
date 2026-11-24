@@ -23,7 +23,7 @@ test('CTE value-table controls preserve NULL duplicates and the declared join bo
 
 test('CTE value-table cases run in the normal public corpus and a narrow selection', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...cteValueTableSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...cteValueTableRefusals)'));
   assert.ok(fixture.includes('ACTQL_TEST_CTE_VALUE_TABLE_ONLY'));

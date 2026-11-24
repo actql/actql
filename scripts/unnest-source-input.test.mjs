@@ -111,7 +111,7 @@ test('UNNEST independent fixtures preserve multiplicity, NULL and offset order o
 
 test('ordinary packed corpus and narrow consumer both execute UNNEST source cases', async () => {
   const fixture = await readFile(new URL('./fixtures/packed-public-query.mjs', import.meta.url), 'utf8');
-  const driver = await readFile(new URL('./test-packed-public-query.mjs', import.meta.url), 'utf8');
+  const driver = await readFile(new URL('./test-packed-public-query.mts', import.meta.url), 'utf8');
   assert.ok(fixture.includes('scopeInputs.successes.push(...unnestSuccesses)'));
   assert.ok(fixture.includes('scopeInputs.refusals.push(...unnestRefusals)'));
   assert.ok(fixture.includes('unnestOnly ? {successes: unnestSuccesses'));

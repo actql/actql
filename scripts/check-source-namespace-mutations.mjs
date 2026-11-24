@@ -11,7 +11,7 @@ const installedPath = fileURLToPath(new URL('../adapters/host-node/installed-sou
 const file = 'adapters/host-node/source-alias-publication.test.mjs';
 const faults = [
   {name: 'a nonempty Catalog closes an empty selector registration range',
-    from: 'if (catalogRange === undefined) return undefined;',
+    from: 'if (catalogRange === undefined)\n        return undefined;',
     to: 'void catalogRange;',
     target: 'selector registration completeness uses the entire admitted unfiltered Catalog',
     assertion: {id: 'selector-catalog-completeness', operator: 'deepStrictEqual'}},
@@ -21,7 +21,7 @@ const faults = [
     target: 'selector registration observations reject foreign domains copies revisions and inputs',
     assertion: {id: 'selector-observation-custody', operator: 'strictEqual'}},
   {name: 'filtered publication falsely closes the namespace',
-    from: 'if (JSON.stringify(rows(allAliases)) !== JSON.stringify(rows(aliases))) return undefined;',
+    from: 'if (JSON.stringify(rows(allAliases)) !== JSON.stringify(rows(aliases)))\n        return undefined;',
     to: 'void aliases;',
     target: 'namespace evidence uses every original unfiltered installed registration',
     assertion: {id: 'namespace-completeness', operator: 'deepStrictEqual'}},

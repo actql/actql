@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {createLocalCheckpointAnswer} from './local-checkpoint-answer.mjs';
+import {createLocalCheckpointAnswer, createLocalSigningOriginalReader} from './local-checkpoint-answer.mjs';
 import {parse} from 'acorn';
 
 // Exact Host functions with explicit original recovery/release ports. These
@@ -18,10 +18,9 @@ function walk(value) {
 }
 walk(tree);
 const release = nodes.filter(n => n.type === 'FunctionDeclaration' && n.id.name === 'releaseLocalSigningRecovery');
-const load = nodes.filter(n => n.type === 'Property' && n.key.name === 'loadRunOriginal');
-assert.equal(release.length, 1); assert.equal(load.length, 1);
+assert.equal(release.length, 1);
 const code = source.slice(release[0].start, release[0].end) +
-  '\nreturn {releaseLocalSigningRecovery, load: ({' + source.slice(load[0].start, load[0].end) + '}).loadRunOriginal};';
+  '\nreturn releaseLocalSigningRecovery;';
 
 function fixture({wrongPreview = false, releaseFailure, trackResource = false} = {}) {
   const store = {}, moon = {}, localSigningRecoveries = new Set(), calls = [];
@@ -43,14 +42,20 @@ function fixture({wrongPreview = false, releaseFailure, trackResource = false} =
     calls.push(options);
     if (fail !== undefined) throw fail;
   };
-  const api = new Function('store', 'control', 'localSigningRecoveries',
-    'suspendCompletedEffectfulComputation', 'namespaceId', 'authorityScopeCid', 'journal', 'moon',
-    'clientOperationError', 'recoverEffectCapture', 'assertProjectRuntime', 'preparation', code)(
-      store, control, localSigningRecoveries, suspend, 'namespace', 'authority',
-      {lookupRunDefinition() {return snapshot;}}, moon,
-      code => Object.assign(new Error(code), {code}), async () => {recoveredCount++; return recovered;},
-      fence, {assertResultPublicationCurrent: fence});
-  return {...api, recovered, view, localSigningRecoveries, calls,
+  const clientOperationError = code => Object.assign(new Error(code), {code});
+  const releaseLocalSigningRecovery = new Function('store', 'control', 'localSigningRecoveries',
+    'suspendCompletedEffectfulComputation', 'clientOperationError', code)(
+      store, control, localSigningRecoveries, suspend, clientOperationError);
+  const managedEffect = {}, original = {};
+  const load = createLocalSigningOriginalReader({namespaceId: 'namespace', authorityScopeCid: 'authority', moon, control,
+    journal: {lookupRunDefinition() {return snapshot;}},
+    restoreEffectManagedPreparation() {return {managedEffect, original};},
+    recoverEffectCapture(_ref, _signal, managed, _retain, binding) {
+      assert.strictEqual(managed, managedEffect); assert.strictEqual(binding, original);
+      recoveredCount++; return recovered;
+    },
+    localSigningRecoveries, assertCurrent: fence, releaseLocalSigningRecovery, clientOperationError});
+  return {releaseLocalSigningRecovery, load, recovered, view, localSigningRecoveries, calls,
     recoveredCount: () => recoveredCount, resourceClosed: () => resourceClosed, failRelease(value) {fail = value;}, revoke() {current = false;}};
 }
 

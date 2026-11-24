@@ -4,10 +4,10 @@ import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {existsSync, readFileSync} from 'node:fs';
-import {compileFunction} from 'node:vm';
-import {parse} from 'acorn';
 import {createOwnedScratch} from '../../scripts/owned-scratch.mjs';
 import {openClientRequestJournal} from './client-request-journal.mjs';
+import {boundedPrimarySql as boundedOriginalSql, boundedJournalWalFrames as boundedOriginalWal}
+  from './client-request-journal-sql.mjs';
 import {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
 
 const primarySqlLimits = {maxPreparedStatements: 1000,
@@ -16,20 +16,6 @@ const execution = {maxParameters: 32,
   maxParameterBytes: 262144, maxResultRows: 128};
 const ref = {namespaceId: 'missing', authorityScopeCid: 'sha256:' + 'a'.repeat(64),
   runDefinitionCid: 'sha256:' + 'b'.repeat(64)};
-// Execute the exact private boundary with actual SQLite originals. Its
-// compilation/execution counters are not Host resource or permission issuers.
-const source = readFileSync(new URL('./client-request-journal.mjs', import.meta.url), 'utf8');
-const ast = parse(source, {ecmaVersion: 'latest', sourceType: 'module'});
-const declarations = ['fail', 'applyOriginal'].map(name => ast.body.find(node =>
-  node.type === 'VariableDeclaration' && node.declarations.some(item => item.id.name === name)));
-const bounded = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'boundedPrimarySql');
-assert.ok(bounded); assert.ok(declarations.every(Boolean));
-const boundedOriginalSql = compileFunction([...declarations, bounded].map(node =>
-  source.slice(node.start, node.end)).join('\n') + '\nreturn boundedPrimarySql;', [])();
-const boundedWal = ast.body.find(node => node.type === 'FunctionDeclaration' && node.id.name === 'boundedJournalWalFrames');
-assert.ok(boundedWal);
-const boundedOriginalWal = compileFunction([...declarations, boundedWal].map(node =>
-  source.slice(node.start, node.end)).join('\n') + '\nreturn boundedJournalWalFrames;', [])();
 async function fixture() {
   const scratch = await createOwnedScratch({parent: fileURLToPath(new URL('../../_build/', import.meta.url)),
     prefix: 'journal-execution-bound-', label: 'actual primary SQLite statement/cursor custody'});
