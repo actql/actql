@@ -25770,7 +25770,7 @@
     },
     {
       "module": "adapters/host-node/installed-model-continuation.mjs",
-      "sha256": "d32d07a6a3d978026f4b4923399e944cc984560c9af90cb8ec19c97d446d28cb",
+      "sha256": "381f5821813769f2c89b14712043229721e2e5c58a4a941e530e90c549545e69",
       "role": "physical-io",
       "exports": [
         "installNodeModelContinuation"
@@ -26219,6 +26219,14 @@
           "async": false
         },
         {
+          "name": "installNodeModelContinuation/readSettled/readSettled#4",
+          "parameters": [
+            "_bytes",
+            "raw"
+          ],
+          "async": true
+        },
+        {
           "name": "installNodeModelContinuation/release",
           "parameters": [
             "token"
@@ -26440,7 +26448,8 @@
             "installNodeModelContinuation/verifier/verifier#8",
             "installNodeModelContinuation/verifier/verifier#9",
             "select/select/select",
-            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3"
+            "installNodeModelContinuation/openOwned/continuationView/init:authorize/init:authorize/init:authorize#3",
+            "installNodeModelContinuation/readSettled/readSettled#4"
           ],
           "exports": [
             "installNodeModelContinuation"
@@ -56839,7 +56848,7 @@
     },
     {
       "module": "src/client_row_source_host/response_borrow.mbt",
-      "sha256": "50d1c007d6f6ef308f3d5d3da3defe8de55231d547c7bad2918d0a44ee28713d",
+      "sha256": "ba2003c33829c2bedab5e589d261eeb0b9c7bfdb2d248255e23200a4ff13859f",
       "exports": [],
       "operations": [
         {
@@ -56893,6 +56902,14 @@
         {
           "name": "row_response_workspace_capture_current",
           "declaration": "row_response_workspace_capture_current ( value : RowRunResponseBorrow ) - > Bool"
+        },
+        {
+          "name": "row_run_response_charge_current",
+          "declaration": "row_run_response_charge_current ( borrow : RowRunResponseBorrow , charge : RowPageCharge , ) - > Bool"
+        },
+        {
+          "name": "row_run_response_original",
+          "declaration": "row_run_response_original ( borrow : RowRunResponseBorrow , ) - > Result [ ( RowRun , RowResponseSelection ) , RowHostIssue ]"
         },
         {
           "name": "row_run_response_selection",
@@ -57088,7 +57105,9 @@
         },
         {
           "operations": [
-            "row_run_response_selection"
+            "row_run_response_selection",
+            "row_run_response_charge_current",
+            "row_run_response_original"
           ],
           "exports": [],
           "attributes": {
@@ -59669,7 +59688,7 @@
     },
     {
       "module": "src/connectors/local/driver/managed_dispatch.mbt",
-      "sha256": "54b49b6443167cd7e2139ba35f08688367c37da34463ac999a493f9fdb4f6906",
+      "sha256": "e968eb8b2228ac41045688efe5e4e755cd451d14a11a0656ef1719c038af5a48",
       "role": "common-semantics",
       "owner": "Existing Local managed task/Source/resource owners; native supplied lifetime and imported producer custody remain distinct",
       "responsibilityFacet": "primary",
@@ -59685,6 +59704,10 @@
         {
           "name": "[T]install_local_managed_input_read",
           "declaration": "[ T ] install_local_managed_input_read ( reads : Array [ T ? ] , pending : Ref [ Int ] , index : Int , value : T , ) - > Bool"
+        },
+        {
+          "name": "[T]local_managed_canonical_transfer_quote",
+          "declaration": "[ T ] local_managed_canonical_transfer_quote ( setup : LocalManagedDispatchConfiguration [ T ] , ) - > Int64 ?"
         },
         {
           "name": "[T]local_managed_captured_relation_input",
@@ -60407,7 +60430,8 @@
             "local_managed_import_working_overlap",
             "local_managed_scalar_overlap_control_capacity",
             "local_managed_logical_work_diagnostic_capacity",
-            "local_managed_task_capacity"
+            "local_managed_task_capacity",
+            "[T]local_managed_canonical_transfer_quote"
           ],
           "exports": [],
           "attributes": {
@@ -60525,6 +60549,10 @@
               {
                 "path": "src/connectors/local/driver/capacity_metadata_wbtest.mbt",
                 "anchor": "managed task projection adds only its complete diagnostic frame"
+              },
+              {
+                "path": "src/client_local_run/ordinary_product_compute_wbtest.mbt",
+                "anchor": "test \"ordinary Python numeric PIVOT completes on the finite original root\""
               }
             ]
           }

@@ -169,6 +169,25 @@ test "packaged Local task activation retains the completed producer through a qu
     Some(assets.fragment),
     assets.ordered,
   ).unwrap()
+  exercise_packaged_compute(host, original, "{\"n\":2}", 10)
+  for capacity in [setup, transfers, wasm] {
+    @resources.close_shared_capacity(capacity).unwrap()
+    @resources.settle_shared_capacity(capacity).unwrap()
+  }
+  let usage = @resources.ledger_usage(root)
+  assert_eq(usage.held_bytes, 0L)
+  assert_eq(usage.reserved_execution_bytes, 0L)
+  assert_eq(usage.reserved_retention_bytes, 0L)
+  assert_eq(usage.reserved_transfer_bytes, 0L)
+}
+
+///|
+fn exercise_packaged_compute(
+  host : LocalComputeHost,
+  original : LocalRunPlan,
+  expected_row : String,
+  max_tasks : Int,
+) -> Unit raise {
   let run = local_compute_run(host)
   let current = account(Allow)
   let allowed = permit(original.input, current)
@@ -178,7 +197,7 @@ test "packaged Local task activation retains the completed producer through a qu
   let available = Ref(true)
   let tasks : Array[Int] = []
   while @strategy.next_captured_task(run) is Some(task) {
-    assert_true(tasks.length() < 10)
+    assert_true(tasks.length() < max_tasks)
     let producers = local_compute_producers(host)
     let inputs = producers.map(index => outputs.get(index).unwrap())
     let operations = match
@@ -190,6 +209,7 @@ test "packaged Local task activation retains the completed producer through a qu
         current,
         tuple(),
         context_cid(),
+        canonical_managed_rows=true,
       ) {
       Ok(Some(operations)) => operations
       Err(Dispatch(Implementation(Implementation(error)))) =>
@@ -198,7 +218,36 @@ test "packaged Local task activation retains the completed producer through a qu
         fail("packaged task dispatch: MissingOutput")
       Err(Dispatch(Implementation(ForeignCandidate))) =>
         fail("packaged task dispatch: ForeignCandidate")
-      _ => fail("packaged task activation refused before its input transfer")
+      Err(Managed(Execution(Physical(issue)))) =>
+        fail(
+          "packaged task " +
+          task.to_string() +
+          " physical " +
+          @debug.to_string(issue),
+        )
+      Err(Managed(ExecutionCapacityRefusal(_, retained, execution, other))) =>
+        fail(
+          "packaged task " +
+          task.to_string() +
+          " refused capacity " +
+          retained.to_string() +
+          "/" +
+          execution.to_string() +
+          "/" +
+          other.to_string(),
+        )
+      Err(Managed(_)) =>
+        fail("packaged task " + task.to_string() + " failed managed start")
+      Err(Task(_)) =>
+        fail("packaged task " + task.to_string() + " failed activation")
+      Err(Obligations(_)) =>
+        fail("packaged task " + task.to_string() + " failed obligations")
+      _ =>
+        fail(
+          "packaged task " +
+          task.to_string() +
+          " refused before its input transfer",
+        )
     }
     for index, transfer in operations.inputs {
       let source = retained.get(producers[index]).unwrap()
@@ -236,7 +285,7 @@ test "packaged Local task activation retains the completed producer through a qu
   assert_true(tasks.length() >= 2)
   let last = retained.get(tasks[tasks.length() - 1]).unwrap()
   assert_eq((last.output_rows)(), 1)
-  assert_eq((last.output_row)(0).unwrap(), "{\"n\":2}")
+  assert_eq((last.output_row)(0).unwrap(), expected_row)
   available.val = false
   for offset in 0..<tasks.length() {
     let task = tasks[tasks.length() - offset - 1]
@@ -246,13 +295,85 @@ test "packaged Local task activation retains the completed producer through a qu
   }
   @strategy.stop_captured_dag(run)
   @strategy.refresh_captured_retention(run)
-  for capacity in [setup, transfers, wasm] {
-    @resources.close_shared_capacity(capacity).unwrap()
-    @resources.settle_shared_capacity(capacity).unwrap()
+}
+
+///|
+test "ordinary Python numeric PIVOT completes on the finite original root" {
+  let assets = @host.client_local_product_assets()
+  guard @json.parse(assets.environment) is Object(fields) &&
+    fields.get("evidence_bundle_cid") is Some(String(cid)) else {
+    fail("packaged Environment evidence missing")
   }
-  let usage = @resources.ledger_usage(root)
-  assert_eq(usage.held_bytes, 0L)
-  assert_eq(usage.reserved_execution_bytes, 0L)
-  assert_eq(usage.reserved_retention_bytes, 0L)
-  assert_eq(usage.reserved_transfer_bytes, 0L)
+  let environment = @host.admit_client_check_environment(
+    assets.environment,
+    cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+    numeric_profile_cid=Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+  ).unwrap()
+  let document =
+    #|WITH r AS (
+    #|  SELECT 'east' AS side, 1 AS v UNION ALL
+    #|  SELECT 'west', 2 UNION ALL SELECT 'west', 3
+    #|)
+    #|FROM r |> PIVOT(SUM(v) FOR side IN ('east','west'))
+  let input = @input.prepare_local_input_material(
+    Aql(document),
+    environment,
+    None,
+    Some(
+      @input.bind_local_input_context(environment, [], "python.local").unwrap(),
+    ),
+    @host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let original = plan(input, "ordinary-python-numeric-pivot")
+  let installed = @local.prepare_installed_sequence_contracts(
+    assets.registry,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  assert_true(
+    @local.prepare_source_free_local_requirements(
+      original.prepared,
+      installed,
+      assets.values,
+      Some(assets.fragment),
+      assets.ordered,
+    )
+    is None,
+  )
+  let root = @resources.create_ledger({
+    planning_work: 1000000,
+    attempts: 4096,
+    holdings: 4096,
+    transfer_bytes: 67108864L,
+    retained_bytes: 536870912L,
+    execution_bytes: 603979776L,
+  }).unwrap()
+  let wasm = @resources.reserve_shared_capacity(root, 16777216L).unwrap()
+  let before = @resources.ledger_usage(root)
+  let host = configure_source_free_local_compute_on_ledger(
+    original,
+    root,
+    installed,
+    assets.values,
+    Some(assets.fragment),
+    assets.ordered,
+  ).unwrap()
+  let run = local_compute_run(host)
+  assert_true(physical_equal(@strategy.captured_dag_ledger(run), root))
+  assert_true(@strategy.captured_task_activation_required(run))
+  let setup = @resources.ledger_usage(root)
+  assert_eq(setup.attempts, before.attempts)
+  exercise_packaged_compute(host, original, "{\"east\":1,\"west\":5}", 16)
+  @resources.close_shared_capacity(wasm).unwrap()
+  @resources.settle_shared_capacity(wasm).unwrap()
+  let closed = @resources.ledger_usage(root)
+  assert_eq(closed.held_bytes, 0L)
+  assert_eq(closed.reserved_transfer_bytes, 0L)
+  assert_eq(closed.reserved_retention_bytes, 0L)
+  assert_eq(closed.reserved_execution_bytes, 0L)
 }

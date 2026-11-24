@@ -78,6 +78,12 @@ test "managed completed values bind checked projections without legacy identitie
     assert_true(physical_equal(managed_producer_read_receiver(input), receiver))
     assert_eq(managed_producer_read_input_index(input), 0)
     assert_eq(managed_producer_read_row_count(input), 2)
+    // The bridge receives both source fields even for a one-field view.
+    // The two canonical rows with é and 😀 occupy 16 and 18 UTF-8 bytes.
+    assert_true(
+      managed_producer_read_wire_transfer_bound(input, 2, 1024).unwrap() >= 34L,
+    )
+    assert_eq(managed_producer_read_wire_transfer_bound(input, 1, 1024), None)
     assert_eq(
       @schema.field_count(managed_producer_read_schema(input)),
       expected.length(),
@@ -105,6 +111,7 @@ test "managed completed values bind checked projections without legacy identitie
     assert_false(managed_producer_read_available(input))
     assert_false(managed_producer_read_matches_reference(input, reference))
     assert_true(managed_producer_read_material(input) is None)
+    assert_eq(managed_producer_read_wire_transfer_bound(input, 2, 1024), None)
     assert_true(
       prepare_managed_producer_read(receiver, 0, owner, output, 1000, 10000)
       is Err(Binding(ProducerUnavailable)),

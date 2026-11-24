@@ -7,6 +7,7 @@ test "current path contracts retain full independent edge identities and reject 
     source,
     graph,
     limits(),
+    [],
   ).unwrap()
   let rows = @carrier.complete_schema(
     @carrier.relation_rows(@graph_typing.path_output(checked)).unwrap(),
@@ -29,7 +30,7 @@ test "current path contracts retain full independent edge identities and reject 
     max_text_bytes: usage.text_bytes,
   }
   assert_true(
-    @graph_typing.check_path_contract(TraversedPaths, source, graph, exact)
+    @graph_typing.check_path_contract(TraversedPaths, source, graph, exact, [])
     is Ok(_),
   )
   for
@@ -40,7 +41,7 @@ test "current path contracts retain full independent edge identities and reject 
       { ..exact, max_depth: 1, },
     ] {
     assert_true(
-      @graph_typing.check_path_contract(TraversedPaths, source, graph, cap)
+      @graph_typing.check_path_contract(TraversedPaths, source, graph, cap, [])
       is Err(_),
     )
   }
@@ -55,6 +56,7 @@ test "current node contract retains typed identities and exact schema budget" {
     source,
     graph,
     limits(),
+    [],
   ).unwrap()
   let rows = @carrier.complete_schema(
     @carrier.relation_rows(@graph_typing.path_output(checked)).unwrap(),
@@ -71,12 +73,12 @@ test "current node contract retains typed identities and exact schema budget" {
   assert_eq((usage.work, usage.nodes, usage.text_bytes), (5, 0, 20))
   let exact = { ..limits(), max_work: 5, max_nodes: 0, max_text_bytes: 20, }
   assert_true(
-    @graph_typing.check_path_contract(TraversedNodes, source, graph, exact)
+    @graph_typing.check_path_contract(TraversedNodes, source, graph, exact, [])
     is Ok(_),
   )
   for cap in [{ ..exact, max_work: 4, }, { ..exact, max_text_bytes: 19, }] {
     assert_true(
-      @graph_typing.check_path_contract(TraversedNodes, source, graph, cap)
+      @graph_typing.check_path_contract(TraversedNodes, source, graph, cap, [])
       is Err(_),
     )
   }

@@ -24,7 +24,7 @@ test('normal Linux Local job is separate, mandatory and explicitly bounded', () 
   assert.deepEqual(job.needs, ['select-targets']);
   assert.equal(job['runs-on'], 'ubuntu-24.04');
   const timeout = job['timeout-minutes'].slice(3, -3);
-  assert.equal(runInNewContext(timeout, {inputs: {}}, {timeout: 100}), 50);
+  assert.equal(runInNewContext(timeout, {inputs: {}}, {timeout: 100}), 75);
   assert.equal(runInNewContext(timeout, {inputs: {native_shared_remote_linux: true}}, {timeout: 100}), 90);
   assert.match(job.if, /outputs\.profile == 'full'/u);
   assert.equal(job['continue-on-error'], undefined);
@@ -76,10 +76,9 @@ test('manual shared Remote qualification selects only the existing Linux produce
   assert.match(consumer.run,
     /node scripts\/test-native-cli-release-install\.mjs "\$output\/release" "\$output\/node-release" --verified-remote-http/u);
   assert(consumer.run.includes('release/0.0.2/node-cohort.json'));
-  for (const step of [prep, consumer]) {
-    assert.equal(evaluate(step.if), true);
-    assert.equal(evaluate(step.if, ordinary), false);
-  }
+  assert.equal(prep.if, undefined);
+  assert.equal(evaluate(consumer.if), true);
+  assert.equal(evaluate(consumer.if, ordinary), false);
 
   // Execute the actual shell argument selection with closed recording ports.
   const port = 'node() { printf "%s\\n" "$@"; }\n' +
@@ -99,17 +98,31 @@ test('manual shared Remote qualification selects only the existing Linux produce
     verifiedRemoteHttp: true,
   });
   for (const selected of ['false', 'true']) {
+    const env = {...process.env, RUNNER_TEMP: temp, SHARED_REMOTE_LINUX: selected};
     const child = spawnSync('bash', ['-eo', 'pipefail', '-c', port + produce.run], {
-      encoding: 'utf8', timeout: 5000,
-      env: {...process.env, RUNNER_TEMP: temp, SHARED_REMOTE_LINUX: selected},
+      encoding: 'utf8', timeout: 5000, env,
     });
     assert.equal(child.status, 0, child.stderr);
     const args = child.stdout.trimEnd().split('\n');
     assert.equal(args[0], 'scripts/produce-native-cli-linux-local.mjs');
-    assert.equal(args.filter(arg => arg === '--remote-http-preparation').length, selected === 'true' ? 1 : 0);
-    if (selected === 'true') assert.deepEqual(args.slice(-2),
-      ['--remote-http-preparation', temp + '/native-cli-linux-local/http/preparation.json']);
-    else assert.equal(args.at(-1), '1800');
+    const role = selected === 'true' ? 'remote' : 'model';
+    const directory = temp + '/native-cli-linux-local/' + (role === 'model' ? 'model-http' : 'http');
+    assert.deepEqual(args.filter(arg => arg.endsWith('-http-preparation')), [`--${role}-http-preparation`]);
+    assert.deepEqual(args.slice(-2), [`--${role}-http-preparation`, directory + '/preparation.json']);
+
+    const tools = [
+      'uname() { printf "x86_64\\n"; }',
+      'sudo() { :; }',
+      'python3() { printf "%s\\n" "$@"; }',
+    ].join('\n') + '\n';
+    const preparation = spawnSync('bash', ['-eo', 'pipefail', '-c', port + tools + prep.run], {
+      encoding: 'utf8', timeout: 5000, env,
+    });
+    assert.equal(preparation.status, 0, preparation.stderr);
+    const preparationArgs = preparation.stdout.trimEnd().split('\n');
+    assert.equal(preparationArgs[0], 'scripts/prepare-native-resident-http-component.py');
+    assert.deepEqual(preparationArgs.slice(-2), ['--destination', directory]);
+    assert.equal(preparationArgs.includes('--model-resolver'), role === 'model');
   }
 });
 

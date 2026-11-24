@@ -525,6 +525,8 @@ pub fn effect_review_projection_construction_inventory(String, Int, Int, Int, In
 
 pub fn effect_row_outcome_receipt_dispatch_identity(PublicationContract) -> String?
 
+pub fn effect_row_outcome_receipt_member_identity(PublicationContract) -> String?
+
 pub fn effect_row_outcome_receipt_row_identity(PublicationContract) -> String?
 
 pub fn effect_row_outcome_receipt_terminal_state(PublicationContract) -> String?
@@ -534,6 +536,8 @@ pub fn effect_set_apply_receipt_all_unattempted(EffectSetApplyReceiptEvidence) -
 pub fn effect_set_apply_receipt_check_limits(EffectSetApplyReceiptEvidence, Int, Int, Int) -> Result[Unit, PublicationContractIssue]
 
 pub fn effect_set_apply_receipt_disposition(EffectSetApplyReceiptEvidence) -> Int
+
+pub fn effect_set_apply_receipt_matches_members(EffectSetApplyReceiptEvidence, EffectPreviewIdentity, Array[PublicationContract]) -> Bool
 
 pub fn effect_set_apply_receipt_run_status(EffectSetApplyReceiptEvidence) -> String
 
@@ -1049,6 +1053,8 @@ pub fn publication_prepared_release_action_code(PublicationPreparedReleaseAction
 
 pub fn publication_record_allows_commit(PublicationContract) -> Bool
 
+pub fn publication_request_requested_at(PublicationContract) -> String?
+
 pub fn publication_setup_action_code(PublicationSetupAction) -> Int
 
 pub fn publication_snapshot_evidence_cid(PublicationSnapshot) -> String?
@@ -1354,6 +1360,8 @@ pub fn validate_retained_effectful_publication_materials(EffectfulFinalRunEviden
 pub fn validate_run_publication_chain(PublicationContract, PublicationContract, Array[PublicationContract], Array[PublicationContract], PublicationContract, Int, Int, Int) -> Result[Unit, RunPublicationChainIssue]
 
 pub fn validate_run_state(RunOutcomeStatus, Array[String], Array[ResultAvailability], Bool, RunNextAction, Bool) -> Result[Unit, RunStateIssue]
+
+pub fn verify_model_attempt_reported_raw(BoundModelAttemptEvidence, BoundModelInvocationScope, RunEvidenceValue?) -> Result[Unit, RunEvidenceValueIssue]
 
 pub fn verify_model_observation_slots(RunEvidenceValue, Array[BoundModelSlotCapture]) -> Result[Unit, RunEvidenceValueIssue]
 

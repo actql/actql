@@ -94528,13 +94528,18 @@
         },
         {
           "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#5",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#6",
           "parameters": [
             "input"
           ],
           "async": false
         },
         {
-          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#6",
+          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#7",
           "parameters": [
             "reference",
             "runDefinitionCid"
@@ -94689,6 +94694,7 @@
             "openSqliteCheckpointJournal/openSqliteCheckpointJournal#4",
             "openSqliteCheckpointJournal/openSqliteCheckpointJournal#5",
             "openSqliteCheckpointJournal/openSqliteCheckpointJournal#6",
+            "openSqliteCheckpointJournal/openSqliteCheckpointJournal#7",
             "openSqliteCheckpointJournal/persistCheckpoint",
             "openSqliteCheckpointJournal/persistCheckpoint/persistCheckpoint",
             "openSqliteCheckpointJournal/refuseUnsentRunResume/refuseUnsentRunResume",
@@ -124795,7 +124801,7 @@
     },
     {
       "module": "adapters/host-node/installed-credential-source-reader.mjs",
-      "sha256": "251c25be8918fa8d7bddac7bb3ffcc9d6fc17ab74f7aba33952eacbd7de54d4b",
+      "sha256": "c17076421bb7e3cec0df369cf5c682259ddc5876abf91162879b0a7994ffcfa4",
       "responsibilityFacet": "primary",
       "role": "physical-io",
       "owner": "C — existing standard Host Source/Effect service originals",
@@ -124845,6 +124851,11 @@
           "async": false
         },
         {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/closeTransport",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/init:observe/init:observe",
           "parameters": [],
           "async": false
@@ -124888,6 +124899,18 @@
           "parameters": [
             "initialAuthorization"
           ],
+          "async": true
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse",
+          "parameters": [
+            "accept"
+          ],
+          "async": false
+        },
+        {
+          "name": "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse/init:consumeChargedResponse",
+          "parameters": [],
           "async": true
         },
         {
@@ -125093,7 +125116,8 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/responseCustody/init:retain/init:retain",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/verify/verify",
             "createInstalledCredentialSourceReader/init:retire/init:retire",
-            "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader"
+            "createInstalledCredentialSourceReader/createInstalledCredentialSourceReader",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/closeTransport"
           ],
           "exports": [
             "createInstalledCredentialSourceReader",
@@ -125466,7 +125490,9 @@
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/sync/settled/settled",
             "createInstalledCredentialSourceReader/init:retire/init:retire/init:retire",
             "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues",
-            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues/init:consumeValues"
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeValues/init:consumeValues/init:consumeValues",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse",
+            "createInstalledCredentialSourceReader/init:prepare/init:prepare/readManagedSequence/context/init:consumeChargedResponse/init:consumeChargedResponse/init:consumeChargedResponse"
           ],
           "exports": [],
           "attributes": {

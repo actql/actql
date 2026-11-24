@@ -117,6 +117,8 @@ pub fn seal_prepared_resolution_proof(PreparedResolutionProof, String, String) -
 
 pub fn seal_verified_resolution(AdmittedResolution, String, String, WireLimits) -> Result[VerifiedResolution, ResolutionIssue]
 
+pub fn signed_resolution_from_verified(String, WireLimits) -> Result[String, ResolutionIssue]
+
 pub fn verified_resolution_attestation_preimage(String, WireLimits) -> Result[String, ResolutionIssue]
 
 pub fn waiting_exit_status(Array[String]) -> @run_publication.RunOutcomeStatus

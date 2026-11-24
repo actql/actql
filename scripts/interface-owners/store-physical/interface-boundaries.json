@@ -6191,7 +6191,7 @@
     {
       "module": "adapters/store-local/publication-store.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "8c0f2fbaaff9d57979408205c6a14541ec16a5930bfea26c4ffdff9794a26c0b",
+      "sha256": "e7551ac05ce84542cabfb2a0b651242abb37dc2c1a8f4ef63b350134e2581e4b",
       "exports": [
         "PublicationStoreError",
         "assertOriginalLocalPublicationStoreFacilityCurrent",
@@ -8522,6 +8522,16 @@
           "async": true
         },
         {
+          "name": "openOriginalLocalPublicationStore/readModelRawResponseDescriptor/readModelRawResponseDescriptor",
+          "parameters": [
+            "semanticCid",
+            "holdingCid",
+            "consume",
+            "beforeRead"
+          ],
+          "async": false
+        },
+        {
           "name": "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
           "parameters": [
             "path"
@@ -8538,35 +8548,6 @@
             "beforeRead"
           ],
           "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
-          "parameters": [
-            "binding"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
-          "parameters": [
-            "original"
-          ],
-          "async": false
-        },
-        {
-          "name": "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
-          "parameters": [],
-          "async": false
         },
         {
           "name": "openOriginalLocalPublicationStore/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
@@ -8588,6 +8569,35 @@
             "left",
             "right"
           ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm",
+          "parameters": [
+            "binding"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence",
+          "parameters": [
+            "original"
+          ],
+          "async": false
+        },
+        {
+          "name": "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/releaseBytes/releaseBytes",
+          "parameters": [],
           "async": false
         },
         {
@@ -10109,11 +10119,6 @@
             "openOriginalLocalPublicationStore/readModelRawEvidence/readModelRawEvidence",
             "openOriginalLocalPublicationStore/readOpeningMetadata/readOpeningMetadata",
             "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/readPrivateEvidence",
-            "openOriginalLocalPublicationStore/readPrivateEvidence/readPrivateEvidence/releaseBytes/releaseBytes",
             "openOriginalLocalPublicationStore/readPrivateEvidenceObject/readPrivateEvidenceObject/readPrivateEvidenceObject",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records",
             "openOriginalLocalPublicationStore/readResultRetentionExtension/readResultRetentionExtension/records/records#2",
@@ -10251,7 +10256,13 @@
             "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#2",
             "syncDirectoryPath/cleanup/init:retry/init:retry/init:retry#3",
             "syncDirectoryPath/status/status",
-            "syncDirectoryPath/syncDirectoryPath"
+            "syncDirectoryPath/syncDirectoryPath",
+            "openOriginalLocalPublicationStore/readModelRawResponseDescriptor/readModelRawResponseDescriptor",
+            "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm",
+            "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm/init:confirm",
+            "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/context/init:confirm/init:confirm/operation/operation",
+            "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/readScopedPrivateEvidence",
+            "openOriginalLocalPublicationStore/readScopedPrivateEvidence/readScopedPrivateEvidence/releaseBytes/releaseBytes"
           ],
           "exports": [
             "PublicationStoreError",
@@ -13984,6 +13995,7 @@
       ],
       "imports": [
         "../host-common/managed-failure.mjs",
+        "../host-common/run-publication.mjs",
         "../host-node/host-journal-directory.mjs",
         "./delivery-attempt-index.mjs",
         "./metadata-deletion-owner.mjs",

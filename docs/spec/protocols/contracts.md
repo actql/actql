@@ -1895,7 +1895,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:23b0894179789d36de04e16aed556ce73ab5c4e3515d2f8f8087f5494ad21419 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:df8124c401dd2ae789d3e22befa1c1c0de3c819addcdc39fc028c1f3df57721d -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:e69679ab7bfbaf9d6343382d4d851fcfc5120778bec66480d0603af9d78dbc61 -->
 
 <a id="parameter-value-projection"></a>
@@ -2279,6 +2279,17 @@ accounting and outcome records; slot capture references those leaves and then
 enters the ObservationSet. No leaf refers back to the slot capture,
 ObservationSet or Stage Invocation, including through an interpreted dependency.
 Non-INFER bodies and their identity preimages are unchanged.
+
+The reported failure outcome binds the original Attempt to its confirmed Raw
+response artifact, selected Response Profile and observation time. Its
+model ID, request ID, finish reason and response completeness are optional
+provider observations. A selected Response Profile can allow one bounded
+codec-selected metadata field. Usage remains in the original attempt
+accounting leaf.
+The section is absent when there is no authenticated observation or the
+outcome is outside provider failure. Saved admission checks this section
+against the confirmed Raw descriptor on the same entered Attempt. Typed Result
+certification and replay authorization remain governed by their original owners.
 
 <a id="compilation-identities"></a>
 
@@ -3011,15 +3022,15 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_dispatch_authority sha256:2ef4cc7eb176d29e8abadf8be9c4741b4253ddfae554667dc51e68fe5c0c0a72
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_attempt sha256:c80b4873ed75130e12006eb5f00154d77b74a85394eb1a7dbf517078d4db2741
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_accounting sha256:64060e2b23925f0d7be708240f504df312f7e46706e2a5fefd7c46d8d421430f
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome sha256:90afd9fed54246784afb4b8922a0ec228c048d50e75f53598702a4c5ca0770b7
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attempt_outcome sha256:b80820080c15fbdc391376e9fd8a2759de1c9a059cc824ed3b76834796096c9f
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/caller_input_intent sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/initial_input_artifact_set sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/bound_invocation_template sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:730e1acf19cbeb4c1dd6ef70f5d5f4a7ee3d60e1aeeebb4b8cb981a0c6212b74
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan sha256:29a10374ce6930547316e5e25805cfb42ed887d0aad0ec38ca7d5a68fbfa6f45
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/result_plan sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_fact_manifest sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/normalization_journal sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:372fba41324d6a759e80b5d85623550d9a127b7ea562c439e0633b29365d7b63
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_document sha256:1ba24295b62c70a8f7a831a9ace1e8b0d32aca342c34c6158a49774cef96a589
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/plan_result sha256:30b762e781c467c305110ca83ad9b724275422380eb060b3c6654d7d6807583b
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_reason sha256:3b613476e78b04becee4e04557eb98db58cc0270d82fa9df3d9d0f435c669652
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/check_outcome sha256:cd072f277d0b6f0910e5e4930f5345dc202eda6167cb487a98202725895c26bf
