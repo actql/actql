@@ -426,9 +426,9 @@ test('whole Source publication forwards the same native capture and never a Quer
 });
 
 function originalSourceSnapshotEntry(context) {
-  // Keep the extracted entry connected to its actual lexical producer helper.
-  const beginProducer = get('./ordinary-source-managed.mjs', 'beginProducer', context);
-  return get('./ordinary-source-managed.mjs', 'beforeSourceSnapshot',
+  // Both members now belong to the same emitted Request custody owner.
+  const beginProducer = get('./ordinary-source-request-custody.mjs', 'beginProducer', context);
+  return get('./ordinary-source-request-custody.mjs', 'beforeSourceSnapshot',
     {...context, beginProducer}, true);
 }
 

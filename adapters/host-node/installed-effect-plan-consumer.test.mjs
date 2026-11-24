@@ -1045,9 +1045,11 @@ function retainedRequestManagerFixture({throwOnRetain = false, failure, missing 
     freezeInput(value) {return Object.freeze(value);}};
   const code = 'const ' + retainedRequestSourceMember('./ordinary-source-managed.mjs', 'reportCapacityRefusal', 'VariableDeclarator') + ';const ' +
     retainedRequestSourceMember('./ordinary-source-managed.mjs', 'producerFor', 'VariableDeclarator') + ';' +
-    retainedRequestSourceMember('./ordinary-source-managed.mjs', 'beginProducer', 'FunctionDeclaration') +
-    ';const view = ({' + ['retainRequestInput','captureSourceSnapshot','bindSourceSnapshot','bindSourceRequest']
-      .map(name => retainedRequestSourceMember('./ordinary-source-managed.mjs',name)).join(',') + '});return view;';
+    retainedRequestSourceMember('./ordinary-source-request-custody.mjs', 'beginProducer', 'FunctionDeclaration') +
+    ';const ports = {get closing(){return closing;},get closed(){return closed;}};' +
+    'const view = ({' + [retainedRequestSourceMember('./ordinary-source-managed.mjs', 'retainRequestInput'),
+      ...['captureSourceSnapshot','bindSourceSnapshot','bindSourceRequest']
+        .map(name => retainedRequestSourceMember('./ordinary-source-request-custody.mjs', name))].join(',') + '});return view;';
   const view = new Function(...Object.keys(ports), code)(...Object.values(ports));
   return {view, parent, intent, request, calls, receipts, producers, requestProducers, wire, counts, diagnostics};
 }

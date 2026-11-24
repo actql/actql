@@ -8,19 +8,23 @@ import {contentGenerationControl} from '../host-common/runtime-core.mjs';
 import {localOutputLimits, localContractLimits} from './local-values-plan.mjs';
 import {cleanupRequestInput} from '../local-node/request-preparation-adapter.mjs';
 import {canonical} from './fixtures/file-listing-source.fixture.mjs';
+import {constructRequestDomain} from './ordinary-source-model-materials.mjs';
 
 // Actual methods with explicit Core/current ports. These are not a compiled
 // Common ABI, a physical capacity admission or an ordinary Content receipt.
 function method(file, name, ports, {methodOnly = false} = {}) {
-  const source=readFileSync(new URL(file,import.meta.url),'utf8');let found;
+  const source=readFileSync(new URL(file,import.meta.url),'utf8');let found, register;
   const walk=node=>{if(!node||typeof node!=='object')return;
     if(node.type==='Property'&&node.key?.name===name&&(!methodOnly||node.method===true)){assert(!found);found=node;}
+    if(node.type==='FunctionDeclaration'&&node.id?.name==='registerRequestRun'){assert(!register);register=node;}
     for(const value of Object.values(node)){
       if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);
     }};
   walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert(found,name);
-  const helpers = file === './ordinary-source-managed.mjs' ? source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({')) : '';
-  return Function(...Object.keys(ports),`const pendingRunRegistrations=new Set();${helpers}return ({${source.slice(found.start,found.end)}}).${name};`)(...Object.values(ports));
+  const registration = register === undefined ? '' : source.slice(register.start, register.end);
+  return Function('constructRequestDomain', ...Object.keys(ports),
+    `const pendingRunRegistrations=new Set();${registration}\nreturn ({${source.slice(found.start,found.end)}}).${name};`
+  )(constructRequestDomain, ...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});};
 

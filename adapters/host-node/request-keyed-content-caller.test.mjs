@@ -12,18 +12,22 @@ import {localFileStoreDeclaration} from '../connectors/local/host/local-file-sto
 import {openLocalFileRoot,physicalReadChild} from '../connectors/local/site/root-filesystem.mjs';
 import {installNodeContentRun} from './installed-content-run.mjs';
 import {finishInstalledEffectModelScope} from './installed-effect-managed-run.mjs';
+import {constructRequestDomain} from './ordinary-source-model-materials.mjs';
 
 // Actual Local constructor -> Host bag -> Request manager -> runtime port.
 // Core nominal/Resource/current interfaces are explicit fixture ports. This is
 // neither a compiled Common ABI nor physical backing, Source IO or a public Run.
 function method(file, name, ports) {
-  const s=readFileSync(new URL(file,import.meta.url),'utf8');let selected;
+  const s=readFileSync(new URL(file,import.meta.url),'utf8');let selected, register;
   const walk=n=>{if(!n||typeof n!=='object')return;
     if(n.type==='Property'&&n.key?.name===name){assert(!selected);selected=n;}
+    if(n.type==='FunctionDeclaration'&&n.id?.name==='registerRequestRun'){assert(!register);register=n;}
     for(const value of Object.values(n)){if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);}};
   walk(parse(s,{ecmaVersion:'latest',sourceType:'module'}));assert(selected,name);
-  const helpers = file === './ordinary-source-managed.mjs' ? s.slice(s.indexOf('  function constructRequestDomain('), s.indexOf('  const view = Object.freeze({')) : '';
-  return Function(...Object.keys(ports),`const pendingRunRegistrations=new Set();${helpers}return ({${s.slice(selected.start,selected.end)}}).${name};`)(...Object.values(ports));
+  const registration = register === undefined ? '' : s.slice(register.start,register.end);
+  return Function('constructRequestDomain', ...Object.keys(ports),
+    `const pendingRunRegistrations=new Set();${registration}\nreturn ({${s.slice(selected.start,selected.end)}}).${name};`
+  )(constructRequestDomain, ...Object.values(ports));
 }
 const fail=code=>{throw Object.assign(new Error(code),{code});},ok=value=>({$tag:1,_0:value});
 async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,requestPlanOnly=false}={}) {
@@ -72,13 +76,15 @@ async function fixture({failurePhase,failure,failKeyedRead,hostRetirement=false,
     originals,runs,liveRuns,view,checked};
   for(const name of ['retainContentPreparation','prepareKeyedContentRun','adoptContentPreparation'])view[name]=method('./ordinary-source-managed.mjs',name,managerPorts);
   view.assertCurrent=current;view.prepareRead=()=>assert.fail('No physical read selected');
-  const managerSource=readFileSync(new URL('./ordinary-source-managed.mjs',import.meta.url),'utf8');
-  const privateNames=new Set(['runFor','captureReader','closeChild']);
-  let privateFunctions=[];
-  const walk=n=>{if(!n||typeof n!=='object')return;
-    if(n.type==='FunctionDeclaration'&&privateNames.has(n.id?.name))privateFunctions.push(managerSource.slice(n.start,n.end));
-    for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
-  walk(parse(managerSource,{ecmaVersion:'latest',sourceType:'module'}));assert.equal(privateFunctions.length,3);
+  const privateFunctions=[];
+  for (const [file, names] of [['ordinary-source-run-custody.mjs',['runFor']],
+    ['ordinary-source-reader.mjs',['captureReader','closeChild']]]) {
+    const source=readFileSync(new URL(file,import.meta.url),'utf8'), expected=new Set(names);
+    const walk=n=>{if(!n||typeof n!=='object')return;
+      if(n.type==='FunctionDeclaration'&&expected.delete(n.id?.name))privateFunctions.push(source.slice(n.start,n.end));
+      for(const v of Object.values(n)){if(Array.isArray(v))v.forEach(walk);else if(v&&typeof v==='object')walk(v);}};
+    walk(parse(source,{ecmaVersion:'latest',sourceType:'module'}));assert.equal(expected.size,0,file);
+  }
   const privatePorts={current,runs,fail,pending:v=>v?.pending===true,resourceRuntime:{assertOrdinaryManagedRunCurrent(o,i){assert.equal(o,original);assert.equal(i,input);}}};
   const helpers=Function(...Object.keys(privatePorts),privateFunctions.join('\n')+'\nreturn{runFor,captureReader,closeChild};')(...Object.values(privatePorts));
   view.prepareKeyedRead=method('./ordinary-source-managed.mjs','prepareKeyedRead',{

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {parse} from 'acorn';
 import {createContentInferenceControls} from '../host-common/runtime-content-inference-control.mjs';
 import {selectInstalledSerializationGraph} from './local-values-plan.mjs';
+import {constructRequestDomain} from './ordinary-source-model-materials.mjs';
 
 type InferenceMoon = Parameters<typeof createContentInferenceControls>[0];
 type GraphFixtureRuntime = {-readonly [Name in keyof InferenceMoon]?: InferenceMoon[Name]};
@@ -36,9 +37,8 @@ function extract(file: string, name: string, ports: Readonly<Record<string, unkn
   visit(parse(source, {ecmaVersion: 'latest', sourceType: 'module'}));
   assert(selected, name);
   const body = source.slice(selected.start, selected.end);
-  const helpers = file === './ordinary-source-managed.mjs' ? source.slice(source.indexOf('  function constructRequestDomain('), source.indexOf('  const view = Object.freeze({')) : '';
-  return Function(...Object.keys(ports),
-    `const pendingRunRegistrations=new Set();${helpers}return ({${body}}).${name};`)(...Object.values(ports));
+  return Function('constructRequestDomain', ...Object.keys(ports),
+    `return ({${body}}).${name};`)(constructRequestDomain, ...Object.values(ports));
 }
 
 function contentInference(moon: GraphFixtureRuntime, serializationPlanTokens: WeakMap<object, unknown>) {
