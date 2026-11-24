@@ -4,7 +4,7 @@ import test from 'node:test';
 import {waitForInstalledCheckpointPhysicalStop} from
   './fixtures/installed-effect-inventory-acceptance.mjs';
 
-function execution(states) {
+function execution<State extends {status: string; control?: {physical_stop?: string}}>(states: readonly State[]) {
   let reads = 0;
   return {status: async () => {
     assert(reads < states.length, 'no unbounded or additional status read');

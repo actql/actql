@@ -7,22 +7,22 @@ import {dirname, join, relative, resolve} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 
 const root = fileURLToPath(new URL('../../../', import.meta.url));
-async function directory(path) {
+async function directory(path: string) {
   let stat;
   try { stat = await lstat(path); }
   catch (error) {
-    if (error.code !== 'ENOENT') throw error;
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     await mkdir(path);
     stat = await lstat(path);
   }
   assert(stat.isDirectory() && !stat.isSymbolicLink(), `Non-private source dependency directory: ${path}`);
 }
 
-async function sourceLink(link, target) {
+async function sourceLink(link: string, target: string) {
   let stat;
   try { stat = await lstat(link); }
   catch (error) {
-    if (error.code !== 'ENOENT') throw error;
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     await symlink(relative(dirname(link), target), link, 'dir');
     stat = await lstat(link);
   }
@@ -31,8 +31,8 @@ async function sourceLink(link, target) {
 }
 
 export async function prepareSourceNodeClient({assemble = false, includeOtel = false,
-  duckdb = true} = {}) {
-  const dependencies = {
+  duckdb = true} = {}): Promise<typeof import('../../../packages/node/index.mjs')> {
+  const dependencies: Record<string, string[]> = {
     node: ['sdk', 'local-node'], sdk: ['client-wire'],
     'local-node': ['sdk', 'client-wire', 'run-host-core'],
     'run-host-core': ['client-wire'],
@@ -66,5 +66,5 @@ export async function prepareSourceNodeClient({assemble = false, includeOtel = f
         {cwd: root, stdio: 'inherit'});
     }
   }
-  return import(pathToFileURL(join(root, 'packages/node/index.mjs')));
+  return import(pathToFileURL(join(root, 'packages/node/index.mjs')) as unknown as string);
 }

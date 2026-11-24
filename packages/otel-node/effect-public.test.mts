@@ -12,11 +12,17 @@ import {runInstalledEffectInventoryAcceptance} from
   '../../scripts/fixtures/installed-effect-inventory-acceptance.mjs';
 import {records, attributes} from './test/otlp-fixture.mjs';
 
+import type {AddressInfo} from 'node:net';
+import type {CollectorPacket} from './test/otlp-fixture.mjs';
+
+type InventoryReceipt = Extract<Awaited<ReturnType<typeof runInstalledEffectInventoryAcceptance>>,
+  {successfulPluralRuns: number}>;
+
 test('public HTTPS Effect approval, restart and lost reply retain Owner outcomes', async t => {
-  const packets = [], adapters = [];
+  const packets: CollectorPacket[] = [], adapters: ReturnType<typeof createNodeHostObservability>[] = [];
   let received = 0;
   const collector = createServer(async (request, response) => {
-    const chunks = [];
+    const chunks: Buffer[] = [];
     for await (const chunk of request) {
       received += chunk.length;
       assert.ok(received <= 8 * 1024 * 1024, 'finite acceptance payload');
@@ -29,9 +35,9 @@ test('public HTTPS Effect approval, restart and lost reply retain Owner outcomes
   await once(collector, 'listening');
   t.after(async () => {
     for (const adapter of adapters) await adapter.close();
-    await new Promise(resolve => collector.close(resolve));
+    await new Promise<Error | undefined>(resolve => collector.close(resolve));
   });
-  const endpoint = `http://127.0.0.1:${collector.address().port}`;
+  const endpoint = `http://127.0.0.1:${(collector.address() as AddressInfo).port}`;
   const result = await runInstalledEffectInventoryAcceptance({connect, publishEffect,
     profile: 'observability',
     async openInstalledRemoteHttpHost(options) {
@@ -46,7 +52,7 @@ test('public HTTPS Effect approval, restart and lost reply retain Owner outcomes
         await host.close();
         await adapter.close();
       }});
-    }});
+    }}) as InventoryReceipt;
   assert.equal(result.successfulPluralRuns, 1);
   assert.equal(result.cancelledWithoutSend, 1);
   assert.equal(result.unknownAfterRestart, 1);

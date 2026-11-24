@@ -13,19 +13,54 @@ import {fixtureCertificates, openHttpsExchangeFixture} from
 import {commentSends, graphqlRoute} from
   '../../adapters/connectors/github/test/github-graphql.fixture.mjs';
 
+import type {KeyObject} from 'node:crypto';
+import type {AddressInfo} from 'node:net';
+import type {Client, Execution, RunReference, SubmissionReference, connect} from '../../packages/sdk/index.js';
+import type {publishEffect} from '../../packages/local-node/index.js';
+import type {openInstalledRemoteHttpHost} from '../../packages/local-node/http-host.js';
+
+type Connect = typeof connect;
+type OpenHost = typeof openInstalledRemoteHttpHost;
+type EffectProfilePaths = NonNullable<Parameters<OpenHost>[0]['effectProfilePaths']>;
+type PublishEffect = typeof publishEffect;
+type Provider = Readonly<{name: string; repositoryId: string; databaseId: number;
+  subjectId: string; number: number}>;
+type CapturedRow = Readonly<{node_id: string; comment: string}>;
+type CommentVariables = Readonly<{subjectId: string; body: string}>;
+type Mapping = Readonly<{target: unknown; mappingRef: string; mappingCid: string}>;
+type SavedRun = Readonly<{submissionRef: SubmissionReference; runRef: RunReference}>;
+type GithubEndpoint = Awaited<ReturnType<typeof openHttpsExchangeFixture>>;
+type ProviderState = ReturnType<typeof providerState>;
+type Installation = Provider & Readonly<{
+  api: GithubEndpoint; state: ProviderState; sitePath: string; journalRoot: string;
+  effectProfilePath: string; publicationPath: string; connection: string;
+}> & {mapping?: Mapping};
+type WaitingStatus = Readonly<{status: string; control?: Readonly<{physical_stop?: string}>}>;
+type Phase = 'original' | 'restarted';
+type Close = () => unknown;
+type AcceptanceHost = {as(token?: string): Promise<Client>; close(): Promise<void>};
+type HostOptions = Readonly<{singular?: boolean; directory?: string}>;
+type ReviewRead = Readonly<{client: Client; phase: Phase; original: SavedRun;
+  expectedRows: readonly CapturedRow[]; expectedRunId: string}>;
+type AcceptancePorts = Readonly<{connect: Connect; openInstalledRemoteHttpHost: OpenHost;
+  publishEffect: PublishEffect; profile?: 'inventory' | 'observability' | 'checkpoint-review';
+  observeWaitingCheckpoint?: (request: ReviewRead) => unknown}>;
+type SecretScope = Readonly<{siteKey: string; resourceOrigin: string;
+  namespaceId: string; connectorRegistration: string}>;
+
 const terminal = ['succeeded', 'failed', 'needs_reconciliation', 'cancelled'];
-const canonical = value => JSON.stringify(value, function (_key, member) {
+const canonical = (value: unknown) => JSON.stringify(value, function (_key, member) {
   return member !== null && typeof member === 'object' && !Array.isArray(member)
     ? Object.fromEntries(Object.keys(member).sort().map(key => [key, member[key]]))
     : member;
 });
-const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki',
+const pem = (key: KeyObject) => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki',
   format: 'pem'});
 
-async function waitFor(check) {
+async function waitFor<Value>(check: () => Value | PromiseLike<Value>): Promise<NonNullable<Value>> {
   for (let attempt = 0; attempt < 400; attempt++) {
     const value = await check();
-    if (value) return value;
+    if (value) return value as NonNullable<Value>;
     await new Promise(resolve => setTimeout(resolve, 25));
   }
   throw new Error('InstalledEffectInventoryAcceptanceTimeout');
@@ -34,7 +69,9 @@ async function waitFor(check) {
 // Waiting is visible before its producer retires temporary resources. The
 // original stop receipt can legitimately advance the control revision. Read
 // acceptance compares revisions only after that existing Owner confirms stop.
-export async function waitForInstalledCheckpointPhysicalStop(execution) {
+export async function waitForInstalledCheckpointPhysicalStop<State extends WaitingStatus>(
+  execution: {status(): Promise<State>},
+) {
   return waitFor(async () => {
     const state = await execution.status();
     assert.equal(state.status, 'waiting_checkpoint');
@@ -73,20 +110,21 @@ const successes = [
     comment: {subjectId: 'I_BETA', body: 'beta reverse', databaseId: 1001}},
 ];
 
-function providerState(provider) {
+function providerState(provider: Provider) {
   return {repositories: new Map([[provider.repositoryId, {
     databaseId: provider.databaseId, nameWithOwner: `fixture/${provider.name}`,
     issues: []}]]), names: new Map([[`fixture/${provider.name}`,
     provider.repositoryId]]), subjects: new Map([[provider.subjectId, {
     type: 'Issue', repository: provider.repositoryId, number: provider.number}]]),
-  comments: []};
+  comments: [] as (CommentVariables & {databaseId: number})[]};
 }
 
 // The Common DispatchKey adds exactly one marker to the physical request.
 // Keep the logical body oracle independent, and require the provider to retain
 // the exact marked body that was sent. Shared route tests bind the marker CID
 // to its original DispatchKey; this fixture checks content and occurrence use.
-function assertCommentTransmission(installation, offset, variables, comment, markers) {
+function assertCommentTransmission(installation: Installation, offset: number,
+  variables: CommentVariables, comment: CommentVariables & {databaseId: number}, markers: Set<string>) {
   const sent = commentSends(installation.api).slice(offset).map(request => request.variables);
   assert.equal(sent.length, 1, 'one physical comment per original occurrence');
   const marker = /\n\n<!-- actql:effect:(sha256:[0-9a-f]{64}) -->$/u.exec(sent[0].body);
@@ -97,9 +135,9 @@ function assertCommentTransmission(installation, offset, variables, comment, mar
   assert.deepEqual(installation.state.comments.slice(offset), [{...comment, body: sent[0].body}]);
 }
 
-function accountConfiguration(connections) {
+function accountConfiguration(connections: readonly string[]) {
   connections = [...connections].sort();
-  const entry = (entry_id, outcome, operation, resource) => ({entry_id, outcome,
+  const entry = (entry_id: string, outcome: string, operation: string, resource: readonly string[]) => ({entry_id, outcome,
     exclusions: [], principal: {all: true}, connection: {any_of: connections},
     resource: {any_of: resource}, operation: {any_of: [operation]}});
   return canonical({version: 'actql-execution-account-config/0.1',
@@ -118,7 +156,7 @@ function accountConfiguration(connections) {
     ]});
 }
 
-function program(mappings, rows) {
+function program(mappings: readonly Mapping[], rows: readonly CapturedRow[]) {
   return JSON.stringify({version: 'actql/0.1', id: 'effect-inventory',
     stages: [{id: 'source', inputs: {}, steps: [{values: {schema: {
       node_id: {type: 'string', nullable: false},
@@ -133,7 +171,7 @@ function program(mappings, rows) {
 
 export async function runInstalledEffectInventoryAcceptance({connect,
   openInstalledRemoteHttpHost, publishEffect, profile = 'inventory',
-  observeWaitingCheckpoint}) {
+  observeWaitingCheckpoint}: AcceptancePorts) {
   assert.ok(['inventory', 'observability', 'checkpoint-review'].includes(profile));
   if (profile === 'checkpoint-review') {
     assert.equal(typeof observeWaitingCheckpoint, 'function');
@@ -145,8 +183,8 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     assert.equal(typeof port, 'function');
   }
   const root = await mkdtemp(join(tmpdir(), 'actql-effect-inventory-'));
-  const owned = [];
-  const own = close => {
+  const owned: (() => Promise<void>)[] = [];
+  const own = (close: Close) => {
     let closed = false;
     const once = async () => {
       if (closed) return;
@@ -168,9 +206,9 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     const tokens = new Map([['synthetic-owner-token', userInfo().username],
       ['synthetic-reviewer-token', 'inventory-reviewer-principal']]);
     const signer = {keyId: 'inventory-reviewer-key', reviewerId: 'inventory-reviewer',
-      sign: bytes => sign(null, bytes, reviewerKeys.privateKey)};
-    const installations = [];
-    const commentMarkers = new Set();
+      sign: (bytes: Uint8Array) => sign(null, bytes, reviewerKeys.privateKey)};
+    const installations: Installation[] = [];
+    const commentMarkers = new Set<string>();
     const counts = {dispatch: 0, secrets: [0, 0]};
     for (const provider of providers) {
       const state = providerState(provider);
@@ -201,7 +239,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
         connection: `github:${new URL(api.origin).host}/fixture/${provider.name}`});
     }
     const configuration = accountConfiguration(installations.map(item => item.connection));
-    const resolveEffectSecret = async scope => {
+    const resolveEffectSecret = async (scope: SecretScope) => {
       const index = installations.findIndex(item => scope.siteKey === `site-${item.name}`);
       assert.ok(index >= 0, 'secret callback must name an installed Site');
       const selected = installations[index];
@@ -221,17 +259,17 @@ export async function runInstalledEffectInventoryAcceptance({connect,
           {target: 'subject_id', field: 'node_id', null_behavior: 'reject'},
           {target: 'body', field: 'comment', null_behavior: 'reject'}]}]}));
       const published = await publishEffect({directory: hostRoot,
-        effectProfilePath: item.effectProfilePath, resolveEffectSecret});
+        effectProfilePath: item.effectProfilePath, resolveEffectSecret}) as {mappings: readonly Mapping[]};
       assert.equal(published.mappings.length, 1);
       item.mapping = published.mappings[0];
     }
-    assert.notEqual(installations[0].mapping.mappingRef, installations[1].mapping.mappingRef);
-    assert.notEqual(installations[0].mapping.mappingCid, installations[1].mapping.mappingCid);
+    assert.notEqual(installations[0].mapping!.mappingRef, installations[1].mapping!.mappingRef);
+    assert.notEqual(installations[0].mapping!.mappingCid, installations[1].mapping!.mappingCid);
     const journals = await Promise.all(installations.map(item => stat(
       join(item.journalRoot, 'credential-journal.sqlite3'))));
     assert.notEqual(`${journals[0].dev}:${journals[0].ino}`,
       `${journals[1].dev}:${journals[1].ino}`, 'Sites must not share a credential journal');
-    const observation = index => ({requests: installations[index].api.seen().length,
+    const observation = (index: number) => ({requests: installations[index].api.seen().length,
       secrets: counts.secrets[index], sends: commentSends(installations[index].api).length});
     assert.deepEqual([observation(0), observation(1)], [
       {requests: 1, secrets: 1, sends: 0}, {requests: 1, secrets: 1, sends: 0},
@@ -243,26 +281,27 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       reviewReaders: ['inventory-reviewer-principal'],
       hostKey: {keyId: 'inventory-host-key', privateKey: pem(hostKeys.privateKey)},
       leaseMs: 10_000, resumeAfterAnswer: false};
-    async function openHost(order, {singular = false, directory = hostRoot} = {}) {
+    async function openHost(order: readonly number[], {singular = false, directory = hostRoot}: HostOptions = {}): Promise<AcceptanceHost> {
+      // The plural fixture always supplies both slots; map preserves their order and count.
       const host = await openInstalledRemoteHttpHost({directory,
-        authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')),
+        authenticate: header => tokens.get(header?.replace(/^Bearer /u, '')!),
         ...(singular ? {effectProfilePath: installations[order[0]].effectProfilePath}
-          : {effectProfilePaths: order.map(index => installations[index].effectProfilePath)}),
+          : {effectProfilePaths: order.map(index => installations[index].effectProfilePath) as readonly string[] as EffectProfilePaths}),
         resolveEffectSecret, authorization, beforeDispatch: () => {counts.dispatch++;}});
       const closeHost = own(() => host.close());
       const server = createServer({key: tls.key, cert: tls.cert}, host.handler);
-      await new Promise((resolve, reject) => {
+      await new Promise<void>((resolve, reject) => {
         server.once('error', reject);
         server.listen(0, '127.0.0.1', resolve);
       });
       const closeServer = own(async () => {
         server.closeAllConnections?.();
-        await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+        await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
       });
-      const clients = [];
+      const clients: (() => Promise<void>)[] = [];
       return {async as(token = 'synthetic-owner-token') {
         const client = await connect({mode: 'remote', durability: 'durable', token,
-          endpoint: `https://127.0.0.1:${server.address().port}/`});
+          endpoint: `https://127.0.0.1:${(server.address() as AddressInfo).port}/`});
         clients.push(own(() => client.close()));
         return client;
       }, async close() {
@@ -274,14 +313,14 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       }};
     }
 
-    async function original(client, saved) {
+    async function original(client: Client, saved: SavedRun) {
       const lookup = await client.lookupSubmission(saved.submissionRef);
       assert.equal(lookup.kind, 'ready', JSON.stringify(lookup));
       assert.deepEqual(lookup.submissionRef, saved.submissionRef);
       assert.deepEqual(lookup.admission.ref, saved.runRef);
       return client.attach(lookup.admission.ref);
     }
-    async function submit(host, nonce, wire) {
+    async function submit(host: AcceptanceHost, nonce: string, wire: string) {
       const client = await host.as();
       const submissionRef = client.newSubmission({nonce});
       // Persist before sending; every reconnect below reads the original
@@ -299,7 +338,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       await original(client, JSON.parse(await readFile(savedPath, 'utf8')));
       return savedPath;
     }
-    async function approve(host, saved) {
+    async function approve(host: AcceptanceHost, saved: SavedRun) {
       const reviewer = await host.as('synthetic-reviewer-token');
       const checkpoints = (await reviewer.checkpoints()).items;
       assert.equal(checkpoints.length, 1, 'one existing Set approval owner');
@@ -309,7 +348,8 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       {signer: {...signer, authorityScopeCid: saved.runRef.authorityScopeCid}});
       assert.deepEqual(answer.results.map(item => item.status), ['committed']);
     }
-    async function finishAfterRestart(savedPath, order, expectedStatus, hostOptions) {
+    async function finishAfterRestart(savedPath: string, order: readonly number[],
+      expectedStatus: Awaited<ReturnType<Execution['status']>>['status'], hostOptions?: HostOptions) {
       const saved = JSON.parse(await readFile(savedPath, 'utf8'));
       const host = await openHost(order, hostOptions);
       const execution = await original(await host.as(), saved);
@@ -331,7 +371,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       const dispatchBefore = counts.dispatch;
       const first = await openHost(expected.order);
       assert.deepEqual(observation(unselected), untouched);
-      const path = await submit(first, expected.nonce, program([selected.mapping], expected.rows));
+      const path = await submit(first, expected.nonce, program([selected.mapping!], expected.rows));
       assert.ok(counts.dispatch > dispatchBefore, 'the successful control reaches dispatch');
       assert.equal(commentSends(selected.api).length, sentBefore);
       if (profile === 'checkpoint-review') {
@@ -339,13 +379,13 @@ export async function runInstalledEffectInventoryAcceptance({connect,
         // Explorer. No answer or resume is needed to read its original review.
         const saved = JSON.parse(await readFile(path, 'utf8'));
         const before = installations.map((_, index) => observation(index));
-        const observations = [];
-        const observe = async (host, phase) => {
+        const observations: unknown[] = [];
+        const observe = async (host: AcceptanceHost, phase: Phase) => {
           const execution = await original(await host.as(), saved);
           const state = await waitForInstalledCheckpointPhysicalStop(execution);
           assert.equal(state.status, 'waiting_checkpoint');
           const dispatchBeforeReview = counts.dispatch;
-          const result = await observeWaitingCheckpoint({
+          const result = await observeWaitingCheckpoint!({
             client: await host.as('synthetic-reviewer-token'),
             phase, original: saved, expectedRows: expected.rows,
             expectedRunId: state.run_id,
@@ -355,7 +395,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
           const after = await execution.status();
           assert.equal(after.status, 'waiting_checkpoint');
           assert.equal(after.run_id, state.run_id);
-          assert.equal(after.control.revision, state.control.revision);
+          assert.equal(after.control!.revision, state.control!.revision);
           assert.deepEqual(installations.map((_, index) => observation(index)), before,
             'review reads cannot reacquire a provider, issue a credential or send an Effect');
           observations.push(result);
@@ -396,10 +436,10 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     // Mapping may be refused earlier by ordinary checking. Neither branch
     // admits a Run, reaches dispatch, reads a credential, or calls a provider.
     for (const [nonce, mappings] of [
-      ['unsupported-mixed-multistage-set', installations.map(item => item.mapping)],
-      ['absent-mapping', [{...installations[0].mapping,
+      ['unsupported-mixed-multistage-set', installations.map(item => item.mapping!)],
+      ['absent-mapping', [{...installations[0].mapping!,
         mappingRef: 'mapping:gh-absent/issue_comments/create-0000000000000000.v1'}]],
-    ]) {
+    ] as const) {
       const before = {dispatch: counts.dispatch, providers: [observation(0), observation(1)]};
       const host = await openHost([1, 0]);
       const client = await host.as();
@@ -417,7 +457,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
         assert.equal(refused.kind, 'preparation_failed');
         assert.equal(refused.problem.code, 'ClientProgramUnsupported');
       } else assert.ok(['not_accepted', 'preparation_failed'].includes(refused.kind), JSON.stringify(refused));
-      assert.equal(refused.admission, undefined, 'preparation refusal has no Run');
+      assert.equal((refused as typeof refused & {admission?: unknown}).admission, undefined, 'preparation refusal has no Run');
       assert.deepEqual((await (await host.as('synthetic-reviewer-token')).checkpoints()).items, []);
       await host.close();
       assert.deepEqual({dispatch: counts.dispatch, providers: [observation(0), observation(1)]}, before);
@@ -429,7 +469,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     const alphaSendsBeforeCancel = commentSends(installations[0].api).length;
     const cancelFirst = await openHost([1, 0]);
     const cancelPath = await submit(cancelFirst, 'cancelled-alpha',
-      program([installations[0].mapping],
+      program([installations[0].mapping!],
         [{node_id: 'I_ALPHA', comment: 'must be cancelled'}]));
     const cancelled = await original(await cancelFirst.as(),
       JSON.parse(await readFile(cancelPath, 'utf8')));
@@ -442,7 +482,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       return current.status === 'waiting_checkpoint' &&
         current.control?.physical_stop === 'confirmed' ? current : undefined;
     });
-    assert.equal(cancelState.control.cancellation_requested, false);
+    assert.equal(cancelState.control!.cancellation_requested, false);
     await cancelled.cancel();
     await waitFor(async () => (await cancelled.status()).status === 'cancelled');
     await cancelFirst.close();
@@ -456,7 +496,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     const alphaBeforeLost = observation(0);
     const betaSends = commentSends(installations[1].api).length;
     const lostFirst = await openHost([1, 0]);
-    const lostPath = await submit(lostFirst, 'lost-beta-response', program([installations[1].mapping],
+    const lostPath = await submit(lostFirst, 'lost-beta-response', program([installations[1].mapping!],
       [{node_id: 'I_BETA', comment: 'beta lost reply'}]));
     await lostFirst.close();
     const lostReview = await openHost([0, 1]);
@@ -485,7 +525,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       const singularSends = commentSends(installations[0].api).length;
       const singularFirst = await openHost([0], singularOptions);
       const singularPath = await submit(singularFirst, 'singular-alpha-control',
-        program([installations[0].mapping], [{node_id: 'I_ALPHA', comment: 'alpha singular'}]));
+        program([installations[0].mapping!], [{node_id: 'I_ALPHA', comment: 'alpha singular'}]));
       await singularFirst.close();
       const singularReview = await openHost([0], singularOptions);
       await approve(singularReview, JSON.parse(await readFile(singularPath, 'utf8')));
@@ -509,7 +549,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
     failure = error;
     throw error;
   } finally {
-    const errors = [];
+    const errors: unknown[] = [];
     for (const close of owned.reverse()) {
       try { await close(); } catch (error) { errors.push(error); }
     }
