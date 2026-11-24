@@ -3,71 +3,213 @@
 // schedules work, classifies a failure, or supplies authorization policy.
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 import {randomUUID} from 'node:crypto';
-import {prepareModelResumeStatements} from './model-resume-sqlite.mjs';
+import {prepareModelResumeStatements, type AttemptRow, type ScopeRow, type SlotRow} from './model-resume-sqlite.mjs';
+
+import type {DatabaseSync, StatementSync, StatementResultingChanges} from 'node:sqlite';
+import type {createSqliteTransaction} from '../host-common/sqlite-transaction.mjs';
+
+type SqlRow = NonNullable<ReturnType<StatementSync['get']>>;
+type Statements = ReturnType<typeof prepareModelResumeStatements>;
+type Owner = Readonly<{runId: string; runDefinitionCid: string; preparedInvocationCid: string}>;
+type Scope = Owner & Readonly<{
+  scopeCid: string; providerBindingCid: string; inputArtifactCid: string;
+  taskIndex: number; strategyRevision: number;
+}>;
+type ScopeReference = Scope & Readonly<{checkpointCid?: string}>;
+type Slot = Readonly<{ordinal: number; slotCid: string; modelTaskCid: string; fixedRequestCid: string; maxAttempts: number}>;
+type Inventory = ScopeReference & Readonly<{
+  fixedInputCustody: Readonly<Record<string, unknown>>; retryBinding: Readonly<Record<string, unknown>>;
+  slots: readonly Slot[]; runValidUntil?: string;
+}>;
+type Originals = Readonly<{
+  originalRunWire: string; preparedInvocationWire: string; scopeWire: string;
+  providerBindingWire: string; fixedInputReceiptWire: string; slotWires: readonly string[];
+  checkpointWire?: string; reviewWire?: string;
+}>;
+type Checkpoint = SqlRow & Readonly<{checkpoint_cid: string; checkpoint_wire: string; run_id: string}>;
+type Run = SqlRow & Readonly<{status: string; version: number}>;
+type Intent = Readonly<{checkpointCid: string; intentId: string; claimant: string; generation: number}>;
+type Claim = Intent & Readonly<{runId: string}>;
+type Deferred = Intent & Readonly<{resolutionCid: string}>;
+type Provenance = 'immediate' | 'deferred';
+type EntryReference = ScopeReference & Partial<Deferred> & Readonly<{
+  provenance?: Provenance; ordinal: number; slotCid: string; attemptIndex: number; attemptCid: string;
+  authorityCid?: string;
+}>;
+type Enter = EntryReference & Readonly<{attemptWire: string; authorityWire: string}>;
+type Admission = DeferredAdmission | ImmediateAdmission;
+type DeferredAdmission = Deferred & Readonly<{
+  kind: string; runId: string; requiredArtifactCid: string; admittedAt: string;
+}>;
+type ImmediateAdmission = Readonly<{
+  kind: 'model_invocation'; provenance: 'immediate'; runId: string; requiredArtifactCid: string;
+  authorityCid: string; admittedAt: string; runValidUntil: string; dispatchValidUntil: string;
+  parentResumeFence?: Intent;
+}>;
+type EnteredAdmission = Admission & Readonly<{
+  provenance: Provenance; modelGrantExpiresAt: string; parentResumeFence?: Intent;
+}>;
+type RecordedAdmission = EnteredAdmission & Partial<Deferred &
+  Pick<ImmediateAdmission, 'authorityCid' | 'dispatchValidUntil' | 'runValidUntil'>>;
+type Entry = EntryReference & Readonly<{
+  provenance: Provenance; admittedAt: string; modelGrantExpiresAt: string; admission: EnteredAdmission;
+}>;
+type Settlement = Readonly<{
+  entry: EntryReference; state: 'SavedSuccess' | 'SavedFailure'; durable: true;
+  evidence: Readonly<Record<string, unknown>>; retryAllowed: boolean;
+}>;
+type Prepared = Readonly<{inventory: Inventory; originals: Originals}>;
+type Checked = Prepared & Readonly<{
+  checkpointCid: string | null; deferred?: Prepared; slots: SlotRow[]; attempts: AttemptRow[];
+}>;
+type AttemptInputs = Readonly<{
+  inventory: Inventory; originals: Originals; slot: Slot;
+  attemptIndex: number; attemptCid: string; attemptWire: string; authorityWire: string;
+}>;
+type AttemptOriginal = Readonly<{attemptCid: string; attemptIndex: number}>;
+type GrantInput = AttemptInputs & Readonly<{decision: unknown; preparedCallSet: unknown; at: string}>;
+type Grant = Scope & AttemptOriginal & Readonly<{
+  ordinal: number; slotCid: string; authorityCid: string; current: boolean;
+  admittedAt: string; runValidUntil: string; dispatchValidUntil: string;
+}>;
+type JournalFacts = Readonly<{
+  identity: Scope; run: Run;
+  scopes: readonly ScopeRow[]; slots: readonly SlotRow[]; attempts: readonly AttemptRow[];
+  cancellation: ReturnType<Statements['cancelled']['get']> | null;
+  checkpoints: readonly SqlRow[]; resolutions: readonly SqlRow[]; intents: readonly SqlRow[];
+  currentIntent: SqlRow | null; admissions: readonly SqlRow[];
+}>;
+type InspectPort<Facts> = Readonly<{current(receipt: unknown): unknown; inspect(receipt: unknown): Facts}>;
+type Cut = Readonly<{
+  scope_cid: string; input_artifact_cid: string; fixed_input_receipt_cid: string; run_version: number; slots: readonly unknown[];
+}>;
+type ParkFacts = Readonly<{identity: Scope; phase: 'parked' | 'stopping'; cut: Cut}>;
+type SavedFacts = ParkFacts & Readonly<{
+  documentCid: string; holdingCid: string; storageBindingCid: string; resourceStateCid: string; documentWire: string;
+}>;
+type Resources = InspectPort<ParkFacts> & Readonly<{
+  invalidationCurrent?(request: unknown, park: unknown): unknown;
+}>;
+type Verifier = Readonly<{
+  admitOriginalRun?(input: Readonly<{originalRunWire: string}>): Owner;
+  admitCallSet?(input: Originals): Inventory;
+  admitImmediateCallSet?(input: Originals): Inventory;
+  admitAttempt?(input: AttemptInputs & Readonly<{admission: EnteredAdmission}>): AttemptOriginal;
+  admitImmediateEntry?(input: GrantInput): Grant;
+  verifySettlement?(input: Readonly<Pick<Prepared, 'inventory' | 'originals'> & {
+    slot: Slot; entry: Entry; attemptWire: string; authorityWire: string;
+  }>): Settlement | null | PromiseLike<Settlement | null>;
+  projectOriginalJournalIdentity?(input: Readonly<{originals: Originals; row: AttemptRow}>): Readonly<Record<string, unknown>>;
+  projectOriginalCurrentCut?(input: Readonly<{facts: JournalFacts}>): Cut;
+  originalResourceCut?: Resources;
+  originalStateSaved?: InspectPort<SavedFacts>;
+}>;
+type Options = Readonly<{
+  verifier?: Verifier;
+  transaction: Pick<ReturnType<typeof createSqliteTransaction>, 'run'>;
+  alive(): void; now(): number; iso(time: number): string; fault(step: string): void;
+  admissionLocked(claim: Claim, checkpointCid: string, at: number): DeferredAdmission;
+  confirmEntryGrant(originals: Originals, inventory: Inventory, admission: DeferredAdmission, at: number): string;
+  fenced(claim: Claim, now: number): unknown;
+  checkpoint(checkpointCid: string): Checkpoint | undefined;
+  run(runId: string): Run | undefined;
+}>;
+type CutPhase = 'ready' | 'prepared' | 'attempted' | 'confirmed';
+type CutStatus = 'prepared' | 'attempted' | 'linked' | 'reconciled' |
+  'preparing_invalidation' | 'invalidation_prepared' | 'marking_invalidation' |
+  'invalidation_attempted' | 'invalidating' | 'invalidated' | 'failed' | 'unknown';
+type InvalidationBinding = Readonly<{operation_id: string; resource_state_cid: string}>;
+type InvalidationRecord = Readonly<{
+  operation_id: string; identity: Scope; linked_cut_wire: string; request_binding: InvalidationBinding | null;
+  phase: CutPhase;
+}>;
+type CutRead = Readonly<{parkReceipt?: unknown; savedReceipt?: unknown}>;
+type Observation = Readonly<{kind: 'original-model-journal-observation'}>;
+type CutOperation = {
+  identity: Scope; before: JournalFacts; wire: string; parkReceipt: unknown; savedReceipt: unknown;
+  parkFacts: ParkFacts; savedFacts: SavedFacts; state: CutStatus; operationId?: string;
+  invalidationWire?: string; invalidationRequest?: unknown; after?: JournalFacts; observation?: Observation;
+};
+type Invalidation = Readonly<{
+  operation: object; identity: Scope; parkReceipt: unknown; invalidationRequest: unknown;
+  savedReceipt: unknown; wire: string; after: JournalFacts;
+}>;
+type JournalPort = Readonly<{identity: Scope; inventoryWire: string; originalsWire: string}>;
+type JournalPortSource = Readonly<{
+  current(port: object, receipt: object, reference: object, park: unknown, request: unknown): object;
+}>;
+type CallerFailure = Readonly<{code?: string; outcome?: 'failed' | 'unknown'}>;
+type MatchIntent = Readonly<{checkpointCid: string; intentId: string; runId: string}>;
+type EnterImmediate = Readonly<{
+  decision?: unknown; preparedCallSet?: unknown; parentResume?: Readonly<{claim: Claim; checkpointCid: string}>;
+}>;
+
 // Physical FFI authentication, not another journal or receipt issuer. Escaped
 // tags cannot retain the journal/Run graph: the source is held only weakly here.
 // Only the existing journal's own issuer below can register a nominal port.
-const originalJournalPortSources = new WeakMap();
-export function assertOriginalModelJournalInvalidation(port, receipt, reference, park, request) {
+const originalJournalPortSources = new WeakMap<object, WeakRef<JournalPortSource>>();
+export function assertOriginalModelJournalInvalidation(port: object, receipt: object, reference: object, park: unknown, request: unknown) {
   const source = originalJournalPortSources.get(port)?.deref();
   if (source === undefined) fail('ForeignModelOriginalJournalPort');
   source.current(port, receipt, reference, park, request);
 }
-const fail = (code, cause) => {
+const fail: (code: string, cause?: unknown) => never = (code, cause) => {
   throw Object.assign(new Error(code, {cause}), {code});
 };
-const text = value => typeof value === 'string' && value.length > 0;
-const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
-const natural = value => Number.isSafeInteger(value) && value >= 0;
-const fact = value => value !== null && typeof value === 'object' &&
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+const cid = (value: unknown): value is string => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
+const natural = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
+const fact = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).length > 0;
-const copy = value => JSON.parse(JSON.stringify(value));
-const freeze = value => {
+const copy = <Value,>(value: Value): Value => JSON.parse(JSON.stringify(value)) as Value;
+const freeze = <Value,>(value: Value): Value => {
   if (value !== null && typeof value === 'object') {
     Object.values(value).forEach(freeze);
     Object.freeze(value);
   }
   return value;
 };
-const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-const sameCut = (a, b) => canonicalValueJson(a, {dataKeys: true}) ===
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+const sameCut = (a: unknown, b: unknown) => canonicalValueJson(a, {dataKeys: true}) ===
   canonicalValueJson(b, {dataKeys: true});
-const ownerKeys = ['runId', 'runDefinitionCid', 'preparedInvocationCid'];
+const ownerKeys = ['runId', 'runDefinitionCid', 'preparedInvocationCid'] as const;
 const scopeKeys = [...ownerKeys, 'scopeCid',
-  'providerBindingCid', 'inputArtifactCid', 'taskIndex', 'strategyRevision'];
-const entryKeys = [...scopeKeys, 'provenance', 'ordinal', 'slotCid', 'attemptIndex', 'attemptCid'];
-const deferredKeys = ['checkpointCid', 'intentId', 'claimant', 'generation', 'resolutionCid'];
-const select = (value, keys) => Object.fromEntries(keys.map(key => [key, value[key]]));
-const omit = (value, keys) => Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
+  'providerBindingCid', 'inputArtifactCid', 'taskIndex', 'strategyRevision'] as const;
+const entryKeys = [...scopeKeys, 'provenance', 'ordinal', 'slotCid', 'attemptIndex', 'attemptCid'] as const;
+const deferredKeys = ['checkpointCid', 'intentId', 'claimant', 'generation', 'resolutionCid'] as const;
+const select = <Value extends object, Key extends keyof Value>(value: Value, keys: readonly Key[]): Pick<Value, Key> =>
+  Object.fromEntries(keys.map(key => [key, value[key]])) as Pick<Value, Key>;
+const omit = (value: object, keys: readonly string[]) => Object.fromEntries(Object.entries(value).filter(([key]) => !keys.includes(key)));
 // Keep the existing deferred settlement identity; its real Checkpoint and
 // intent already distinguish it from an immediate receipt. Immediate receipts
 // name their distinct provenance and authority without fabricated equivalents.
-const entryIdentity = value => select(value, value.provenance === 'deferred'
+const entryIdentity = (value: EntryReference) => select(value, value.provenance === 'deferred'
   ? [...ownerKeys, 'checkpointCid', ...scopeKeys.slice(ownerKeys.length),
       'ordinal', 'slotCid', 'attemptIndex', 'attemptCid', ...deferredKeys.slice(1)]
   : [...entryKeys, 'authorityCid']);
-const timestamp = value => text(value) && Number.isSafeInteger(Date.parse(value)) &&
+const timestamp = (value: unknown): value is string => text(value) && Number.isSafeInteger(Date.parse(value)) &&
   Date.parse(value) >= 0;
-const ownerValid = value => text(value?.runId) &&
+const ownerValid = <Value extends Partial<Owner> | null | undefined>(value: Value): value is NonNullable<Value> & Owner => text(value?.runId) &&
   ownerKeys.slice(1).every(key => cid(value[key]));
-const scopeValid = value => ownerValid(value) &&
+const scopeValid = (value: Partial<Scope> | null | undefined): value is Scope => ownerValid(value) &&
   scopeKeys.slice(ownerKeys.length, -2).every(key => cid(value[key])) &&
   natural(value.taskIndex) && natural(value.strategyRevision);
-function synchronous(port, input) {
+function synchronous<Input, Output>(port: ((input: Input) => Output) | undefined, input: Input): Output {
   if (typeof port !== 'function') fail('ModelResumeVerifierUnavailable');
   const result = port(freeze(copy(input)));
-  if (result && typeof result.then === 'function') fail('AsyncModelResumeAdmission');
+  if (result && typeof (result as {then?: unknown}).then === 'function') fail('AsyncModelResumeAdmission');
   return copy(result);
 }
 
 // Opaque issuer objects must cross this boundary by reference. Never clone,
 // serialize or recursively freeze the action or the prepared execution owner.
-function immediateAdmission(port, decision, preparedCallSet, facts) {
+function immediateAdmission(port: Verifier['admitImmediateEntry'], decision: unknown, preparedCallSet: unknown,
+  facts: Omit<GrantInput, 'decision' | 'preparedCallSet'>) {
   if (typeof port !== 'function') fail('ModelImmediateVerifierUnavailable');
   let result;
   try { result = port(Object.freeze({decision, preparedCallSet, ...freeze(copy(facts))})); }
   catch (error) { fail('ModelImmediateGrantRejected', error); }
-  if (result && typeof result.then === 'function') fail('AsyncModelResumeAdmission');
+  if (result && typeof (result as {then?: unknown}).then === 'function') fail('AsyncModelResumeAdmission');
   if (!fact(result)) fail('ModelImmediateGrantRejected');
   return copy(result);
 }
@@ -110,31 +252,31 @@ function immediateAdmission(port, decision, preparedCallSet, facts) {
 //  durable:true, evidence:<checked original refs>, retryAllowed:boolean}.
 // The verifier must never synthesize a failure from a sent-unknown attempt.
 // Distinct entered and settled originals are retained; no original is replaced.
-export function createModelResumeState(database, {
+export function createModelResumeState(database: Pick<DatabaseSync, 'prepare'>, {
   verifier, transaction, alive, now, iso, fault, admissionLocked, confirmEntryGrant, fenced, checkpoint, run,
-}) {
+}: Options) {
   // These tokens authenticate only this journal's read observation. They do
   // not establish a resource park, durable cut, restoration or send grant.
-  const originalJournalObservations = new WeakMap();
+  const originalJournalObservations = new WeakMap<object, JournalFacts>();
   // Process-local nominal operations belong to this existing journal. Only
   // actual persisted link data is authoritative; these refs are not a second
   // resource phase/epoch or a serialization of Resource/Store receipts.
-  const originalCutOperations = new WeakMap();
-  const originalCutInvalidations = new WeakMap();
+  const originalCutOperations = new WeakMap<object, CutOperation>();
+  const originalCutInvalidations = new WeakMap<object, Invalidation>();
   // Private installation handles belong to this exact journal. They retain
   // admitted original scope data, not a user callback or a COMMIT permission.
-  const originalJournalPorts = new WeakMap();
+  const originalJournalPorts = new WeakMap<object, JournalPort>();
   const q = prepareModelResumeStatements(database);
-  const changed = result => {
+  const changed = (result: StatementResultingChanges) => {
     if (result.changes !== 1) fail('ModelResumeStateConflict');
   };
-  function admittedOwner(originalRunWire) {
+  function admittedOwner(originalRunWire: string) {
     if (!text(originalRunWire)) fail('InvalidModelOriginalRun');
     const owner = synchronous(verifier?.admitOriginalRun, {originalRunWire});
     if (!ownerValid(owner)) fail('InvalidModelOriginalRun');
     return select(owner, ownerKeys);
   }
-  function requireNotCancelled(owner) {
+  function requireNotCancelled(owner: Owner) {
     const cancelled = q.cancelled.get(owner.runId);
     if (cancelled === undefined) return;
     if (!same(JSON.parse(cancelled.owner_json), select(owner, ownerKeys))) {
@@ -142,11 +284,11 @@ export function createModelResumeState(database, {
     }
     fail('ModelRunCancelled');
   }
-  function prepareInventory(input, sealed) {
+  function prepareInventory(input: Originals | undefined, sealed?: Checkpoint): Prepared {
     const immediate = sealed === undefined;
     if (input === null || typeof input !== 'object' ||
-        !['originalRunWire', 'preparedInvocationWire', 'scopeWire',
-          'providerBindingWire', 'fixedInputReceiptWire'].every(key => text(input[key])) ||
+        !(['originalRunWire', 'preparedInvocationWire', 'scopeWire',
+          'providerBindingWire', 'fixedInputReceiptWire'] as const).every(key => text(input[key])) ||
         !Array.isArray(input.slotWires) || !input.slotWires.every(text)) {
       fail('ModelCallInventoryRequired');
     }
@@ -177,27 +319,27 @@ export function createModelResumeState(database, {
     });
     return freeze({inventory, originals});
   }
-  function prepare(sealed, input) {
+  function prepare(sealed: Checkpoint, input?: Originals): Prepared | undefined {
     if (JSON.parse(sealed.checkpoint_wire).kind !== 'model_invocation') {
       if (input !== undefined) fail('ModelCheckpointKindMismatch');
       return undefined;
     }
     return prepareInventory(input, sealed);
   }
-  function sameCallSet(a, b) {
+  function sameCallSet(a: Prepared, b: Prepared) {
     return same(omit(a.inventory, ['checkpointCid', 'runValidUntil']),
       omit(b.inventory, ['checkpointCid', 'runValidUntil'])) &&
       same(omit(a.originals, ['checkpointWire', 'reviewWire']),
         omit(b.originals, ['checkpointWire', 'reviewWire']));
   }
-  function checked(identity) {
+  function checked(identity: ScopeReference): Checked {
     if (!scopeValid(identity)) fail('InvalidModelResumeIdentity');
     const row = cid(identity.checkpointCid) ? q.scope.get(identity.checkpointCid)
       : q.scopeByCid.get(identity.scopeCid);
     if (row === undefined) fail('ModelResumeInventoryCorrupt');
     try {
-      const saved = JSON.parse(row.inventory_json);
-      const originals = JSON.parse(row.originals_json);
+      const saved = JSON.parse(row.inventory_json as string) as Inventory;
+      const originals = JSON.parse(row.originals_json as string) as Originals;
       let deferred;
       if (row.checkpoint_cid !== null) {
         const cp = checkpoint(row.checkpoint_cid);
@@ -226,8 +368,8 @@ export function createModelResumeState(database, {
           (Object.hasOwn(identity, 'checkpointCid') && identity.checkpointCid !== row.checkpoint_cid)) {
         fail('ModelResumeIdentityMismatch');
       }
-      const slots = q.slots.all(saved.scopeCid);
-      const attempts = q.attempts.all(saved.scopeCid);
+      const slots = q.slots.all(saved.scopeCid) as SlotRow[];
+      const attempts = q.attempts.all(saved.scopeCid) as AttemptRow[];
       if (slots.length !== saved.slots.length) fail('ModelResumeInventoryCorrupt');
       for (const [index, slot] of slots.entries()) {
         const history = attempts.filter(attempt => attempt.ordinal === index);
@@ -236,8 +378,8 @@ export function createModelResumeState(database, {
             slot.attempt_index !== history.length ||
             slot.state !== (history.at(-1)?.state ?? 'Unsent')) fail('ModelResumeInventoryCorrupt');
         for (const [attemptIndex, attempt] of history.entries()) {
-          const entry = JSON.parse(attempt.entry_json);
-          const admission = entry.admission;
+          const entry = JSON.parse(attempt.entry_json) as Entry;
+          const admission: RecordedAdmission = entry.admission;
           if (attempt.attempt_index !== attemptIndex + 1 || attempt.attempt_cid !== entry.attemptCid ||
               entry.attemptIndex !== attemptIndex + 1 || entry.ordinal !== index ||
               entry.slotCid !== slot.slot_cid || entry.admittedAt !== attempt.entered_at ||
@@ -246,18 +388,18 @@ export function createModelResumeState(database, {
               admission.admittedAt !== entry.admittedAt || !text(entry.modelGrantExpiresAt) ||
               entry.modelGrantExpiresAt !== admission.modelGrantExpiresAt ||
               !same(select(entry, scopeKeys), select(saved, scopeKeys))) fail('ModelResumeInventoryCorrupt');
-          let attemptOriginals;
+          let attemptOriginals: Originals;
           if (entry.provenance === 'deferred') {
             if (deferred === undefined || entry.checkpointCid !== row.checkpoint_cid ||
                 !text(entry.intentId) || !text(entry.claimant) ||
-                !Number.isSafeInteger(entry.generation) || entry.generation < 1 || !cid(entry.resolutionCid) ||
+                !Number.isSafeInteger(entry.generation) || entry.generation! < 1 || !cid(entry.resolutionCid) ||
                 !same(select(admission, deferredKeys), select(entry, deferredKeys))) fail('ModelResumeInventoryCorrupt');
             attemptOriginals = deferred.originals;
           } else if (entry.provenance === 'immediate') {
             if (row.registration_kind !== 'immediate' || deferredKeys.some(key => Object.hasOwn(entry, key)) ||
                 !cid(entry.authorityCid) || entry.authorityCid !== admission.authorityCid ||
                 !timestamp(admission.dispatchValidUntil) || admission.runValidUntil !== saved.runValidUntil ||
-                entry.modelGrantExpiresAt !== iso(Math.min(Date.parse(saved.runValidUntil),
+                entry.modelGrantExpiresAt !== iso(Math.min(Date.parse(saved.runValidUntil!),
                   Date.parse(admission.dispatchValidUntil)))) fail('ModelResumeInventoryCorrupt');
             attemptOriginals = originals;
           } else fail('ModelResumeInventoryCorrupt');
@@ -279,16 +421,16 @@ export function createModelResumeState(database, {
       if (attempts.some(attempt => !slots[attempt.ordinal])) fail('ModelResumeInventoryCorrupt');
       return {inventory: saved, originals, checkpointCid: row.checkpoint_cid, deferred, slots, attempts};
     } catch (error) {
-      if (error.code === 'ModelResumeIdentityMismatch' || error.code === 'ModelResumeVerifierUnavailable') throw error;
+      if ((error as CallerFailure).code === 'ModelResumeIdentityMismatch' || (error as CallerFailure).code === 'ModelResumeVerifierUnavailable') throw error;
       fail('ModelResumeInventoryCorrupt', error);
     }
   }
-  function insertInventory(prepared, kind, at) {
+  function insertInventory(prepared: Prepared, kind: Provenance, at: string) {
     const {inventory, originals} = prepared;
     requireNotCancelled(inventory);
     for (const row of database.prepare('SELECT inventory_json, originals_json FROM resume_model_scopes WHERE run_id = ?').all(inventory.runId)) {
-      if (!same(select(JSON.parse(row.inventory_json), ownerKeys), select(inventory, ownerKeys)) ||
-          JSON.parse(row.originals_json).originalRunWire !== originals.originalRunWire) fail('ModelRunIdentityMismatch');
+      if (!same(select(JSON.parse(row.inventory_json as string), ownerKeys), select(inventory, ownerKeys)) ||
+          JSON.parse(row.originals_json as string).originalRunWire !== originals.originalRunWire) fail('ModelRunIdentityMismatch');
     }
     const occurrence = database.prepare('SELECT scope_cid FROM resume_model_scopes WHERE run_id = ? AND task_index = ?')
       .get(inventory.runId, inventory.taskIndex);
@@ -302,7 +444,7 @@ export function createModelResumeState(database, {
     }
     fault('registerResumeCallSet');
   }
-  function registerImmediateLocked(prepared, at) {
+  function registerImmediateLocked(prepared: Prepared, at: string) {
     requireNotCancelled(prepared.inventory);
     const row = q.scopeByCid.get(prepared.inventory.scopeCid);
     if (row === undefined) return insertInventory(prepared, 'immediate', at);
@@ -313,7 +455,7 @@ export function createModelResumeState(database, {
     }
     if (row.checkpoint_cid !== null) fail('ModelImmediateProvenanceMismatch');
   }
-  function registerLocked(sealed, prepared, at, existing = false, attachImmediate = false) {
+  function registerLocked(sealed: Checkpoint, prepared: Prepared | undefined, at: string, existing = false, attachImmediate = false) {
     if (prepared === undefined) return;
     const {inventory, originals} = prepared;
     requireNotCancelled(inventory);
@@ -328,7 +470,7 @@ export function createModelResumeState(database, {
       if (!attachImmediate || row.registration_kind !== 'immediate' || row.checkpoint_cid !== null) {
         fail('ModelResumeInventoryConflict');
       }
-      const stored = checked(JSON.parse(row.inventory_json));
+      const stored = checked(JSON.parse(row.inventory_json as string));
       if (!sameCallSet(stored, prepared)) fail('ModelResumeInventoryConflict');
       changed(q.attachCheckpoint.run(sealed.checkpoint_cid, JSON.stringify(inventory),
         JSON.stringify(originals), inventory.scopeCid));
@@ -338,25 +480,25 @@ export function createModelResumeState(database, {
     if (attachImmediate) fail('ModelImmediateInventoryRequired');
     insertInventory(prepared, 'deferred', at);
   }
-  function entryFor(state, reference) {
+  function entryFor(state: Checked, reference: EntryReference) {
     const attempt = state.attempts.find(value => value.ordinal === reference.ordinal &&
       value.attempt_index === reference.attemptIndex);
     if (attempt === undefined) fail('ModelResumeAttemptNotEntered');
-    const entry = JSON.parse(attempt.entry_json);
+    const entry = JSON.parse(attempt.entry_json) as Entry;
     if (!same(entryIdentity(entry), entryIdentity(reference))) {
       fail('ModelResumeAttemptMismatch');
     }
     return {attempt, entry};
   }
-  function validSettlement(value, entry) {
+  function validSettlement(value: Partial<Settlement> | null | undefined, entry: Entry): value is Settlement {
     return value !== null && value?.durable === true &&
-      ['SavedSuccess', 'SavedFailure'].includes(value.state) &&
+      ['SavedSuccess', 'SavedFailure'].includes(value.state!) &&
       typeof value.retryAllowed === 'boolean' &&
       (value.state === 'SavedFailure' || value.retryAllowed === false) &&
       fact(value.evidence) &&
       same(value.entry, entryIdentity(entry));
   }
-  function slotForEntry(state, reference) {
+  function slotForEntry(state: Checked, reference: Enter) {
     const slot = state.slots[reference.ordinal];
     const binding = state.inventory.slots[reference.ordinal];
     if (!natural(reference.ordinal) || slot === undefined || slot.slot_cid !== reference.slotCid) {
@@ -366,16 +508,16 @@ export function createModelResumeState(database, {
       value.attempt_index === slot.attempt_index);
     if (slot.state === 'EnteredUnknown') fail('ModelResumeAttemptUnknown');
     if (slot.state === 'SavedSuccess' || (slot.state === 'SavedFailure' &&
-        JSON.parse(previous.settlement_json).retryAllowed !== true)) fail('ModelResumeCallSettled');
+        JSON.parse(previous!.settlement_json).retryAllowed !== true)) fail('ModelResumeCallSettled');
     if (reference.attemptIndex !== slot.attempt_index + 1 || reference.attemptIndex > binding.maxAttempts ||
         !cid(reference.attemptCid) || !text(reference.attemptWire) || !text(reference.authorityWire)) {
       fail('ModelResumeAttemptMismatch');
     }
     return {slot, binding};
   }
-  function appendEntered(state, reference, admission, step) {
+  function appendEntered(state: Checked, reference: Enter, admission: EnteredAdmission, step: string) {
     const {slot, binding} = slotForEntry(state, reference);
-    const originals = admission.provenance === 'deferred' ? state.deferred.originals : state.originals;
+    const originals = admission.provenance === 'deferred' ? state.deferred!.originals : state.originals;
     const admitted = synchronous(verifier?.admitAttempt, {
       inventory: state.inventory, originals, slot: binding,
       attemptIndex: reference.attemptIndex, attemptCid: reference.attemptCid,
@@ -388,21 +530,22 @@ export function createModelResumeState(database, {
       ordinal: slot.ordinal, slotCid: slot.slot_cid, attemptIndex: reference.attemptIndex,
       attemptCid: reference.attemptCid, admittedAt: admission.admittedAt,
       modelGrantExpiresAt: admission.modelGrantExpiresAt, admission,
-      ...select(admission, admission.provenance === 'deferred' ? deferredKeys : ['authorityCid'])};
+      ...select(admission as Partial<Deferred & Pick<ImmediateAdmission, 'authorityCid'>>,
+        admission.provenance === 'deferred' ? deferredKeys : ['authorityCid'])};
     q.insertAttempt.run(entry.scopeCid, entry.ordinal, entry.attemptIndex,
       entry.attemptCid, JSON.stringify(entry), reference.attemptWire, reference.authorityWire, entry.admittedAt);
     changed(q.advanceSlot.run(entry.attemptIndex, entry.scopeCid, entry.ordinal, slot.state, slot.attempt_index));
     fault(step);
     return freeze({...entry, state: 'EnteredUnknown'});
   }
-  async function observeCall(reference, provenance, step) {
+  async function observeCall(reference: EntryReference, provenance: Provenance, step: string) {
     alive();
     const before = transaction.run(() => {
       const state = checked(reference);
       const {attempt, entry} = entryFor(state, reference);
       if (entry.provenance !== provenance) fail('ModelResumeAttemptMismatch');
       return {inventory: state.inventory,
-        originals: provenance === 'deferred' ? state.deferred.originals : state.originals,
+        originals: provenance === 'deferred' ? state.deferred!.originals : state.originals,
         slot: state.inventory.slots[reference.ordinal], entry,
         attemptWire: attempt.attempt_wire, authorityWire: attempt.authority_wire};
     });
@@ -431,7 +574,7 @@ export function createModelResumeState(database, {
       return freeze({...entry, state: settlement.state, settlement});
     });
   }
-  const view = state => freeze({...select(state.inventory, scopeKeys), checkpointCid: state.checkpointCid,
+  const view = (state: Checked) => freeze({...select(state.inventory, scopeKeys), checkpointCid: state.checkpointCid,
     slots: state.slots.map(slot => ({...JSON.parse(slot.binding_json), state: slot.state,
       attemptIndex: slot.attempt_index,
       attempts: state.attempts.filter(attempt => attempt.ordinal === slot.ordinal)
@@ -439,27 +582,27 @@ export function createModelResumeState(database, {
           settlement: attempt.settlement_json === '' ? null : JSON.parse(attempt.settlement_json)})),
     })),
   });
-  function originalJournalFacts(identity) {
+  function originalJournalFacts(identity: ScopeReference): JournalFacts {
     const state = checked(identity);
     const runId = state.inventory.runId;
     // Every selected occurrence is re-admitted before an observation can feed
     // an original data projection. Validating only the requested occurrence
     // would leave another occurrence's rows as unauthenticated discovery data.
-    const scopes = database.prepare('SELECT * FROM resume_model_scopes WHERE run_id = ? ORDER BY task_index, scope_cid').all(runId);
+    const scopes = database.prepare('SELECT * FROM resume_model_scopes WHERE run_id = ? ORDER BY task_index, scope_cid').all(runId) as ScopeRow[];
     for (const scope of scopes) checked(JSON.parse(scope.inventory_json));
     // Run revision is not a substitute for any of these independently updated
     // rows. Keep original bytes and complete ordered history, including other
     // Model occurrences and original continuation/approval fences of this Run.
     return freeze(copy({
       identity: select(state.inventory, scopeKeys),
-      run: run(runId),
+      run: run(runId)!,
       scopes,
       slots: database.prepare(`SELECT s.* FROM resume_model_slots s
         JOIN resume_model_scopes m ON m.scope_cid = s.scope_cid
-        WHERE m.run_id = ? ORDER BY m.task_index, s.scope_cid, s.ordinal`).all(runId),
+        WHERE m.run_id = ? ORDER BY m.task_index, s.scope_cid, s.ordinal`).all(runId) as SlotRow[],
       attempts: database.prepare(`SELECT a.* FROM resume_model_attempts a
         JOIN resume_model_scopes m ON m.scope_cid = a.scope_cid
-        WHERE m.run_id = ? ORDER BY m.task_index, a.scope_cid, a.ordinal, a.attempt_index`).all(runId),
+        WHERE m.run_id = ? ORDER BY m.task_index, a.scope_cid, a.ordinal, a.attempt_index`).all(runId) as AttemptRow[],
       cancellation: q.cancelled.get(runId) ?? null,
       checkpoints: database.prepare('SELECT * FROM checkpoints WHERE run_id = ? ORDER BY checkpoint_cid').all(runId),
       resolutions: database.prepare(`SELECT r.* FROM resolutions r
@@ -472,7 +615,7 @@ export function createModelResumeState(database, {
         WHERE i.run_id = ? ORDER BY a.intent_id, a.generation`).all(runId),
     }));
   }
-  function originalJournalObservation(observation) {
+  function originalJournalObservation(observation: object) {
     alive();
     const facts = originalJournalObservations.get(observation);
     if (facts === undefined) fail('ForeignModelOriginalJournalObservation');
@@ -483,17 +626,17 @@ export function createModelResumeState(database, {
   // still include them and become obsolete on every link update. Excluding
   // link cells only in this stored original-fact fence avoids a recursive copy
   // of its own metadata and does not turn an old observation into a new one.
-  function originalCutFence(facts) {
+  function originalCutFence(facts: JournalFacts) {
     return {...facts, scopes: facts.scopes.map(row => ({...row,
       current_cut_link_json: null, current_cut_invalidation_json: null}))};
   }
-  function cutOperation(reference) {
+  function cutOperation(reference: object) {
     alive();
     const operation = originalCutOperations.get(reference);
     if (operation === undefined) fail('ForeignModelOriginalCutOperation');
     return operation;
   }
-  function exactCurrentCutPorts(operation) {
+  function exactCurrentCutPorts(operation: CutOperation) {
     const resource = verifier?.originalResourceCut;
     const storage = verifier?.originalStateSaved;
     if (typeof resource?.inspect !== 'function' || typeof resource?.current !== 'function' ||
@@ -509,28 +652,28 @@ export function createModelResumeState(database, {
       fail('ModelOriginalCurrentCutCustodyChanged');
     }
   }
-  function requireCurrentCutFacts(operation, expected) {
+  function requireCurrentCutFacts(operation: Pick<CutOperation, 'identity'>, expected: JournalFacts) {
     const actual = originalJournalFacts(operation.identity);
     if (!same(actual, expected)) fail('ModelOriginalCurrentCutFactsChanged');
     return actual;
   }
-  function issueOriginalObservation(facts) {
+  function issueOriginalObservation(facts: JournalFacts): Observation {
     const token = Object.freeze({kind: 'original-model-journal-observation'});
     originalJournalObservations.set(token, facts);
     return token;
   }
-  function cutInvalidationWire(record) {
+  function cutInvalidationWire(record: InvalidationRecord) {
     const wire = JSON.stringify(record);
     // Same bounded private envelope; duplicated link/history is not free.
     if (Buffer.byteLength(wire) > 3 * 1024 * 1024) fail('ModelOriginalCurrentCutUnavailable');
     return wire;
   }
-  function cutInvalidationRecord(row) {
+  function cutInvalidationRecord(row: ScopeRow): InvalidationRecord | undefined {
     const wire = row.current_cut_invalidation_json;
     // Historical absence never means ready/unattempted and issues no identity.
     if (wire === null) return undefined;
     let value;
-    const exactKeys = (object, keys) => fact(object) &&
+    const exactKeys = (object: unknown, keys: readonly string[]) => fact(object) &&
       Object.keys(object).length === keys.length && keys.every(key => Object.hasOwn(object, key));
     try {
       if (!text(wire) || Buffer.byteLength(wire) > 3 * 1024 * 1024) throw Error('InvalidPrivateEnvelope');
@@ -543,10 +686,10 @@ export function createModelResumeState(database, {
           !['ready', 'prepared', 'attempted', 'confirmed'].includes(value.phase)) throw Error('InvalidPrivateRecord');
       // Bind every original field to this row's already checked inventory,
       // not just its Run/scope lookup keys. This comparison still grants nothing.
-      if (!same(value.identity, select(JSON.parse(row.inventory_json), scopeKeys))) {
+      if (!same(value.identity, select(JSON.parse(row.inventory_json as string), scopeKeys))) {
         throw Error('ForeignOriginalIdentity');
       }
-      const linked = JSON.parse(value.linked_cut_wire);
+      const linked = JSON.parse(value.linked_cut_wire as string);
       if (!same(linked.identity, value.identity) || !cid(linked.resourceStateCid)) throw Error('InvalidOriginalBinding');
       if (value.phase === 'ready') {
         if (value.request_binding !== null) throw Error('UnexpectedRequestBinding');
@@ -560,18 +703,18 @@ export function createModelResumeState(database, {
     } catch (error) {fail('ModelOriginalCurrentCutInvalidationCorrupt', error);}
     return value;
   }
-  function requireCutInvalidationLocked(operation, phase) {
-    const facts = requireCurrentCutFacts(operation, operation.after);
+  function requireCutInvalidationLocked(operation: CutOperation, phase: CutPhase) {
+    const facts = requireCurrentCutFacts(operation, operation.after!);
     const row = q.scopeByCid.get(operation.identity.scopeCid);
-    const record = cutInvalidationRecord(row);
+    const record = cutInvalidationRecord(row!);
     if (record === undefined || record.operation_id !== operation.operationId ||
-        record.phase !== phase || row.current_cut_invalidation_json !== operation.invalidationWire ||
+        record.phase !== phase || row!.current_cut_invalidation_json !== operation.invalidationWire ||
         record.linked_cut_wire !== operation.wire || !same(record.identity, operation.identity)) {
       fail('ModelOriginalCurrentCutUnavailable');
     }
     return {facts, record};
   }
-  function currentCutRequest(operation) {
+  function currentCutRequest(operation: CutOperation) {
     exactCurrentCutPorts(operation);
     const resource = verifier?.originalResourceCut;
     if (operation.invalidationRequest === undefined || typeof resource?.invalidationCurrent !== 'function' ||
@@ -581,7 +724,7 @@ export function createModelResumeState(database, {
     // The current-request callback may have changed Resource/Store custody.
     exactCurrentCutPorts(operation);
   }
-  function prepareCutInvalidation(reference, invalidationRequest) {
+  function prepareCutInvalidation(reference: object, invalidationRequest: unknown) {
     const operation = cutOperation(reference);
     if (operation.state !== 'linked') fail('ModelOriginalCurrentCutUnavailable');
     exactCurrentCutPorts(operation);
@@ -600,9 +743,9 @@ export function createModelResumeState(database, {
       const result = transaction.run(() => {
         const {record} = requireCutInvalidationLocked(operation, 'ready');
         const wire = cutInvalidationWire({...record, request_binding: {
-          operation_id: operation.operationId, resource_state_cid: operation.savedFacts.resourceStateCid},
+          operation_id: operation.operationId!, resource_state_cid: operation.savedFacts.resourceStateCid},
         phase: 'prepared'});
-        changed(q.updateCutInvalidation.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire));
+        changed(q.updateCutInvalidation.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire!));
         return {wire, facts: originalJournalFacts(operation.identity)};
       });
       operation.invalidationWire = result.wire; operation.after = result.facts;
@@ -610,10 +753,10 @@ export function createModelResumeState(database, {
       operation.state = 'invalidation_prepared';
       return reference;
     } catch (error) {
-      operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
+      operation.state = (error as CallerFailure).outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
     }
   }
-  function markCutInvalidationAttempted(reference) {
+  function markCutInvalidationAttempted(reference: object) {
     const operation = cutOperation(reference);
     if (operation.state !== 'invalidation_prepared') fail('ModelOriginalCurrentCutUnavailable');
     currentCutRequest(operation);
@@ -622,7 +765,7 @@ export function createModelResumeState(database, {
       const result = transaction.run(() => {
         const {record} = requireCutInvalidationLocked(operation, 'prepared');
         const wire = cutInvalidationWire({...record, phase: 'attempted'});
-        changed(q.updateCutInvalidation.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire));
+        changed(q.updateCutInvalidation.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire!));
         return {wire, facts: originalJournalFacts(operation.identity)};
       });
       operation.invalidationWire = result.wire; operation.after = result.facts;
@@ -630,10 +773,10 @@ export function createModelResumeState(database, {
       operation.state = 'invalidation_attempted';
       return reference;
     } catch (error) {
-      operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
+      operation.state = (error as CallerFailure).outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
     }
   }
-  function commitCutInvalidation(reference) {
+  function commitCutInvalidation(reference: object) {
     const operation = cutOperation(reference);
     if (operation.state !== 'invalidation_attempted') fail('ModelOriginalCurrentCutUnavailable');
     currentCutRequest(operation);
@@ -642,7 +785,7 @@ export function createModelResumeState(database, {
       const result = transaction.run(() => {
         const {record} = requireCutInvalidationLocked(operation, 'attempted');
         const wire = cutInvalidationWire({...record, phase: 'confirmed'});
-        changed(q.invalidateCut.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire));
+        changed(q.invalidateCut.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire!));
         fault('invalidateOriginalModelCurrentCut');
         return {wire, facts: originalJournalFacts(operation.identity)};
       });
@@ -655,10 +798,10 @@ export function createModelResumeState(database, {
         wire: operation.wire, after: result.facts});
       return receipt;
     } catch (error) {
-      operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
+      operation.state = (error as CallerFailure).outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
     }
   }
-  function currentCutCandidate(observation, {parkReceipt, savedReceipt} = {}) {
+  function currentCutCandidate(observation: object, {parkReceipt, savedReceipt}: CutRead = {}): CutOperation {
     const facts = originalJournalObservation(observation);
     const resource = verifier?.originalResourceCut;
     const storage = verifier?.originalStateSaved;
@@ -683,7 +826,7 @@ export function createModelResumeState(database, {
       fail('ModelOriginalCurrentCutBindingMismatch');
     }
     const originalScope = facts.scopes.find(row => row.scope_cid === facts.identity.scopeCid);
-    const fixedInput = JSON.parse(JSON.parse(originalScope.originals_json).fixedInputReceiptWire);
+    const fixedInput = JSON.parse(JSON.parse(originalScope!.originals_json).fixedInputReceiptWire);
     const cut = parkFacts.cut;
     if (!fact(cut) || cut.scope_cid !== facts.identity.scopeCid ||
         cut.input_artifact_cid !== facts.identity.inputArtifactCid ||
@@ -701,13 +844,13 @@ export function createModelResumeState(database, {
     const wire = JSON.stringify(data);
     // Existing private Model envelope, not a language-wide limit or byte fee.
     if (Buffer.byteLength(wire) > 3 * 1024 * 1024) fail('ModelOriginalCurrentCutUnavailable');
-    const operation = {identity: facts.identity, before: facts, wire,
+    const operation: CutOperation = {identity: facts.identity, before: facts, wire,
       parkReceipt, savedReceipt, parkFacts, savedFacts, state: 'prepared'};
     exactCurrentCutPorts(operation);
     transaction.run(() => requireCurrentCutFacts(operation, facts));
     return operation;
   }
-  function originalJournalPortCurrent(port) {
+  function originalJournalPortCurrent(port: object) {
     alive();
     const original = originalJournalPorts.get(port);
     if (original === undefined) fail('ForeignModelOriginalJournalPort');
@@ -715,13 +858,13 @@ export function createModelResumeState(database, {
       checked(original.identity);
       return q.scopeByCid.get(original.identity.scopeCid);
     });
-    if (row.inventory_json !== original.inventoryWire ||
-        row.originals_json !== original.originalsWire) {
+    if (row!.inventory_json !== original.inventoryWire ||
+        row!.originals_json !== original.originalsWire) {
       fail('ModelOriginalJournalPortBindingChanged');
     }
     return port;
   }
-  function originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest) {
+  function originalCutInvalidationCurrent(receipt: object, reference: object, parkReceipt: unknown, invalidationRequest: unknown) {
     const operation = cutOperation(reference);
     const original = originalCutInvalidations.get(receipt);
     if (original === undefined || original.operation !== reference ||
@@ -733,9 +876,9 @@ export function createModelResumeState(database, {
     return receipt;
   }
   const originalJournalPortSource = Object.freeze({
-    current(port, receipt, reference, parkReceipt, invalidationRequest) {
+    current(port: object, receipt: object, reference: object, parkReceipt: unknown, invalidationRequest: unknown) {
       originalJournalPortCurrent(port);
-      if (!same(cutOperation(reference).identity, originalJournalPorts.get(port).identity)) {
+      if (!same(cutOperation(reference).identity, originalJournalPorts.get(port)!.identity)) {
         fail('ModelOriginalJournalPortBindingMismatch');
       }
       return originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest);
@@ -745,7 +888,7 @@ export function createModelResumeState(database, {
     // Preserve every durable record and its validation, but keep only one row
     // in this transaction's working window. The exact keyset follows the same
     // ordering; no persistent cursor, cleanup carrier or second queue is added.
-    let previous;
+    let previous: Pick<ScopeRow, 'run_id' | 'task_index' | 'scope_cid'> | undefined;
     for (;;) {
       const row = q.cutRecords.get(previous?.run_id ?? null,
         previous?.run_id ?? null, previous?.task_index ?? 0, previous?.scope_cid ?? '');
@@ -753,13 +896,13 @@ export function createModelResumeState(database, {
       previous = {run_id: row.run_id, task_index: row.task_index, scope_cid: row.scope_cid};
       // Confirmed outcome data remains, but no longer freezes legitimate
       // subsequent Model/Run mutations. Null metadata remains legacy unknown.
-      const record = cutInvalidationRecord(row);
+      const record = cutInvalidationRecord(row!);
       if (row.current_cut_link_json === null) {
         if (record?.phase !== 'confirmed') fail('ModelOriginalCurrentCutInvalidationCorrupt');
         continue;
       }
       let link;
-      try {link = JSON.parse(row.current_cut_link_json);}
+      try {link = JSON.parse(row.current_cut_link_json as string);}
       catch (error) {fail('ModelOriginalCurrentCutCorrupt', error);}
       if (!fact(link?.originalFacts) || !scopeValid(link?.identity) ||
           link.identity.scopeCid !== row.scope_cid || link.identity.runId !== row.run_id) {
@@ -777,12 +920,12 @@ export function createModelResumeState(database, {
     // Read under the parent transaction before a generic unsent transition.
     // Every entered attempt counts, including saved outcomes; this establishes
     // a physical-start fact, never an aggregate Model completion decision.
-    hasEnteredUnderParentLocked({checkpointCid, intentId, runId}) {
+    hasEnteredUnderParentLocked({checkpointCid, intentId, runId}: MatchIntent) {
       const rows = database.prepare('SELECT inventory_json FROM resume_model_scopes WHERE run_id = ?').all(runId);
       for (const row of rows) {
-        const state = checked(JSON.parse(row.inventory_json));
+        const state = checked(JSON.parse(row.inventory_json as string));
         for (const attempt of state.attempts) {
-          const entry = JSON.parse(attempt.entry_json);
+          const entry = JSON.parse(attempt.entry_json) as Entry;
           const parent = entry.admission?.parentResumeFence;
           if (parent === undefined) continue;
           if (entry.provenance !== 'immediate' || entry.runId !== runId ||
@@ -794,18 +937,18 @@ export function createModelResumeState(database, {
       }
       return false;
     },
-    hasEnteredLocked({checkpointCid, intentId, runId, resolutionCid}) {
+    hasEnteredLocked({checkpointCid, intentId, runId, resolutionCid}: MatchIntent & {resolutionCid: string}) {
       const row = q.scope.get(checkpointCid);
       if (row === undefined) fail('ModelResumeInventoryCorrupt');
       let identity;
-      try { identity = JSON.parse(row.inventory_json); }
+      try { identity = JSON.parse(row.inventory_json as string); }
       catch (error) { fail('ModelResumeInventoryCorrupt', error); }
       if (!scopeValid(identity)) fail('ModelResumeInventoryCorrupt');
       const state = checked(identity);
       if (state.checkpointCid !== checkpointCid ||
           state.inventory.runId !== runId || !text(intentId) || !cid(resolutionCid) ||
           state.attempts.some(attempt => {
-            const entry = JSON.parse(attempt.entry_json);
+            const entry = JSON.parse(attempt.entry_json) as Entry;
             return entry.provenance === 'deferred' &&
               (entry.intentId !== intentId || entry.resolutionCid !== resolutionCid);
           })) fail('ModelResumeInventoryCorrupt');
@@ -814,21 +957,21 @@ export function createModelResumeState(database, {
     // Only used under the parent journal's transaction. These checked originals
     // select the compiled Core's Model-specific Resolution admission; no public
     // summary or caller-supplied CID can replace the retained request.
-    resolutionOriginals(checkpointCid) {
+    resolutionOriginals(checkpointCid: string) {
       const row = q.scope.get(checkpointCid);
       if (row === undefined) fail('ModelResumeInventoryCorrupt');
-      const state = checked(JSON.parse(row.inventory_json));
+      const state = checked(JSON.parse(row.inventory_json as string));
       requireNotCancelled(state.inventory);
-      return freeze(copy(state.deferred.originals));
+      return freeze(copy(state.deferred!.originals));
     },
-    grantContext(checkpointCid) {
+    grantContext(checkpointCid: string) {
       const row = q.scope.get(checkpointCid);
       if (row === undefined) fail('ModelResumeInventoryCorrupt');
-      const state = checked(JSON.parse(row.inventory_json));
+      const state = checked(JSON.parse(row.inventory_json as string));
       requireNotCancelled(state.inventory);
-      return freeze({inventory: state.deferred.inventory, originals: state.deferred.originals});
+      return freeze({inventory: state.deferred!.inventory, originals: state.deferred!.originals});
     },
-    immediateOriginals(prepared) {
+    immediateOriginals(prepared: Prepared | undefined) {
       if (prepared === undefined) fail('ModelCallInventoryRequired');
       requireNotCancelled(prepared.inventory);
       return prepared.originals;
@@ -836,7 +979,7 @@ export function createModelResumeState(database, {
     public: {
       // Safe public metadata for the exact inspected Model Checkpoint. Re-admit
       // retained originals; the requested CID selects a row, never authority.
-      modelCheckpointSummary(checkpointCid) {
+      modelCheckpointSummary(checkpointCid: string) {
         alive();
         if (!cid(checkpointCid)) fail('InvalidCheckpointReference');
         return transaction.run(() => {
@@ -847,7 +990,7 @@ export function createModelResumeState(database, {
           }
           const row = q.scope.get(checkpointCid);
           if (row === undefined) fail('ModelResumeInventoryCorrupt');
-          const state = checked(JSON.parse(row.inventory_json));
+          const state = checked(JSON.parse(row.inventory_json as string));
           const reviewProjectionCid = JSON.parse(cp.checkpoint_wire).review_projection_cid;
           if (!cid(reviewProjectionCid)) fail('ModelResumeInventoryCorrupt');
           return freeze({checkpointCid, ...select(state.inventory, ['runId',
@@ -855,28 +998,28 @@ export function createModelResumeState(database, {
             preparedInvocationCid: state.inventory.preparedInvocationCid});
         });
       },
-      readResumeCalls(identity) {
+      readResumeCalls(identity: ScopeReference) {
         alive();
         if (!cid(identity?.checkpointCid)) fail('InvalidModelResumeIdentity');
         return transaction.run(() => view(checked(identity)));
       },
-      readModelCalls(identity) {
+      readModelCalls(identity: ScopeReference) {
         alive();
         return transaction.run(() => view(checked(identity)));
       },
       // Read-only first half of original resource cut selection. The opaque
       // reference names this exact open journal, not a parked resource owner.
-      observeOriginalModelJournal(identity) {
+      observeOriginalModelJournal(identity: ScopeReference) {
         alive();
         const facts = transaction.run(() => originalJournalFacts(identity));
         const observation = Object.freeze({kind: 'original-model-journal-observation'});
         originalJournalObservations.set(observation, facts);
         return observation;
       },
-      originalModelJournalObservationFacts(observation) {
+      originalModelJournalObservationFacts(observation: object) {
         return originalJournalObservation(observation);
       },
-      installOriginalModelJournalPort(observation) {
+      installOriginalModelJournalPort(observation: object) {
         const facts = originalJournalObservation(observation);
         transaction.run(() => {
           if (!same(facts, originalJournalFacts(facts.identity))) {
@@ -893,34 +1036,34 @@ export function createModelResumeState(database, {
         // original cleanup; copied tags cannot recover nominal membership.
         const port = Object.freeze({kind: 'original-model-journal-port'});
         originalJournalPorts.set(port, {identity,
-          inventoryWire: row.inventory_json, originalsWire: row.originals_json});
+          inventoryWire: row!.inventory_json, originalsWire: row!.originals_json});
         originalJournalPortSources.set(port, new WeakRef(originalJournalPortSource));
         return port;
       },
-      originalModelJournalPortCurrent(port) {
+      originalModelJournalPortCurrent(port: object) {
         return originalJournalPortCurrent(port);
       },
-      originalModelJournalPortInvalidationCurrent(port, receipt, reference, parkReceipt, invalidationRequest) {
+      originalModelJournalPortInvalidationCurrent(port: object, receipt: object, reference: object, parkReceipt: unknown, invalidationRequest: unknown) {
         return originalJournalPortSource.current(port, receipt, reference, parkReceipt, invalidationRequest);
       },
-      prepareOriginalModelCurrentCut(observation, {parkReceipt, savedReceipt} = {}) {
+      prepareOriginalModelCurrentCut(observation: object, {parkReceipt, savedReceipt}: CutRead = {}) {
         const operation = currentCutCandidate(observation, {parkReceipt, savedReceipt});
         const reference = Object.freeze({kind: 'original-model-current-cut-operation'});
         originalCutOperations.set(reference, operation);
         return reference;
       },
-      recoverOriginalModelCurrentCut(observation, {parkReceipt, savedReceipt} = {}) {
+      recoverOriginalModelCurrentCut(observation: object, {parkReceipt, savedReceipt}: CutRead = {}) {
         const facts = originalJournalObservation(observation);
         // Select the exact existing link and all ordered Run-local facts before
         // entering installed verification ports. Absence is not an old ACK.
         const wire = transaction.run(() => {
           requireCurrentCutFacts({identity: facts.identity}, facts);
           const row = facts.scopes.find(value => value.scope_cid === facts.identity.scopeCid);
-          if (!text(row.current_cut_link_json) ||
-              Buffer.byteLength(row.current_cut_link_json) > 3 * 1024 * 1024) {
+          if (!text(row!.current_cut_link_json) ||
+              Buffer.byteLength(row!.current_cut_link_json) > 3 * 1024 * 1024) {
             fail('ModelOriginalCurrentCutUnavailable');
           }
-          return row.current_cut_link_json;
+          return row!.current_cut_link_json;
         });
         const operation = currentCutCandidate(observation, {parkReceipt, savedReceipt});
         let matches;
@@ -940,7 +1083,7 @@ export function createModelResumeState(database, {
         // This read-only reference cannot retry Unknown or issue a COMMIT ACK.
         return reference;
       },
-      commitOriginalModelCurrentCut(reference, claim) {
+      commitOriginalModelCurrentCut(reference: object, claim?: Claim) {
         const operation = cutOperation(reference);
         if (operation.state !== 'prepared') fail('ModelOriginalCurrentCutOperationAlreadyAttempted');
         exactCurrentCutPorts(operation);
@@ -949,7 +1092,7 @@ export function createModelResumeState(database, {
           const after = transaction.run(() => {
             const facts = requireCurrentCutFacts(operation, operation.before);
             const row = q.scopeByCid.get(operation.identity.scopeCid);
-            if (row.current_cut_link_json !== null || row.current_cut_invalidation_json !== null) {
+            if (row!.current_cut_link_json !== null || row!.current_cut_invalidation_json !== null) {
               fail('ModelOriginalCurrentCutUnavailable');
             }
             // Mint once only for this original fresh link. A failed/Unknown
@@ -973,19 +1116,19 @@ export function createModelResumeState(database, {
           operation.observation = issueOriginalObservation(after);
           return reference;
         } catch (error) {
-          operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed';
+          operation.state = (error as CallerFailure).outcome === 'unknown' ? 'unknown' : 'failed';
           throw error;
         }
       },
-      originalModelCurrentCutObservation(reference) {
+      originalModelCurrentCutObservation(reference: object) {
         const operation = cutOperation(reference);
         if (!['linked', 'reconciled', 'invalidation_prepared', 'invalidation_attempted'].includes(operation.state)) {
           fail('ModelOriginalCurrentCutUnavailable');
         }
-        transaction.run(() => requireCurrentCutFacts(operation, operation.after));
+        transaction.run(() => requireCurrentCutFacts(operation, operation.after!));
         return operation.observation;
       },
-      invalidateOriginalModelCurrentCut(reference, invalidationRequest) {
+      invalidateOriginalModelCurrentCut(reference: object, invalidationRequest: unknown) {
         // Compatibility entrance: each phase must actually confirm before
         // the next. A throw/Unknown stops this original operation immediately.
         prepareCutInvalidation(reference, invalidationRequest);
@@ -995,14 +1138,14 @@ export function createModelResumeState(database, {
       prepareOriginalModelCurrentCutInvalidation: prepareCutInvalidation,
       markOriginalModelCurrentCutInvalidationAttempted: markCutInvalidationAttempted,
       commitOriginalModelCurrentCutInvalidation: commitCutInvalidation,
-      originalModelCurrentCutOperationId(reference) {
+      originalModelCurrentCutOperationId(reference: object) {
         return cutOperation(reference).operationId;
       },
-      lookupOriginalModelCutInvalidation(observation, operationId) {
+      lookupOriginalModelCutInvalidation(observation: object, operationId: string) {
         const facts = originalJournalObservation(observation);
         return transaction.run(() => {
           requireCurrentCutFacts({identity: facts.identity}, facts);
-          const record = cutInvalidationRecord(q.scopeByCid.get(facts.identity.scopeCid));
+          const record = cutInvalidationRecord(q.scopeByCid.get(facts.identity.scopeCid)!);
           if (record === undefined) return Object.freeze({kind: 'legacy_unknown'});
           if (record.operation_id !== operationId) fail('ModelOriginalCurrentCutOperationIdentityMismatch');
           // Pure data only, including confirmed/null. No operation/ACK/Resource
@@ -1010,16 +1153,16 @@ export function createModelResumeState(database, {
           return freeze(copy({kind: 'observed', record}));
         });
       },
-      originalModelCurrentCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest) {
+      originalModelCurrentCutInvalidationCurrent(receipt: object, reference: object, parkReceipt: unknown, invalidationRequest: unknown) {
         return originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest);
       },
-      originalModelCurrentCutOperationStatus(reference) {
+      originalModelCurrentCutOperationStatus(reference: object) {
         return Object.freeze({state: cutOperation(reference).state});
       },
       // Pure data projection outside any SQLite commit/approval boundary. The
       // configured Common port is installation-owned; it neither verifies
       // Store custody nor creates resource park/restore/send permission.
-      originalModelJournalDataIdentities(observation) {
+      originalModelJournalDataIdentities(observation: object) {
         const facts = originalJournalObservation(observation);
         transaction.run(() => {
           if (!same(facts, originalJournalFacts(facts.identity))) {
@@ -1045,7 +1188,7 @@ export function createModelResumeState(database, {
       },
       // After an await, compare all original storage facts, not Run.version
       // alone. Even a match proves no resource freeze or committed cut link.
-      reconfirmOriginalModelJournal(observation) {
+      reconfirmOriginalModelJournal(observation: object) {
         const before = originalJournalObservation(observation);
         transaction.run(() => {
           const after = originalJournalFacts(before.identity);
@@ -1053,7 +1196,7 @@ export function createModelResumeState(database, {
         });
         return observation;
       },
-      readModelAttemptOriginals(reference) {
+      readModelAttemptOriginals(reference: EntryReference) {
         alive();
         return transaction.run(() => {
           const state = checked(reference);
@@ -1065,7 +1208,7 @@ export function createModelResumeState(database, {
       // The original Run and full inventory are already durable. A fresh
       // decision and prepared execution owner cross the trusted port unchanged.
       // Call the provider immediately after return, without any intervening await.
-      enterImmediateModelCall(reference, {decision, preparedCallSet, parentResume} = {}) {
+      enterImmediateModelCall(reference: Enter, {decision, preparedCallSet, parentResume}: EnterImmediate = {}) {
         alive();
         return transaction.run(() => {
           if (deferredKeys.some(key => Object.hasOwn(reference, key))) fail('ModelImmediateProvenanceMismatch');
@@ -1083,7 +1226,7 @@ export function createModelResumeState(database, {
           } else if (status !== 'running' || parentResume !== undefined) {
             fail('ModelImmediateRunNotRunning');
           }
-          if (at >= Date.parse(state.inventory.runValidUntil)) fail('ModelRunExpired');
+          if (at >= Date.parse(state.inventory.runValidUntil!)) fail('ModelRunExpired');
           const {binding} = slotForEntry(state, reference);
           const grant = immediateAdmission(verifier?.admitImmediateEntry, decision, preparedCallSet, {
             inventory: state.inventory, originals: state.originals, slot: binding,
@@ -1109,7 +1252,7 @@ export function createModelResumeState(database, {
               generation: parentAdmission.generation, claimant: parentAdmission.claimant}})}, 'enterImmediateModelCall');
         });
       },
-      enterResumedCall(claim, reference) {
+      enterResumedCall(claim: Claim, reference: Enter & Deferred) {
         alive();
         return transaction.run(() => {
           const state = checked(reference);
@@ -1124,21 +1267,21 @@ export function createModelResumeState(database, {
               admission.requiredArtifactCid !== state.inventory.scopeCid ||
               reference.resolutionCid !== admission.resolutionCid ||
               claim.runId !== state.inventory.runId) fail('ModelResumeIdentityMismatch');
-          const modelGrantExpiresAt = confirmEntryGrant(state.deferred.originals,
-            state.deferred.inventory, admission, at);
+          const modelGrantExpiresAt = confirmEntryGrant(state.deferred!.originals,
+            state.deferred!.inventory, admission, at);
           return appendEntered(state, reference, {...admission, provenance: 'deferred', modelGrantExpiresAt},
             'enterResumedCall');
         });
       },
       // Both paths repair Store-committed / marker-missing crashes from exact
       // historical receipts. Neither checks current permission or allows a send.
-      observeResumedCall: reference => observeCall(reference, 'deferred', 'observeResumedCall'),
-      observeImmediateModelCall: reference => observeCall(reference, 'immediate', 'observeImmediateModelCall'),
+      observeResumedCall: (reference: EntryReference) => observeCall(reference, 'deferred', 'observeResumedCall'),
+      observeImmediateModelCall: (reference: EntryReference) => observeCall(reference, 'immediate', 'observeImmediateModelCall'),
       // This is the controller's first cancellation commit, before its request
       // journal write. No Run row is required; registration and every later
       // entry consult this same SQLite transaction domain. The controller must
       // acknowledge cancellation only after both journals are durably updated.
-      modelCancellationFenced(runId, runDefinitionCid) {
+      modelCancellationFenced(runId: string, runDefinitionCid: string) {
         alive();
         if (!text(runId) || !cid(runDefinitionCid)) fail('InvalidModelRunIdentity');
         return transaction.run(() => {
@@ -1149,7 +1292,7 @@ export function createModelResumeState(database, {
           return owner.runId === runId && owner.runDefinitionCid === runDefinitionCid;
         });
       },
-      fenceRunCancellation({originalRunWire}) {
+      fenceRunCancellation({originalRunWire}: Pick<Originals, 'originalRunWire'>) {
         alive();
         const owner = admittedOwner(originalRunWire);
         return transaction.run(() => {
@@ -1160,7 +1303,7 @@ export function createModelResumeState(database, {
             return freeze({...owner, outcome: 'already_requested'});
           }
           for (const row of database.prepare('SELECT inventory_json FROM resume_model_scopes WHERE run_id = ?').all(owner.runId)) {
-            if (!same(select(JSON.parse(row.inventory_json), ownerKeys), owner)) fail('ModelRunIdentityMismatch');
+            if (!same(select(JSON.parse(row.inventory_json as string), ownerKeys), owner)) fail('ModelRunIdentityMismatch');
           }
           q.insertCancel.run(owner.runId, JSON.stringify(owner), originalRunWire, iso(now()));
           fault('fenceRunCancellation');

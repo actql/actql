@@ -90445,7 +90445,7 @@
     {
       "module": "adapters/host-node/model-resume-state.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "a1167f46fc114cf83e815801243af2429b58136e3901ccaef8b4079c89a63864",
+      "sha256": "5de640050997bca08b2e75ae096c045eeaefc1d0a8c3b4085ce610f7dcf15728",
       "role": "physical-io",
       "owner": "Existing Model/Resource/Checkpoint Owners and original installation/physical custody",
       "exports": [
@@ -91229,8 +91229,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
-                "anchor": "export function assertOriginalModelJournalInvalidation(port, receipt, reference, park, request) {"
+                "path": "adapters/host-node/model-resume-state.mts",
+                "anchor": "export function assertOriginalModelJournalInvalidation(port: object, receipt: object, reference: object, park: unknown, request: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -91243,8 +91243,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
-                "anchor": "export function assertOriginalModelJournalInvalidation(port, receipt, reference, park, request) {"
+                "path": "adapters/host-node/model-resume-state.mts",
+                "anchor": "export function assertOriginalModelJournalInvalidation(port: object, receipt: object, reference: object, park: unknown, request: unknown) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -91257,7 +91257,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "// Storage facts for a fixed Model invocation scope. Core/physical-owner ports"
               },
               {
@@ -91271,7 +91271,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "// Storage facts for a fixed Model invocation scope. Core/physical-owner ports"
               },
               {
@@ -91285,8 +91285,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
-                "anchor": "export function assertOriginalModelJournalInvalidation(port, receipt, reference, park, request) {"
+                "path": "adapters/host-node/model-resume-state.mts",
+                "anchor": "export function assertOriginalModelJournalInvalidation(port: object, receipt: object, reference: object, park: unknown, request: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -91299,7 +91299,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "if (source === undefined) fail('ForeignModelOriginalJournalPort');"
               },
               {
@@ -91327,7 +91327,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "// schedules work, classifies a failure, or supplies authorization policy."
               },
               {
@@ -91341,7 +91341,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "// Private installation handles belong to this exact journal. They retain"
               },
               {
@@ -91377,8 +91377,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
-                "anchor": "export function assertOriginalModelJournalInvalidation(port, receipt, reference, park, request) {"
+                "path": "adapters/host-node/model-resume-state.mts",
+                "anchor": "export function assertOriginalModelJournalInvalidation(port: object, receipt: object, reference: object, park: unknown, request: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -91391,8 +91391,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
-                "anchor": "export function assertOriginalModelJournalInvalidation(port, receipt, reference, park, request) {"
+                "path": "adapters/host-node/model-resume-state.mts",
+                "anchor": "export function assertOriginalModelJournalInvalidation(port: object, receipt: object, reference: object, park: unknown, request: unknown) {"
               },
               {
                 "path": "src/model_execution/pkg.generated.mbti",
@@ -91405,7 +91405,7 @@
             ],
             "identity": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "// Storage facts for a fixed Model invocation scope. Core/physical-owner ports"
               },
               {
@@ -91419,7 +91419,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "// Storage facts for a fixed Model invocation scope. Core/physical-owner ports"
               },
               {
@@ -91433,8 +91433,8 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
-                "anchor": "export function assertOriginalModelJournalInvalidation(port, receipt, reference, park, request) {"
+                "path": "adapters/host-node/model-resume-state.mts",
+                "anchor": "export function assertOriginalModelJournalInvalidation(port: object, receipt: object, reference: object, park: unknown, request: unknown) {"
               },
               {
                 "path": "docs/design/model-original-state-storage.md",
@@ -91447,7 +91447,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "if (source === undefined) fail('ForeignModelOriginalJournalPort');"
               },
               {
@@ -91475,7 +91475,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "// schedules work, classifies a failure, or supplies authorization policy."
               },
               {
@@ -91489,7 +91489,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/model-resume-state.mjs",
+                "path": "adapters/host-node/model-resume-state.mts",
                 "anchor": "// Private installation handles belong to this exact journal. They retain"
               },
               {

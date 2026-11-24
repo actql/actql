@@ -3232,3 +3232,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-infer-run.d.mts
 /adapters/host-node/model-resume-sqlite.mjs
 /adapters/host-node/model-resume-sqlite.d.mts
+/adapters/host-node/model-resume-state.mjs
+/adapters/host-node/model-resume-state.d.mts

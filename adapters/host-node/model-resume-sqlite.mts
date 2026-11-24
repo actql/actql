@@ -2,7 +2,7 @@ import type {DatabaseSync, SQLInputValue, StatementSync} from 'node:sqlite';
 
 type SlotState = 'Unsent' | AttemptState;
 type AttemptState = 'EnteredUnknown' | 'SavedSuccess' | 'SavedFailure';
-type ScopeRow = Readonly<{
+export type ScopeRow = Readonly<{
   checkpoint_cid: string | null;
   run_id: string; scope_cid: string; task_index: number; strategy_revision: number;
   inventory_json: string; originals_json: string; slot_count: number; registered_at: string;
@@ -10,11 +10,11 @@ type ScopeRow = Readonly<{
   checkpoint_inventory_json: string; checkpoint_originals_json: string;
   current_cut_link_json: string | null; current_cut_invalidation_json: string | null;
 }>;
-type SlotRow = Readonly<{
+export type SlotRow = Readonly<{
   scope_cid: string; ordinal: number; slot_cid: string; binding_json: string;
   state: SlotState; attempt_index: number;
 }>;
-type AttemptRow = Readonly<{
+export type AttemptRow = Readonly<{
   scope_cid: string; ordinal: number; attempt_index: number; attempt_cid: string; entry_json: string;
   attempt_wire: string; authority_wire: string; state: AttemptState; settlement_json: string;
   entered_at: string; settled_at: string;
