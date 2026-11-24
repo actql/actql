@@ -7,6 +7,7 @@ import {readFileSync, realpathSync} from 'node:fs';
 import {join} from 'node:path';
 import {normalizeMoonGraph} from './ci-moon-test-plan.mjs';
 import {tokens} from './portable-core.mjs';
+import {nativeCorePhysicalDirectories} from './native-core-test-selection.mjs';
 
 // MoonBit declares a foreign function only as `extern "<abi>" fn`. An unknown
 // ABI is refused rather than treated as portable.
@@ -19,17 +20,20 @@ function declaresNativeFunction(sources) {
   return native;
 }
 
-export function partitionNativeCorePlatformPackages(graph, readManifest, readSources) {
+export function partitionNativeCorePlatformPackages(graph, readManifest, readSources,
+  physicalDirectories = nativeCorePhysicalDirectories) {
   const direct = new Set();
   for (const pkg of graph.packages) {
     const metadata = tokens(readManifest(pkg.path));
-    // Explicit C stubs, and command/platform packages that declare a C
-    // function themselves, retain Darwin. Keep their complete source/test
+    // Explicit C stubs, command/platform packages that declare a C function
+    // themselves, and packages with a case that needs a physical fixture
+    // retain Darwin. Keep their complete source/test
     // importers as a distinct compiler-owned group for the matching Linux
     // ordinary profile. Neither a linker override nor a command/platform path
     // alone owns platform code: such a package only uses what it imports, so
     // it is classified by its imports like any other.
     if (metadata.some(token => token.value === 'native-stub') ||
+        physicalDirectories.includes(pkg.path) ||
         (/^src\/(?:platform_native|cmd)(?:\/|$)/u.test(pkg.path) &&
           declaresNativeFunction(readSources(pkg.path)))) {
       direct.add(pkg.name);
