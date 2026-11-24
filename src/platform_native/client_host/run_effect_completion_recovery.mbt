@@ -127,9 +127,9 @@ fn NativeClientRunJournal::recover_file_effect_members_locked(
 }
 
 ///|
-/// Settle only the original already committed File publication. The cold
-/// continuation confirms the durable dispatches and responses, then the exact
-/// stored publication Request/attempt and Results, before taking a lease.
+/// Settle the original File publication without another compute or dispatch.
+/// The cold continuation checks the durable responses and Result custody. A
+/// prepared index requires a live original claim before it can become public.
 pub fn NativeLocalEffectResumeOriginal::settle_recovered_file_effect_in_original_read(
   self : Self,
   publisher : NativeLocalPublisherBinding,
@@ -147,15 +147,6 @@ pub fn NativeLocalEffectResumeOriginal::settle_recovered_file_effect_in_original
   let original = match self.application_original_in_original_read() {
     Ok(value) => value
     Err(issue) => return Err(Original(issue))
-  }
-  let service = match
-    self.saved_publication_service(
-      publisher,
-      publisher.store,
-      publisher.namespace_id,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
   }
   match self.prepare_saved_publication_construction_in_original_read() {
     Ok(_) => ()
@@ -210,7 +201,7 @@ pub fn NativeLocalEffectResumeOriginal::settle_recovered_file_effect_in_original
   let definition = original.materials.run_definition
   let definition_cid = @publication.publication_contract_identity(definition)
   let scope = @host.client_request_authority_scope_cid(self.request)
-  let index = match
+  let committed = match
     store.inspect_committed_publication(
       publisher.namespace_id,
       scope,
@@ -219,32 +210,77 @@ pub fn NativeLocalEffectResumeOriginal::settle_recovered_file_effect_in_original
       limits.max_nodes,
       limits.max_depth,
     ) {
-    Ok(Some(value)) => value
-    Ok(None) => return Err(Construction)
-    Err(issue) => return Err(Service(@native_publication.Store(issue)))
-  }
-  guard @publication.project_public_index_read(index) is Ok(projected) &&
-    projected.namespace_id == publisher.namespace_id &&
-    projected.authority_scope_cid == scope &&
-    projected.run_definition_cid == definition_cid &&
-    @publication.public_index_run_observation_cids(index)
-    is Ok((receipt_cid, captured_cid)) &&
-    captured_cid ==
-    @publication.publication_contract_identity(original.captured) else {
-    return Err(Construction)
-  }
-  let receipt = match
-    store.read_publication_contract("run_receipt", receipt_cid) {
     Ok(value) => value
     Err(issue) => return Err(Service(@native_publication.Store(issue)))
   }
-  let request = match
-    store.read_publication_contract(
-      "publication_request",
-      projected.publication_request_cid,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Service(@native_publication.Store(issue)))
+  let (receipt, request, prepared, bindings, schemas) = match committed {
+    Some(index) => {
+      guard @publication.project_public_index_read(index) is Ok(projected) &&
+        projected.namespace_id == publisher.namespace_id &&
+        projected.authority_scope_cid == scope &&
+        projected.run_definition_cid == definition_cid &&
+        @publication.public_index_run_observation_cids(index)
+        is Ok((receipt_cid, captured_cid)) &&
+        captured_cid ==
+        @publication.publication_contract_identity(original.captured) else {
+        return Err(Construction)
+      }
+      let receipt = match
+        store.read_publication_contract("run_receipt", receipt_cid) {
+        Ok(value) => value
+        Err(issue) => return Err(Service(@native_publication.Store(issue)))
+      }
+      let request = match
+        store.read_publication_contract(
+          "publication_request",
+          projected.publication_request_cid,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(Service(@native_publication.Store(issue)))
+      }
+      let (bindings, schemas) = match
+        recover_committed_file_effect_bindings(
+          store,
+          original,
+          projected.durable_result_binding_cids,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      (receipt, request, None, bindings, schemas)
+    }
+    None => {
+      let prepared = match
+        store.inspect_prepared_effectful_publication(
+          publisher.namespace_id,
+          scope,
+          definition_cid,
+          limits.max_wire_bytes,
+          limits.max_nodes,
+          limits.max_depth,
+        ) {
+        Ok(Some(value)) => value
+        Ok(None) =>
+          return Err(
+            Service(
+              @native_publication.Store(@publication_store.RecoveryRequired),
+            ),
+          )
+        Err(issue) => return Err(Service(@native_publication.Store(issue)))
+      }
+      let bindings = match
+        recover_prepared_file_effect_bindings(publisher, original, prepared) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      (
+        prepared.receipt,
+        prepared.request,
+        Some(prepared),
+        bindings,
+        original.schema_wires,
+      )
+    }
   }
   guard @publication.project_publication_request_context(request) is Ok(context) &&
     context.namespace_id == publisher.namespace_id &&
@@ -254,32 +290,6 @@ pub fn NativeLocalEffectResumeOriginal::settle_recovered_file_effect_in_original
     context.publication_target_cid == publisher.target_cid &&
     @publication.publication_request_requested_at(request) is Some(requested_at) else {
     return Err(Construction)
-  }
-  let bindings : Array[@publication.PublicationContract] = []
-  let schemas : Array[String] = []
-  for cid in projected.durable_result_binding_cids {
-    match store.read_publication_contract("durable_result_binding", cid) {
-      Ok(value) => {
-        guard @publication.project_durable_result_binding_read(value)
-          is Ok(facts) else {
-          return Err(Construction)
-        }
-        let schema = for ordinal in 0..<original.schema_originals.length() {
-          if @publication.captured_effect_dependency_body_cid(
-              original.schema_originals[ordinal],
-            ) ==
-            facts.result_schema_cid {
-            break Some(original.schema_wires[ordinal])
-          }
-        } nobreak {
-          None
-        }
-        guard schema is Some(wire) else { return Err(Construction) }
-        bindings.push(value)
-        schemas.push(wire)
-      }
-      Err(issue) => return Err(Service(@native_publication.Store(issue)))
-    }
   }
   let final_evidence = match
     @publication.admit_retained_effectful_final_run_evidence(
@@ -317,31 +327,88 @@ pub fn NativeLocalEffectResumeOriginal::settle_recovered_file_effect_in_original
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
+  let evidence : @native_publication.NativeEffectfulPublicationEvidence = {
+    final_evidence,
+    run_definition: definition,
+    invocation: original.invocation,
+    definitions: original.definitions,
+    artifacts: original.artifacts,
+    derivations: original.derivations,
+    orderings: original.orderings,
+    retentions: original.retentions,
+    bindings,
+    binding_schema_wires: schemas,
+    manifest: original.manifest,
+    receipt,
+    captured_run: original.captured,
+  }
+  let intent : @native_publication.NativeRunPublicationIntent = {
+    namespace_id: publisher.namespace_id,
+    authority_scope_cid: scope,
+    publication_policy_cid: publisher.policy_cid,
+    publication_target_cid: publisher.target_cid,
+    requested_at,
+  }
+  let service = match
+    self.saved_publication_service(
+      publisher,
+      store,
+      publisher.namespace_id,
+      recover_prepared=prepared is Some(_),
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if prepared is Some(original_preparation) {
+    let attempt = original_preparation.attempt
+    let index = match
+      @publication.issue_public_index_entry(
+        definition,
+        original.invocation,
+        original.manifest,
+        receipt,
+        original.captured,
+        bindings,
+        request,
+        attempt,
+        original_preparation.committed_at,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+      ) {
+      Ok(value) => value
+      Err(issue) => return Err(Service(@native_publication.Issuance(issue)))
+    }
+    match
+      self.claim_for_recovered_file_publication(
+        publisher,
+        expected_revision=Some(self.record.revision),
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    guard self.action is Some(Claimed(claim)) else { return Err(Construction) }
+    match
+      @native_publication.commit_recovered_effectful_index_native(
+        service,
+        evidence,
+        intent,
+        request,
+        attempt,
+        index,
+        () => {
+          @env.now().reinterpret_as_int64() < claim.original_lease_expires_ms
+        },
+      ) {
+      Ok(_) => ()
+      Err(issue) => return Err(Service(issue))
+    }
+  }
   let candidate = match
     @native_publication.prepare_recovered_effectful_run_state_candidate(
       service,
-      {
-        final_evidence,
-        run_definition: definition,
-        invocation: original.invocation,
-        definitions: original.definitions,
-        artifacts: original.artifacts,
-        derivations: original.derivations,
-        orderings: original.orderings,
-        retentions: original.retentions,
-        bindings,
-        binding_schema_wires: schemas,
-        manifest: original.manifest,
-        receipt,
-        captured_run: original.captured,
-      },
-      {
-        namespace_id: publisher.namespace_id,
-        authority_scope_cid: scope,
-        publication_policy_cid: publisher.policy_cid,
-        publication_target_cid: publisher.target_cid,
-        requested_at,
-      },
+      evidence,
+      intent,
       request,
       observed_at,
       limits.max_nodes,
@@ -360,19 +427,140 @@ pub fn NativeLocalEffectResumeOriginal::settle_recovered_file_effect_in_original
     (Ok(_), Err(issue)) => return Err(Observation(Candidate(issue)))
     (Ok(value), Ok(_)) => value
   }
+  if prepared is None {
+    match self.claim_for_recovered_file_publication(publisher) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  self.settle_saved_publication_in_original_read(
+    observed,
+    members,
+    @env.now().to_double(),
+  )
+}
+
+///|
+fn recover_committed_file_effect_bindings(
+  store : @publication_store.Store,
+  original : NativeLocalSavedEffectApprovalOriginal,
+  binding_cids : Array[String],
+) -> Result[
+  (Array[@publication.PublicationContract], Array[String]),
+  NativeLocalSavedEffectPublicationIssue,
+] {
+  let bindings : Array[@publication.PublicationContract] = []
+  let schemas : Array[String] = []
+  for cid in binding_cids {
+    match store.read_publication_contract("durable_result_binding", cid) {
+      Ok(value) => {
+        guard @publication.project_durable_result_binding_read(value)
+          is Ok(facts) else {
+          return Err(Construction)
+        }
+        let schema = for ordinal in 0..<original.schema_originals.length() {
+          if @publication.captured_effect_dependency_body_cid(
+              original.schema_originals[ordinal],
+            ) ==
+            facts.result_schema_cid {
+            break Some(original.schema_wires[ordinal])
+          }
+        } nobreak {
+          None
+        }
+        guard schema is Some(wire) else { return Err(Construction) }
+        bindings.push(value)
+        schemas.push(wire)
+      }
+      Err(issue) => return Err(Service(@native_publication.Store(issue)))
+    }
+  }
+  Ok((bindings, schemas))
+}
+
+///|
+fn recover_prepared_file_effect_bindings(
+  publisher : NativeLocalPublisherBinding,
+  original : NativeLocalSavedEffectApprovalOriginal,
+  prepared : @publication_store.NativePreparedFilePublication,
+) -> Result[
+  Array[@publication.PublicationContract],
+  NativeLocalSavedEffectPublicationIssue,
+] {
+  let count = @publication.retained_effectful_computation_result_count(
+    original.computation,
+  )
+  if prepared.material_generations.length() != count ||
+    original.definitions.length() != count {
+    return Err(Construction)
+  }
+  let limits = original.wire_limits
+  let bindings = []
+  for ordinal, generation in prepared.material_generations {
+    guard @publication.retained_effectful_computation_result_at(
+        original.computation,
+        ordinal,
+      )
+      is Some(snapshot) &&
+      original.schema_originals.get(ordinal) is Some(schema_original) else {
+      return Err(Construction)
+    }
+    let payload = match publisher.store.inspect_payload(generation) {
+      Ok(value) => value
+      Err(@publication_store.Database(@sqlite.NotFound)) =>
+        return Err(
+          Service(
+            @native_publication.Store(@publication_store.RecoveryRequired),
+          ),
+        )
+      Err(issue) => return Err(Service(@native_publication.Store(issue)))
+    }
+    let (_, _, _, _, bytes) = @publication.captured_result_snapshot_payload_identity(
+      snapshot,
+    )
+    let binding = match
+      @native_publication.bind_sealed_effectful_result_snapshot_native(
+        snapshot,
+        {
+          run_definition: original.materials.run_definition,
+          invocation: original.invocation,
+          retention: original.retentions[ordinal],
+          publication_attempt: prepared.attempt,
+          store_authority_cid: publisher.target_cid,
+          material_generation_cid: generation,
+          max_payload_bytes: bytes.to_int64(),
+        },
+        original.orderings[ordinal],
+        original.schema_wires[ordinal],
+        original.codec_cids[ordinal],
+        payload,
+        limits.max_wire_bytes,
+        limits.max_nodes,
+        limits.max_depth,
+        schema_original=Some(schema_original),
+      ) {
+      Ok(value) => value
+      Err(_) => return Err(Construction)
+    }
+    bindings.push(binding)
+  }
+  Ok(bindings)
+}
+
+///|
+fn NativeLocalEffectResumeOriginal::claim_for_recovered_file_publication(
+  self : Self,
+  publisher : NativeLocalPublisherBinding,
+  expected_revision? : Int64? = None,
+) -> Result[Unit, NativeLocalSavedEffectPublicationIssue] {
   let claimed = publisher.with_original_journal_read((host, _) => {
     if !physical_equal(host, self.host) {
       return Err(SelectionMismatch)
     }
-    Ok(self.claim_original_resume(30000L))
+    Ok(self.claim_original_resume(30000L, expected_revision~))
   })
   match claimed {
-    Ok(Ok(Claimed(_))) =>
-      self.settle_saved_publication_in_original_read(
-        observed,
-        members,
-        @env.now().to_double(),
-      )
+    Ok(Ok(Claimed(_))) => Ok(())
     Ok(Ok(_)) => Err(Construction)
     Ok(Err(issue)) => Err(Original(issue))
     Err(issue) => Err(Publisher(issue))
