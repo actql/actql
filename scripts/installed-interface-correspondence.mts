@@ -123,16 +123,17 @@ export function installedDeclarationEmits(repository: string, source: string, me
 
 // Runtime paths remain package identities. For emitted members, derive the
 // expected bytes from the selected Git source and the same compiler options
-// as preparation. The working .mjs is never an input to this derivation.
+// as preparation. The working .mjs or .cjs is never an input to this derivation.
 function installedOriginalBytes(repository: string, source: string, selected: readonly string[]) {
   const {git, blob} = originalGitInputs(repository, source);
-  const runtimePaths = [...new Set(selected.filter(path => path.endsWith('.mjs')))];
-  const authoredPath = (path: string) => path.slice(0, -4) + '.mts';
+  const runtimeEmit = /\.[cm]js$/u;
+  const runtimePaths = [...new Set(selected.filter(path => runtimeEmit.test(path)))];
+  const authoredPath = (path: string) => path.slice(0, -2) + 'ts';
   let tracked: Set<string> | undefined, config: ts.ParsedCommandLine | undefined, included: Set<string> | undefined;
   return (path: string) => {
     try { return blob(path); }
     catch (error) {
-      if (!path.endsWith('.mjs') || (error as {status?: number}).status !== 128) throw error;
+      if (!runtimeEmit.test(path) || (error as {status?: number}).status !== 128) throw error;
       tracked ??= new Set(git(['--literal-pathspecs', 'ls-tree', '-r', '--name-only', '-z',
         source, '--', ...runtimePaths, ...runtimePaths.map(authoredPath)]).toString('utf8').split('\0'));
       if (tracked.has(path) || !tracked.has(authoredPath(path))) throw error;

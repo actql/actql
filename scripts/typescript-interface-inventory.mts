@@ -178,9 +178,12 @@ export function typescriptInterfaceInputs(root: string, entrances: readonly stri
     const bytes = readFileSync(path), syntax = typescriptInterface(bytes.toString('utf8'), path);
     modules.set(module, {module, sha256: createHash('sha256').update(bytes).digest('hex'), ...syntax});
     for (const specifier of syntax.imports) {
+      const local = specifier.startsWith('.');
       const result = ts.resolveModuleName(specifier, path, options(path), ts.sys).resolvedModule;
-      if (result && !result.isExternalLibraryImport) pending.push(result.resolvedFileName);
-      else if (specifier.startsWith('.')) assert.fail(`Unresolved TypeScript interface dependency: ${module}:${specifier}`);
+      // TypeScript also sets this flag on relative edges inside node_modules.
+      // The same realpath containment check still applies to every local edge.
+      if (result && (local || !result.isExternalLibraryImport)) pending.push(result.resolvedFileName);
+      else if (local) assert.fail(`Unresolved TypeScript interface dependency: ${module}:${specifier}`);
       else {
         assert(!Object.keys(options(path).paths ?? {}).some(pattern => pattern.includes('*')
           ? specifier.startsWith(pattern.split('*')[0]) && specifier.endsWith(pattern.split('*')[1]) : pattern === specifier),
