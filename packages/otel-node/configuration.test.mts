@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {observationConfiguration, managedLimits} from './configuration.mjs';
 
+type Options = NonNullable<Parameters<typeof observationConfiguration>[0]>;
+
 test('generic endpoint enables traces only and explicit false overrides it', () => {
   assert.deepEqual(observationConfiguration({endpoint: 'https://collector.invalid/otlp'}).signals,
     {traces: {endpoint: 'https://collector.invalid/otlp/v1/traces', sampleRate: 1}});
@@ -21,7 +23,7 @@ test('unsupported hosts, protocols and implicit destinations are explicit errors
     {traces: {endpoint: 'http://localhost', sampleRate: NaN}},
     {revision: 'SECRET '.repeat(1000)}, {scope: 'invalid space'},
     {include: ['run', 'run']}, {projectionLimits: {queueRecords: 99999}}]) {
-    assert.throws(() => observationConfiguration(options), TypeError);
+    assert.throws(() => observationConfiguration(options as Options), TypeError);
   }
 });
 
@@ -36,10 +38,10 @@ test('adopted selections validate before SDK construction and exclusions win', (
     {measurements: {include: ['cost']}}, {measurements: {include: ['duration', 'duration']}},
     {attributes: {exclude: ['unregistered']}}, {attributes: {include: []}},
     {correlation: {include: ['credentials']}}, {events: {level: 'raw'}}]) {
-    assert.throws(() => observationConfiguration(options), TypeError);
+    assert.throws(() => observationConfiguration(options as Options), TypeError);
   }
   assert.equal(observationConfiguration({endpoint: 'https://collector.invalid/v1/traces'})
-    .signals.traces.endpoint, 'https://collector.invalid/v1/traces');
+    .signals.traces!.endpoint, 'https://collector.invalid/v1/traces');
 });
 
 test('Resource filtering and authentication headers are bounded and never broaden propagation', () => {
@@ -54,16 +56,16 @@ test('Resource filtering and authentication headers are bounded and never broade
     attributes: {exclude: ['service.version']}}).resource, {'service.name': 'public'});
   assert.equal(reads, 0);
   assert.equal(observationConfiguration({traces: {endpoint: 'https://collector.invalid',
-    headers: {Authorization: 'Bearer secret'}}}).signals.traces.headers.Authorization, 'Bearer secret');
+    headers: {Authorization: 'Bearer secret'}}}).signals.traces!.headers!.Authorization, 'Bearer secret');
   for (const headers of [{traceparent: 'secret'}, {'content-length': '99'},
-    {authorization: 'line\r\nbreak'}, {authorization: 'x'.repeat(1025)}]) {
+    {authorization: 'line\r\nbreak'}, {authorization: 'x'.repeat(1025)}] as Record<string, string>[]) {
     assert.throws(() => observationConfiguration({traces: {endpoint: 'http://localhost', headers}}), TypeError);
   }
 });
 
 test('application providers never implicitly select managed transport', () => {
-  assert.equal(observationConfiguration({tracerProvider: {getTracer() {}}}).applicationOwned, true);
-  assert.throws(() => observationConfiguration({tracerProvider: {getTracer() {}},
+  assert.equal(observationConfiguration({tracerProvider: {getTracer() {}} as unknown as NonNullable<Options['tracerProvider']>}).applicationOwned, true);
+  assert.throws(() => observationConfiguration({tracerProvider: {getTracer() {}} as unknown as NonNullable<Options['tracerProvider']>,
     endpoint: 'http://localhost'}), TypeError);
-  assert.throws(() => observationConfiguration({meterProvider: {}}), TypeError);
+  assert.throws(() => observationConfiguration({meterProvider: {} as NonNullable<Options['meterProvider']>}), TypeError);
 });

@@ -1,6 +1,6 @@
 // Explicit, bounded standalone configuration. Embedded application providers
 // never inherit an environment overlay, and this module registers no globals.
-import type {NodeHostObservationOptions} from './index.js';
+import type {NodeHostObservationOptions} from './index.mjs';
 import type {Signal} from './configuration.mjs';
 
 type Options = NodeHostObservationOptions;

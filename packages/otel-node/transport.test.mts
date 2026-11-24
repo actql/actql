@@ -5,18 +5,20 @@ import {once} from 'node:events';
 import {createBoundedOtlpSender} from './transport.mjs';
 import {managedLimits} from './configuration.mjs';
 
+import type {AddressInfo} from 'node:net';
+
 test('managed transport caps bytes and records and retains slot until close', async t => {
-  const bodies = [];
+  const bodies: Buffer[] = [];
   const server = createServer(async (request, response) => {
     assert.equal(request.headers['content-type'], 'application/x-protobuf');
-    const chunks = [];
+    const chunks: Buffer[] = [];
     for await (const chunk of request) chunks.push(chunk);
     bodies.push(Buffer.concat(chunks));
     response.end();
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => new Promise(resolve => server.close(resolve)));
-  const sender = createBoundedOtlpSender(`http://127.0.0.1:${server.address().port}/v1/traces`,
+  t.after(() => new Promise<Error | undefined>(resolve => server.close(resolve)));
+  const sender = createBoundedOtlpSender(`http://127.0.0.1:${(server.address() as AddressInfo).port}/v1/traces`,
     {...managedLimits, payloadBytes: 3, windowRecords: 1});
   await assert.rejects(sender.send(new Uint8Array(4)), {message: 'ObservationSenderLimited'});
   await sender.send(new Uint8Array([1, 2, 3]));
@@ -31,8 +33,8 @@ test('hung response times out physically without retry and shutdown releases sen
   let calls = 0;
   const server = createServer(() => { calls++; }).listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); });
-  const sender = createBoundedOtlpSender(`http://127.0.0.1:${server.address().port}/v1/logs`,
+  t.after(() => { server.closeAllConnections(); return new Promise<Error | undefined>(resolve => server.close(resolve)); });
+  const sender = createBoundedOtlpSender(`http://127.0.0.1:${(server.address() as AddressInfo).port}/v1/logs`,
     {...managedLimits, exportTimeoutMs: 30});
   await assert.rejects(sender.send(new Uint8Array([1])), {message: 'ObservationExportFailed'});
   assert.equal(calls, 1);
@@ -47,8 +49,8 @@ test('oversized acknowledgement and HTTP errors cannot be reported as exported',
     response.end(Buffer.alloc(5));
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); });
-  const sender = createBoundedOtlpSender(`http://127.0.0.1:${server.address().port}/v1/metrics`,
+  t.after(() => { server.closeAllConnections(); return new Promise<Error | undefined>(resolve => server.close(resolve)); });
+  const sender = createBoundedOtlpSender(`http://127.0.0.1:${(server.address() as AddressInfo).port}/v1/metrics`,
     {...managedLimits, responseBytes: 4});
   await assert.rejects(sender.send(new Uint8Array([1])), {message: 'ObservationExportFailed'});
   assert.equal(sender.status().sent, 0);

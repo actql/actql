@@ -279,11 +279,11 @@
             ],
             "failure": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "trace export failure does not disable logs or metrics or change execution"
               },
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "HTTP errors cannot be reported as exported"
               }
             ],
@@ -302,25 +302,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -425,7 +425,7 @@
             ],
             "failure": [
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "without leaking diagnostics"
               }
             ],
@@ -444,25 +444,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -471,9 +471,9 @@
       ]
     },
     {
-      "module": "packages/otel-node/index.d.ts",
+      "module": "packages/otel-node/index.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "7d4957b2614d8438ff88abce81a253c909e902fbf8b5add278a88b14cc980980",
+      "sha256": "c51ffa9c1b1e5cc33381b2e18cdd6deafb56da331596286eb97d992fe888154e",
       "exports": [
         "NodeHostObservationOptions",
         "OtlpSignal",
@@ -485,7 +485,7 @@
           "parameters": [
             "options?: NodeHostObservationOptions"
           ],
-          "result": "Readonly<{\n  connection: HostObservationConnection;\n  /** Supply to the SDK remote connection's traceContext option. */\n  currentContext(): ObservationContext | undefined;\n  /** Read-only metadata; no destination URLs, credentials or connectivity probe. */\n  configuration(): Readonly<{host: 'node'; transport: 'http/protobuf';\n    disclosure: 'metadata-only'; scope: string; revision: string;\n    schemaUrl: string; sdk: string; signals: Readonly<Record<string,\n      Readonly<{enabled: boolean; destination?: 'explicit';\n        sampler?: 'parentbased_traceidratio'; sampleRate?: number;\n        credentialsPresent: boolean}>>>;\n    source: 'explicit' | 'environment+explicit'; diagnostics: readonly string[];\n    resourceAttributes: readonly string[]; unsupported: readonly string[];\n    correlations: readonly ObservationCorrelation[];\n    measurements: Readonly<{selected: readonly ObservationMeasurement[];\n      available: readonly ObservationMeasurement[]}>;\n    attributes: Readonly<{exclude: readonly string[]}>;\n    events: Readonly<{level: 'lifecycle' | 'diagnostic'}>;\n    operations: readonly ObservationOperation[]; correlation: boolean;\n    limits: Readonly<ObservationLimits>; transportLimits: Readonly<Record<string, number>>}>;\n  status(): Readonly<{profile: 'managed' | 'application-owned';\n    closed: boolean; deliveryConflicts: number;\n    projection: ReturnType<HostObservationConnection['status']>;\n    signals: Readonly<Record<string, Readonly<{sent: number; failed: number;\n      limited: number; active: number; windowRecords: number; windowBytes: number;\n      closed: boolean}>>>}>;\n  /** Call after Host/Client close; never shuts down application providers. */\n  close(): Promise<void>;\n}>"
+          "result": "Readonly<{\n    connection: HostObservationConnection;\n    /** Supply to the SDK remote connection's traceContext option. */\n    currentContext(): ObservationContext | undefined;\n    /** Read-only metadata; no destination URLs, credentials or connectivity probe. */\n    configuration(): Readonly<{\n        host: 'node';\n        transport: 'http/protobuf';\n        disclosure: 'metadata-only';\n        scope: string;\n        revision: string;\n        schemaUrl: string;\n        sdk: string;\n        signals: Readonly<Record<string, Readonly<{\n            enabled: boolean;\n            destination?: 'explicit';\n            sampler?: 'parentbased_traceidratio';\n            sampleRate?: number;\n            credentialsPresent: boolean;\n        }>>>;\n        source: 'explicit' | 'environment+explicit';\n        diagnostics: readonly string[];\n        resourceAttributes: readonly string[];\n        unsupported: readonly string[];\n        correlations: readonly ObservationCorrelation[];\n        measurements: Readonly<{\n            selected: readonly ObservationMeasurement[];\n            available: readonly ObservationMeasurement[];\n        }>;\n        attributes: Readonly<{\n            exclude: readonly string[];\n        }>;\n        events: Readonly<{\n            level: 'lifecycle' | 'diagnostic';\n        }>;\n        operations: readonly ObservationOperation[];\n        correlation: boolean;\n        limits: Readonly<ObservationLimits>;\n        transportLimits: Readonly<Record<string, number>>;\n    }>;\n    status(): Readonly<{\n        profile: 'managed' | 'application-owned';\n        closed: boolean;\n        deliveryConflicts: number;\n        projection: ReturnType<HostObservationConnection['status']>;\n        signals: Readonly<Record<string, Readonly<{\n            sent: number;\n            failed: number;\n            limited: number;\n            active: number;\n            windowRecords: number;\n            windowBytes: number;\n            closed: boolean;\n        }>>>;\n    }>;\n    /** Call after Host/Client close; never shuts down application providers. */\n    close(): Promise<void>;\n}>"
         },
         {
           "name": "createNodeHostObservability/close",
@@ -495,7 +495,7 @@
         {
           "name": "createNodeHostObservability/configuration",
           "parameters": [],
-          "result": "Readonly<{host: 'node'; transport: 'http/protobuf';\n    disclosure: 'metadata-only'; scope: string; revision: string;\n    schemaUrl: string; sdk: string; signals: Readonly<Record<string,\n      Readonly<{enabled: boolean; destination?: 'explicit';\n        sampler?: 'parentbased_traceidratio'; sampleRate?: number;\n        credentialsPresent: boolean}>>>;\n    source: 'explicit' | 'environment+explicit'; diagnostics: readonly string[];\n    resourceAttributes: readonly string[]; unsupported: readonly string[];\n    correlations: readonly ObservationCorrelation[];\n    measurements: Readonly<{selected: readonly ObservationMeasurement[];\n      available: readonly ObservationMeasurement[]}>;\n    attributes: Readonly<{exclude: readonly string[]}>;\n    events: Readonly<{level: 'lifecycle' | 'diagnostic'}>;\n    operations: readonly ObservationOperation[]; correlation: boolean;\n    limits: Readonly<ObservationLimits>; transportLimits: Readonly<Record<string, number>>}>"
+          "result": "Readonly<{\n        host: 'node';\n        transport: 'http/protobuf';\n        disclosure: 'metadata-only';\n        scope: string;\n        revision: string;\n        schemaUrl: string;\n        sdk: string;\n        signals: Readonly<Record<string, Readonly<{\n            enabled: boolean;\n            destination?: 'explicit';\n            sampler?: 'parentbased_traceidratio';\n            sampleRate?: number;\n            credentialsPresent: boolean;\n        }>>>;\n        source: 'explicit' | 'environment+explicit';\n        diagnostics: readonly string[];\n        resourceAttributes: readonly string[];\n        unsupported: readonly string[];\n        correlations: readonly ObservationCorrelation[];\n        measurements: Readonly<{\n            selected: readonly ObservationMeasurement[];\n            available: readonly ObservationMeasurement[];\n        }>;\n        attributes: Readonly<{\n            exclude: readonly string[];\n        }>;\n        events: Readonly<{\n            level: 'lifecycle' | 'diagnostic';\n        }>;\n        operations: readonly ObservationOperation[];\n        correlation: boolean;\n        limits: Readonly<ObservationLimits>;\n        transportLimits: Readonly<Record<string, number>>;\n    }>"
         },
         {
           "name": "createNodeHostObservability/currentContext",
@@ -505,7 +505,7 @@
         {
           "name": "createNodeHostObservability/status",
           "parameters": [],
-          "result": "Readonly<{profile: 'managed' | 'application-owned';\n    closed: boolean; deliveryConflicts: number;\n    projection: ReturnType<HostObservationConnection['status']>;\n    signals: Readonly<Record<string, Readonly<{sent: number; failed: number;\n      limited: number; active: number; windowRecords: number; windowBytes: number;\n      closed: boolean}>>>}>"
+          "result": "Readonly<{\n        profile: 'managed' | 'application-owned';\n        closed: boolean;\n        deliveryConflicts: number;\n        projection: ReturnType<HostObservationConnection['status']>;\n        signals: Readonly<Record<string, Readonly<{\n            sent: number;\n            failed: number;\n            limited: number;\n            active: number;\n            windowRecords: number;\n            windowBytes: number;\n            closed: boolean;\n        }>>>;\n    }>"
         }
       ],
       "role": "observation-presentation",
@@ -538,11 +538,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "NodeHostObservationOptions"
               },
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "currentContext():"
               }
             ],
@@ -558,7 +558,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "providers remain application-owned"
               },
               {
@@ -568,7 +568,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "application provider callback is deferred"
               },
               {
@@ -578,11 +578,11 @@
             ],
             "failure": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "trace export failure does not disable logs or metrics or change execution"
               },
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "HTTP errors cannot be reported as exported"
               }
             ],
@@ -608,25 +608,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -868,11 +868,11 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "NodeHostObservationOptions"
               },
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "currentContext():"
               }
             ],
@@ -888,7 +888,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/otel-node/index.d.ts",
+                "path": "packages/otel-node/index.mts",
                 "anchor": "providers remain application-owned"
               },
               {
@@ -898,7 +898,7 @@
             ],
             "synchronization": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "application provider callback is deferred"
               },
               {
@@ -908,11 +908,11 @@
             ],
             "failure": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "trace export failure does not disable logs or metrics or change execution"
               },
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "HTTP errors cannot be reported as exported"
               }
             ],
@@ -938,25 +938,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]
@@ -1115,11 +1115,11 @@
             ],
             "failure": [
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "trace export failure does not disable logs or metrics or change execution"
               },
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "HTTP errors cannot be reported as exported"
               }
             ],
@@ -1145,25 +1145,25 @@
             ],
             "extension": [
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "unsupported hosts, protocols and implicit destinations"
               },
               {
-                "path": "packages/otel-node/environment.test.mjs",
+                "path": "packages/otel-node/environment.test.mts",
                 "anchor": "never overlay application providers"
               }
             ],
             "verification": [
               {
-                "path": "packages/otel-node/transport.test.mjs",
+                "path": "packages/otel-node/transport.test.mts",
                 "anchor": "retains slot until close"
               },
               {
-                "path": "packages/otel-node/index.test.mjs",
+                "path": "packages/otel-node/index.test.mts",
                 "anchor": "managed SDK exports real protobuf"
               },
               {
-                "path": "packages/otel-node/configuration.test.mjs",
+                "path": "packages/otel-node/configuration.test.mts",
                 "anchor": "before SDK construction"
               }
             ]

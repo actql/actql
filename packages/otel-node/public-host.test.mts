@@ -19,6 +19,21 @@ import {connect as remoteConnect, getSubmissionCheckObservation, getSubmissionOu
   getCheckInput, resolveCheckLocation} from '../sdk/index.mjs';
 import {records, attributes, field, assertNoMetricExemplars} from './test/otlp-fixture.mjs';
 
+import type {AddressInfo} from 'node:net';
+import type {Server} from 'node:https';
+import type {TestContext} from 'node:test';
+import type {CollectorPacket} from './test/otlp-fixture.mjs';
+
+type Client = Awaited<ReturnType<typeof localConnect | typeof remoteConnect>>;
+type ReportedCheck = Extract<Awaited<ReturnType<Client['check']>>, {report: unknown}>;
+type StructureReason = ReportedCheck['report']['reasons'][number] & Readonly<{
+  facts: Readonly<{issue: string}>;
+  location: Readonly<{kind: 'structured'; pointer: string}>;
+}>;
+type RejectedSubmission = Extract<NonNullable<ReturnType<typeof getSubmissionOutcome>>, {problem: unknown}>;
+type Host = Awaited<ReturnType<typeof openInstalledRemoteHttpHost>>;
+type Code = Readonly<{code?: string; cause?: Readonly<{code?: string}>}>;
+
 const sentinel = 'SECRET_SENTINEL';
 const parent = {traceId: '3'.repeat(32), spanId: '4'.repeat(16), traceFlags: 1};
 const program = JSON.stringify({version: 'actql/0.1', id: 'private-program', stages: [{
@@ -28,22 +43,22 @@ const program = JSON.stringify({version: 'actql/0.1', id: 'private-program', sta
   }}], results: {rows: {from: 'selected', fields: ['id', 'secret']}},
 }], results: {answer: {from: {stage: 'source', result: 'rows'}}}});
 
-async function collect(t, failure = false) {
-  const packets = [];
+async function collect(t: TestContext, failure = false) {
+  const packets: CollectorPacket[] = [];
   const server = httpServer(async (request, response) => {
-    const chunks = [];
+    const chunks: Buffer[] = [];
     for await (const chunk of request) chunks.push(chunk);
     packets.push({path: request.url, body: Buffer.concat(chunks)});
     if (failure && request.url === '/v1/traces') response.statusCode = 503;
     response.end();
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => new Promise(resolve => server.close(resolve)));
-  return {packets, endpoint: `http://127.0.0.1:${server.address().port}`};
+  t.after(() => new Promise<Error | undefined>(resolve => server!.close(resolve)));
+  return {packets, endpoint: `http://127.0.0.1:${(server.address() as AddressInfo).port}`};
 }
-function requestRows(path) {
+function requestRows(path: string) {
   const database = new DatabaseSync(path, {readOnly: true});
-  try { return database.prepare('SELECT count(*) AS n FROM client_requests').get().n; }
+  try { return database.prepare('SELECT count(*) AS n FROM client_requests').get()!.n; }
   finally { database.close(); }
 }
 
@@ -72,13 +87,13 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: owner,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}]},
   };
-  let client, host, server;
+  let client: Client | undefined, host: Host | undefined, server: Server | undefined;
   const manager = new AsyncLocalStorageContextManager().enable();
   assert.equal(context.setGlobalContextManager(manager), true);
   t.after(() => { context.disable(); manager.disable(); });
   t.after(async () => {
     await client?.close();
-    if (server) await new Promise(resolve => server.close(resolve));
+    if (server) await new Promise<Error | undefined>(resolve => server!.close(resolve));
     await host?.close(); await adapter.close();
     await rm(root, {recursive: true, force: true});
   });
@@ -99,34 +114,34 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
         cert: await readFile(join(root, 'host.crt'))}, host.handler).listen(0, '127.0.0.1');
       await once(server, 'listening');
       client = await remoteConnect({mode: 'remote', durability: 'durable',
-        endpoint: `https://127.0.0.1:${server.address().port}/`, token: sentinel,
+        endpoint: `https://127.0.0.1:${(server.address() as AddressInfo).port}/`, token: sentinel,
         traceContext: adapter.currentContext});
     } else client = await localConnect({mode: 'local', owner: 'local',
       durability: 'durable', installation});
     const journal = join(installation.directory, 'requests/client-requests.sqlite3');
     const check = await client.check(`SELECT ${sentinel} FROM`, {kind: 'text', scope: 'bound_input', format: 'sql'});
-    assert.equal(check.report.verdict, 'invalid');
+    assert.equal((check as ReportedCheck).report.verdict, 'invalid');
     assert.equal(requestRows(journal), 0, 'checking creates no Run');
     if (mode === 'normal') {
       const typed = await client.check('SELECT @id AS id', {kind: 'text', scope: 'bound_input', format: 'sql',
         parameterDeclarations: {id: {type: 'number'}},
         parameters: {id: 'not-a-number'}});
-      assert.equal(typed.report.verdict, 'invalid');
+      assert.equal((typed as ReportedCheck).report.verdict, 'invalid');
       assert.equal(requestRows(journal), 0, 'a value/schema mismatch creates no Run');
       const original = {version: 'actql/0.1', id: sentinel};
       let rejected;
       try { await client.start(original); }
       catch (error) { rejected = error; }
-      const checked = getSubmissionCheckObservation(rejected);
+      const checked = getSubmissionCheckObservation(rejected) as ReportedCheck | undefined;
       assert.equal(checked?.report.verdict, 'invalid',
-        `structured submission diagnostics survive observation wiring (${rejected?.code}; ${getSubmissionOutcome(rejected)?.problem?.code}; ${rejected?.cause?.code})`);
-      const reason = checked.report.reasons.find(reason =>
-        reason.code === 'program_structure_invalid');
+        `structured submission diagnostics survive observation wiring (${(rejected as Code | undefined)?.code}; ${(getSubmissionOutcome(rejected) as RejectedSubmission | undefined)?.problem?.code}; ${(rejected as Code | undefined)?.cause?.code})`);
+      const reason = checked!.report.reasons.find(reason =>
+        reason.code === 'program_structure_invalid') as StructureReason | undefined;
       assert.equal(reason?.facts.issue, 'missing_field');
-      assert.equal(reason.location.kind, 'structured');
-      assert.equal(reason.location.pointer, '');
-      assert.deepEqual(getCheckInput(checked, 'program').value, original);
-      assert.equal(resolveCheckLocation(checked, reason.location).pointer, '');
+      assert.equal(reason!.location.kind, 'structured');
+      assert.equal(reason!.location.pointer, '');
+      assert.deepEqual((getCheckInput(checked!, 'program') as {value: unknown}).value, original);
+      assert.equal((resolveCheckLocation(checked!, reason!.location) as {pointer: string}).pointer, '');
       assert.equal(requestRows(journal), 0,
         'a rejected structured submission creates no Run');
     }
@@ -142,14 +157,14 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
       assert.equal(requestRows(journal), 1);
       if (mode === 'normal') {
         assert.equal((await run.status()).status, 'succeeded');
-        const before = adapter.status().projection.repeated;
+        const before = adapter.status().projection!.repeated;
         for (let n = 0; n < 2; n++) assert.equal((await run.status()).status, 'succeeded');
-        assert.equal(adapter.status().projection.repeated, before + 2,
+        assert.equal(adapter.status().projection!.repeated, before + 2,
           'each unchanged public status suppresses the same Owner fact');
       }
     }
     await client.close();
-    if (server) { await new Promise(resolve => server.close(resolve)); server = undefined; }
+    if (server) { await new Promise<Error | undefined>(resolve => server!.close(resolve)); server = undefined; }
     await host?.close(); host = undefined;
   });
   const logs = Buffer.concat(sink.packets.filter(packet => packet.path === '/v1/logs').map(packet => packet.body));
@@ -157,7 +172,7 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
   if (mode === 'denied-run-read') return;
   if (mode === 'disabled') {
     assert.equal(sink.packets.length, 0);
-    assert.equal(adapter.status().projection.dropped, 0);
+    assert.equal(adapter.status().projection!.dropped, 0);
     const database = new DatabaseSync(join(installation.directory,
       'requests/client-requests.sqlite3'), {readOnly: true});
     try {
@@ -167,7 +182,7 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     return;
   }
   if (mode === 'overflow') {
-    assert.ok(adapter.status().projection.queueOverflow > 0);
+    assert.ok(adapter.status().projection!.queueOverflow > 0);
     return;
   }
   if (mode === 'export-failure') assert.ok(adapter.status().signals.traces.failed > 0);
@@ -177,7 +192,7 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
   }
   const logRecords = records(sink.packets, 'logs');
   const checks = logRecords.filter(record =>
-    field(field(record, 5), 1).toString() === 'check_completed');
+    field(field(record, 5) as Buffer, 1)!.toString() === 'check_completed');
   assert.ok(checks.length > 0);
   for (const record of checks) {
     const values = attributes(record, 6);
@@ -188,7 +203,7 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
   const ownerRecords = logRecords.map(record => attributes(record, 6))
     .filter(values => values['actql.event'] === 'owner_observed');
   assert.ok(ownerRecords.some(values => values['actql.outcome'] === 'succeeded' &&
-    /^sha256:[a-f0-9]{64}$/u.test(values['actql.run.definition_cid'])));
+    /^sha256:[a-f0-9]{64}$/u.test(values['actql.run.definition_cid'] as string)));
   assertNoMetricExemplars(sink.packets);
   assert.equal(logs.includes(Buffer.from('actql.check.verdict')), true);
   assert.equal(logs.includes(Buffer.from('invalid')), true);
@@ -199,6 +214,6 @@ test(`public ${transport} Host: ${mode} observations preserve execution`, async 
     assert.equal(packet.body.includes(Buffer.from(sentinel)), false, packet.path);
     if (packet.path === '/v1/metrics') assert.equal(packet.body.includes(Buffer.from('actql.run.id')), false);
   }
-  assert.equal(adapter.status().projection.budgetUnavailable, 0);
+  assert.equal(adapter.status().projection!.budgetUnavailable, 0);
 });
 }

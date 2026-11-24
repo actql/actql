@@ -36,6 +36,7 @@ declare module '*/adapters/host-common/owned-invocation-context.mjs' {
 declare module '*/adapters/host-common/observation.mjs' {
   export const createHostObservationConnection: typeof import('../../adapters/host-common/observation.mjs').createHostObservationConnection;
   export const observationLimits: typeof import('../../adapters/host-common/observation.mjs').observationLimits;
+  export const installHostObservation: typeof import('../../adapters/host-common/observation.mjs').installHostObservation;
 }
 
 declare module '*/adapters/host-common/http-exchange.mjs' {

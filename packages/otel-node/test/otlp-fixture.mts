@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict';
 
+export type CollectorPacket = Readonly<{path: string | undefined; body: Buffer}>;
+type WireValue = bigint | Buffer;
+type WireField = {number: number; value: WireValue};
+
 // Independent OTLP wire reader. Do not derive acceptance from SDK objects or
 // the production serializer. Inputs are bounded test collector packets.
-export function fields(input) {
-  const result = [];
+export function fields(input: Buffer) {
+  const result: WireField[] = [];
   let index = 0;
   const varint = () => {
     let value = 0n, shift = 0n;
@@ -18,7 +22,7 @@ export function fields(input) {
   while (index < input.length) {
     const tag = Number(varint()), number = tag >> 3, wire = tag & 7;
     assert.ok(number > 0);
-    let value;
+    let value: WireValue;
     if (wire === 0) value = varint();
     else if (wire === 1 || wire === 5) {
       const size = wire === 1 ? 8 : 4;
@@ -32,16 +36,16 @@ export function fields(input) {
   }
   return result;
 }
-export const field = (input, number) => fields(input)
+export const field = (input: Buffer, number: number) => fields(input)
   .find(item => item.number === number)?.value;
 
-export function records(packets, signal) {
-  const result = [];
+export function records(packets: readonly CollectorPacket[], signal: string) {
+  const result: Buffer[] = [];
   for (const packet of packets.filter(item => item.path === `/v1/${signal}`)) {
     for (const resource of fields(packet.body).filter(item => item.number === 1)) {
-      for (const scope of fields(resource.value).filter(item => item.number === 2)) {
-        for (const record of fields(scope.value).filter(item => item.number === 2)) {
-          result.push(record.value);
+      for (const scope of fields(resource.value as Buffer).filter(item => item.number === 2)) {
+        for (const record of fields(scope.value as Buffer).filter(item => item.number === 2)) {
+          result.push(record.value as Buffer);
         }
       }
     }
@@ -49,26 +53,26 @@ export function records(packets, signal) {
   return result;
 }
 
-export function attributes(record, number) {
+export function attributes(record: Buffer, number: number): Record<string, string | WireValue | undefined> {
   return Object.fromEntries(fields(record).filter(item => item.number === number)
     .map(item => {
-      const key = field(item.value, 1).toString();
-      const value = field(item.value, 2);
+      const key = field(item.value as Buffer, 1)!.toString();
+      const value = field(item.value as Buffer, 2) as Buffer;
       const text = field(value, 1);
       return [key, text === undefined ? field(value, 3) : text.toString()];
     }));
 }
 
-export function assertNoMetricExemplars(packets) {
+export function assertNoMetricExemplars(packets: readonly CollectorPacket[]) {
   let points = 0;
   for (const metric of records(packets, 'metrics')) {
     // OTLP Gauge/Sum, Histogram and ExponentialHistogram data points.
     for (const [kind, exemplar] of [[5, 5], [7, 5], [9, 10], [10, 11]]) {
       const data = field(metric, kind);
       if (data === undefined) continue;
-      for (const point of fields(data).filter(item => item.number === 1)) {
+      for (const point of fields(data as Buffer).filter(item => item.number === 1)) {
         points++;
-        assert.equal(field(point.value, exemplar), undefined);
+        assert.equal(field(point.value as Buffer, exemplar), undefined);
       }
     }
   }

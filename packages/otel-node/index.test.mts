@@ -6,11 +6,20 @@ import {createNodeHostObservability} from './index.mjs';
 import {installHostObservation} from '../local-node/adapters/host-common/observation.mjs';
 import {field, records, attributes, assertNoMetricExemplars} from './test/otlp-fixture.mjs';
 
+import type {AddressInfo} from 'node:net';
+import type {TestContext} from 'node:test';
+import type {CollectorPacket} from './test/otlp-fixture.mjs';
+
+type Options = NonNullable<Parameters<typeof createNodeHostObservability>[0]>;
+type CapturedPacket = CollectorPacket & Readonly<{
+  type: string | undefined; authorization: string | undefined;
+}>;
+
 const parent = {traceId: '1'.repeat(32), spanId: '2'.repeat(16), traceFlags: 1};
-async function collector(t, failure = false) {
-  const packets = [];
+async function collector(t: TestContext, failure = false) {
+  const packets: CapturedPacket[] = [];
   const server = createServer(async (request, response) => {
-    const chunks = [];
+    const chunks: Buffer[] = [];
     for await (const chunk of request) chunks.push(chunk);
     packets.push({path: request.url, type: request.headers['content-type'],
       authorization: request.headers.authorization,
@@ -19,8 +28,8 @@ async function collector(t, failure = false) {
     response.end();
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => new Promise(resolve => server.close(resolve)));
-  return {packets, endpoint: `http://127.0.0.1:${server.address().port}`};
+  t.after(() => new Promise<Error | undefined>(resolve => server.close(resolve)));
+  return {packets, endpoint: `http://127.0.0.1:${(server.address() as AddressInfo).port}`};
 }
 
 test('managed SDK exports real protobuf with caller correlation and no content in any signal', async t => {
@@ -28,12 +37,12 @@ test('managed SDK exports real protobuf with caller correlation and no content i
   const adapter = createNodeHostObservability({endpoint: sink.endpoint,
     metrics: {endpoint: `${sink.endpoint}/v1/metrics`},
     logs: {endpoint: `${sink.endpoint}/v1/logs`}});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   let contentReads = 0;
   const facts = {outcome: 'failed', task: 0};
   Object.defineProperty(facts, 'query', {get() { contentReads++; return 'SECRET_SENTINEL'; }});
-  await observer.run('check', {...parent, baggage: {secret: 'SECRET_SENTINEL'}}, async () => {
+  await observer.run('check', ({...parent, baggage: {secret: 'SECRET_SENTINEL'}} as typeof parent), async () => {
     observer.emit('check', 'check_completed', facts);
   });
   await observer.close();
@@ -50,22 +59,22 @@ test('managed SDK exports real protobuf with caller correlation and no content i
     'only the measured segment is a span; the discrete check fact is a log');
   assert.ok(sink.packets.some(item => item.path === '/v1/logs' &&
     item.body.includes(Buffer.from('check_completed'))));
-  const span = field(field(field(packet.body, 1), 2), 2);
+  const span = field(field(field(packet!.body, 1) as Buffer, 2) as Buffer, 2) as Buffer;
   assert.equal(field(span, 11), undefined, 'new facts do not duplicate Span Events');
-  assert.equal(field(span, 1).toString('hex'), parent.traceId);
-  assert.equal(field(span, 4).toString('hex'), parent.spanId);
-  assert.equal(field(span, 5).toString(), 'actql.check');
+  assert.equal((field(span, 1) as Buffer).toString('hex'), parent.traceId);
+  assert.equal((field(span, 4) as Buffer).toString('hex'), parent.spanId);
+  assert.equal(field(span, 5)!.toString(), 'actql.check');
   for (const metric of sink.packets.filter(item => item.path === '/v1/metrics')) {
     assert.equal(metric.body.includes(Buffer.from(parent.traceId, 'hex')), false);
     assert.equal(metric.body.includes(Buffer.from('actql.run.id')), false);
     assert.equal(metric.body.includes(Buffer.from('actql.run.definition_cid')), false);
   }
-  assert.equal(adapter.status().projection.deliveryFailed, 0);
+  assert.equal(adapter.status().projection!.deliveryFailed, 0);
   assertNoMetricExemplars(sink.packets);
 });
 
 for (const [traceFlags, sampleRate, sampled] of [[0, 0, false], [0, 1, false],
-  [1, 0, true], [1, 1, true]]) {
+  [1, 0, true], [1, 1, true]] as const) {
   test(`parent sampled=${traceFlags} overrides root ratio=${sampleRate}`, async t => {
     const sink = await collector(t);
     const adapter = createNodeHostObservability({
@@ -73,7 +82,7 @@ for (const [traceFlags, sampleRate, sampled] of [[0, 0, false], [0, 1, false],
       metrics: {endpoint: `${sink.endpoint}/v1/metrics`},
       logs: {endpoint: `${sink.endpoint}/v1/logs`},
     });
-    const observer = installHostObservation(adapter.connection);
+    const observer = installHostObservation(adapter.connection)!;
     t.after(async () => { await observer.close(); await adapter.close(); });
     await observer.run('check', {...parent, traceFlags}, () => {
       observer.emit('check', 'check_completed', {checkVerdict: 'verified'});
@@ -90,7 +99,7 @@ for (const [traceFlags, sampleRate, sampled] of [[0, 0, false], [0, 1, false],
 test('HTTP server spans use fixed route names and status-specific standard errors', async t => {
   const sink = await collector(t);
   const adapter = createNodeHostObservability({endpoint: sink.endpoint});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   for (const statusCode of [422, 503]) {
     await observer.run('http', parent, () => 42,
@@ -98,15 +107,15 @@ test('HTTP server spans use fixed route names and status-specific standard error
   }
   await observer.close();
   const spans = sink.packets.filter(item => item.path === '/v1/traces')
-    .map(packet => field(field(field(packet.body, 1), 2), 2));
+    .map(packet => field(field(field(packet.body, 1) as Buffer, 2) as Buffer, 2) as Buffer);
   assert.equal(spans.length, 2);
   for (const span of spans) {
-    assert.equal(field(span, 5).toString(), 'POST /actql/client/0.1/{operation}');
+    assert.equal(field(span, 5)!.toString(), 'POST /actql/client/0.1/{operation}');
     assert.equal(field(span, 6), 2n);
   }
   const clientErrorStatus = field(spans[0], 15);
-  assert.equal(clientErrorStatus === undefined ? 0n : field(clientErrorStatus, 3) ?? 0n, 0n);
-  assert.equal(field(field(spans[1], 15), 3), 2n);
+  assert.equal(clientErrorStatus === undefined ? 0n : field(clientErrorStatus as Buffer, 3) ?? 0n, 0n);
+  assert.equal(field(field(spans[1], 15) as Buffer, 3), 2n);
 });
 
 test('trace export failure does not disable logs or metrics or change execution', async t => {
@@ -114,21 +123,21 @@ test('trace export failure does not disable logs or metrics or change execution'
   const adapter = createNodeHostObservability({endpoint: sink.endpoint,
     metrics: {endpoint: `${sink.endpoint}/v1/metrics`},
     logs: {endpoint: `${sink.endpoint}/v1/logs`}});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   await observer.close();
   assert.equal(adapter.status().signals.traces.failed, 1);
   assert.equal(adapter.status().signals.metrics.sent, 1);
   assert.equal(adapter.status().signals.logs.sent, 1);
-  assert.equal(adapter.status().projection.deliveryFailed, 1);
+  assert.equal(adapter.status().projection!.deliveryFailed, 1);
 });
 
 test('sampling off still exports independently enabled metrics and logs', async t => {
   const sink = await collector(t);
   const adapter = createNodeHostObservability({traces: {endpoint: `${sink.endpoint}/v1/traces`, sampleRate: 0},
     metrics: {endpoint: `${sink.endpoint}/v1/metrics`}, logs: {endpoint: `${sink.endpoint}/v1/logs`}});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   await observer.close();
@@ -143,8 +152,8 @@ test('application provider callback is deferred and its shutdown is never called
       assert.equal(atomic, false); calls++;
       return {addEvent() {}, setStatus() {}, end() {}};
     }}),
-  }});
-  const observer = installHostObservation(adapter.connection);
+  } as unknown as NonNullable<Options['tracerProvider']>});
+  const observer = installHostObservation(adapter.connection)!;
   observer.emit('compute', 'task_completed', {task: 0}, {durationMs: 1});
   assert.equal(calls, 0);
   atomic = false;
@@ -156,17 +165,17 @@ test('application provider callback is deferred and its shutdown is never called
 
 test('disabled adapter neither exports nor creates a localhost fallback', async () => {
   const adapter = createNodeHostObservability();
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   observer.emit('compute', 'task_completed', {task: 0});
   await observer.close(); await adapter.close();
   assert.deepEqual(adapter.status().signals, {});
-  assert.equal(adapter.status().projection.deliveryFailed, 0);
+  assert.equal(adapter.status().projection!.deliveryFailed, 0);
 });
 
 test('closing a managed pipeline revokes queued and not-yet-sent signals', async t => {
-  let entered;
-  const sending = new Promise(resolve => { entered = resolve; });
-  const paths = [];
+  let entered!: () => void;
+  const sending = new Promise<void>(resolve => { entered = resolve; });
+  const paths: (string | undefined)[] = [];
   const server = createServer((request, response) => {
     paths.push(request.url);
     request.resume();
@@ -175,11 +184,11 @@ test('closing a managed pipeline revokes queued and not-yet-sent signals', async
     response.on('error', () => {});
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');
-  t.after(() => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); });
-  const base = `http://127.0.0.1:${server.address().port}`;
+  t.after(() => { server.closeAllConnections(); return new Promise<Error | undefined>(resolve => server.close(resolve)); });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const adapter = createNodeHostObservability({endpoint: base,
     logs: {endpoint: `${base}/v1/logs`}, metrics: {endpoint: `${base}/v1/metrics`}});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await adapter.close(); await observer.close(); });
   observer.emit('compute', 'task_completed', {}, {durationMs: 1});
   await sending;
@@ -193,7 +202,7 @@ test('closing a managed pipeline revokes queued and not-yet-sent signals', async
 test('measured Source and Model attempts use standard CLIENT span kind', async t => {
   const sink = await collector(t);
   const adapter = createNodeHostObservability({endpoint: sink.endpoint});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   observer.emit('infer', 'attempt_observed', {outcome: 'unknown'}, {durationMs: 1});
   observer.emit('source', 'attempt_completed', {}, {durationMs: 1});
@@ -207,7 +216,7 @@ test('physical intervals inside HTTPS retain CLIENT kind without duplicate logs'
   const sink = await collector(t);
   const adapter = createNodeHostObservability({endpoint: sink.endpoint,
     logs: {endpoint: `${sink.endpoint}/v1/logs`}});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   await observer.run('submit', parent, () => {
     observer.emit('infer', 'transport_completed', {outcome: 'confirmed'},
@@ -231,7 +240,7 @@ test('execution intervals do not duplicate discrete Owner logs', async t => {
   const sink = await collector(t);
   const adapter = createNodeHostObservability({endpoint: sink.endpoint,
     logs: {endpoint: `${sink.endpoint}/v1/logs`}});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   await observer.run('check', parent, () => {
     observer.emit('check', 'check_completed', {checkVerdict: 'verified'});
@@ -265,7 +274,7 @@ test('selected measurements and disclosed metadata reach every managed wire carr
     operations: {include: ['check', 'compute'], exclude: ['compute']},
     measurements: {include: []}, correlation: {include: []},
     attributes: {exclude: ['actql.check.verdict']}, resource: {'service.name': 'user-service'}});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   await observer.run('check', parent, () => {
     observer.emit('compute', 'task_completed', {task: 0});
@@ -277,13 +286,13 @@ test('selected measurements and disclosed metadata reach every managed wire carr
     .every(packet => packet.authorization === 'Bearer SECRET_SENTINEL'));
   for (const record of records(sink.packets, 'logs')) {
     assert.equal(attributes(record, 6)['actql.check.verdict'], undefined);
-    assert.equal(field(field(record, 5), 1).toString().includes('task'), false);
+    assert.equal(field(field(record, 5) as Buffer, 1)!.toString().includes('task'), false);
   }
   for (const span of records(sink.packets, 'traces')) {
     assert.equal(field(span, 4), undefined);
     assert.equal(attributes(span, 9)['actql.check.verdict'], undefined);
   }
-  const names = records(sink.packets, 'metrics').map(metric => field(metric, 1).toString());
+  const names = records(sink.packets, 'metrics').map(metric => field(metric, 1)!.toString());
   assert.ok(names.length > 0);
   assert.ok(names.every(name => name === 'actql.operation.observations'));
   assert.equal(adapter.configuration().signals.traces.credentialsPresent, true);
@@ -310,7 +319,7 @@ test('explicit environment setup exports configured signals without a second glo
   process.env.OTEL_TRACES_SAMPLER_ARG = '0';
   process.env.OTEL_SERVICE_NAME = 'environment-service';
   const adapter = createNodeHostObservability({environment: true});
-  const observer = installHostObservation(adapter.connection);
+  const observer = installHostObservation(adapter.connection)!;
   t.after(async () => { await observer.close(); await adapter.close(); });
   observer.emit('check', 'check_completed', {checkVerdict: 'verified'});
   await observer.close();
@@ -321,7 +330,7 @@ test('explicit environment setup exports configured signals without a second glo
   await adapter.close();
   process.env.OTEL_SDK_DISABLED = 'true';
   const disabled = createNodeHostObservability({environment: true});
-  const silent = installHostObservation(disabled.connection);
+  const silent = installHostObservation(disabled.connection)!;
   silent.emit('check', 'check_completed');
   await silent.close(); await disabled.close();
   assert.deepEqual(disabled.status().signals, {});

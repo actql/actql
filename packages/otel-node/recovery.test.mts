@@ -12,7 +12,16 @@ import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {records, attributes, field} from './test/otlp-fixture.mjs';
 
-const url = path => new URL(path, import.meta.url).href;
+import type {AddressInfo} from 'node:net';
+import type {CollectorPacket} from './test/otlp-fixture.mjs';
+
+type PhaseChanges = {unsampled?: boolean; immediate?: boolean; acquired?: boolean; expectBudgetLoss?: boolean};
+type PhaseReport = {status: string; error?: unknown; calls: number; rows?: unknown;
+  source: {sourceReadSessions: number; sourceReads: number}; ref: {runDefinitionCid: string}};
+type ObservationBudgetRow = {records: number; bytes: number};
+type Transport = 'local' | 'https';
+
+const url = (path: string) => new URL(path, import.meta.url).href;
 const runtime = {
   client: url('../node/index.mjs'), httpHost: url('../local-node/http-host.mjs'),
   observation: url('./index.mjs'),
@@ -29,7 +38,8 @@ const processFixture = fileURLToPath(new URL('../../scripts/fixtures/model-resum
 const parent = {traceId: '5'.repeat(32), spanId: '6'.repeat(16), traceFlags: 1};
 const recoveredParent = {traceId: '7'.repeat(32), spanId: '8'.repeat(16), traceFlags: 1};
 const expectedRows = [{id: '1', outcome: 'ok', value: {reason: null, risk: 'high'}}];
-async function phase(root, transport, endpoint, name, changes = {}) {
+async function phase(root: string, transport: Transport, endpoint: string,
+  name: 'wait' | 'approve' | 'resume-again' | 'immediate' | 'cancel', changes: PhaseChanges = {}): Promise<PhaseReport> {
   const env = {...process.env};
   for (const key of ['ACTQL_LOCAL_STATE_DIR', 'ACTQL_LOCAL_SOURCE_PROFILE',
     'ACTQL_LOCAL_EFFECT_PROFILE']) delete env[key];
@@ -51,30 +61,30 @@ async function phase(root, transport, endpoint, name, changes = {}) {
   else assert.equal(status.projection.budgetUnavailable, 0);
   return report;
 }
-function custody(root, action) {
+function custody<Value>(root: string, action: (database: DatabaseSync) => Value): Value {
   const database = new DatabaseSync(join(root, 'host/requests/client-requests.sqlite3'));
   try { return action(database); } finally { database.close(); }
 }
-const transportRecords = packets => records(packets, 'logs').filter(record =>
+const transportRecords = (packets: readonly CollectorPacket[]) => records(packets, 'logs').filter(record =>
   attributes(record, 6)['actql.event'] === 'transport_completed');
-function assertNoInventedModelInterval(packets) {
+function assertNoInventedModelInterval(packets: readonly CollectorPacket[]) {
   assert.equal(records(packets, 'traces').filter(record =>
     attributes(record, 9)['actql.event'] === 'transport_completed').length, 0,
   'post-invocation diagnostic delivery times cannot measure a physical Model interval');
 }
 test('public Local: real Source interval and original Model entry fact remain distinct', async () => {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'actql-otel-source-')));
-  const packets = [];
+  const packets: CollectorPacket[] = [];
   let succeeded = false;
   const server = createServer(async (request, response) => {
-    const chunks = [];
+    const chunks: Buffer[] = [];
     for await (const chunk of request) chunks.push(chunk);
     packets.push({path: request.url, body: Buffer.concat(chunks)});
     response.end();
   }).listen(0, '127.0.0.1');
   await once(server, 'listening');
   try {
-    const endpoint = `http://127.0.0.1:${server.address().port}`;
+    const endpoint = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     const result = await phase(root, 'local', endpoint, 'immediate',
       {immediate: true, acquired: true});
     assert.equal(result.status, 'succeeded');
@@ -88,8 +98,8 @@ test('public Local: real Source interval and original Model entry fact remain di
       assert.equal(selected.length, 1, event);
       assert.equal(field(selected[0], 6), 3n, 'real physical work uses CLIENT kind');
       assert.equal(attributes(selected[0], 9)['actql.outcome'], 'confirmed');
-      const start = field(selected[0], 7).readBigUInt64LE();
-      const end = field(selected[0], 8).readBigUInt64LE();
+      const start = (field(selected[0], 7) as Buffer).readBigUInt64LE();
+      const end = (field(selected[0], 8) as Buffer).readBigUInt64LE();
       assert.ok(end > start, 'elapsed time is measured, not invented');
       assert.equal(attributes(selected[0], 9)['actql.run.definition_cid'], result.ref.runDefinitionCid);
     }
@@ -98,14 +108,14 @@ test('public Local: real Source interval and original Model entry fact remain di
     const values = attributes(calls[0], 6);
     assert.equal(values['actql.outcome'], 'confirmed');
     assert.equal(values['actql.run.definition_cid'], result.ref.runDefinitionCid);
-    assert.match(values['actql.model.attempt_cid'], /^sha256:[a-f0-9]{64}$/u);
+    assert.match(values['actql.model.attempt_cid'] as string, /^sha256:[a-f0-9]{64}$/u);
     assertNoInventedModelInterval(packets);
     for (const packet of packets) for (const content of ['alpha', 'records.duckdb', 'public-model-resume']) {
       assert.equal(packet.body.includes(Buffer.from(content)), false, content);
     }
     succeeded = true;
   } finally {
-    await new Promise(resolve => server.close(resolve));
+    await new Promise<Error | undefined>(resolve => server.close(resolve));
     if (succeeded) await rm(root, {recursive: true, force: true});
     else {
       await writeFile(join(root, 'failed-telemetry.json'), JSON.stringify(
@@ -114,14 +124,14 @@ test('public Local: real Source interval and original Model entry fact remain di
     }
   }
 });
-for (const [transport, sampled] of [['local', true], ['https', true], ['local', false]]) {
+for (const [transport, sampled] of [['local', true], ['https', true], ['local', false]] as const) {
 test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart retains capture and consumption`, async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-recovery-'));
-  const packets = [];
-  const collected = [];
+  const packets: CollectorPacket[] = [];
+  const collected: CollectorPacket[] = [];
   let succeeded = false;
   const server = createServer(async (request, response) => {
-    const chunks = [];
+    const chunks: Buffer[] = [];
     for await (const chunk of request) chunks.push(chunk);
     const packet = {path: request.url, body: Buffer.concat(chunks)};
     packets.push(packet);
@@ -134,13 +144,13 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
       '-newkey', 'rsa:2048', '-keyout', 'host.key', '-out', 'host.crt', '-days', '1',
       '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
     {cwd: root, stdio: 'ignore'});
-    const endpoint = `http://127.0.0.1:${server.address().port}`;
+    const endpoint = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     const flags = {unsampled: !sampled};
     const waiting = await phase(root, transport, endpoint, 'wait', flags);
     assert.equal(waiting.status, 'waiting_checkpoint');
     assert.equal(waiting.calls, 0);
     const waitingPackets = packets.splice(0);
-    const waitingBudget = custody(root, db => db.prepare('SELECT records, bytes FROM client_observation_runs').get());
+    const waitingBudget = custody(root, db => db.prepare('SELECT records, bytes FROM client_observation_runs').get() as ObservationBudgetRow);
     assert.ok(waitingPackets.some(packet => packet.body.includes(Buffer.from('waiting_checkpoint'))));
     const approved = await phase(root, transport, endpoint, 'approve', flags);
     assert.deepEqual(approved.ref, waiting.ref);
@@ -154,11 +164,11 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
       assert.equal(calls.length, 1, 'one actual invoke emits one original Model entry fact');
       assert.equal(attributes(calls[0], 6)['actql.outcome'], 'confirmed',
         'returned is a physical observation, not Run or capture success');
-      assert.match(attributes(calls[0], 6)['actql.model.attempt_cid'], /^sha256:[a-f0-9]{64}$/u);
+      assert.match(attributes(calls[0], 6)['actql.model.attempt_cid'] as string, /^sha256:[a-f0-9]{64}$/u);
       assert.equal(attributes(calls[0], 6)['actql.run.definition_cid'], approved.ref.runDefinitionCid);
       assertNoInventedModelInterval(packets);
     }
-    const approvedBudget = custody(root, db => db.prepare('SELECT records, bytes FROM client_observation_runs').get());
+    const approvedBudget = custody(root, db => db.prepare('SELECT records, bytes FROM client_observation_runs').get() as ObservationBudgetRow);
     assert.ok(approvedBudget.records > waitingBudget.records);
     assert.ok(approvedBudget.bytes > waitingBudget.bytes);
     assert.ok(packets.some(packet => packet.body.includes(Buffer.from('checkpoint_resolved'))));
@@ -181,7 +191,7 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
         {...flags, expectBudgetLoss: true});
       assert.deepEqual(withoutBudget.rows, expectedRows);
       assert.equal(withoutBudget.calls, 1);
-      assert.equal(custody(root, db => db.prepare('SELECT count(*) AS n FROM client_observation_runs').get().n), 0,
+      assert.equal(custody(root, db => db.prepare('SELECT count(*) AS n FROM client_observation_runs').get()!.n), 0,
         'lost consumption never mints a fresh observation budget');
     }
     if (!sampled) assert.equal([...waitingPackets, ...packets]
@@ -189,7 +199,7 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
     'capture and replay never require sampled telemetry');
     succeeded = true;
   } finally {
-    await new Promise(resolve => server.close(resolve));
+    await new Promise<Error | undefined>(resolve => server.close(resolve));
     if (succeeded) await rm(root, {recursive: true, force: true});
     else {
       await writeFile(join(root, 'failed-telemetry.json'), JSON.stringify(
@@ -200,10 +210,10 @@ test(`public ${transport}: ${sampled ? 'sampled' : 'unsampled'} approval restart
   }
 });
 }
-for (const transport of ['local', 'https']) {
+for (const transport of ['local', 'https'] as const) {
 test(`public ${transport}: cancellation while waiting preserves Owner-confirmed outcome without dispatch`, async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-otel-cancel-'));
-  const packets = [];
+  const packets: Buffer[] = [];
   const server = createServer(async (request, response) => {
     for await (const chunk of request) packets.push(Buffer.from(chunk));
     response.end();
@@ -214,7 +224,7 @@ test(`public ${transport}: cancellation while waiting preserves Owner-confirmed 
       '-newkey', 'rsa:2048', '-keyout', 'host.key', '-out', 'host.crt', '-days', '1',
       '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'],
     {cwd: root, stdio: 'ignore'});
-    const endpoint = `http://127.0.0.1:${server.address().port}`;
+    const endpoint = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     await phase(root, transport, endpoint, 'wait');
     const cancelled = await phase(root, transport, endpoint, 'cancel');
     assert.equal(cancelled.status, 'cancelled');
@@ -222,7 +232,7 @@ test(`public ${transport}: cancellation while waiting preserves Owner-confirmed 
     assert.equal(cancelled.rows, undefined);
     assert.ok(Buffer.concat(packets).includes(Buffer.from('cancellation_requested')));
   } finally {
-    await new Promise(resolve => server.close(resolve));
+    await new Promise<Error | undefined>(resolve => server.close(resolve));
     await rm(root, {recursive: true, force: true});
   }
 });

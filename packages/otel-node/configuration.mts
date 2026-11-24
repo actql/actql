@@ -1,7 +1,7 @@
 // Explicit application configuration; no OTel environment fallbacks, resource
 // detection, default localhost destination or transport inference.
 import {createHostObservationConnection} from '@actql/local-node/observation';
-import type {NodeHostObservationOptions, OtlpSignal} from './index.js';
+import type {NodeHostObservationOptions, OtlpSignal} from './index.mjs';
 
 export type Signal = 'traces' | 'metrics' | 'logs';
 export type TransportLimits = Record<keyof typeof managedLimits, number>;
