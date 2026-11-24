@@ -325,6 +325,12 @@ same Run without redoing finished work; `--wait` follows it. Rejecting ends
 the Run as `cancelled` with nothing sent (or `needs_reconciliation` if an
 earlier write's outcome is still unknown).
 
+For Native Local File Effects, repeating `approve` on the same Checkpoint
+can continue its recorded approval if the original intent still awaits its
+first claim. The Host checks the saved signed decision, current authority and
+dispatch custody before claiming it. A previously claimed intent or uncertain
+write requires the existing reconciliation path.
+
 **`cancel`** asks the Run to stop. It becomes `cancelled` once stopping is
 confirmed and no outcome is unknown; writes already applied stay applied.
 
