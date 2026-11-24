@@ -11,11 +11,42 @@ import {prepareNativeResidentHttpComponent,prepareNativeResidentSite,prepareNati
   prepareNativeRuntimeBundleLibraries} from './native-runtime-bundle-fixture.mjs';
 import {prepareNativeResidentPortableRuntime} from './native-resident-portable-preparation.mjs';
 
+type Lane = 'commands' | 'components';
+type LaneConfiguration = Readonly<{
+  repository: string; destination: string; source: string; target: string; selection: string;
+  seconds: number; residentSeconds: number; httpJobs: number; moonHome: string;
+  receiverMoonHome?: string; clang?: string; sdk?: string | null;
+}>;
+type CommandOptions = NonNullable<Parameters<typeof prepareNativeRuntimeBundle>[2]> &
+  {moonHome: string; seconds: number; preparation: null};
+type LibraryOptions = NonNullable<Parameters<typeof prepareNativeRuntimeBundleLibraries>[2]>;
+type HttpOptions = NonNullable<Parameters<typeof prepareNativeResidentHttpComponent>[2]>;
+type PortableOptions = NonNullable<Parameters<typeof prepareNativeResidentPortableRuntime>[2]> & {env?: NodeJS.ProcessEnv};
+type QueryOptions = NonNullable<Parameters<typeof prepareNativeQuerySoftware>[2]>;
+type Entry = ReturnType<typeof originalDescriptor>;
+type Ports = {
+  bundle?: (repository: string, destination: string, options: CommandOptions) => unknown;
+  resident?: (repository: string, destination: string, options: CommandOptions) => unknown;
+  exportCommand?: typeof exportNativeCompiledCommand;
+  portable?: (repository: string, destination: string, options?: PortableOptions) => unknown;
+  libraries?: (repository: string, destination: string, options: LibraryOptions) => unknown;
+  http?: (repository: string, destination: string, options: HttpOptions) => string | undefined;
+  query?: (repository: string, destination: string, options: QueryOptions) => string;
+};
+type CommandLane = {entries: Record<string, Entry>; portableReceipt?: string};
+type ComponentLane = {components: string; httpReceipt?: string; queryReceipt?: string; portableReceipt?: string};
+type LaneResult = Partial<CommandLane & ComponentLane>;
+type ParallelPorts = {
+  copyTools?: (original: string, destination: string, marker: string) => unknown;
+  startLane?: (lane: Lane, configuration: LaneConfiguration) => LaneResult | PromiseLike<LaneResult>;
+};
+
 // Build-action slots, not OS thread or memory quotas. Both portable Moon
 // invocations share the command-side slot; Query uses the component-side two.
 const darwinJobs=Object.freeze({portable:1,query:2});
 
-export function nativePreparationConsumerJobs({target,selection,lanes,destination,queryReceipt,portableReceipt}) {
+export function nativePreparationConsumerJobs({target,selection,lanes,destination,queryReceipt,portableReceipt}:
+  {target: string; selection: string; lanes: number; destination: string; queryReceipt?: string; portableReceipt?: string}) {
   assert(['darwin-arm64','linux-x64'].includes(target));
   assert(['bundle','resident','all'].includes(selection)&&[1,2].includes(lanes));
   if(target!=='darwin-arm64'||selection!=='all'||lanes!==2)return {};
@@ -26,7 +57,7 @@ export function nativePreparationConsumerJobs({target,selection,lanes,destinatio
 }
 
 
-function timed(destination,source,target,phase,prepare) {
+function timed<Value>(destination: string,source: string,target: string,phase: string,prepare: () => Value) {
   const started=performance.now(),startedEpochMs=Date.now();let succeeded=false;
   try {const result=prepare();succeeded=true;return result;}
   finally {
@@ -42,21 +73,24 @@ function timed(destination,source,target,phase,prepare) {
   }
 }
 
-export function prepareNativeConstructionLane(lane,configuration,ports={}) {
+export function prepareNativeConstructionLane(lane: 'commands',configuration: LaneConfiguration,ports?: Ports): CommandLane;
+export function prepareNativeConstructionLane(lane: 'components',configuration: LaneConfiguration,ports?: Ports): ComponentLane;
+export function prepareNativeConstructionLane(lane: Lane,configuration: LaneConfiguration,ports?: Ports): CommandLane | ComponentLane;
+export function prepareNativeConstructionLane(lane: Lane,configuration: LaneConfiguration,ports: Ports={}): CommandLane | ComponentLane {
   assert(['commands','components'].includes(lane));
   const {repository,destination,source,target,selection,seconds,residentSeconds,httpJobs,moonHome,
     receiverMoonHome=moonHome}=configuration;
   assert(['bundle','resident','all'].includes(selection));
   const queryLane=target==='darwin-arm64'&&selection==='all';
-  const prepare=(phase,operation)=>timed(destination,source,target,phase,operation);
+  const prepare=<Value,>(phase: string,operation: () => Value)=>timed(destination,source,target,phase,operation);
   if(lane==='commands') {
     const builds=join(destination,'command-builds'),inputs=join(destination,'command-inputs');
     mkdirSync(builds,{mode:0o700});mkdirSync(inputs,{mode:0o700});
-    const entries={};
+    const entries: Record<string, Entry>={};
     for(const [name,producer,selected] of [
       ['native_runtime_bundle',ports.bundle??prepareNativeRuntimeBundle,selection!=='resident'],
       ['native_remote_resident_site',ports.resident??prepareNativeResidentSite,selection!=='bundle'],
-    ]) {
+    ] as const) {
       if(!selected)continue;
       const directory=join(builds,name),budget=name==='native_remote_resident_site'?residentSeconds:seconds;
       prepare(name,()=>{
@@ -64,7 +98,7 @@ export function prepareNativeConstructionLane(lane,configuration,ports={}) {
         const remaining=()=>{const value=Math.floor((deadline-performance.now())/1000);
           assert(value>0,'Original command lane budget exhausted');return value;};
         producer(repository,directory,{moonHome,seconds:budget,preparation:null});
-        const context={repository,source,target,moon_home:moonHome,clang:configuration.clang,sdk:configuration.sdk??undefined};
+        const context={repository,source,target,moon_home:moonHome,clang:configuration.clang!,sdk:configuration.sdk??undefined};
         remaining();
         const input=(ports.exportCommand??exportNativeCompiledCommand)(directory,join(inputs,name),name,context);
         producer(repository,join(destination,name),{moonHome:receiverMoonHome,seconds:remaining(),preparation:null,compiledInput:input});
@@ -97,11 +131,11 @@ export function prepareNativeConstructionLane(lane,configuration,ports={}) {
   return {components,httpReceipt,portableReceipt};
 }
 
-function startWorker(lane,configuration) {
-  return new Promise((resolve,reject)=>{
+function startWorker(lane: Lane,configuration: LaneConfiguration) {
+  return new Promise<LaneResult>((resolve,reject)=>{
     const worker=new Worker(new URL(import.meta.url),{workerData:{kind:'native-preparation-lane',lane,configuration},
       resourceLimits:{maxOldGenerationSizeMb:256}});
-    let result,error;
+    let result: LaneResult | undefined,error: unknown;
     worker.on('message',value=>{result=value;});worker.on('error',value=>{error=value;});
     worker.on('exit',code=>{
       if(error)reject(error);
@@ -110,7 +144,7 @@ function startWorker(lane,configuration) {
     });
   });
 }
-export async function prepareNativeParallel(configuration,{copyTools=copyNativePreparationTools,startLane=startWorker}={}) {
+export async function prepareNativeParallel(configuration: LaneConfiguration,{copyTools=copyNativePreparationTools,startLane=startWorker}: ParallelPorts={}) {
   const {repository,destination,moonHome,target}=configuration;
   const pin=JSON.parse(readFileSync(join(repository,'toolchain.json'),'utf8'));
   const toolBase=join(repository,'.toolchains');mkdirSync(toolBase,{recursive:true});
@@ -120,7 +154,7 @@ export async function prepareNativeParallel(configuration,{copyTools=copyNativeP
   const toolDirectory=join(realpathSync(toolBase),basename(destination)+'-commands');
   const copied=copyTools(moonHome,toolDirectory,JSON.stringify({pin,platform:target}));
   writeFileSync(join(destination,'command-tool-copy.json'),JSON.stringify(copied)+'\n',{flag:'wx',mode:0o600});
-  const launch=(lane,options)=>{
+  const launch=(lane: Lane,options: LaneConfiguration)=>{
     try {return Promise.resolve(startLane(lane,options));}
     catch(error) {return Promise.reject(error);}
   };
@@ -132,8 +166,8 @@ export async function prepareNativeParallel(configuration,{copyTools=copyNativeP
   // to close naturally, retaining its exact partial outputs and original error.
   // A synchronous launch failure also joins every owner that did start.
   const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
-  return {...results[0].value,...results[1].value};
+  return {...(results[0] as PromiseFulfilledResult<LaneResult>).value,...(results[1] as PromiseFulfilledResult<LaneResult>).value};
 }
 if(!isMainThread&&workerData?.kind==='native-preparation-lane') {
-  parentPort.postMessage(prepareNativeConstructionLane(workerData.lane,workerData.configuration));
+  parentPort!.postMessage(prepareNativeConstructionLane(workerData.lane,workerData.configuration));
 }

@@ -1,18 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {mkdtempSync,mkdirSync,writeFileSync,readFileSync,rmSync,symlinkSync,lstatSync,existsSync,chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {copyNativePreparationTools,prepareNativeConstructionLane,prepareNativeParallel,nativePreparationConsumerJobs} from './native-preparation-lanes.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 
-function fixture(t) {
+type ConstructionPorts = NonNullable<Parameters<typeof prepareNativeConstructionLane>[2]>;
+type CommandPort = NonNullable<ConstructionPorts['bundle']>;
+type CompiledInput = ReturnType<NonNullable<ConstructionPorts['exportCommand']>>;
+type Original = NonNullable<Awaited<ReturnType<typeof prepareNativeParallel>>['entries']>[string];
+
+function fixture(t: TestContext) {
   const repository=mkdtempSync(join(tmpdir(),'actql-preparation-lanes-'));
   t.after(()=>rmSync(repository,{recursive:true,force:true}));
   const destination=join(repository,'outputs'),moonHome=join(repository,'tools');
   mkdirSync(destination);mkdirSync(moonHome);
   writeFileSync(join(repository,'toolchain.json'),'{}');
-  const put=(path,bytes='original')=>{mkdirSync(join(path,'..'),{recursive:true});writeFileSync(path,bytes);};
+  const put=(path: string,bytes='original')=>{mkdirSync(join(path,'..'),{recursive:true});writeFileSync(path,bytes);};
   return {repository,destination,moonHome,source:'a'.repeat(40),target:'darwin-arm64',selection:'all',
     seconds:900,residentSeconds:1200,httpJobs:2,put};
 }
@@ -41,8 +47,8 @@ test('Native parallel preparation isolates actual tool copies and excludes mutab
 });
 
 test('Native parallel preparation starts both independent owners and waits for failure closure without Ready',async t=>{
-  const f=fixture(t),started=[],finished=[];let release;
-  const held=new Promise(resolve=>{release=resolve;});
+  const f=fixture(t),started: string[]=[],finished: string[]=[];let release!: () => void;
+  const held=new Promise<void>(resolve=>{release=resolve;});
   const original=new Error('same original compiler failure');
   const operation=prepareNativeParallel(f,{copyTools:(from,to)=>({from,to}),startLane:async(lane,options)=>{
     started.push(lane);
@@ -62,8 +68,8 @@ test('Native parallel preparation starts both independent owners and waits for f
 });
 
 test('Native Linux parallel preparation keeps command profiles budgets original receipts and full component order',async t=>{
-  const f={...fixture(t),target:'linux-x64'},calls=[];
-  const command=(repository,path,options)=>{
+  const f={...fixture(t),target:'linux-x64'},calls: unknown[]=[];
+  const command: CommandPort=(repository,path,options)=>{
     assert.equal(repository,f.repository);assert.equal(options.preparation,null);
     if(options.compiledInput) {
       assert.equal(options.moonHome,f.moonHome);mkdirSync(path);
@@ -75,11 +81,11 @@ test('Native Linux parallel preparation keeps command profiles budgets original 
   const commands=prepareNativeConstructionLane('commands',{...f,moonHome:'/isolated/tool',receiverMoonHome:f.moonHome},{
     bundle:command,resident:command,exportCommand:(_from,path,entry,context)=>{
       assert.equal(context.moon_home,'/isolated/tool');assert.equal(context.source,f.source);
-      return {path:join(path,'command.json'),entry};
+      return {path:join(path,'command.json'),entry} as unknown as CompiledInput;
     },
   });
   assert.deepEqual(Object.keys(commands.entries),['native_runtime_bundle','native_remote_resident_site']);
-  assert.equal(calls[0].options.seconds,900);assert.equal(calls[2].options.seconds,1200);
+  assert.equal((calls[0] as {options: {seconds: number}}).options.seconds,900);assert.equal((calls[2] as {options: {seconds: number}}).options.seconds,1200);
   calls.length=0;
   const components=prepareNativeConstructionLane('components',f,{
     libraries:(_repository,path,options)=>{calls.push('libraries');assert.equal(options.seconds,900);assert.equal(options.preparation,null);},
@@ -102,7 +108,7 @@ test('Native Linux command lane forwards an absent SDK and retains its actual en
     },
     exportCommand:(_directory,path,entry,context)=>{
       checked++;assert.equal(context.target,'linux-x64');assert.equal(context.sdk,undefined);
-      return {path:join(path,'command.json'),entry};
+      return {path:join(path,'command.json'),entry} as unknown as CompiledInput;
     },
   });
   assert.equal(checked,1);
@@ -119,13 +125,13 @@ test('Native parallel preparation refuses a shared tool-output alias before copy
 
 test('Native parallel preparation joins both original owners after either synchronous launch failure',async t=>{
   for(const failed of ['commands','components']) {
-    const f=fixture(t),started=[],finished=[];let release;
-    const held=new Promise(resolve=>{release=resolve;});
+    const f=fixture(t),started: string[]=[],finished: string[]=[];let release!: () => void;
+    const held=new Promise<void>(resolve=>{release=resolve;});
     const original=new Error('same '+failed+' launch failure');
     const operation=prepareNativeParallel(f,{copyTools:()=>({}),startLane:lane=>{
       started.push(lane);
       if(lane===failed)throw original;
-      return held.then(()=>{finished.push(lane);return lane==='commands'?{entries:{same:'command'}}
+      return held.then(()=>{finished.push(lane);return lane==='commands'?{entries:{same:'command' as unknown as Original}}
         :{components:'same component'};});
     }});
     assert.deepEqual(started,['commands','components']);
@@ -139,20 +145,20 @@ test('Native parallel preparation joins both original owners after either synchr
 });
 
 test('Darwin preparation assigns portable and bounded Query work to the same two dependency owners',t=>{
-  const f=fixture(t),calls=[];
-  const command=(repository,path,options)=>{
+  const f=fixture(t),calls: string[]=[];
+  const command: CommandPort=(repository,path,options)=>{
     assert.equal(repository,f.repository);
     calls.push(options.compiledInput?'received':'compiled');
     if(options.compiledInput) {mkdirSync(path);writeFileSync(join(path,'received.json'),'original command');}
   };
   const commands=prepareNativeConstructionLane('commands',
     {...f,moonHome:'/isolated/command-tool',receiverMoonHome:f.moonHome},{
-      bundle:command,resident:command,exportCommand:()=>({original:true}),
+      bundle:command,resident:command,exportCommand:()=>({original:true} as unknown as CompiledInput),
       portable:(repository,path,options)=>{
         calls.push('portable');assert.equal(repository,f.repository);
         assert.equal(path,join(f.destination,'portable-runtime.json'));
-        assert.equal(options.env.MOON_HOME,f.moonHome);
-        assert.equal(options.jobs,1);
+        assert.equal(options!.env!.MOON_HOME,f.moonHome);
+        assert.equal(options!.jobs,1);
       },
     });
   assert.deepEqual(calls,['compiled','received','compiled','received','portable']);
@@ -183,13 +189,13 @@ test('Darwin preparation assigns portable and bounded Query work to the same two
 
 test('Darwin Query or portable refusal still joins the other actual construction owner without Ready',async t=>{
   for(const failed of ['query','portable']) {
-    const f=fixture(t),finished=[];let release;
-    const held=new Promise(resolve=>{release=resolve;});
+    const f=fixture(t),finished: string[]=[];let release!: () => void;
+    const held=new Promise<void>(resolve=>{release=resolve;});
     const original=new Error('original '+failed+' preparation refusal');
-    const command=(_repository,path,options)=>{
+    const command: CommandPort=(_repository,path,options)=>{
       if(options.compiledInput) {mkdirSync(path);writeFileSync(join(path,'received.json'),'original command');}
     };
-    const ports={bundle:command,resident:command,exportCommand:()=>({original:true}),
+    const ports: ConstructionPorts={bundle:command,resident:command,exportCommand:()=>({original:true} as unknown as CompiledInput),
       libraries:()=>{},http:()=>'/original/http',
       portable:()=>{if(failed==='portable')throw original;finished.push('portable');},
       query:(_repository,path)=>{if(failed==='query')throw original;finished.push('query');
@@ -209,12 +215,12 @@ test('Darwin Query or portable refusal still joins the other actual construction
 
 test('Darwin component dependencies refuse before Query and cannot substitute a foreign Query receipt',t=>{
   for(const refusal of ['libraries','http','foreign']) {
-    const f=fixture(t),calls=[],original=new Error('original '+refusal+' refusal');
-    const execute=name=>{calls.push(name);if(refusal===name)throw original;};
+    const f=fixture(t),calls: string[]=[],original=new Error('original '+refusal+' refusal');
+    const execute=(name: string)=>{calls.push(name);if(refusal===name)throw original;};
     assert.throws(()=>prepareNativeConstructionLane('components',f,{
-      libraries:()=>execute('libraries'),http:()=>execute('http'),
+      libraries:()=>execute('libraries'),http:()=>execute('http') as undefined,
       query:()=>{calls.push('query');return '/foreign/query-software.json';},
-    }),error=>refusal==='foreign'?error.code==='ERR_ASSERTION':error===original);
+    }),error=>refusal==='foreign'?(error as NodeJS.ErrnoException).code==='ERR_ASSERTION':error===original);
     assert.deepEqual(calls,refusal==='libraries'?['libraries']:refusal==='http'?['libraries','http']
       :['libraries','http','query']);
     assert.equal(existsSync(join(f.destination,'preparation.json')),false);
