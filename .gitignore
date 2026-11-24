@@ -1883,6 +1883,10 @@ target/
 /adapters/connectors/duckdb/node/examples/managed-worker.d.mts
 /adapters/connectors/duckdb/node/examples/physical-strategy.mjs
 /adapters/connectors/duckdb/node/examples/physical-strategy.d.mts
+/adapters/connectors/duckdb/node/examples/managed-host.mjs
+/adapters/connectors/duckdb/node/examples/managed-host.d.mts
+/adapters/connectors/duckdb/node/examples/managed-reader.mjs
+/adapters/connectors/duckdb/node/examples/managed-reader.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
 /adapters/host-node/result-transformation-control.test.mjs

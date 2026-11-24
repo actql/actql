@@ -13,8 +13,19 @@ import {retainedReaderPolicy} from './reader-policy.mjs';
 import * as budget from '../../../../../_build/js/release/build/process_host_bridge/process_host_bridge.js';
 import * as content from '../../../../../_build/js/release/build/retained_host_bridge/retained_host_bridge.js';
 
-let ledger, used = false;
-async function readContent(input, signal, context, progress) {
+import type {DelegatedReadLease} from '../../../../store-local/files.mjs';
+
+// MoonBit's Int64 ports take the existing bigint byte quantities.
+type ReadAmount = Parameters<typeof budget.processReadReserve>[1];
+type ReadContext = Parameters<Parameters<typeof serveManagedExecution>[0]>[2];
+type ReaderInput = Readonly<{application: Parameters<typeof prepareExampleText>[0]; task: number;
+  consumer?: Readonly<{task: number; port: number}> | null}>;
+type TaskIdentity = ReturnType<typeof snapshotCompletionTask>;
+type ReadHandoff = NonNullable<Parameters<typeof prepareProcessReadmission>[2]> &
+  Readonly<{descriptor: Readonly<{bytes: number}>; lease: DelegatedReadLease}>;
+
+let ledger: unknown, used = false;
+async function readContent(input: ReaderInput, signal: AbortSignal, context: ReadContext, progress: {stage: string}) {
   if (used || !context.resourceLimits) throw Error('ContentReaderUnavailable');
   used = true;
   ledger = checked(budget.processLedgerCreate(context.resourceLimits));
@@ -28,30 +39,33 @@ async function readContent(input, signal, context, progress) {
   let consumerRequest;
   if (input.consumer !== undefined) {
     const {task, port} = input.consumer ?? {};
-    if (!Number.isSafeInteger(task) || task < 1 || !Number.isSafeInteger(port) || port < 0 ||
-        Object.keys(input.consumer).sort().join(',') !== 'port,task') throw Error('InvalidConsumerPort');
-    const consumerTask = plan.taskIdentities()[task - 1];
+    if (!Number.isSafeInteger(task) || task! < 1 || !Number.isSafeInteger(port) || port! < 0 ||
+        Object.keys(input.consumer!).sort().join(',') !== 'port,task') throw Error('InvalidConsumerPort');
+    const consumerTask = plan.taskIdentities()[task! - 1] as Pick<TaskIdentity, 'inputs'> | undefined;
     if (!consumerTask?.inputs.some(edge => edge.input === port && edge.producer === input.task &&
         !edge.producer_target_is_input && edge.producer_target_index === taskIdentity.output_step)) {
       throw Error('ForeignConsumerPort');
     }
-    consumerRequest = Object.freeze({task, port});
+    consumerRequest = Object.freeze({task: task!, port: port!});
   }
   signal.throwIfAborted();
   progress.stage = 'custody';
-  const handoff = await context.callHost({command: 'read-completion', taskIdentity});
+  // The installed completion reader supplies these descriptor and lease fields.
+  // Readmission then verifies the exact task, origin and lease before any read.
+  const handoff = await context.callHost({command: 'read-completion', taskIdentity}) as ReadHandoff;
   signal.throwIfAborted();
   // A file lease is still provisional. Reserve before opening/allocating the
   // bounded parser, charge each received chunk, and verify complete framing.
-  let reservation, frames, reading, admission, readUnconfirmed = false;
+  let reservation: unknown, frames: ReturnType<typeof createMoonBitRetainedRowFrames> | undefined,
+    reading: unknown, admission: ReturnType<typeof prepareProcessReadmission> | undefined, readUnconfirmed = false;
   try {
     progress.stage = 'reservation';
     // This diagnostic performs admission, then an actual consumer-format read.
     // Reserve both transfers up front; a successful admission does not make the
     // subsequent access free. They are serial and share bounded scratch only.
     reservation = checked(budget.processReadReserve(ledger,
-      BigInt(handoff.descriptor.bytes) * (consumerRequest ? 2n : 1n),
-      policy.scratchBytes + processReadmissionControlBytes()));
+      (BigInt(handoff.descriptor.bytes) * (consumerRequest ? 2n : 1n)) as ReadAmount,
+      (policy.scratchBytes + processReadmissionControlBytes()) as ReadAmount));
     progress.stage = 'content-contract';
     reading = plan.contentRead(input.task, handoff.descriptor);
     admission = prepareProcessReadmission(plan.completionPreparation(input.task), taskIdentity,
@@ -62,8 +76,8 @@ async function readContent(input, signal, context, progress) {
     progress.stage = 'read';
     readUnconfirmed = true;
     const report = await consumeDelegatedFile(handoff.lease, async chunk => {
-      checked(budget.processReadCharge(ledger, reservation, BigInt(chunk.byteLength)));
-      await frames.feed(chunk, signal);
+      checked(budget.processReadCharge(ledger, reservation, BigInt(chunk.byteLength) as ReadAmount));
+      await frames!.feed(chunk, signal);
     }, signal);
     readUnconfirmed = false;
     const usage = frames.finish();
@@ -92,7 +106,7 @@ async function readContent(input, signal, context, progress) {
         async consume(accept, readSignal) {
           readUnconfirmed = true;
           await consumeDelegatedFile(handoff.lease, async chunk => {
-            checked(budget.processReadCharge(ledger, reservation, BigInt(chunk.byteLength)));
+            checked(budget.processReadCharge(ledger, reservation, BigInt(chunk.byteLength) as ReadAmount));
             await accept(chunk);
           }, readSignal);
           readUnconfirmed = false;
@@ -126,7 +140,7 @@ async function readContent(input, signal, context, progress) {
 serveManagedExecution(async (input, signal, context) => {
   const progress = {stage: 'prepare'};
   try {
-    return await readContent(input, signal, context, progress);
+    return await readContent(input as unknown as ReaderInput, signal, context, progress);
   } catch (error) {
     const stage = progress.stage;
     throw Object.assign(new Error(`ContentReader:${stage}`, {cause: error}), {code: `ContentReader:${stage}`});
