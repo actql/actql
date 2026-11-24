@@ -2,14 +2,13 @@ import {snapshotClientRequest} from '@actql/client-wire';
 import {requestPreparationAvailable,assertRequestPreparationControl,beginRequestInput,beginHttpRequestInput,openRequestPreparation,cleanupRequestInput,checkedPreparation} from '../local-node/request-preparation-adapter.mjs';
 import {matchesPublishedSubmissionSnapshot, freezeInput} from '../../packages/sdk/internal/private-source-preparation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
-import {open} from 'node:fs/promises';
 import {types} from 'node:util';
 import {checked} from '../host-common/runtime-result.mjs';
 import {checkedRequestProgramPreparation, checkedRequestSnapshotPreparation,
   requestProgramCapacityRefusal} from './client-program-preparation.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {runtimeIsError, runtimeOptionalField} from '../host-common/compiler-binding.generated.mjs';
-import {withOriginalFile} from './source-profile-json.mjs';
+import {createOrdinarySourceReaders} from './ordinary-source-reader.mjs';
 import resourceRuntime from './ordinary-node-resource-runtime.cjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
@@ -30,7 +29,6 @@ const pending = value => {
     ? Object.getOwnPropertyDescriptor(value, 'pending') : undefined;
   return field === undefined || !Object.hasOwn(field, 'value') || field.value !== false;
 };
-const fileIdentity = stat => [stat.dev, stat.ino, stat.size, stat.mtimeNs, stat.ctimeNs];
 
 function immutablePolicySubject(value) {
   if (value !== null && typeof value === 'object') {
@@ -185,50 +183,8 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
     return producer;
   };
   const status = () => Object.freeze({pending: !closed});
-  function captureReader(child) {
-    if (!child.readerCloseSeen) {
-      const method = child.reader.close;
-      child.readerClose = method; child.readerCloseSeen = true;
-    }
-    if (typeof child.readerClose !== 'function') fail('InstalledSourceReaderCleanupUnavailable');
-    if (!child.readerStatusSeen) {
-      const method = child.reader.status;
-      child.readerStatus = method; child.readerStatusSeen = true;
-    }
-    if (typeof child.readerStatus !== 'function') fail('InstalledSourceReaderCleanupUnavailable');
-  }
-  async function closeChild(child) {
-    if (child.closed) return Object.freeze({pending: false});
-    if (child.flight !== undefined) return Object.freeze({pending: true});
-    child.closing = true;
-    const work = Promise.resolve().then(async () => {
-      if (child.reader !== undefined) {
-        // Retention precedes these getters. Only a getter which never
-        // returned can be read again; a captured callback is never replaced.
-        captureReader(child);
-        if (!child.readerCloseAcknowledged) {
-          const observed = await Reflect.apply(child.readerClose, child.reader, []);
-          if (pending(observed)) return Object.freeze({pending: true});
-          child.readerCloseAcknowledged = true;
-        }
-        if (pending(Reflect.apply(child.readerStatus, child.reader, []))) {
-          return Object.freeze({pending: true});
-        }
-        child.reader = child.readerClose = child.readerStatus = undefined;
-      }
-      if (child.cleanup !== undefined) {
-        if (pending(Reflect.apply(child.cleanupStatus, child.cleanup, []))) {
-          await Reflect.apply(child.cleanupRetry, child.cleanup, []);
-        }
-        if (pending(Reflect.apply(child.cleanupStatus, child.cleanup, []))) return Object.freeze({pending: true});
-        child.cleanup = child.cleanupStatus = child.cleanupRetry = undefined;
-      }
-      child.bytes = undefined; child.closed = true;
-      return Object.freeze({pending: false});
-    });
-    child.flight = work;
-    try {return await work;} finally {if (child.flight === work) child.flight = undefined;}
-  }
+  const {captureReader, closeChild, readBytes} = createOrdinarySourceReaders({
+    current, pending, fail, get bundle() { return bundle; }});
   function retainedRunCurrent(run) {
     const producer = run?.producer, state = producer?.preparation;
     if (closed || run === undefined || runs.get(run.prepared) !== run ||
@@ -292,53 +248,6 @@ async function prepareOrdinaryManagedInstallation(originals, callbacks, source, 
       },
       () => run.children.some(child => child.flight !== undefined || !child.closed), purpose);
     return run.original;
-  }
-  async function readBytes(run, child) {
-    current();
-    if (child.closed || child.attempted) fail('InstalledSourcePreparationMismatch');
-    child.attempted = true;
-    const work = (async () => {
-      try {
-        const bytes = await withOriginalFile(bundle.dataPath, open, async original => {
-          const read = original.read, stat = original.stat;
-          if (typeof read !== 'function' || typeof stat !== 'function') fail('InstalledMockSourceUnavailable');
-          const before = await Reflect.apply(stat, original, [{bigint: true}]);
-          if (!before.isFile() || before.size > 1048576n) fail('InstalledMockSourceInputLimit');
-          const identity = fileIdentity(before);
-          if (run.fileIdentity === undefined) run.fileIdentity = identity;
-          else if (identity.some((value, index) => value !== run.fileIdentity[index])) fail('InstalledMockSourceChanged');
-          const chunks = []; let used = 0;
-          for (;;) {
-            current();
-            const buffer = Buffer.allocUnsafe(Math.min(65536, 1048576 - used + 1));
-            const {bytesRead} = await Reflect.apply(read, original, [buffer, 0, buffer.length, null]);
-            if (!Number.isSafeInteger(bytesRead) || bytesRead < 0 || bytesRead > buffer.length) fail('InstalledMockSourceUnavailable');
-            if (bytesRead === 0) break;
-            used += bytesRead;
-            if (used > 1048576) fail('InstalledMockSourceInputLimit');
-            chunks.push(buffer.subarray(0, bytesRead));
-          }
-          const after = await Reflect.apply(stat, original, [{bigint: true}]);
-          if (fileIdentity(after).some((value, index) => value !== identity[index])) fail('InstalledMockSourceChanged');
-          return Buffer.concat(chunks, used);
-        });
-        current();
-        for (const sibling of run.children) if (sibling !== child && sibling.bytes !== undefined &&
-            !bytes.equals(sibling.bytes)) fail('InstalledMockSourceChanged');
-        child.bytes = bytes; return bytes;
-      } catch (cause) {
-        child.failure = cause;
-        // The bounded reader retains its same physical FileHandle on failed
-        // close. Keep its original cleanup before another current check.
-        child.cleanup = cause?.cleanupHandle;
-        if (child.cleanup !== undefined) {
-          child.cleanupStatus = child.cleanup.status; child.cleanupRetry = child.cleanup.retry;
-        }
-        throw cause;
-      }
-    })();
-    child.flight = work;
-    try {return await work;} finally {if (child.flight === work) child.flight = undefined;}
   }
   function originalTimedInvocation(state, producer, prepared, construct, contracts) {
     if (state.requiresQueryTime !== true) return undefined;

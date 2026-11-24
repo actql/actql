@@ -57654,19 +57654,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "child.closing = true;"
               }
             ],

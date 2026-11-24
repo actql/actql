@@ -96809,19 +96809,19 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
               }
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
               }
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "child.closing = true;"
               }
             ],
@@ -119791,13 +119791,8 @@
         {
           "operations": [
             "assertOrdinarySourcePreparationCurrent",
-            "fileIdentity/fileIdentity",
             "pending/pending",
             "prepareOrdinaryManagedInstallation/current/current",
-            "prepareOrdinaryManagedInstallation/readBytes/work/work",
-            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
-            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
-            "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
             "prepareOrdinaryManagedInstallation/status/status",
             "prepareOrdinaryManagedInstallation/view/init:beforeResultRead/init:beforeResultRead",
             "prepareOrdinaryManagedInstallation/view/init:beforeSourceQuery/init:beforeSourceQuery",
@@ -119819,7 +119814,9 @@
             "prepareOrdinaryManagedInstallation/view/init:prepareRun/init:prepareRun",
             "prepareOrdinarySourceManagedInstallation",
             "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
-            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand"
+            "prepareOrdinaryManagedInstallation/view/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand/init:prepareSerializationOutputDemand",
+            "fail/fail",
+            "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation"
           ],
           "exports": [
             "assertOrdinarySourcePreparationCurrent",
@@ -119878,8 +119875,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "child.cleanup = cause?.cleanupHandle;"
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "child.cleanup = (cause as Readonly<{cleanupHandle?: ReaderCleanup}> | null | undefined)?.cleanupHandle;"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -119896,7 +119893,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (child.flight !== undefined)"
               },
               {
@@ -119910,7 +119907,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "child.failure = cause;"
               },
               {
@@ -119938,7 +119935,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "before.size > 1048576n"
               },
               {
@@ -120323,7 +120320,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
               },
               {
@@ -120353,7 +120350,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
               },
               {
@@ -120383,7 +120380,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "child.closing = true;"
               },
               {
@@ -122517,8 +122514,8 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "async function closeChild(child) {"
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "async function closeChild(child: SourceReaderChild) {"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -123418,8 +123415,8 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
-                "anchor": "child.cleanup = cause?.cleanupHandle;"
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "child.cleanup = (cause as Readonly<{cleanupHandle?: ReaderCleanup}> | null | undefined)?.cleanupHandle;"
               },
               {
                 "path": "docs/design/local-input-preparation.md",
@@ -123432,7 +123429,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (child.flight !== undefined)"
               },
               {
@@ -123446,7 +123443,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "child.failure = cause;"
               },
               {
@@ -123474,7 +123471,7 @@
             ],
             "resources": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "before.size > 1048576n"
               },
               {
@@ -123894,7 +123891,6 @@
         },
         {
           "operations": [
-            "prepareOrdinaryManagedInstallation/closeChild/work/work",
             "prepareOrdinaryManagedInstallation/view/init:adoptEffectPreparation/init:adoptEffectPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation",
             "prepareOrdinaryManagedInstallation/view/init:fundedPreparation/init:fundedPreparation/init:fundedPreparation#3",
@@ -124037,7 +124033,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (child.flight !== undefined) return Object.freeze({pending: true});"
               },
               {
@@ -124067,7 +124063,7 @@
             ],
             "failure": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
               },
               {
@@ -124097,7 +124093,7 @@
             ],
             "cancellation": [
               {
-                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "path": "adapters/host-node/ordinary-source-reader.mts",
                 "anchor": "child.closing = true;"
               },
               {
@@ -125124,9 +125120,9 @@
           "async": false
         },
         {
-          "name": "fileIdentity/fileIdentity",
+          "name": "fail/fail",
           "parameters": [
-            "stat"
+            "code"
           ],
           "async": false
         },
@@ -125153,11 +125149,6 @@
             "child"
           ],
           "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/closeChild/work/work",
-          "parameters": [],
-          "async": true
         },
         {
           "name": "prepareOrdinaryManagedInstallation/constructEffectMaterials/constructEffectMaterials",
@@ -125190,6 +125181,11 @@
           "async": false
         },
         {
+          "name": "prepareOrdinaryManagedInstallation/prepareOrdinaryManagedInstallation",
+          "parameters": [],
+          "async": false
+        },
+        {
           "name": "prepareOrdinaryManagedInstallation/prepareRun",
           "parameters": [
             "prepared",
@@ -125214,34 +125210,6 @@
         {
           "name": "prepareOrdinaryManagedInstallation/prepareRun/prepareRun#2",
           "parameters": [],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work",
-          "parameters": [],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes",
-          "parameters": [
-            "original"
-          ],
-          "async": true
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes",
-          "parameters": [
-            "value",
-            "index"
-          ],
-          "async": false
-        },
-        {
-          "name": "prepareOrdinaryManagedInstallation/readBytes/work/work/bytes/bytes/bytes#2",
-          "parameters": [
-            "value",
-            "index"
-          ],
           "async": false
         },
         {
@@ -126578,15 +126546,187 @@
         "./installed-model.mjs",
         "./local-values-plan.mjs",
         "./ordinary-node-resource-runtime.cjs",
+        "./ordinary-source-reader.mjs",
         "./source-alias-construction.mjs",
-        "./source-profile-json.mjs",
         "@actql/client-wire",
-        "node:fs/promises",
         "node:util"
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "2d6f28b3c53bca427be9d220fd551fe4e6701af319a227d3a96ce1be51811070"
+      "sha256": "0535357a28c75bc2224ec887151f48ed4afc9e225542df1abcd3e9b7fc1754eb"
+    },
+    {
+      "module": "adapters/host-node/ordinary-source-reader.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "90badf1beb5dff9cf9653a89873887d40b743f6489b0b23054c799413bf9dc1c",
+      "role": "physical-io",
+      "owner": "Existing Host/Resource/Store owner: Same Run Source/Compute managed limits and real file readers",
+      "exports": [
+        "createOrdinarySourceReaders"
+      ],
+      "operations": [
+        {
+          "name": "createOrdinarySourceReaders",
+          "parameters": [
+            "ports"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceReaders/captureReader",
+          "parameters": [
+            "child"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceReaders/closeChild",
+          "parameters": [
+            "child"
+          ],
+          "async": true
+        },
+        {
+          "name": "createOrdinarySourceReaders/closeChild/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createOrdinarySourceReaders/readBytes",
+          "parameters": [
+            "run",
+            "child"
+          ],
+          "async": true
+        },
+        {
+          "name": "createOrdinarySourceReaders/readBytes/work/work",
+          "parameters": [],
+          "async": true
+        },
+        {
+          "name": "createOrdinarySourceReaders/readBytes/work/work/bytes/bytes",
+          "parameters": [
+            "original"
+          ],
+          "async": true
+        },
+        {
+          "name": "createOrdinarySourceReaders/readBytes/work/work/bytes/bytes/bytes",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "createOrdinarySourceReaders/readBytes/work/work/bytes/bytes/bytes#2",
+          "parameters": [
+            "value",
+            "index"
+          ],
+          "async": false
+        },
+        {
+          "name": "fileIdentity/fileIdentity",
+          "parameters": [
+            "stat"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "createOrdinarySourceReaders",
+            "createOrdinarySourceReaders/captureReader",
+            "createOrdinarySourceReaders/closeChild",
+            "createOrdinarySourceReaders/closeChild/work/work",
+            "createOrdinarySourceReaders/readBytes",
+            "createOrdinarySourceReaders/readBytes/work/work",
+            "createOrdinarySourceReaders/readBytes/work/work/bytes/bytes",
+            "createOrdinarySourceReaders/readBytes/work/work/bytes/bytes/bytes",
+            "createOrdinarySourceReaders/readBytes/work/work/bytes/bytes/bytes#2",
+            "fileIdentity/fileIdentity"
+          ],
+          "exports": [
+            "createOrdinarySourceReaders"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "export function createOrdinarySourceReaders(ports: Ports)"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "export type SourceReaderChild = {"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "const fileIdentity = (stat: BigIntStats) =>"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.mjs",
+                "anchor": "const {captureReader, closeChild, readBytes} = createOrdinarySourceReaders({"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "child.readerCloseAcknowledged = true;"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "child.failure = cause;"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "if (pending(observed)) return Object.freeze({pending: true});"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "before.size > 1048576n"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/ordinary-source-reader.mts",
+                "anchor": "captureReader(child);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "ordinary two-Source acquisition uses distinct actual readers and one managed Run"
+              },
+              {
+                "path": "adapters/host-node/ordinary-source-managed.test.mjs",
+                "anchor": "ordinary Source refuses a changed same-Run file and preserves cleanup after current refusal"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./source-profile-json.mjs",
+        "node:fs/promises"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     },
     {
       "module": "adapters/host-node/ordinary-node-resource-runtime.cjs",
