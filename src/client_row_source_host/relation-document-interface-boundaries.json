@@ -342,7 +342,7 @@
     {
       "module": "src/connectors_builtin_node/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "8e9ad8a6d3dd09b2fdcd446fbc991d569855983f0371e9985cce412ef99b278c",
+      "sha256": "5fe5805bbe7df9058f163dab9d48994486451b212b2276974b67ed531407a641",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -406,10 +406,6 @@
         {
           "name": "client_program_relation_target_version",
           "declaration": "client_program_relation_target_version ( row : @ client_row_source_host . RelationTargetRow , ) - > String ?"
-        },
-        {
-          "name": "client_program_relation_update_mapping",
-          "declaration": "client_program_relation_update_mapping ( declaration : @ client_row_source_host . RowDeclaration , resource : String , primary_identity : String , writable_fields : Array [ String ] , permission : String , approval : String , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
         }
       ],
       "contracts": [
@@ -430,8 +426,7 @@
             "client_program_relation_target_row_identity",
             "client_program_relation_target_text",
             "client_program_relation_target_text_bytes",
-            "client_program_relation_target_version",
-            "client_program_relation_update_mapping"
+            "client_program_relation_target_version"
           ],
           "exports": [],
           "attributes": {
@@ -506,7 +501,7 @@
     {
       "module": "src/connectors_builtin_node_rela/client_relation_document_bridge.mbt",
       "responsibilityFacet": "primary",
-      "sha256": "fa868b682962f2922f5cb427baf518a61529a1d43926f39f652dfe38935416e3",
+      "sha256": "4aea04b7264b552c69c1f4f53db86e47a8bc94d75d1f4007eb243ee8a11dfedb",
       "role": "generated-binding",
       "owner": "Existing Common original declared relation DATA, nominal row capture and installed Host lifetime owners; Node and RelA project the same ports",
       "exports": [],
@@ -570,10 +565,6 @@
         {
           "name": "client_program_relation_target_version",
           "declaration": "client_program_relation_target_version ( row : @ client_row_source_host . RelationTargetRow , ) - > String ?"
-        },
-        {
-          "name": "client_program_relation_update_mapping",
-          "declaration": "client_program_relation_update_mapping ( declaration : @ client_row_source_host . RowDeclaration , resource : String , primary_identity : String , writable_fields : Array [ String ] , permission : String , approval : String , ) - > Result [ String , @ client_row_source_host . RowMappingIssue ]"
         }
       ],
       "contracts": [
@@ -594,8 +585,7 @@
             "client_program_relation_target_row_identity",
             "client_program_relation_target_text",
             "client_program_relation_target_text_bytes",
-            "client_program_relation_target_version",
-            "client_program_relation_update_mapping"
+            "client_program_relation_target_version"
           ],
           "exports": [],
           "attributes": {

@@ -184,6 +184,54 @@ test "installed UPDATE validates every sibling specification before selecting a 
 }
 
 ///|
+test "one guarded Relation issues distinct UPDATE and DELETE mappings" {
+  let declaration = relation_mapping_declaration()
+  let writes =
+    #|{"writes":[{"resource":"records","primary_identity":"id","update":{"fields":["choices","amount","label"],"permission":"fixture:update","approval":"required"},"delete":{"permission":"fixture:delete","approval":"required"}}]}
+  let updated = prepare_row_update_mapping(
+    declaration,
+    writes,
+    "records",
+    relation_mapping_sources(),
+  ).unwrap()
+  let deleted = prepare_row_delete_mapping_from_writes(
+    declaration, writes, "records",
+  ).unwrap()
+  assert_eq(
+    updated.body,
+    prepare_row_update_mapping(
+      declaration,
+      relation_update_write_wire(),
+      "records",
+      relation_mapping_sources(),
+    ).unwrap().body,
+  )
+  assert_eq(updated.resource, deleted.resource)
+  assert_true(updated.mapping_cid != deleted.mapping_cid)
+  assert_true(deleted.body.contains("\"effect_kind\":\"delete\""))
+  assert_true(deleted.body.contains("\"fixture:delete\""))
+  assert_true(!deleted.body.contains("\"fixture:update\""))
+  let bad = writes.replace(old="\"fixture:delete\"", new="\"\"")
+  assert_true(
+    prepare_row_update_mapping(
+      declaration,
+      bad,
+      "records",
+      relation_mapping_sources(),
+    )
+    is Err(InvalidSpecification),
+  )
+  assert_true(
+    prepare_row_delete_mapping_from_writes(
+      declaration,
+      relation_update_write_wire(),
+      "records",
+    )
+    is Err(NotWritable("records")),
+  )
+}
+
+///|
 test "existing CREATE mapping remains separate and unchanged by UPDATE continuation" {
   let declaration = github_declaration()
   let mapping = prepare_row_mapping(

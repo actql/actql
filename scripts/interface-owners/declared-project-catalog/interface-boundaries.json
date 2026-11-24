@@ -3,7 +3,7 @@
   "declarations": [
     {
       "module": "adapters/local-node/declared-project-catalog.mjs",
-      "sha256": "155a6bebde644f30d5f7e312ac1b3bb646023e6501890d327f4c2b4f1b67f304",
+      "sha256": "6b7ca44a21dc13df53dfc987c6ea84cb947def16799556387ee7677e9589837f",
       "exports": [
         "inspectDeclaredProjectCatalog",
         "loadDeclaredProjectCatalog",
@@ -510,9 +510,9 @@
           "async": false
         },
         {
-          "name": "writeFacts/writeFacts",
+          "name": "writeFacts/facts/facts",
           "parameters": [
-            "spec"
+            "value"
           ],
           "async": false
         }
@@ -605,7 +605,7 @@
             "text/text",
             "updateSources/updateSources/updateSources",
             "wire/wire",
-            "writeFacts/writeFacts"
+            "writeFacts/facts/facts"
           ],
           "exports": [
             "inspectDeclaredProjectCatalog",
@@ -770,6 +770,10 @@
               {
                 "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
                 "anchor": "installed Mock keeps DELETE mapping and permissions distinct from a sibling UPDATE"
+              },
+              {
+                "path": "adapters/host-node/installed-project-mock.actual.test.mjs",
+                "anchor": "installed Mock binds UPDATE and DELETE to the same original table with distinct mappings"
               }
             ]
           }

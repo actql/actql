@@ -904,6 +904,49 @@ fn native_project_mock_model_fixture(
 }
 
 ///|
+test "Native Mock binds UPDATE and DELETE to one original collection" {
+  let project = native_project_mock_model_fixture(
+    "same-resource-mixed-delete-update",
+    operation="run",
+  )
+  defer project.retire()
+  project.prepare_source_declarations().unwrap()
+  assert_eq(project.sources.length(), 1)
+  let source = project.sources[0]
+  assert_eq(source._retained_rows.length(), 1)
+  let installations = local_project_mock_write_installations(
+    source,
+    "sha256:" + "d".repeat(64),
+    "sha256:" + "a".repeat(64),
+  ).unwrap()
+  assert_eq(installations.length(), 2)
+  let update = installations[0]
+  let delete = installations[1]
+  assert_true(update.matches_file_operation("update"))
+  assert_true(!delete.matches_file_operation("update"))
+  assert_true(delete.matches_file_operation("delete"))
+  assert_eq(update.binding, delete.binding)
+  assert_eq(update.target, delete.target)
+  assert_eq(update.write.mapping.resource, "Account")
+  assert_eq(delete.write.mapping.resource, "Account")
+  assert_true(
+    update.write.mapping.mapping_cid != delete.write.mapping.mapping_cid,
+  )
+  assert_true(update.write.mapping.body.contains("salesforce:record:update"))
+  assert_true(delete.write.mapping.body.contains("salesforce:record:delete"))
+  assert_true(!delete.write.mapping.body.contains("salesforce:record:update"))
+  project
+  .prepare_models(
+    local_project_mock_task_limits(),
+    local_project_mock_answer_limits(),
+    local_utc_now,
+  )
+  .unwrap()
+  let (_, targets) = project.account_subjects(_ => true).unwrap().unwrap()
+  assert_eq(targets, [("salesforce", "Account")])
+}
+
+///|
 test "Native Project Mock installs original typed answer Model once and retires its cycles" {
   let original = native_project_mock_model_fixture("deal-review")
   defer original.retire()
