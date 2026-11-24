@@ -199,50 +199,79 @@ exec "$ACTQL_FIXTURE_NPM" "$@"
     ACTQL_FIXTURE_NPM: checked('which', ['npm']), GITHUB_TOKEN: 'synthetic-verification-token'};
   git('init', '--quiet');
   await mkdir(join(root, 'scripts'));
-  await writeFile(join(root, '.gitignore'), '/scripts/stale.mjs\n/scripts/stale.d.mts\n/keep.mjs\n');
+  await writeFile(join(root, '.gitignore'), [
+    '/scripts/stale.mjs', '/scripts/stale.d.mts',
+    '/scripts/declaration-only.d.cjs', '/scripts/declaration-only.d.mjs',
+    '/keep.mjs', '',
+  ].join('\n'));
   await writeFile(join(root, 'scripts/entry.mjs'), "console.log('original JS');\n");
+  await writeFile(join(root, 'scripts/legacy-entry.cjs'), "console.log('original CJS');\n");
   const legacy = commit('Legacy JavaScript source');
   await rm(join(root, 'scripts/entry.mjs'));
-  await writeFile(join(root, '.gitignore'),
-    '/scripts/entry.mjs\n/scripts/entry.d.mts\n/scripts/stale.mjs\n/scripts/stale.d.mts\n/keep.mjs\n');
+  await rm(join(root, 'scripts/legacy-entry.cjs'));
+  await writeFile(join(root, '.gitignore'), [
+    '/scripts/entry.mjs', '/scripts/entry.d.mts', '/scripts/stale.mjs', '/scripts/stale.d.mts',
+    '/scripts/controller-entry.cjs', '/scripts/controller-entry.d.cts',
+    '/scripts/selected-entry.cjs', '/scripts/selected-entry.d.cts',
+    '/scripts/declaration-only.d.cjs', '/scripts/declaration-only.d.mjs',
+    '/keep.mjs', '',
+  ].join('\n'));
+  await writeFile(join(root, 'scripts/declaration-only.d.mts'), 'export declare const esm: true;\n');
+  await writeFile(join(root, 'scripts/declaration-only.d.cts'), 'export declare const cjs: true;\n');
   const compiler = join(repository, 'node_modules/typescript/bin/tsc');
   const project = {compilerOptions: {module: 'NodeNext', strict: true, noEmitOnError: true, declaration: true},
-    include: ['scripts/*.mts']};
+    include: ['scripts/*.mts', 'scripts/*.cts']};
   await writeFile(join(root, 'tsconfig.tooling.json'), JSON.stringify(project));
   await writeFile(join(root, 'package.json'), JSON.stringify({name: 'bootstrap-fixture', version: '1.0.0',
     scripts: {'build:typescript': `${JSON.stringify(process.execPath)} ${JSON.stringify(compiler)} --project tsconfig.tooling.json`}}));
   await writeFile(join(root, 'package-lock.json'), JSON.stringify({name: 'bootstrap-fixture', version: '1.0.0',
     lockfileVersion: 3, requires: true, packages: {'': {name: 'bootstrap-fixture', version: '1.0.0'}}}));
   await writeFile(join(root, 'scripts/entry.mts'), "const value: string = 'selected TS'; console.log(value);\n");
+  await writeFile(join(root, 'scripts/selected-entry.cts'), "const selected: string = 'selected CJS'; console.log(selected);\n");
   const selected = commit('TypeScript source selected by the artifact');
   await writeFile(join(root, 'scripts/entry.mts'), "const value: string = 7; console.log(value);\n");
   const invalid = commit('TypeScript source with a compiler failure');
   await writeFile(join(root, 'scripts/entry.mts'), "const value: string = 'controller'; console.log(value);\n");
   await writeFile(join(root, 'scripts/stale.mts'), "export const controllerOnly = true;\n");
-  const controller = commit('Controller with an extra emitted module');
+  await rm(join(root, 'scripts/selected-entry.cts'));
+  await writeFile(join(root, 'scripts/controller-entry.cts'), "const controller: string = 'controller CJS'; console.log(controller);\n");
+  const controller = commit('Controller with extra emitted modules');
   checked('npm', ['run', 'build:typescript']);
   await writeFile(join(root, 'keep.mjs'), '// unrelated ignored file\n');
   assert(existsSync(join(root, 'scripts/stale.mjs')));
   assert(existsSync(join(root, 'scripts/stale.d.mts')));
+  assert(existsSync(join(root, 'scripts/controller-entry.d.cts')));
+  for (const extension of ['mjs', 'cjs'])
+    await writeFile(join(root, `scripts/declaration-only.d.${extension}`), '// unrelated ignored file\n');
 
   checked('bash', [helper, controller], checkoutEnvironment);
   assert.equal(checked(process.execPath, ['scripts/entry.mjs']), 'controller');
+  assert.equal(checked(process.execPath, ['scripts/controller-entry.cjs']), 'controller CJS');
   checked('bash', [helper, selected], checkoutEnvironment);
   assert.equal(git('rev-parse', 'HEAD'), selected);
   assert.equal(checked(process.execPath, ['scripts/entry.mjs']), 'selected TS');
   assert.equal(existsSync(join(root, 'scripts/stale.mjs')), false);
   assert.equal(existsSync(join(root, 'scripts/stale.d.mts')), false);
   assert(existsSync(join(root, 'scripts/entry.d.mts')));
+  assert.equal(checked(process.execPath, ['scripts/selected-entry.cjs']), 'selected CJS');
+  assert(existsSync(join(root, 'scripts/selected-entry.d.cts')));
+  assert(!existsSync(join(root, 'scripts/controller-entry.cjs')));
+  assert(!existsSync(join(root, 'scripts/controller-entry.d.cts')));
+  for (const extension of ['mjs', 'cjs'])
+    assert.equal(await readFile(join(root, `scripts/declaration-only.d.${extension}`), 'utf8'), '// unrelated ignored file\n');
 
   const refused = run('bash', [helper, invalid], checkoutEnvironment);
   assert.notEqual(refused.status, 0);
   assert.match(refused.stdout + refused.stderr, /TS2322/u);
   assert.equal(git('rev-parse', 'HEAD'), invalid);
   assert.equal(existsSync(join(root, 'scripts/entry.mjs')), false);
+  assert(!existsSync(join(root, 'scripts/selected-entry.cjs')));
+  assert(!existsSync(join(root, 'scripts/selected-entry.d.cts')));
 
   checked('bash', [helper, legacy], checkoutEnvironment);
   assert.equal(git('rev-parse', 'HEAD'), legacy);
   assert.equal(checked(process.execPath, ['scripts/entry.mjs']), 'original JS');
+  assert.equal(checked(process.execPath, ['scripts/legacy-entry.cjs']), 'original CJS');
   assert.equal(await readFile(join(root, 'keep.mjs'), 'utf8'), '// unrelated ignored file\n');
   assert.equal(git('status', '--porcelain'), '');
 });
