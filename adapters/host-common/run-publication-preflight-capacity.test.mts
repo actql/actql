@@ -113,7 +113,7 @@ test(`timed ${kind} publication reaches the existing preflight with original con
   const prepared = {}, request = {}, time = {}, context = {}, originalPlan = {};
   const definition = contract('run_definition');
   const compiled = Object.freeze({kind, admission: {}, compiledPlan: contract('compiled_plan'),
-    preparedEvidence: {wire: 'original-prepared'}, authorization: {wire: 'original-authorization'}});
+    preparedEvidence: contract('prepared_program'), authorization: {wire: 'original-authorization'}});
   const authoringOriginal = Object.freeze({preparedProgram: prepared, requestIdentity: request});
   const normalization = contract('normalization_journal'), authoring = contract('authoring_context');
   const invocationOriginal = Object.freeze({preparedProgram: prepared, requestIdentity: request,

@@ -27,13 +27,22 @@ function originalFunction<Callable extends (...args: never[]) => unknown>(
 function dispatchCleanup(values: readonly bigint[]) {
   const setup = {}, entry = {ref: {runDefinitionCid: 'original'}, pendingSetup: setup};
   const calls: string[] = [];
+  const unusedJournalPort = () => assert.fail('no request journal operation in this component');
   const moon = {strategyHostStop(actual: unknown) {assert.equal(actual, setup); calls.push('stop');},
     strategyHostCloseOutputs(actual: unknown) {assert.equal(actual, setup); calls.push('outputs');},
     strategyHostUsage(actual: unknown) {assert.equal(actual, setup); calls.push('usage'); return values;}};
   const {settleCleanup} = createClientDispatchCleanup({
     moon: {...moon, strategyHostRun() {assert.fail('no isolated preparation in this component');},
-      clientProgramIssueControlledUnpublishedRunState() {assert.fail('no terminal state in this component');}},
-    control: {runDefinitionRunId() {assert.fail('no run definition in this component');}},
+      clientProgramIssueControlledUnpublishedRunState() {assert.fail('no terminal state in this component');},
+      clientRequestAdmitRecord: unusedJournalPort, clientRequestAuthorityScopeCid: unusedJournalPort,
+      clientRequestCallerId: unusedJournalPort, clientRequestScopeCid: unusedJournalPort,
+      clientRequestIntentCid: unusedJournalPort, clientRequestProgramCid: unusedJournalPort,
+      clientRequestParametersCid: unusedJournalPort, clientRequestInputCid: unusedJournalPort,
+      clientProgramPrepareRunStateObservation: unusedJournalPort, clientProgramRunStateObservationKey: unusedJournalPort,
+      clientProgramRunStateObservationRevision: unusedJournalPort, clientProgramRunStateObservationWire: unusedJournalPort,
+      clientRunControlObservation: unusedJournalPort},
+    control: {runDefinitionRunId() {assert.fail('no run definition in this component');},
+      admit() {assert.fail('no run definition admission in this component');}},
     now() {assert.fail('no terminal timestamp in this component');},
     entries: new Map(),
     keyOf: (ref: typeof entry.ref) => ref.runDefinitionCid,

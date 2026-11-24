@@ -2,20 +2,21 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createEmbeddedHostRegistry} from './embedded-local-lifecycle.mjs';
 
-function deferred() {
-  let resolve;
-  const promise = new Promise(done => {resolve = done;});
+function deferred<Value>() {
+  let resolve!: (value: Value) => void;
+  const promise = new Promise<Value>(done => {resolve = done;});
   return {promise, resolve};
 }
+type Arrival = {request: unknown; done: ReturnType<typeof deferred<object>>};
 function fixture() {
   const registry = createEmbeddedHostRegistry(() => true);
   const installation = {};
-  const calls = [];
-  const arrivals = [];
+  const calls: Arrival[] = [];
+  const arrivals: ((item: Arrival) => void)[] = [];
   const host = {
-    port: {perform(operation, request) {
+    port: {perform(operation: unknown, request: unknown) {
       assert.equal(operation, 'connect');
-      const done = deferred();
+      const done = deferred<object>();
       const item = {request, done};
       calls.push(item);
       arrivals.shift()?.(item);
@@ -28,17 +29,17 @@ function fixture() {
   };
   registry.registerPreparation(host, installation, host);
   return {registry, installation, host,
-    next() {return new Promise(resolve => arrivals.push(resolve));},
+    next() {return new Promise<Arrival>(resolve => arrivals.push(resolve));},
     connect(first = true) {
       const result = registry.connect('alias-test', {}, async () => host,
         {mode: 'local', owner: 'local'}, first ? host : undefined);
       // The profile is deliberately invalid after the pending-operation checks.
       // This exercises real registry custody and its real failure cleanup.
-      const rejected = assert.rejects(result, error => error.code === 'InvalidHostProfile');
+      const rejected = assert.rejects(result, error => (error as {code?: unknown}).code === 'InvalidHostProfile');
       return rejected;
     },
-    bind(parent, alias) {registry.bindSourceRequest(host, installation, host, parent, alias);},
-    original(value) {return registry.originalSourceRequest(host, installation, host, value);},
+    bind(parent: unknown, alias: unknown) {registry.bindSourceRequest(host, installation, host, parent, alias);},
+    original(value: unknown) {return registry.originalSourceRequest(host, installation, host, value);},
   };
 }
 
@@ -61,20 +62,20 @@ test('registry weak aliases preserve original identity through await and refuse 
   assert.throws(() => f.original(request), /InstalledHostPreparationChanged/);
 });
 
-test('registry weak aliases keep the sixteen unique alias guard and duplicate idempotence', async () => {
+test('registry weak aliases preserve duplicate idempotence across all live aliases', async () => {
   const f = fixture();
   const next = f.next();
   const finished = f.connect();
   const {request, done} = await next;
-  const aliases = Array.from({length: 16}, () => ({}));
+  const aliases = Array.from({length: 17}, () => ({}));
   for (const alias of aliases) {
     f.bind(request, alias);
     f.bind(alias, alias);
     f.bind(alias, request);
   }
   for (const alias of aliases) assert.equal(f.original(alias), request);
-  assert.throws(() => f.bind(request, {}), /SourceManagedPreparationUnavailable/);
   f.bind(request, aliases[0]);
+  assert.equal(f.original(aliases[0]), request);
   done.resolve({});
   await finished;
 });

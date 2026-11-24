@@ -299,10 +299,16 @@ test('original failed retirement publishes only after cleanup and fences callbac
     const unused = () => assert.fail('Retirement cannot perform new physical work');
     const {retire} = createClientDispatchCleanup({
       entries, keyOf: value => value.runDefinitionCid,
-      control: {runDefinitionRunId: () => 'original-run'},
+      control: {runDefinitionRunId: () => 'original-run', admit: unused},
       now: () => '2026-11-14T00:00:00.000Z',
       moon: {strategyHostStop: unused, strategyHostCloseOutputs: unused,
-        strategyHostUsage: unused, strategyHostRun: unused,
+        strategyHostUsage: unused, strategyHostRun: unused, clientRequestAdmitRecord: unused,
+        clientRequestAuthorityScopeCid: unused, clientRequestCallerId: unused, clientRequestScopeCid: unused,
+        clientRequestIntentCid: unused, clientRequestProgramCid: unused, clientRequestParametersCid: unused,
+        clientRequestInputCid: unused,
+        clientProgramPrepareRunStateObservation: unused, clientProgramRunStateObservationKey: unused,
+        clientProgramRunStateObservationRevision: unused, clientProgramRunStateObservationWire: unused,
+        clientRunControlObservation: unused,
         clientProgramIssueControlledUnpublishedRunState: () => ({
           $tag: 1, _0: JSON.stringify({status: 'failed',
             terminal_error: {code: 'ACTQL_E_UNPUBLISHED_RUN', message: 'Run ended before publication'}}),

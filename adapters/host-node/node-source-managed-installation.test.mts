@@ -4,6 +4,12 @@ import {createRequire, Module} from 'node:module';
 import * as actual from './node-source-managed-installation.mjs';
 
 type Production = typeof actual;
+type PrepareSource = Production['prepareSourceManagedInstallation'];
+type SelectedView = Extract<Awaited<ReturnType<PrepareSource>>,
+  {prepareRun(prepared: unknown): unknown}>;
+type SelectedProduction = Omit<Production, 'prepareSourceManagedInstallation'> & Readonly<{
+  prepareSourceManagedInstallation(...args: Parameters<PrepareSource>): Promise<SelectedView>;
+}>;
 type Callback = (...values: unknown[]) => unknown;
 type TestOwner = Record<string, Callback>;
 type TestFailure = Error & {code?: string; cleanupHandle?: {
@@ -14,6 +20,8 @@ let fixtureId = 0;
 
 // Evaluate the emitted module at its real path, with its real sibling modules.
 // The explicit CJS receiver below is a test double for selected startup only.
+function loadWithOwner(owner: TestOwner, selected: true): Promise<SelectedProduction>;
+function loadWithOwner(owner: TestOwner, selected: false): Promise<Production>;
 async function loadWithOwner(owner: TestOwner, selected: boolean): Promise<Production> {
   const require = createRequire(import.meta.url);
   const ownerPath = require.resolve('./infer-trusted-node-preload.cjs');
