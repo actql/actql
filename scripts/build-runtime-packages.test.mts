@@ -131,6 +131,13 @@ function run(t: TestContext, requested: readonly string[], {fail, stalePayload, 
   const directory = realpathSync(mkdtempSync(join(temporaryParent, 'runtime-build-check-')));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   mkdirSync(join(directory, 'scripts'));
+  function copyInput(path: string) {
+    put(directory, path, readFileSync(join(root, path)));
+    if (path.endsWith('.mjs')) {
+      const authored = path.slice(0, -4) + '.mts';
+      if (existsSync(join(root, authored))) put(directory, authored, readFileSync(join(root, authored)));
+    }
+  }
   // Resolve actual transitive builder imports instead of maintaining a partial
   // helper list. The one deliberately omitted checker is replaced only by the
   // explicit scheduling port below; normal CLI selection must still refuse it.
@@ -143,29 +150,26 @@ function run(t: TestContext, requested: readonly string[], {fail, stalePayload, 
     // bindings. It has no generator inputs or compiler-interface approvals.
     if (missingInterfaceOwner && path === 'scripts/generate-js-compiler-bindings.mjs') continue;
     if (path !== 'scripts/check-interface-owners.mjs') {
-      put(directory, path, readFileSync(join(root, path)));
+      copyInput(path);
     }
   }
   // Only this distinct negative uses the original real checker; the ordinary
   // scheduling controls keep their explicit port and missing-checker oracle.
   if (missingInterfaceOwner) symlinkSync(join(root, 'scripts/check-interface-owners.mjs'),
     join(directory, 'scripts/check-interface-owners.mjs'));
-  put(directory, 'adapters/host-common/installed-connector-declaration.mjs',
-    readFileSync(join(root, 'adapters/host-common/installed-connector-declaration.mjs')));
-  put(directory, 'adapters/host-common/http-exchange.mjs',
-    readFileSync(join(root, 'adapters/host-common/http-exchange.mjs'), 'utf8'));
-  // Copy the actual reviewed product JS closure. Only the compiler output
-  // below is synthetic; the producer still audits and bundles real adapters.
+  copyInput('adapters/host-common/installed-connector-declaration.mjs');
+  copyInput('adapters/host-common/http-exchange.mjs');
+  // Retain the actual source and runtime closure for the original scanner and builders.
   for (const path of [...finiteRuntimeModules.filter(path => !path.startsWith('_build/')),
     'adapters/workers/build.mjs', 'adapters/workers/artifact.mjs',
     'adapters/workers/moon-runtime.mjs']) {
-    put(directory, path, readFileSync(join(root, path)));
+    copyInput(path);
   }
   for (const entry of readHostBundles(root)) {
     for (const path of [`src/connectors/${entry.name}/host-bundle.json`,
       ...(entry.providerBundle === undefined ? [] : [`src/${entry.providerBundle}/moon.pkg`]),
       ...[entry.source, entry.effect].filter(Boolean).map(role => role!.module), ...entry.assets]) {
-      put(directory, path, readFileSync(join(root, path)));
+      copyInput(path);
     }
   }
   // Implementation inventories now resolve real transitive imports. This
@@ -181,7 +185,7 @@ function run(t: TestContext, requested: readonly string[], {fail, stalePayload, 
   });
   for (const path of Object.keys(fixtureGraph.metafile.inputs)) {
     assert.ok(!path.startsWith('../') && !path.startsWith('/'));
-    put(directory, path, readFileSync(join(root, path)));
+    copyInput(path);
   }
   // Package import maps are part of the actual adapter source closure.
   put(directory, 'packages/sdk/package.json',
@@ -205,7 +209,8 @@ function run(t: TestContext, requested: readonly string[], {fail, stalePayload, 
       join(directory, 'adapters/connectors-builtin/installations.generated.mjs'), directory));
   put(directory, 'scripts/owned-contract-version-legacy.json',
     readFileSync(join(root, 'scripts/owned-contract-version-legacy.json')));
-  put(directory, '.gitignore', '_build/\npackages/*/dist/\nnode_modules/\n');
+  // Apply the original emit exclusions. The fixture's staged dist is generated too.
+  put(directory, '.gitignore', readFileSync(join(root, '.gitignore'), 'utf8') + '\npackages/*/dist/\n');
   const initialized = spawnSync('git', ['init', '--quiet'], {cwd: directory});
   assert.equal(initialized.status, 0);
   // Use the real package builders and installed esbuild; only the MoonBit
