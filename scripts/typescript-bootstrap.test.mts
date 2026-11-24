@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {chmod, copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile} from 'node:fs/promises';
+import {chmod, copyFile, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -112,9 +112,22 @@ const copiedCommand: Parameters<typeof prepareCopiedTypeScript>[0]['run'] =
 
 test('copied Source emits at its own paths before a later consumer enters', async t => {
   const f = await fixture(t, {linkTools: false});
+  const localNode = 'packages/local-node';
+  await mkdir(join(f.root, localNode), {recursive: true});
+  for (const path of ['package.json', 'observation.d.ts']) {
+    await copyFile(join(repository, localNode, path), join(f.root, localNode, path));
+  }
+  await writeFile(join(f.root, 'scripts/observation.mts'), `
+import type {HostObservationConnection as Published} from '@actql/local-node/observation';
+import type {HostObservationConnection as Local} from '../packages/local-node/observation.js';
+export const connection = (value: Published): Local => value;
+`);
   assert.equal(existsSync(join(f.root, 'scripts/entry.mjs')), false);
   await prepareCopiedTypeScript({source: repository, root: f.root,
     environment: process.env, run: copiedCommand});
+  assert.equal(await realpath(join(f.root, 'node_modules/@actql/local-node')),
+    await realpath(join(f.root, localNode)));
+  assert.equal(existsSync(join(f.root, 'node_modules/@actql/otel-node')), false);
   assert(existsSync(join(f.root, 'scripts/entry.mjs')));
   assert(existsSync(join(f.root, 'scripts/entry.d.mts')));
   assert.equal(existsSync(join(f.root, 'executed.json')), false,
