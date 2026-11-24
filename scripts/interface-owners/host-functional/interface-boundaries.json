@@ -90384,7 +90384,7 @@
             ],
             "synchronization": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
                 "anchor": "if (!initialized) transaction.run(() => {"
               },
               {
@@ -102450,15 +102450,10 @@
     {
       "module": "adapters/host-node/sqlite-checkpoint-journal.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "80a525418d4f1908b1af03c1276051a82c9d5494689e7100670f1ff389814cc9",
+      "sha256": "c0e183544e7ac0d608ce5af7ac7e3266bdfdd91af5b70ed6a0a757d6ad004dfb",
       "role": "physical-io",
       "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
       "exports": [
-        "EFFECT_SETTLEMENT_JOURNAL_LAYOUT",
-        "EFFECT_SETTLEMENT_TABLE_SQL",
-        "MODEL_CURRENT_CUT_INVALIDATION_JOURNAL_LAYOUT",
-        "MODEL_CURRENT_CUT_JOURNAL_LAYOUT",
-        "PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT",
         "openSqliteCheckpointJournal"
       ],
       "operations": [
@@ -102473,6 +102468,14 @@
           "name": "cid/cid",
           "parameters": [
             "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "fail/fail",
+          "parameters": [
+            "code",
+            "cause"
           ],
           "async": false
         },
@@ -102545,13 +102548,6 @@
           "parameters": [
             "claim",
             "at"
-          ],
-          "async": false
-        },
-        {
-          "name": "openSqliteCheckpointJournal/hasCurrentLayout/hasCurrentLayout/hasCurrentLayout",
-          "parameters": [
-            "table"
           ],
           "async": false
         },
@@ -103091,32 +103087,27 @@
         },
         {
           "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#2",
-          "parameters": [],
-          "async": false
-        },
-        {
-          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#3",
           "parameters": [
             "reference"
           ],
           "async": false
         },
         {
-          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#4",
+          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#3",
           "parameters": [
             "runId"
           ],
           "async": false
         },
         {
-          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#5",
+          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#4",
           "parameters": [
             "input"
           ],
           "async": false
         },
         {
-          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#6",
+          "name": "openSqliteCheckpointJournal/openSqliteCheckpointJournal#5",
           "parameters": [
             "reference",
             "runDefinitionCid"
@@ -103184,6 +103175,7 @@
           "operations": [
             "authoritiesJson/authoritiesJson",
             "cid/cid",
+            "fail/fail",
             "iso",
             "openSqliteCheckpointJournal",
             "openSqliteCheckpointJournal/admissionLocked",
@@ -103193,7 +103185,6 @@
             "openSqliteCheckpointJournal/confirmModelGrant/confirmModelGrant",
             "openSqliteCheckpointJournal/fault/fault",
             "openSqliteCheckpointJournal/fenced",
-            "openSqliteCheckpointJournal/hasCurrentLayout/hasCurrentLayout/hasCurrentLayout",
             "openSqliteCheckpointJournal/init:activeRunCheckpoint/init:activeRunCheckpoint",
             "openSqliteCheckpointJournal/init:activeRunCheckpoint/init:activeRunCheckpoint/init:activeRunCheckpoint",
             "openSqliteCheckpointJournal/init:admitImmediateResolution/init:admitImmediateResolution",
@@ -103269,7 +103260,6 @@
             "openSqliteCheckpointJournal/openSqliteCheckpointJournal#3",
             "openSqliteCheckpointJournal/openSqliteCheckpointJournal#4",
             "openSqliteCheckpointJournal/openSqliteCheckpointJournal#5",
-            "openSqliteCheckpointJournal/openSqliteCheckpointJournal#6",
             "openSqliteCheckpointJournal/persistCheckpoint",
             "openSqliteCheckpointJournal/persistCheckpoint/persistCheckpoint",
             "openSqliteCheckpointJournal/refuseUnsentRunResume/refuseUnsentRunResume",
@@ -103280,18 +103270,13 @@
             "text/text"
           ],
           "exports": [
-            "EFFECT_SETTLEMENT_JOURNAL_LAYOUT",
-            "EFFECT_SETTLEMENT_TABLE_SQL",
-            "MODEL_CURRENT_CUT_INVALIDATION_JOURNAL_LAYOUT",
-            "MODEL_CURRENT_CUT_JOURNAL_LAYOUT",
-            "PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT",
             "openSqliteCheckpointJournal"
           ],
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
-                "anchor": "export const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT ="
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT ="
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -103304,8 +103289,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
-                "anchor": "export const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT ="
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT ="
               },
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
@@ -103332,7 +103317,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
                 "anchor": "// only after all Hosts using this root have stopped and closed their journals."
               },
               {
@@ -103402,7 +103387,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
                 "anchor": "// Private SQLite layout discriminator, not a public artifact version. Upgrade"
               },
               {
@@ -103513,8 +103498,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
-                "anchor": "export const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT ="
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT ="
               },
               {
                 "path": "docs/design/oss-host-authorization.md",
@@ -103527,8 +103512,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
-                "anchor": "export const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT ="
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT ="
               },
               {
                 "path": "src/checkpoint_runtime/pkg.generated.mbti",
@@ -103555,7 +103540,7 @@
             ],
             "ownership": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
                 "anchor": "// only after all Hosts using this root have stopped and closed their journals."
               },
               {
@@ -103625,7 +103610,7 @@
             ],
             "extension": [
               {
-                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
                 "anchor": "// Private SQLite layout discriminator, not a public artifact version. Upgrade"
               },
               {
@@ -103653,12 +103638,149 @@
       "referenceQualification": "Existing functional facet only. References are not copied contracts or evidence that these tests ran; no new Owner or runtime support is inferred.",
       "imports": [
         "../host-common/sqlite-transaction.mjs",
-        "./model-resume-sqlite.mjs",
         "./model-resume-state.mjs",
         "./sqlite-checkpoint-journal-close.mjs",
+        "./sqlite-checkpoint-journal-storage.mjs",
         "node:fs",
         "node:path",
         "node:sqlite"
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
+    },
+    {
+      "module": "adapters/host-node/sqlite-checkpoint-journal-storage.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f2c8e191497f4bb65d02ddc3bfbdeb1a3cf71d5a6bd41739dc02579950864830",
+      "role": "physical-io",
+      "owner": "Existing Checkpoint/Resolution/Run Owners and same SQLite physical journal",
+      "exports": [
+        "MODEL_CURRENT_CUT_JOURNAL_LAYOUT",
+        "initializeCheckpointJournal",
+        "prepareCheckpointJournalStatements"
+      ],
+      "operations": [
+        {
+          "name": "initializeCheckpointJournal",
+          "parameters": [
+            "database",
+            "transaction",
+            "fail"
+          ],
+          "async": false
+        },
+        {
+          "name": "initializeCheckpointJournal/hasCurrentLayout/hasCurrentLayout/hasCurrentLayout",
+          "parameters": [
+            "table"
+          ],
+          "async": false
+        },
+        {
+          "name": "initializeCheckpointJournal/initializeCheckpointJournal",
+          "parameters": [],
+          "async": false
+        },
+        {
+          "name": "prepareCheckpointJournalStatements",
+          "parameters": [
+            "database"
+          ],
+          "async": false
+        }
+      ],
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "initializeCheckpointJournal",
+            "initializeCheckpointJournal/hasCurrentLayout/hasCurrentLayout/hasCurrentLayout",
+            "initializeCheckpointJournal/initializeCheckpointJournal",
+            "prepareCheckpointJournalStatements"
+          ],
+          "exports": [
+            "MODEL_CURRENT_CUT_JOURNAL_LAYOUT",
+            "initializeCheckpointJournal",
+            "prepareCheckpointJournalStatements"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "export function initializeCheckpointJournal("
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "export function prepareCheckpointJournalStatements("
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "type CheckpointRow = Readonly<{"
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "SELECT generation, claimant, admitted_at, dispatch_identity"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "const SCHEMA_VERSION = MODEL_CURRENT_CUT_INVALIDATION_JOURNAL_LAYOUT;"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.mjs",
+                "anchor": "initializeCheckpointJournal(database, transaction, fail);"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "if (!initialized) transaction.run(() => {"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "if (version?.value !== SCHEMA_VERSION) fail('UnsupportedCheckpointJournal');"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "requestPreparationCancel: database.prepare("
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "database.exec('PRAGMA busy_timeout = 10000');"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal-storage.mts",
+                "anchor": "createModelResumeTables(database);"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.test.mjs",
+                "anchor": "competing fresh journal initializers share the same completed layout"
+              },
+              {
+                "path": "adapters/host-node/sqlite-checkpoint-journal.test.mjs",
+                "anchor": "a current layout missing its settlement table is refused without repairing evidence"
+              }
+            ]
+          }
+        }
+      ],
+      "imports": [
+        "./model-resume-sqlite.mjs"
       ],
       "compilerFields": [],
       "unresolvedSyntax": []
