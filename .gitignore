@@ -3218,3 +3218,5 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /adapters/host-node/installed-effect-site-primary-cause.test.d.mts
 /adapters/host-node/installed-composed-infer-run.mjs
 /adapters/host-node/installed-composed-infer-run.d.mts
+/adapters/host-node/composed-infer-observation-frontier.test.mjs
+/adapters/host-node/composed-infer-observation-frontier.test.d.mts

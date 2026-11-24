@@ -28751,11 +28751,11 @@
             ],
             "verification": [
               {
-                "path": "adapters/host-node/composed-infer-observation-frontier.test.mjs",
+                "path": "adapters/host-node/composed-infer-observation-frontier.test.mts",
                 "anchor": "test('original Model observation seals at completion before the Local output ownership handoff'"
               },
               {
-                "path": "adapters/host-node/composed-infer-observation-frontier.test.mjs",
+                "path": "adapters/host-node/composed-infer-observation-frontier.test.mts",
                 "anchor": "test('original Model observation failed advance retains the same partial issuer for cleanup'"
               },
               {
