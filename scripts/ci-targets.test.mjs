@@ -618,7 +618,7 @@ test('Host independent failures are collected while failed prerequisites and can
     assert.equal(admitted('success', true), false, 'workflow cancellation remains authoritative');
     assert(steps.findIndex(item => item.id === preparation) < steps.indexOf(row), row.name);
   }
-  assert.equal(jobs.host['timeout-minutes'], 30);
+  assert.equal(jobs.host['timeout-minutes'], 60);
   assert.equal(jobs.host.strategy, undefined, 'collect serially without new shared-state concurrency');
   assert.equal(jobs.host['continue-on-error'], undefined);
 });
