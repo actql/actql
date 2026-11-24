@@ -2,13 +2,12 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {parse} from 'acorn';
+import {createModelPreparationControls} from '../host-common/runtime-model-preparation-control.mjs';
 import {openNodeComposedInferProvider} from './infer-operation.mjs';
 
 // Actual Host constructor with explicit Core/current/installation ports.
 // This does not issue Common originals or prove physical constructor backing.
 const source = readFileSync(new URL('./embedded-local.mjs', import.meta.url), 'utf8');
-const authoritySource = readFileSync(new URL('../host-common/runtime-core.mjs', import.meta.url), 'utf8');
-const runtimeSource = readFileSync(new URL('../host-common/runtime-model-preparation-control.mjs', import.meta.url), 'utf8');
 const modulePorts = Object.freeze({
   prepareCheckedClientRequestModelSourceFreeModule: 'clientProgramPrepareRequestModelSourceFreeModule',
   prepareCheckedClientRequestModelWholeInputsComponentCaptureModule: 'clientProgramPrepareRequestModelWholeInputsComponentCaptureModule',
@@ -19,13 +18,15 @@ const modulePorts = Object.freeze({
   prepareCheckedClientRequestModelProviderCaptureModule: 'clientProgramPrepareRequestModelProviderCaptureModule',
   prepareCheckedClientRequestModelProviderComponentCaptureModule: 'clientProgramPrepareRequestModelProviderComponentCaptureModule',
 });
-const actualModuleMethods = new Map();
-function findModuleMethods(node) {
-  if (!node || typeof node !== 'object') return;
-  if (node.type === 'Property' && node.method && Object.hasOwn(modulePorts, node.key.name)) actualModuleMethods.set(node.key.name, node);
-  for (const value of Object.values(node)) {if (Array.isArray(value)) value.forEach(findModuleMethods); else if (value && typeof value === 'object') findModuleMethods(value);}
+function modelPreparationControls(moon, compiled, rawCompiled, definition, rawDefinition) {
+  return createModelPreparationControls(moon, {
+    compiledRunTokens: new WeakMap([[compiled, rawCompiled]]),
+    token(value) {
+      if (value !== definition) throw new TypeError('Foreign publication contract');
+      return rawDefinition;
+    },
+  });
 }
-findModuleMethods(parse(runtimeSource, {ecmaVersion: 'latest', sourceType: 'module'}));
 const node = parse(source, {ecmaVersion: 'latest', sourceType: 'module'}).body
   .find(value => value.type === 'FunctionDeclaration' && value.id.name === 'prepareRequestMockModelPlan');
 assert(node);
@@ -211,14 +212,8 @@ function fixture({count = 0, timed = false, refuseCapture, expire = false, missi
   if (missingSelectorPort !== undefined) delete moon[missingSelectorPort];
   const checkedResult = value => {assert.equal(value.$tag, 1); return value._0;};
   if (facadeBindings) {
-    const compiledRunTokens = new WeakMap([[compiled, rawCompiled]]), tokens = new WeakMap([[definition, rawDefinition]]);
-    const tokenStart = authoritySource.indexOf('  const token = value => {');
-    const tokenEnd = authoritySource.indexOf('  const inspectEvidence =', tokenStart);
-    assert(tokenStart >= 0 && tokenEnd > tokenStart);
-    const methods = [...actualModuleMethods.values()].map(value => runtimeSource.slice(value.start, value.end)).join(',');
-    const bindings = Function('moon', 'compiledRunTokens', 'tokens', 'checked',
-      authoritySource.slice(tokenStart, tokenEnd) + ';return {' + methods + '};')(moon, compiledRunTokens, tokens, checkedResult);
-    Object.assign(control, bindings);
+    const bindings = modelPreparationControls(moon, compiled, rawCompiled, definition, rawDefinition);
+    for (const name of Object.keys(modulePorts)) control[name] = bindings[name];
   } else {
     for (const [name, native] of Object.entries(modulePorts)) {
       control[name] = (...args) => checkedResult(Reflect.apply(moon[native], moon, args));
@@ -402,17 +397,6 @@ test('Request acquired Node Model does not retain provider DATA after its origin
 
 
 test('Request acquired Node Model facade unwraps only same registered compiler and Definition and forwards original layout fields', () => {
-  const text = runtimeSource; let selected;
-  const walk = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'Property' && node.key?.name === 'prepareCheckedClientRequestNodeModelCapturePlan') {
-      assert(!selected); selected = node;
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
-    }
-  };
-  walk(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(selected);
   const parent = {}, input = {}, module = {}, request = {}, compiled = {kind: 'infer'}, rawCompiled = {},
     definition = {}, rawDefinition = {}, occurrence = {}, graph = {}, bounds = {}, plan = {};
   const installation = {nodeInstallation: {layout: {}, installation: {}, runtimeArtifactCid: 'runtime',
@@ -424,31 +408,19 @@ test('Request acquired Node Model facade unwraps only same registered compiler a
     assert.equal(this, moon);
     assert.deepEqual(args, [parent, input, module, request, rawCompiled, rawDefinition, occurrence, graph,
       bounds, node.layout, node.installation, 'runtime', 'layout', undefined, 90n, 40n, 21, 22, 23, 31n, 37n]);
-    calls++; return plan;
+    calls++; return {$tag:1,_0:plan};
   }};
-  const ports = {moon, compiledRunTokens: new WeakMap([[compiled, rawCompiled]]), checked: value => value,
-    token(value) {if (value !== definition) throw new TypeError('Foreign Definition'); return rawDefinition;}};
-  const facade = Function(...Object.keys(ports), 'return ({' + text.slice(selected.start, selected.end) + '}).prepareCheckedClientRequestNodeModelCapturePlan')(...Object.values(ports));
-  const bind = (c = compiled, d = definition) => facade(parent, input, module, request, c, d,
+  const facade = modelPreparationControls(moon, compiled, rawCompiled, definition, rawDefinition);
+  const bind = (c = compiled, d = definition) => facade.prepareCheckedClientRequestNodeModelCapturePlan(
+    parent, input, module, request, c, d,
     occurrence, graph, bounds, installation);
   assert.equal(bind(), plan); assert.throws(() => bind({...compiled}), /Foreign Client compiled Infer/);
-  assert.throws(() => bind(compiled, {...definition}), /Foreign Definition/); assert.equal(calls, 1);
+  assert.throws(() => bind(compiled, {...definition}), /Foreign publication contract/); assert.equal(calls, 1);
   delete moon.clientProgramPrepareRequestNodeModelCapturePlan;
   assert.throws(() => bind(), /Installed Node Model Plan unavailable/); assert.equal(calls, 1);
 });
 
 test('Request source-free Node Model facade retains the separate original bootstrap and complete read envelope', () => {
-  const text = runtimeSource; let selected;
-  const walk = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'Property' && node.key?.name === 'prepareCheckedClientRequestNodeModelSourceFreePlan') {
-      assert(!selected); selected = node;
-    }
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(walk); else if (value && typeof value === 'object') walk(value);
-    }
-  };
-  walk(parse(text, {ecmaVersion: 'latest', sourceType: 'module'})); assert(selected);
   const parent = {}, input = {}, module = {}, request = {}, compiled = {kind: 'infer'}, rawCompiled = {},
     definition = {}, rawDefinition = {}, occurrence = {}, graph = {}, bounds = {}, plan = {};
   const installation = {nodeInstallation: {layout: {}, installation: {}, runtimeArtifactCid: 'runtime',
@@ -460,15 +432,14 @@ test('Request source-free Node Model facade retains the separate original bootst
     assert.equal(this, moon);
     assert.deepEqual(args, [parent, input, module, request, rawCompiled, rawDefinition, occurrence, graph,
       bounds, node.layout, node.installation, 'runtime', 'layout', undefined, 90n, 40n, 21, 22, 23, 31n, 37n]);
-    calls++; return plan;
+    calls++; return {$tag:1,_0:plan};
   }};
-  const ports = {moon, compiledRunTokens: new WeakMap([[compiled, rawCompiled]]), checked: value => value,
-    token(value) {if (value !== definition) throw new TypeError('Foreign Definition'); return rawDefinition;}};
-  const facade = Function(...Object.keys(ports), 'return ({' + text.slice(selected.start, selected.end) + '}).prepareCheckedClientRequestNodeModelSourceFreePlan')(...Object.values(ports));
-  const bind = (c = compiled, d = definition) => facade(parent, input, module, request, c, d,
+  const facade = modelPreparationControls(moon, compiled, rawCompiled, definition, rawDefinition);
+  const bind = (c = compiled, d = definition) => facade.prepareCheckedClientRequestNodeModelSourceFreePlan(
+    parent, input, module, request, c, d,
     occurrence, graph, bounds, installation);
   assert.equal(bind(), plan); assert.throws(() => bind({...compiled}), /Foreign Client compiled Infer/);
-  assert.throws(() => bind(compiled, {...definition}), /Foreign Definition/); assert.equal(calls, 1);
+  assert.throws(() => bind(compiled, {...definition}), /Foreign publication contract/); assert.equal(calls, 1);
   delete moon.clientProgramPrepareRequestNodeModelSourceFreePlan;
   assert.throws(() => bind(), /Installed Node Model Plan unavailable/); assert.equal(calls, 1);
 });
@@ -533,11 +504,6 @@ test('Request acquired Node Model selector refuses missing originals before any 
 // Actual facade forwarding, explicit native constructor ports. No Common
 // original, tuple layout, physical funding or ordinary ABI is manufactured.
 test('plural Model module forwards the same compiler definition and indexed native callback',()=>{
-  const parsed=parse(runtimeSource,{ecmaVersion:'latest',sourceType:'module'});let method;
-  const walk=node=>{if(!node||typeof node!=='object')return;
-    if(node.type==='Property'&&node.method&&node.key.name==='prepareCheckedClientRequestModelsSourceFreeComponentModule')method=node;
-    for(const value of Object.values(node)){if(Array.isArray(value))value.forEach(walk);else if(value&&typeof value==='object')walk(value);}};
-  walk(parsed);assert(method);
   const parent={},input={},request={},compiled=Object.freeze({kind:'infer'}),definition={},rawCompiled={},rawDefinition={};
   const compilation={},contracts={},queryTime={},module={},calls=[];
   const prefixes=[{},{}],suffixes=[()=>{},()=>{}],providers=[{},{}];
@@ -552,10 +518,7 @@ test('plural Model module forwards the same compiler definition and indexed nati
     for(let index=0;index<2;index++)assert.strictEqual(args[9](index,{},prefixes[index],suffixes[index]),providers[index]);
     return {$tag:1,_0:module};
   }};
-  const bind=Function('moon','compiledRunTokens','token','checked',
-    'return ({'+runtimeSource.slice(method.start,method.end)+'});')(moon,new WeakMap([[compiled,rawCompiled]]),
-      value=>{if(value!==definition)throw new TypeError('Foreign publication contract');return rawDefinition;},
-      value=>{assert.equal(value.$tag,1);return value._0;});
+  const bind = modelPreparationControls(moon, compiled, rawCompiled, definition, rawDefinition);
   const invoke=(selected=compiled,publication=definition)=>bind.prepareCheckedClientRequestModelsSourceFreeComponentModule(
     parent,input,request,selected,publication,compilation,contracts,true,queryTime,construct);
   assert.strictEqual(invoke(),module);assert.deepEqual(calls,[0,1]);
@@ -569,16 +532,6 @@ for (const [method, port, plural] of [
   ['prepareCheckedClientRequestModelsSourceFreePlan', 'clientProgramPrepareRequestModelsSourceFreePlan', true],
   ['prepareCheckedClientRequestModelCapturePlan', 'clientProgramPrepareRequestModelCapturePlan', false],
 ]) test(`${plural ? 'plural' : 'single captured'} Model Plan forwards the same complete selected bounds and private compiler original`, () => {
-  const parsed = parse(runtimeSource, {ecmaVersion: 'latest', sourceType: 'module'});
-  let selectedMethod;
-  const visit = node => {
-    if (!node || typeof node !== 'object') return;
-    if (node.type === 'Property' && node.method && node.key.name === method) selectedMethod = node;
-    for (const value of Object.values(node)) {
-      if (Array.isArray(value)) value.forEach(visit); else if (value && typeof value === 'object') visit(value);
-    }
-  };
-  visit(parsed); assert(selectedMethod);
   const parent={}, input={}, original={}, request={}, compiled=Object.freeze({kind:'infer'}), definition={}, rawCompiled={}, rawDefinition={};
   const occurrences=plural ? Object.freeze([{},{}]) : {}, graphs=plural ? Object.freeze([{},{}]) : {},
     bounds=plural ? Object.freeze([{},{}]) : {}, plan={};
@@ -586,11 +539,9 @@ for (const [method, port, plural] of [
   const moon={[port](...args) {
     assert.equal(this, moon); calls++;
     assert.deepEqual(args,[parent,input,original,request,rawCompiled,rawDefinition,occurrences,graphs,bounds]);
-    return plan;
+    return {$tag:1,_0:plan};
   }};
-  const object=Function('moon','compiledRunTokens','token','checked',
-    'return ({'+runtimeSource.slice(selectedMethod.start,selectedMethod.end)+'});')(moon,new WeakMap([[compiled,rawCompiled]]),
-      value=>{assert.equal(value,definition);return rawDefinition;},value=>value);
+  const object = modelPreparationControls(moon, compiled, rawCompiled, definition, rawDefinition);
   assert.equal(object[method](parent,input,original,request,compiled,definition,occurrences,graphs,bounds),plan);
   assert.throws(()=>object[method](parent,input,original,request,{...compiled},definition,occurrences,graphs,bounds),/Foreign Client compiled Infer preparation/);
   assert.equal(calls,1);
@@ -686,12 +637,11 @@ function completeModelPlanFixture({expireMember, badOrder = false, captured = fa
       for (let index = 0; index < 2; index++) {
         assert.equal(args[17](index, {}, prefixes[index], () => {}), providers[index]);
       }
-      return module;
+      return {$tag:1,_0:module};
     };
-    const method = actualModuleMethods.get('prepareCheckedClientRequestModelsDuckDBComponentCaptureModule');
-    if (method !== undefined) Object.assign(control, Function('moon', 'compiledRunTokens', 'token', 'checked',
-      'return ({' + runtimeSource.slice(method.start, method.end) + '});')(moon,
-      new WeakMap([[compiled, rawCompiled]]), value => {assert.equal(value, definition); return rawDefinition;}, value => value));
+    const bindings = modelPreparationControls(moon, compiled, rawCompiled, definition, rawDefinition);
+    control.prepareCheckedClientRequestModelsDuckDBComponentCaptureModule =
+      bindings.prepareCheckedClientRequestModelsDuckDBComponentCaptureModule;
     if (missingNativeModule) delete control.prepareCheckedClientRequestModelsDuckDBComponentCaptureModule;
   }
   const ports = {assertSourceManagedHostPreparation: current, originalSourceManagedHostRequest: current,

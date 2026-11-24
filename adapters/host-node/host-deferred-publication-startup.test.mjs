@@ -20,9 +20,10 @@ function collect(node){
     else if(value!==null&&typeof value==='object')collect(value);
   }
 }
-collect(ast);
 const installedHost=ast.body.find(node=>node.type==='FunctionDeclaration'&&
   node.id.name==='openInstalledHost');
+assert(installedHost);
+collect(installedHost);
 const installedEntryGuard=installedHost.body.body[0];
 assert.equal(installedEntryGuard.type,'IfStatement');
 assert.match(source.slice(installedEntryGuard.start,installedEntryGuard.end),
@@ -31,12 +32,24 @@ const declaration=name=>{
   const found=nodes.filter(node=>node.type==='VariableDeclarator'&&node.id.name===name);
   assert.equal(found.length,1,name);return source.slice(found[0].start,found[0].end);
 };
-const returned=nodes.filter(node=>node.type==='ReturnStatement'&&
-  source.slice(node.start,node.end).startsWith('return Object.assign(host, {port:bootstrapPort'));
-assert.equal(returned.length,1);
-const activationChoice=nodes.filter(node=>node.type==='IfStatement'&&
-  node.consequent.type==='ReturnStatement'&&
-  source.slice(node.consequent.start,node.consequent.end)==='return await activate();');
+const named=(node,name)=>node?.type==='Identifier'&&node.name===name;
+const bootstrapReturn=nodes.filter(node=>{
+  const call=node.type==='ReturnStatement'&&node.argument;
+  return call?.type==='CallExpression'&&call.callee.type==='MemberExpression'&&
+    !call.callee.computed&&named(call.callee.object,'Object')&&named(call.callee.property,'assign')&&
+    named(call.arguments[0],'host')&&call.arguments[1]?.type==='ObjectExpression'&&
+    call.arguments[1].properties.some(property=>property.type==='Property'&&
+      !property.computed&&named(property.key,'port')&&named(property.value,'bootstrapPort'));
+});
+assert.equal(bootstrapReturn.length,1);
+const activationChoice=nodes.filter(node=>{
+  const consequent=node.type==='IfStatement'&&node.consequent;
+  const statement=consequent?.type==='BlockStatement'&&consequent.body.length===1
+    ? consequent.body[0] : consequent;
+  const invocation=statement?.type==='ReturnStatement'&&statement.argument?.type==='AwaitExpression'&&
+    statement.argument.argument;
+  return invocation?.type==='CallExpression'&&named(invocation.callee,'activate')&&invocation.arguments.length===0;
+});
 assert.equal(activationChoice.length,1);
 const make=compileFunction(`return async function(input){
   const createNodeInProcessClientHost=options=>{
@@ -72,7 +85,7 @@ const make=compileFunction(`return async function(input){
   ${source.slice(activationChoice[0].start,activationChoice[0].end)}
   const ${declaration('bootstrapIngress')};
   const ${declaration('bootstrapPort')};
-  ${source.slice(returned[0].start,returned[0].end)};};`,
+  ${source.slice(bootstrapReturn[0].start,bootstrapReturn[0].end)};};`,
   ['baseCreateNodeInProcessClientHost','issueNodeClientSubmissionEpoch',
     'sourcePreparationPort','clientOperationError','localResourceResultReadLimits','snapshotRequestMemory'])(createNodeInProcessClientHost,
       issueNodeClientSubmissionEpoch,sourcePreparationPort,
