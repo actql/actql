@@ -4,17 +4,18 @@ import {existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, 
 import {tmpdir} from 'node:os';
 import {delimiter,join} from 'node:path';
 import test from 'node:test';
+import type {TestContext} from 'node:test';
 import {installationFiles} from './moonbit-installation.mjs';
 
 async function api() { return import('./native-query-preparation.mjs'); }
-function fixture(t) {
+function fixture(t: TestContext) {
   const root=mkdtempSync(join(tmpdir(),'actql-query-preparation-'));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const repository=join(root,'source'),destination=join(root,'preparation'),home=join(root,'original-tool');
   for(const path of [repository,destination,home])mkdirSync(path);
-  const put=(path,bytes)=>{mkdirSync(join(path,'..'),{recursive:true});writeFileSync(path,bytes,{mode:0o700});};
+  const put=(path: string,bytes: string | Buffer)=>{mkdirSync(join(path,'..'),{recursive:true});writeFileSync(path,bytes,{mode:0o700});};
   put(join(repository,'toolchain.json'),'{}');put(join(repository,'original.mbt'),'original source\n');
-  const git=(...args)=>execFileSync('git',args,{cwd:repository,stdio:'pipe'});
+  const git=(...args: string[])=>execFileSync('git',args,{cwd:repository,stdio:'pipe'});
   git('init','-q');git('add','.');git('-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','test: original source');
   for(const path of installationFiles)put(join(home,path),'original '+path);
   put(join(home,'installed.json'),JSON.stringify({pin:{},platform:process.platform+'-'+process.arch}));
@@ -30,7 +31,7 @@ if(!existsSync(image))writeFileSync(image,'same original software');
 if(!args.includes('--build-only'))console.log('Total tests: 1, passed: 1, failed: 0.');
 `);
   return {repository,destination,home,commands,put,git,env:{...process.env,MOON_HOME:home,QUERY_FIXTURE_COMMANDS:commands},
-    calls:()=>readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse)};
+    calls:()=>readFileSync(commands,'utf8').trim().split('\n').map(JSON.parse as (line: string) => {args: string[]; runtime: string | null})};
 }
 
 test('one prepared Query image serves both original selections with independent runtime inputs',async t=>{
@@ -43,9 +44,9 @@ test('one prepared Query image serves both original selections with independent 
   for(const [index,path] of paths.entries()) {
     const runtime={...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt,QUERY_FIXTURE_RUNTIME:'original-'+index};
     const original=preparedNativeQuerySoftware(f.repository,runtime);
-    execFileSync(original.moon,['test',path,'--target','native','--target-dir',original.targetDirectory],
-      {cwd:f.repository,env:original.environment,stdio:'pipe'});
-    original.verify();
+    execFileSync(original!.moon,['test',path,'--target','native','--target-dir',original!.targetDirectory],
+      {cwd:f.repository,env:original!.environment,stdio:'pipe'});
+    original!.verify();
     assert.equal(runtime.MOON_HOME,f.home);
   }
   const calls=f.calls();assert.equal(calls.length,3);
@@ -61,25 +62,25 @@ test('Query parallel preparation binds its bounded command to the original consu
   assert.equal(args[args.indexOf('-j')+1],'2');assert(args.includes('--build-only'));
   const env={...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt,
     ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'2'};
-  const original=preparedNativeQuerySoftware(f.repository,env);original.verify();
-  const absent={...env};delete absent.ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS;
+  const original=preparedNativeQuerySoftware(f.repository,env);original!.verify();
+  const absent: NodeJS.ProcessEnv={...env};delete absent.ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS;
   assert.throws(()=>preparedNativeQuerySoftware(f.repository,absent));
   assert.throws(()=>preparedNativeQuerySoftware(f.repository,
     {...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'1'}));
   for(const mode of ['0','3','false'])assert.throws(()=>preparedNativeQuerySoftware(f.repository,
     {...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:mode}));
-  for(const jobs of [0,3,'2'])assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env,jobs}));
-  const bytes=readFileSync(receipt),body=JSON.parse(bytes);
+  for(const jobs of [0,3,'2'])assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env,jobs: jobs as number}));
+  const bytes=readFileSync(receipt),body=JSON.parse(bytes as unknown as string);
   body.identity.command.splice(body.identity.command.indexOf('-j'),2);
   writeFileSync(receipt,JSON.stringify(body));
   assert.throws(()=>preparedNativeQuerySoftware(f.repository,env));
-  original.verify(); // The retained original does not adopt a replacement receipt.
-  writeFileSync(receipt,bytes);original.verify();
+  original!.verify(); // The retained original does not adopt a replacement receipt.
+  writeFileSync(receipt,bytes);original!.verify();
   assert.equal(f.calls().length,1,'Mode checks cannot rebuild or execute a case');
   const legacy=fixture(t);
   const legacyReceipt=prepareNativeQuerySoftware(legacy.repository,legacy.destination,{env:legacy.env,jobs:1});
   preparedNativeQuerySoftware(legacy.repository,{...legacy.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:legacyReceipt,
-    ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'1'}).verify();
+    ACTQL_TEST_NATIVE_QUERY_PREPARATION_JOBS:'1'})!.verify();
 });
 
 test('Query reuse refuses changed source, compiler settings, tool and generated image without rebuilding',async t=>{
@@ -92,8 +93,8 @@ test('Query reuse refuses changed source, compiler settings, tool and generated 
   const tool=join(f.home,'bin/moonc'),bytes=readFileSync(tool);f.put(tool,'changed compiler');
   assert.throws(()=>preparedNativeQuerySoftware(f.repository,env));f.put(tool,bytes);
   const original=preparedNativeQuerySoftware(f.repository,env);
-  f.put(join(original.targetDirectory,'native/debug/test/query_integration/query_integration.whitebox_test.exe'),'changed software');
-  assert.throws(()=>original.verify());assert.throws(()=>preparedNativeQuerySoftware(f.repository,env));
+  f.put(join(original!.targetDirectory,'native/debug/test/query_integration/query_integration.whitebox_test.exe'),'changed software');
+  assert.throws(()=>original!.verify());assert.throws(()=>preparedNativeQuerySoftware(f.repository,env));
   assert.equal(f.calls().length,1);
 });
 
@@ -101,10 +102,10 @@ test('Query compiler failure never publishes a preparation and absence retains t
   const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
   assert.equal(preparedNativeQuerySoftware(f.repository,f.env),undefined);
   assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,
-    {env:{...f.env,QUERY_FIXTURE_BUILD_FAILURE:'1'}}),error=>error.status===17);
+    {env:{...f.env,QUERY_FIXTURE_BUILD_FAILURE:'1'}}),error=>(error as {status?: number}).status===17);
   assert.equal(existsSync(join(f.destination,'query-software.json')),false);
   assert.equal(f.calls().length,1);
-  const failed=JSON.parse(readFileSync(join(f.destination,'phase-query-3.timing.json')));
+  const failed=JSON.parse(readFileSync(join(f.destination,'phase-query-3.timing.json')) as unknown as string);
   assert.equal(failed.phase,'build-only');assert.equal(failed.succeeded,false);
   assert.equal(existsSync(join(f.destination,'phase-query-4.timing.json')),false);
 });
@@ -112,19 +113,19 @@ test('Query compiler failure never publishes a preparation and absence retains t
 test('Query preparation times original input, tool, build and retention work without claiming executed cases',async t=>{
   const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
   const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
-  const body=JSON.parse(readFileSync(receipt));
-  assert.deepEqual(body.timings.map(row=>row.phase),
+  const body=JSON.parse(readFileSync(receipt) as unknown as string);
+  assert.deepEqual(body.timings.map((row: {phase: string})=>row.phase),
     ['input-admission','tool-copy','build-only','input-correspondence','output-retention']);
   for(const [index,row] of body.timings.entries()) {
     assert.equal(row.scope,'native-query-preparation');assert.equal(row.source,body.identity.source);
     assert.equal(row.target,process.platform+'-'+process.arch);assert.equal(row.succeeded,true);
     assert(Number.isSafeInteger(row.milliseconds)&&row.milliseconds>=0);
     assert(Number.isSafeInteger(row.startedEpochMs)&&Number.isSafeInteger(row.endedEpochMs));
-    assert.deepEqual(JSON.parse(readFileSync(join(f.destination,`phase-query-${index+1}.timing.json`))),row);
+    assert.deepEqual(JSON.parse(readFileSync(join(f.destination,`phase-query-${index+1}.timing.json`)) as unknown as string),row);
   }
   assert.equal(f.calls().length,1);assert(f.calls()[0].args.includes('--build-only'));
   const runtime=preparedNativeQuerySoftware(f.repository,{...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
-  runtime.verify();assert.equal(f.calls().length,1,'Timing and validation cannot execute cases');
+  runtime!.verify();assert.equal(f.calls().length,1,'Timing and validation cannot execute cases');
 });
 
 test('Query timing file refusal preserves the earlier evidence and the same compiler failure',async t=>{
@@ -134,7 +135,7 @@ test('Query timing file refusal preserves the earlier evidence and the same comp
   assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,
     {env:f.env,execute:()=>{throw original;}}),error=>error===original);
   assert.equal(readFileSync(file,'utf8'),'earlier diagnostic evidence');
-  const failed=JSON.parse(readFileSync(join(f.destination,'phase-query-3.timing.json')));
+  const failed=JSON.parse(readFileSync(join(f.destination,'phase-query-3.timing.json')) as unknown as string);
   assert.equal(failed.phase,'build-only');assert.equal(failed.succeeded,false);
   assert.equal(existsSync(join(f.destination,'query-software.json')),false);
 });
@@ -144,23 +145,23 @@ test('Query timing file refusal cannot prevent the original successful preparati
   const file=join(f.destination,'phase-query-1.timing.json');f.put(file,'earlier diagnostic evidence');
   const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
   assert.equal(readFileSync(file,'utf8'),'earlier diagnostic evidence');
-  assert(JSON.parse(readFileSync(receipt)).timings.every(row=>row.succeeded));
+  assert(JSON.parse(readFileSync(receipt) as unknown as string).timings.every((row: {succeeded: boolean})=>row.succeeded));
   const original=preparedNativeQuerySoftware(f.repository,{...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
-  original.verify();assert.equal(f.calls().length,1);
+  original!.verify();assert.equal(f.calls().length,1);
 });
 
 test('Query reuse allows the same pinned installation at a fresh owner path but refuses aliases and duplicate construction',async t=>{
   const {prepareNativeQuerySoftware,preparedNativeQuerySoftware}=await api(),f=fixture(t);
-  const {copyNativePreparationTools}=await import('./native-preparation-lanes.mjs');
+  const {copyNativePreparationTools}=await import('./native-preparation-originals.mjs');
   const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
   const fresh=join(f.destination,'fresh-tool');
   copyNativePreparationTools(f.home,fresh,readFileSync(join(f.home,'installed.json'),'utf8'));
   const original=preparedNativeQuerySoftware(f.repository,{...f.env,MOON_HOME:fresh,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
-  original.verify();assert.notEqual(original.environment.MOON_HOME,fresh);
+  original!.verify();assert.notEqual(original!.environment.MOON_HOME,fresh);
   assert.throws(()=>prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env}));
   const alias=join(f.destination,'alias.json');symlinkSync(receipt,alias);
   for(const path of [alias,'',null])assert.throws(()=>preparedNativeQuerySoftware(f.repository,
-    {...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:path}));
+    {...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:path!}));
   assert.equal(f.calls().length,1);
 });
 
@@ -171,7 +172,7 @@ test('Query reuse retains the actual selected compiler override bytes and refuse
   const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env});
   const retained=preparedNativeQuerySoftware(f.repository,{...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
   f.put(compiler,'#!/bin/sh\nexit 17\n');
-  assert.throws(()=>retained.verify());
+  assert.throws(()=>retained!.verify());
   assert.throws(()=>preparedNativeQuerySoftware(f.repository,{...env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt}));
   assert.equal(f.calls().length,1);
 });
@@ -200,9 +201,9 @@ test('the actual Query preparation call keeps the enclosing selected Moon home o
   assert.equal(f.calls().length,1);assert(f.calls()[0].args.includes('--build-only'));
   const original=preparedNativeQuerySoftware(f.repository,{...ambient,MOON_HOME:f.home,
     ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
-  original.verify();
-  assert.equal(original.environment.PATH.split(delimiter)[0],join(original.environment.MOON_HOME,'bin'));
-  assert.equal(original.environment.QUERY_FIXTURE_COMMANDS,ambient.QUERY_FIXTURE_COMMANDS);
+  original!.verify();
+  assert.equal(original!.environment.PATH.split(delimiter)[0],join(original!.environment.MOON_HOME,'bin'));
+  assert.equal(original!.environment.QUERY_FIXTURE_COMMANDS,ambient.QUERY_FIXTURE_COMMANDS);
 });
 
 test('Query preparation retains the tracked skill directory alias and every original target file',async t=>{
@@ -214,12 +215,12 @@ test('Query preparation retains the tracked skill directory alias and every orig
   symlinkSync('../../.agents/skills/actql-local-verification',alias);
   f.git('add','.');f.git('-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','test: original skill alias');
   const receipt=prepareNativeQuerySoftware(f.repository,f.destination,{env:f.env});
-  const body=JSON.parse(readFileSync(receipt));
+  const body=JSON.parse(readFileSync(receipt) as unknown as string);
   assert.deepEqual(body.identity.sourceAliases,[{path:alias,link:'../../.agents/skills/actql-local-verification',target,members:[member]}]);
-  assert.equal(body.inputs.filter(x=>x.selectedPath===member).length,1);
+  assert.equal(body.inputs.filter((x: {selectedPath: string})=>x.selectedPath===member).length,1);
   const original=preparedNativeQuerySoftware(f.repository,{...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt});
-  original.verify();f.put(member,'changed original target');
-  assert.throws(()=>original.verify());f.put(member,skill);original.verify();
+  original!.verify();f.put(member,'changed original target');
+  assert.throws(()=>original!.verify());f.put(member,skill);original!.verify();
   assert.equal(f.calls().length,1,'Only the original build-only command is permitted');
 });
 
@@ -245,9 +246,9 @@ test('Query reuse refuses a changed contained alias target even while the tracke
   f.git('add','.');f.git('-c','user.name=Fixture','-c','user.email=fixture@example.invalid','commit','-qm','test: original resolved alias target');
   const receipt=prepareNativeQuerySoftware(repository,f.destination,{env:f.env});
   const env={...f.env,ACTQL_TEST_NATIVE_QUERY_PREPARATION:receipt},original=preparedNativeQuerySoftware(repository,env);
-  original.verify();unlinkSync(bridge);symlinkSync('second',bridge);
+  original!.verify();unlinkSync(bridge);symlinkSync('second',bridge);
   assert.equal(f.git('status','--porcelain').toString(),'');
-  assert.throws(()=>original.verify(),/Foreign Query source\/toolchain\/compiler settings/u);
+  assert.throws(()=>original!.verify(),/Foreign Query source\/toolchain\/compiler settings/u);
   assert.throws(()=>preparedNativeQuerySoftware(repository,env));
-  unlinkSync(bridge);symlinkSync('first',bridge);original.verify();assert.equal(f.calls().length,1);
+  unlinkSync(bridge);symlinkSync('first',bridge);original!.verify();assert.equal(f.calls().length,1);
 });

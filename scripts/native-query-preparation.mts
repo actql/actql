@@ -8,15 +8,33 @@ import {copyNativePreparationTools} from './native-preparation-originals.mjs';
 import {installationFiles} from './moonbit-installation.mjs';
 import {originalDescriptor, verifyOriginal} from './native-preparation-originals.mjs';
 
+import type {SpawnSyncOptions} from 'node:child_process';
+
+type FileIdentity = ReturnType<typeof originalDescriptor>;
+type QueryFile = Omit<FileIdentity, 'sha256'> & {selectedPath: string; mode: number; sha256?: string};
+type QueryReceipt = {
+  identity: ReturnType<typeof selection>['identity']; home: string; target: string;
+  inputs: QueryFile[]; tools: QueryFile[]; core: QueryFile[]; outputs: QueryFile[];
+};
+type SourceAlias = {path: string; link: string; target: string; members: string[]};
+type QueryTiming = {
+  scope: string; source: string | null; target: string; phase: string;
+  startedEpochMs: number; endedEpochMs: number; milliseconds: number; succeeded: boolean;
+};
+type QueryOptions = {
+  env?: NodeJS.ProcessEnv; moonHome?: string; jobs?: number;
+  execute?: (file: string, args: readonly string[], options: SpawnSyncOptions) => unknown;
+};
+
 export const nativeQueryPackages=Object.freeze(['src/query_integration','src/native_values_integration']);
 const command=['test',...nativeQueryPackages,'--target','native'];
-const compilerEnvironment=env=>Object.fromEntries(Object.entries(env).filter(([key])=>
+const compilerEnvironment=(env: NodeJS.ProcessEnv)=>Object.fromEntries(Object.entries(env).filter(([key])=>
   /^MOON/u.test(key)&&key!=='MOON_HOME'||['CC','CXX','AR','CFLAGS','CXXFLAGS','CPPFLAGS','LDFLAGS',
     'CPATH','C_INCLUDE_PATH','CPLUS_INCLUDE_PATH','LIBRARY_PATH','SDKROOT','MACOSX_DEPLOYMENT_TARGET',
     'LD_PRELOAD','DYLD_INSERT_LIBRARIES'].includes(key)).sort());
-const run=(repository,env,tool,args)=>execFileSync(tool,args,
+const run=(repository: string,env: NodeJS.ProcessEnv,tool: string,args: readonly string[])=>execFileSync(tool,args,
   {cwd:repository,env,encoding:'utf8',timeout:60000,maxBuffer:16*1024**2}).trim();
-function files(root,accept=()=>true) {
+function files(root: string,accept: (path: string) => boolean=()=>true): string[] {
   return readdirSync(root,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name)).flatMap(item=>{
     const path=join(root,item.name);
     if(item.isDirectory())return files(path,accept);
@@ -24,33 +42,33 @@ function files(root,accept=()=>true) {
     return accept(path)?[path]:[];
   });
 }
-const softwareFiles=root=>files(root,path=>/\.(?:exe|mbt|c|o|a|core|mi)$/u.test(path)||
+const softwareFiles=(root: string)=>files(root,path=>/\.(?:exe|mbt|c|o|a|core|mi)$/u.test(path)||
   /\/__(?:internal|whitebox|blackbox)_test_info\.json$/u.test(path));
-function describe(paths) {
+function describe(paths: readonly string[]): QueryFile[] {
   return paths.map(path=>{
     const selected=realpathSync(path),stat=lstatSync(selected);
     return {selectedPath:path,...(stat.size===0?{path:selected,bytes:0}:originalDescriptor(selected)),mode:stat.mode};
   });
 }
-function verify(paths,records) {
+function verify(paths: readonly string[],records: readonly QueryFile[]) {
   assert.deepEqual(records.map(x=>x.selectedPath),paths,'Query input/output inventory changed');
   for(const item of records) {
     assert.equal(realpathSync(item.selectedPath),item.path,'Query input/output target changed');
     assert.equal(lstatSync(item.path).mode,item.mode,'Query input/output mode changed');
     if(item.bytes===0)assert.equal(lstatSync(item.path).size,0);
-    else verifyOriginal(item);
+    else verifyOriginal(item as QueryFile & FileIdentity);
   }
 }
-function selection(repository,env,jobs) {
+function selection(repository: string,env: NodeJS.ProcessEnv,jobs?: number) {
   assert(jobs===undefined||jobs===1||jobs===2,'Query construction requires a bounded selected job count');
   const selectedCommand=jobs===undefined?command:[...command,'-j',String(jobs)];
   repository=realpathSync(repository);
-  const git=args=>run(repository,env,'git',args);
+  const git=(args: readonly string[])=>run(repository,env,'git',args);
   assert.equal(git(['status','--porcelain']),'','Query preparation requires unchanged clean source');
   const source=git(['rev-parse','HEAD']);assert.match(source,/^[a-f0-9]{40}$/u);
-  const home=realpathSync(env.MOON_HOME);
+  const home=realpathSync(env.MOON_HOME!);
   const tracked=git(['ls-files','-z']).split('\0').filter(Boolean).map(path=>join(repository,path));
-  const sourceAliases=[];
+  const sourceAliases: SourceAlias[]=[];
   const paths=tracked.flatMap(path=>{
     const target=realpathSync(path);
     if(!lstatSync(target).isDirectory())return [path];
@@ -65,16 +83,16 @@ function selection(repository,env,jobs) {
     return [];
   });
   const tools=['cc','c++','ar','bash','uname',...(process.platform==='darwin'?['xcrun','brew']:[])];
-  const resolved=tools.map(name=>{
+  const resolved=tools.map((name): [string, string | null]=>{
     // The original Query linker resolves these same system tools through PATH.
     // Missing optional brew retains its existing fallback search.
     try{return [name,realpathSync(run(repository,env,'/bin/sh',['-c','command -v "$1"','query-tool',name]))];}
     catch(error){if(name==='brew')return [name,null];throw error;}
   });
   const sdk=process.platform==='darwin'?run(repository,env,'xcrun',['--show-sdk-path']):null;
-  const overrides=['CC','CXX','AR','MOON_CC'].filter(name=>env[name]!==undefined).map(name=>
-    [name,realpathSync(run(repository,env,'/bin/sh',['-c','command -v "$1"','query-tool',env[name]]))]);
-  let openssl=null;
+  const overrides=['CC','CXX','AR','MOON_CC'].filter(name=>env[name]!==undefined).map((name): [string, string]=>
+    [name,realpathSync(run(repository,env,'/bin/sh',['-c','command -v "$1"','query-tool',env[name]!]))]);
+  let openssl: string | null=null;
   if(process.platform==='darwin') {
     // Same prefix/fallback and two link libraries as native-cxx-link-driver.sh.
     if(resolved.find(([name])=>name==='brew')?.[1]) {
@@ -92,11 +110,12 @@ function selection(repository,env,jobs) {
         join(openssl,'lib/libssl.dylib'),join(openssl,'lib/libcrypto.dylib')])])].sort()};
 }
 
-export function prepareNativeQuerySoftware(repository,destination,{env=process.env,moonHome=env.MOON_HOME,jobs,execute=execFileSync}={}) {
+export function prepareNativeQuerySoftware(repository: string,destination: string,
+  {env=process.env,moonHome=env.MOON_HOME,jobs,execute=execFileSync}: QueryOptions={}) {
   env={...env,MOON_HOME:moonHome};
   repository=realpathSync(repository);destination=realpathSync(destination);
-  const timings=[];let source=null;
-  function observe(phase,operation) {
+  const timings: QueryTiming[]=[];let source: string | null=null;
+  function observe<Value>(phase: string,operation: () => Value) {
     const started=performance.now(),startedEpochMs=Date.now();let succeeded=false;
     try {const value=operation();succeeded=true;return value;}
     finally {
@@ -119,8 +138,8 @@ export function prepareNativeQuerySoftware(repository,destination,{env=process.e
   const {home,target,copy}=observe('tool-copy',()=>{
     const directory=join(destination,'query-software'),home=join(directory,'tool'),target=join(directory,'target');
     mkdirSync(directory,{mode:0o700});mkdirSync(target,{mode:0o700});
-    const copy=copyNativePreparationTools(env.MOON_HOME,home,JSON.stringify({
-      pin:JSON.parse(readFileSync(join(repository,'toolchain.json'))),platform:process.platform+'-'+process.arch}));
+    const copy=copyNativePreparationTools(env.MOON_HOME!,home,JSON.stringify({
+      pin:JSON.parse(readFileSync(join(repository,'toolchain.json')) as unknown as string),platform:process.platform+'-'+process.arch}));
     return {home,target,copy};
   });
   const environment={...env,MOON_HOME:home,PATH:join(home,'bin')+delimiter+(env.PATH??'')};
@@ -151,11 +170,11 @@ export function prepareNativeQuerySoftware(repository,destination,{env=process.e
   return receipt;
 }
 
-export function preparedNativeQuerySoftware(repository,env=process.env) {
+export function preparedNativeQuerySoftware(repository: string,env: NodeJS.ProcessEnv=process.env) {
   const path=env.ACTQL_TEST_NATIVE_QUERY_PREPARATION;
   if(path===undefined)return undefined;
   assert(typeof path==='string'&&isAbsolute(path)&&realpathSync(path)===path);
-  const body=JSON.parse(readFileSync(path,'utf8'));
+  const body=JSON.parse(readFileSync(path,'utf8')) as QueryReceipt;
   assert.equal(body.home,join(dirname(path),'query-software/tool'));
   assert.equal(body.target,join(dirname(path),'query-software/target'));
   for(const directory of [body.home,body.target])assert.equal(realpathSync(directory),directory);
@@ -171,5 +190,6 @@ export function preparedNativeQuerySoftware(repository,env=process.env) {
   };
   check();
   return {moon:join(body.home,'bin/moon'),targetDirectory:body.target,
-    environment:{...env,MOON_HOME:body.home,PATH:join(body.home,'bin')+delimiter+(env.PATH??'')},verify:check};
+    environment:{...env,MOON_HOME:body.home,PATH:join(body.home,'bin')+delimiter+(env.PATH??'')} as
+      NodeJS.ProcessEnv & {MOON_HOME: string; PATH: string},verify:check};
 }

@@ -3294,3 +3294,7 @@ adapters/host-node/installed-row-capture-cleanup.d.mts
 /scripts/native-preparation-resources.d.mts
 /scripts/native-preparation-resources.test.mjs
 /scripts/native-preparation-resources.test.d.mts
+/scripts/native-query-preparation.mjs
+/scripts/native-query-preparation.d.mts
+/scripts/native-query-preparation.test.mjs
+/scripts/native-query-preparation.test.d.mts
