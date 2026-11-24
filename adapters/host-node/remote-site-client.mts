@@ -1,14 +1,37 @@
-import {request as httpsRequest} from 'node:https';
+import {request as httpsRequest, type RequestOptions} from 'node:https';
+import type {remoteSiteControl} from '../host-common/remote-site-control.mjs';
 
-const fail = (code, cause, details = {}) => {
+type SiteControl = ReturnType<typeof remoteSiteControl>;
+type ResponseProjectionControl = Pick<SiteControl,
+  'identity' | 'responseProjection' | 'responseEvidence' | 'responseSubject' |
+  'responseMeasurement' | 'evidenceIdentity' | 'evidenceJson' |
+  'managedOutputMeasurementIdentity' | 'managedOutputMeasurementJson' |
+  'managedOutputSubjectIdentity' | 'managedOutputSubjectJson'>;
+type DispatchControl = ResponseProjectionControl & Pick<SiteControl,
+  'requestJson' | 'prepareInputBinding' | 'pollJson' | 'journalKey' | 'admitResponseJson'>;
+type DispatchOptions = Readonly<{
+  origin: string;
+  ca: NonNullable<RequestOptions['ca']>;
+  cert: NonNullable<RequestOptions['cert']>;
+  key: NonNullable<RequestOptions['key']>;
+  servername?: string;
+  control: DispatchControl;
+  dispatch: Parameters<DispatchControl['requestJson']>[0];
+  inputBindingBody?: string;
+  signal?: AbortSignal;
+  maxResponseBytes?: number;
+}>;
+
+const fail: (code: string, cause?: unknown, details?: object) => never =
+    (code, cause, details = {}) => {
   throw Object.assign(new Error(code, {cause}), {code, ...details});
 };
-const text = value => typeof value === 'string' && value.length > 0;
+const text = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
 
 export function projectRemoteDispatchResponse(
-  control,
-  dispatch,
-  admitted,
+  control: ResponseProjectionControl,
+  dispatch: Parameters<ResponseProjectionControl['identity']>[0],
+  admitted: Parameters<ResponseProjectionControl['responseProjection']>[0],
   {statusReply = false} = {},
 ) {
   const projection = control.responseProjection(admitted);
@@ -56,7 +79,8 @@ async function exchangeRemoteDispatch({
   inputBindingBody,
   signal,
   maxResponseBytes = 16_384,
-} = {}, operation = 'dispatch') {
+}: DispatchOptions = {} as DispatchOptions,
+operation: 'dispatch' | 'query' | 'cancel' | 'release' = 'dispatch'): Promise<ReturnType<typeof projectRemoteDispatchResponse>> {
   if (!text(origin) || ca === undefined || cert === undefined ||
       key === undefined || !text(servername) ||
       control === null || typeof control !== 'object' ||
@@ -78,7 +102,7 @@ async function exchangeRemoteDispatch({
   const body = operation === 'dispatch'
     ? control.pollJson(
       dispatch,
-      control.prepareInputBinding(inputBindingBody),
+      control.prepareInputBinding(inputBindingBody as string),
     )
     : control.requestJson(dispatch);
   const bodyBytes = Buffer.from(body, 'utf8');
@@ -105,9 +129,9 @@ async function exchangeRemoteDispatch({
         'actql-dispatch-cid': control.identity(dispatch),
       },
     }, response => {
-      const chunks = [];
+      const chunks: Buffer[] = [];
       let length = 0;
-      response.on('data', chunk => {
+      response.on('data', (chunk: Buffer) => {
         length += chunk.byteLength;
         if (length > maxResponseBytes) {
           response.destroy(Object.assign(
@@ -128,7 +152,7 @@ async function exchangeRemoteDispatch({
           return;
         }
         const statusReply = operation === 'query' || operation === 'release';
-        let admitted;
+        let admitted: ReturnType<DispatchControl['admitResponseJson']>;
         try {
           const bodyText = new TextDecoder('utf-8', {fatal: true}).decode(
             Buffer.concat(chunks, length),
@@ -157,18 +181,18 @@ async function exchangeRemoteDispatch({
   });
 }
 
-export function sendRemoteDispatch(options) {
+export function sendRemoteDispatch(options: DispatchOptions & {inputBindingBody: string}) {
   return exchangeRemoteDispatch(options, 'dispatch');
 }
 
-export function queryRemoteDispatch(options) {
+export function queryRemoteDispatch(options: DispatchOptions) {
   return exchangeRemoteDispatch(options, 'query');
 }
 
-export function cancelRemoteDispatch(options) {
+export function cancelRemoteDispatch(options: DispatchOptions) {
   return exchangeRemoteDispatch(options, 'cancel');
 }
 
-export function releaseRemoteDispatch(options) {
+export function releaseRemoteDispatch(options: DispatchOptions) {
   return exchangeRemoteDispatch(options, 'release');
 }

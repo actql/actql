@@ -214,13 +214,13 @@ type CommonSiteBindings = {
   ): unknown;
   strategyRemoteDispatchAdmitJson(body: string, claimedRequestCid: string): unknown;
   strategyRemoteDispatchResponseAdmitJson(body: string, request: unknown, statusReply: boolean): unknown;
-  strategyRemoteDispatchResponseProjection(response: unknown): unknown;
+  strategyRemoteDispatchResponseProjection(response: unknown): readonly number[];
   strategyRemoteDispatchResponseCanRetireCancellationDelivery(response: unknown): boolean;
   strategyRemoteCoordinatorCanRetireCancellationDelivery(record: unknown): boolean;
   strategyRemoteDispatchResponseEvidence(response: unknown): unknown;
   strategyRemoteDispatchResponseSubject(response: unknown): unknown;
   strategyRemoteDispatchResponseMeasurement(response: unknown): unknown;
-  strategyRemoteDispatchJournalKey(request: unknown): unknown;
+  strategyRemoteDispatchJournalKey(request: unknown): readonly string[];
   strategyRemoteDispatchExecutionScope(request: unknown): unknown;
   strategyRemoteManagedRuntimeRegistrationScope(capability: unknown, issuer: unknown): unknown;
   strategyRemoteCoordinatorJournalCreate(authority: string): unknown;

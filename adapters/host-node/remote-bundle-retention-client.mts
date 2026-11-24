@@ -1,13 +1,34 @@
-import {request as httpsRequest} from 'node:https';
+import {request as httpsRequest, type RequestOptions} from 'node:https';
 
-const fail = code => { throw Object.assign(new Error(code), {code}); };
+type BundleRetentionControl<Request, Scope, Response> = Readonly<{
+  custodyRequestJson(request: Request): string;
+  custodyRequestIdentity(request: Request): string;
+  admitCustodyRequestJson(body: string, claimedCid: string): Request;
+  custodyRequestScope(request: Request): Scope;
+  holdScopeProjection(scope: Scope): readonly string[];
+  admitCustodyResponseJson(request: Request, body: string, claimedCid: string): Response;
+}>;
+type BundleRetentionOptions<Request, Scope, Response> = Readonly<{
+  origin: string | URL;
+  ca: NonNullable<RequestOptions['ca']>;
+  cert: NonNullable<RequestOptions['cert']>;
+  key: NonNullable<RequestOptions['key']>;
+  servername?: string;
+  control: BundleRetentionControl<Request, Scope, Response>;
+  request: Request;
+  signal?: AbortSignal;
+  maxResponseBytes?: number;
+}>;
+
+const fail: (code: string) => never = code => { throw Object.assign(new Error(code), {code}); };
 
 // One exact request, no retry or fallback. An I/O error does not establish
 // absence of a hold; callers retain the original binding and query its state.
-export async function sendRemoteBundleCustody({origin, ca, cert, key,
+export async function sendRemoteBundleCustody<Request, Scope, Response>({origin, ca, cert, key,
   servername = 'localhost', control, request: suppliedRequest, signal,
-  maxResponseBytes = 65_536} = {}) {
-  let target;
+  maxResponseBytes = 65_536}: BundleRetentionOptions<Request, Scope, Response> =
+  {} as BundleRetentionOptions<Request, Scope, Response>): Promise<Response> {
+  let target: URL;
   try { target = new URL(origin); }
   catch { fail('InvalidBundleRetentionClient'); }
   if (target.protocol !== 'https:' || target.username || target.password ||
@@ -19,7 +40,7 @@ export async function sendRemoteBundleCustody({origin, ca, cert, key,
   }
   for (const name of ['custodyRequestJson', 'custodyRequestIdentity',
     'admitCustodyRequestJson', 'custodyRequestScope', 'holdScopeProjection',
-    'admitCustodyResponseJson']) {
+    'admitCustodyResponseJson'] as const) {
     if (typeof control?.[name] !== 'function') fail('BundleRetentionUnsupported');
   }
   const body = control.custodyRequestJson(suppliedRequest);
@@ -36,9 +57,9 @@ export async function sendRemoteBundleCustody({origin, ca, cert, key,
       headers: {'content-type': 'application/json',
         'content-length': String(bytes.byteLength),
         'actql-bundle-custody-cid': requestCid}}, response => {
-      const chunks = [];
+      const chunks: Buffer[] = [];
       let length = 0;
-      response.on('data', chunk => {
+      response.on('data', (chunk: Buffer) => {
         length += chunk.byteLength;
         if (length > maxResponseBytes) {
           response.destroy(Object.assign(new Error('BundleRetentionResponseTooLarge'),

@@ -1827,6 +1827,10 @@ target/
 /adapters/host-common/remote-dispatch-wire.d.mts
 /adapters/host-common/remote-dispatch-wire.test.mjs
 /adapters/host-common/remote-dispatch-wire.test.d.mts
+/adapters/host-node/remote-bundle-retention-client.mjs
+/adapters/host-node/remote-bundle-retention-client.d.mts
+/adapters/host-node/remote-site-client.mjs
+/adapters/host-node/remote-site-client.d.mts
 /adapters/host-common/ledger-usage.mjs
 /adapters/host-common/ledger-usage.d.mts
 /adapters/host-node/result-transformation-control.test.mjs
