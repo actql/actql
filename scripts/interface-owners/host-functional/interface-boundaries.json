@@ -108064,9 +108064,9 @@
       "unresolvedSyntax": []
     },
     {
-      "module": "packages/coordinator-core/index.d.ts",
+      "module": "packages/coordinator-core/index.d.mts",
       "responsibilityFacet": "primary",
-      "sha256": "f4155c906bc16c6bba2f44d82f54ae80798d10633811b0e3ed24726c88b3e8ca",
+      "sha256": "021a19dc063a2d95e65e2a2a169221aa55db7858af1efdbc3695461a4e32128b",
       "role": "common-semantics",
       "owner": "Existing remote_coordinator_abi/Site/Bundle Owners; public same-process type projection",
       "exports": [
@@ -108206,6 +108206,689 @@
       ],
       "operations": [
         {
+          "name": "<call>",
+          "parameters": [
+            "authority: string"
+          ],
+          "result": "Journal"
+        },
+        {
+          "name": "<call>#10",
+          "parameters": [
+            "request: DispatchRequest",
+            "inputBindingBody: string",
+            "maxBindingBytes: number",
+            "runMaterials: string"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#11",
+          "parameters": [
+            "request: DispatchRequest"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#12",
+          "parameters": [
+            "request: DispatchRequest"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#13",
+          "parameters": [
+            "request: DispatchRequest"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#14",
+          "parameters": [
+            "body: string",
+            "request: DispatchRequest"
+          ],
+          "result": "true"
+        },
+        {
+          "name": "<call>#15",
+          "parameters": [
+            "request: DispatchRequest",
+            "body: string"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#16",
+          "parameters": [
+            "record: IntentRecord",
+            "request: DispatchRequest",
+            "notSeenBody: string",
+            "context: Readonly<RedeliveryContext>"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#17",
+          "parameters": [
+            "record: IntentRecord",
+            "request: DispatchRequest",
+            "context: Readonly<InitialDeliveryContext>"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#18",
+          "parameters": [
+            "journal: Journal",
+            "request: DispatchRequest"
+          ],
+          "result": "IntentAdmission"
+        },
+        {
+          "name": "<call>#19",
+          "parameters": [
+            "admission: IntentAdmission"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#2",
+          "parameters": [
+            "record: OutputRecord",
+            "originalReport: string"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#20",
+          "parameters": [
+            "admission: IntentAdmission"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#21",
+          "parameters": [
+            "admission: IntentAdmission"
+          ],
+          "result": "IntentRecord"
+        },
+        {
+          "name": "<call>#22",
+          "parameters": [
+            "body: string"
+          ],
+          "result": "DurableRecord"
+        },
+        {
+          "name": "<call>#23",
+          "parameters": [
+            "journal: Journal",
+            "durable: DurableRecord"
+          ],
+          "result": "IntentRecord"
+        },
+        {
+          "name": "<call>#24",
+          "parameters": [
+            "durable: DurableRecord"
+          ],
+          "result": "number"
+        },
+        {
+          "name": "<call>#25",
+          "parameters": [
+            "durable: DurableRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#26",
+          "parameters": [
+            "durable: DurableRecord"
+          ],
+          "result": "DispatchRequest"
+        },
+        {
+          "name": "<call>#27",
+          "parameters": [
+            "durable: DurableRecord"
+          ],
+          "result": "Readonly<AcceptedSiteOutput> | undefined"
+        },
+        {
+          "name": "<call>#28",
+          "parameters": [
+            "durable: DurableRecord"
+          ],
+          "result": "Readonly<{\n    taskOrdinal: number;\n    sourceEvidenceWire: string;\n    inputLogicalWire: string;\n    captureStartedAt: string;\n    captureCompletedAt: string;\n}> | undefined"
+        },
+        {
+          "name": "<call>#29",
+          "parameters": [
+            "durable: DurableRecord",
+            "input: Readonly<OutputIntentInput>"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#3",
+          "parameters": [
+            "record: OutputRecord",
+            "originalReport: string",
+            "reason: 'authorization_denied' | 'scope_mismatch' | 'report_conflict'"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#30",
+          "parameters": [
+            "durable: DurableRecord",
+            "pollBody: string",
+            "planBody: string",
+            "expectedResultDefinitionCid: string",
+            "limits: Readonly<{\n    maxChunks: number;\n    maxManifestBytes: number;\n    maxReferencedBytes: number | bigint;\n}>"
+          ],
+          "result": "CheckedOutputPlan"
+        },
+        {
+          "name": "<call>#31",
+          "parameters": [
+            "plan: CheckedOutputPlan"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#32",
+          "parameters": [
+            "plan: CheckedOutputPlan"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#33",
+          "parameters": [
+            "plan: CheckedOutputPlan"
+          ],
+          "result": "Readonly<{\n    resultDefinitionCid: string;\n    logicalRelationCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    codecContractCid: string;\n    rowCount: bigint;\n    materialGenerationCid: string;\n}>"
+        },
+        {
+          "name": "<call>#34",
+          "parameters": [
+            "durable: DurableOutputRecord"
+          ],
+          "result": "Readonly<{\n    storeAuthorityCid: string;\n    resultDefinitionCid: string;\n    logicalRelationCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    codecContractCid: string;\n    rowCount: bigint;\n    materialGenerationCid: string;\n}>"
+        },
+        {
+          "name": "<call>#35",
+          "parameters": [
+            "durable: DurableOutputRecord"
+          ],
+          "result": "PayloadRequest"
+        },
+        {
+          "name": "<call>#36",
+          "parameters": [
+            "durable: DurablePayloadRecord"
+          ],
+          "result": "PayloadRequest"
+        },
+        {
+          "name": "<call>#37",
+          "parameters": [
+            "request: PayloadRequest"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#38",
+          "parameters": [
+            "request: PayloadRequest"
+          ],
+          "result": "bigint"
+        },
+        {
+          "name": "<call>#39",
+          "parameters": [
+            "body: string",
+            "claimedCid: string"
+          ],
+          "result": "PayloadRequest"
+        },
+        {
+          "name": "<call>#4",
+          "parameters": [
+            "input: DispatchInput"
+          ],
+          "result": "DispatchRequest"
+        },
+        {
+          "name": "<call>#40",
+          "parameters": [
+            "request: PayloadRequest"
+          ],
+          "result": "PayloadRecord"
+        },
+        {
+          "name": "<call>#41",
+          "parameters": [
+            "record: PayloadRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#42",
+          "parameters": [
+            "body: string"
+          ],
+          "result": "DurablePayloadRecord"
+        },
+        {
+          "name": "<call>#43",
+          "parameters": [
+            "durable: DurablePayloadRecord"
+          ],
+          "result": "number"
+        },
+        {
+          "name": "<call>#44",
+          "parameters": [
+            "durable: DurablePayloadRecord"
+          ],
+          "result": "'intent' | 'reserved' | 'writing' | 'sealed' | 'reclaiming' | 'reclaimed'"
+        },
+        {
+          "name": "<call>#45",
+          "parameters": [
+            "durable: DurablePayloadRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#46",
+          "parameters": [
+            "durable: DurablePayloadRecord"
+          ],
+          "result": "PayloadRecord"
+        },
+        {
+          "name": "<call>#47",
+          "parameters": [
+            "record: PayloadRecord"
+          ],
+          "result": "PayloadTransition"
+        },
+        {
+          "name": "<call>#48",
+          "parameters": [
+            "record: PayloadRecord"
+          ],
+          "result": "PayloadTransition"
+        },
+        {
+          "name": "<call>#49",
+          "parameters": [
+            "record: PayloadRecord",
+            "custodyCid: string"
+          ],
+          "result": "PayloadTransition"
+        },
+        {
+          "name": "<call>#5",
+          "parameters": [
+            "request: DispatchRequest"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#50",
+          "parameters": [
+            "record: PayloadRecord",
+            "custodyCid: string",
+            "actualBytes: number | bigint",
+            "physicalDigest: string"
+          ],
+          "result": "PayloadTransition"
+        },
+        {
+          "name": "<call>#51",
+          "parameters": [
+            "record: PayloadRecord",
+            "custodyCid: string"
+          ],
+          "result": "PayloadTransition"
+        },
+        {
+          "name": "<call>#52",
+          "parameters": [
+            "record: PayloadRecord"
+          ],
+          "result": "PayloadTransition"
+        },
+        {
+          "name": "<call>#53",
+          "parameters": [
+            "transition: PayloadTransition"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#54",
+          "parameters": [
+            "transition: PayloadTransition"
+          ],
+          "result": "number"
+        },
+        {
+          "name": "<call>#55",
+          "parameters": [
+            "transition: PayloadTransition"
+          ],
+          "result": "PayloadRecord"
+        },
+        {
+          "name": "<call>#56",
+          "parameters": [
+            "record: PayloadRecord"
+          ],
+          "result": "string | undefined"
+        },
+        {
+          "name": "<call>#57",
+          "parameters": [
+            "record: PayloadRecord"
+          ],
+          "result": "string | undefined"
+        },
+        {
+          "name": "<call>#58",
+          "parameters": [
+            "record: PayloadRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#59",
+          "parameters": [
+            "record: PayloadRecord"
+          ],
+          "result": "bigint"
+        },
+        {
+          "name": "<call>#6",
+          "parameters": [
+            "request: DispatchRequest"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#60",
+          "parameters": [
+            "journal: Journal",
+            "plan: CheckedOutputPlan"
+          ],
+          "result": "OutputIntentAdmission"
+        },
+        {
+          "name": "<call>#61",
+          "parameters": [
+            "admission: OutputIntentAdmission"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#62",
+          "parameters": [
+            "admission: OutputIntentAdmission"
+          ],
+          "result": "OutputRecord"
+        },
+        {
+          "name": "<call>#63",
+          "parameters": [
+            "record: OutputRecord"
+          ],
+          "result": "string[]"
+        },
+        {
+          "name": "<call>#64",
+          "parameters": [
+            "record: OutputRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#65",
+          "parameters": [
+            "plan: CheckedOutputPlan"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#66",
+          "parameters": [
+            "body: string",
+            "dispatch: DurableRecord",
+            "expectedResultDefinitionCid: string",
+            "limits: Readonly<{\n    maxChunks: number;\n    maxManifestBytes: number;\n    maxReferencedBytes: number | bigint;\n}>"
+          ],
+          "result": "DurableOutputRecord"
+        },
+        {
+          "name": "<call>#67",
+          "parameters": [
+            "journal: Journal",
+            "durable: DurableOutputRecord"
+          ],
+          "result": "OutputRecord"
+        },
+        {
+          "name": "<call>#68",
+          "parameters": [
+            "durable: DurableOutputRecord"
+          ],
+          "result": "number"
+        },
+        {
+          "name": "<call>#69",
+          "parameters": [
+            "durable: DurableOutputRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#7",
+          "parameters": [
+            "body: string",
+            "claimedCid: string"
+          ],
+          "result": "DispatchRequest"
+        },
+        {
+          "name": "<call>#70",
+          "parameters": [
+            "durable: DurableOutputRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#71",
+          "parameters": [
+            "durable: DurableOutputRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#72",
+          "parameters": [
+            "durable: DurableOutputRecord",
+            "reply: string"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#73",
+          "parameters": [
+            "durable: DurableOutputRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#74",
+          "parameters": [
+            "durable: DurableOutputRecord",
+            "reply: string",
+            "payloadPhysicalDigest: string"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#75",
+          "parameters": [
+            "record: OutputRecord"
+          ],
+          "result": "OutputTransition"
+        },
+        {
+          "name": "<call>#76",
+          "parameters": [
+            "record: OutputRecord",
+            "body: string"
+          ],
+          "result": "OutputTransition"
+        },
+        {
+          "name": "<call>#77",
+          "parameters": [
+            "transition: OutputTransition"
+          ],
+          "result": "number"
+        },
+        {
+          "name": "<call>#78",
+          "parameters": [
+            "durable: DurableOutputRecord",
+            "transition: OutputTransition"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#79",
+          "parameters": [
+            "transition: OutputTransition"
+          ],
+          "result": "OutputRecord"
+        },
+        {
+          "name": "<call>#8",
+          "parameters": [
+            "request: DispatchRequest"
+          ],
+          "result": "string[]"
+        },
+        {
+          "name": "<call>#80",
+          "parameters": [
+            "record: OutputRecord"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#81",
+          "parameters": [
+            "record: IntentRecord"
+          ],
+          "result": "Transition"
+        },
+        {
+          "name": "<call>#82",
+          "parameters": [
+            "body: string",
+            "request: DispatchRequest",
+            "statusReply: boolean"
+          ],
+          "result": "DispatchResponse"
+        },
+        {
+          "name": "<call>#83",
+          "parameters": [
+            "record: IntentRecord",
+            "response: DispatchResponse"
+          ],
+          "result": "Transition"
+        },
+        {
+          "name": "<call>#84",
+          "parameters": [
+            "transition: Transition"
+          ],
+          "result": "number"
+        },
+        {
+          "name": "<call>#85",
+          "parameters": [
+            "transition: Transition"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#86",
+          "parameters": [
+            "durable: DurableRecord",
+            "transition: Transition"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#87",
+          "parameters": [
+            "durable: DurableRecord",
+            "transition: Transition",
+            "response: DispatchResponse"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#88",
+          "parameters": [
+            "transition: Transition"
+          ],
+          "result": "void"
+        },
+        {
+          "name": "<call>#89",
+          "parameters": [
+            "record: IntentRecord"
+          ],
+          "result": "string[]"
+        },
+        {
+          "name": "<call>#9",
+          "parameters": [
+            "request: DispatchRequest",
+            "inputBindingBody: string",
+            "maxBindingBytes: number"
+          ],
+          "result": "string"
+        },
+        {
+          "name": "<call>#90",
+          "parameters": [
+            "record: IntentRecord",
+            "request: DispatchRequest"
+          ],
+          "result": "boolean"
+        },
+        {
+          "name": "<call>#91",
+          "parameters": [
+            "record: IntentRecord"
+          ],
+          "result": "boolean"
+        },
+        {
           "name": "acceptedJson",
           "parameters": [
             "report: EffectCheckpointReport"
@@ -108220,32 +108903,11 @@
           "result": "string"
         },
         {
-          "name": "acceptedSiteOutput",
-          "parameters": [
-            "durable: DurableRecord"
-          ],
-          "result": "Readonly<AcceptedSiteOutput> | undefined"
-        },
-        {
-          "name": "acceptedSourceObservation",
-          "parameters": [
-            "durable: DurableRecord"
-          ],
-          "result": "Readonly<{taskOrdinal: number; sourceEvidenceWire: string;\n    inputLogicalWire: string; captureStartedAt: string;\n    captureCompletedAt: string}> | undefined"
-        },
-        {
-          "name": "admissionDurableJson",
-          "parameters": [
-            "admission: IntentAdmission"
-          ],
-          "result": "string"
-        },
-        {
           "name": "admit",
           "parameters": [
             "body: string",
             "request: DispatchRequest",
-            "limits: Readonly<{\n    maxWireBytes: number; maxNodes: number; maxDepth: number}>"
+            "limits: Readonly<{\n        maxWireBytes: number;\n        maxNodes: number;\n        maxDepth: number;\n    }>"
           ],
           "result": "EffectCheckpointReport"
         },
@@ -108256,17 +108918,6 @@
             "maximum: number"
           ],
           "result": "HolderTerminalReport"
-        },
-        {
-          "name": "admitCheckedOutputPlan",
-          "parameters": [
-            "durable: DurableRecord",
-            "pollBody: string",
-            "planBody: string",
-            "expectedResultDefinitionCid: string",
-            "limits: Readonly<{maxChunks: number; maxManifestBytes: number;\n    maxReferencedBytes: number | bigint}>"
-          ],
-          "result": "CheckedOutputPlan"
         },
         {
           "name": "admitCustodyRequestJson",
@@ -108286,44 +108937,12 @@
           "result": "BundleCustodyResponse"
         },
         {
-          "name": "admitDispatchJson",
-          "parameters": [
-            "body: string",
-            "claimedCid: string"
-          ],
-          "result": "DispatchRequest"
-        },
-        {
           "name": "admitDistributionJson",
           "parameters": [
             "body: string",
             "claimedCid: string"
           ],
           "result": "BundleDistribution"
-        },
-        {
-          "name": "admitDurableJson",
-          "parameters": [
-            "body: string"
-          ],
-          "result": "DurableRecord"
-        },
-        {
-          "name": "admitDurableOutputJson",
-          "parameters": [
-            "body: string",
-            "dispatch: DurableRecord",
-            "expectedResultDefinitionCid: string",
-            "limits: Readonly<{maxChunks: number; maxManifestBytes: number;\n    maxReferencedBytes: number | bigint}>"
-          ],
-          "result": "DurableOutputRecord"
-        },
-        {
-          "name": "admitDurablePayloadJson",
-          "parameters": [
-            "body: string"
-          ],
-          "result": "DurablePayloadRecord"
         },
         {
           "name": "admitHoldBindingJson",
@@ -108344,35 +108963,11 @@
           "result": "BundleHoldScope"
         },
         {
-          "name": "admitOutputTransferReplyJson",
-          "parameters": [
-            "durable: DurableOutputRecord",
-            "reply: string"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "admitPayloadRequestJson",
-          "parameters": [
-            "body: string",
-            "claimedCid: string"
-          ],
-          "result": "PayloadRequest"
-        },
-        {
-          "name": "admitPollNotSeen",
-          "parameters": [
-            "body: string",
-            "request: DispatchRequest"
-          ],
-          "result": "true"
-        },
-        {
           "name": "admitReplyJson",
           "parameters": [
             "query: EffectCurrentQuery",
             "body: string",
-            "limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>"
+            "limits: Readonly<{\n        maxWireBytes: number;\n        maxNodes: number;\n        maxDepth: number;\n    }>"
           ],
           "result": "EffectCurrentReply"
         },
@@ -108391,85 +108986,6 @@
             "body: string"
           ],
           "result": "void"
-        },
-        {
-          "name": "admitResponseJson",
-          "parameters": [
-            "body: string",
-            "request: DispatchRequest",
-            "statusReply: boolean"
-          ],
-          "result": "DispatchResponse"
-        },
-        {
-          "name": "canRetireCancellationDelivery",
-          "parameters": [
-            "record: IntentRecord"
-          ],
-          "result": "boolean"
-        },
-        {
-          "name": "checkedOutputIntentCid",
-          "parameters": [
-            "plan: CheckedOutputPlan"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "checkedOutputPlanCid",
-          "parameters": [
-            "plan: CheckedOutputPlan"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "checkedOutputPublicationFacts",
-          "parameters": [
-            "plan: CheckedOutputPlan"
-          ],
-          "result": "Readonly<{\n    resultDefinitionCid: string;\n    logicalRelationCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    codecContractCid: string;\n    rowCount: bigint;\n    materialGenerationCid: string;\n  }>"
-        },
-        {
-          "name": "commitIntent",
-          "parameters": [
-            "admission: IntentAdmission"
-          ],
-          "result": "IntentRecord"
-        },
-        {
-          "name": "commitOutputIntent",
-          "parameters": [
-            "admission: OutputIntentAdmission"
-          ],
-          "result": "OutputRecord"
-        },
-        {
-          "name": "commitOutputTransition",
-          "parameters": [
-            "transition: OutputTransition"
-          ],
-          "result": "OutputRecord"
-        },
-        {
-          "name": "commitPayloadTransition",
-          "parameters": [
-            "transition: PayloadTransition"
-          ],
-          "result": "PayloadRecord"
-        },
-        {
-          "name": "commitTransition",
-          "parameters": [
-            "transition: Transition"
-          ],
-          "result": "void"
-        },
-        {
-          "name": "createJournal",
-          "parameters": [
-            "authority: string"
-          ],
-          "result": "Journal"
         },
         {
           "name": "custodyRequestBinding",
@@ -108556,35 +109072,6 @@
           "result": "number | undefined"
         },
         {
-          "name": "deliveryEnvelopeJson",
-          "parameters": [
-            "request: DispatchRequest",
-            "body: string"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "dispatchCid",
-          "parameters": [
-            "request: DispatchRequest"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "dispatchJson",
-          "parameters": [
-            "request: DispatchRequest"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "dispatchRoute",
-          "parameters": [
-            "request: DispatchRequest"
-          ],
-          "result": "string[]"
-        },
-        {
           "name": "distributionContains",
           "parameters": [
             "value: BundleDistribution",
@@ -108614,103 +109101,18 @@
           "result": "string[]"
         },
         {
-          "name": "durableDispatchCid",
-          "parameters": [
-            "durable: DurableRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "durableOutputJson",
-          "parameters": [
-            "durable: DurableOutputRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "durableOutputPollJson",
-          "parameters": [
-            "durable: DurableOutputRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "durableOutputPublicationFacts",
-          "parameters": [
-            "durable: DurableOutputRecord"
-          ],
-          "result": "Readonly<{\n    storeAuthorityCid: string;\n    resultDefinitionCid: string;\n    logicalRelationCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    codecContractCid: string;\n    rowCount: bigint;\n    materialGenerationCid: string;\n  }>"
-        },
-        {
-          "name": "durableOutputRequestJson",
-          "parameters": [
-            "durable: DurableOutputRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "durableOutputRevision",
-          "parameters": [
-            "durable: DurableOutputRecord"
-          ],
-          "result": "number"
-        },
-        {
-          "name": "durablePayloadRequestCid",
-          "parameters": [
-            "durable: DurablePayloadRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "durablePayloadRevision",
-          "parameters": [
-            "durable: DurablePayloadRecord"
-          ],
-          "result": "number"
-        },
-        {
-          "name": "durablePayloadState",
-          "parameters": [
-            "durable: DurablePayloadRecord"
-          ],
-          "result": "'intent' | 'reserved' | 'writing' | 'sealed' | 'reclaiming' | 'reclaimed'"
-        },
-        {
-          "name": "durableRequest",
-          "parameters": [
-            "durable: DurableRecord"
-          ],
-          "result": "DispatchRequest"
-        },
-        {
-          "name": "durableRevision",
-          "parameters": [
-            "durable: DurableRecord"
-          ],
-          "result": "number"
-        },
-        {
-          "name": "exactRetransmissionEligible",
-          "parameters": [
-            "record: IntentRecord",
-            "request: DispatchRequest"
-          ],
-          "result": "boolean"
-        },
-        {
           "name": "facts",
           "parameters": [
             "report: EffectCheckpointReport"
           ],
-          "result": "Readonly<{reportCid: string;\n    dispatchCid: string; checkpointCid: string; checkpointWire: string}>"
+          "result": "Readonly<{\n        reportCid: string;\n        dispatchCid: string;\n        checkpointCid: string;\n        checkpointWire: string;\n    }>"
         },
         {
           "name": "facts#2",
           "parameters": [
             "report: HolderTerminalReport"
           ],
-          "result": "Readonly<{reportCid: string; rootDispatchCid: string}>"
+          "result": "Readonly<{\n        reportCid: string;\n        rootDispatchCid: string;\n    }>"
         },
         {
           "name": "holdBindingIdentity",
@@ -108762,238 +109164,23 @@
           "result": "string[]"
         },
         {
-          "name": "initialDeliveryEligible",
-          "parameters": [
-            "record: IntentRecord",
-            "request: DispatchRequest",
-            "context: Readonly<InitialDeliveryContext>"
-          ],
-          "result": "boolean"
-        },
-        {
-          "name": "intentIsNew",
-          "parameters": [
-            "admission: IntentAdmission"
-          ],
-          "result": "boolean"
-        },
-        {
-          "name": "issueOutputPlanPollJson",
-          "parameters": [
-            "durable: DurableRecord",
-            "input: Readonly<OutputIntentInput>"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "outputAdmissionDurableJson",
-          "parameters": [
-            "plan: CheckedOutputPlan"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "outputInitialPollJson",
-          "parameters": [
-            "record: OutputRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "outputIntentIsNew",
-          "parameters": [
-            "admission: OutputIntentAdmission"
-          ],
-          "result": "boolean"
-        },
-        {
-          "name": "outputRecordStatus",
-          "parameters": [
-            "record: OutputRecord"
-          ],
-          "result": "string[]"
-        },
-        {
-          "name": "outputReportAckJson",
-          "parameters": [
-            "record: OutputRecord",
-            "originalReport: string"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "outputReportRefusalJson",
-          "parameters": [
-            "record: OutputRecord",
-            "originalReport: string",
-            "reason: 'authorization_denied' | 'scope_mismatch' | 'report_conflict'"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "outputResultJson",
-          "parameters": [
-            "record: OutputRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "outputTransferRequestCid",
-          "parameters": [
-            "durable: DurableOutputRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "outputTransitionDurableJson",
-          "parameters": [
-            "durable: DurableOutputRecord",
-            "transition: OutputTransition"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "outputTransitionExpectedRevision",
-          "parameters": [
-            "transition: OutputTransition"
-          ],
-          "result": "number"
-        },
-        {
-          "name": "payloadRecordActualBytes",
-          "parameters": [
-            "record: PayloadRecord"
-          ],
-          "result": "bigint"
-        },
-        {
-          "name": "payloadRecordDigest",
-          "parameters": [
-            "record: PayloadRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "payloadRecordDurableJson",
-          "parameters": [
-            "record: PayloadRecord"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "payloadRecordOpaqueGeneration",
-          "parameters": [
-            "record: PayloadRecord"
-          ],
-          "result": "string | undefined"
-        },
-        {
-          "name": "payloadRecordOpaqueOwnership",
-          "parameters": [
-            "record: PayloadRecord"
-          ],
-          "result": "string | undefined"
-        },
-        {
-          "name": "payloadRequestCid",
-          "parameters": [
-            "request: PayloadRequest"
-          ],
-          "result": "string"
-        },
-        {
           "name": "payloadRequestFacts",
           "parameters": [
             "request: PayloadRequest"
           ],
-          "result": "Readonly<{\n  storeAuthorityCid: string; publicationAttemptCid: string;\n  materialGenerationCid: string; resultDefinitionCid: string;\n  logicalRelationCid: string; resultSchemaCid: string;\n  orderingEvidenceCid: string; codecContractCid: string;\n  maxBytes: bigint; rowCount: bigint;\n}>"
-        },
-        {
-          "name": "payloadRequestFromDurable",
-          "parameters": [
-            "durable: DurablePayloadRecord"
-          ],
-          "result": "PayloadRequest"
-        },
-        {
-          "name": "payloadRequestFromOutput",
-          "parameters": [
-            "durable: DurableOutputRecord"
-          ],
-          "result": "PayloadRequest"
-        },
-        {
-          "name": "payloadRequestMaxBytes",
-          "parameters": [
-            "request: PayloadRequest"
-          ],
-          "result": "bigint"
-        },
-        {
-          "name": "payloadTransitionDurableJson",
-          "parameters": [
-            "transition: PayloadTransition"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "payloadTransitionExpectedRevision",
-          "parameters": [
-            "transition: PayloadTransition"
-          ],
-          "result": "number"
+          "result": "Readonly<{\n    storeAuthorityCid: string;\n    publicationAttemptCid: string;\n    materialGenerationCid: string;\n    resultDefinitionCid: string;\n    logicalRelationCid: string;\n    resultSchemaCid: string;\n    orderingEvidenceCid: string;\n    codecContractCid: string;\n    maxBytes: bigint;\n    rowCount: bigint;\n}>"
         },
         {
           "name": "plan",
           "parameters": [
-            "input: Readonly<{\n    durationMilliseconds: bigint | null;\n    startupMilliseconds: bigint | null;\n    capacitySupported: boolean;\n    acceptsTransfer: boolean;\n    transferProviderAvailable: boolean;\n    transferMilliseconds: bigint | null;\n    transferRequired: readonly boolean[];\n    sharedTransfer: readonly boolean[];\n    sourceRevoked: readonly boolean[];\n    estimateAvailable: readonly boolean[];\n    transferBytes: readonly bigint[];\n    retainedBytes: readonly bigint[];\n    executionBytes: readonly bigint[];\n  }>"
+            "input: Readonly<{\n        durationMilliseconds: bigint | null;\n        startupMilliseconds: bigint | null;\n        capacitySupported: boolean;\n        acceptsTransfer: boolean;\n        transferProviderAvailable: boolean;\n        transferMilliseconds: bigint | null;\n        transferRequired: readonly boolean[];\n        sharedTransfer: readonly boolean[];\n        sourceRevoked: readonly boolean[];\n        estimateAvailable: readonly boolean[];\n        transferBytes: readonly bigint[];\n        retainedBytes: readonly bigint[];\n        executionBytes: readonly bigint[];\n    }>"
           ],
-          "result": "Readonly<{code: number; durationMilliseconds: bigint | null}>"
-        },
-        {
-          "name": "pollCancelJson",
-          "parameters": [
-            "request: DispatchRequest"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "pollDispatchJson",
-          "parameters": [
-            "request: DispatchRequest",
-            "inputBindingBody: string",
-            "maxBindingBytes: number"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "pollDispatchMaterialsJson",
-          "parameters": [
-            "request: DispatchRequest",
-            "inputBindingBody: string",
-            "maxBindingBytes: number",
-            "runMaterials: string"
-          ],
-          "result": "string"
+          "result": "Readonly<{\n        code: number;\n        durationMilliseconds: bigint | null;\n    }>"
         },
         {
           "name": "pollJson",
           "parameters": [
             "query: EffectCurrentQuery"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "pollQueryJson",
-          "parameters": [
-            "request: DispatchRequest"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "pollReleaseJson",
-          "parameters": [
-            "request: DispatchRequest"
           ],
           "result": "string"
         },
@@ -109015,13 +109202,6 @@
           "result": "BundleCustodyRequest"
         },
         {
-          "name": "prepareDispatch",
-          "parameters": [
-            "input: DispatchInput"
-          ],
-          "result": "DispatchRequest"
-        },
-        {
           "name": "prepareDistribution",
           "parameters": [
             "members: readonly string[]"
@@ -109036,120 +109216,26 @@
           "result": "BundleHoldScope"
         },
         {
-          "name": "prepareIntent",
-          "parameters": [
-            "journal: Journal",
-            "request: DispatchRequest"
-          ],
-          "result": "IntentAdmission"
-        },
-        {
           "name": "prepareJson",
           "parameters": [
             "report: EffectCheckpointReport",
             "resolutionWire: string",
-            "authentication: Readonly<{key_id: string; reviewer_id: string;\n      expected_authority_scope_cid: string; authority_context_cid: string;\n      policy_cid: string; proof_preimage: string}>",
-            "reviewers: readonly Readonly<{key_id: string; reviewer_id: string}>[]",
-            "claim: Readonly<{claimant: string; generation: bigint}>",
-            "limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>"
+            "authentication: Readonly<{\n        key_id: string;\n        reviewer_id: string;\n        expected_authority_scope_cid: string;\n        authority_context_cid: string;\n        policy_cid: string;\n        proof_preimage: string;\n    }>",
+            "reviewers: readonly Readonly<{\n        key_id: string;\n        reviewer_id: string;\n    }>[]",
+            "claim: Readonly<{\n        claimant: string;\n        generation: bigint;\n    }>",
+            "limits: Readonly<{\n        maxWireBytes: number;\n        maxNodes: number;\n        maxDepth: number;\n    }>"
           ],
           "result": "string"
-        },
-        {
-          "name": "prepareOutputIntent",
-          "parameters": [
-            "journal: Journal",
-            "plan: CheckedOutputPlan"
-          ],
-          "result": "OutputIntentAdmission"
-        },
-        {
-          "name": "prepareOutputResultJson",
-          "parameters": [
-            "durable: DurableOutputRecord",
-            "reply: string",
-            "payloadPhysicalDigest: string"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "prepareOutputSuccessJson",
-          "parameters": [
-            "record: OutputRecord",
-            "body: string"
-          ],
-          "result": "OutputTransition"
-        },
-        {
-          "name": "prepareOutputUnknown",
-          "parameters": [
-            "record: OutputRecord"
-          ],
-          "result": "OutputTransition"
-        },
-        {
-          "name": "preparePayloadOpaqueOwned",
-          "parameters": [
-            "record: PayloadRecord",
-            "custodyCid: string"
-          ],
-          "result": "PayloadTransition"
-        },
-        {
-          "name": "preparePayloadOpaqueReclaiming",
-          "parameters": [
-            "record: PayloadRecord",
-            "custodyCid: string"
-          ],
-          "result": "PayloadTransition"
-        },
-        {
-          "name": "preparePayloadOpaqueSealed",
-          "parameters": [
-            "record: PayloadRecord",
-            "custodyCid: string",
-            "actualBytes: number | bigint",
-            "physicalDigest: string"
-          ],
-          "result": "PayloadTransition"
-        },
-        {
-          "name": "preparePayloadReclaimed",
-          "parameters": [
-            "record: PayloadRecord"
-          ],
-          "result": "PayloadTransition"
-        },
-        {
-          "name": "preparePayloadRecord",
-          "parameters": [
-            "request: PayloadRequest"
-          ],
-          "result": "PayloadRecord"
-        },
-        {
-          "name": "preparePayloadReserved",
-          "parameters": [
-            "record: PayloadRecord"
-          ],
-          "result": "PayloadTransition"
-        },
-        {
-          "name": "preparePayloadWriting",
-          "parameters": [
-            "record: PayloadRecord"
-          ],
-          "result": "PayloadTransition"
         },
         {
           "name": "preparePollJson",
           "parameters": [
             "report: EffectCheckpointReport",
             "resolutionWire: string",
-            "authentication: Readonly<{key_id: string; reviewer_id: string;\n      expected_authority_scope_cid: string; authority_context_cid: string;\n      policy_cid: string; proof_preimage: string}>",
-            "reviewers: readonly Readonly<{key_id: string; reviewer_id: string}>[]",
-            "claim: Readonly<{claimant: string; generation: bigint}>",
-            "limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>"
+            "authentication: Readonly<{\n        key_id: string;\n        reviewer_id: string;\n        expected_authority_scope_cid: string;\n        authority_context_cid: string;\n        policy_cid: string;\n        proof_preimage: string;\n    }>",
+            "reviewers: readonly Readonly<{\n        key_id: string;\n        reviewer_id: string;\n    }>[]",
+            "claim: Readonly<{\n        claimant: string;\n        generation: bigint;\n    }>",
+            "limits: Readonly<{\n        maxWireBytes: number;\n        maxNodes: number;\n        maxDepth: number;\n    }>"
           ],
           "result": "string"
         },
@@ -109159,31 +109245,16 @@
             "report: EffectCheckpointReport",
             "effectId: string",
             "queryId: string",
-            "limits: Readonly<{maxWireBytes: number; maxNodes: number; maxDepth: number}>"
+            "limits: Readonly<{\n        maxWireBytes: number;\n        maxNodes: number;\n        maxDepth: number;\n    }>"
           ],
           "result": "EffectCurrentQuery"
-        },
-        {
-          "name": "prepareResponseObservation",
-          "parameters": [
-            "record: IntentRecord",
-            "response: DispatchResponse"
-          ],
-          "result": "Transition"
-        },
-        {
-          "name": "prepareUnknown",
-          "parameters": [
-            "record: IntentRecord"
-          ],
-          "result": "Transition"
         },
         {
           "name": "queryFacts",
           "parameters": [
             "query: EffectCurrentQuery"
           ],
-          "result": "Readonly<{queryCid: string; reportCid: string;\n    dispatchCid: string; checkpointCid: string; effectId: string; queryId: string}>"
+          "result": "Readonly<{\n        queryCid: string;\n        reportCid: string;\n        dispatchCid: string;\n        checkpointCid: string;\n        effectId: string;\n        queryId: string;\n    }>"
         },
         {
           "name": "queryJson",
@@ -109191,23 +109262,6 @@
             "query: EffectCurrentQuery"
           ],
           "result": "string"
-        },
-        {
-          "name": "recordStateCodes",
-          "parameters": [
-            "record: IntentRecord"
-          ],
-          "result": "string[]"
-        },
-        {
-          "name": "redeliveryEligible",
-          "parameters": [
-            "record: IntentRecord",
-            "request: DispatchRequest",
-            "notSeenBody: string",
-            "context: Readonly<RedeliveryContext>"
-          ],
-          "result": "boolean"
         },
         {
           "name": "refusedJson",
@@ -109222,7 +109276,7 @@
           "parameters": [
             "reply: EffectCurrentReply"
           ],
-          "result": "Readonly<{queryCid: string; reportCid: string;\n    dispatchCid: string; checkpointCid: string; effectId: string; queryId: string; replyCid: string;\n    ledgerHeadCid?: string; recoveryAction: number; responseSaved: boolean;\n    unknownEffects: readonly string[]}>"
+          "result": "Readonly<{\n        queryCid: string;\n        reportCid: string;\n        dispatchCid: string;\n        checkpointCid: string;\n        effectId: string;\n        queryId: string;\n        replyCid: string;\n        ledgerHeadCid?: string;\n        recoveryAction: number;\n        responseSaved: boolean;\n        unknownEffects: readonly string[];\n    }>"
         },
         {
           "name": "requests",
@@ -109232,105 +109286,120 @@
           "result": "readonly DispatchRequest[]"
         },
         {
-          "name": "responseDurableJson",
-          "parameters": [
-            "durable: DurableRecord",
-            "transition: Transition",
-            "response: DispatchResponse"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "restoreDurable",
-          "parameters": [
-            "journal: Journal",
-            "durable: DurableRecord"
-          ],
-          "result": "IntentRecord"
-        },
-        {
-          "name": "restoreDurableOutput",
-          "parameters": [
-            "journal: Journal",
-            "durable: DurableOutputRecord"
-          ],
-          "result": "OutputRecord"
-        },
-        {
-          "name": "restoreDurablePayload",
-          "parameters": [
-            "durable: DurablePayloadRecord"
-          ],
-          "result": "PayloadRecord"
-        },
-        {
           "name": "select",
           "parameters": [
             "durations: readonly bigint[]",
             "keys: readonly string[]"
           ],
           "result": "number"
-        },
-        {
-          "name": "transitionDurableJson",
-          "parameters": [
-            "durable: DurableRecord",
-            "transition: Transition"
-          ],
-          "result": "string"
-        },
-        {
-          "name": "transitionExpectedRevision",
-          "parameters": [
-            "transition: Transition"
-          ],
-          "result": "number"
-        },
-        {
-          "name": "transitionIsReplay",
-          "parameters": [
-            "transition: Transition"
-          ],
-          "result": "boolean"
         }
       ],
       "contracts": [
         {
           "operations": [
+            "<call>",
+            "<call>#10",
+            "<call>#11",
+            "<call>#12",
+            "<call>#13",
+            "<call>#14",
+            "<call>#15",
+            "<call>#16",
+            "<call>#17",
+            "<call>#18",
+            "<call>#19",
+            "<call>#2",
+            "<call>#20",
+            "<call>#21",
+            "<call>#22",
+            "<call>#23",
+            "<call>#24",
+            "<call>#25",
+            "<call>#26",
+            "<call>#27",
+            "<call>#28",
+            "<call>#29",
+            "<call>#3",
+            "<call>#30",
+            "<call>#31",
+            "<call>#32",
+            "<call>#33",
+            "<call>#34",
+            "<call>#35",
+            "<call>#36",
+            "<call>#37",
+            "<call>#38",
+            "<call>#39",
+            "<call>#4",
+            "<call>#40",
+            "<call>#41",
+            "<call>#42",
+            "<call>#43",
+            "<call>#44",
+            "<call>#45",
+            "<call>#46",
+            "<call>#47",
+            "<call>#48",
+            "<call>#49",
+            "<call>#5",
+            "<call>#50",
+            "<call>#51",
+            "<call>#52",
+            "<call>#53",
+            "<call>#54",
+            "<call>#55",
+            "<call>#56",
+            "<call>#57",
+            "<call>#58",
+            "<call>#59",
+            "<call>#6",
+            "<call>#60",
+            "<call>#61",
+            "<call>#62",
+            "<call>#63",
+            "<call>#64",
+            "<call>#65",
+            "<call>#66",
+            "<call>#67",
+            "<call>#68",
+            "<call>#69",
+            "<call>#7",
+            "<call>#70",
+            "<call>#71",
+            "<call>#72",
+            "<call>#73",
+            "<call>#74",
+            "<call>#75",
+            "<call>#76",
+            "<call>#77",
+            "<call>#78",
+            "<call>#79",
+            "<call>#8",
+            "<call>#80",
+            "<call>#81",
+            "<call>#82",
+            "<call>#83",
+            "<call>#84",
+            "<call>#85",
+            "<call>#86",
+            "<call>#87",
+            "<call>#88",
+            "<call>#89",
+            "<call>#9",
+            "<call>#90",
+            "<call>#91",
             "acceptedJson",
             "acceptedJson#2",
-            "acceptedSiteOutput",
-            "acceptedSourceObservation",
-            "admissionDurableJson",
             "admit",
             "admit#2",
-            "admitCheckedOutputPlan",
             "admitCustodyRequestJson",
             "admitCustodyResponseJson",
-            "admitDispatchJson",
             "admitDistributionJson",
-            "admitDurableJson",
-            "admitDurableOutputJson",
-            "admitDurablePayloadJson",
             "admitHoldBindingJson",
             "admitHoldScopeJson",
-            "admitOutputTransferReplyJson",
-            "admitPayloadRequestJson",
-            "admitPollNotSeen",
             "admitReplyJson",
             "admitReplyJson#2",
             "admitReplyJson#3",
-            "admitResponseJson",
-            "canRetireCancellationDelivery",
-            "checkedOutputIntentCid",
-            "checkedOutputPlanCid",
-            "checkedOutputPublicationFacts",
-            "commitIntent",
-            "commitOutputIntent",
-            "commitOutputTransition",
-            "commitPayloadTransition",
-            "commitTransition",
-            "createJournal",
             "custodyRequestBinding",
             "custodyRequestIdentity",
             "custodyRequestJson",
@@ -109343,26 +109412,10 @@
             "custodyResponseKind",
             "custodyResponseObservation",
             "custodyResponseRevision",
-            "deliveryEnvelopeJson",
-            "dispatchCid",
-            "dispatchJson",
-            "dispatchRoute",
             "distributionContains",
             "distributionIdentity",
             "distributionJson",
             "distributionProjection",
-            "durableDispatchCid",
-            "durableOutputJson",
-            "durableOutputPollJson",
-            "durableOutputPublicationFacts",
-            "durableOutputRequestJson",
-            "durableOutputRevision",
-            "durablePayloadRequestCid",
-            "durablePayloadRevision",
-            "durablePayloadState",
-            "durableRequest",
-            "durableRevision",
-            "exactRetransmissionEligible",
             "facts",
             "facts#2",
             "holdBindingIdentity",
@@ -109372,75 +109425,22 @@
             "holdScopeIdentity",
             "holdScopeJson",
             "holdScopeProjection",
-            "initialDeliveryEligible",
-            "intentIsNew",
-            "issueOutputPlanPollJson",
-            "outputAdmissionDurableJson",
-            "outputInitialPollJson",
-            "outputIntentIsNew",
-            "outputRecordStatus",
-            "outputReportAckJson",
-            "outputReportRefusalJson",
-            "outputResultJson",
-            "outputTransferRequestCid",
-            "outputTransitionDurableJson",
-            "outputTransitionExpectedRevision",
-            "payloadRecordActualBytes",
-            "payloadRecordDigest",
-            "payloadRecordDurableJson",
-            "payloadRecordOpaqueGeneration",
-            "payloadRecordOpaqueOwnership",
-            "payloadRequestCid",
             "payloadRequestFacts",
-            "payloadRequestFromDurable",
-            "payloadRequestFromOutput",
-            "payloadRequestMaxBytes",
-            "payloadTransitionDurableJson",
-            "payloadTransitionExpectedRevision",
             "plan",
-            "pollCancelJson",
-            "pollDispatchJson",
-            "pollDispatchMaterialsJson",
             "pollJson",
-            "pollQueryJson",
-            "pollReleaseJson",
             "prepareCustodyContextQuery",
             "prepareCustodyRequest",
-            "prepareDispatch",
             "prepareDistribution",
             "prepareHoldScope",
-            "prepareIntent",
             "prepareJson",
-            "prepareOutputIntent",
-            "prepareOutputResultJson",
-            "prepareOutputSuccessJson",
-            "prepareOutputUnknown",
-            "preparePayloadOpaqueOwned",
-            "preparePayloadOpaqueReclaiming",
-            "preparePayloadOpaqueSealed",
-            "preparePayloadReclaimed",
-            "preparePayloadRecord",
-            "preparePayloadReserved",
-            "preparePayloadWriting",
             "preparePollJson",
             "prepareQuery",
-            "prepareResponseObservation",
-            "prepareUnknown",
             "queryFacts",
             "queryJson",
-            "recordStateCodes",
-            "redeliveryEligible",
             "refusedJson",
             "replyFacts",
             "requests",
-            "responseDurableJson",
-            "restoreDurable",
-            "restoreDurableOutput",
-            "restoreDurablePayload",
-            "select",
-            "transitionDurableJson",
-            "transitionExpectedRevision",
-            "transitionIsReplay"
+            "select"
           ],
           "exports": [
             "AcceptedSiteOutput",
@@ -109580,7 +109580,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleDistribution = {readonly [ownerHandle]: 'bundle-distribution'};"
               },
               {
@@ -109598,7 +109598,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleDistribution = {readonly [ownerHandle]: 'bundle-distribution'};"
               },
               {
@@ -109616,7 +109616,7 @@
             ],
             "identity": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleHoldScope = {readonly [ownerHandle]: 'bundle-hold-scope'};"
               },
               {
@@ -109634,7 +109634,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "declare const ownerHandle: unique symbol;"
               },
               {
@@ -109652,8 +109652,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
-                "anchor": "export function createJournal(authority: string): Journal;"
+                "path": "packages/coordinator-core/index.mts",
+                "anchor": "export const createJournal: (authority: string) => Journal = authority =>"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -109670,7 +109670,7 @@
             ],
             "failure": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleCustodyObservation = 'retained' | 'fenced' | 'unresolved' | 'unavailable';"
               },
               {
@@ -109688,7 +109688,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleCustodyOperation = 'retain' | 'query' | 'release';"
               },
               {
@@ -109706,7 +109706,7 @@
             ],
             "resources": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "workspaceId: string;"
               },
               {
@@ -109724,7 +109724,7 @@
             ],
             "extension": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "* bundle. These fields identify the request; they grant no permission. */"
               },
               {
@@ -109776,7 +109776,7 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleDistribution = {readonly [ownerHandle]: 'bundle-distribution'};"
               },
               {
@@ -109794,7 +109794,7 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleDistribution = {readonly [ownerHandle]: 'bundle-distribution'};"
               },
               {
@@ -109812,7 +109812,7 @@
             ],
             "identity": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleHoldScope = {readonly [ownerHandle]: 'bundle-hold-scope'};"
               },
               {
@@ -109830,7 +109830,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "declare const ownerHandle: unique symbol;"
               },
               {
@@ -109848,8 +109848,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
-                "anchor": "export function createJournal(authority: string): Journal;"
+                "path": "packages/coordinator-core/index.mts",
+                "anchor": "export const createJournal: (authority: string) => Journal = authority =>"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -109866,7 +109866,7 @@
             ],
             "failure": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleCustodyObservation = 'retained' | 'fenced' | 'unresolved' | 'unavailable';"
               },
               {
@@ -109884,7 +109884,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "export type BundleCustodyOperation = 'retain' | 'query' | 'release';"
               },
               {
@@ -109902,7 +109902,7 @@
             ],
             "resources": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "workspaceId: string;"
               },
               {
@@ -109920,7 +109920,7 @@
             ],
             "extension": [
               {
-                "path": "packages/coordinator-core/index.d.ts",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "* bundle. These fields identify the request; they grant no permission. */"
               },
               {

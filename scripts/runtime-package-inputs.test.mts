@@ -103,7 +103,7 @@ test('actual coordinator source graph records its generated artifact without pre
   assert(result.modules.some(value => value.module === 'packages/coordinator-core/index.mjs'));
   assert(result.artifacts.some(value => value.module === 'packages/coordinator-core/dist/remote_coordinator_abi.js'));
   assert(result.moon.packages.includes('remote_coordinator_abi'));
-  assert(result.types.some(value => value.module === 'packages/coordinator-core/index.d.ts'));
+  assert(result.types.some(value => value.module === 'packages/coordinator-core/index.d.mts'));
 });
 
 test('ordinary bundled Workers sources and local Host assets remain in source coverage', async () => {

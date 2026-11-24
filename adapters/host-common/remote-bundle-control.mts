@@ -1,6 +1,6 @@
 import {checked} from './runtime-result.mjs';
 import {tuplePair} from './runtime-tuple.mjs';
-import type {BundleHoldScopeInput} from '../../packages/coordinator-core/index.js';
+import type {BundleHoldScopeInput} from '../../packages/coordinator-core/index.mjs';
 
 type BigIntInput = Parameters<typeof BigInt>[0];
 type Component = Readonly<{role: string; cid: string; bytes: BigIntInput}>;

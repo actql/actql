@@ -1,7 +1,7 @@
 import {runtimeField} from './compiler-binding.generated.mjs';
 import {checked} from './runtime-result.mjs';
 import {tuplePair} from './runtime-tuple.mjs';
-import type {DispatchInput} from '../../packages/coordinator-core/index.js';
+import type {DispatchInput} from '../../packages/coordinator-core/index.mjs';
 
 type Quantity = number | bigint;
 type DispatchDeclaration = Readonly<DispatchInput>;

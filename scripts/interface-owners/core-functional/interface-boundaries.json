@@ -35239,7 +35239,7 @@
     },
     {
       "module": "packages/coordinator-core/index.mjs",
-      "sha256": "a3a49743e4f3b4e61c6310b2dfe685ee35431c2064d8853776859858cceb9b51",
+      "sha256": "db88ab9f8bc76a00ee8578053d3dd46ea8aa9323fca74f36051d8ef8146a0a9a",
       "role": "physical-io",
       "exports": [
         "acceptedSiteOutput",
@@ -36511,8 +36511,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/coordinator-core/index.mjs",
-                "anchor": "export const sitePlanning = Object.freeze({"
+                "path": "packages/coordinator-core/index.mts",
+                "anchor": "export const sitePlanning: Readonly<{"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -36529,8 +36529,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/coordinator-core/index.mjs",
-                "anchor": "export const sitePlanning = Object.freeze({"
+                "path": "packages/coordinator-core/index.mts",
+                "anchor": "export const sitePlanning: Readonly<{"
               },
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
@@ -36543,7 +36543,7 @@
             ],
             "identity": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -36557,7 +36557,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "import * as owner from './dist/remote_coordinator_abi.js';"
               },
               {
@@ -36571,8 +36571,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/coordinator-core/index.mjs",
-                "anchor": "export const sitePlanning = Object.freeze({"
+                "path": "packages/coordinator-core/index.mts",
+                "anchor": "export const sitePlanning: Readonly<{"
               },
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
@@ -36585,7 +36585,7 @@
             ],
             "failure": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -36599,7 +36599,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "custodyRequestOperation: owner.coordinatorBundleCustodyRequestOperation,"
               },
               {
@@ -36613,7 +36613,7 @@
             ],
             "resources": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "if (!Array.isArray(value) || value.length > 64) return false;"
               },
               {
@@ -36627,7 +36627,7 @@
             ],
             "extension": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "input.evidenceIssuerCapabilityCid, input.grantCid,"
               },
               {
@@ -36667,8 +36667,8 @@
           "attributes": {
             "responsibility": [
               {
-                "path": "packages/coordinator-core/index.mjs",
-                "anchor": "export const sitePlanning = Object.freeze({"
+                "path": "packages/coordinator-core/index.mts",
+                "anchor": "export const sitePlanning: Readonly<{"
               },
               {
                 "path": "docs/design/remote-site-execution.md",
@@ -36685,8 +36685,8 @@
             ],
             "inputsOutputs": [
               {
-                "path": "packages/coordinator-core/index.mjs",
-                "anchor": "export const sitePlanning = Object.freeze({"
+                "path": "packages/coordinator-core/index.mts",
+                "anchor": "export const sitePlanning: Readonly<{"
               },
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
@@ -36699,7 +36699,7 @@
             ],
             "identity": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -36713,7 +36713,7 @@
             ],
             "ownership": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "import * as owner from './dist/remote_coordinator_abi.js';"
               },
               {
@@ -36727,8 +36727,8 @@
             ],
             "synchronization": [
               {
-                "path": "packages/coordinator-core/index.mjs",
-                "anchor": "export const sitePlanning = Object.freeze({"
+                "path": "packages/coordinator-core/index.mts",
+                "anchor": "export const sitePlanning: Readonly<{"
               },
               {
                 "path": "src/remote_coordinator_abi/pkg.generated.mbti",
@@ -36741,7 +36741,7 @@
             ],
             "failure": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "import {runtimeField, runtimeIsError, runtimeIsBoxedNone, runtimeIsOk, runtimeIsBoxedSome} from './compiler-binding.generated.mjs';"
               },
               {
@@ -36755,7 +36755,7 @@
             ],
             "cancellation": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "custodyRequestOperation: owner.coordinatorBundleCustodyRequestOperation,"
               },
               {
@@ -36769,7 +36769,7 @@
             ],
             "resources": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "if (!Array.isArray(value) || value.length > 64) return false;"
               },
               {
@@ -36783,7 +36783,7 @@
             ],
             "extension": [
               {
-                "path": "packages/coordinator-core/index.mjs",
+                "path": "packages/coordinator-core/index.mts",
                 "anchor": "input.evidenceIssuerCapabilityCid, input.grantCid,"
               },
               {
