@@ -4,6 +4,7 @@ import {dirname, resolve} from 'node:path';
 import {installedProjectOriginalsForRuntime} from '../../../host-node/installed-project-configuration.mjs';
 import {loadInstalledProjectConnections} from '../../../host-node/installed-project-connections.mjs';
 import {restoreDeclaration} from './local-file-store-declaration.mjs';
+import {prepareLocalCsvTable, type PreparedLocalCsvTable} from './local-csv-table.mjs';
 
 type OriginalCalls = Readonly<{
   clientProjectConnectionsCount(connections: unknown): number;
@@ -19,7 +20,7 @@ type Project = Parameters<typeof loadInstalledProjectConnections>[1];
 type ConnectionView = Awaited<ReturnType<typeof loadInstalledProjectConnections>>;
 type ConnectionOriginal = ReturnType<ConnectionView['originalsForRuntime']>;
 type ProjectOriginal = ReturnType<typeof installedProjectOriginalsForRuntime>;
-type ConnectionEntry = Readonly<{connector?: unknown; root?: unknown; version?: unknown}>;
+type ConnectionEntry = Readonly<{connector?: unknown; root?: unknown; version?: unknown; tables?: Record<string, Readonly<{format?: unknown; path?: unknown; columns?: unknown; key?: unknown}> | null>}>;
 type Options = Readonly<{assertCurrent?: () => unknown; limits?: unknown; openFile?: unknown}>;
 type Helpers = Readonly<{
   fail(code: string): never; canonical(value: unknown): string; cid(value: unknown): string;
@@ -28,9 +29,11 @@ type Helpers = Readonly<{
 type FileSource = ReturnType<typeof restoreDeclaration> & Readonly<{
   connection: string; connectorId: string; registration: 'local'; revision: 'local/0.1';
   originalEntryWire: string; rootPath: string; versionMode: 'content' | 'metadata'; limits: LocalLimits;
+  tables: readonly PreparedLocalCsvTable[];
+  csvTransports: Readonly<Record<string, PreparedLocalCsvTable['transport']>>;
   queryAliases: readonly Readonly<{name: string; resource: string}>[];
 }>;
-type LocalProjectOriginal = Readonly<{project: ProjectOriginal; connections: ConnectionOriginal; sources: readonly FileSource[]}>;
+type LocalProjectOriginal = Readonly<{project: ProjectOriginal; connections: ConnectionOriginal; sources: readonly FileSource[]; realizationKey: 'installed-multi-acquired'}>;
 type PreparedLocalProject = Readonly<{
   originalsForRuntime(runtime: unknown): LocalProjectOriginal;
   retire(runtime: unknown): void;
@@ -56,8 +59,7 @@ export function bindLocalProjectFilePreparation({fail: refuse,canonical,cid,posi
     return value;
   }
   // Same original Project/connection declaration, before Root acquisition.
-  // Only this existing Connector's files/contents views are prepared here;
-  // configured table formats retain their original declaration for their Owner.
+  // Prepare only the shipped file/content and declared CSV read views here.
   return async function prepareInstalledProjectLocalFiles(moon: Runtime | null | undefined, project: Project | undefined,
     {assertCurrent, limits, openFile}: Options = {}): Promise<PreparedLocalProject | undefined> {
     if (project === undefined) return undefined;
@@ -100,16 +102,28 @@ export function bindLocalProjectFilePreparation({fail: refuse,canonical,cid,posi
       const rootPath=resolve(dirname(original.path!),entry.root);
       if(!text(rootPath,4096))fail('InvalidLocalFilesConnection');
       const versionMode=entry.version==='content'?'content':'metadata';
-      const declared=restoreDeclaration(call,connection,rootPath,versionMode,selectedLimits,canonical,cid);
+      const tables: PreparedLocalCsvTable[]=[];
+      for(const [resource,table] of Object.entries(entry.tables??{})){
+        if(table?.format!=='csv'&&(table?.format!==undefined||typeof table?.path!=='string'||!table.path.endsWith('.csv')))continue;
+        if(!text(resource,128)||['files','contents'].includes(resource))fail('InvalidLocalCsvResource');
+        tables.push(prepareLocalCsvTable(resource,table!,selectedLimits));
+      }
+      const declared=restoreDeclaration(call,connection,rootPath,versionMode,selectedLimits,canonical,cid,tables);
+      const {views}=JSON.parse(declared.wire) as {views: readonly {source_ref: string; resource: string}[]};
+      const csvTransports=Object.freeze(Object.fromEntries(views.flatMap(view=>{
+        const table=tables.find(table=>table.resource===view.resource);
+        return table===undefined?[]:[[view.source_ref,table.transport] as const];
+      })));
       sources.push(Object.freeze({connection,connectorId:connection,registration:'local',revision:'local/0.1',
-        originalEntryWire:wire,rootPath,versionMode,limits:selectedLimits,
+        originalEntryWire:wire,rootPath,versionMode,limits:selectedLimits,tables:Object.freeze(tables),csvTransports,
         queryAliases:Object.freeze([{name:connection,resource:'files'},
-          {name:connection+'.files',resource:'files'},{name:connection+'.contents',resource:'contents'}]
+          {name:connection+'.files',resource:'files'},{name:connection+'.contents',resource:'contents'},
+          ...tables.map(table=>({name:connection+'.'+table.resource,resource:table.resource}))]
           .map(value=>Object.freeze(value))),...declared}));
       current();
     }
     if(sources.length===0)return undefined;
-    bundle=Object.freeze({project:projectOriginal,connections:original,sources:Object.freeze(sources)});
+    bundle=Object.freeze({project:projectOriginal,connections:original,sources:Object.freeze(sources),realizationKey:'installed-multi-acquired'});
     const same = (runtime: unknown,receiver: unknown) => {if(runtime!==moon||receiver!==view)fail('ForeignLocalFilesPreparation');};
     view=Object.freeze({originalsForRuntime(runtime: unknown){same(runtime,this);current();
       if(connections!.originalsForRuntime(moon)!==original)fail('ForeignLocalFilesPreparation');return bundle!;},

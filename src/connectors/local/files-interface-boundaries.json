@@ -428,7 +428,7 @@
     {
       "module": "adapters/connectors/local/host/installed-project-files.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "157252f5333fbbe7a62c3102699583062c0e948fa3af0c01008971dcef20c8a7",
+      "sha256": "8177992df7d20e15fa8d85240b40053307c8bcb6f0322771fdb28db7ce83d5c8",
       "exports": [
         "LOCAL_FILES_DEFAULT_LIMITS",
         "installPreparedProjectLocalFiles",
@@ -487,6 +487,13 @@
           "async": false
         },
         {
+          "name": "installPreparedProjectLocalFiles/adapter/adapter/table/table",
+          "parameters": [
+            "table"
+          ],
+          "async": false
+        },
+        {
           "name": "installPreparedProjectLocalFiles/adapter/init:close/init:close",
           "parameters": [],
           "async": true
@@ -514,6 +521,13 @@
             "runInvocationCid",
             "dispatchRequestCid",
             "maxUses"
+          ],
+          "async": false
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
+          "parameters": [
+            "view"
           ],
           "async": false
         },
@@ -575,6 +589,13 @@
           "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/cleanup/cleanup#2",
           "parameters": [],
           "async": true
+        },
+        {
+          "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/csv/csv",
+          "parameters": [
+            "table"
+          ],
+          "async": false
         },
         {
           "name": "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/fileLimits/fileLimits",
@@ -838,9 +859,10 @@
         "../../../host-common/file-media-type.mjs",
         "../../../host-common/runtime-result.mjs",
         "../../../host-node/installed-check-environment.mjs",
-        "../../../host-node/installed-host-cleanup.mts",
+        "../../../host-node/installed-host-cleanup.mjs",
         "../../../host-node/installed-row-source.mjs",
         "../site/root-filesystem.mjs",
+        "./local-csv-table.mjs",
         "./local-file-store-declaration.mjs",
         "./local-project-file-preparation.mjs",
         "node:crypto",
@@ -898,7 +920,10 @@
             "canonical/canonical",
             "cid/cid",
             "positive/positive",
-            "text/text"
+            "text/text",
+            "installPreparedProjectLocalFiles/adapter/adapter/table/table",
+            "installPreparedProjectLocalFiles/adapter/init:issueReadGrant/init:issueReadGrant/init:issueReadGrant",
+            "installPreparedProjectLocalFiles/adapter/init:readPages/init:readPages/csv/csv"
           ],
           "exports": [
             "LOCAL_FILES_DEFAULT_LIMITS",
@@ -1240,6 +1265,14 @@
               {
                 "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "combined Local Source and STORE initialization retain the same original connection binding"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
+                "anchor": "actual Common restores distinct declared CSV views"
+              },
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.test.mts",
+                "anchor": "test('decodes the declared CSV columns"
               }
             ]
           }
@@ -2094,7 +2127,7 @@
     {
       "module": "adapters/connectors/local/host/local-project-file-preparation.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "5ce495c31d38b0b9f0fa5e012a0914bc38c46d146b02f8ffe6dd427522bb24fa",
+      "sha256": "a5c03e63f006c5d05ec0050bdd9bff7109a08d462ec8c3b86bbb834aa54ae377",
       "exports": [
         "bindLocalProjectFilePreparation"
       ],
@@ -2158,6 +2191,20 @@
           "async": false
         },
         {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/csvTransports/csvTransports",
+          "parameters": [
+            "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/csvTransports/csvTransports/table/table",
+          "parameters": [
+            "table"
+          ],
+          "async": false
+        },
+        {
           "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/current/current",
           "parameters": [],
           "async": false
@@ -2186,6 +2233,13 @@
         {
           "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
           "parameters": [
+            "table"
+          ],
+          "async": false
+        },
+        {
+          "name": "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles#2",
+          "parameters": [
             "value"
           ],
           "async": false
@@ -2194,6 +2248,7 @@
       "imports": [
         "../../../host-node/installed-project-configuration.mjs",
         "../../../host-node/installed-project-connections.mjs",
+        "./local-csv-table.mjs",
         "./local-file-store-declaration.mjs",
         "node:path"
       ],
@@ -2216,7 +2271,10 @@
             "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/init:originalsForRuntime/init:originalsForRuntime",
             "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/init:retire/init:retire",
             "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/ports/ports",
-            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles"
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/csvTransports/csvTransports",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/csvTransports/csvTransports/table/table",
+            "bindLocalProjectFilePreparation/prepareInstalledProjectLocalFiles/prepareInstalledProjectLocalFiles#2"
           ],
           "exports": [
             "bindLocalProjectFilePreparation"
@@ -2273,13 +2331,17 @@
             "extension": [
               {
                 "path": "adapters/connectors/local/host/local-project-file-preparation.mts",
-                "anchor": "configured table formats retain their original declaration for their Owner."
+                "anchor": "Prepare only the shipped file/content and declared CSV read views here."
               }
             ],
             "verification": [
               {
                 "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
                 "anchor": "test('actual Common Local preparation preserves original Project bytes"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
+                "anchor": "actual Common restores distinct declared CSV views"
               }
             ]
           }
@@ -3009,7 +3071,7 @@
     {
       "module": "adapters/connectors/local/host/local-file-store-declaration.mjs",
       "responsibilityFacet": "primary",
-      "sha256": "92820ea084dc433a5a5ff7334bd8cc04dfbf17c291d0b7883e911d977b3d3737",
+      "sha256": "ab3f43ad9331abeeda266ab9506213bea3f34bd64185ce0db297008951671878",
       "role": "connector-semantics",
       "owner": "Existing Local Connector Catalog/Command/Mapping declaration; DATA only, not Reference or I/O authority",
       "exports": [
@@ -3114,7 +3176,8 @@
             "versionMode",
             "limits",
             "canonical",
-            "cid"
+            "cid",
+            "tables"
           ],
           "async": false
         },
@@ -3129,6 +3192,14 @@
           "name": "restoreDeclaration/restoreDeclaration#2",
           "parameters": [
             "view"
+          ],
+          "async": false
+        },
+        {
+          "name": "restoreDeclaration/schema/schema",
+          "parameters": [
+            "name",
+            "type"
           ],
           "async": false
         },
@@ -3159,7 +3230,8 @@
             "sorted/sorted/sorted",
             "restoreDeclaration",
             "restoreDeclaration/restoreDeclaration",
-            "restoreDeclaration/restoreDeclaration#2"
+            "restoreDeclaration/restoreDeclaration#2",
+            "restoreDeclaration/schema/schema"
           ],
           "exports": [
             "localFileStoreDeclaration",
@@ -3250,6 +3322,10 @@
               {
                 "path": "adapters/connectors/local/host/local-file-store-declaration.actual.test.mjs",
                 "anchor": "test('actual Local STORE declaration retains"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
+                "anchor": "actual Common restores distinct declared CSV views"
               }
             ]
           }
@@ -4783,6 +4859,177 @@
           }
         }
       ]
+    },
+    {
+      "module": "adapters/connectors/local/host/local-csv-table.mjs",
+      "responsibilityFacet": "primary",
+      "sha256": "f5c9e2e1cb8ee54693f3e21e8d4214ccf20c518516a02e724c0ade53563ae7f0",
+      "exports": [
+        "encodeLocalCsvPage",
+        "prepareLocalCsvTable"
+      ],
+      "imports": [],
+      "operations": [
+        {
+          "name": "encodeLocalCsvPage",
+          "parameters": [
+            "bytes",
+            "table",
+            "maxPageBytes"
+          ],
+          "async": false
+        },
+        {
+          "name": "localCsvRows/identity/identity",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "localCsvRows/localCsvRows",
+          "parameters": [
+            "value"
+          ],
+          "async": false
+        },
+        {
+          "name": "localCsvRows/localCsvRows#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "localCsvRows/row/row",
+          "parameters": [
+            "name",
+            "i"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalCsvTable",
+          "parameters": [
+            "resource",
+            "table",
+            "limits"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalCsvTable/prepareLocalCsvTable",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalCsvTable/prepareLocalCsvTable#2",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        },
+        {
+          "name": "prepareLocalCsvTable/prepareLocalCsvTable#3",
+          "parameters": [
+            "name"
+          ],
+          "async": false
+        }
+      ],
+      "role": "connector-semantics",
+      "owner": "Existing Local Source and physical Root owner",
+      "rationale": "Projects one exact Project CSV declaration and its bounded original file response into a typed RowRun page.",
+      "contracts": [
+        {
+          "operations": [
+            "<module>",
+            "encodeLocalCsvPage",
+            "localCsvRows/identity/identity",
+            "localCsvRows/localCsvRows",
+            "localCsvRows/localCsvRows#2",
+            "localCsvRows/row/row",
+            "prepareLocalCsvTable",
+            "prepareLocalCsvTable/prepareLocalCsvTable",
+            "prepareLocalCsvTable/prepareLocalCsvTable#2",
+            "prepareLocalCsvTable/prepareLocalCsvTable#3"
+          ],
+          "exports": [
+            "encodeLocalCsvPage",
+            "prepareLocalCsvTable"
+          ],
+          "attributes": {
+            "responsibility": [
+              {
+                "path": "docs/connectors/local-files.md",
+                "anchor": "## Node Local availability"
+              }
+            ],
+            "inputsOutputs": [
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
+                "anchor": "export function encodeLocalCsvPage"
+              }
+            ],
+            "identity": [
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
+                "anchor": "export function prepareLocalCsvTable"
+              }
+            ],
+            "ownership": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
+                "anchor": "read.reader.read(csv.path)"
+              }
+            ],
+            "synchronization": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
+                "anchor": "checkRead();"
+              }
+            ],
+            "failure": [
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
+                "anchor": "InvalidLocalCsvEncoding"
+              }
+            ],
+            "cancellation": [
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.mts",
+                "anchor": "options.signal?.throwIfAborted()"
+              }
+            ],
+            "resources": [
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
+                "anchor": "const transport = Object.freeze"
+              }
+            ],
+            "extension": [
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.mts",
+                "anchor": "columns[name]"
+              }
+            ],
+            "verification": [
+              {
+                "path": "adapters/connectors/local/host/local-csv-table.test.mts",
+                "anchor": "test('decodes the declared CSV columns"
+              },
+              {
+                "path": "adapters/connectors/local/host/installed-project-files.actual.test.mts",
+                "anchor": "actual Common restores distinct declared CSV views"
+              }
+            ]
+          }
+        }
+      ],
+      "compilerFields": [],
+      "unresolvedSyntax": []
     }
   ]
 }

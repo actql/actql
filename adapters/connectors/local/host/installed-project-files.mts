@@ -10,6 +10,7 @@ import {retainInstalledHostInitializationFailure} from '../../../host-node/insta
 import {AcquisitionOpenError} from '../../../host-common/acquisition-outcome.mjs';
 import {openLocalFileRoot,physicalReadChild} from '../site/root-filesystem.mjs';
 import {localFileStoreDeclaration} from './local-file-store-declaration.mjs';
+import {encodeLocalCsvPage} from './local-csv-table.mjs';
 import {bindLocalProjectFilePreparation} from './local-project-file-preparation.mjs';
 import {defaultFileMediaType as mime} from '../../../host-common/file-media-type.mjs';
 
@@ -82,6 +83,7 @@ type SharedReadPages = Readonly<{
   captureContent?(input: Readonly<{bytes: Uint8Array; mediaType: string; contentCid: string}>): unknown;
   chargePage(body: Uint8Array): unknown;
   consumeObservation?(charge: unknown): unknown;
+  consumePageWire?(wire: string, options: Readonly<{charge: unknown}>): unknown;
   consumePage(rows: unknown): unknown;
 }>;
 type CurrentMethod = (read: unknown) => unknown;
@@ -419,7 +421,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
       // physical connection shared with STORE; equal CIDs cannot replace it.
       if(entry.queryAliases!==originalEntry.queryAliases||entry.limits!==originalEntry.limits||
           entry.connection!==originalEntry.connection||entry.connectorId!==originalEntry.connectorId||
-          entry.rootPath!==originalEntry.rootPath||entry.scopeCid!==originalEntry.scopeCid)
+          entry.rootPath!==originalEntry.rootPath||entry.scopeCid!==originalEntry.scopeCid||
+          entry.tables!==originalEntry.tables||entry.csvTransports!==originalEntry.csvTransports)
         fail('ForeignLocalFilesPreparation');
       current();
       const authorization=await authorizationFor(entry.connection);current();
@@ -445,7 +448,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           issueReadGrant({operation,decision,resource,runInvocationCid,dispatchRequestCid,maxUses}:
             Parameters<SourceOptions['site']['issueReadGrant']>[0]){
             current();
-            if(operation!=='read'||!['files','contents'].includes(resource)||
+            if(operation!=='read'||!declared.views.some(view=>view.resource===resource)||
                 !/^sha256:[0-9a-f]{64}$/u.test(runInvocationCid)||
                 !/^sha256:[0-9a-f]{64}$/u.test(dispatchRequestCid)||!positive(maxUses)||
                 decision?.action!=='dispatch'||decision.boundary!=='acquisition'||
@@ -459,11 +462,15 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
           },
           async close(){
             for(const read of sharedReads)if(read.entry===entry)await closeRead(read);}}),
-        physicalTarget:(resource,fields)=>({connection:entry.connection,root:entry.rootPath,
-          resource,fields:[...fields],scope_cid:entry.scopeCid}),
+        physicalTarget:(resource,fields)=>{
+          const table=entry.tables.find(table=>table.resource===resource);
+          return {connection:entry.connection,root:entry.rootPath,resource,fields:[...fields],scope_cid:entry.scopeCid,
+            ...(table===undefined?{}:{relative_path:table.path})};
+        },
         limits:{maxPages:entry.limits.maxPages,maxPageBytes:entry.limits.maxPageBytes,
           maxPageRows:entry.limits.maxPageRows,maxCaptureRows:entry.limits.maxFiles},
         // The funded declaration projection preserves this exact Source order.
+        ...(entry.tables.length===0?{}:{originalReadTransports:entry.csvTransports}),
         originalKeyedTransport:keyedTransport(entry),
         prepareSourceRead({checkedOwner,effectful,declaration,occurrence,managedRun,originalRead,requestIdentity}){
           current();
@@ -585,7 +592,8 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
                 stopped?undefined:Object.freeze({close:cleanup,cleanup,cleanupPending:()=>!stopped}));
             }
           }
-          if(options.resource!=='files'||options.listing===undefined)fail('LocalFilesContentReadUnavailable');
+          const csv=entry.tables.find(table=>table.resource===options.resource);
+          if(csv===undefined&&(options.resource!=='files'||options.listing===undefined))fail('LocalFilesContentReadUnavailable');
           const retained=reads.get(options.rowRun.originalRead as object);
           if(retained?.read===undefined)fail('LocalFilesSourcePreparationMismatch');
           const {run,read}=retained;sameRun(run.prepared);
@@ -597,6 +605,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             await options.verifyRead();options.signal?.throwIfAborted();sameRun(run.prepared);
             const fileLimits=Object.fromEntries(['maxEntries','maxDepth','maxPathBytes','maxFiles','maxFileBytes','maxReadBytes']
               .map(name=>[name,entry.limits[name as FileLimits]]));
+            if(csv!==undefined)fileLimits.maxReadBytes=fileLimits.maxFileBytes=csv.maxBytes;
             const checkRead=(): undefined=>{sameRun(run.prepared);checked(moon.clientProgramInstalledSourceReadCheckCurrent(read.value));};
             read.physical=physicalReadChild({namespace:nativeFilesystem,path:entry.rootPath,assertCurrent:checkRead},
               fail,acknowledged,openLocalFileRoot);
@@ -607,6 +616,16 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             // directory open; initialization is not listing or Content credit.
             entered=true;
             read.reader=read.physical.start({limits:fileLimits,signal:options.signal,assertCurrent:checkRead});
+            if(csv!==undefined){
+              if(typeof options.consumePageWire!=='function')fail('LocalFilesContentReadUnavailable');
+              const file=await read.reader.read(csv.path);
+              checkRead();
+              const charge=options.chargePage(file.bytes);
+              await options.consumePageWire(encodeLocalCsvPage(file.bytes,csv,entry.limits.maxPageBytes),{charge});
+              checkRead();
+              if(shared)await closeSourceRead(read.value);
+              return;
+            }
             let items: object[]=[],page=0,token: string | null | undefined;
             const flush=async (final: boolean)=>{
               const next=final?null:String(++page);
@@ -658,8 +677,11 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
             entry.declaration,requirement,queryContract,evidenceContract));
           const capacity=moon.clientProgramInstalledRowCaptureCapacity(acquisition);
           if(capacity===undefined)fail('LocalFilesManagedReadUnavailable');
-          return Object.freeze({capacity,transferBytes:BigInt(entry.limits.maxPages)*BigInt(entry.limits.maxPageBytes),
-            executionBytes:BigInt(entry.limits.maxPageBytes)});
+          const sourceRef=entry.tables.length===0?undefined:moon.clientProgramQueryRequirementSourceRef(requirement);
+          const transport=(typeof sourceRef==='string'?entry.csvTransports[sourceRef]:undefined)??
+            {transferBytes:BigInt(entry.limits.maxPages)*BigInt(entry.limits.maxPageBytes),
+              executionBytes:BigInt(entry.limits.maxPageBytes)};
+          return Object.freeze({capacity,...transport});
         },
         async prepare(facts: Parameters<RowSource['prepare']>[0]){
           const owner=facts.preparedEffect??facts.preparedProgram;
@@ -693,7 +715,7 @@ export async function installPreparedProjectLocalFiles({moon,preparation,sourceM
     for(const source of sources)environmentWire=composeInstalledCheckEnvironment(moon,baseEnvironmentWire,
       environmentWire,source.environmentWire);
     current();
-    profile=Object.freeze({realizationKey:'installed-multi-acquired',environmentWire,sources:Object.freeze(sources),
+    profile=Object.freeze({realizationKey:bundle.realizationKey,environmentWire,sources:Object.freeze(sources),
       ...(bundle.fileReadDeclarations===undefined?{}:{fileReadDeclarations:bundle.fileReadDeclarations}),
       ...(construction===undefined?{}:{originalsForProjectEffects(runtime: unknown,originalPreparation: unknown){
         if(this!==profile||runtime!==moon||originalPreparation!==preparation)

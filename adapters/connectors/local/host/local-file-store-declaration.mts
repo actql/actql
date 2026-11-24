@@ -4,6 +4,7 @@
 import {createHash} from 'node:crypto';
 import {isAbsolute} from 'node:path';
 import {canonicalJson} from '../../../../packages/sdk/host-port.mjs';
+import type {PreparedLocalCsvTable} from './local-csv-table.mjs';
 import {checked} from '../../../host-common/runtime-result.mjs';
 
 type Data = Record<string, unknown>;
@@ -120,7 +121,7 @@ type DeclarationViews = Readonly<{views: readonly Readonly<{resource: unknown; c
 
 export function restoreDeclaration(call: DeclarationCall, connection: string, rootPath: string,
   versionMode: 'content' | 'metadata', limits: LocalFileDeclarationLimits,
-  canonical: (value: unknown) => string, cid: (value: unknown) => string) {
+  canonical: (value: unknown) => string, cid: (value: unknown) => string, tables: readonly PreparedLocalCsvTable[]) {
   const string = (nullable: boolean) => ({type:'string',nullable});
   const resource = {type:'resource_ref',resource_kind:'file',nullable:false};
   const timestamp = (nullable: boolean) => ({type:'timestamp',nullable});
@@ -133,12 +134,18 @@ export function restoreDeclaration(call: DeclarationCall, connection: string, ro
   const view = (name: string,schema: Data,fields: Data,acquisition: Data) => ({resource:name,resource_kind:'file',
     schema_wire:canonical(schema),schema_cid:cid(schema),request_schema_wire:canonical(request(fields)),
     facts_wire:'{}',acquisition_wire:canonical(acquisition)});
-  const views = [view('files',fileSchema,{paths:{type:'array',nullable:true,
+  const views: Array<Pick<ReturnType<typeof view>, 'resource' | 'resource_kind' | 'schema_wire' | 'schema_cid' | 'facts_wire'> &
+    Partial<Pick<ReturnType<typeof view>, 'request_schema_wire' | 'acquisition_wire'>>> = [view('files',fileSchema,{paths:{type:'array',nullable:true,
     max_items:limits.maxFiles,items:string(false)},glob:string(true)},
     {kind:'scan',authority:'read_metadata'}),
   view('contents',contentSchema,{resource,version:string(false)},
     {kind:'fetch',authority:'read_content',correlation:{request_fields:['resource','version'],
       response_fields:['resource','version'],identity:['resource','version'],cardinality:'one'}})];
+  for (const table of tables) {
+    const schema = Object.fromEntries(Object.entries(table.columnTypes).map(([name,type]) => [name,{type,nullable:false}]));
+    views.push({resource:table.resource,resource_kind:'record',schema_wire:canonical(schema),schema_cid:cid(schema),
+      facts_wire:canonical(table.key.length === 0 ? {} : {relation_keys:{candidate_keys:[table.key]}})});
+  }
   const restore = () => checked(call('clientProgramRowSourceRestoreRelationDeclaration',
     connection,'local','local/0.1',JSON.stringify({views}),undefined));
   const initial = JSON.parse(call('clientProgramRowSourceDeclarationJson',restore())) as DeclarationViews;

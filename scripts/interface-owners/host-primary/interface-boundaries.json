@@ -10164,7 +10164,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -10997,7 +10997,8 @@
             "openPreparedInstalledHost/preparation/init:installProjectSources/init:installProjectSources",
             "readInstalledProjectSourcePreparation",
             "readSourceManagedRunRequirementsOwned/matches/matches",
-            "readSourceManagedRunRequirementsOwned/matches/matches/matches"
+            "readSourceManagedRunRequirementsOwned/matches/matches/matches",
+            "openPreparedInstalledHost/preparation/init:originalProjectLocalFiles/init:originalProjectLocalFiles"
           ],
           "exports": [
             "readInstalledProjectSourcePreparation"
@@ -13533,11 +13534,11 @@
         },
         {
           "operations": [
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
-            "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks#2",
-            "openPreparedInstalledHost/preparation/init:prepareStandardAccount/init:prepareStandardAccount"
+            "openPreparedInstalledHost/preparation/init:prepareStandardAccount/init:prepareStandardAccount",
+            "openInstalledHost/adoptStandardAccount/adoptStandardAccount",
+            "openInstalledHost/adoptStandardAccount/adoptStandardAccount#2",
+            "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks",
+            "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks#2"
           ],
           "exports": [],
           "attributes": {
@@ -17136,7 +17137,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -19517,7 +19518,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -21711,7 +21712,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -22995,7 +22996,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -24275,7 +24276,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -25555,7 +25556,7 @@
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
-                "anchor": "authorization = await standardAccountPreparation.adopt(moon, {"
+                "anchor": "authorization = await standardAccountPreparation!.adopt(moon, {"
               },
               {
                 "path": "adapters/host-node/embedded-local.mts",
@@ -27432,6 +27433,35 @@
           "async": false
         },
         {
+          "name": "openInstalledHost/adoptStandardAccount/adoptStandardAccount",
+          "parameters": [
+            "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/adoptStandardAccount#2",
+          "parameters": [
+            "connection"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks",
+          "parameters": [
+            "entry"
+          ],
+          "async": false
+        },
+        {
+          "name": "openInstalledHost/adoptStandardAccount/modelTasks/modelTasks#2",
+          "parameters": [
+            "left",
+            "right"
+          ],
+          "async": false
+        },
+        {
           "name": "openInstalledHost/assertModelRuntime",
           "parameters": [],
           "async": false
@@ -27743,20 +27773,6 @@
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/checkSource/checkSource#2",
           "parameters": [
             "actual"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections",
-          "parameters": [
-            "source"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/configuredConnections/configuredConnections/configuredConnections",
-          "parameters": [
-            "access"
           ],
           "async": false
         },
@@ -28216,21 +28232,6 @@
             "value"
           ],
           "async": true
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks",
-          "parameters": [
-            "entry"
-          ],
-          "async": false
-        },
-        {
-          "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/modelTasks/modelTasks#2",
-          "parameters": [
-            "left",
-            "right"
-          ],
-          "async": false
         },
         {
           "name": "openInstalledHost/initializePublicationServices/initializePublicationServices/observeHeldRun/observeHeldRun",
@@ -30119,8 +30120,16 @@
         {
           "name": "openPreparedInstalledHost/preparation/init:openResultPublicationStore/init:openResultPublicationStore",
           "parameters": [
-            "options",
+            "root",
+            "storeAuthorityCid",
             "control"
+          ],
+          "async": false
+        },
+        {
+          "name": "openPreparedInstalledHost/preparation/init:originalProjectLocalFiles/init:originalProjectLocalFiles",
+          "parameters": [
+            "runtime"
           ],
           "async": false
         },
@@ -31494,7 +31503,7 @@
       ],
       "compilerFields": [],
       "unresolvedSyntax": [],
-      "sha256": "a4eb685481991b348fa1d6b241f779a21b572da7bb5abf769b588ec94a37df5d"
+      "sha256": "916c6983eb923985516ca5ceb2d5ce63c274ab199c638fbf3c9cd15b1f515124"
     },
     {
       "module": "adapters/host-node/initial-control-host-input.mjs",
