@@ -20,7 +20,7 @@ fn local_check_test_environment() -> @checked.CheckEnvironment {
   let original = @host.client_local_product_bootstrap_originals(
     "/local-check-fixture", "2026-10-20T00:00:00.000Z",
   ).unwrap()
-  admit_python_local_source_free_environment(
+  admit_python_local_environment(
     original.environment,
     environment_body_cid(original.environment),
   ).unwrap()

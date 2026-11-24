@@ -123,6 +123,43 @@ fn published_preparation_close(
 }
 
 ///|
+test "published Python Local admission retains the built-in numeric profile" {
+  let nonce = 6199L
+  let (value, _, pool, capacity, slot, environment_slot) = published_preparation_fixture(
+    nonce, "SELECT 1 AS id",
+  )
+  let original = value.environments.get(1).unwrap()
+  let publication = original.publication.unwrap()
+  let (environment, _) = admit_python_local_published_input(
+    original.wire,
+    publication,
+  ).unwrap()
+  assert_eq(
+    @checked.checking_environment_cid(environment),
+    @checked.checking_environment_cid(original.environment),
+  )
+  let profiles = @checked.checking_environment_profile_selection(environment)
+  assert_eq(
+    profiles.numeric_profile_cid,
+    Some(
+      "sha256:d771391b2e4f3e52a3cf48810571a09c6c272df64fbb77c245dfabcf456be5df",
+    ),
+  )
+  assert_false(profiles.expressions.text_time)
+  assert_true(
+    admit_python_local_published_input(
+      original.wire,
+      publication.replace(
+        old=@checked.checking_environment_cid(original.environment),
+        new="sha256:" + "f".repeat(64),
+      ),
+    )
+    is None,
+  )
+  published_preparation_close(nonce, pool, capacity, slot, environment_slot)
+}
+
+///|
 let published_preparation_effect_text = "SELECT 'original-id' AS id, 1 AS value |> RESULT out |> EFFECT UPDATE salesforce.Account ID id SET (Name = value)"
 
 ///|

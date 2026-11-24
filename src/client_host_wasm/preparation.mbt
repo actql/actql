@@ -158,9 +158,10 @@ fn input_cursor(
 }
 
 ///|
-// The source-free installation links the Common numeric reducer. Select the
-// same pinned profile as the other installed Local Hosts.
-fn admit_python_local_source_free_environment(
+// Both Python Local entrances link the same Common numeric reducer used by
+// the other installed Local Hosts. Keep the selected profile with the
+// admitted environment, including when it binds a published input.
+fn admit_python_local_environment(
   body : String,
   cid : String,
 ) -> @checked.CheckEnvironment? {
@@ -190,8 +191,7 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
     return -20
   }
   let body = @utf8.decode(wire) catch { _ => return -12 }
-  guard admit_python_local_source_free_environment(body, cid)
-    is Some(environment) else {
+  guard admit_python_local_environment(body, cid) is Some(environment) else {
     return -20
   }
   // This entry installs the source-free profile. Source-backed aliases must
@@ -221,6 +221,26 @@ pub fn install_environment(nonce : Int64, input : Int) -> Int {
 }
 
 ///|
+fn admit_python_local_published_input(
+  body : String,
+  publication : String,
+) -> (@checked.CheckEnvironment, @preparation.LocalInputContext)? {
+  guard admit_python_local_environment(body, environment_body_cid(body))
+    is Some(environment) else {
+    return None
+  }
+  match
+    @preparation.bind_local_published_input_context(
+      environment,
+      publication,
+      None,
+    ) {
+    Ok(context) => Some((environment, context))
+    Err(_) => None
+  }
+}
+
+///|
 /// Trusted installed environment and publication share one pre-reserved input.
 /// The common publication interpreter binds aliases to admitted Catalog facts;
 /// no caller-defined file, schema or Source read permission is accepted here.
@@ -238,23 +258,9 @@ pub fn install_source_environment(nonce : Int64, input : Int) -> Int {
     required_text(object, "publication") is Some(publication) else {
     return -20
   }
-  guard @host.admit_client_check_environment(
-      body,
-      environment_body_cid(body),
-      { text_time: false, veca: false, },
-      { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
-    )
-    is Some(environment) else {
+  guard admit_python_local_published_input(body, publication)
+    is Some((environment, context)) else {
     return -20
-  }
-  let context = match
-    @preparation.bind_local_published_input_context(
-      environment,
-      publication,
-      None,
-    ) {
-    Ok(context) => context
-    Err(_) => return -20
   }
   let handle = value.next_handle
   let borrow = match
